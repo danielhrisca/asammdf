@@ -536,7 +536,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             f'Extracting Bus logging from "{count}" files'
         )
 
-        files = self._prepare_files(list(source_files, progress))
+        files = self._prepare_files(list(source_files), progress)
 
         message = []
 
@@ -1342,40 +1342,16 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         return Options(options)
 
+    def apply_processing_finished(self):
+        self._progress = None
+
     def apply_processing(self, event):
-
-        count = self.files_list.count()
-        progress = setup_progress(
-            parent=self,
-            title="Preparing measurements",
-            message="Preparing measurements",
-            icon_name="filter",
-        )
-        files = self._prepare_files(progress)
-        progress.cancel()
-        source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
-
-        if not count:
-            return
-
-        steps = 1
-        if self.cut_group.isChecked():
-            steps += 1
-        if self.resample_group.isChecked():
-            steps += 1
-        needs_filter, channels = self._get_filtered_channels()
-        if needs_filter:
-            steps += 1
 
         opts = self._current_options()
 
         output_format = opts.output_format
 
-        if output_format == "MDF":
-            version = opts.mdf_version
-
         if output_format == "HDF5":
-            suffix = ".hdf"
             try:
                 from h5py import File as HDF5
             except ImportError:
@@ -1387,7 +1363,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 return
 
         elif output_format == "MAT":
-            suffix = ".mat"
             if opts.mat_format == "7.3":
                 try:
                     from hdf5storage import savemat
@@ -1410,7 +1385,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     return
 
         elif output_format == "Parquet":
-            suffix = ".parquet"
             try:
                 from fastparquet import write as write_parquet
             except ImportError:
@@ -1420,8 +1394,50 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     "fastparquet package not found; export to parquet is unavailable",
                 )
                 return
+
+        self._progress = setup_progress(parent=self, autoclose=False)
+        self._progress.finished.connect(self.apply_processing_finished)
+
+        self._progress.run_thread_with_progress(
+            target=self.apply_processing_thread,
+            args=(),
+            kwargs={},
+        )
+
+    def apply_processing_thread(self, progress):
+
+        count = self.files_list.count()
+        source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
+
+        if not count:
+            return
+
+        opts = self._current_options()
+
+        output_format = opts.output_format
+
+        if output_format == "MDF":
+            version = opts.mdf_version
+
+        if output_format == "HDF5":
+            suffix = ".hdf"
+            from h5py import File as HDF5
+
+        elif output_format == "MAT":
+            suffix = ".mat"
+            if opts.mat_format == "7.3":
+                from hdf5storage import savemat
+            else:
+                from scipy.io import savemat
+
+        elif output_format == "Parquet":
+            suffix = ".parquet"
+            from fastparquet import write as write_parquet
+
         elif output_format == "CSV":
             suffix = ".csv"
+
+        needs_filter, channels = self._get_filtered_channels()
 
         output_folder = self.modify_output_folder.text().strip()
         if output_folder:
@@ -1437,43 +1453,43 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         split_size = opts.mdf_split_size if output_format == "MDF" else 0
 
+        integer_interpolation = self.integer_interpolation
+        float_interpolation = self.float_interpolation
+
+        files = self._prepare_files(list(source_files), progress)
+
         for i, (mdf_file, source_file) in enumerate(zip(files, source_files)):
+
             mdf_file.configure(
                 read_fragment_size=split_size,
                 integer_interpolation=self.integer_interpolation,
                 float_interpolation=self.float_interpolation,
             )
 
-            mdf = None
-            progress = None
+            mdf = mdf_file
 
             if needs_filter:
 
-                progress = setup_progress(
-                    parent=self,
-                    title="Filtering measurement",
-                    message=f'Filtering selected channels from "{self.file_name}"',
-                    icon_name="filter",
+                icon = QtGui.QIcon()
+                icon.addPixmap(
+                    QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
+                progress.signals.setWindowIcon.emit(icon)
+                progress.signals.setWindowTitle.emit(
+                    f"Filtering measurement {i+i} of {count}"
+                )
+                progress.signals.setLabelText.emit(
+                    f'Filtering selected channels from\n"{source_file}"'
                 )
 
                 # filtering self.mdf
-                target = mdf_file.filter
-                kwargs = {
-                    "channels": channels,
-                    "version": opts.mdf_version if output_format == "MDF" else "4.10",
-                }
-
-                result = run_thread_with_progress(
-                    self,
-                    target=target,
-                    kwargs=kwargs,
-                    factor=99,
-                    offset=0,
+                result = mdf.filter(
+                    channels=channels,
+                    version=opts.mdf_version if output_format == "MDF" else "4.10",
                     progress=progress,
                 )
 
                 if result is TERMINATED:
-                    progress.cancel()
                     return
                 else:
                     mdf = result
@@ -1481,166 +1497,116 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 mdf.configure(
                     read_fragment_size=split_size,
                     write_fragment_size=split_size,
-                    integer_interpolation=self.integer_interpolation,
-                    float_interpolation=self.float_interpolation,
+                    integer_interpolation=integer_interpolation,
+                    float_interpolation=float_interpolation,
                 )
 
             if opts.needs_cut:
 
-                if progress is None:
-                    progress = setup_progress(
-                        parent=self,
-                        title="Cutting measurement",
-                        message=f"Cutting from {opts.cut_start}s to {opts.cut_stop}s",
-                        icon_name="cut",
-                    )
-                else:
-                    icon = QtGui.QIcon()
-                    icon.addPixmap(
-                        QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-                    )
-                    progress.setWindowIcon(icon)
-                    progress.setWindowTitle("Cutting measurement")
-                    progress.setLabelText(
-                        f"Cutting from {opts.cut_start}s to {opts.cut_stop}s"
-                    )
+                icon = QtGui.QIcon()
+                icon.addPixmap(
+                    QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
+                progress.signals.setWindowIcon.emit(icon)
+                progress.signals.setWindowTitle.emit(
+                    f"Cutting measurement {i+i} of {count}"
+                )
+                progress.signals.setLabelText.emit(
+                    f"Cutting from {opts.cut_start}s to {opts.cut_stop}s from \n{source_file}"
+                )
 
-                # cut mdf_file
-                target = mdf_file.cut if mdf is None else mdf.cut
-                kwargs = {
-                    "start": opts.cut_start,
-                    "stop": opts.cut_stop,
-                    "whence": opts.whence,
-                    "version": opts.mdf_version if output_format == "MDF" else "4.10",
-                    "time_from_zero": opts.cut_time_from_zero,
-                }
-
-                result = run_thread_with_progress(
-                    self,
-                    target=target,
-                    kwargs=kwargs,
-                    factor=99,
-                    offset=0,
+                # cut self.mdf
+                target = mdf.cut
+                result = target(
+                    start=opts.cut_start,
+                    stop=opts.cut_stop,
+                    whence=opts.whence,
+                    version=opts.mdf_version if output_format == "MDF" else "4.10",
+                    time_from_zero=opts.cut_time_from_zero,
                     progress=progress,
                 )
 
                 if result is TERMINATED:
-                    progress.cancel()
                     return
                 else:
-                    if mdf is None:
-                        mdf = result
-                    else:
-                        mdf.close()
-                        mdf = result
+                    mdf.close()
+                    mdf = result
 
                 mdf.configure(
                     read_fragment_size=split_size,
                     write_fragment_size=split_size,
-                    integer_interpolation=self.integer_interpolation,
-                    float_interpolation=self.float_interpolation,
+                    integer_interpolation=integer_interpolation,
+                    float_interpolation=float_interpolation,
                 )
 
             if opts.needs_resample:
 
                 if opts.raster_type_channel:
                     raster = opts.raster_channel
-                    message = f'Resampling using channel "{raster}"'
+                    message = f'Resampling using channel "{raster}"\n{source_file}'
                 else:
                     raster = opts.raster
-                    message = f"Resampling to {raster}s raster"
+                    message = f"Resampling to {raster}s raster\n{source_file}"
 
-                if progress is None:
-                    progress = setup_progress(
-                        parent=self,
-                        title="Resampling measurement",
-                        message=message,
-                        icon_name="resample",
-                    )
-                else:
-                    icon = QtGui.QIcon()
-                    icon.addPixmap(
-                        QtGui.QPixmap(":/resample.png"),
-                        QtGui.QIcon.Normal,
-                        QtGui.QIcon.Off,
-                    )
-                    progress.setWindowIcon(icon)
-                    progress.setWindowTitle("Resampling measurement")
-                    progress.setLabelText(message)
+                icon = QtGui.QIcon()
+                icon.addPixmap(
+                    QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
+                progress.signals.setWindowIcon.emit(icon)
+                progress.signals.setWindowTitle.emit(
+                    f"Resampling measurement {i+i} of {count}"
+                )
+                progress.signals.setLabelText.emit(message)
 
-                # resample mdf_file
-                target = mdf_file.resample if mdf is None else mdf.resample
-                kwargs = {
-                    "raster": raster,
-                    "version": opts.mdf_version if output_format == "MDF" else "4.10",
-                    "time_from_zero": opts.resample_time_from_zero,
-                }
+                # resample self.mdf
+                target = mdf.resample
 
-                result = run_thread_with_progress(
-                    self,
-                    target=target,
-                    kwargs=kwargs,
-                    factor=99,
-                    offset=0,
+                result = target(
+                    raster=raster,
+                    version=opts.mdf_version if output_format == "MDF" else "4.10",
+                    time_from_zero=opts.resample_time_from_zero,
                     progress=progress,
                 )
 
                 if result is TERMINATED:
-                    progress.cancel()
                     return
                 else:
-                    if mdf is None:
-                        mdf = result
-                    else:
-                        mdf.close()
-                        mdf = result
+                    mdf.close()
+                    mdf = result
 
                 mdf.configure(
                     read_fragment_size=split_size,
                     write_fragment_size=split_size,
-                    integer_interpolation=self.integer_interpolation,
-                    float_interpolation=self.float_interpolation,
+                    integer_interpolation=integer_interpolation,
+                    float_interpolation=float_interpolation,
                 )
 
             if output_format == "MDF":
-                if mdf is None:
-                    if progress is None:
-                        progress = setup_progress(
-                            parent=self,
-                            title="Converting measurement",
-                            message=f"Converting from {mdf_file.version} to {version}",
-                            icon_name="convert",
-                        )
-                    else:
-                        icon = QtGui.QIcon()
-                        icon.addPixmap(
-                            QtGui.QPixmap(":/convert.png"),
-                            QtGui.QIcon.Normal,
-                            QtGui.QIcon.Off,
-                        )
-                        progress.setWindowIcon(icon)
-                        progress.setWindowTitle("Converting measurement")
-                        progress.setLabelText(
-                            f"Converting from {mdf_file.version} to {version}"
-                        )
+                if mdf.version != version:
+                    icon = QtGui.QIcon()
+                    icon.addPixmap(
+                        QtGui.QPixmap(":/convert.png"),
+                        QtGui.QIcon.Normal,
+                        QtGui.QIcon.Off,
+                    )
+                    progress.signals.setWindowIcon.emit(icon)
+                    progress.signals.setWindowTitle.emit(
+                        f"Converting measurement {i+1} of {count}"
+                    )
+                    progress.signals.setLabelText.emit(
+                        f'Converting "{source_file}" from {mdf.version} to {version}'
+                    )
 
-                    # convert mdf_file
-                    target = mdf_file.convert
-                    kwargs = {"version": version}
-
-                    result = run_thread_with_progress(
-                        self,
-                        target=target,
-                        kwargs=kwargs,
-                        factor=99,
-                        offset=0,
+                    # convert self.mdf
+                    result = mdf.convert(
+                        version=version,
                         progress=progress,
                     )
 
                     if result is TERMINATED:
-                        progress.cancel()
                         return
                     else:
+                        mdf.close()
                         mdf = result
 
                 if version >= "4.00":
@@ -1673,61 +1639,40 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 file_name = file_name.with_suffix(suffix)
 
                 # then save it
-                progress.setLabelText(f'Saving output file "{file_name}"')
+                icon = QtGui.QIcon()
+                icon.addPixmap(
+                    QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
+                progress.signals.setWindowIcon.emit(icon)
+                progress.signals.setWindowTitle.emit(
+                    f"Saving measurement {i+1} of {count}"
+                )
+                progress.signals.setLabelText.emit(
+                    f"Saving output file {i+1} of {count}\n{source_file}"
+                )
 
-                target = mdf.save
-                kwargs = {
-                    "dst": file_name,
-                    "compression": opts.mdf_compression,
-                    "overwrite": False,
-                }
-
-                run_thread_with_progress(
-                    self,
-                    target=target,
-                    kwargs=kwargs,
-                    factor=99,
-                    offset=0,
+                result = mdf.save(
+                    dst=file_name,
+                    compression=opts.mdf_compression,
+                    overwrite=True,
                     progress=progress,
                 )
 
-                self.progress = None
-                progress.cancel()
+                if result is TERMINATED:
+                    return
 
             else:
-                if progress is None:
-                    progress = setup_progress(
-                        parent=self,
-                        title="Export measurement",
-                        message=f"Exporting to {output_format}",
-                        icon_name="export",
-                    )
-                else:
-                    icon = QtGui.QIcon()
-                    icon.addPixmap(
-                        QtGui.QPixmap(":/export.png"),
-                        QtGui.QIcon.Normal,
-                        QtGui.QIcon.Off,
-                    )
-                    progress.setWindowIcon(icon)
-                    progress.setWindowTitle("Export measurement")
-                    progress.setLabelText(f"Exporting to {output_format}")
-
-                if mdf is None:
-                    mdf = mdf_file
-
-                if output_folder is not None:
-                    if root is None:
-                        file_name = output_folder / Path(mdf.name).name
-                    else:
-                        file_name = output_folder / Path(mdf.name).relative_to(root)
-                else:
-                    file_name = Path(mdf.name)
-
-                file_name = file_name.with_suffix(suffix)
-
-                if not file_name.parent.exists():
-                    os.makedirs(file_name.parent, exist_ok=True)
+                icon = QtGui.QIcon()
+                icon.addPixmap(
+                    QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
+                progress.signals.setWindowIcon.emit(icon)
+                progress.signals.setWindowTitle.emit(
+                    f"Export measurement {i+1} of {count}"
+                )
+                progress.signals.setLabelText.emit(
+                    f"Exporting measurement {i+1} of {count} to {output_format} (be patient this might take a while)\n{source_file}"
+                )
 
                 delimiter = self.delimiter.text() or ","
                 doublequote = self.doublequote.checkState() == QtCore.Qt.Checked
@@ -1739,7 +1684,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 quoting = self.quoting.currentText()
                 add_units = self.add_units.checkState() == QtCore.Qt.Checked
 
-                target = mdf_file.export if mdf is None else mdf.export
+                target = self.mdf.export if mdf is None else mdf.export
                 kwargs = {
                     "fmt": opts.output_format.lower(),
                     "filename": file_name,
@@ -1764,17 +1709,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     "add_units": add_units,
                 }
 
-                result = run_thread_with_progress(
-                    self,
-                    target=target,
-                    kwargs=kwargs,
-                    factor=99,
-                    offset=0,
-                    progress=progress,
-                )
-
-                self.progress = None
-                progress.cancel()
+                target(**kwargs)
 
     def change_modify_output_folder(self, event=None):
 

@@ -3909,7 +3909,7 @@ class _Plot(pg.PlotWidget):
                     message=event["description"],
                     title=f'{event["type"]}{label}',
                     color=color,
-                    tool=event["tool"],
+                    tool=event.get("tool", ""),
                 )
                 self.bookmarks.append(bookmark)
                 self.viewbox.addItem(bookmark)

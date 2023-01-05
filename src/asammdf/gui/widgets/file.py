@@ -2685,11 +2685,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 filters[output_format],
             )
 
+            version = ""
+
         if not file_name:
             return
 
         self._progress = setup_progress(parent=self)
-        self._progress.finished.connect(self._process_finished)
+        self._progress.finished.connect(self.apply_processing_finished)
 
         self._progress.run_thread_with_progress(
             target=self.apply_processing_thread,
@@ -2962,6 +2964,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "quotechar": quotechar,
                 "quoting": quoting,
                 "add_units": add_units,
+                "progress": progress,
             }
 
             target(**kwargs)
