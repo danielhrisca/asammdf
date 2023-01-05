@@ -662,12 +662,12 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             super().keyPressEvent(event)
 
 
-def setup_progress(parent, title="", message="", icon_name=""):
+def setup_progress(parent, title="", message="", icon_name="", autoclose=False):
     progress = ProgressDialog(message, "Cancel", 0, 100, parent)
 
     progress.setWindowModality(QtCore.Qt.ApplicationModal)
     progress.setCancelButton(None)
-    progress.setAutoClose(True)
+    progress.setAutoClose(autoclose)
     progress.setWindowTitle(title)
     icon = QtGui.QIcon()
     icon.addPixmap(

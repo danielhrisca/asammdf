@@ -10,7 +10,7 @@ from natsort import natsorted
 import psutil
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ...blocks.utils import extract_xml_comment
+from ...blocks.utils import extract_xml_comment, TERMINATED
 from ...blocks.v2_v3_blocks import HeaderBlock as HeaderBlockV3
 from ...blocks.v4_blocks import HeaderBlock as HeaderBlockV4
 from ...mdf import MDF, SUPPORTED_VERSIONS
@@ -207,50 +207,47 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
     def update_progress(self, current_index, max_index):
         self.progress = current_index, max_index
 
+    def scramble_thread(self, source_files, progress):
+
+        count = len(source_files)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/scramble.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowTitle.emit("Scrambling measurements")
+
+        # scrambling self.mdf
+        for i, source_file in enumerate(source_files):
+
+            progress.signals.setLabelText.emit(
+                f"Scrambling file {i+1} of {count}\n{source_file}"
+            )
+
+            result = MDF.scramble(name=source_file, progress=progress)
+            if result is TERMINATED:
+                return
+
+    def scramble_finished(self):
+        self._progress = None
+
     def scramble(self, event):
 
         count = self.files_list.count()
+        source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
 
         if not count:
             return
 
-        delta = 100 / count
+        self._progress = setup_progress(parent=self, autoclose=False)
+        self._progress.finished.connect(self.scramble_finished)
 
-        progress = setup_progress(
-            parent=self,
-            title="Scrambling measurements",
-            message=f'Scrambling "{count}" files',
-            icon_name="scramble",
+        self._progress.run_thread_with_progress(
+            target=self.scramble_thread,
+            args=(source_files,),
+            kwargs={},
         )
-
-        files = self._prepare_files(progress)
-        source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
-
-        for i, (file, source_file) in enumerate(zip(files, source_files)):
-
-            progress.setLabelText(f"Scrambling file {i+1} of {count}")
-
-            target = MDF.scramble
-            kwargs = {
-                "name": file,
-                "callback": self.update_progress,
-            }
-
-            mdf = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=0,
-                offset=int(i * delta),
-                progress=progress,
-            )
-
-            if mdf is TERMINATED:
-                progress.cancel()
-                return
-
-        self.progress = None
-        progress.cancel()
 
     def extract_bus_logging(self, event):
 
@@ -649,14 +646,14 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 self.lin_database_list.setItemWidget(item, widget)
                 item.setSizeHint(widget.sizeHint())
 
+    def concatenate_finished(self):
+        self._progress = None
+
     def concatenate(self, event):
         count = self.files_list.count()
 
         if not count:
             return
-
-        func = MDF.concatenate
-        operation = "Concatenating"
 
         version = self.concatenate_format.currentText()
 
@@ -690,71 +687,141 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "MDF version 4 files (*.mf4 *.mf4z)",
             )
 
-        if output_file_name:
-            output_file_name = Path(output_file_name)
+        if not output_file_name:
+            return
 
-            progress = setup_progress(
-                parent=self,
-                title=f"{operation} measurements",
-                message=f"{operation} files and saving to {version} format",
-                icon_name="stack",
-            )
+        source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
 
-            files = self._prepare_files(progress)
+        self._progress = setup_progress(parent=self, autoclose=False)
+        self._progress.finished.connect(self.concatenate_finished)
 
-            target = func
-            kwargs = {
-                "files": files,
-                "version": version,
-                "callback": self.update_progress,
-                "sync": sync,
-                "add_samples_origin": add_samples_origin,
-            }
+        self._progress.run_thread_with_progress(
+            target=self.concatenate_thread,
+            args=(
+                output_file_name,
+                version,
+                source_files,
+                sync,
+                add_samples_origin,
+                split_size,
+                compression,
+            ),
+            kwargs={},
+        )
 
-            mdf = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=50,
-                offset=0,
-                progress=progress,
-            )
+    def concatenate_thread(
+        self,
+        output_file_name,
+        version,
+        source_files,
+        sync,
+        add_samples_origin,
+        split_size,
+        compression,
+        progress,
+    ):
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/stack.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowTitle.emit(
+            f"Stacking files and saving to {version} format"
+        )
 
-            if mdf is TERMINATED:
-                progress.cancel()
-                return
+        output_file_name = Path(output_file_name)
 
-            mdf.configure(write_fragment_size=split_size)
+        files = self._prepare_files(source_files, progress)
 
-            # save it
-            progress.setLabelText(f'Saving output file "{output_file_name}"')
+        result = MDF.concatenate(
+            files=files,
+            version=version,
+            sync=sync,
+            add_samples_origin=add_samples_origin,
+            progress=progress,
+        )
 
-            target = mdf.save
-            kwargs = {
-                "dst": output_file_name,
-                "compression": compression,
-                "overwrite": True,
-            }
+        if result is TERMINATED:
+            return
+        else:
+            mdf = result
 
-            run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=50,
-                offset=50,
-                progress=progress,
-            )
+        mdf.configure(write_fragment_size=split_size)
 
-            progress.cancel()
+        # save it
+        progress.signals.setLabelText.emit(f'Saving output file "{output_file_name}"')
+
+        result = mdf.save(
+            dst=output_file_name,
+            compression=compression,
+            overwrite=True,
+            progress=progress,
+        )
+
+        if result is not TERMINATED:
+            return result
+
+    def stack_thread(
+        self,
+        output_file_name,
+        version,
+        source_files,
+        sync,
+        add_samples_origin,
+        split_size,
+        compression,
+        progress,
+    ):
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/stack.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowTitle.emit(
+            f"Stacking files and saving to {version} format"
+        )
+
+        output_file_name = Path(output_file_name)
+
+        files = self._prepare_files(source_files, progress)
+
+        result = MDF.stack(
+            files=files,
+            version=version,
+            sync=sync,
+            add_samples_origin=add_samples_origin,
+            progress=progress,
+        )
+
+        if result is TERMINATED:
+            return
+        else:
+            mdf = result
+
+        mdf.configure(write_fragment_size=split_size)
+
+        # save it
+        progress.signals.setLabelText.emit(f'Saving output file "{output_file_name}"')
+
+        result = mdf.save(
+            dst=output_file_name,
+            compression=compression,
+            overwrite=True,
+            progress=progress,
+        )
+
+        if result is not TERMINATED:
+            return result
+
+    def stack_finished(self):
+        self._progress = None
 
     def stack(self, event):
         count = self.files_list.count()
 
         if not count:
             return
-
-        func = MDF.stack
-        operation = "Stacking"
 
         version = self.stack_format.currentText()
 
@@ -788,62 +855,27 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "MDF version 4 files (*.mf4 *.mf4z)",
             )
 
-        if output_file_name:
-            output_file_name = Path(output_file_name)
+        if not output_file_name:
+            return
 
-            progress = setup_progress(
-                parent=self,
-                title=f"{operation} measurements",
-                message=f"{operation} files and saving to {version} format",
-                icon_name="stack",
-            )
+        source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
 
-            files = self._prepare_files(progress)
+        self._progress = setup_progress(parent=self, autoclose=False)
+        self._progress.finished.connect(self.stack_finished)
 
-            target = func
-            kwargs = {
-                "files": files,
-                "version": version,
-                "callback": self.update_progress,
-                "sync": sync,
-                "add_samples_origin": add_samples_origin,
-            }
-
-            mdf = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=50,
-                offset=0,
-                progress=progress,
-            )
-
-            if mdf is TERMINATED:
-                progress.cancel()
-                return
-
-            mdf.configure(write_fragment_size=split_size)
-
-            # save it
-            progress.setLabelText(f'Saving output file "{output_file_name}"')
-
-            target = mdf.save
-            kwargs = {
-                "dst": output_file_name,
-                "compression": compression,
-                "overwrite": True,
-            }
-
-            run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=50,
-                offset=50,
-                progress=progress,
-            )
-
-            progress.cancel()
+        self._progress.run_thread_with_progress(
+            target=self.stack_thread,
+            args=(
+                output_file_name,
+                version,
+                source_files,
+                sync,
+                add_samples_origin,
+                split_size,
+                compression,
+            ),
+            kwargs={},
+        )
 
     def _as_mdf(self, file_name):
         file_name = Path(file_name)
@@ -862,10 +894,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             else:
                 cls = DL3
 
-            progress.setLabelText(
-                f"Converting file {i + 1} of {count} from {suffix} to .mf4"
-            )
-
             mdf = cls(file_name).export_mdf()
 
         elif suffix in (".mdf", ".mf4"):
@@ -873,13 +901,21 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         return mdf
 
-    def _prepare_files(self, progress):
+    def _prepare_files(self, files=None, progress=None):
         count = self.files_list.count()
 
-        files = [Path(self.files_list.item(row).text()) for row in range(count)]
+        if files is None:
+            files = [Path(self.files_list.item(row).text()) for row in range(count)]
+
+        progress.signals.setMaximum.emit(count)
+        progress.signals.setValue.emit(0)
 
         for i, file_name in enumerate(files):
+            progress.signals.setLabelText.emit(
+                f"Preparing the file {i+1} of {count} from {file_name.suffix.lower()} to .mf4\n{file_name}"
+            )
             files[i] = self._as_mdf(file_name)
+            progress.signals.setValue.emit(i + 1)
 
         return files
 
