@@ -196,7 +196,7 @@ def conversion_transfer(
                     conversion = new_conversion
 
     else:
-        if conversion is None or conversion.id == b"##CC":
+        if not conversion or conversion.id == b"##CC":
             pass
         else:
             conversion_type = conversion.conversion_type
