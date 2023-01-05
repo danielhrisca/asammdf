@@ -3825,6 +3825,12 @@ class MDF:
                                 if progress.stop:
                                     return TERMINATED
 
+        if progress is not None:
+            if callable(progress):
+                progress(100, 100)
+            else:
+                progress.signals.setValue.emit(100)
+
         return dst
 
     @staticmethod

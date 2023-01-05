@@ -782,7 +782,7 @@ class MDF4(MDF_Common):
         self._sort(
             current_progress_index=current_cg_index,
             max_progress_count=progress_steps,
-            progres=progress,
+            progress=progress,
         )
         if progress is not None:
             if callable(progress):
@@ -9103,7 +9103,7 @@ class MDF4(MDF_Common):
         dst: WritableBufferType | StrPathType,
         overwrite: bool = False,
         compression: CompressionType = 0,
-        qworker=None,
+        progress=None,
     ) -> Path:
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>', were
@@ -9499,10 +9499,10 @@ class MDF4(MDF_Common):
                 else:
                     gp.data_group.data_block_addr = 0
 
-                if qworker is not None:
-                    qworker.signals.setValue.emit(int(50 * (gp_nr + 1) / groups_nr))
+                if progress is not None:
+                    progress.signals.setValue.emit(int(50 * (gp_nr + 1) / groups_nr))
 
-                    if qworker.stop:
+                    if progress.stop:
                         dst_.close()
                         self.close()
 
@@ -9712,10 +9712,10 @@ class MDF4(MDF_Common):
 
                 cg_map[i] = gp.channel_group.address
 
-                if qworker is not None:
-                    qworker.signals.setValue.emit(int(50 * (i + 1) / groups_nr) + 25)
+                if progress is not None:
+                    progress.signals.setValue.emit(int(50 * (i + 1) / groups_nr) + 25)
 
-                    if qworker.stop:
+                    if progress.stop:
                         dst_.close()
                         self.close()
 
@@ -9861,7 +9861,7 @@ class MDF4(MDF_Common):
 
                 self.header.first_event_addr = self.events[0].address
 
-            if qworker is not None and qworker.stop:
+            if progress is not None and progress.stop:
                 dst_.close()
                 self.close()
                 return TERMINATED
@@ -9913,7 +9913,7 @@ class MDF4(MDF_Common):
                                 channel.attachment
                             ].address
 
-            if qworker is not None:
+            if progress is not None:
                 blocks_nr = len(blocks)
                 threshold = blocks_nr / 25
                 count = 1
@@ -9921,7 +9921,7 @@ class MDF4(MDF_Common):
                     write(bytes(block))
                     if i >= threshold:
 
-                        qworker.signals.setValue.emit(75 + count)
+                        progress.signals.setValue.emit(75 + count)
 
                         count += 1
                         threshold += blocks_nr / 25

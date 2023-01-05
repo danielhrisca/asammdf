@@ -66,6 +66,7 @@ from .utils import (
     Group,
     is_file_like,
     MdfException,
+    TERMINATED,
     UniqueDB,
     validate_version_argument,
     VirtualChannelGroup,
@@ -166,8 +167,6 @@ class MDF3(MDF_Common):
 
     """
 
-    _terminate = False
-
     def __init__(
         self,
         name: BufferedReader | BytesIO | StrPathType | None = None,
@@ -233,8 +232,6 @@ class MDF3(MDF_Common):
         self._si_map = {}
         self._cc_map = {}
 
-        self._callback = kwargs.get("callback", None)
-
         self.last_call_info = None
         self._master = None
 
@@ -246,18 +243,20 @@ class MDF3(MDF_Common):
         self._delete_on_close = False
         self._mapped_file = None
 
+        progress = kwargs.get("progress", None)
+
         if name:
             if is_file_like(name):
                 self._file = name
                 self.name = self.original_name = Path("From_FileLike.mdf")
                 self._from_filelike = True
-                self._read(mapped=False)
+                self._read(mapped=False, progress=progress)
             else:
                 if sys.maxsize < 2**32:
                     self.name = Path(name)
                     self._file = open(self.name, "rb")
                     self._from_filelike = False
-                    self._read(mapped=False)
+                    self._read(mapped=False, progress=progress)
                 else:
                     self.name = Path(name)
                     self._mapped_file = open(self.name, "rb")
@@ -265,7 +264,7 @@ class MDF3(MDF_Common):
                         self._mapped_file.fileno(), 0, access=mmap.ACCESS_READ
                     )
                     self._from_filelike = False
-                    self._read(mapped=True)
+                    self._read(mapped=True, progress=progress)
         else:
             self._from_filelike = False
             version = validate_version_argument(version, hint=3)
@@ -274,7 +273,7 @@ class MDF3(MDF_Common):
             self.header = HeaderBlock(version=self.version)
             self.name = Path("__new__.mdf")
 
-        self._sort()
+        self._sort(progress=progress)
 
         for index, grp in enumerate(self.groups):
 
@@ -689,13 +688,14 @@ class MDF3(MDF_Common):
         else:
             return vals
 
-    def _read(self, mapped: bool = False) -> None:
+    def _read(self, mapped: bool = False, progress=None) -> None:
         stream = self._file
         filter_channels = self.use_load_filter
 
         cg_count, _ = count_channel_groups(stream)
-        if self._callback:
-            self._callback(0, cg_count)
+        if progress is not None:
+            if callable(progress):
+                progress(0, cg_count)
         current_cg_index = 0
 
         stream.seek(0, 2)
@@ -932,12 +932,13 @@ class MDF3(MDF_Common):
                 dg_cntr += 1
 
                 current_cg_index += 1
-                if self._callback:
-                    self._callback(current_cg_index, cg_count)
-
-                if self._terminate:
-                    self.close()
-                    return
+                if progress is not None:
+                    if callable(progress):
+                        progress(current_cg_index, cg_count)
+                    else:
+                        if progress.stop:
+                            self.close()
+                            return TERMINATED
 
             # store channel groups record sizes dict and data block size in
             # each new group data belong to the initial unsorted group, and
@@ -3498,6 +3499,7 @@ class MDF3(MDF_Common):
         dst: StrPathType,
         overwrite: bool = False,
         compression: CompressionType = 0,
+        progress=None,
     ) -> Path | None:
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>',
@@ -3620,12 +3622,9 @@ class MDF3(MDF_Common):
                     gp.data_group.data_block_addr = 0
                 address += dim
 
-                if self._callback:
-                    self._callback(int(33 * (idx + 1) / groups_nr), 100)
-                if self._terminate:
-                    dst_.close()
-                    self.close()
-                    return
+                if progress is not None:
+                    if callable(progress):
+                        progress(int(33 * (idx + 1) / groups_nr), 100)
 
             for gp in self.groups:
                 dg = gp.data_group
@@ -3679,12 +3678,15 @@ class MDF3(MDF_Common):
                 if trigger:
                     address = trigger.to_blocks(address, blocks)
 
-                if self._callback:
-                    self._callback(int(33 * (idx + 1) / groups_nr) + 33, 100)
-                if self._terminate:
-                    dst_.close()
-                    self.close()
-                    return
+                if progress is not None:
+                    progress.signals.setValue.emit(int(33 * (idx + 1) / groups_nr) + 33)
+                    progress.signals.setMaximum.emit(100)
+
+                    if progress.stop:
+                        dst_.close()
+                        self.close()
+
+                        return TERMINATED
 
             # update referenced channels addresses in the channel dependencies
             for gp in self.groups:
@@ -3713,19 +3715,19 @@ class MDF3(MDF_Common):
                 self.header.first_dg_addr = address
                 self.header.dg_nr = len(self.groups)
 
-            if self._terminate:
+            if progress is not None and progress.stop:
                 dst_.close()
                 self.close()
-                return
+                return TERMINATED
 
-            if self._callback:
+            if progress is not None:
                 blocks_nr = len(blocks)
                 threshold = blocks_nr / 33
                 count = 1
                 for i, block in enumerate(blocks):
                     write(bytes(block))
                     if i >= threshold:
-                        self._callback(66 + count, 100)
+                        progress.signals.setValue.emit(66 + count)
                         count += 1
                         threshold += blocks_nr / 33
             else:
@@ -3757,12 +3759,9 @@ class MDF3(MDF_Common):
             self._file = open(self.name, "rb")
             self._read()
 
-        if self._callback:
-            self._callback(100, 100)
-
         return dst
 
-    def _sort(self) -> None:
+    def _sort(self, progress=None) -> None:
         if self._file is None:
             return
         common = defaultdict(list)

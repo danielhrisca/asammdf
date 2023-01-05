@@ -533,13 +533,7 @@ def run_thread_with_progress(
         sleep(0.1)
 
     while thr.is_alive():
-        termination_request = progress.wasCanceled()
-        if termination_request:
-            MDF._terminate = True
-            MDF2._terminate = True
-            MDF3._terminate = True
-            MDF4._terminate = True
-        else:
+        if not progress.wasCanceled():
             if widget.progress is not None:
                 if widget.progress != (0, 0):
                     progress.setValue(
@@ -549,12 +543,6 @@ def run_thread_with_progress(
                     progress.setRange(0, 0)
         QtCore.QCoreApplication.processEvents()
         sleep(0.1)
-
-    if termination_request:
-        MDF._terminate = False
-        MDF2._terminate = False
-        MDF3._terminate = False
-        MDF4._terminate = False
 
     progress.setValue(factor + offset)
 
@@ -595,13 +583,12 @@ class Worker(QtCore.QRunnable):
         self.stop = False
 
         # Add the qrunner to the keyword arguments
-        kwargs["qworker"] = self
+        kwargs["progress"] = self
 
     @QtCore.Slot()
     def run(self):
         try:
             result = self.function(*self.args, **self.kwargs)
-            print("worker result", result)
         except Exception:
             traceback.print_exc()
             exctype, value = sys.exc_info()[:2]
@@ -646,7 +633,6 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.threadpool.start(self.worker)
 
     def _canceled(self):
-        print("canceled")
         self.close()
 
     def receive_result(self, result):

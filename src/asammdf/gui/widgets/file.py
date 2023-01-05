@@ -1602,33 +1602,45 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.add_window((window_type, signals))
 
-    def scramble(self, event):
+    def scramble_thread(self, progress):
 
-        progress = setup_progress(
-            parent=self,
-            title="Scrambling measurement",
-            message=f'Scrambling "{self.file_name}"',
-            icon_name="scramble",
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/scramble.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
         )
+        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowTitle.emit("Scrambling measurement")
+        progress.signals.setLabelText.emit(f'Scrambling "{self.file_name}"')
 
         # scrambling self.mdf
-        target = MDF.scramble
-        kwargs = {"name": self.file_name, "callback": self.update_progress}
+        MDF.scramble(name=self.file_name, progress=progress)
 
-        mdf = run_thread_with_progress(
-            self, target=target, kwargs=kwargs, factor=100, offset=0, progress=progress
+    def scramble_finished(self):
+        if self._progress.error is None and self._progress.result is not TERMINATED:
+            path = Path(self.file_name)
+            self.open_new_file.emit(str(path.with_suffix(f".scrambled{path.suffix}")))
+
+        self._progress = None
+
+    def scramble(self, event):
+
+        self._progress = setup_progress(parent=self)
+        self._progress.finished.connect(self.scramble_finished)
+
+        self._progress.run_thread_with_progress(
+            target=self.scramble_thread,
+            args=(),
+            kwargs={},
         )
 
-        if mdf is TERMINATED:
-            progress.cancel()
-            return
+    def extract_bus_logging_finished(self):
+        if self._progress.error is None and self._progress.result is not TERMINATED:
+            file_name, message = self._progress.result
 
-        self.progress = None
-        progress.cancel()
+            self.output_info_bus.setPlainText("\n".join(message))
+            self.open_new_file.emit(str(file_name))
 
-        path = Path(self.file_name)
-
-        self.open_new_file.emit(str(path.with_suffix(f".scrambled{path.suffix}")))
+        self._progress = None
 
     def extract_bus_logging(self, event):
         version = self.extract_bus_format.currentText()
@@ -1677,119 +1689,121 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             filter,
         )
 
-        if file_name:
+        if not file_name:
+            return
 
-            file_name = Path(file_name).with_suffix(suffix)
+        self._progress = setup_progress(parent=self)
+        self._progress.finished.connect(self.extract_bus_logging_finished)
 
-            progress = setup_progress(
-                parent=self,
-                title="Extract Bus logging",
-                message=f'Extracting Bus signals from "{self.file_name}"',
-                icon_name="down",
-            )
+        self._progress.run_thread_with_progress(
+            target=self.extract_bus_logging_thread,
+            args=(file_name, suffix, database_files, version, compression),
+            kwargs={},
+        )
 
-            # convert self.mdf
-            target = self.mdf.extract_bus_logging
-            kwargs = {
-                "database_files": database_files,
-                "version": version,
-                "prefix": self.prefix.text().strip(),
-            }
+    def extract_bus_logging_thread(
+        self, file_name, suffix, database_files, version, compression, progress
+    ):
 
-            mdf = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=70,
-                offset=0,
-                progress=progress,
-            )
+        file_name = Path(file_name).with_suffix(suffix)
 
-            if mdf is TERMINATED:
-                progress.cancel()
-                return
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowTitle.emit("Extract Bus logging")
+        progress.signals.setLabelText.emit(
+            f'Extracting Bus signals from "{self.file_name}"'
+        )
 
-            # then save it
-            progress.setLabelText(f'Saving file to "{file_name}"')
+        # convert self.mdf
+        result = self.mdf.extract_bus_logging(
+            database_files=database_files,
+            version=version,
+            prefix=self.prefix.text().strip(),
+            progress=progress,
+        )
 
-            target = mdf.save
-            kwargs = {
-                "dst": file_name,
-                "compression": compression,
-                "overwrite": True,
-            }
+        if result is TERMINATED:
+            return
+        else:
+            mdf = result
 
-            run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=30,
-                offset=70,
-                progress=progress,
-            )
+        # then save it
+        progress.signals.setLabelText.emit(f'Saving file to "{file_name}"')
 
-            self.progress = None
-            progress.cancel()
+        result = mdf.save(
+            dst=file_name,
+            compression=compression,
+            overwrite=True,
+            progress=progress,
+        )
 
-            bus_call_info = dict(self.mdf.last_call_info)
+        if result is TERMINATED:
+            return
 
-            message = []
+        bus_call_info = dict(self.mdf.last_call_info)
 
-            for bus, call_info in bus_call_info.items():
+        message = []
 
-                found_id_count = sum(len(e) for e in call_info["found_ids"].values())
+        for bus, call_info in bus_call_info.items():
 
-                message += [
-                    f"{bus} bus summary:",
-                    f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
-                ]
-                if call_info["unknown_id_count"]:
-                    message.append(
-                        f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file'
-                    )
-                else:
-                    message.append(f"- no unknown IDs inf the MDF4 file")
+            found_id_count = sum(len(e) for e in call_info["found_ids"].values())
 
-                message += [
-                    "",
-                    "Detailed information:",
-                    "",
-                    f"The following {bus} IDs were in the MDF log file and matched in the DBC:",
-                ]
-                for dbc_name, found_ids in call_info["found_ids"].items():
-                    for msg_id, msg_name in sorted(found_ids):
-                        try:
-                            message.append(
-                                f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>"
-                            )
-                        except:
-                            pgn, sa = msg_id
-                            message.append(
-                                f"- PGN=0x{pgn:X} SA=0x{sa:X} --> {msg_name} in <{dbc_name}>"
-                            )
-
-                message += [
-                    "",
-                    f"The following {bus} IDs were in the MDF log file, but not matched in the DBC:",
-                ]
-
-                unknown_standard_can = sorted(
-                    [e for e in call_info["unknown_ids"] if isinstance(e, int)]
+            message += [
+                f"{bus} bus summary:",
+                f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+            ]
+            if call_info["unknown_id_count"]:
+                message.append(
+                    f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file'
                 )
-                unknown_j1939 = sorted(
-                    [e for e in call_info["unknown_ids"] if not isinstance(e, int)]
-                )
-                for msg_id in unknown_standard_can:
-                    message.append(f"- 0x{msg_id:X}")
+            else:
+                message.append(f"- no unknown IDs inf the MDF4 file")
 
-                for pgn, sa in unknown_j1939:
-                    message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X}")
+            message += [
+                "",
+                "Detailed information:",
+                "",
+                f"The following {bus} IDs were in the MDF log file and matched in the DBC:",
+            ]
+            for dbc_name, found_ids in call_info["found_ids"].items():
+                for msg_id, msg_name in sorted(found_ids):
+                    try:
+                        message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
+                    except:
+                        pgn, sa = msg_id
+                        message.append(
+                            f"- PGN=0x{pgn:X} SA=0x{sa:X} --> {msg_name} in <{dbc_name}>"
+                        )
 
-                message.append("\n\n")
+            message += [
+                "",
+                f"The following {bus} IDs were in the MDF log file, but not matched in the DBC:",
+            ]
+
+            unknown_standard_can = sorted(
+                [e for e in call_info["unknown_ids"] if isinstance(e, int)]
+            )
+            unknown_j1939 = sorted(
+                [e for e in call_info["unknown_ids"] if not isinstance(e, int)]
+            )
+            for msg_id in unknown_standard_can:
+                message.append(f"- 0x{msg_id:X}")
+
+            for pgn, sa in unknown_j1939:
+                message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X}")
+
+            message.append("\n\n")
+
+        return file_name, message
+
+    def extract_bus_csv_logging_finished(self):
+        if self._progress.error is None and self._progress.result is not TERMINATED:
+            message = self._progress.result
 
             self.output_info_bus.setPlainText("\n".join(message))
 
-            self.open_new_file.emit(str(file_name))
+        self._progress = None
 
     def extract_bus_csv_logging(self, event):
         version = self.extract_bus_format.currentText()
@@ -1844,46 +1858,85 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             "CSV (*.csv)",
         )
 
-        if file_name:
+        if not file_name:
+            return
 
-            progress = setup_progress(
-                parent=self,
-                title="Extract Bus logging to CSV",
-                message=f'Extracting Bus signals from "{self.file_name}"',
-                icon_name="csv",
-            )
+        self._progress = setup_progress(parent=self)
+        self._progress.finished.connect(self.extract_bus_csv_logging_finished)
 
-            # convert self.mdf
-            target = self.mdf.extract_bus_logging
-            kwargs = {
-                "database_files": database_files,
-                "version": version,
-                "prefix": self.prefix.text().strip(),
-            }
+        self._progress.run_thread_with_progress(
+            target=self.extract_bus_csv_logging_thread,
+            args=(
+                file_name,
+                database_files,
+                version,
+                single_time_base,
+                time_from_zero,
+                empty_channels,
+                raster,
+                time_as_date,
+                delimiter,
+                doublequote,
+                escapechar,
+                lineterminator,
+                quotechar,
+                quoting,
+                add_units,
+            ),
+            kwargs={},
+        )
 
-            mdf = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=70,
-                offset=0,
-                progress=progress,
-            )
+    def extract_bus_csv_logging_thread(
+        self,
+        file_name,
+        database_files,
+        version,
+        single_time_base,
+        time_from_zero,
+        empty_channels,
+        raster,
+        time_as_date,
+        delimiter,
+        doublequote,
+        escapechar,
+        lineterminator,
+        quotechar,
+        quoting,
+        add_units,
+        progress,
+    ):
 
-            if mdf is TERMINATED:
-                progress.cancel()
-                return
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/csv.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowTitle.emit("Extract Bus logging to CSV")
+        progress.signals.setLabelText.emit(
+            f'Extracting Bus signals from "{self.file_name}"'
+        )
 
-            # then save it
-            progress.setLabelText(f'Saving file to "{file_name}"')
+        # convert self.mdf
+        result = self.mdf.extract_bus_logging(
+            database_files=database_files,
+            version=version,
+            prefix=self.prefix.text().strip(),
+            progress=progress,
+        )
 
-            mdf.configure(
-                integer_interpolation=self.mdf._integer_interpolation,
-                float_interpolation=self.mdf._float_interpolation,
-            )
+        if result is TERMINATED:
+            return
+        else:
+            mdf = result
 
-            target = mdf.export
-            kwargs = {
+        # then save it
+        progress.signals.setLabelText.emit(f'Saving file to "{file_name}"')
+
+        mdf.configure(
+            integer_interpolation=self.mdf._integer_interpolation,
+            float_interpolation=self.mdf._float_interpolation,
+        )
+
+        result = mdf.export(
+            **{
                 "fmt": "csv",
                 "filename": file_name,
                 "single_time_base": single_time_base,
@@ -1900,57 +1953,55 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "quoting": quoting,
                 "add_units": add_units,
             }
+        )
 
-            run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=30,
-                offset=70,
-                progress=progress,
-            )
+        if result is TERMINATED:
+            return
 
-            self.progress = None
-            progress.cancel()
+        bus_call_info = dict(self.mdf.last_call_info)
 
-            bus_call_info = dict(self.mdf.last_call_info)
+        message = []
 
-            message = []
+        for bus, call_info in bus_call_info.items():
 
-            for bus, call_info in bus_call_info.items():
+            found_id_count = sum(len(e) for e in call_info["found_ids"].values())
 
-                found_id_count = sum(len(e) for e in call_info["found_ids"].values())
+            message += [
+                f"{bus} bus summary:",
+                f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+            ]
+            if call_info["unknown_id_count"]:
+                message.append(
+                    f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file'
+                )
+            else:
+                message.append(f"- no unknown IDs inf the MDF4 file")
 
-                message += [
-                    f"{bus} bus summary:",
-                    f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
-                ]
-                if call_info["unknown_id_count"]:
-                    message.append(
-                        f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file'
-                    )
-                else:
-                    message.append(f"- no unknown IDs inf the MDF4 file")
-
-                message += [
-                    "",
-                    "Detailed information:",
-                    "",
-                    f"The following {bus} IDs were in the MDF log file and matched in the DBC:",
-                ]
-                for dbc_name, found_ids in call_info["found_ids"].items():
-                    for msg_id, msg_name in sorted(found_ids):
+            message += [
+                "",
+                "Detailed information:",
+                "",
+                f"The following {bus} IDs were in the MDF log file and matched in the DBC:",
+            ]
+            for dbc_name, found_ids in call_info["found_ids"].items():
+                for msg_id, msg_name in sorted(found_ids):
+                    try:
                         message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
+                    except:
+                        pgn, sa = msg_id
+                        message.append(
+                            f"- PGN=0x{pgn:X} SA=0x{sa:X} --> {msg_name} in <{dbc_name}>"
+                        )
 
-                message += [
-                    "",
-                    f"The following {bus} IDs were in the MDF log file, but not matched in the DBC:",
-                ]
-                for msg_id in sorted(call_info["unknown_ids"]):
-                    message.append(f"- 0x{msg_id:X}")
-                message.append("\n\n")
+            message += [
+                "",
+                f"The following {bus} IDs were in the MDF log file, but not matched in the DBC:",
+            ]
+            for msg_id in sorted(call_info["unknown_ids"]):
+                message.append(f"- 0x{msg_id:X}")
+            message.append("\n\n")
 
-            self.output_info_bus.setPlainText("\n".join(message))
+        return message
 
     def load_can_database(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
@@ -2651,11 +2702,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             },
         )
 
-    def _process_finished(self):
+    def apply_processing_finished(self):
         self._progress = None
 
     def apply_processing_thread(
-        self, file_name, opts, version, needs_filter, channels, qworker=None
+        self, file_name, opts, version, needs_filter, channels, progress=None
     ):
 
         output_format = opts.output_format
@@ -2673,9 +2724,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             icon.addPixmap(
                 QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
             )
-            qworker.signals.setWindowIcon.emit(icon)
-            qworker.signals.setWindowTitle.emit("Filtering measurement")
-            qworker.signals.setLabelText.emit(
+            progress.signals.setWindowIcon.emit(icon)
+            progress.signals.setWindowTitle.emit("Filtering measurement")
+            progress.signals.setLabelText.emit(
                 f'Filtering selected channels from "{self.file_name}"'
             )
 
@@ -2683,7 +2734,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             result = self.mdf.filter(
                 channels=channels,
                 version=opts.mdf_version if output_format == "MDF" else "4.10",
-                qworker=qworker,
+                progress=progress,
             )
 
             if result is TERMINATED:
@@ -2704,9 +2755,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             icon.addPixmap(
                 QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
             )
-            qworker.signals.setWindowIcon.emit(icon)
-            qworker.signals.setWindowTitle.emit("Cutting measurement")
-            qworker.signals.setLabelText.emit(
+            progress.signals.setWindowIcon.emit(icon)
+            progress.signals.setWindowTitle.emit("Cutting measurement")
+            progress.signals.setLabelText.emit(
                 f"Cutting from {opts.cut_start}s to {opts.cut_stop}s"
             )
 
@@ -2718,7 +2769,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 whence=opts.whence,
                 version=opts.mdf_version if output_format == "MDF" else "4.10",
                 time_from_zero=opts.cut_time_from_zero,
-                qworker=qworker,
+                progress=progress,
             )
 
             if result is TERMINATED:
@@ -2750,9 +2801,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             icon.addPixmap(
                 QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
             )
-            qworker.signals.setWindowIcon.emit(icon)
-            qworker.signals.setWindowTitle.emit("Resampling measurement")
-            qworker.signals.setLabelText.emit(message)
+            progress.signals.setWindowIcon.emit(icon)
+            progress.signals.setWindowTitle.emit("Resampling measurement")
+            progress.signals.setLabelText.emit(message)
 
             # resample self.mdf
             target = self.mdf.resample if mdf is None else mdf.resample
@@ -2761,7 +2812,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 raster=raster,
                 version=opts.mdf_version if output_format == "MDF" else "4.10",
                 time_from_zero=opts.resample_time_from_zero,
-                qworker=qworker,
+                progress=progress,
             )
 
             if result is TERMINATED:
@@ -2786,16 +2837,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 icon.addPixmap(
                     QtGui.QPixmap(":/convert.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
                 )
-                qworker.signals.setWindowIcon.emit(icon)
-                qworker.signals.setWindowTitle.emit("Converting measurement")
-                qworker.signals.setLabelText.emit(
+                progress.signals.setWindowIcon.emit(icon)
+                progress.signals.setWindowTitle.emit("Converting measurement")
+                progress.signals.setLabelText.emit(
                     f'Converting "{self.file_name}" from {self.mdf.version} to {version}'
                 )
 
                 # convert self.mdf
                 result = self.mdf.convert(
                     version=version,
-                    qworker=qworker,
+                    progress=progress,
                 )
 
                 if result is TERMINATED:
@@ -2815,9 +2866,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             icon.addPixmap(
                 QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
             )
-            qworker.signals.setWindowIcon.emit(icon)
-            qworker.signals.setWindowTitle.emit("Saving measurement")
-            qworker.signals.setLabelText.emit(f'Saving output file "{file_name}"')
+            progress.signals.setWindowIcon.emit(icon)
+            progress.signals.setWindowTitle.emit("Saving measurement")
+            progress.signals.setLabelText.emit(f'Saving output file "{file_name}"')
 
             handle_overwrite = Path(file_name) == self.mdf.name
 
@@ -2839,7 +2890,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 dst=file_name,
                 compression=opts.mdf_compression,
                 overwrite=True,
-                qworker=qworker,
+                progress=progress,
             )
 
             if result is TERMINATED:
@@ -2871,9 +2922,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             icon.addPixmap(
                 QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
             )
-            qworker.signals.setWindowIcon.emit(icon)
-            qworker.signals.setWindowTitle.emit("Export measurement")
-            qworker.signals.setLabelText.emit(
+            progress.signals.setWindowIcon.emit(icon)
+            progress.signals.setWindowTitle.emit("Export measurement")
+            progress.signals.setLabelText.emit(
                 f"Exporting to {output_format} (be patient this might take a while)"
             )
 
