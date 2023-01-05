@@ -249,6 +249,14 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             kwargs={},
         )
 
+    def extract_bus_logging_finished(self):
+        if self._progress.error is None and self._progress.result is not TERMINATED:
+            message = self._progress.result
+
+            self.output_info_bus.setPlainText("\n".join(message))
+
+        self._progress = None
+
     def extract_bus_logging(self, event):
 
         version = self.extract_bus_format.currentText()
@@ -284,65 +292,62 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         if not count or not (count1 + count2):
             return
 
-        delta = 100 / count
+        source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
 
-        progress = setup_progress(
-            parent=self,
-            title="Extract Bus logging from measurements",
-            message=f'Extracting Bus logging from "{count}" files',
-            icon_name="down",
+        self._progress = setup_progress(parent=self)
+        self._progress.finished.connect(self.extract_bus_logging_finished)
+
+        self._progress.run_thread_with_progress(
+            target=self.extract_bus_logging_thread,
+            args=(source_files, database_files, count, compression, version),
+            kwargs={},
         )
 
-        files = self._prepare_files(progress)
-        source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
+    def extract_bus_logging_thread(
+        self, source_files, database_files, count, compression, version, progress
+    ):
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowTitle.emit("Extract Bus logging from measurements")
+        progress.signals.setLabelText.emit(
+            f'Extracting Bus logging from "{count}" files'
+        )
+
+        files = self._prepare_files(list(source_files), progress)
 
         message = []
 
+        progress.signals.setValue.emit(0)
+        progress.signals.setMaximum.emit(count)
+
         for i, (file, source_file) in enumerate(zip(files, source_files)):
 
-            progress.setLabelText(f"Extracting Bus logging from file {i+1} of {count}")
+            progress.signals.setLabelText.emit(
+                f"Extracting Bus logging from file {i+1} of {count}\n{source_file}"
+            )
 
             if not isinstance(file, MDF):
-
-                # open file
-                target = MDF
-                kwargs = {
-                    "name": file,
-                    "callback": self.update_progress,
-                }
-
-                mdf = run_thread_with_progress(
-                    self,
-                    target=target,
-                    kwargs=kwargs,
-                    factor=0,
-                    offset=int(i * delta),
-                    progress=progress,
-                )
+                mdf = MDF(file)
             else:
                 mdf = file
 
+            if mdf is TERMINATED:
+                return
+
             mdf.last_call_info = {}
 
-            target = mdf.extract_bus_logging
-            kwargs = {
-                "database_files": database_files,
-                "version": version,
-                "prefix": self.prefix.text().strip(),
-            }
-
-            mdf_ = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=int(delta / 2),
-                offset=int(i * delta),
+            result = mdf.extract_bus_logging(
+                database_files=database_files,
+                version=version,
+                prefix=self.prefix.text().strip(),
                 progress=progress,
             )
 
-            if mdf_ is TERMINATED:
-                progress.cancel()
+            if result is TERMINATED:
                 return
+            else:
+                mdf_ = result
 
             bus_call_info = dict(mdf.last_call_info)
 
@@ -402,26 +407,28 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             )
 
             # then save it
-            progress.setLabelText(
-                f'Saving extarcted Bus logging file {i+1} to "{file_name}"'
+            progress.signals.setLabelText.emit(
+                f'Saving extracted Bus logging file {i+1} to "{file_name}"'
             )
 
-            target = mdf_.save
-            kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
-
-            run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=int(delta / 2),
-                offset=int((i + 1 / 2) * delta),
+            result = mdf_.save(
+                dst=file_name,
+                compression=compression,
+                overwrite=True,
                 progress=progress,
             )
+            if result is TERMINATED:
+                return
 
-        self.output_info_bus.setText("\n".join(message))
+        return message
 
-        self.progress = None
-        progress.cancel()
+    def extract_bus_csv_logging_finished(self):
+        if self._progress.error is None and self._progress.result is not TERMINATED:
+            message = self._progress.result
+
+            self.output_info_bus.setPlainText("\n".join(message))
+
+        self._progress = None
 
     def extract_bus_csv_logging(self, event):
         version = self.extract_bus_format.currentText()
@@ -470,65 +477,95 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         if not count or not (count1 + count2):
             return
 
-        delta = 100 / count
+        source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
 
-        progress = setup_progress(
-            parent=self,
-            title="Extract Bus logging from measurements to CSV",
-            message=f'Extracting Bus logging from "{count}" files',
-            icon_name="csv",
+        self._progress = setup_progress(parent=self)
+        self._progress.finished.connect(self.extract_bus_csv_logging_finished)
+
+        self._progress.run_thread_with_progress(
+            target=self.extract_bus_csv_logging_thread,
+            args=(
+                source_files,
+                database_files,
+                version,
+                single_time_base,
+                time_from_zero,
+                empty_channels,
+                raster,
+                time_as_date,
+                delimiter,
+                doublequote,
+                escapechar,
+                lineterminator,
+                quotechar,
+                quoting,
+                add_units,
+                count,
+            ),
+            kwargs={},
         )
 
-        files = self._prepare_files(progress)
-        source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
+    def extract_bus_csv_logging_thread(
+        self,
+        source_files,
+        database_files,
+        version,
+        single_time_base,
+        time_from_zero,
+        empty_channels,
+        raster,
+        time_as_date,
+        delimiter,
+        doublequote,
+        escapechar,
+        lineterminator,
+        quotechar,
+        quoting,
+        add_units,
+        count,
+        progress,
+    ):
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/csv.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowTitle.emit(
+            "Extract Bus logging from measurements to CSV"
+        )
+        progress.signals.setLabelText.emit(
+            f'Extracting Bus logging from "{count}" files'
+        )
+
+        files = self._prepare_files(list(source_files, progress))
 
         message = []
 
         for i, (file, source_file) in enumerate(zip(files, source_files)):
 
-            progress.setLabelText(f"Extracting Bus logging from file {i+1} of {count}")
+            progress.signals.setLabelText.emit(
+                f"Extracting Bus logging from file {i+1} of {count}"
+            )
 
             if not isinstance(file, MDF):
-
-                # open file
-                target = MDF
-                kwargs = {
-                    "name": file,
-                    "callback": self.update_progress,
-                }
-
-                mdf = run_thread_with_progress(
-                    self,
-                    target=target,
-                    kwargs=kwargs,
-                    factor=0,
-                    offset=int(i * delta),
-                    progress=progress,
-                )
+                mdf = MDF(file)
             else:
                 mdf = file
 
+            if mdf is TERMINATED:
+                return
+
             mdf.last_call_info = {}
 
-            target = mdf.extract_bus_logging
-            kwargs = {
-                "database_files": database_files,
-                "version": version,
-                "prefix": self.prefix.text().strip(),
-            }
-
-            mdf_ = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=int(delta / 2),
-                offset=int(i * delta),
+            result = mdf.extract_bus_logging(
+                database_files=database_files,
+                version=version,
+                prefix=self.prefix.text().strip(),
                 progress=progress,
             )
-
-            if mdf_ is TERMINATED:
-                progress.cancel()
+            if result is TERMINATED:
                 return
+            else:
+                mdf_ = result
 
             bus_call_info = dict(mdf.last_call_info)
 
@@ -568,7 +605,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             file_name = source_file.with_suffix(".bus_logging.csv")
 
             # then save it
-            progress.setLabelText(
+            progress.signals.setLabelText.emit(
                 f'Saving extracted Bus logging file {i+1} to "{file_name}"'
             )
 
@@ -577,38 +614,30 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 float_interpolation=self.float_interpolation,
             )
 
-            target = mdf_.export
-            kwargs = {
-                "fmt": "csv",
-                "filename": file_name,
-                "single_time_base": single_time_base,
-                "time_from_zero": time_from_zero,
-                "empty_channels": empty_channels,
-                "raster": raster or None,
-                "time_as_date": time_as_date,
-                "ignore_value2text_conversions": self.ignore_value2text_conversions,
-                "delimiter": delimiter,
-                "doublequote": doublequote,
-                "escapechar": escapechar,
-                "lineterminator": lineterminator,
-                "quotechar": quotechar,
-                "quoting": quoting,
-                "add_units": add_units,
-            }
-
-            run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=int(delta / 2),
-                offset=int((i + 1 / 2) * delta),
-                progress=progress,
+            result = mdf_.export(
+                **{
+                    "fmt": "csv",
+                    "filename": file_name,
+                    "single_time_base": single_time_base,
+                    "time_from_zero": time_from_zero,
+                    "empty_channels": empty_channels,
+                    "raster": raster or None,
+                    "time_as_date": time_as_date,
+                    "ignore_value2text_conversions": self.ignore_value2text_conversions,
+                    "delimiter": delimiter,
+                    "doublequote": doublequote,
+                    "escapechar": escapechar,
+                    "lineterminator": lineterminator,
+                    "quotechar": quotechar,
+                    "quoting": quoting,
+                    "add_units": add_units,
+                    "progress": progress,
+                }
             )
+            if result is TERMINATED:
+                return
 
-        self.output_info_bus.setText("\n".join(message))
-
-        self.progress = None
-        progress.cancel()
+        return message
 
     def load_can_database(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(

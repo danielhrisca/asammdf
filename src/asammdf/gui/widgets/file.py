@@ -1952,6 +1952,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "quotechar": quotechar,
                 "quoting": quoting,
                 "add_units": add_units,
+                "progress": progress,
             }
         )
 
