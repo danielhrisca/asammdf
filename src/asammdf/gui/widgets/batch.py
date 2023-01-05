@@ -938,6 +938,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         progress.signals.setMaximum.emit(count)
         progress.signals.setValue.emit(0)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/list.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        progress.signals.setWindowIcon.emit(icon)
+        progress.signals.setWindowTitle.emit("Preparing measurements")
 
         for i, file_name in enumerate(files):
             progress.signals.setLabelText.emit(
@@ -1458,7 +1462,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         files = self._prepare_files(list(source_files), progress)
 
-        for i, (mdf_file, source_file) in enumerate(zip(files, source_files)):
+        for mdf_index, (mdf_file, source_file) in enumerate(zip(files, source_files)):
 
             mdf_file.configure(
                 read_fragment_size=split_size,
@@ -1476,7 +1480,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 )
                 progress.signals.setWindowIcon.emit(icon)
                 progress.signals.setWindowTitle.emit(
-                    f"Filtering measurement {i+i} of {count}"
+                    f"Filtering measurement {mdf_index+i} of {count}"
                 )
                 progress.signals.setLabelText.emit(
                     f'Filtering selected channels from\n"{source_file}"'
@@ -1509,7 +1513,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 )
                 progress.signals.setWindowIcon.emit(icon)
                 progress.signals.setWindowTitle.emit(
-                    f"Cutting measurement {i+i} of {count}"
+                    f"Cutting measurement {mdf_index+1} of {count}"
                 )
                 progress.signals.setLabelText.emit(
                     f"Cutting from {opts.cut_start}s to {opts.cut_stop}s from \n{source_file}"
@@ -1554,7 +1558,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 )
                 progress.signals.setWindowIcon.emit(icon)
                 progress.signals.setWindowTitle.emit(
-                    f"Resampling measurement {i+i} of {count}"
+                    f"Resampling measurement {mdf_index+1} of {count}"
                 )
                 progress.signals.setLabelText.emit(message)
 
@@ -1591,7 +1595,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     )
                     progress.signals.setWindowIcon.emit(icon)
                     progress.signals.setWindowTitle.emit(
-                        f"Converting measurement {i+1} of {count}"
+                        f"Converting measurement {mdf_index+1} of {count}"
                     )
                     progress.signals.setLabelText.emit(
                         f'Converting "{source_file}" from {mdf.version} to {version}'
@@ -1645,10 +1649,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 )
                 progress.signals.setWindowIcon.emit(icon)
                 progress.signals.setWindowTitle.emit(
-                    f"Saving measurement {i+1} of {count}"
+                    f"Saving measurement {mdf_index+1} of {count}"
                 )
                 progress.signals.setLabelText.emit(
-                    f"Saving output file {i+1} of {count}\n{source_file}"
+                    f"Saving output file {mdf_index+1} of {count}\n{source_file}"
                 )
 
                 result = mdf.save(
@@ -1668,10 +1672,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 )
                 progress.signals.setWindowIcon.emit(icon)
                 progress.signals.setWindowTitle.emit(
-                    f"Export measurement {i+1} of {count}"
+                    f"Export measurement {mdf_index+1} of {count}"
                 )
                 progress.signals.setLabelText.emit(
-                    f"Exporting measurement {i+1} of {count} to {output_format} (be patient this might take a while)\n{source_file}"
+                    f"Exporting measurement {mdf_index+1} of {count} to {output_format} (be patient this might take a while)\n{source_file}"
                 )
 
                 delimiter = self.delimiter.text() or ","
