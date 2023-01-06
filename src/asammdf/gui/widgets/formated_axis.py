@@ -55,12 +55,16 @@ class FormatedAxis(pg.AxisItem):
         self.set_pen(self._pen)
 
     def increase_width(self):
-        width = self.width() + 10
-        self.setWidth(width)
+        self.setWidth(self.width() + 10)
 
     def decrease_width(self):
-        width = max(self.width() - 10, 48)
-        self.setWidth(width)
+        self.setWidth(self.width() - 10)
+
+    def setWidth(self, w=None):
+        if self.orientation in ("left", "right"):
+            super().setWidth(max(w, 48))
+        else:
+            super().setWidth(w)
 
     def tickStrings(self, values, scale, spacing):
         strns = []
