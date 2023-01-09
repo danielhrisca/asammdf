@@ -2204,7 +2204,7 @@ class DataFrameViewer(QtWidgets.QWidget):
 
         # Ctrl+C
         if event.key() == Qt.Key_C and (mods & Qt.ControlModifier):
-            self.copy()
+            self.copy(header=True)
         # Ctrl+Shift+C
         elif (
             event.key() == Qt.Key_C
