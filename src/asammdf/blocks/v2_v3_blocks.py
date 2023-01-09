@@ -1232,7 +1232,7 @@ class ChannelConversion(_ChannelConversionBase):
                 self.min_phy_value = kwargs.get("min_phy_value", 0)
                 self.max_phy_value = kwargs.get("max_phy_value", 0)
                 self.unit_field = kwargs.get("unit", ("\0" * 20).encode("latin-1"))
-                self.conversion_type = v23c.CONVERSION_TYPE_EXPO
+                self.conversion_type = kwargs["conversion_type"]
                 self.ref_param_nr = 7
                 self.P1 = kwargs.get("P1", 0)
                 self.P2 = kwargs.get("P2", 0)
@@ -1596,9 +1596,9 @@ address: {hex(self.address)}
             # pylint: disable=C0103
 
             if conversion_type == v23c.CONVERSION_TYPE_EXPO:
-                func = np.log
-            else:
                 func = np.exp
+            else:
+                func = np.log
             P1 = self.P1
             P2 = self.P2
             P3 = self.P3
