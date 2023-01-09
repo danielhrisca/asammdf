@@ -42,6 +42,9 @@ class Tabular(TabularBase):
             signals["Index"] = index
 
             signals["timestamps"] = signals.index
+
+            if ranges is not None:
+                ranges["timestamps"] = []
             signals.set_index(index, inplace=True)
             dropped = {}
 

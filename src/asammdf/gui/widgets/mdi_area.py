@@ -1969,7 +1969,7 @@ class WithMDIArea:
                         pattern_info,
                         file.ignore_value2text_conversions,
                         file.uuid,
-                    )
+                    ).values()
                 )
 
             for signal in signals:
@@ -2817,6 +2817,8 @@ class WithMDIArea:
                 self.uuid,
             )
 
+            signals = list(signals.values())
+
             for sig in signals:
                 sig.origin_uuid = uuid
                 sig.computation = None
@@ -3491,7 +3493,7 @@ class WithMDIArea:
                 pattern_info,
                 self.ignore_value2text_conversions,
                 self.uuid,
-            )
+            ).values()
 
             try:
                 ranges = [
