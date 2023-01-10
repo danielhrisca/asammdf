@@ -95,7 +95,7 @@ MERGE = interp(_channel_count, CHANNEL_COUNT, MERGE).astype("<u4")
 CHANNEL_COUNT = _channel_count
 
 MDF2_VERSIONS = ("2.00", "2.10", "2.14")
-MDF3_VERSIONS = ("3.00", "3.10", "3.20", "3.30")
+MDF3_VERSIONS = ("3.0", "3.00", "3.10", "3.20", "3.30")
 MDF4_VERSIONS = ("4.00", "4.10", "4.11", "4.20")
 SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 
