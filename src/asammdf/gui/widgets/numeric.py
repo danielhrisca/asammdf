@@ -1173,8 +1173,8 @@ class Numeric(QtWidgets.QWidget):
 
         self.channels.dataView.ranges = {}
 
-        self.verticalLayout.insertWidget(1, self.channels)
-        self.verticalLayout.setStretch(1, 1)
+        self.main_layout.insertWidget(0, self.channels)
+        self.main_layout.setStretch(0, 1)
 
         self.float_precision.addItems(
             ["Full float precision"] + [f"{i} float decimals" for i in range(16)]
@@ -1215,6 +1215,11 @@ class Numeric(QtWidgets.QWidget):
             self.forward.clicked.connect(self.search_forward)
             self.backward.clicked.connect(self.search_backward)
             self.op.addItems([">", ">=", "<", "<=", "==", "!="])
+
+            self.time_group.setHidden(True)
+            self.search_group.setHidden(True)
+
+            self.toggle_controls_btn.clicked.connect(self.toggle_controls)
 
     def add_new_channels(self, channels, mime_data=None):
 
@@ -1671,3 +1676,23 @@ class Numeric(QtWidgets.QWidget):
         self.show()
         self.channels.default_row_height = 12 + size
         self.channels.set_styles()
+
+    def toggle_controls(self, event=None):
+        if self.toggle_controls_btn.text() == "Show controls":
+            self.toggle_controls_btn.setText("Hide controls")
+            self.time_group.setHidden(False)
+            self.search_group.setHidden(False)
+            icon = QtGui.QIcon()
+            icon.addPixmap(
+                QtGui.QPixmap(":/up.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
+            self.toggle_controls_btn.setIcon(icon)
+        else:
+            self.toggle_controls_btn.setText("Show controls")
+            self.time_group.setHidden(True)
+            self.search_group.setHidden(True)
+            icon = QtGui.QIcon()
+            icon.addPixmap(
+                QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
+            self.toggle_controls_btn.setIcon(icon)
