@@ -992,8 +992,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                 t = t[start:stop]
 
-            print(f"{t=}")
-
             for item in self.selectedItems():
                 texts.append(
                     ", ".join(
@@ -1578,7 +1576,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 details = ""
             self.details_text = details or "\tSource not available"
             self.setToolTip(self.NameColumn, tooltip)
-            self.setToolTip(self.ValueColumn, f"value")
+            self.setToolTip(self.ValueColumn, "")
             self.setToolTip(self.UnitColumn, f"unit")
             self.setToolTip(self.CommonAxisColumn, f"common axis")
             self.setToolTip(self.IndividualAxisColumn, f"individual axis")
@@ -1997,8 +1995,10 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         if ranges:
             self.setIcon(self.ValueColumn, utils.RANGE_INDICATOR_ICON)
+            self.setToolTip(self.ValueColumn, f"{self.name}\nhas color ranges defined")
         else:
             self.setIcon(self.ValueColumn, utils.NO_ICON)
+            self.setToolTip(self.ValueColumn, "")
 
             if self.type() == self.Channel:
 

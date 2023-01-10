@@ -466,6 +466,7 @@ class TableModel(QtCore.QAbstractTableModel):
         elif role == QtCore.Qt.BackgroundRole:
 
             channel_ranges = self.view.ranges[signal.entry]
+            cell = self.backend.get_signal_value(signal, 2)
 
             try:
                 value = float(cell)
@@ -487,6 +488,7 @@ class TableModel(QtCore.QAbstractTableModel):
 
         elif role == QtCore.Qt.ForegroundRole:
             channel_ranges = self.view.ranges[signal.entry]
+            cell = self.backend.get_signal_value(signal, 2)
 
             try:
                 value = float(cell)
