@@ -752,9 +752,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if not selected_items:
                 return
             else:
-                item = selected_items[0]
+                text = "\n".join(item.name for item in selected_items)
 
-            QtWidgets.QApplication.instance().clipboard().setText(item.name)
+            QtWidgets.QApplication.instance().clipboard().setText(text)
 
         elif modifiers == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_R:
             selected_items = self.selectedItems()
@@ -896,7 +896,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addSeparator()
 
         if item and item.type() == ChannelsTreeItem.Channel:
-            menu.addAction(self.tr("Copy name [Ctrl+N]"))
+            menu.addAction(self.tr("Copy names [Ctrl+N]"))
+            menu.addAction(self.tr("Copy names and values"))
             menu.addAction(self.tr("Copy display properties [Ctrl+Shift+C]"))
             menu.addAction(self.tr("Paste display properties [Ctrl+Shift+P]"))
 
@@ -975,11 +976,36 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if action is None:
             return
 
-        if action.text() == "Copy name [Ctrl+N]":
+        if action.text() == "Copy names [Ctrl+N]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress, QtCore.Qt.Key_N, QtCore.Qt.ControlModifier
             )
             self.keyPressEvent(event)
+
+        elif action.text() == "Copy names and values":
+            texts = []
+            t = self.plot.cursor_info.text()
+
+            if t.startswith("<html>"):
+                start = t.index("<p>") + 3
+                stop = t.index("</p>")
+
+                t = t[start:stop]
+
+            print(f"{t=}")
+
+            for item in self.selectedItems():
+                texts.append(
+                    ", ".join(
+                        [
+                            item.text(item.NameColumn),
+                            t,
+                            f"{item.text(item.ValueColumn)}{item.text(item.UnitColumn)}",
+                        ]
+                    )
+                )
+
+            QtWidgets.QApplication.instance().clipboard().setText("\n".join(texts))
 
         elif action.text() == "Activate group":
             if item.isDisabled():
