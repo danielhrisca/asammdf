@@ -36,6 +36,7 @@ from traceback import format_exc
 import numpy as np
 import numpy.core.defchararray as npchar
 import pandas as pd
+import pyqtgraph.functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 Qt = QtCore.Qt
@@ -489,8 +490,17 @@ class DataTableView(QtWidgets.QTableView):
             )
 
             if selected_items:
+                for index in selected_items:
+                    original_name = self.pgdf.df_unfiltered.columns[index]
+                    ranges = self.pgdf.tabular.ranges[original_name]
+                    if ranges:
+                        break
+                else:
+                    ranges = []
 
-                dlg = RangeEditor("<selected signals>", "", [], parent=self, brush=True)
+                dlg = RangeEditor(
+                    "<selected signals>", "", ranges=ranges, parent=self, brush=True
+                )
                 dlg.exec_()
                 if dlg.pressed_button == "apply":
                     ranges = dlg.result
@@ -1344,7 +1354,15 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         if not ranges:
             self.ranges = {name: [] for name in df.columns}
         else:
-            self.ranges = ranges
+            self.ranges = {}
+
+            for name, ranges_ in ranges.items():
+                for range_info in ranges_:
+                    range_info["font_color"] = fn.mkBrush(range_info["font_color"])
+                    range_info["background_color"] = fn.mkBrush(
+                        range_info["background_color"]
+                    )
+                self.ranges[name] = ranges_
 
         df = DataFrameStorage(df, self)
 

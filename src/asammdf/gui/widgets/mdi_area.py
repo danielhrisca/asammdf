@@ -2042,7 +2042,6 @@ class WithMDIArea:
         )
         if self.subplots_link:
             numeric.timestamp_changed_signal.connect(self.set_cursor)
-
         numeric.add_new_channels(signals)
         numeric.show()
 
@@ -2537,6 +2536,7 @@ class WithMDIArea:
         uuids = set(entry["origin_uuid"] for entry in signals_)
 
         dfs = []
+        ranges = {}
         start = []
 
         for uuid in uuids:
@@ -2545,6 +2545,14 @@ class WithMDIArea:
                 for entry in signals_
                 if entry["origin_uuid"] == uuid
             ]
+
+            ranges.update(
+                {
+                    entry["name"]: entry["ranges"]
+                    for entry in signals_
+                    if entry["origin_uuid"] == uuid
+                }
+            )
 
             file_info = self.file_by_uuid(uuid)
             if not file_info:
@@ -2585,7 +2593,7 @@ class WithMDIArea:
             ):
                 signals[name] = signals[name].astype("<u4") & 0x1FFFFFFF
 
-        tabular = Tabular(signals, start=start, parent=self)
+        tabular = Tabular(signals, start=start, parent=self, ranges=ranges)
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(tabular)

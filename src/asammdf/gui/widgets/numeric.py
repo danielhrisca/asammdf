@@ -9,6 +9,7 @@ from traceback import format_exc
 from natsort import natsorted
 import numpy as np
 from numpy import searchsorted
+import pyqtgraph.functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from asammdf import MDF
@@ -1303,6 +1304,14 @@ class Numeric(QtWidgets.QWidget):
                         )
                     )
 
+                    ranges = copy_ranges(sig.ranges)
+                    for range_info in ranges:
+                        range_info["font_color"] = fn.mkBrush(range_info["font_color"])
+                        range_info["background_color"] = fn.mkBrush(
+                            range_info["background_color"]
+                        )
+                    sig.ranges = ranges
+
                     self.channels.dataView.ranges[entry] = sig.ranges
 
         else:
@@ -1324,6 +1333,13 @@ class Numeric(QtWidgets.QWidget):
                             signal=sig,
                         )
                     )
+
+                    for range_info in ranges:
+                        range_info["font_color"] = fn.mkBrush(range_info["font_color"])
+                        range_info["background_color"] = fn.mkBrush(
+                            range_info["background_color"]
+                        )
+                    sig.ranges = ranges
 
                     self.channels.dataView.ranges[sig.entry] = ranges
 
