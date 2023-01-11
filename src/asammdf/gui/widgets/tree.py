@@ -11,6 +11,7 @@ from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from .. import utils
+from ...blocks.conversion_utils import from_dict, to_dict
 from ...signal import Signal
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.conversion_editor import ConversionEditor
@@ -851,16 +852,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                         item.set_ranges(info["ranges"])
 
+                        if "conversion" in info:
+                            item.set_conversion(from_dict(info["conversion"]))
+
                     except:
                         print(format_exc())
-
-        elif modifiers == (
-            QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier
-        ) and key in (QtCore.Qt.Key_C, QtCore.Qt.Key_P):
-            selected_items = self.selectedItems()
-            if not selected_items:
-                return
-            self.itemWidget(selected_items[0], 1).keyPressEvent(event)
 
         elif modifiers == QtCore.Qt.ShiftModifier and key in (
             QtCore.Qt.Key_Up,
@@ -1794,6 +1790,9 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             "format": self.format,
             "ranges": copy_ranges(self.ranges),
         }
+
+        if self.signal.flags & Signal.Flags.user_defined_conversion:
+            info["conversion"] = to_dict(self.signal.conversion)
 
         for range_info in info["ranges"]:
             range_info["background_color"] = range_info["background_color"].name()

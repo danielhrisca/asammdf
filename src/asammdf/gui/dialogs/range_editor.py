@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from ..ui import resource_rc
 from ..ui.range_editor_dialog import Ui_RangeDialog
@@ -12,6 +12,11 @@ class RangeEditor(Ui_RangeDialog, QtWidgets.QDialog):
     def __init__(self, name, unit="", ranges=None, brush=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+        self.setWindowFlags(
+            self.windowFlags()
+            | QtCore.Qt.WindowSystemMenuHint
+            | QtCore.Qt.WindowMinMaxButtonsHint
+        )
 
         self.name = name
         self.unit = unit
@@ -41,6 +46,7 @@ class RangeEditor(Ui_RangeDialog, QtWidgets.QDialog):
         self.reset_btn.clicked.connect(self.reset)
 
         self.setWindowTitle(f"Edit {self.name} range colors")
+        self.showMaximized()
 
     def apply(self, event):
         ranges = []

@@ -152,7 +152,7 @@
    <item>
     <widget class="QLabel" name="label_3">
      <property name="text">
-      <string>and font</string>
+      <string>and font/curve</string>
      </property>
     </widget>
    </item>

@@ -5,6 +5,7 @@ asammdf utility functions for channel conversions
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any, Union
 
 from . import v2_v3_blocks as v3b
@@ -17,7 +18,7 @@ __all__ = ["conversion_transfer", "from_dict"]
 
 
 def conversion_transfer(
-    conversion: ChannelConversionType, version: int = 3
+    conversion: ChannelConversionType, version: int = 3, copy: bool = False
 ) -> ChannelConversionType:
     """convert between mdf4 and mdf3 channel conversions
 
@@ -27,6 +28,8 @@ def conversion_transfer(
         channel conversion
     version : int
         target mdf version
+    copy : bool
+        return a copy if the input conversion version is the same as the required version
 
     Returns
     -------
@@ -41,7 +44,8 @@ def conversion_transfer(
         else:
             conversion_type = conversion["conversion_type"]
             if conversion.id == b"CC":
-                pass
+                if copy:
+                    conversion = deepcopy(conversion)
             else:
                 unit = conversion.unit.strip(" \r\n\t\0").encode("latin-1")
 
@@ -197,7 +201,8 @@ def conversion_transfer(
 
     else:
         if not conversion or conversion.id == b"##CC":
-            pass
+            if copy:
+                conversion = deepcopy(conversion)
         else:
             conversion_type = conversion.conversion_type
             unit = conversion.unit_field.decode("latin-1").strip(" \r\n\t\0")

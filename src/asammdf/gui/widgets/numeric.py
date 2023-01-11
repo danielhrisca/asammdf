@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+from traceback import format_exc
 
 from natsort import natsorted
 import numpy as np
@@ -21,6 +22,7 @@ from asammdf.gui.utils import (
 )
 from asammdf.gui.widgets.plot import PlotSignal
 
+from ...blocks.conversion_utils import from_dict, to_dict
 from ..ui import resource_rc
 from ..utils import FONT_SIZE
 from .loader import load_ui
@@ -686,6 +688,66 @@ class TableView(QtWidgets.QTableView):
 
                     self.backend.update()
 
+        elif (
+            modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier)
+            and key == QtCore.Qt.Key_C
+        ):
+            selected_items = set(
+                index.row() for index in self.selectedIndexes() if index.isValid()
+            )
+
+            if not selected_items:
+                return
+            else:
+                row = list(selected_items)[0]
+                signal = self.backend.signals[row]
+
+                info = {
+                    "format": signal.format,
+                    "ranges": copy_ranges(self.ranges[signal.entry]),
+                }
+
+                for range_info in info["ranges"]:
+                    range_info["background_color"] = (
+                        range_info["background_color"].color().name()
+                    )
+                    range_info["font_color"] = range_info["font_color"].color().name()
+
+                QtWidgets.QApplication.instance().clipboard().setText(json.dumps(info))
+
+        elif (
+            modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier)
+            and key == QtCore.Qt.Key_P
+        ):
+
+            info = QtWidgets.QApplication.instance().clipboard().text()
+            selected_items = set(
+                index.row() for index in self.selectedIndexes() if index.isValid()
+            )
+
+            if not selected_items:
+                return
+
+            try:
+                info = json.loads(info)
+                for range_info in info["ranges"]:
+                    range_info["background_color"] = QtGui.QBrush(
+                        QtGui.QColor(range_info["background_color"])
+                    )
+                    range_info["font_color"] = QtGui.QBrush(
+                        QtGui.QColor(range_info["font_color"])
+                    )
+            except:
+                print(format_exc())
+            else:
+                for row in selected_items:
+                    signal = self.backend.signals[row]
+
+                    signal.format = info["format"]
+                    self.ranges[signal.entry] = copy_ranges(info["ranges"])
+
+                self.backend.update()
+
         else:
             super().keyPressEvent(event)
 
@@ -998,13 +1060,13 @@ class NumericViewer(QtWidgets.QWidget):
             self.dataView.horizontalScrollBar().setValue
         )
 
-        self.dataView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.dataView.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        # self.dataView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        # self.dataView.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
         self.gridLayout.addWidget(self.columnHeader, 0, 0)
         self.gridLayout.addWidget(self.dataView, 1, 0)
-        self.gridLayout.addWidget(self.dataView.horizontalScrollBar(), 2, 0, 1, 1)
-        self.gridLayout.addWidget(self.dataView.verticalScrollBar(), 1, 1, 1, 1)
+        # self.gridLayout.addWidget(self.dataView.horizontalScrollBar(), 2, 0, 1, 1)
+        # self.gridLayout.addWidget(self.dataView.verticalScrollBar(), 1, 1, 1, 1)
 
         self.dataView.verticalScrollBar().setSizePolicy(
             QtWidgets.QSizePolicy(
@@ -1069,11 +1131,13 @@ class NumericViewer(QtWidgets.QWidget):
         if delta > 0:
             for i in range(self.columnHeader.model().columnCount()):
                 self.auto_size_column(i, extra_padding=delta)
-            self.dataView.horizontalScrollBar().hide()
+            # self.dataView.horizontalScrollBar().hide()
         else:
             self.dataView.horizontalScrollBar().show()
 
     def update_horizontal_scroll(self, *args):
+        return
+
         s = 0
         for i in range(self.columnHeader.model().columnCount()):
             s += self.dataView.columnWidth(i) + self.dataView.frameWidth()
@@ -1282,7 +1346,6 @@ class Numeric(QtWidgets.QWidget):
 
             numeric._timestamp = numeric._min
 
-            print(numeric.timestamp)
             numeric.timestamp.setRange(numeric._min, numeric._max)
             numeric.min_t.setText(f"{numeric._min:.9f}s")
             numeric.max_t.setText(f"{numeric._max:.9f}s")

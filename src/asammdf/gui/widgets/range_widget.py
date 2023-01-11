@@ -16,8 +16,8 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
         op1="==",
         value2="",
         op2="==",
-        font_color="#ff0000",
-        background_color="#00ff00",
+        font_color=None,
+        background_color=None,
         brush=False,
         *args,
         **kwargs,
@@ -25,6 +25,12 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
+
+        if font_color is None:
+            font_color = self._settings.value("range_font_color", "#ff0000")
+
+        if background_color is None:
+            background_color = self._settings.value("range_background_color", "#00ff00")
 
         self.name.setText(name)
 
