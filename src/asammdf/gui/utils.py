@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from collections import defaultdict
+from copy import deepcopy
 from datetime import datetime
 from functools import reduce
 import inspect
@@ -25,6 +26,8 @@ from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Signal, Slot
 
+from ..blocks import v4_constants as v4c
+from ..blocks.conversion_utils import from_dict
 from ..blocks.options import FloatInterpolation, IntegerInterpolation
 from ..mdf import MDF, MDF2, MDF3, MDF4
 from ..signal import Signal
@@ -200,7 +203,76 @@ def load_dsp(file, background="#000000", flat=False):
     if isinstance(background, str):
         background = fn.mkColor(background)
 
-    def parse_channels(display):
+    def parse_conversions(display):
+        conversions = {}
+
+        if display is None:
+            return conversions
+
+        for item in display.findall("COMPU_METHOD"):
+            try:
+                conv = {
+                    "name": item.get("name"),
+                    "comment": item.get("description"),
+                    "unit": item.get("unit"),
+                }
+
+                conversion_type = int(item.get("cnv_type"))
+                if conversion_type == 0:
+                    conv["conversion_type"] = v4c.CONVERSION_TYPE_LIN
+
+                    coeffs = item.find("COEFFS_LINIAR")
+
+                    conv["a"] = float(coeffs.get("P1"))
+                    conv["b"] = float(coeffs.get("P2"))
+
+                elif conversion_type == 9:
+                    conv["conversion_type"] = v4c.CONVERSION_TYPE_RAT
+
+                    coeffs = item.find("COEFFS")
+                    for i in range(1, 7):
+                        conv[f"P{i}"] = float(coeffs.get(f"P{i}"))
+
+                elif conversion_type == 11:
+                    conv["conversion_type"] = v4c.CONVERSION_TYPE_TABX
+                    vtab = item.find("COMPU_VTAB")
+
+                    if vtab is not None:
+                        for i, item in enumerate(vtab.findall("tab")):
+                            conv[f"val_{i}"] = float(item.get("min"))
+                            text = item.get("text")
+                            if isinstance(text, bytes):
+                                text = text.decode("utf-8", errors="replace")
+                            conv[f"text_{i}"] = text
+
+                elif conversion_type == 12:
+                    conv["conversion_type"] = v4c.CONVERSION_TYPE_RTABX
+                    vtab = item.find("COMPU_VTAB_RANGE")
+
+                    if vtab is not None:
+                        text = vtab.get("default")
+                        if isinstance(text, bytes):
+                            text = text.decode("utf-8", errors="replace")
+                        conv["default_addr"] = vtab.get("default")
+                        for i, item in enumerate(vtab.findall("tab_range")):
+                            conv[f"upper_{i}"] = float(item.get("max"))
+                            conv[f"lower_{i}"] = float(item.get("min"))
+                            text = item.get("text")
+                            if isinstance(text, bytes):
+                                text = text.decode("utf-8", errors="replace")
+                            conv[f"text_{i}"] = text
+                else:
+                    continue
+
+                conversions[conv["name"]] = conv
+
+            except:
+                print(format_exc())
+                continue
+
+        return conversions
+
+    def parse_channels(display, conversions):
         channels = []
         for elem in display.iterchildren():
             if elem.tag == "CHANNEL":
@@ -251,29 +323,33 @@ def load_dsp(file, background="#000000", flat=False):
                             }
                         )
 
-                channels.append(
-                    {
-                        "color": f"#{c:06X}",
-                        "common_axis": False,
-                        "computed": False,
-                        "flags": 0,
-                        "comment": comment,
-                        "enabled": elem.get("on") == "1",
-                        "fmt": "{}",
-                        "individual_axis": False,
-                        "name": channel_name,
-                        "mode": "phys",
-                        "precision": 3,
-                        "ranges": ranges,
-                        "unit": "",
-                        "type": "channel",
-                        "y_range": [
-                            -gain * offset,
-                            -gain * offset + 19 * gain,
-                        ],
-                        "origin_uuid": "000000000000",
-                    }
-                )
+                chan = {
+                    "color": f"#{c:06X}",
+                    "common_axis": False,
+                    "computed": False,
+                    "flags": 0,
+                    "comment": comment,
+                    "enabled": elem.get("on") == "1",
+                    "fmt": "{}",
+                    "individual_axis": False,
+                    "name": channel_name,
+                    "mode": "phys",
+                    "precision": 3,
+                    "ranges": ranges,
+                    "unit": "",
+                    "type": "channel",
+                    "y_range": [
+                        -gain * offset,
+                        -gain * offset + 19 * gain,
+                    ],
+                    "origin_uuid": "000000000000",
+                }
+
+                conv_name = elem.get("cnv_name")
+                if conv_name in conversions:
+                    chan["conversion"] = deepcopy(conversions[conv_name])
+
+                channels.append(chan)
 
             elif elem.tag.startswith("GROUP"):
                 channels.append(
@@ -403,7 +479,9 @@ def load_dsp(file, background="#000000", flat=False):
     dsp = Path(file).read_bytes().replace(b"\0", b"")
     dsp = lxml.etree.fromstring(dsp)
 
-    channels = parse_channels(dsp.find("DISPLAY_INFO"))
+    conversions = parse_conversions(dsp.find("COMPU_METHODS"))
+
+    channels = parse_channels(dsp.find("DISPLAY_INFO"), conversions)
     c_functions = parse_c_functions(dsp)
 
     functions = {}
