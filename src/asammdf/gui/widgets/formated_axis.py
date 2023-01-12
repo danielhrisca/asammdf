@@ -236,7 +236,7 @@ class FormatedAxis(pg.AxisItem):
 
                 self.setRange(mid - delta / 2, mid + delta / 2)
         else:
-            return self.linkedView().mouseDragEvent(event)
+            return self.linkedView().mouseDragEvent(event, axis=0, ignore_cursor=True)
 
     def mouseClickEvent(self, event):
 

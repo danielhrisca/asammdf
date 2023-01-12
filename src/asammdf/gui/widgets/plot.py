@@ -39,6 +39,7 @@ PLOT_BUFFER_SIZE = 4000
 from ...blocks.conversion_utils import from_dict, to_dict
 from ...blocks.utils import target_byte_order
 from ..utils import FONT_SIZE, value_as_str
+from .viewbox import ViewBox
 
 try:
     from ...blocks.cutils import positions
@@ -2670,6 +2671,7 @@ class Plot(QtWidgets.QWidget):
                 break
 
             if item.type() == item.Channel and item.uuid == uuid:
+                self.channel_selection.clearSelection()
                 self.channel_selection.setCurrentItem(item)
                 break
 
@@ -3553,6 +3555,14 @@ class _Plot(pg.PlotWidget):
         events = kwargs.pop("events", [])
         super().__init__()
 
+        del self.plotItem.vb
+        self.plotItem.vb = ViewBox(parent=self.plotItem)
+        self.plotItem.vb.sigStateChanged.connect(self.plotItem.viewStateChanged)
+        self.plotItem.vb.sigRangeChanged.connect(self.plotItem.sigRangeChanged)
+        self.plotItem.vb.sigXRangeChanged.connect(self.plotItem.sigXRangeChanged)
+        self.plotItem.vb.sigYRangeChanged.connect(self.plotItem.sigYRangeChanged)
+        self.plotItem.layout.addItem(self.plotItem.vb, 2, 1)
+
         self.lock = Lock()
 
         self.bookmarks = []
@@ -3630,6 +3640,10 @@ class _Plot(pg.PlotWidget):
         self.viewbox.border = None
         self.viewbox.disableAutoRange()
 
+        self.viewbox.sigCursorMoved.connect(self._cursor_moved)
+        self.viewbox.sigZoomChanged.connect(self._cursor_zoom)
+        self.viewbox.sigZoomFinished.connect(self._cursor_zoom_finished)
+
         self.x_range = self.y_range = (0, 1)
         self._curve = pg.PlotCurveItem(
             np.array([]),
@@ -3639,10 +3653,7 @@ class _Plot(pg.PlotWidget):
             connect="finite",
         )
 
-        self.viewbox.menu.removeAction(self.viewbox.menu.viewAll)
         self.scene_.contextMenu = []
-        for ax in self.viewbox.menu.axes:
-            self.viewbox.menu.removeAction(ax.menuAction())
         self.plot_item.setMenuEnabled(False, None)
 
         self.common_axis_items = set()
@@ -3918,6 +3929,8 @@ class _Plot(pg.PlotWidget):
         if signals:
             self.update_views()
 
+        self.zoom = None
+
         self.px = 1
         self.py = 1
 
@@ -4051,7 +4064,7 @@ class _Plot(pg.PlotWidget):
 
             if (
                 QtCore.QKeyCombination(
-                    QtCore.Qt.Key_C, QtCore.Qt.NoModifier
+                    QtCore.Qt.Key_C, QtCore.Qt.ControlModifier
                 ).toCombined()
                 not in self.disabled_keys
             ):
@@ -4073,7 +4086,7 @@ class _Plot(pg.PlotWidget):
                         self.cursor1.sigPositionChangeFinished.emit(self.cursor1)
 
             now = perf_counter()
-            if modifiers == QtCore.Qt.ShiftModifier:
+            if modifiers == QtCore.Qt.ControlModifier:
                 self.select_curve(x, y)
             elif now - self.last_click < 0.3:
 
@@ -4110,6 +4123,53 @@ class _Plot(pg.PlotWidget):
             self.all_timebase = self.timebase = new_timebase
         else:
             self.all_timebase = self.timebase = np.array([])
+
+    def _cursor_moved(self, event):
+
+        pos = self.plot_item.vb.mapSceneToView(event.scenePos()).x()
+        start, stop = self.viewbox.viewRange()[0]
+        if not start <= pos <= stop:
+            return
+
+        scene_pos = event.scenePos()
+        pos = self.plot_item.vb.mapSceneToView(scene_pos)
+        x = pos.x()
+        y = event.scenePos().y()
+
+        if self.cursor1 is not None:
+            self.cursor1.setPos(pos)
+            self.cursor1.sigPositionChangeFinished.emit(self.cursor1)
+
+    def _cursor_zoom(self, zoom):
+        self.zoom = zoom
+
+    def _cursor_zoom_finished(self, zoom):
+        p1, p2, zoom_mode = zoom
+
+        if zoom_mode in (self.viewbox.Y_zoom, *self.viewbox.XY_zoom):
+            y1, y2 = sorted([p1.y(), p2.y()])
+            y_bottom, y_top = self.viewbox.viewRange()[1]
+            r_top = (y2 - y_bottom) / (y_top - y_bottom)
+            r_bottom = (y1 - y_bottom) / (y_top - y_bottom)
+
+            for sig in self.signals:
+
+                sig_y_bottom, sig_y_top = sig.y_range
+                delta = sig_y_top - sig_y_bottom
+                sig_y_top = sig_y_bottom + r_top * delta
+                sig_y_bottom = sig_y_bottom + r_bottom * delta
+
+                sig, idx = self.signal_by_uuid(sig.uuid)
+
+                axis = self.axes[idx]
+                if isinstance(axis, FormatedAxis):
+                    axis.setRange(sig_y_bottom, sig_y_top)
+                else:
+                    self.set_y_range(sig.uuid, (sig_y_bottom, sig_y_top))
+
+        if zoom_mode in (self.viewbox.X_zoom, *self.viewbox.XY_zoom):
+            x1, x2 = sorted([p1.x(), p2.x()])
+            self.viewbox.setXRange(x1, x2, padding=0)
 
     def curve_clicked_handle(self, curve, ev, uuid):
         self.curve_clicked.emit(uuid)
@@ -5279,15 +5339,77 @@ class _Plot(pg.PlotWidget):
 
         self.draw_grids(paint, event_rect)
 
-        if self.cursor1 is not None and self.cursor1.isVisible():
-            self.cursor1.paint(paint, plot=self, uuid=self.current_uuid)
+        if self.zoom is None:
 
-        if self.region is not None:
-            self.region.paint(paint, plot=self, uuid=self.current_uuid)
+            if self.cursor1 is not None and self.cursor1.isVisible():
+                self.cursor1.paint(paint, plot=self, uuid=self.current_uuid)
 
-        for bookmark in self.bookmarks:
-            if bookmark.visible:
-                bookmark.paint(paint, plot=self, uuid=self.current_uuid)
+            if self.region is not None:
+                self.region.paint(paint, plot=self, uuid=self.current_uuid)
+
+            for bookmark in self.bookmarks:
+                if bookmark.visible:
+                    bookmark.paint(paint, plot=self, uuid=self.current_uuid)
+
+        else:
+
+            p1, p2, zoom_mode = self.zoom
+
+            rect = self.viewbox.sceneBoundingRect()
+            delta = rect.x()
+            height = rect.height()
+            width = rect.width()
+
+            x1, y1 = self.scale_curve_to_pixmap(
+                p1.x(),
+                p1.y(),
+                y_range=self.viewbox.viewRange()[1],
+                x_start=self.viewbox.viewRange()[0][0],
+                delta=delta,
+            )
+            x2, y2 = self.scale_curve_to_pixmap(
+                p2.x(),
+                p2.y(),
+                y_range=self.viewbox.viewRange()[1],
+                x_start=self.viewbox.viewRange()[0][0],
+                delta=delta,
+            )
+
+            if zoom_mode == self.viewbox.X_zoom:
+
+                x1, x2 = sorted([x1, x2])
+                rect = QtCore.QRectF(
+                    x1,
+                    0,
+                    x2 - x1,
+                    height,
+                )
+            elif zoom_mode == self.viewbox.Y_zoom:
+                y1, y2 = sorted([y1, y2])
+                rect = QtCore.QRectF(
+                    0,
+                    y1,
+                    width + delta,
+                    y2 - y1,
+                )
+            else:
+                x1, x2 = sorted([x1, x2])
+                y1, y2 = sorted([y1, y2])
+
+                rect = QtCore.QRectF(
+                    x1,
+                    y1,
+                    x2 - x1,
+                    y2 - y1,
+                )
+
+            color = fn.mkColor(0x62, 0xB2, 0xE2)
+            paint.setPen(fn.mkPen(color))
+            color = fn.mkColor(0x62, 0xB2, 0xE2, 50)
+            paint.setBrush(fn.mkBrush(color))
+
+            paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceAtop)
+            paint.drawRect(rect)
 
         paint.end()
 

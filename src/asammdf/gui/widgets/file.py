@@ -2108,7 +2108,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         else:
             widget = self.get_current_widget()
             if widget:
-                widget.keyPressEvent(event)
+                if isinstance(widget, Plot):
+                    widget.plot.viewbox.keyPressEvent(event)
+                else:
+                    widget.keyPressEvent(event)
             else:
                 super().keyPressEvent(event)
 
