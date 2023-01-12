@@ -395,7 +395,9 @@ class FormatedAxis(pg.AxisItem):
 
         lv = self.linkedView()
 
-        if lv is None:
+        if lv is None or (
+            lv.state["mouseMode"] == lv.CursorMode and lv.state["mouseEnabled"][1]
+        ):
 
             pos = event.pos()
             rect = self.boundingRect()

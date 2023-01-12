@@ -1049,9 +1049,9 @@ def computation_to_python_function(description):
 
         new_description = {
             "args": fargs,
-            "channel_comment": description["channel_comment"],
-            "channel_name": description["channel_name"],
-            "channel_unit": description["channel_unit"],
+            "channel_comment": description.get("channel_comment", ""),
+            "channel_name": description.get("channel_name", ""),
+            "channel_unit": description.get("channel_unit", ""),
             "definition": definition,
             "type": "python_function",
             "triggering": "triggering_on_all",

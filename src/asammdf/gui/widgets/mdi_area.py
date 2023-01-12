@@ -1129,13 +1129,21 @@ class WithMDIArea:
                         )
                         columns["Data Bytes"] = vals
 
+                        y = data["CAN_DataFrame.Dir"]
+
                         if "CAN_DataFrame.Dir" in names:
-                            columns["Direction"] = [
-                                "TX" if dir else "RX"
-                                for dir in data["CAN_DataFrame.Dir"]
-                                .astype("u1")
-                                .tolist()
-                            ]
+                            if data["CAN_DataFrame.Dir"].dtype.kind == "S":
+                                columns["Direction"] = [
+                                    v.decode("utf-8")
+                                    for v in data["CAN_DataFrame.Dir"].tolist()
+                                ]
+                            else:
+                                columns["Direction"] = [
+                                    "TX" if dir else "RX"
+                                    for dir in data["CAN_DataFrame.Dir"]
+                                    .astype("u1")
+                                    .tolist()
+                                ]
 
                         if "CAN_DataFrame.ESI" in names:
                             columns["ESI"] = [
@@ -1658,10 +1666,19 @@ class WithMDIArea:
                         columns["Data Bytes"] = vals
 
                         if "LIN_Frame.Dir" in names:
-                            columns["Direction"] = [
-                                "TX" if dir else "RX"
-                                for dir in data["LIN_Frame.Dir"].astype("u1").tolist()
-                            ]
+                            if data["LIN_Frame.Dir"].dtype.kind == "S":
+                                columns["Direction"] = [
+                                    v.decode("utf-8")
+                                    for v in data["LIN_Frame.Dir"].tolist()
+                                ]
+                            else:
+
+                                columns["Direction"] = [
+                                    "TX" if dir else "RX"
+                                    for dir in data["LIN_Frame.Dir"]
+                                    .astype("u1")
+                                    .tolist()
+                                ]
 
                         vals = None
                         data_length = None

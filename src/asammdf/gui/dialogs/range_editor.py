@@ -46,7 +46,7 @@ class RangeEditor(Ui_RangeDialog, QtWidgets.QDialog):
         self.reset_btn.clicked.connect(self.reset)
 
         self.setWindowTitle(f"Edit {self.name} range colors")
-        self.showMaximized()
+        self.show()
 
     def apply(self, event):
         ranges = []

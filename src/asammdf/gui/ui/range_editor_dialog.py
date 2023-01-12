@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'range_editor_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.3
+## Created by: Qt User Interface Compiler version 6.3.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -25,7 +25,7 @@ class Ui_RangeDialog(object):
     def setupUi(self, RangeDialog):
         if not RangeDialog.objectName():
             RangeDialog.setObjectName(u"RangeDialog")
-        RangeDialog.resize(834, 485)
+        RangeDialog.resize(1300, 329)
         RangeDialog.setSizeGripEnabled(True)
         RangeDialog.setModal(True)
         self.gridLayout = QGridLayout(RangeDialog)

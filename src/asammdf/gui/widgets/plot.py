@@ -1440,10 +1440,11 @@ class Plot(QtWidgets.QWidget):
     show_properties = QtCore.Signal(list)
     splitter_moved = QtCore.Signal(object, int)
     pattern_group_added = QtCore.Signal(object, object)
+    verify_bookmarks = QtCore.Signal(list, object)
 
     item_double_click_handling = "enable/disable"
     dynamic_columns_width = True
-    verify_bookmarks = QtCore.Signal(list, object)
+    mouse_mode = "pan"
 
     def __init__(
         self,
@@ -3562,6 +3563,7 @@ class _Plot(pg.PlotWidget):
         self.plotItem.vb.sigXRangeChanged.connect(self.plotItem.sigXRangeChanged)
         self.plotItem.vb.sigYRangeChanged.connect(self.plotItem.sigYRangeChanged)
         self.plotItem.layout.addItem(self.plotItem.vb, 2, 1)
+        self.plotItem.vb.setLeftButtonAction(Plot.mouse_mode)
 
         self.lock = Lock()
 
@@ -4000,6 +4002,8 @@ class _Plot(pg.PlotWidget):
 
         if axis_uuid is not None:
             self.set_current_uuid(sig.uuid)
+            if len(self.all_timebase):
+                self.cursor1.set_value(self.all_timebase[0])
 
         return {sig.uuid: sig for sig in channels}
 
