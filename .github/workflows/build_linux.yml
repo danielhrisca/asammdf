@@ -20,7 +20,7 @@ jobs:
 
       - name: Install packages
         run: |
-            pip install build numpy wheel nuitka ordered-set
+            pip install build numpy wheel
             pip install -r requirements_exe_build.txt
             python setup.py bdist_wheel
             pip install -e . --no-deps
@@ -34,8 +34,7 @@ jobs:
                  sudo apt update
                  sudo apt install libegl1 libopengl0
             fi
-            python -m nuitka ./src/asammdf/gui/asammdfgui.py --standalone --enable-plugin=pyside6 --disable-console
-            cp asammdfdgui.dist dist/${RUNNER_OS}
+            pyinstaller asammdf.spec --distpath dist/${RUNNER_OS} --noconfirm --clean
 
       # see: https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
       - name: Archive dist artifacts
