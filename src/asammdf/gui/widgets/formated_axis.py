@@ -395,9 +395,8 @@ class FormatedAxis(pg.AxisItem):
 
         lv = self.linkedView()
 
-        if lv is None or (
-            lv.state["mouseMode"] == lv.CursorMode and lv.state["mouseEnabled"][1]
-        ):
+        if lv is None:
+            # this is one of the individual axis
 
             pos = event.pos()
             rect = self.boundingRect()
@@ -422,12 +421,52 @@ class FormatedAxis(pg.AxisItem):
 
             event.accept()
         else:
-            if self.orientation in ("top", "bottom"):
-                super().wheelEvent(event)
-            elif lv.state["mouseEnabled"][1]:
-                super().wheelEvent(event)
+            # this is the main Y axis or the X axis
+
+            if lv.state["mouseMode"] == lv.CursorMode:
+                if self.orientation in ("top", "bottom"):
+                    print("super")
+                    super().wheelEvent(event)
+                else:
+                    # main Y axis
+                    if lv.state["mouseEnabled"][1]:
+                        # the plot is not Y locked
+                        pos = event.pos()
+                        rect = self.boundingRect()
+
+                        y_pos_val = (
+                            (rect.height() + rect.y()) - pos.y()
+                        ) / rect.height() * (
+                            self.range[-1] - self.range[0]
+                        ) + self.range[
+                            0
+                        ]
+
+                        ratio = abs(
+                            (pos.y() - (rect.height() + rect.y())) / rect.height()
+                        )
+
+                        delta = self.range[-1] - self.range[0]
+
+                        if event.delta() > 0:
+                            delta = 0.66 * delta
+                        else:
+                            delta = 1.33 * delta
+
+                        start = y_pos_val - ratio * delta
+                        end = y_pos_val + (1 - ratio) * delta
+
+                        self.setRange(start, end)
+
+                        event.accept()
+                    else:
+                        event.ignore()
+
             else:
-                event.ignore()
+                if self.orientation in ("top", "bottom") or lv.state["mouseEnabled"][1]:
+                    super().wheelEvent(event)
+                else:
+                    event.ignore()
 
     def paint(self, p, opt, widget):
         rect = self.boundingRect()

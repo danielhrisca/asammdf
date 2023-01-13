@@ -4005,6 +4005,9 @@ class _Plot(pg.PlotWidget):
             if len(self.all_timebase):
                 self.cursor1.set_value(self.all_timebase[0])
 
+        self.viewbox._matrixNeedsUpdate = True
+        self.viewbox.updateMatrix()
+
         return {sig.uuid: sig for sig in channels}
 
     def auto_clip_rect(self, painter):
