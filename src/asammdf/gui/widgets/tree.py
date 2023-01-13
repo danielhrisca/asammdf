@@ -815,7 +815,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         elif (
             modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier)
-            and key == QtCore.Qt.Key_P
+            and key == QtCore.Qt.Key_V
         ):
 
             info = QtWidgets.QApplication.instance().clipboard().text()
@@ -895,7 +895,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addAction(self.tr("Copy names [Ctrl+N]"))
             menu.addAction(self.tr("Copy names and values"))
             menu.addAction(self.tr("Copy display properties [Ctrl+Shift+C]"))
-            menu.addAction(self.tr("Paste display properties [Ctrl+Shift+P]"))
+            menu.addAction(self.tr("Paste display properties [Ctrl+Shift+V]"))
 
         menu.addAction(self.tr("Copy channel structure [Ctrl+C]"))
         menu.addAction(self.tr("Paste channel structure [Ctrl+V]"))
@@ -1106,10 +1106,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.keyPressEvent(event)
 
-        elif action.text() == "Paste display properties [Ctrl+Shift+P]":
+        elif action.text() == "Paste display properties [Ctrl+Shift+V]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress,
-                QtCore.Qt.Key_P,
+                QtCore.Qt.Key_V,
                 QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier,
             )
             self.keyPressEvent(event)

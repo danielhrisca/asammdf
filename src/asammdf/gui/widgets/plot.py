@@ -4153,7 +4153,10 @@ class _Plot(pg.PlotWidget):
     def _cursor_zoom_finished(self, zoom):
         p1, p2, zoom_mode = zoom
 
-        if zoom_mode in (self.viewbox.Y_zoom, *self.viewbox.XY_zoom):
+        if (
+            zoom_mode in (self.viewbox.Y_zoom, *self.viewbox.XY_zoom)
+            and not self.locked
+        ):
             y1, y2 = sorted([p1.y(), p2.y()])
             y_bottom, y_top = self.viewbox.viewRange()[1]
             r_top = (y2 - y_bottom) / (y_top - y_bottom)
@@ -5382,7 +5385,13 @@ class _Plot(pg.PlotWidget):
                 delta=delta,
             )
 
-            if zoom_mode == self.viewbox.X_zoom:
+            rect = None
+
+            if (
+                zoom_mode == self.viewbox.X_zoom
+                or zoom_mode in self.viewbox.XY_zoom
+                and self.locked
+            ):
 
                 x1, x2 = sorted([x1, x2])
                 rect = QtCore.QRectF(
@@ -5391,7 +5400,8 @@ class _Plot(pg.PlotWidget):
                     x2 - x1,
                     height,
                 )
-            elif zoom_mode == self.viewbox.Y_zoom:
+
+            elif zoom_mode == self.viewbox.Y_zoom and not self.locked:
                 y1, y2 = sorted([y1, y2])
                 rect = QtCore.QRectF(
                     0,
@@ -5399,7 +5409,7 @@ class _Plot(pg.PlotWidget):
                     width + delta,
                     y2 - y1,
                 )
-            else:
+            elif zoom_mode in self.viewbox.XY_zoom:
                 x1, x2 = sorted([x1, x2])
                 y1, y2 = sorted([y1, y2])
 
@@ -5410,13 +5420,15 @@ class _Plot(pg.PlotWidget):
                     y2 - y1,
                 )
 
-            color = fn.mkColor(0x62, 0xB2, 0xE2)
-            paint.setPen(fn.mkPen(color))
-            color = fn.mkColor(0x62, 0xB2, 0xE2, 50)
-            paint.setBrush(fn.mkBrush(color))
+            if rect is not None:
 
-            paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceAtop)
-            paint.drawRect(rect)
+                color = fn.mkColor(0x62, 0xB2, 0xE2)
+                paint.setPen(fn.mkPen(color))
+                color = fn.mkColor(0x62, 0xB2, 0xE2, 50)
+                paint.setBrush(fn.mkBrush(color))
+
+                paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceAtop)
+                paint.drawRect(rect)
 
         paint.end()
 

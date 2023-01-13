@@ -469,12 +469,20 @@ class TableModel(QtCore.QAbstractTableModel):
         elif role == QtCore.Qt.BackgroundRole:
 
             channel_ranges = self.view.ranges[signal.entry]
-            cell = self.backend.get_signal_value(signal, 2)
+            raw_cell = self.backend.get_signal_value(signal, 1)
+            scaled_cell = self.backend.get_signal_value(signal, 2)
 
             try:
-                value = float(cell)
+                scaled_value = float(scaled_cell)
+                value = scaled_value
             except:
-                value = str(cell)
+                scaled_value = str(scaled_cell)
+
+                try:
+                    raw_value = float(raw_cell)
+                    value = raw_value
+                except:
+                    value = scaled_value
 
             new_background_color, new_font_color = get_colors_using_ranges(
                 value,
@@ -491,12 +499,20 @@ class TableModel(QtCore.QAbstractTableModel):
 
         elif role == QtCore.Qt.ForegroundRole:
             channel_ranges = self.view.ranges[signal.entry]
-            cell = self.backend.get_signal_value(signal, 2)
+            raw_cell = self.backend.get_signal_value(signal, 1)
+            scaled_cell = self.backend.get_signal_value(signal, 2)
 
             try:
-                value = float(cell)
+                scaled_value = float(scaled_cell)
+                value = scaled_value
             except:
-                value = str(cell)
+                scaled_value = str(scaled_cell)
+
+                try:
+                    raw_value = float(raw_cell)
+                    value = raw_value
+                except:
+                    value = scaled_value
 
             new_background_color, new_font_color = get_colors_using_ranges(
                 value,
