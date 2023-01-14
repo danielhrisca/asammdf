@@ -4149,6 +4149,8 @@ class _Plot(pg.PlotWidget):
 
     def _cursor_zoom(self, zoom):
         self.zoom = zoom
+        if zoom is not None:
+            self.update()
 
     def _cursor_zoom_finished(self, zoom):
         p1, p2, zoom_mode = zoom

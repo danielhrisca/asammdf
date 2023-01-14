@@ -734,7 +734,7 @@ class TableView(QtWidgets.QTableView):
 
         elif (
             modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier)
-            and key == QtCore.Qt.Key_P
+            and key == QtCore.Qt.Key_V
         ):
 
             info = QtWidgets.QApplication.instance().clipboard().text()
