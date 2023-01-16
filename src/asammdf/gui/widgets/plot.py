@@ -1846,6 +1846,7 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.show_properties.connect(self._show_properties)
         self.channel_selection.insert_computation.connect(self.plot.insert_computation)
         self.channel_selection.edit_computation.connect(self.plot.edit_computation)
+        self.channel_selection.itemClicked.connect(self.flash_curve)
 
         self.channel_selection.model().dataChanged.connect(
             self.channel_selection_item_changed
@@ -2485,6 +2486,9 @@ class Plot(QtWidgets.QWidget):
                     stats = self.plot.get_stats(self.info_uuid)
                     self.info.set_stats(stats)
 
+                if len(self.channel_selection.selectedItems()) == 1:
+                    self.flash_curve(current, 0)
+
     def clear(self):
         event = QtGui.QKeyEvent(
             QtCore.QEvent.KeyPress, QtCore.Qt.Key_A, QtCore.Qt.ControlModifier
@@ -2703,6 +2707,10 @@ class Plot(QtWidgets.QWidget):
                 self.add_channels_request.emit(names)
             else:
                 super().dropEvent(e)
+
+    def flash_curve(self, item, column):
+        self.plot.flash_current_signal = True
+        self.plot.update()
 
     def hide_axes(self, event=None, hide=None):
 
@@ -3937,6 +3945,10 @@ class _Plot(pg.PlotWidget):
         self.py = 1
 
         self.last_click = perf_counter()
+        self.flash_current_signal = False
+        self.flash_curve_timer = QtCore.QTimer()
+        self.flash_curve_timer.setSingleShot(True)
+        self.flash_curve_timer.timeout.connect(self.update)
 
     def add_new_channels(self, channels, descriptions=None):
         descriptions = descriptions or {}
@@ -5185,8 +5197,14 @@ class _Plot(pg.PlotWidget):
             paint.translate(0, 0)
             paint.setBrush(no_brush)
 
+            flash_current_signal = self.flash_current_signal
+
             for i, sig in enumerate(self.signals):
-                if not sig.enable:
+                if (
+                    not sig.enable
+                    or flash_current_signal
+                    and sig.uuid == self.current_uuid
+                ):
                     continue
 
                 y = sig.plot_samples
@@ -5434,6 +5452,10 @@ class _Plot(pg.PlotWidget):
 
         paint.end()
 
+        if self.flash_current_signal:
+            self.flash_current_signal = False
+            self.flash_curve_timer.start(100)
+
     def range_modified_finished_handler(self, region):
         if self.region_lock is not None:
             for i in range(2):
@@ -5621,6 +5643,7 @@ class _Plot(pg.PlotWidget):
         viewbox.setYRange(*sig.y_range, padding=0)
 
         self.current_uuid_changed.emit(uuid)
+        self.update()
 
     def set_dots(self, with_dots):
         self.with_dots = with_dots
@@ -5851,6 +5874,7 @@ class _Plot(pg.PlotWidget):
                 sig.trim(start, stop, width, force)
 
     def update(self, *args, **kwargs):
+        print("udpate called")
         self._pixmap = None
         self.viewbox.update()
         # super().update()

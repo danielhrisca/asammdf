@@ -490,6 +490,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         else:
             self._dark = False
 
+        self.itemDoubleClicked.connect(lambda x, y: print("DOUble click", x, y))
+        self.currentItemChanged.connect(lambda x, y: print("currentItemChanged", x, y))
+        self.itemClicked.connect(lambda x, y: print("CLick", x, y))
+
     def autoscroll(self):
 
         step = max(
@@ -1628,7 +1632,18 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self.setTextAlignment(self.ValueColumn, QtCore.Qt.AlignRight)
 
     def __repr__(self):
-        return f"ChannelTreeItem(type={self.type()}, name={self.name}, uuid={self.uuid}, origin_uuid={self.origin_uuid})"
+
+        t = self.type()
+        if t == 2000:
+            type = "Group"
+        elif t == 2001:
+            type = "Channel"
+        elif type == 2002:
+            type = "Info"
+        else:
+            type = t
+
+        return f"ChannelTreeItem(type={type}, name={self.name}, uuid={self.uuid}, origin_uuid={self.origin_uuid})"
 
     @property
     def color(self):
