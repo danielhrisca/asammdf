@@ -1666,7 +1666,7 @@ class Plot(QtWidgets.QWidget):
         btn.setToolTip("Zoom out")
         hbox.addWidget(btn)
 
-        btn = QtWidgets.QPushButton("")
+        self.undo_btn = btn = QtWidgets.QPushButton("")
         btn.clicked.connect(self.undo_zoom)
         icon = QtGui.QIcon()
         icon.addPixmap(
@@ -1675,8 +1675,9 @@ class Plot(QtWidgets.QWidget):
         btn.setIcon(icon)
         btn.setToolTip("Undo zoom")
         hbox.addWidget(btn)
+        btn.setEnabled(False)
 
-        btn = QtWidgets.QPushButton("")
+        self.redo_btn = btn = QtWidgets.QPushButton("")
         btn.clicked.connect(self.redo_zoom)
         icon = QtGui.QIcon()
         icon.addPixmap(
@@ -1685,6 +1686,7 @@ class Plot(QtWidgets.QWidget):
         btn.setIcon(icon)
         btn.setToolTip("Redo zoom")
         hbox.addWidget(btn)
+        btn.setEnabled(False)
 
         self.lock_btn = btn = QtWidgets.QPushButton("")
         btn.clicked.connect(self.set_locked)
@@ -2264,10 +2266,42 @@ class Plot(QtWidgets.QWidget):
         self.plot.update()
 
     def undo_zoom(self):
-        pass
+        self.zoom_history_index = max(self.zoom_history_index - 1, 0)
+
+        snapshot = self.zoom_history[self.zoom_history_index]
+
+        for sig in self.plot.signals:
+            y_range = snapshot['y'].get(sig.uuid, None)
+
+            if y_range is None:
+                continue
+
+            self.plot.set_y_range(sig.uuid, y_range, emit=False)
+
+        self.plot.viewbox.setXRange(*snapshot['x'], padding=0)
+
+        if self.zoom_history_index == 0:
+            self.undo_btn.setEnabled(False)
+        self.redo_btn.setEnabled(True)
 
     def redo_zoom(self):
-        pass
+        self.zoom_history_index = min(self.zoom_history_index + 1, len(self.zoom_history) - 1)
+
+        snapshot = self.zoom_history[self.zoom_history_index]
+
+        for sig in self.plot.signals:
+            y_range = snapshot['y'].get(sig.uuid, None)
+
+            if y_range is None:
+                continue
+
+            self.plot.set_y_range(sig.uuid, y_range, emit=False)
+
+        self.plot.viewbox.setXRange(*snapshot['x'], padding=0)
+
+        if self.zoom_history_index == len(self.zoom_history) - 1:
+            self.redo_btn.setEnabled(False)
+        self.undo_btn.setEnabled(True)
 
     def adjust_splitter(self, initial=False):
         size = sum(self.splitter.sizes())
@@ -3591,11 +3625,8 @@ class Plot(QtWidgets.QWidget):
             stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
-    @timeit
     def zoom_changed(self):
         if self.plot.signals:
-            if self.zoom_history_index >= 0:
-                self.zoom_history = self.zoom_history[:self.zoom_history_index+1]
 
             snapshot = {
                     'x': self.plot.viewbox.viewRange()[0],
@@ -3605,12 +3636,16 @@ class Plot(QtWidgets.QWidget):
                     }
                 }
 
-            if not self.zoom_history or self.zoom_history[-1] != snapshot:
+            if not self.zoom_history or self.zoom_history[self.zoom_history_index] != snapshot:
+                self.zoom_history = self.zoom_history[:self.zoom_history_index + 1]
 
                 self.zoom_history.append(
                     snapshot
                 )
                 self.zoom_history_index = len(self.zoom_history) - 1
+
+                self.redo_btn.setEnabled(False)
+                self.undo_btn.setEnabled(True)
 
 
 class _Plot(pg.PlotWidget):
