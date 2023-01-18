@@ -490,10 +490,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         else:
             self._dark = False
 
-        self.itemDoubleClicked.connect(lambda x, y: print("DOUble click", x, y))
-        self.currentItemChanged.connect(lambda x, y: print("currentItemChanged", x, y))
-        self.itemClicked.connect(lambda x, y: print("CLick", x, y))
-
     def autoscroll(self):
 
         step = max(

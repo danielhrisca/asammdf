@@ -2397,7 +2397,15 @@ class Plot(QtWidgets.QWidget):
 
             value = item.text(item.ValueColumn)
             unit = item.unit
-            self.selected_channel_value.setText(f"{value} {unit}")
+
+            metrics = QtGui.QFontMetrics(self.selected_channel_value.font())
+            elided = metrics.elidedText(
+                f"{value} {unit}",
+                QtCore.Qt.ElideRight,
+                self.selected_channel_value.width() - 10,
+            )
+
+            self.selected_channel_value.setText(elided)  # (f"{value} {unit}")
 
         if QtCore.Qt.CheckStateRole not in roles:
             return
@@ -2588,7 +2596,14 @@ class Plot(QtWidgets.QWidget):
             if item is not None:
                 value = item.text(item.ValueColumn)
                 unit = item.unit
-                self.selected_channel_value.setText(f"{value} {unit}")
+                metrics = QtGui.QFontMetrics(self.selected_channel_value.font())
+                elided = metrics.elidedText(
+                    f"{value} {unit}",
+                    QtCore.Qt.ElideRight,
+                    self.selected_channel_value.width() - 10,
+                )
+
+                self.selected_channel_value.setText(elided)
         else:
             self.selected_channel_value.setText("")
 
@@ -2620,7 +2635,16 @@ class Plot(QtWidgets.QWidget):
                     if item.uuid == self.info_uuid:
                         value = item.text(item.ValueColumn)
                         unit = item.unit
-                        self.selected_channel_value.setText(f"{value} {unit}")
+                        metrics = QtGui.QFontMetrics(self.selected_channel_value.font())
+                        elided = metrics.elidedText(
+                            f"{value} {unit}",
+                            QtCore.Qt.ElideRight,
+                            self.selected_channel_value.width() - 10,
+                        )
+
+                        self.selected_channel_value.setText(
+                            elided
+                        )  # (f"{value} {unit}")
 
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
@@ -2709,7 +2733,7 @@ class Plot(QtWidgets.QWidget):
                 super().dropEvent(e)
 
     def flash_curve(self, item, column):
-        self.plot.flash_current_signal = True
+        self.plot.flash_current_signal = 4
         self.plot.update()
 
     def hide_axes(self, event=None, hide=None):
@@ -3945,7 +3969,7 @@ class _Plot(pg.PlotWidget):
         self.py = 1
 
         self.last_click = perf_counter()
-        self.flash_current_signal = False
+        self.flash_current_signal = 0
         self.flash_curve_timer = QtCore.QTimer()
         self.flash_curve_timer.setSingleShot(True)
         self.flash_curve_timer.timeout.connect(self.update)
@@ -5202,7 +5226,8 @@ class _Plot(pg.PlotWidget):
             for i, sig in enumerate(self.signals):
                 if (
                     not sig.enable
-                    or flash_current_signal
+                    or flash_current_signal > 0
+                    and flash_current_signal % 2 == 0
                     and sig.uuid == self.current_uuid
                 ):
                     continue
@@ -5452,9 +5477,9 @@ class _Plot(pg.PlotWidget):
 
         paint.end()
 
-        if self.flash_current_signal:
-            self.flash_current_signal = False
-            self.flash_curve_timer.start(100)
+        if self.flash_current_signal > 0:
+            self.flash_current_signal -= 1
+            self.flash_curve_timer.start(50)
 
     def range_modified_finished_handler(self, region):
         if self.region_lock is not None:
@@ -5874,10 +5899,8 @@ class _Plot(pg.PlotWidget):
                 sig.trim(start, stop, width, force)
 
     def update(self, *args, **kwargs):
-        print("udpate called")
         self._pixmap = None
         self.viewbox.update()
-        # super().update()
 
     def update_views(self):
         geometry = self.viewbox.sceneBoundingRect()

@@ -3157,7 +3157,7 @@ class WithMDIArea:
                     signal = deepcopy(signal_mat)
                     samples = signal.samples
                     if samples.dtype.names:
-                        samples = samples[sig_name]
+                        samples = samples[signal.name]
 
                     if len(samples.shape) <= len(indexes):
                         # samples does not have enough dimensions
@@ -3173,9 +3173,6 @@ class WithMDIArea:
                     description = descriptions[sig_uuid]
 
                     signal.color = description["color"]
-                    signal.group_index, signal.channel_index = self.mdf.whereis(
-                        sig_name
-                    )[0]
                     signal.flags &= ~signal.Flags.computed
                     signal.computation = {}
                     signal.origin_uuid = self.uuid
