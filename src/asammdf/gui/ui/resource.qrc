@@ -51,6 +51,7 @@
     <file alias="paint.png">images/paint.png</file>
     <file alias="plus.png">images/plus.png</file>
     <file alias="range.png">images/range.png</file>
+    <file alias="redo.png">images/redo.png</file>
     <file alias="resample.png">images/resample.png</file>
     <file alias="right.png">images/right.png</file>
     <file alias="right2.png">images/right2.png</file>
@@ -65,6 +66,7 @@
     <file alias="sort-ascending.png">images/sort-ascending.png</file>
     <file alias="sort-descending.png">images/sort-descending.png</file>
     <file alias="stack.png">images/stack.png</file>
+    <file alias="undo.png">images/undo.png</file>
     <file alias="unlocked.png">images/unlocked.png</file>
     <file alias="up.png">images/up.png</file>
     <file alias="zoom-in.png">images/zoom-in.png</file>

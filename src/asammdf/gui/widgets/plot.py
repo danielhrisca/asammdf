@@ -38,7 +38,7 @@ PLOT_BUFFER_SIZE = 4000
 
 from ...blocks.conversion_utils import from_dict, to_dict
 from ...blocks.utils import target_byte_order
-from ..utils import FONT_SIZE, value_as_str
+from ..utils import FONT_SIZE, value_as_str, timeit
 from .viewbox import ViewBox
 
 try:
@@ -1529,6 +1529,8 @@ class Plot(QtWidgets.QWidget):
             allow_cursor=allow_cursor,
             plot_parent=self,
         )
+        self.plot.zoom_changed.connect(self.zoom_changed)
+
         if self.plot.cursor1 is not None:
             self.plot.cursor1.show_circle = show_cursor_circle
             self.plot.cursor1.show_horizontal_line = show_cursor_horizontal_line
@@ -1662,6 +1664,26 @@ class Plot(QtWidgets.QWidget):
         )
         btn.setIcon(icon)
         btn.setToolTip("Zoom out")
+        hbox.addWidget(btn)
+
+        btn = QtWidgets.QPushButton("")
+        btn.clicked.connect(self.undo_zoom)
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/undo.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        btn.setIcon(icon)
+        btn.setToolTip("Undo zoom")
+        hbox.addWidget(btn)
+
+        btn = QtWidgets.QPushButton("")
+        btn.clicked.connect(self.redo_zoom)
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/redo.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        btn.setIcon(icon)
+        btn.setToolTip("Redo zoom")
         hbox.addWidget(btn)
 
         self.lock_btn = btn = QtWidgets.QPushButton("")
@@ -1939,6 +1961,9 @@ class Plot(QtWidgets.QWidget):
         )
         self.hide_axes(hide=self._settings.value("plot_hide_axes", False, type=bool))
         self.set_locked(locked=self._settings.value("plot_locked", False, type=bool))
+
+        self.zoom_history = []
+        self.zoom_history_index = -1
 
         self.show()
 
@@ -2237,6 +2262,12 @@ class Plot(QtWidgets.QWidget):
         self.current_uuid_changed(self.plot.current_uuid)
         self.plot._can_paint = True
         self.plot.update()
+
+    def undo_zoom(self):
+        pass
+
+    def redo_zoom(self):
+        pass
 
     def adjust_splitter(self, initial=False):
         size = sum(self.splitter.sizes())
@@ -3053,8 +3084,12 @@ class Plot(QtWidgets.QWidget):
 
                     y_range = y_bottom, y_top
 
+                    # TO DO: should we update the axis here?
+
                     for idx in indexes:
                         self.plot.signals[idx].y_range = y_range
+
+                    self.zoom_changed()
 
                     self.plot.update()
 
@@ -3087,8 +3122,9 @@ class Plot(QtWidgets.QWidget):
         ):
             self.channel_selection.keyPressEvent(event)
 
-        elif key == QtCore.Qt.Key_P and modifiers == (
-            QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier
+        elif key == QtCore.Qt.Key_V and modifiers in (
+            QtCore.Qt.ControlModifier,
+            QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier,
         ):
             self.channel_selection.keyPressEvent(event)
 
@@ -3555,6 +3591,27 @@ class Plot(QtWidgets.QWidget):
             stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
+    @timeit
+    def zoom_changed(self):
+        if self.plot.signals:
+            if self.zoom_history_index >= 0:
+                self.zoom_history = self.zoom_history[:self.zoom_history_index+1]
+
+            snapshot = {
+                    'x': self.plot.viewbox.viewRange()[0],
+                    'y': {
+                        sig.uuid: sig.y_range
+                        for sig in self.plot.signals
+                    }
+                }
+
+            if not self.zoom_history or self.zoom_history[-1] != snapshot:
+
+                self.zoom_history.append(
+                    snapshot
+                )
+                self.zoom_history_index = len(self.zoom_history) - 1
+
 
 class _Plot(pg.PlotWidget):
     cursor_moved = QtCore.Signal(object)
@@ -3571,6 +3628,7 @@ class _Plot(pg.PlotWidget):
     edit_channel_request = QtCore.Signal(object, object)
 
     add_channels_request = QtCore.Signal(list)
+    zoom_changed = QtCore.Signal()
 
     def __init__(
         self,
@@ -4044,6 +4102,8 @@ class _Plot(pg.PlotWidget):
         self.viewbox._matrixNeedsUpdate = True
         self.viewbox.updateMatrix()
 
+        self.zoom_changed.emit()
+
         return {sig.uuid: sig for sig in channels}
 
     def auto_clip_rect(self, painter):
@@ -4218,6 +4278,8 @@ class _Plot(pg.PlotWidget):
         if zoom_mode in (self.viewbox.X_zoom, *self.viewbox.XY_zoom):
             x1, x2 = sorted([p1.x(), p2.x()])
             self.viewbox.setXRange(x1, x2, padding=0)
+
+        self.zoom_changed.emit()
 
     def curve_clicked_handle(self, curve, ev, uuid):
         self.curve_clicked.emit(uuid)
@@ -4543,6 +4605,7 @@ class _Plot(pg.PlotWidget):
                         if signal.uuid == self.current_uuid:
                             self.viewbox.setYRange(min_, max_, padding=0)
 
+                self.zoom_changed.emit()
                 self.update()
 
             elif (
@@ -4585,6 +4648,7 @@ class _Plot(pg.PlotWidget):
                         if signal.uuid == self.current_uuid:
                             self.viewbox.setYRange(min_, max_, padding=0)
 
+                self.zoom_changed.emit()
                 self.update()
 
             elif key == QtCore.Qt.Key_G and modifier == QtCore.Qt.NoModifier:
@@ -4829,6 +4893,8 @@ class _Plot(pg.PlotWidget):
                     self.viewbox.setXRange(*xrange, padding=0)
                     self.viewbox.disableAutoRange()
 
+                self.zoom_changed.emit()
+
                 self.update()
 
             elif (
@@ -4942,6 +5008,8 @@ class _Plot(pg.PlotWidget):
                     self.viewbox.autoRange(padding=0)
                     self.viewbox.setXRange(*xrange, padding=0)
                     self.viewbox.disableAutoRange()
+
+                self.zoom_changed.emit()
 
                 self.update()
 
@@ -5097,6 +5165,8 @@ class _Plot(pg.PlotWidget):
 
                     signal.y_range = bottom + step, top + step
 
+                self.zoom_changed.emit()
+
                 self.update()
 
             elif key == QtCore.Qt.Key_H and modifier == QtCore.Qt.NoModifier:
@@ -5178,6 +5248,7 @@ class _Plot(pg.PlotWidget):
 
             signal.y_range = y_bottom, y_top
 
+            self.zoom_changed.emit()
             self.update()
 
     def paintEvent(self, ev):
@@ -5825,7 +5896,7 @@ class _Plot(pg.PlotWidget):
 
         self.update()
 
-    def set_y_range(self, uuid, y_range):
+    def set_y_range(self, uuid, y_range, emit=True):
         update = False
 
         if uuid is None:
@@ -5858,7 +5929,8 @@ class _Plot(pg.PlotWidget):
                     if isinstance(axis, FormatedAxis):
                         axis.setRange(*y_range)
                     update = True
-
+        if emit:
+            self.zoom_changed.emit()
         if update:
             self.update()
 
@@ -5912,6 +5984,8 @@ class _Plot(pg.PlotWidget):
         if self._can_paint:
             self.trim(force=force)
             self.update()
+
+        self.zoom_changed.emit()
 
     def y_changed(self, *args):
         if len(args) == 1:
