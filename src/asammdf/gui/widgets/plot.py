@@ -5849,7 +5849,9 @@ class _Plot(pg.PlotWidget):
     def set_line_interconnect(self, line_interconnect):
         self.line_interconnect = line_interconnect
 
-        self._curve.setData(line_interconnect=line_interconnect)
+        self._curve.setData(stepMode=line_interconnect)
+        for sig in self.signals:
+            sig.path = None
         self.update()
 
     def set_locked(self, locked):
