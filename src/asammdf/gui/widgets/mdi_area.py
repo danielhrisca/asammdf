@@ -2509,7 +2509,7 @@ class WithMDIArea:
             else:
                 padding = (stop - start) * 0.05
 
-            plot.plot.viewbox.setXRange(start - padding, stop + padding, padding=0)
+            # plot.plot.viewbox.setXRange(start - padding, stop + padding, padding=0)
 
         self.windows_modified.emit()
 
