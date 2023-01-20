@@ -50,6 +50,7 @@ COLORS = [
     "#bcbd22",
     "#17becf",
 ]
+COLORS_COUNT = len(COLORS)
 
 SCROLLBAR_STYLE = """
 QTreeWidget {{ font-size: {font_size}pt; }}

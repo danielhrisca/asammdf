@@ -151,7 +151,7 @@ def monkey_patch_pyqtgraph():
 from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.define_channel import DefineChannel
-from ..utils import COLORS, copy_ranges, extract_mime_names
+from ..utils import COLORS, COLORS_COUNT, copy_ranges, extract_mime_names
 from .channel_stats import ChannelStats
 from .cursor import Bookmark, Cursor, Region
 from .dict_to_tree import ComputedChannelInfoWindow
@@ -295,9 +295,9 @@ class PlotSignal(Signal):
         }
 
         if getattr(signal, "color", None):
-            color = signal.color or COLORS[index % 10]
+            color = signal.color or COLORS[index % COLORS_COUNT]
         else:
-            color = COLORS[index % 10]
+            color = COLORS[index % COLORS_COUNT]
         self.color = fn.mkColor(color)
         self.color_name = self.color.name()
         self.pen = fn.mkPen(color=color, style=QtCore.Qt.SolidLine)
@@ -4074,7 +4074,7 @@ class _Plot(pg.PlotWidget):
 
         for i, event_info in enumerate(events):
 
-            color = COLORS[len(COLORS) - (i % len(COLORS)) - 1]
+            color = COLORS[COLORS_COUNT - (i % COLORS_COUNT) - 1]
             if isinstance(event_info, (list, tuple)):
                 to_display = event_info
                 labels = [" - Start", " - End"]
