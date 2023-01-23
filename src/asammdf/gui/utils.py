@@ -660,6 +660,7 @@ class Worker(QtCore.QRunnable):
         self.kwargs = kwargs
         self.signals = WorkerSignals()
         self.stop = False
+        self.TERMINATED = TERMINATED
 
         # Add the qrunner to the keyword arguments
         kwargs["progress"] = self

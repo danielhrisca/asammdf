@@ -241,7 +241,7 @@ def extract_signal(
                 vals = vals >> bit_offset
                 vals &= (2**bit_count) - 1
 
-    if signed and not is_float:
+    if signed and not is_float and bit_count not in (8, 16, 32, 64):
         vals = as_non_byte_sized_signed_int(vals, bit_count)
 
     if not raw:
