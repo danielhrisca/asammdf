@@ -93,6 +93,11 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 for i, names in enumerate(computation["args"].values()):
                     self.arg_widgets[i][1].insertPlainText("\n".join(names))
 
+            if computation.get("computation_mode", "sample_by_sample"):
+                self.sample_by_sample.setChecked(True)
+            else:
+                self.complete_signal.setChecked(True)
+
         self.showMaximized()
 
     def apply(self):
@@ -147,6 +152,9 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 "channel_comment": self.comment.toPlainText().strip(),
                 "triggering": triggering,
                 "triggering_value": triggering_value,
+                "computation_mode": "sample_by_sample"
+                if self.sample_by_sample.isChecked()
+                else "complete_signal",
             },
         }
 

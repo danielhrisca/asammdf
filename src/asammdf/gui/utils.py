@@ -855,9 +855,7 @@ def compute_signal(
                     common_timebase = reduce(np.union1d, timestamps)
                 else:
                     common_timebase = all_timebase
-                signals = [
-                    sig.interp(common_timebase).samples.tolist() for sig in signals
-                ]
+                signals = [sig.interp(common_timebase) for sig in signals]
 
             elif triggering == "triggering_on_channel":
                 triggering_channel = description["triggering_value"]
@@ -866,9 +864,7 @@ def compute_signal(
                     common_timebase = measured_signals[triggering_channel].timestamps
                 else:
                     common_timebase = np.array([])
-                signals = [
-                    sig.interp(common_timebase).samples.tolist() for sig in signals
-                ]
+                signals = [sig.interp(common_timebase) for sig in signals]
             else:
 
                 step = float(description["triggering_value"])
@@ -891,23 +887,74 @@ def compute_signal(
                 else:
                     common_timebase = np.array([])
 
-                signals = [
-                    sig.interp(common_timebase).samples.tolist() for sig in signals
+                signals = [sig.interp(common_timebase) for sig in signals]
+
+            if (
+                description.get("computation_mode", "sample_by_sample")
+                == "sample_by_sample"
+            ):
+
+                signals = [sig.samples.tolist() for sig in signals]
+                signals.append(common_timebase)
+
+                samples = [
+                    func(
+                        **{
+                            arg_name: arg_val
+                            for arg_name, arg_val in zip(names, values)
+                        }
+                    )
+                    for values in zip(*signals)
                 ]
 
-            signals.append(common_timebase)
+                result = Signal(
+                    name="_",
+                    samples=samples,
+                    timestamps=common_timebase,
+                    flags=Signal.Flags.computed,
+                )
 
-            samples = [
-                func(**{arg_name: arg_val for arg_name, arg_val in zip(names, values)})
-                for values in zip(*signals)
-            ]
+            else:
+                signals = [sig.samples for sig in signals]
 
-            result = Signal(
-                name="_",
-                samples=samples,
-                timestamps=common_timebase,
-                flags=Signal.Flags.computed,
-            )
+                signals.append(common_timebase)
+
+                not_found = [
+                    arg_name
+                    for arg_name in description["args"]
+                    if arg_name not in names
+                ]
+
+                not_found_signals = []
+
+                args = inspect.signature(func)
+
+                for i, (arg_name, arg) in enumerate(args.parameters.items()):
+                    if arg_name in names:
+                        continue
+                    else:
+                        not_found_signals.append(
+                            np.ones(len(common_timebase), dtype="u1") * arg.default
+                        )
+
+                names.extend(not_found)
+                signals.extend(not_found_signals)
+
+                samples = func(
+                    **{
+                        arg_name: arg_signal
+                        for arg_name, arg_signal in zip(names, signals)
+                    }
+                )
+                if len(samples) != len(common_timebase):
+                    common_timebase = common_timebase[-len(samples) :]
+
+                result = Signal(
+                    name="_",
+                    samples=samples,
+                    timestamps=common_timebase,
+                    flags=Signal.Flags.computed,
+                )
 
     except:
         print(format_exc())
@@ -976,6 +1023,7 @@ def computation_to_python_function(description):
             "channel_comment": description["channel_comment"],
             "channel_name": description["channel_name"],
             "channel_unit": description["channel_unit"],
+            "computation_mode": "sample_by_sample",
             "definition": definition,
             "type": "python_function",
             "triggering": "triggering_on_all",
@@ -1015,6 +1063,7 @@ def computation_to_python_function(description):
             "channel_comment": description["channel_comment"],
             "channel_name": description["channel_name"],
             "channel_unit": description["channel_unit"],
+            "computation_mode": "sample_by_sample",
             "definition": definition,
             "type": "python_function",
             "triggering": "triggering_on_all",
@@ -1054,6 +1103,7 @@ def computation_to_python_function(description):
             "channel_comment": description.get("channel_comment", ""),
             "channel_name": description.get("channel_name", ""),
             "channel_unit": description.get("channel_unit", ""),
+            "computation_mode": "sample_by_sample",
             "definition": definition,
             "type": "python_function",
             "triggering": "triggering_on_all",
@@ -1094,6 +1144,9 @@ def computation_to_python_function(description):
                 "channel_comment": description["channel_comment"],
                 "channel_name": description["channel_name"],
                 "channel_unit": description["channel_unit"],
+                "computation_mode": description.get(
+                    "computation_mode", "sample_by_sample"
+                ),
                 "definition": definition,
                 "type": "python_function",
                 "triggering": "triggering_on_all",
@@ -1102,6 +1155,9 @@ def computation_to_python_function(description):
             }
         else:
             new_description = description
+            new_description["computation_mode"] = new_description.get(
+                "computation_mode", "sample_by_sample"
+            )
 
     return new_description
 
