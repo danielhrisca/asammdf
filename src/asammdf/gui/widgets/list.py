@@ -2,6 +2,7 @@
 
 import json
 from struct import pack
+from traceback import format_exc
 
 from natsort import natsorted
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -478,11 +479,18 @@ class MinimalListWidget(QtWidgets.QListWidget):
                 self.itemsDeleted.emit(deleted)
 
         elif key == QtCore.Qt.Key_C and modifiers == QtCore.Qt.ControlModifier:
-            try:
-                text = [item.text() for item in self.selectedItems()]
+            text = []
+            for item in self.selectedItems():
+                try:
+                    text.append(self.itemWidget(item).text())
+                except:
+                    text.append(item.text())
+
+            if text:
                 text = "\n".join(text)
-            except:
+            else:
                 text = ""
+
             QtWidgets.QApplication.instance().clipboard().setText(text)
         elif (
             key == QtCore.Qt.Key_V

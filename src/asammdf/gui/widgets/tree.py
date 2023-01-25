@@ -410,6 +410,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     name_changed = QtCore.Signal(str, str)
     visible_items_changed = QtCore.Signal()
     group_activation_changed = QtCore.Signal()
+    double_click = QtCore.Signal(object, object)
 
     NameColumn = 0
     ValueColumn = 1
@@ -433,8 +434,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         self.setUniformRowHeights(True)
 
-        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.open_menu)
         self.details_enabled = False
         self.hide_missing_channels = hide_missing_channels
         self.hide_disabled_channels = hide_disabled_channels
@@ -469,6 +468,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.autoscroll_timer = QtCore.QTimer()
         self.autoscroll_timer.timeout.connect(self.autoscroll)
         self.autoscroll_timer.setInterval(33)
+        self.context_menu_timer = QtCore.QTimer()
+        self.context_menu_timer.timeout.connect(self.open_menu)
+        self.context_menu_timer.setSingleShot(True)
+        self.context_menu_pos = None
+        self.context_menu = None
         self.autoscroll_mouse_pos = None
         self.drop_target = None
         self.idel = Delegate(self)
@@ -868,7 +872,25 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         else:
             super().keyPressEvent(event)
 
-    def open_menu(self, position):
+    def mousePressEvent(self, event) -> None:
+        if event.button() == QtCore.Qt.MouseButton.RightButton:
+            self.context_menu_timer.start(300)
+            self.context_menu_pos = event.pos()
+
+        if self.context_menu is not None:
+            self.context_menu.close()
+            self.context_menu = None
+        super().mousePressEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == QtCore.Qt.MouseButton.RightButton:
+            self.context_menu_timer.stop()
+            self.context_menu_pos = None
+
+        self.double_click.emit(self.itemAt(event.pos()), event.button())
+
+    def open_menu(self):
+        position = self.context_menu_pos
 
         item = self.itemAt(position)
 
@@ -883,7 +905,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     enabled += 1
             iterator += 1
 
-        menu = QtWidgets.QMenu()
+        self.context_menu = menu = QtWidgets.QMenu()
         menu.addAction(self.tr(f"{count} items in the list, {enabled} enabled"))
         menu.addSeparator()
 
@@ -1002,18 +1024,17 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             QtWidgets.QApplication.instance().clipboard().setText("\n".join(texts))
 
         elif action.text() == "Activate group":
-            if item.isDisabled():
-                item.set_disabled(False)
-                item.setIcon(item.NameColumn, QtGui.QIcon(":/open.png"))
+            for item in self.selectedItems():
+                if item.type() == item.Group and item.isDisabled():
+                    item.set_disabled(False)
+                    item.setIcon(item.NameColumn, QtGui.QIcon(":/open.png"))
             self.group_activation_changed.emit()
 
         elif action.text() == "Deactivate groups":
             for item in self.selectedItems():
-                if item.type() == item.Group:
-                    if not item.isDisabled():
-                        item.set_disabled(True)
-                        item.setIcon(item.NameColumn, QtGui.QIcon(":/erase.png"))
-                    self.plot.plot.update()
+                if item.type() == item.Group and not item.isDisabled():
+                    item.set_disabled(True)
+                    item.setIcon(item.NameColumn, QtGui.QIcon(":/erase.png"))
 
             self.group_activation_changed.emit()
 
@@ -1954,6 +1975,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         elif self.type() == self.Group:
             self.setDisabled(disabled)
+
             count = self.childCount()
             for i in range(count):
                 child = self.child(i)

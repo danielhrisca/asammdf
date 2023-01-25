@@ -1885,7 +1885,7 @@ class Plot(QtWidgets.QWidget):
         )
 
         self.channel_selection.pattern_group_added.connect(self.pattern_group_added_req)
-        self.channel_selection.itemDoubleClicked.connect(
+        self.channel_selection.double_click.connect(
             self.channel_selection_item_double_clicked
         )
 
@@ -2473,14 +2473,11 @@ class Plot(QtWidgets.QWidget):
             if enabled != item.signal.individual_axis:
                 self.plot.set_individual_axis(item.uuid, enabled)
 
-    def channel_selection_item_double_clicked(self, item, column):
+    def channel_selection_item_double_clicked(self, item, button):
         if item is None:
             return
 
-        elif item.type() != item.Info and column not in (
-            item.CommonAxisColumn,
-            item.IndividualAxisColumn,
-        ):
+        elif item.type() != item.Info:
             if item.type() == item.Channel:
                 if not item.isDisabled():
                     if item.checkState(item.NameColumn) == QtCore.Qt.Checked:
@@ -2489,7 +2486,14 @@ class Plot(QtWidgets.QWidget):
                         item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
             elif item.type() == item.Group:
 
-                if Plot.item_double_click_handling == "enable/disable":
+                if (
+                    (
+                        Plot.item_double_click_handling == "enable/disable"
+                        and button == QtCore.Qt.MouseButton.LeftButton
+                    )
+                    or Plot.item_double_click_handling == "expand/collapse"
+                    and button == QtCore.Qt.MouseButton.RightButton
+                ):
                     if self.channel_selection.expandsOnDoubleClick():
                         self.channel_selection.setExpandsOnDoubleClick(False)
                     if item.isDisabled():
@@ -2499,7 +2503,7 @@ class Plot(QtWidgets.QWidget):
                         item.set_disabled(True)
                         item.setIcon(item.NameColumn, QtGui.QIcon(":/erase.png"))
                     self.plot.update()
-                elif Plot.item_double_click_handling == "expand/collapse":
+                else:
                     item.setExpanded(not item.isExpanded())
 
     def channel_selection_reduced(self, deleted):
