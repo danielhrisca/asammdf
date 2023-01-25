@@ -156,6 +156,8 @@ Example functions
 Average of 3 channels
 ---------------------
 
+The same definition works for both `sample by sample` and `complete signal` computation modes
+
 .. code:: python
 
     def average(channel1=0, channel2=-1, channel3=0, t=0):
@@ -184,19 +186,19 @@ Using `complete signal` computation mode
 
     def clip(channel1=0, t=0):
         return np.clip(cahnnel1, 0, 100)
-            
+        
             
 Grey code to decimal
 --------------------
+
+The same definition works for both `sample by sample` and `complete signal` computation modes
 
 .. code:: python 
           
     def gray2dec(position_sensor_value=0, t=0):
 
         for shift in (8, 4, 2, 1):
-            position_sensor_value ^= (position_sensor_value >> shift)
-            # this can also be written as
-            # position_sensor_value = position_sensor_value ^ (position_sensor_value >> shift)
+            position_sensor_value = position_sensor_value ^ (position_sensor_value >> shift)
 
         return position_sensor_value
 
@@ -205,20 +207,31 @@ Grey code to decimal
 Maximum of 3 channels
 ---------------------
 
+Using `sample by sample` computation mode
+
 .. code:: python
 
     def maximum(channel1=0, channel2=-1, channel3=0, t=0):
         return max(channel1, channel2, channel3)
         
+Using `complete signal` computation mode
+
+.. code:: python
+
+    def maximum(channel1=0, channel2=-1, channel3=0, t=0):
+        return np.maximum.reduce([channel1, channel2, channel3])
+        
 rpm to rad/s
 ------------
+
+The same definition works for both `sample by sample` and `complete signal` computation modes
 
 .. code:: python
 
     def rpm_to_rad_per_second(speed=0, t=0):
         return 2 * np.pi * speed / 60
        
-
+       
 gradient
 --------
 
@@ -228,5 +241,8 @@ In the `Define channel` dialog the computation mode must be set to `complete sig
 
     def rpm_to_rad_per_second(speed=0, t=0):
         return np.diff(speed) / np.diff(t)
+        
+It is not possible to implement this function in the `sample by sample` mode because only the current samples are
+forwarded to the function.
         
        
