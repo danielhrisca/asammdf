@@ -108,6 +108,8 @@ Option                                  Description
 ======================================= ================================================================================
 ``Triggering``                          the virtual channel samples will be calculated in the time stamps defined by the
                                         selected choice
+``Computation mode``                    the virtual channel can be computed passing the signal arguments samples by 
+                                        sample or passing the signal arguments directly as numpy ndarrays
 ``Function name``                       select one of the available functions
 ``Function info``                       displays the function definition code
 ``Arguments``                           alternative channel names for each argument. In the example argument `b` will
@@ -128,6 +130,26 @@ Option                                  Description
 ======================================= ================================================================================
 
 
+When the computation mode is set to `sample by sample` the following steps are executed:
+
+* the signals linked to the arguments are searched in the measurement file
+* using the signals found in the measurement, the union of all time stamps is computed (resulting an ndarray of length N)
+* all found signals are interpolated using the union time base
+* the function is called N times (once for each of the N time stamps) passing the signal value for the current time stamp and the time stamp (in the `t` argument).
+  The missing linked signals will be replaced by the default value specified in the function definition
+* the returned value are stored and finally the resulting Signal is constructed
+
+
+When the computation mode is set to `complete signal` the following steps are executed:
+
+* the signals linked to the arguments are searched in the measurement file
+* using the signals found in the measurement, the union of all time stamps is computed (resulting an ndarray of length N)
+* all found signals are interpolated using the union time base
+* the function is called only 1 time passing the complete signal ndarray's and the union of the time stamps (in the `t` argument).
+  The missing linked signals will be replaced by an ndarray of length N filled with the default value specified in the function definition
+* the result Signal is constructed using the ndarray returned by the function
+
+
 Example functions
 =================
 
@@ -143,6 +165,8 @@ Average of 3 channels
 Channel clipping
 ----------------
 
+Using `sample by sample` computation mode
+
 .. code:: python
 
     def clip(channel1=0, t=0):
@@ -152,6 +176,15 @@ Channel clipping
             return 0
         else:
             return channel1
+            
+
+Using `complete signal` computation mode
+
+.. code:: python
+
+    def clip(channel1=0, t=0):
+        return np.clip(cahnnel1, 0, 100)
+            
             
 Grey code to decimal
 --------------------
@@ -184,4 +217,16 @@ rpm to rad/s
 
     def rpm_to_rad_per_second(speed=0, t=0):
         return 2 * np.pi * speed / 60
+       
+
+gradient
+--------
+
+In the `Define channel` dialog the computation mode must be set to `complete signal`
+
+.. code:: python
+
+    def rpm_to_rad_per_second(speed=0, t=0):
+        return np.diff(speed) / np.diff(t)
+        
        
