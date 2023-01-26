@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import inspect
 import json
 import math
 import os
@@ -149,6 +150,25 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
             func()
         except ZeroDivisionError:
             pass
+        except ValueError:
+            trace = format_exc()
+            try:
+                args = inspect.signature(func)
+                kwargs = {}
+                for i, (arg_name, arg) in enumerate(args.parameters.items()):
+                    kwargs[arg_name] = np.ones(1, dtype="i1") * arg.default
+                func(**kwargs)
+
+            except:
+                ErrorDialog(
+                    title="Function definition check",
+                    message="The syntax is not correct. The following error was found",
+                    trace=f"{trace}\n\nin the function\n\n{function_source}",
+                    parent=self,
+                ).exec()
+
+                return False, None
+
         except:
             trace = format_exc()
 

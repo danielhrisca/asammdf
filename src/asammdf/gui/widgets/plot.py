@@ -3675,7 +3675,11 @@ class Plot(QtWidgets.QWidget):
             }
 
             if inplace:
-                self.zoom_history[self.zoom_history_index] = snapshot
+                if not self.zoom_history:
+                    self.zoom_history.append(snapshot)
+                    self.zoom_history_index = 0
+                else:
+                    self.zoom_history[self.zoom_history_index] = snapshot
             else:
 
                 if (

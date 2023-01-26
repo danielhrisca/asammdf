@@ -318,8 +318,13 @@ class FormatedAxis(pg.AxisItem):
     def raiseContextMenu(self, ev):
         low, high = self.range
 
+        if self.orientation in ('left', 'right'):
+            axis = 'Y'
+        else:
+            axis = 'X'
+
         menu = QtWidgets.QMenu()
-        menu.addAction("Edit Y axis scaling")
+        menu.addAction(f"Edit {axis} axis scaling")
         menu.addSeparator()
         menu.addAction("Apply new axis limits")
         menu.addSeparator()
@@ -425,7 +430,6 @@ class FormatedAxis(pg.AxisItem):
 
             if lv.state["mouseMode"] == lv.CursorMode:
                 if self.orientation in ("top", "bottom"):
-                    print("super")
                     super().wheelEvent(event)
                 else:
                     # main Y axis
