@@ -318,10 +318,10 @@ class FormatedAxis(pg.AxisItem):
     def raiseContextMenu(self, ev):
         low, high = self.range
 
-        if self.orientation in ('left', 'right'):
-            axis = 'Y'
+        if self.orientation in ("left", "right"):
+            axis = "Y"
         else:
-            axis = 'X'
+            axis = "X"
 
         menu = QtWidgets.QMenu()
         menu.addAction(f"Edit {axis} axis scaling")
