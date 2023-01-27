@@ -4394,10 +4394,19 @@ class MDF:
                 else:
                     nonstrings[col] = series
 
+            if numeric_1D_only:
+                nonstrings = {
+                    col: series
+                    for col, series in nonstrings.items()
+                    if series.dtype.kind in "uif"
+                }
+                strings = {}
+
             df = pd.DataFrame(nonstrings, index=master)
 
-            for col, series in strings.items():
-                df[col] = series
+            if strings:
+                df_strings = pd.DataFrame(strings, index=master)
+                df = pd.concat([df, df_strings], axis=1)
 
             df.index.name = "timestamps"
 
@@ -4792,8 +4801,9 @@ class MDF:
 
         df = pd.DataFrame(nonstrings, index=master)
 
-        for col, series in strings.items():
-            df[col] = series
+        if strings:
+            df_strings = pd.DataFrame(strings, index=master)
+            df = pd.concat([df, df_strings], axis=1)
 
         df.index.name = "timestamps"
 
