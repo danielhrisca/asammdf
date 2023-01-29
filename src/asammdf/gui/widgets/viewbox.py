@@ -58,9 +58,9 @@ class ViewBoxMenu(QtWidgets.QMenu):
 
     def updateState(self):
         state = self.view().getState(copy=False)
-        if state["mouseMode"] == ViewBox.PanMode:
+        if state["mouseMode"] == ViewBoxWithCursor.PanMode:
             self.mouseModes[0].setChecked(True)
-        elif state["mouseMode"] == ViewBox.CursorMode:
+        elif state["mouseMode"] == ViewBoxWithCursor.CursorMode:
             self.mouseModes[1].setChecked(True)
         else:
             self.mouseModes[2].setChecked(True)
@@ -76,7 +76,7 @@ class ViewBoxMenu(QtWidgets.QMenu):
         self.view().setLeftButtonAction(mode)
 
 
-class ViewBox(pg.ViewBox):
+class ViewBoxWithCursor(pg.ViewBox):
 
     PanMode = 3
     CursorMode = 2
@@ -109,6 +109,7 @@ class ViewBox(pg.ViewBox):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         self.menu.setParent(None)
         self.menu = None
         self.menu = ViewBoxMenu(self)
@@ -118,26 +119,33 @@ class ViewBox(pg.ViewBox):
         self._matrixNeedsUpdate = True
         self.updateMatrix()
 
+    def __repr__(self):
+        return "ASAM ViewbOx"
+
     def setMouseMode(self, mode):
         """
-        Set the mouse interaction mode. *mode* must be either ViewBox.PanMode, ViewBox.CursorMode or ViewBox.RectMode.
+        Set the mouse interaction mode. *mode* must be either ViewBoxWithCursor.PanMode, ViewBoxWithCursor.CursorMode or ViewBoxWithCursor.RectMode.
         In PanMode, the left mouse button pans the view and the right button scales.
         In RectMode, the left button draws a rectangle which updates the visible region (this mode is more suitable for single-button mice)
         """
-        if mode not in [ViewBox.PanMode, ViewBox.CursorMode, ViewBox.RectMode]:
+        if mode not in [
+            ViewBoxWithCursor.PanMode,
+            ViewBoxWithCursor.CursorMode,
+            ViewBoxWithCursor.RectMode,
+        ]:
             raise Exception(
-                "Mode must be ViewBox.PanMode, ViewBox.RectMode or ViewBox.CursorMode"
+                "Mode must be ViewBoxWithCursor.PanMode, ViewBoxWithCursor.RectMode or ViewBoxWithCursor.CursorMode"
             )
         self.state["mouseMode"] = mode
         self.sigStateChanged.emit(self)
 
     def setLeftButtonAction(self, mode="rect"):  ## for backward compatibility
         if mode.lower() == "rect":
-            self.setMouseMode(ViewBox.RectMode)
+            self.setMouseMode(ViewBoxWithCursor.RectMode)
         elif mode.lower() == "pan":
-            self.setMouseMode(ViewBox.PanMode)
+            self.setMouseMode(ViewBoxWithCursor.PanMode)
         elif mode.lower() == "cursor":
-            self.setMouseMode(ViewBox.CursorMode)
+            self.setMouseMode(ViewBoxWithCursor.CursorMode)
         else:
             raise Exception(
                 f'graphicsItems:ViewBox:setLeftButtonAction: unknown mode = {mode} (Options are "pan", "cursor" and "rect")'
@@ -146,6 +154,8 @@ class ViewBox(pg.ViewBox):
     def mouseDragEvent(self, ev, axis=None, ignore_cursor=False):
         ## if axis is specified, event will only affect that axis.
         ev.accept()  ## we accept all buttons
+
+        print("view mouse drag", self.state["mouseMode"])
 
         pos = ev.scenePos()
         dif = pos - ev.lastScenePos()
@@ -157,7 +167,10 @@ class ViewBox(pg.ViewBox):
         if axis is not None:
             mask[1 - axis] = 0.0
 
-        if self.state["mouseMode"] == ViewBox.CursorMode and not ignore_cursor:
+        if (
+            self.state["mouseMode"] == ViewBoxWithCursor.CursorMode
+            and not ignore_cursor
+        ):
             self.sigCursorMoved.emit(ev)
             if self.zoom_start is not None:
                 end = self.mapSceneToView(ev.scenePos())
@@ -167,6 +180,8 @@ class ViewBox(pg.ViewBox):
                     self.sigZoomFinished.emit((self.zoom_start, end, self.zoom))
                     self.zoom_start = None
                     self.sigZoomChanged.emit(None)
+
+                    print("mited plm")
 
         else:
 
@@ -221,7 +236,7 @@ class ViewBox(pg.ViewBox):
         ev.ignore()
 
     def mousePressEvent(self, ev):
-        if self.state["mouseMode"] == ViewBox.CursorMode and self.zoom in (
+        if self.state["mouseMode"] == ViewBoxWithCursor.CursorMode and self.zoom in (
             self.X_zoom,
             self.Y_zoom,
             *self.XY_zoom,
@@ -240,7 +255,7 @@ class ViewBox(pg.ViewBox):
 
     def wheelEvent(self, ev, axis=None):
 
-        if self.state["mouseMode"] == ViewBox.CursorMode:
+        if self.state["mouseMode"] == ViewBoxWithCursor.CursorMode:
             mask = [True, False]
         else:
             if axis in (0, 1):
@@ -262,3 +277,7 @@ class ViewBox(pg.ViewBox):
         self.scaleBy(s, center)
         ev.accept()
         self.sigRangeChangedManually.emit(mask)
+
+    sigCursorMoved = QtCore.Signal(object)
+    sigZoomChanged = QtCore.Signal(object)
+    sigZoomFinished = QtCore.Signal(object)

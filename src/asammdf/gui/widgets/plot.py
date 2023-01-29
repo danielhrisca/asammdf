@@ -39,7 +39,7 @@ PLOT_BUFFER_SIZE = 4000
 from ...blocks.conversion_utils import from_dict, to_dict
 from ...blocks.utils import target_byte_order
 from ..utils import FONT_SIZE, timeit, value_as_str
-from .viewbox import ViewBox
+from .viewbox import ViewBoxWithCursor
 
 try:
     from ...blocks.cutils import positions
@@ -3663,6 +3663,7 @@ class Plot(QtWidgets.QWidget):
             self.info.set_stats(stats)
 
     def zoom_changed(self, inplace=False):
+
         if (
             self.enable_zoom_history
             and self.plot.signals
@@ -3727,7 +3728,8 @@ class _Plot(pg.PlotWidget):
         **kwargs,
     ):
         events = kwargs.pop("events", [])
-        super().__init__(viewBox=ViewBox())
+        viewBox = ViewBoxWithCursor()
+        super().__init__(viewBox=viewBox)
 
         # del self.plotItem.vb
         # self.plotItem.vb = ViewBox(parent=self.plotItem)
@@ -3817,8 +3819,8 @@ class _Plot(pg.PlotWidget):
         self.viewbox.disableAutoRange()
 
         self.viewbox.sigCursorMoved.connect(self._cursor_moved)
-        self.viewbox.sigZoomChanged.connect(self._cursor_zoom)
         self.viewbox.sigZoomFinished.connect(self._cursor_zoom_finished)
+        self.viewbox.sigZoomChanged.connect(self._cursor_zoom)
 
         self.x_range = self.y_range = (0, 1)
         self._curve = pg.PlotCurveItem(
@@ -4334,7 +4336,7 @@ class _Plot(pg.PlotWidget):
         if zoom is not None:
             self.update()
 
-    def _cursor_zoom_finished(self, zoom):
+    def _cursor_zoom_finished(self, zoom=None):
         p1, p2, zoom_mode = zoom
 
         self.block_zoom_signal = True
