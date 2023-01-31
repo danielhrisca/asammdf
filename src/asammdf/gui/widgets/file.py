@@ -627,7 +627,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     | QtCore.Qt.ItemIsUserCheckable
                 )
 
-                # widget.addTopLevelItems(i, channel_group)
+                if group.channel_group.cycles_nr:
+                    channel_group.setForeground(0, QtGui.QBrush(QtCore.Qt.darkGreen))
                 items.append(channel_group)
 
                 channels = [
@@ -1269,7 +1270,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     if info:
                         if len(info) > 1:
                             section, ok = QtWidgets.QInputDialog.getItem(
-                                None,
+                                self,
                                 "Please select the ASAP section name",
                                 "Available sections:",
                                 list(info),

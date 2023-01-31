@@ -8,8 +8,6 @@ from asammdf.blocks.conversion_utils import from_dict
 
 from ..ui import resource_rc
 from ..ui.define_conversion_dialog import Ui_ConversionDialog
-from ..widgets.vrtt_widget import VRTTWidget
-from ..widgets.vtt_widget import VTTWidget
 
 
 # from https://stackoverflow.com/a/53936965/11009349
@@ -23,6 +21,17 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
     def __init__(self, channel_name="", conversion=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+
+        self.vtt_default_conversion = None
+        self.vrtt_default_conversion = None
+
+        self.vtt_default_mode.currentIndexChanged.connect(self.vtt_mode.setCurrentIndex)
+        self.vrtt_default_mode.currentIndexChanged.connect(
+            self.vrtt_mode.setCurrentIndex
+        )
+
+        self.vtt_default_btn.clicked.connect(self.edit_vtt_default_conversion)
+        self.vrtt_default_btn.clicked.connect(self.edit_vrtt_default_conversion)
 
         for widget in (
             self.a,
@@ -68,52 +77,87 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                 self.tabs.setCurrentIndex(2)
                 bar.setTabTextColor(2, original_conversion_color)
 
-                self.vtt_default.setText(
-                    conversion.referenced_blocks["default_addr"].decode(
-                        "utf-8", errors="replace"
+                if isinstance(conversion.referenced_blocks["default_addr"], bytes):
+                    self.vtt_default_mode.setCurrentIndex(0)
+
+                    self.vtt_default.setText(
+                        conversion.referenced_blocks["default_addr"].decode(
+                            "utf-8", errors="replace"
+                        )
                     )
-                )
+                else:
+                    self.vtt_default_mode.setCurrentIndex(1)
+
+                    self.vtt_default_conversion = conversion.referenced_blocks[
+                        "default_addr"
+                    ]
 
                 for i in range(conversion.ref_param_nr - 1):
-                    widget = VTTWidget()
+                    if isinstance(conversion.referenced_blocks[f"text_{i}"], bytes):
+                        widget = VTTWidget(
+                            mode="text",
+                            value=conversion[f"val_{i}"],
+                            text=conversion.referenced_blocks[f"text_{i}"].decode(
+                                "utf-8", errors="replace"
+                            ),
+                        )
+
+                    else:
+
+                        widget = VTTWidget(
+                            mode="conversion",
+                            value=conversion[f"val_{i}"],
+                            conversion=conversion.referenced_blocks[f"text_{i}"],
+                        )
 
                     item = QtWidgets.QListWidgetItem()
                     item.setSizeHint(widget.sizeHint())
                     self.vtt_list.addItem(item)
                     self.vtt_list.setItemWidget(item, widget)
 
-                    widget.value.setValue(conversion[f"val_{i}"])
-                    widget.text.setText(
-                        conversion.referenced_blocks[f"text_{i}"].decode(
-                            "utf-8", errors="replace"
-                        )
-                    )
-
             elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_RTABX:
                 self.tabs.setCurrentIndex(3)
                 bar.setTabTextColor(3, original_conversion_color)
 
-                self.vrtt_default.setText(
-                    conversion.referenced_blocks["default_addr"].decode(
-                        "utf-8", errors="replace"
+                if isinstance(conversion.referenced_blocks["default_addr"], bytes):
+                    self.vrtt_default_mode.setCurrentIndex(0)
+
+                    self.vrtt_default.setText(
+                        conversion.referenced_blocks["default_addr"].decode(
+                            "utf-8", errors="replace"
+                        )
                     )
-                )
+                else:
+                    self.vrtt_default_mode.setCurrentIndex(1)
+
+                    self.vrtt_default_conversion = conversion.referenced_blocks[
+                        "default_addr"
+                    ]
 
                 for i in range(conversion.ref_param_nr - 1):
-                    widget = VRTTWidget()
+                    if isinstance(conversion.referenced_blocks[f"text_{i}"], bytes):
+                        widget = VRTTWidget(
+                            mode="text",
+                            lower=conversion[f"lower_{i}"],
+                            upper=conversion[f"upper_{i}"],
+                            text=conversion.referenced_blocks[f"text_{i}"].decode(
+                                "utf-8", errors="replace"
+                            ),
+                        )
+
+                    else:
+
+                        widget = VRTTWidget(
+                            mode="conversion",
+                            lower=conversion[f"lower_{i}"],
+                            upper=conversion[f"upper_{i}"],
+                            conversion=conversion.referenced_blocks[f"text_{i}"],
+                        )
 
                     item = QtWidgets.QListWidgetItem()
                     item.setSizeHint(widget.sizeHint())
                     self.vrtt_list.addItem(item)
                     self.vrtt_list.setItemWidget(item, widget)
-
-                    widget.lower.setValue(conversion[f"lower_{i}"])
-                    widget.upper.setValue(conversion[f"upper_{i}"])
-                    widget.text.setText(
-                        conversion.referenced_blocks[f"text_{i}"].decode(
-                            "utf-8", errors="replace"
-                        )
-                    )
 
             elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_NON:
                 self.tabs.setCurrentIndex(4)
@@ -211,6 +255,10 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
         self.pressed_button = "apply"
         self.close()
 
+    def cancel(self, event):
+        self.pressed_button = "cancel"
+        self.close()
+
     def conversion(self):
         if self.pressed_button in (None, "cancel"):
             conversion = None
@@ -243,8 +291,14 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                     "name": self.name.text().strip(),
                     "unit": self.unit.text().strip(),
                     "comment": self.comment.toPlainText().strip(),
-                    "default": self.vtt_default.text().strip().encode("utf-8"),
                 }
+
+                if self.vtt_default_mode.currentIndex() == 0:
+                    conversion["default"] = (
+                        self.vtt_default.text().strip().encode("utf-8")
+                    )
+                else:
+                    conversion["default"] = self.vtt_default_conversion
 
                 cntr = 0
 
@@ -256,7 +310,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                     widget = self.vtt_list.itemWidget(item)
 
                     value = int(widget.value.value())
-                    text = widget.text.text().strip().encode("utf-8")
+                    text = widget.reference()
                     conversion[f"val_{cntr}"] = value
                     conversion[f"text_{cntr}"] = text
                     cntr += 1
@@ -266,8 +320,14 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                     "name": self.name.text().strip(),
                     "unit": self.unit.text().strip(),
                     "comment": self.comment.toPlainText().strip(),
-                    "default": self.vrtt_default.text().strip().encode("utf-8"),
                 }
+
+                if self.vrtt_default_mode.currentIndex() == 0:
+                    conversion["default"] = (
+                        self.vrtt_default.text().strip().encode("utf-8")
+                    )
+                else:
+                    conversion["default"] = self.vrtt_default_conversion
 
                 cntr = 0
 
@@ -280,7 +340,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
 
                     lower = int(widget.lower.value())
                     upper = int(widget.upper.value())
-                    text = widget.text.text().strip().encode("utf-8")
+                    text = widget.reference()
                     conversion[f"lower_{cntr}"] = lower
                     conversion[f"upper_{cntr}"] = upper
                     conversion[f"text_{cntr}"] = text
@@ -297,7 +357,20 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
 
         return conversion
 
+    def edit_vtt_default_conversion(self):
+        dlg = ConversionEditor(f"default", self.vtt_default_conversion, parent=self)
+        dlg.exec_()
+        if dlg.pressed_button == "apply":
+            self.vtt_default_conversion = dlg.conversion()
+
+    def edit_vrtt_default_conversion(self):
+        dlg = ConversionEditor(f"default", self.vrtt_default_conversion, parent=self)
+        dlg.exec_()
+        if dlg.pressed_button == "apply":
+            self.vrtt_default_conversion = dlg.conversion()
+
     def insert(self, event):
+
         widget = VTTWidget()
 
         item = QtWidgets.QListWidgetItem()
@@ -306,6 +379,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
         self.vtt_list.setItemWidget(item, widget)
 
     def insert_vrtt(self, event):
+
         widget = VRTTWidget()
 
         item = QtWidgets.QListWidgetItem()
@@ -319,6 +393,6 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
     def reset_vrtt(self, event):
         self.vrtt_list.clear()
 
-    def cancel(self, event):
-        self.pressed_button = "cancel"
-        self.close()
+
+from ..widgets.vrtt_widget import VRTTWidget
+from ..widgets.vtt_widget import VTTWidget
