@@ -3514,10 +3514,11 @@ class ChannelConversion(_ChannelConversionBase):
                             raise
 
             try:
-                ret = ret.astype(bytes)
+                ret = ret.astype("<f8")
+
             except:
                 try:
-                    ret = ret.astype("<f8")
+                    ret = ret.astype(bytes)
                 except:
                     if not as_object:
                         ret = np.array(
