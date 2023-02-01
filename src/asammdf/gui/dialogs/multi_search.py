@@ -12,7 +12,6 @@ from ..ui.multi_search_dialog import Ui_MultiSearchDialog
 
 class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
     def __init__(self, channels_dbs, measurements, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.setWindowFlags(

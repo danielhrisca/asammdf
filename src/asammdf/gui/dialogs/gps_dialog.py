@@ -18,7 +18,6 @@ class GPSDialog(Ui_GPSDialog, QtWidgets.QDialog):
         *args,
         **kwargs,
     ):
-
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 

@@ -104,9 +104,7 @@ def add_children(
 
 
 def add_new_items(tree, root, items, pos):
-
     for item in items:
-
         new_item = item.copy()
         new_widget = tree.itemWidget(item, 1).copy()
         new_item.widget = new_widget
@@ -138,7 +136,6 @@ def valid_drop_target(target, item):
 
 
 def validate_drag_items(root, items, not_allowed):
-
     valid_items = []
 
     for item in items:
@@ -181,7 +178,6 @@ def get_data(plot, items, uuids_only=False):
     data = []
 
     for item in items:
-
         if item.type() == ChannelsTreeItem.Group:
             children = [item.child(i) for i in range(item.childCount())]
 
@@ -209,7 +205,6 @@ def get_data(plot, items, uuids_only=False):
 
 class TreeWidget(QtWidgets.QTreeWidget):
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
 
         self.setSortingEnabled(False)
@@ -256,7 +251,6 @@ class TreeWidget(QtWidgets.QTreeWidget):
                     if child.childCount():
                         data.extend(get_data(child))
                     else:
-
                         if child.entry[1] != 0xFFFFFFFFFFFFFFFF:
                             data.append(
                                 {
@@ -335,7 +329,6 @@ class FileTreeItem(QtWidgets.QTreeWidgetItem):
 
 class FileTreeWidget(QtWidgets.QTreeWidget):
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
 
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
@@ -347,7 +340,6 @@ class FileTreeWidget(QtWidgets.QTreeWidget):
 
 class SearchTreeWidget(QtWidgets.QTreeWidget):
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
 
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
@@ -426,7 +418,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         *args,
         **kwargs,
     ):
-
         super().__init__(*args, **kwargs)
         self.plot = plot
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
@@ -495,7 +486,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self._dark = False
 
     def autoscroll(self):
-
         step = max(
             (self.verticalScrollBar().maximum() - self.verticalScrollBar().minimum())
             // 90,
@@ -503,7 +493,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         )
 
         if self.autoscroll_mouse_pos is not None:
-
             height = self.viewport().rect().height()
             y = self.autoscroll_mouse_pos
 
@@ -518,7 +507,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 self.verticalScrollBar().setValue(pos)
 
     def startDrag(self, supportedActions):
-
         selected_items = validate_drag_items(
             self.invisibleRootItem(), self.selectedItems(), []
         )
@@ -620,7 +608,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.update_channel_groups_count()
 
         elif key == QtCore.Qt.Key_Insert and modifiers == QtCore.Qt.ControlModifier:
-
             dlg = AdvancedSearch(
                 None,
                 show_add_window=False,
@@ -821,7 +808,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier)
             and key == QtCore.Qt.Key_V
         ):
-
             info = QtWidgets.QApplication.instance().clipboard().text()
             selected_items = self.selectedItems()
             if not selected_items:
@@ -1173,12 +1159,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
 
         elif action.text() == show_disabled_channels:
-
             self.hide_disabled_channels = not self.hide_disabled_channels
             self.update_hidden_states()
 
         elif action.text() == show_missing_channels:
-
             self.hide_missing_channels = not self.hide_missing_channels
             self.update_hidden_states()
 
@@ -1190,7 +1174,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     if item.type() == ChannelsTreeItem.Channel:
                         item.signal.y_link = True
             else:
-
                 for item in selected_items:
                     if item.type() == ChannelsTreeItem.Channel:
                         item.setCheckState(self.CommonAxisColumn, QtCore.Qt.Checked)
@@ -1211,7 +1194,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     if item.type() == ChannelsTreeItem.Channel:
                         item.signal.y_link = False
             else:
-
                 for item in selected_items:
                     if item.type() == ChannelsTreeItem.Channel and item.signal.y_link:
                         item.setCheckState(self.CommonAxisColumn, QtCore.Qt.Unchecked)
@@ -1250,7 +1232,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
 
             if ok:
-
                 for item in selected_items:
                     if item.type() == ChannelsTreeItem.Channel:
                         item.precision = precision
@@ -1270,7 +1251,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         ):
             selected_items = self.selectedItems()
             if selected_items:
-
                 if action.text() == "Relative time base shift":
                     offset, ok = QtWidgets.QInputDialog.getDouble(
                         self, "Relative offset [s]", "Offset [s]:", decimals=6
@@ -1303,7 +1283,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.details_enabled = not self.details_enabled
 
             if self.details_enabled:
-
                 iterator = QtWidgets.QTreeWidgetItemIterator(self)
                 while True:
                     item = iterator.value()
@@ -1488,7 +1467,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             iterator += 1
 
     def update_visibility_status(self, *args):
-
         tree_rect = self.viewport().rect()
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
@@ -1509,7 +1487,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
 
 class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
-
     Group = 2000
     Channel = 2001
     Info = 2002
@@ -1546,7 +1523,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self._current_font_color = background_color
 
         if type == self.Group:
-
             self.pattern = None
             self.set_pattern(pattern)
             self._is_visible = True
@@ -1651,7 +1627,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self.setTextAlignment(self.ValueColumn, QtCore.Qt.AlignRight)
 
     def __repr__(self):
-
         t = self.type()
         if t == 2000:
             type = "Group"
@@ -1881,7 +1856,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         if type == self.Group:
             self._name = text
         elif type == self.Channel:
-
             if text != self.signal.name:
                 self.signal.name = text
                 if not self.signal.flags & Signal.Flags.computed:
@@ -2035,7 +2009,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.setToolTip(self.ValueColumn, "")
 
             if self.type() == self.Channel:
-
                 brush = fn.mkBrush(self._background_color.name())
                 self.setBackground(self.NameColumn, brush)
                 self.setBackground(self.ValueColumn, brush)
@@ -2080,7 +2053,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         ranges = self.get_ranges()
 
         if ranges:
-
             new_background_color, new_font_color = get_colors_using_ranges(
                 value,
                 ranges=self.get_ranges(),
@@ -2127,7 +2099,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                     self._current_font_color = new_font_color
 
         if update_text:
-
             if value in ("", "n.a."):
                 text = f"{self._value_prefix}{value}"
                 self.setText(self.ValueColumn, text)

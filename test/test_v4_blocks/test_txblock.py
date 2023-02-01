@@ -9,7 +9,6 @@ from asammdf.blocks.v4_blocks import TextBlock
 class TestATBLOCK(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-
         cls.plain_text = "sample text"
         cls.plain_bytes = b"##TX\x00\x00\x00\x00(\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00sample text\x00\x00\x00\x00\x00"
         cls.plain_stream = BytesIO()
@@ -44,7 +43,6 @@ class TestATBLOCK(unittest.TestCase):
             TextBlock(address=0, stream=stream)
 
     def test_bytes(self):
-
         block = TextBlock(text=self.plain_text, meta=False)
         self.assertEqual(bytes(block), self.plain_bytes)
 

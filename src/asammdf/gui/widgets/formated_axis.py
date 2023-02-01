@@ -17,12 +17,10 @@ BUTTON_SIZE = 16
 
 
 class FormatedAxis(pg.AxisItem):
-
     rangeChanged = QtCore.Signal(object, object)
     scale_editor_requested = QtCore.Signal(object)
 
     def __init__(self, *args, **kwargs):
-
         self.plus = self.minus = None
         self.uuid = kwargs.pop("uuid", None)
         self.background = kwargs.pop("background", fn.mkColor("#000000"))
@@ -39,7 +37,6 @@ class FormatedAxis(pg.AxisItem):
         self.locked = kwargs.pop("locked", False)
 
         if self.orientation in ("left", "right"):
-
             self.plus = ButtonItem(":/plus.png", BUTTON_SIZE, parentItem=self)
             self.minus = ButtonItem(":/minus.png", BUTTON_SIZE, parentItem=self)
 
@@ -95,7 +92,6 @@ class FormatedAxis(pg.AxisItem):
                     except:
                         strns.append(f'{val}={nv.decode("latin-1", errors="replace")}')
                 else:
-
                     strns.append(val)
         else:
             if self.format == "phys":
@@ -189,7 +185,6 @@ class FormatedAxis(pg.AxisItem):
             return
 
         if self.orientation in ("left", "right"):
-
             ev = event
             ev.accept()
 
@@ -202,7 +197,6 @@ class FormatedAxis(pg.AxisItem):
                 QtCore.Qt.MouseButton.LeftButton,
                 QtCore.Qt.MouseButton.MiddleButton,
             ]:
-
                 if self.orientation in ("left", "right"):
                     scale = (
                         self.range[1] - self.range[0]
@@ -217,12 +211,10 @@ class FormatedAxis(pg.AxisItem):
                 self.setRange(self.range[0] - delta, self.range[1] - delta)
 
             elif ev.button() & QtCore.Qt.MouseButton.RightButton:
-
                 mid = sum(self.range) / 2
                 delta = self.range[-1] - self.range[0]
 
                 if self.orientation in ("left", "right"):
-
                     if dif.y() > 0:
                         delta = 0.94 * delta
                     else:
@@ -239,7 +231,6 @@ class FormatedAxis(pg.AxisItem):
             return self.linkedView().mouseDragEvent(event, axis=0, ignore_cursor=True)
 
     def mouseClickEvent(self, event):
-
         if event.button() == QtCore.Qt.MouseButton.RightButton:
             event.accept()
             self.raiseContextMenu(event)
@@ -250,7 +241,6 @@ class FormatedAxis(pg.AxisItem):
             return lv.mouseClickEvent(event)
 
     def resizeEvent(self, ev=None):
-
         if self.orientation in ("left", "right"):
             nudge = 5
 
@@ -291,7 +281,6 @@ class FormatedAxis(pg.AxisItem):
         super().close()
 
     def set_pen(self, pen=None):
-
         if pen is None:
             pen = fn.mkPen(pen)
 
@@ -394,7 +383,6 @@ class FormatedAxis(pg.AxisItem):
         self.rangeChanged.emit(self.uuid, (mn, mx))
 
     def wheelEvent(self, event):
-
         if self.locked:
             return
 

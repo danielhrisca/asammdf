@@ -21,7 +21,6 @@ class BarWidget(QtWidgets.QWidget):
         self.value = 50.0
 
     def resizeEvent(self, event):
-
         width = self.size().width()
         parts = 6
         while True:
@@ -60,7 +59,6 @@ class BarWidget(QtWidgets.QWidget):
         qp.end()
 
     def drawWidget(self, qp):
-
         font = QtGui.QFont("Serif", 7, QtGui.QFont.Light)
         qp.setFont(font)
 
@@ -72,7 +70,6 @@ class BarWidget(QtWidgets.QWidget):
         full = int(((w / self.max) * self.over))
 
         if self.value >= self.over:
-
             qp.setPen(QtGui.QColor(self.color))
             qp.setBrush(QtGui.QColor(self.color))
             qp.drawRect(0, 0, full, h)
@@ -81,7 +78,6 @@ class BarWidget(QtWidgets.QWidget):
             qp.drawRect(full, 0, till - full, h)
 
         else:
-
             qp.setPen(QtGui.QColor(self.color))
             qp.setBrush(QtGui.QColor(self.color))
             qp.drawRect(0, 0, till, h)
@@ -93,7 +89,6 @@ class BarWidget(QtWidgets.QWidget):
         qp.drawRect(0, 0, w - 1, h - 1)
 
         for j, val in enumerate(self.ticks):
-
             val_pos = int(val / self.range[1] * w)
 
             val = str(val) if isinstance(val, int) else f"{val:.3f}"

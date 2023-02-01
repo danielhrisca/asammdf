@@ -40,7 +40,6 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
         target = self.target.text().strip()
 
         if target:
-
             if kind in "ui":
                 if target.startswith("0x"):
                     try:
@@ -83,7 +82,6 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                                 f"{column_name} requires a bin-format integer target value",
                             )
                     else:
-
                         try:
                             self._target = int(target)
                         except:

@@ -14,7 +14,6 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
     items_deleted = QtCore.Signal(list)
 
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
 
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
@@ -57,7 +56,6 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
         data = []
 
         for item in selected_items:
-
             entry = item.entry
 
             if entry == (-1, -1):
@@ -95,7 +93,6 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
         e.accept()
 
     def dropEvent(self, e):
-
         if e.source() is self:
             super().dropEvent(e)
             self.items_rearranged.emit()

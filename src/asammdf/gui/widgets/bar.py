@@ -218,7 +218,6 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
             super().keyPressEvent(event)
 
     def to_config(self):
-
         channels = []
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channels)
         while 1:
@@ -263,7 +262,6 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
         except:
             self.match.setText("the target must a numeric value")
         else:
-
             if target.is_integer():
                 target = int(target)
 
@@ -323,7 +321,6 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
         except:
             self.match.setText(f"the target must a numeric value")
         else:
-
             if target.is_integer():
                 target = int(target)
 
@@ -339,7 +336,6 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
                 try:
                     idx = np.argwhere(op(target)).flatten()
                     if len(idx):
-
                         if len(idx) == 1 or sig.timestamps[idx[-1]] != stop:
                             timestamp_ = sig.timestamps[idx[-1]]
                         else:

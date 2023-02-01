@@ -11,7 +11,6 @@ from ..utils import extract_mime_names
 
 
 class ListWidget(QtWidgets.QListWidget):
-
     itemsDeleted = QtCore.Signal(list)
     set_time_offset = QtCore.Signal(list)
     items_rearranged = QtCore.Signal()
@@ -20,7 +19,6 @@ class ListWidget(QtWidgets.QListWidget):
     insert_computation = QtCore.Signal(str)
 
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
 
         self.details_enabled = False
@@ -131,7 +129,6 @@ class ListWidget(QtWidgets.QListWidget):
         data = []
 
         for item in selected_items:
-
             entry = item.entry
             computation = item.computation
 
@@ -189,13 +186,11 @@ class ListWidget(QtWidgets.QListWidget):
                 super().dropEvent(e)
 
     def open_menu(self, position):
-
         item = self.itemAt(position)
         if item is None:
             return
 
         else:
-
             menu = QtWidgets.QMenu()
             menu.addAction(self.tr(f"{self.count()} items in the list"))
             menu.addSeparator()
@@ -315,7 +310,6 @@ class ListWidget(QtWidgets.QListWidget):
             unit, ok = QtWidgets.QInputDialog.getText(None, "Set new unit", "Unit:")
 
             if ok:
-
                 selected_items = self.selectedItems()
                 for i in range(self.count()):
                     item = self.item(i)
@@ -332,7 +326,6 @@ class ListWidget(QtWidgets.QListWidget):
             )
 
             if ok and 0 <= precision <= 15:
-
                 for i in range(self.count()):
                     item = self.item(i)
                     widget = self.itemWidget(item)
@@ -346,7 +339,6 @@ class ListWidget(QtWidgets.QListWidget):
         ):
             selected_items = self.selectedItems()
             if selected_items:
-
                 if action.text() == "Relative time base shift":
                     offset, ok = QtWidgets.QInputDialog.getDouble(
                         self, "Relative offset [s]", "Offset [s]:", decimals=6
@@ -367,7 +359,6 @@ class ListWidget(QtWidgets.QListWidget):
                         item = self.item(i)
                         widget = self.itemWidget(item)
                         if item in selected_items:
-
                             uuids.append(widget.uuid)
                     self.set_time_offset.emit([absolute, offset] + uuids)
 
@@ -399,13 +390,11 @@ class ListWidget(QtWidgets.QListWidget):
 
 
 class MinimalListWidget(QtWidgets.QListWidget):
-
     itemsDeleted = QtCore.Signal(list)
     itemsDeleted = QtCore.Signal(list)
     itemsPasted = QtCore.Signal()
 
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
 
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)

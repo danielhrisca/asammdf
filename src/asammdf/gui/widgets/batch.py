@@ -40,7 +40,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         *args,
         **kwargs,
     ):
-
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -85,7 +84,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.extract_bus_compression,
             self.mdf_compression,
         ):
-
             widget.insertItems(0, ("no compression", "deflate", "transposed deflate"))
             widget.setCurrentText("transposed deflate")
 
@@ -208,7 +206,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.progress = current_index, max_index
 
     def scramble_thread(self, source_files, progress):
-
         count = len(source_files)
 
         icon = QtGui.QIcon()
@@ -220,7 +217,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         # scrambling self.mdf
         for i, source_file in enumerate(source_files):
-
             progress.signals.setLabelText.emit(
                 f"Scrambling file {i+1} of {count}\n{source_file}"
             )
@@ -233,7 +229,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self._progress = None
 
     def scramble(self, event):
-
         count = self.files_list.count()
         source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
 
@@ -258,7 +253,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self._progress = None
 
     def extract_bus_logging(self, event):
-
         version = self.extract_bus_format.currentText()
 
         self.output_info_bus.setPlainText("")
@@ -322,7 +316,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         progress.signals.setMaximum.emit(count)
 
         for i, (file, source_file) in enumerate(zip(files, source_files)):
-
             progress.signals.setLabelText.emit(
                 f"Extracting Bus logging from file {i+1} of {count}\n{source_file}"
             )
@@ -352,7 +345,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             bus_call_info = dict(mdf.last_call_info)
 
             for bus, call_info in bus_call_info.items():
-
                 found_id_count = sum(len(e) for e in call_info["found_ids"].values())
 
                 message += [
@@ -375,7 +367,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 ]
                 for dbc_name, found_ids in call_info["found_ids"].items():
                     for msg_id, msg_name in sorted(found_ids):
-
                         try:
                             message.append(
                                 f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>"
@@ -525,7 +516,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         count,
         progress,
     ):
-
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/csv.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         progress.signals.setWindowIcon.emit(icon)
@@ -541,7 +531,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         message = []
 
         for i, (file, source_file) in enumerate(zip(files, source_files)):
-
             progress.signals.setLabelText.emit(
                 f"Extracting Bus logging from file {i+1} of {count}"
             )
@@ -570,7 +559,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             bus_call_info = dict(mdf.last_call_info)
 
             for bus, call_info in bus_call_info.items():
-
                 found_id_count = sum(len(e) for e in call_info["found_ids"].values())
 
                 message += [
@@ -801,7 +789,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         compression,
         progress,
     ):
-
         icon = QtGui.QIcon()
         icon.addPixmap(
             QtGui.QPixmap(":/stack.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
@@ -968,7 +955,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     total += 1
 
                 if item.checkState(0) == QtCore.Qt.Checked:
-
                     if index != 0xFFFFFFFFFFFFFFFF:
                         channels.append((item.name, group, index))
                         count += 1
@@ -1043,7 +1029,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         mdf = self._as_mdf(file_name)
 
         try:
-
             widget = self.filter_tree
             view = self.filter_view
 
@@ -1144,7 +1129,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             mdf = self._as_mdf(file_name)
             try:
-
                 widget = self.filter_tree
                 view = self.filter_view
 
@@ -1265,7 +1249,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         output_format = self.output_format.currentText()
 
         if output_format == "MDF":
-
             new = {
                 "mdf_version": self.mdf_version.currentText(),
                 "mdf_compression": self.mdf_compression.currentIndex(),
@@ -1274,7 +1257,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             }
 
         elif output_format == "MAT":
-
             new = {
                 "single_time_base": self.single_time_base_mat.checkState()
                 == QtCore.Qt.Checked,
@@ -1293,7 +1275,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             }
 
         elif output_format == "CSV":
-
             new = {
                 "single_time_base": self.single_time_base_csv.checkState()
                 == QtCore.Qt.Checked,
@@ -1319,7 +1300,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             }
 
         else:
-
             new = {
                 "single_time_base": self.single_time_base.checkState()
                 == QtCore.Qt.Checked,
@@ -1350,7 +1330,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self._progress = None
 
     def apply_processing(self, event):
-
         opts = self._current_options()
 
         output_format = opts.output_format
@@ -1409,7 +1388,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         )
 
     def apply_processing_thread(self, progress):
-
         count = self.files_list.count()
         source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
 
@@ -1463,7 +1441,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         files = self._prepare_files(list(source_files), progress)
 
         for mdf_index, (mdf_file, source_file) in enumerate(zip(files, source_files)):
-
             mdf_file.configure(
                 read_fragment_size=split_size,
                 integer_interpolation=self.integer_interpolation,
@@ -1473,7 +1450,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             mdf = mdf_file
 
             if needs_filter:
-
                 icon = QtGui.QIcon()
                 icon.addPixmap(
                     QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
@@ -1506,7 +1482,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 )
 
             if opts.needs_cut:
-
                 icon = QtGui.QIcon()
                 icon.addPixmap(
                     QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
@@ -1544,7 +1519,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 )
 
             if opts.needs_resample:
-
                 if opts.raster_type_channel:
                     raster = opts.raster_channel
                     message = f'Resampling using channel "{raster}"\n{source_file}'
@@ -1716,7 +1690,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 target(**kwargs)
 
     def change_modify_output_folder(self, event=None):
-
         folder = QtWidgets.QFileDialog.getExistingDirectory(
             self, "Select output folder", ""
         )
@@ -1895,7 +1868,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                             channels = list(info.values())[0]
 
                 elif extension in (".cfg", ".dspf"):
-
                     with open(file_name, "r") as infile:
                         info = json.load(infile)
 
@@ -1908,7 +1880,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 channels = info.get("selected_channels", [])
 
             if channels:
-
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
                 if self.filter_view.currentText() == "Internal file structure":

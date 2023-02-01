@@ -91,7 +91,6 @@ FRIENDLY_ATRRIBUTES = {
 
 
 class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
-
     open_new_file = QtCore.Signal(str)
     full_screen_toggled = QtCore.Signal()
     display_file_modified = QtCore.Signal(str)
@@ -112,7 +111,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         *args,
         **kwargs,
     ):
-
         self.default_folder = kwargs.get("default_folder", "")
         if "default_folder" in kwargs:
             kwargs.pop("default_folder")
@@ -163,7 +161,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         try:
             if file_name.suffix.lower() in (".erg", ".bsig", ".dl3"):
-
                 extension = file_name.suffix.lower().strip(".")
                 progress.setLabelText(f"Converting from {extension} to mdf")
 
@@ -218,7 +215,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     )
 
             else:
-
                 original_name = file_name
 
                 target = MDF
@@ -351,7 +347,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.aspects.currentChanged.connect(self.aspect_changed)
 
         except:
-
             progress.setValue(100)
             progress.deleteLater()
             raise
@@ -510,7 +505,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self._update_channel_tree(widget=widget)
 
     def _update_channel_tree(self, index=None, widget=None):
-
         if widget is None:
             widget = self.channels_tree
         if widget is self.channels_tree and self.channel_view.currentIndex() == -1:
@@ -524,7 +518,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         signals = set()
 
         if widget.mode == "Internal file structure":
-
             while iterator.value():
                 item = iterator.value()
 
@@ -534,7 +527,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 iterator += 1
         else:
-
             while iterator.value():
                 item = iterator.value()
 
@@ -568,7 +560,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             widget.addTopLevelItems(items)
 
         elif widget.mode == "Internal file structure":
-
             items = []
 
             for i, group in enumerate(self.mdf.groups):
@@ -594,7 +585,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         ico = None
 
                     if ico is not None:
-
                         icon = QtGui.QIcon()
                         icon.addPixmap(
                             QtGui.QPixmap(ico), QtGui.QIcon.Normal, QtGui.QIcon.Off
@@ -778,7 +768,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         )
 
             else:
-
                 names = set()
                 if view.currentText() == "Internal file structure":
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
@@ -972,7 +961,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         return config
 
     def save_channel_list(self, event=None, file_name=None):
-
         if file_name is None:
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
@@ -1101,7 +1089,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         iterator += 1
 
             if extension in (".dspf", ".dsp"):
-
                 new_functions = {}
 
                 if "functions" in info:
@@ -1250,7 +1237,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                     channels = []
                     for window in info["windows"]:
-
                         if window["type"] == "Plot":
                             channels.extend(
                                 flatten_dsp(window["configuration"]["channels"])
@@ -1303,7 +1289,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 channels = info.get("selected_channels", [])
 
             if channels:
-
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
                 if self.filter_view.currentText() == "Internal file structure":
@@ -1464,7 +1449,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.mdf = None
 
     def _create_window(self, event=None, window_type=None):
-
         if window_type is None:
             dialog = WindowSelectionDialog(
                 options=(
@@ -1491,7 +1475,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         elif window_type in ("CAN Bus Trace", "FlexRay Bus Trace", "LIN Bus Trace"):
             signals = []
         elif window_type == "GPS":
-
             target = "(latitude|gps_y)"
             sig = re.compile(target, re.IGNORECASE)
 
@@ -1545,12 +1528,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             else:
                 return
         else:
-
             try:
                 iter(event)
                 signals = event
             except:
-
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
                 signals = []
@@ -1604,7 +1585,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.add_window((window_type, signals))
 
     def scramble_thread(self, progress):
-
         icon = QtGui.QIcon()
         icon.addPixmap(
             QtGui.QPixmap(":/scramble.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
@@ -1624,7 +1604,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self._progress = None
 
     def scramble(self, event):
-
         self._progress = setup_progress(parent=self)
         self._progress.finished.connect(self.scramble_finished)
 
@@ -1705,7 +1684,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     def extract_bus_logging_thread(
         self, file_name, suffix, database_files, version, compression, progress
     ):
-
         file_name = Path(file_name).with_suffix(suffix)
 
         icon = QtGui.QIcon()
@@ -1747,7 +1725,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         message = []
 
         for bus, call_info in bus_call_info.items():
-
             found_id_count = sum(len(e) for e in call_info["found_ids"].values())
 
             message += [
@@ -1906,7 +1883,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         add_units,
         progress,
     ):
-
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/csv.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         progress.signals.setWindowIcon.emit(icon)
@@ -1965,7 +1941,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         message = []
 
         for bus, call_info in bus_call_info.items():
-
             found_id_count = sum(len(e) for e in call_info["found_ids"].values())
 
             message += [
@@ -2080,7 +2055,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         elif key == QtCore.Qt.Key_L and modifier == QtCore.Qt.ShiftModifier:
             if self.channel_view.isVisible():
-
                 self._splitter_sizes = self.splitter.sizes()
 
                 self.channel_view.hide()
@@ -2117,7 +2091,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 super().keyPressEvent(event)
 
     def aspect_changed(self, index):
-
         current_index = self.aspects.currentIndex()
         count = self.aspects.count()
         for i in range(count):
@@ -2128,7 +2101,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 widget.hide()
 
         if self.aspects.tabText(current_index) == "Modify && Export":
-
             if not self.raster_channel.count():
                 self.raster_channel.setSizeAdjustPolicy(
                     QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon
@@ -2474,7 +2446,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         output_format = self.output_format.currentText()
 
         if output_format == "MDF":
-
             new = {
                 "mdf_version": self.mdf_version.currentText(),
                 "mdf_compression": self.mdf_compression.currentIndex(),
@@ -2483,7 +2454,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             }
 
         elif output_format == "MAT":
-
             new = {
                 "single_time_base": self.single_time_base_mat.checkState()
                 == QtCore.Qt.Checked,
@@ -2502,7 +2472,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             }
 
         elif output_format == "CSV":
-
             new = {
                 "single_time_base": self.single_time_base_csv.checkState()
                 == QtCore.Qt.Checked,
@@ -2528,7 +2497,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             }
 
         else:
-
             new = {
                 "single_time_base": self.single_time_base.checkState()
                 == QtCore.Qt.Checked,
@@ -2571,7 +2539,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     total += 1
 
                 if item.checkState(0) == QtCore.Qt.Checked:
-
                     if index != 0xFFFFFFFFFFFFFFFF:
                         channels.append((None, group, index))
                         count += 1
@@ -2599,7 +2566,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 return True, channels
 
     def apply_processing(self, event):
-
         needs_filter, channels = self._get_filtered_channels()
 
         opts = self._current_options()
@@ -2715,7 +2681,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     def apply_processing_thread(
         self, file_name, opts, version, needs_filter, channels, progress=None
     ):
-
         output_format = opts.output_format
 
         split_size = opts.mdf_split_size if output_format == "MDF" else 0
@@ -2726,7 +2691,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         float_interpolation = self.mdf._float_interpolation
 
         if needs_filter:
-
             icon = QtGui.QIcon()
             icon.addPixmap(
                 QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
@@ -2757,7 +2721,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             )
 
         if opts.needs_cut:
-
             icon = QtGui.QIcon()
             icon.addPixmap(
                 QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
@@ -2796,7 +2759,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             )
 
         if opts.needs_resample:
-
             if opts.raster_type_channel:
                 raster = opts.raster_channel
                 message = f'Resampling using channel "{raster}"'
@@ -2904,7 +2866,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 return
 
             if handle_overwrite:
-
                 original_name = file_name
 
                 self.mdf = MDF(
@@ -2924,7 +2885,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 self.aspects.setCurrentIndex(1)
 
         else:
-
             icon = QtGui.QIcon()
             icon.addPixmap(
                 QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off

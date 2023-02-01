@@ -13,7 +13,6 @@ from .range_editor import RangeEditor
 
 
 class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
-
     NameColumn = 0
     GroupColumn = 1
     ChannelColumn = 2
@@ -39,7 +38,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         *args,
         **kwargs,
     ):
-
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -123,7 +121,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         extened_search = self.extended_search.checkState() == QtCore.Qt.Checked
 
         if len(text) >= 2:
-
             self.matches.setSortingEnabled(False)
             self.matches.clear()
 
@@ -135,7 +132,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                 pattern = re.compile(f"(?i){text}")
 
             try:
-
                 if extened_search:
                     matches = {}
 
@@ -174,9 +170,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                             )
 
                         else:
-
                             for channel_index, ch in enumerate(group.channels):
-
                                 entry = group_index, channel_index
                                 source = ch.source
 
@@ -192,7 +186,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                         or match_kind == "Wildcard"
                                         and fnmatch(target.casefold(), pattern)
                                     ):
-
                                         if entry not in matches:
                                             matches[entry] = {
                                                 "names": [target],
@@ -225,7 +218,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                             or match_kind == "Wildcard"
                                             and fnmatch(target.casefold(), pattern)
                                         ):
-
                                             matches[entry] = {
                                                 "names": [ch.name],
                                                 "comment": extract_xml_comment(
@@ -258,7 +250,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                     matches = {}
                     for name in found_names:
                         for entry in self.channels_db[name]:
-
                             if entry not in matches:
                                 (group_index, channel_index) = entry
                                 ch = self.mdf.groups[group_index].channels[

@@ -128,7 +128,6 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         self.timestamp_changed_signal.emit(self, stamp)
 
     def to_config(self):
-
         config = {
             "latitude_channel": self.latitude_signal.name,
             "longitude_channel": self.longitude_signal.name,

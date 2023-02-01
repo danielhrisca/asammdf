@@ -11,13 +11,11 @@ from asammdf import MDF
 
 
 class TestCANBusLogging(unittest.TestCase):
-
     tempdir_obd = None
     tempdir_j1939 = None
 
     @classmethod
     def setUpClass(cls):
-
         cls.tempdir_obd = tempfile.TemporaryDirectory()
         cls.tempdir_j1939 = tempfile.TemporaryDirectory()
 

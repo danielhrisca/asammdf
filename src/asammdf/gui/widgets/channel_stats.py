@@ -11,7 +11,6 @@ MONOSPACE_FONT = None
 
 
 class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
-
     precision_modified = QtCore.Signal()
 
     def __init__(self, xunit="s", precision=6, *args, **kwargs):
@@ -24,7 +23,6 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
         global MONOSPACE_FONT
 
         if MONOSPACE_FONT is None:
-
             families = QtGui.QFontDatabase().families()
             for family in (
                 "Consolas",
@@ -64,16 +62,13 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
         self.precision.currentIndexChanged.connect(self.set_float_precision)
 
     def set_stats(self, stats):
-
         self._stats = deepcopy(stats)
         precision = self._settings.value("stats_float_precision", 6, type=int)
         fmt = f" {{:.{precision}f}}"
 
         color = stats["color"]
         if stats:
-
             for name, value in stats.items():
-
                 if name == "unit":
                     for i in range(1, 23):
                         label = self.findChild(QtWidgets.QLabel, f"unit{i}")

@@ -223,7 +223,6 @@ class Channel:
                     parsed_strings = kwargs["parsed_strings"]
 
                     if parsed_strings is None:
-
                         addr = self.long_name_addr
                         if addr:
                             self.name = get_text_v3(
@@ -270,7 +269,6 @@ class Channel:
                     parsed_strings = kwargs["parsed_strings"]
 
                     if parsed_strings is None:
-
                         addr = self.long_name_addr
                         if addr:
                             self.name = get_text_v3(
@@ -398,7 +396,6 @@ class Channel:
                     parsed_strings = kwargs["parsed_strings"]
 
                     if parsed_strings is None:
-
                         addr = self.long_name_addr
                         if addr:
                             self.name = get_text_v3(
@@ -445,7 +442,6 @@ class Channel:
                     parsed_strings = kwargs["parsed_strings"]
 
                     if parsed_strings is None:
-
                         addr = self.long_name_addr
                         if addr:
                             self.name = get_text_v3(
@@ -550,7 +546,6 @@ class Channel:
                 raise MdfException(message)
 
         except KeyError:
-
             self.address = 0
             self.id = b"CN"
             self.block_len = kwargs.get("block_len", v23c.CN_DISPLAYNAME_BLOCK_SIZE)
@@ -727,7 +722,6 @@ comment: {self.comment}
         return "\n".join(metadata)
 
     def __bytes__(self) -> bytes:
-
         block_len = self.block_len
         if block_len == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
             return v23c.CHANNEL_DISPLAYNAME_p(
@@ -1043,7 +1037,6 @@ class ChannelConversion(_ChannelConversionBase):
                     self.formula = self.formula.replace("X", "X1")
 
             elif conv_type in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TAB):
-
                 nr = self.ref_param_nr
 
                 size = v23c.CC_COMMON_BLOCK_SIZE + nr * 16
@@ -1102,7 +1095,6 @@ class ChannelConversion(_ChannelConversionBase):
                     self.referenced_blocks = conversion.referenced_blocks
 
                 else:
-
                     values = unpack_from(
                         "<" + "d32s" * nr, block, v23c.CC_COMMON_SHORT_SIZE
                     )
@@ -1114,7 +1106,6 @@ class ChannelConversion(_ChannelConversionBase):
                         )
 
             elif conv_type == v23c.CONVERSION_TYPE_RTABX:
-
                 nr = self.ref_param_nr - 1
 
                 size = v23c.CC_COMMON_BLOCK_SIZE + (nr + 1) * 20
@@ -1132,7 +1123,6 @@ class ChannelConversion(_ChannelConversionBase):
                     self.referenced_blocks = conversion.referenced_blocks
 
                 else:
-
                     (
                         self.default_lower,
                         self.default_upper,
@@ -1178,7 +1168,6 @@ class ChannelConversion(_ChannelConversionBase):
                 raise MdfException(message)
 
         else:
-
             self.address = 0
             self.id = b"CC"
             self.unit_field = kwargs.get("unit", b"")
@@ -1661,7 +1650,6 @@ address: {hex(self.address)}
                     except TypeError:
                         values = P4 * X / P1
             else:
-
                 try:
                     values = evaluate(v23c.POLY_CONV_LONG_TEXT)
                 except TypeError:
@@ -1948,7 +1936,6 @@ class ChannelExtension:
         if "stream" in kwargs:
             stream = kwargs["stream"]
             try:
-
                 (self.id, self.block_len, self.type) = SOURCE_COMMON_uf(
                     kwargs["raw_bytes"]
                 )
@@ -2024,7 +2011,6 @@ class ChannelExtension:
                 raise MdfException(message)
 
         else:
-
             self.address = 0
             self.id = b"CE"
             self.block_len = kwargs.get("block_len", v23c.CE_BLOCK_SIZE)
@@ -2062,7 +2048,6 @@ class ChannelExtension:
         defined_texts: dict[str, int],
         cc_map: dict[bytes, int],
     ) -> int:
-
         if self.type == v23c.SOURCE_ECU:
             self.ECU_identification = self.path.encode("latin-1")[:31]
             self.description = self.name.encode("latin-1")[:79]
@@ -2647,7 +2632,6 @@ class FileIdentificationBlock:
 
         self.address = 0
         try:
-
             stream = kwargs["stream"]
             stream.seek(0)
 
@@ -2752,7 +2736,6 @@ class HeaderBlock:
         self.description = ""
         self.comment = ""
         try:
-
             stream = kwargs["stream"]
             stream.seek(64)
 

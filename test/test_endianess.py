@@ -19,7 +19,6 @@ class TestEndianess(unittest.TestCase):
         cls.tempdir = tempfile.TemporaryDirectory()
 
     def test_mixed(self):
-
         t = np.arange(15, dtype="<f8")
 
         s1 = Signal(
@@ -55,7 +54,6 @@ class TestEndianess(unittest.TestCase):
                 assert np.array_equal(mdf.get("Intel").samples, [4] * 15)
 
     def test_not_aligned_mdf_v3(self):
-
         t = np.arange(15, dtype="<f8")
 
         s1 = Signal(
@@ -148,7 +146,6 @@ class TestEndianess(unittest.TestCase):
                 )
 
     def test_not_aligned_mdf_v4(self):
-
         t = np.arange(15, dtype="<f8")
 
         s1 = Signal(
@@ -244,7 +241,6 @@ class TestEndianess(unittest.TestCase):
                 )
 
     def test_overlapping_channels_mdf_v3(self):
-
         t = np.arange(15, dtype="<f8")
 
         s1 = Signal(
@@ -351,7 +347,6 @@ class TestEndianess(unittest.TestCase):
                     )
 
     def test_overlapping_channels_mdf_v4(self):
-
         t = np.arange(15, dtype="<f8")
 
         s1 = Signal(
@@ -383,7 +378,6 @@ class TestEndianess(unittest.TestCase):
                 v4c.DATA_TYPE_SIGNED_INTEL,
                 v4c.DATA_TYPE_UNSIGNED_INTEL,
             ):
-
                 parent = mdf_source.groups[0].channels[1]
                 parent.data_type = parent_data_type
 

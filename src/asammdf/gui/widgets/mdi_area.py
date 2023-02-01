@@ -6,6 +6,7 @@ import itertools
 import math
 import os
 from pathlib import Path
+from random import randint
 import re
 import sys
 from tempfile import gettempdir
@@ -54,7 +55,6 @@ NOT_FOUND = 0xFFFFFFFF
 
 
 def rename_origin_uuid(items):
-
     for item in items:
         if item.get("type", "channel") == "channel":
             if "mdf_uuid" in item:
@@ -93,7 +93,6 @@ def build_mime_from_config(
     top=True,
     has_flags=None,
 ):
-
     if top:
         rename_origin_uuid(items)
 
@@ -107,7 +106,6 @@ def build_mime_from_config(
         item["uuid"] = uuid
 
         if item.get("type", "channel") == "group":
-
             if item.get("pattern", None) is None:
                 (
                     new_mine,
@@ -171,7 +169,6 @@ def build_mime_from_config(
                 item["origin_uuid"] = computed_origin_uuid
 
             else:
-
                 occurrences = mdf.whereis(item["name"]) if mdf else None
                 if occurrences:
                     group_index, channel_index = occurrences[0]
@@ -220,7 +217,6 @@ def extract_signals_using_pattern(
         print(format_exc())
         signals = []
     else:
-
         psignals = mdf.select(
             matches,
             ignore_value2text_conversions=ignore_value2text_conversions,
@@ -232,7 +228,6 @@ def extract_signals_using_pattern(
         if filter_type == "Unspecified":
             keep = psignals
         else:
-
             keep = []
             for i, (name, group_index, channel_index) in enumerate(matches):
                 sig = psignals[i]
@@ -501,12 +496,10 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
 
 
 class MdiAreaWidget(QtWidgets.QMdiArea):
-
     add_window_request = QtCore.Signal(list)
     open_file_request = QtCore.Signal(str)
 
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
 
         self.setAcceptDrops(True)
@@ -617,7 +610,6 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
 
 
 class WithMDIArea:
-
     windows_modified = QtCore.Signal()
 
     def __init__(self, *args, **kwargs):
@@ -635,7 +627,6 @@ class WithMDIArea:
         self.functions = {}
 
     def add_pattern_group(self, plot, group):
-
         signals = extract_signals_using_pattern(
             self.mdf,
             group.pattern,
@@ -660,7 +651,6 @@ class WithMDIArea:
             )
 
     def add_new_channels(self, names, widget, mime_data=None):
-
         if isinstance(widget, Plot):
             ignore_value2text_conversions = False
             current_count = len(widget.plot.signals)
@@ -757,7 +747,6 @@ class WithMDIArea:
                 widget.add_new_channels(signals)
 
             elif isinstance(widget, Numeric):
-
                 signals = []
 
                 for uuid in uuids:
@@ -807,7 +796,6 @@ class WithMDIArea:
 
                 for signal in signals:
                     if len(signal.samples.shape) > 1:
-
                         signal.samples = csv_bytearray2hex(
                             pd.Series(list(signal.samples))
                         )
@@ -820,7 +808,6 @@ class WithMDIArea:
                 widget.add_new_channels(signals, mime_data=mime_data)
 
             elif isinstance(widget, Plot):
-
                 signals = {}
 
                 not_found = []
@@ -896,7 +883,6 @@ class WithMDIArea:
 
                 for signal in signals.values():
                     if len(signal.samples.shape) > 1:
-
                         signal.samples = csv_bytearray2hex(
                             pd.Series(list(signal.samples))
                         )
@@ -907,7 +893,6 @@ class WithMDIArea:
                 sigs = signals
 
                 if computed:
-
                     required_channels = []
                     for ch in computed:
                         required_channels.extend(get_required_from_computed(ch))
@@ -948,7 +933,6 @@ class WithMDIArea:
                     computed_signals = {}
 
                     for channel in computed:
-
                         computation = channel["computation"]
 
                         signal = compute_signal(
@@ -984,7 +968,6 @@ class WithMDIArea:
                 not_found_uuid = os.urandom(6).hex()
 
                 for entry in not_found:
-
                     sig = Signal([], [], name=entry["name"])
                     sig.uuid = entry["uuid"]
 
@@ -1004,7 +987,6 @@ class WithMDIArea:
                     signals[sig.uuid] = sig
 
                 if widget.channel_selection.selectedItems():
-
                     item = widget.channel_selection.selectedItems()[0]
                     if item.type() == item.Channel:
                         item_below = widget.channel_selection.itemBelow(item)
@@ -1106,7 +1088,6 @@ class WithMDIArea:
                                 sys.intern(name)
 
                     if data.name == "CAN_DataFrame":
-
                         vals = data["CAN_DataFrame.BusChannel"].astype("u1")
 
                         vals = [f"CAN {chn}" for chn in vals.tolist()]
@@ -1173,7 +1154,6 @@ class WithMDIArea:
                         data_length = None
 
                     elif data.name == "CAN_RemoteFrame":
-
                         vals = data["CAN_RemoteFrame.BusChannel"].astype("u1")
                         vals = [f"CAN {chn}" for chn in vals.tolist()]
                         columns["Bus"] = vals
@@ -1202,7 +1182,6 @@ class WithMDIArea:
                         data_length = None
 
                     elif data.name == "CAN_ErrorFrame":
-
                         names = set(data.samples.dtype.names)
 
                         if "CAN_ErrorFrame.BusChannel" in names:
@@ -1390,7 +1369,6 @@ class WithMDIArea:
             #             sys.intern(name)
 
             if item.name == "FLX_Frame":
-
                 index = np.searchsorted(df_index, item.timestamps)
 
                 vals = item["FLX_Frame.FlxChannel"].astype("u1")
@@ -1422,7 +1400,6 @@ class WithMDIArea:
                 data_length = None
 
             elif item.name == "FLX_NullFrame":
-
                 index = np.searchsorted(df_index, item.timestamps)
 
                 vals = item["FLX_NullFrame.FlxChannel"].astype("u1")
@@ -1446,7 +1423,6 @@ class WithMDIArea:
                 data_length = None
 
             elif item.name == "FLX_StartCycle":
-
                 index = np.searchsorted(df_index, item.timestamps)
 
                 vals = item["FLX_StartCycle.cycleCount"].astype("u1")
@@ -1458,7 +1434,6 @@ class WithMDIArea:
                 data_length = None
 
             elif item.name == "FLX_Status":
-
                 index = np.searchsorted(df_index, item.timestamps)
 
                 vals = item["FLX_Status.StatusType"].astype("u1")
@@ -1533,7 +1508,6 @@ class WithMDIArea:
         return trace
 
     def _add_gps_window(self, signals):
-
         signals = [sig[:3] for sig in signals]
         latitude_channel, longitude_channel = self.mdf.select(signals, validate=True)
 
@@ -1643,7 +1617,6 @@ class WithMDIArea:
                                 sys.intern(name)
 
                     if data.name == "LIN_Frame":
-
                         vals = data["LIN_Frame.BusChannel"].astype("u1")
                         vals = [f"LIN {chn}" for chn in vals.tolist()]
                         columns["Bus"] = vals
@@ -1672,7 +1645,6 @@ class WithMDIArea:
                                     for v in data["LIN_Frame.Dir"].tolist()
                                 ]
                             else:
-
                                 columns["Direction"] = [
                                     "TX" if dir else "RX"
                                     for dir in data["LIN_Frame.Dir"]
@@ -1684,7 +1656,6 @@ class WithMDIArea:
                         data_length = None
 
                     elif data.name == "LIN_SyncError":
-
                         names = set(data.samples.dtype.names)
 
                         if "LIN_SyncError.BusChannel" in names:
@@ -1706,7 +1677,6 @@ class WithMDIArea:
                         data_length = None
 
                     elif data.name == "LIN_TransmissionError":
-
                         names = set(data.samples.dtype.names)
 
                         if "LIN_TransmissionError.BusChannel" in names:
@@ -1733,7 +1703,6 @@ class WithMDIArea:
                         vals = None
 
                     elif data.name == "LIN_ReceiveError":
-
                         names = set(data.samples.dtype.names)
 
                         if "LIN_ReceiveError.BusChannel" in names:
@@ -1762,7 +1731,6 @@ class WithMDIArea:
                         vals = None
 
                     elif data.name == "LIN_ChecksumError":
-
                         names = set(data.samples.dtype.names)
 
                         if "LIN_ChecksumError.BusChannel" in names:
@@ -1881,7 +1849,6 @@ class WithMDIArea:
         return trace
 
     def _add_numeric_window(self, names):
-
         if names and isinstance(names[0], str):
             signals_ = [
                 (
@@ -1924,11 +1891,25 @@ class WithMDIArea:
             uuids_signals = [
                 (entry["name"], entry["group_index"], entry["channel_index"])
                 for entry in signals_
-                if entry["origin_uuid"] == uuid
+                if entry["origin_uuid"] == uuid and entry["group_index"] != NOT_FOUND
+            ]
+
+            not_found = [
+                (entry["name"], entry["group_index"], entry["channel_index"])
+                for entry in signals_
+                if entry["origin_uuid"] == uuid and entry["group_index"] == NOT_FOUND
             ]
 
             uuids_signals_objs = [
-                entry for entry in signals_ if entry["origin_uuid"] == uuid
+                entry
+                for entry in signals_
+                if entry["origin_uuid"] == uuid and entry["group_index"] != NOT_FOUND
+            ]
+
+            not_found_objs = [
+                entry
+                for entry in signals_
+                if entry["origin_uuid"] == uuid and entry["group_index"] == NOT_FOUND
             ]
 
             file_info = self.file_by_uuid(uuid)
@@ -1973,7 +1954,6 @@ class WithMDIArea:
                 type_,
                 ranges,
             ) in get_pattern_groups(names):
-
                 file_info = self.file_by_uuid(origin_uuid)
                 if not file_info:
                     continue
@@ -2010,6 +1990,29 @@ class WithMDIArea:
 
                 if signal.name.endswith(".ID"):
                     signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
+
+            not_found = [
+                Signal([], [], name=name) for name, gp_index, ch_index in not_found
+            ]
+            uuid = os.urandom(6).hex()
+            for sig, sig_obj in zip(not_found, not_found_objs):
+                sig.origin_uuid = uuid
+                sig.group_index = NOT_FOUND
+                sig.channel_index = randint(0, NOT_FOUND)
+                sig.exists = False
+
+                ranges = sig_obj["ranges"]
+                for range in ranges:
+                    range["font_color"] = QtGui.QBrush(
+                        QtGui.QColor(range["font_color"])
+                    )
+                    range["background_color"] = QtGui.QBrush(
+                        QtGui.QColor(range["background_color"])
+                    )
+                sig.ranges = ranges
+                sig.format = sig_obj["format"]
+
+            signals.extend(not_found)
 
             signals = natsorted(signals, key=lambda x: x.name)
 
@@ -2065,7 +2068,6 @@ class WithMDIArea:
         self.windows_modified.emit()
 
     def _add_plot_window(self, signals):
-
         if signals and isinstance(signals[0], str):
             mime_data = [
                 {
@@ -2472,7 +2474,6 @@ class WithMDIArea:
         w.setWindowTitle(generate_window_title(w, "Plot"))
 
         if self.subplots_link:
-
             for i, mdi in enumerate(self.mdi_area.subWindowList()):
                 try:
                     viewbox = mdi.widget().plot.viewbox
@@ -2516,7 +2517,6 @@ class WithMDIArea:
         return w, plot
 
     def _add_tabular_window(self, names):
-
         if names and isinstance(names[0], str):
             signals_ = [
                 (
@@ -2545,7 +2545,8 @@ class WithMDIArea:
             signals_ = [
                 entry
                 for entry in flatten_entries
-                if tuple((entry["group_index"], entry["channel_index"])) != (-1, -1)
+                if tuple((entry["group_index"], entry["channel_index"]))
+                != (NOT_FOUND, NOT_FOUND)
             ]
 
         signals_ = natsorted(signals_)
@@ -2795,7 +2796,6 @@ class WithMDIArea:
             return None
 
     def load_window(self, window_info):
-
         functions = {
             "Numeric": self._load_numeric_window,
             "Plot": self._load_plot_window,
@@ -2811,7 +2811,6 @@ class WithMDIArea:
         w, pattern_info = load_window_function(window_info)
 
         if w:
-
             if self._frameless_windows:
                 w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
@@ -2827,14 +2826,12 @@ class WithMDIArea:
             self.windows_modified.emit()
 
     def _load_numeric_window(self, window_info):
-
         uuid = self.uuid
         geometry = window_info.get("geometry", None)
 
         # patterns
         pattern_info = window_info["configuration"].get("pattern", {})
         if pattern_info:
-
             signals = extract_signals_using_pattern(
                 self.mdf,
                 pattern_info,
@@ -2873,7 +2870,6 @@ class WithMDIArea:
             pattern_info["ranges"] = ranges
 
         else:
-
             required = window_info["configuration"]["channels"]
 
             found = [elem for elem in required if elem["name"] in self.mdf]
@@ -3077,7 +3073,6 @@ class WithMDIArea:
         # patterns
         pattern_info = window_info["configuration"].get("pattern", {})
         if pattern_info:
-
             plot_signals = extract_signals_using_pattern(
                 self.mdf,
                 pattern_info,
@@ -3089,7 +3084,6 @@ class WithMDIArea:
             descriptions = {}
 
         else:
-
             (
                 mime_data,
                 descriptions,
@@ -3103,7 +3097,7 @@ class WithMDIArea:
             plot_signals = {}
             measured_signals = {}
 
-            for ((sig_uuid, entry), signal) in zip(
+            for (sig_uuid, entry), signal in zip(
                 found.items(),
                 self.mdf.select(
                     list(found.values()),
@@ -3666,7 +3660,6 @@ class WithMDIArea:
         sections_width = window_info["configuration"].get("header_sections_width", [])
         if sections_width:
             for i, width in enumerate(sections_width):
-
                 tabular.tree.columnHeader.setColumnWidth(i, width)
                 tabular.tree.dataView.setColumnWidth(i, width)
 
@@ -3767,7 +3760,6 @@ class WithMDIArea:
             current_plot.plot.set_dots(with_dots)
 
     def set_line_interconnect(self, line_interconnect):
-
         if line_interconnect == "line":
             line_interconnect = ""
 
@@ -3779,7 +3771,6 @@ class WithMDIArea:
                 widget.plot.set_line_interconnect(line_interconnect)
 
     def set_line_width(self, line_width):
-
         self.line_width = line_width
         for i, mdi in enumerate(self.mdi_area.subWindowList()):
             widget = mdi.widget()
@@ -3889,7 +3880,6 @@ class WithMDIArea:
             self._splitter_source = None
 
     def update_functions(self, original_definitions, modified_definitions):
-
         # new definitions
         new_functions = [
             info
@@ -3963,7 +3953,7 @@ class WithMDIArea:
                                         inspect.signature(func).parameters
                                     )[:-1]
                                     args = {name: [] for name in parameters}
-                                    for (arg_name, alternatives) in zip(
+                                    for arg_name, alternatives in zip(
                                         parameters,
                                         item.signal.computation["args"].values(),
                                     ):

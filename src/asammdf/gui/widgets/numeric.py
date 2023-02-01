@@ -187,7 +187,6 @@ class OnlineBackEnd:
         self.sort()
 
     def sort_column(self, ix):
-
         if ix != self.sorted_column_index:
             self.sorted_column_index = ix
             self.sort_reversed = False
@@ -200,7 +199,6 @@ class OnlineBackEnd:
         self.refresh_ui()
 
     def refresh_ui(self):
-
         if self.numeric is not None and self.numeric.mode == "offline":
             numeric = self.numeric
             numeric._min = float("inf")
@@ -233,7 +231,6 @@ class OnlineBackEnd:
             )
 
         elif sorted_column_index in (1, 2):
-
             numeric = []
             string = []
             nones = []
@@ -332,7 +329,6 @@ class OfflineBackEnd:
         self.sort()
 
     def sort_column(self, ix):
-
         if ix != self.sorted_column_index:
             self.sorted_column_index = ix
             self.sort_reversed = False
@@ -345,7 +341,6 @@ class OfflineBackEnd:
         self.refresh_ui()
 
     def refresh_ui(self):
-
         if self.numeric_viewer is not None:
             self.numeric_viewer.refresh_ui()
 
@@ -358,7 +353,6 @@ class OfflineBackEnd:
             )
 
         elif sorted_column_index in (1, 2):
-
             numeric = []
             string = []
             nones = []
@@ -458,7 +452,6 @@ class TableModel(QtCore.QAbstractTableModel):
         cell = self.backend.get_signal_value(signal, col)
 
         if role == QtCore.Qt.DisplayRole:
-
             if cell is None:
                 return "●"
             elif isinstance(cell, (bytes, np.bytes_)):
@@ -467,7 +460,6 @@ class TableModel(QtCore.QAbstractTableModel):
                 return value_as_str(cell, signal.format, None, self.float_precision)
 
         elif role == QtCore.Qt.BackgroundRole:
-
             channel_ranges = self.view.ranges[signal.entry]
             raw_cell = self.backend.get_signal_value(signal, 1)
             scaled_cell = self.backend.get_signal_value(signal, 2)
@@ -530,6 +522,7 @@ class TableModel(QtCore.QAbstractTableModel):
                 return int(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
 
         elif role == QtCore.Qt.DecorationRole:
+            print("decoration", signal.exists)
             if col == 0:
                 if not signal.exists:
                     icon = utils.ERROR_ICON
@@ -561,7 +554,6 @@ class TableModel(QtCore.QAbstractTableModel):
                 return icon
 
             elif col in (1, 2):
-
                 has_ranges = bool(self.view.ranges.get(signal.entry, False))
                 if has_ranges:
                     icon = utils.RANGE_INDICATOR_ICON
@@ -663,7 +655,6 @@ class TableView(QtWidgets.QTableView):
         return QtCore.QSize(width, height)
 
     def keyPressEvent(self, event):
-
         key = event.key()
         modifiers = event.modifiers()
 
@@ -684,7 +675,6 @@ class TableView(QtWidgets.QTableView):
             )
 
             if selected_items:
-
                 ranges = []
 
                 for row in selected_items:
@@ -736,7 +726,6 @@ class TableView(QtWidgets.QTableView):
             modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier)
             and key == QtCore.Qt.Key_V
         ):
-
             info = QtWidgets.QApplication.instance().clipboard().text()
             selected_items = set(
                 index.row() for index in self.selectedIndexes() if index.isValid()
@@ -779,7 +768,6 @@ class TableView(QtWidgets.QTableView):
         numeric_mode = self.backend.numeric.mode
 
         for row in sorted(set(selected_items)):
-
             signal = self.backend.signals[row]
 
             entry = signal.entry if numeric_mode == "online" else signal.signal.entry
@@ -822,7 +810,6 @@ class TableView(QtWidgets.QTableView):
         e.accept()
 
     def dropEvent(self, e):
-
         if e.source() is self:
             return
         else:
@@ -870,15 +857,12 @@ class HeaderModel(QtCore.QAbstractTableModel):
         names = ["Name", "Raw", "Scaled", "Unit"]
 
         if role == QtCore.Qt.DisplayRole:
-
             return names[col]
 
         elif role == QtCore.Qt.DecorationRole:
-
             if col != self.backend.sorted_column_index:
                 return
             else:
-
                 if self.backend.sort_reversed:
                     icon = QtGui.QIcon(":/sort-descending.png")
                 else:
@@ -950,7 +934,6 @@ class HeaderView(QtWidgets.QTableView):
             super().mouseDoubleClickEvent(event)
 
     def show_menu(self, position):
-
         count = len(self.backend)
 
         menu = QtWidgets.QMenu()
@@ -965,7 +948,6 @@ class HeaderView(QtWidgets.QTableView):
             return
 
         if action.text() == "Automatic set columns width":
-
             self.numeric_viewer.auto_size_header()
 
     def eventFilter(self, object: QtCore.QObject, event: QtCore.QEvent):
@@ -1032,7 +1014,6 @@ class HeaderView(QtWidgets.QTableView):
                 return True
 
             elif self.header_being_resized:
-
                 size = orthogonal_mouse_position - self.geometry().top()
                 self.setFixedHeight(max(size, self.initial_size.height()))
 
@@ -1043,7 +1024,6 @@ class HeaderView(QtWidgets.QTableView):
         return False
 
     def sizeHint(self):
-
         width = self.table.sizeHint().width() + self.verticalHeader().width()
         height = 16 + self.font().pointSize() + 2 * self.frameWidth()
 
@@ -1303,7 +1283,6 @@ class Numeric(QtWidgets.QWidget):
             self.toggle_controls_btn.clicked.connect(self.toggle_controls)
 
     def add_new_channels(self, channels, mime_data=None):
-
         if self.mode == "online":
             others = []
             for sig in channels:
@@ -1337,6 +1316,7 @@ class Numeric(QtWidgets.QWidget):
                     sig.flags &= ~sig.Flags.computed
                     sig.computation = None
                     ranges = sig.ranges
+                    exists = getattr(sig, "exists", True)
                     sig = PlotSignal(sig)
                     if sig.conversion:
                         sig.phys_samples = sig.conversion.convert(
@@ -1347,6 +1327,7 @@ class Numeric(QtWidgets.QWidget):
                     others.append(
                         SignalOffline(
                             signal=sig,
+                            exists=exists,
                         )
                     )
 
@@ -1362,7 +1343,6 @@ class Numeric(QtWidgets.QWidget):
         self.channels.backend.update(others)
 
         if self.mode == "offline":
-
             numeric = self
             numeric._min = float("inf")
             numeric._max = -float("inf")
@@ -1398,7 +1378,6 @@ class Numeric(QtWidgets.QWidget):
             selection_model.select(index, QtCore.QItemSelectionModel.Select)
 
     def to_config(self):
-
         channels = []
         for signal in self.channels.backend.signals:
             ranges = self.channels.dataView.ranges[signal.entry]
@@ -1557,7 +1536,6 @@ class Numeric(QtWidgets.QWidget):
         except:
             self.match.setText("the target must a numeric value")
         else:
-
             if target.is_integer():
                 target = int(target)
 
@@ -1624,7 +1602,6 @@ class Numeric(QtWidgets.QWidget):
         except:
             self.match.setText(f"the target must a numeric value")
         else:
-
             if target.is_integer():
                 target = int(target)
 
@@ -1643,7 +1620,6 @@ class Numeric(QtWidgets.QWidget):
                 try:
                     idx = np.argwhere(op(target)).flatten()
                     if len(idx):
-
                         if len(idx) == 1 or sig.timestamps[idx[-1]] != stop:
                             timestamp_ = sig.timestamps[idx[-1]]
                         else:
@@ -1669,7 +1645,6 @@ class Numeric(QtWidgets.QWidget):
             key in (QtCore.Qt.Key_H, QtCore.Qt.Key_B, QtCore.Qt.Key_P, QtCore.Qt.Key_T)
             and modifiers == QtCore.Qt.ControlModifier
         ):
-
             if key == QtCore.Qt.Key_H:
                 self.set_format("Hex")
             elif key == QtCore.Qt.Key_B:

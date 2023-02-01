@@ -50,7 +50,6 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
         bar = self.tabs.tabBar()
 
         if conversion is not None:
-
             self.name.setText(conversion["name"])
             self.unit.setText(conversion["unit"])
             self.comment.setPlainText(conversion["comment"])
@@ -103,7 +102,6 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                         )
 
                     else:
-
                         widget = VTTWidget(
                             mode="conversion",
                             value=conversion[f"val_{i}"],
@@ -146,7 +144,6 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                         )
 
                     else:
-
                         widget = VRTTWidget(
                             mode="conversion",
                             lower=conversion[f"lower_{i}"],
@@ -186,7 +183,6 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
         self.setWindowFlag(QtCore.Qt.WindowMaximizeButtonHint, True)
 
     def apply(self, event):
-
         if self.tabs.currentIndex() == 1:
             if (self.p4.value(), self.p5.value(), self.p6.value()) == (0, 0, 0):
                 QtWidgets.QMessageBox.warning(
@@ -370,7 +366,6 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
             self.vrtt_default_conversion = dlg.conversion()
 
     def insert(self, event):
-
         widget = VTTWidget()
 
         item = QtWidgets.QListWidgetItem()
@@ -379,7 +374,6 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
         self.vtt_list.setItemWidget(item, widget)
 
     def insert_vrtt(self, event):
-
         widget = VRTTWidget()
 
         item = QtWidgets.QListWidgetItem()

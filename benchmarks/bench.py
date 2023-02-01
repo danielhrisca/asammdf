@@ -282,28 +282,24 @@ def generate_test_files(version="4.10"):
 
 
 def open_mdf3(output, fmt):
-
     with Timer("Open file", f"asammdf {asammdf_version} mdfv3", fmt) as timer:
         MDF(r"test.mdf")
     output.send([timer.output, timer.error])
 
 
 def open_mdf4(output, fmt):
-
     with Timer("Open file", f"asammdf {asammdf_version} mdfv4", fmt) as timer:
         MDF(r"test.mf4")
     output.send([timer.output, timer.error])
 
 
 def open_mdf4_column(output, fmt):
-
     with Timer("Open file", f"asammdf {asammdf_version} column mdfv4", fmt) as timer:
         MDF(r"test_column.mf4")
     output.send([timer.output, timer.error])
 
 
 def save_mdf3(output, fmt):
-
     x = MDF(r"test.mdf")
     with Timer("Save file", f"asammdf {asammdf_version} mdfv3", fmt) as timer:
         x.save(r"x.mdf", overwrite=True)
@@ -311,7 +307,6 @@ def save_mdf3(output, fmt):
 
 
 def save_mdf4(output, fmt):
-
     x = MDF(r"test.mf4")
     with Timer("Save file", f"asammdf {asammdf_version} mdfv4", fmt) as timer:
         x.save(r"x.mf4", overwrite=True)
@@ -319,7 +314,6 @@ def save_mdf4(output, fmt):
 
 
 def save_mdf4_column(output, fmt):
-
     x = MDF(r"test_column.mf4")
     with Timer("Save file", f"asammdf {asammdf_version} mdfv4 column", fmt) as timer:
         x.save(r"x.mf4", overwrite=True)
@@ -327,7 +321,6 @@ def save_mdf4_column(output, fmt):
 
 
 def get_all_mdf3(output, fmt):
-
     x = MDF(r"test.mdf")
     with Timer("Get all channels", f"asammdf {asammdf_version} mdfv3", fmt) as timer:
         for i, gp in enumerate(x.groups):
@@ -337,7 +330,6 @@ def get_all_mdf3(output, fmt):
 
 
 def get_all_mdf4(output, fmt):
-
     x = MDF(r"test.mf4")
     with Timer("Get all channels", f"asammdf {asammdf_version} mdfv4", fmt) as timer:
         t = perf_counter()
@@ -358,7 +350,6 @@ def get_all_mdf4(output, fmt):
 
 
 def get_all_mdf4_column(output, fmt):
-
     x = MDF(r"test_column.mf4")
     with Timer(
         "Get all channels", f"asammdf {asammdf_version} column mdfv4", fmt
@@ -381,7 +372,6 @@ def get_all_mdf4_column(output, fmt):
 
 
 def convert_v3_v4(output, fmt):
-
     with MDF(r"test.mdf") as x:
         with Timer("Convert file", f"asammdf {asammdf_version} v3 to v4", fmt) as timer:
             x.convert("4.10")
@@ -389,7 +379,6 @@ def convert_v3_v4(output, fmt):
 
 
 def convert_v4_v410(output, fmt):
-
     with MDF(r"test.mf4") as x:
         with Timer(
             "Convert file", f"asammdf {asammdf_version} v4 to v410", fmt
@@ -400,7 +389,6 @@ def convert_v4_v410(output, fmt):
 
 
 def convert_v4_v420(output, fmt):
-
     with MDF(r"test.mf4") as x:
         with Timer(
             "Convert file", f"asammdf {asammdf_version} v4 to v420", fmt
@@ -411,7 +399,6 @@ def convert_v4_v420(output, fmt):
 
 
 def merge_v3(output, fmt):
-
     files = [r"test.mdf"] * 3
     with Timer("Merge 3 files", f"asammdf {asammdf_version} v3", fmt) as timer:
         MDF.concatenate(files, outversion="3.30")
@@ -432,7 +419,6 @@ def merge_v4(output, fmt):
 
 
 def open_reader3(output, fmt):
-
     with Timer(
         "Open file", "mdfreader {} mdfv3".format(mdfreader_version), fmt
     ) as timer:
@@ -441,7 +427,6 @@ def open_reader3(output, fmt):
 
 
 def open_reader3_nodata(output, fmt):
-
     with Timer(
         "Open file", "mdfreader {} no_data_loading mdfv3".format(mdfreader_version), fmt
     ) as timer:
@@ -450,7 +435,6 @@ def open_reader3_nodata(output, fmt):
 
 
 def open_reader3_compression(output, fmt):
-
     with Timer(
         "Open file", "mdfreader {} compress mdfv3".format(mdfreader_version), fmt
     ) as timer:
@@ -459,7 +443,6 @@ def open_reader3_compression(output, fmt):
 
 
 def open_reader4(output, fmt):
-
     with Timer(
         "Open file", "mdfreader {} mdfv4".format(mdfreader_version), fmt
     ) as timer:
@@ -468,7 +451,6 @@ def open_reader4(output, fmt):
 
 
 def open_reader4_nodata(output, fmt):
-
     with Timer(
         "Open file", "mdfreader {} no_data_loading mdfv4".format(mdfreader_version), fmt
     ) as timer:
@@ -477,7 +459,6 @@ def open_reader4_nodata(output, fmt):
 
 
 def open_reader4_compression(output, fmt):
-
     with Timer(
         "Open file", "mdfreader {} compress mdfv4".format(mdfreader_version), fmt
     ) as timer:
@@ -486,7 +467,6 @@ def open_reader4_compression(output, fmt):
 
 
 def save_reader3(output, fmt):
-
     x = MDFreader(r"test.mdf")
     with Timer(
         "Save file", "mdfreader {} mdfv3".format(mdfreader_version), fmt
@@ -496,7 +476,6 @@ def save_reader3(output, fmt):
 
 
 def save_reader3_nodata(output, fmt):
-
     x = MDFreader(r"test.mdf", no_data_loading=True)
     with Timer(
         "Save file", "mdfreader {} no_data_loading mdfv3".format(mdfreader_version), fmt
@@ -520,7 +499,6 @@ def save_reader3_compression(output, fmt):
 
 
 def save_reader4(output, fmt):
-
     x = MDFreader(r"test.mf4")
     with Timer(
         "Save file", "mdfreader {} mdfv4".format(mdfreader_version), fmt
@@ -530,7 +508,6 @@ def save_reader4(output, fmt):
 
 
 def save_reader4_nodata(output, fmt):
-
     x = MDFreader(r"test.mf4", no_data_loading=True)
     with Timer(
         "Save file", "mdfreader {} no_data_loading mdfv4".format(mdfreader_version), fmt
@@ -540,7 +517,6 @@ def save_reader4_nodata(output, fmt):
 
 
 def save_reader4_compression(output, fmt):
-
     x = MDFreader(r"test.mf4", compression="blosc")
     with Timer(
         "Save file", "mdfreader {} compress mdfv4".format(mdfreader_version), fmt
@@ -550,7 +526,6 @@ def save_reader4_compression(output, fmt):
 
 
 def get_all_reader3(output, fmt):
-
     x = MDFreader(r"test.mdf")
     with Timer(
         "Get all channels", "mdfreader {} mdfv3".format(mdfreader_version), fmt
@@ -561,7 +536,6 @@ def get_all_reader3(output, fmt):
 
 
 def get_all_reader3_nodata(output, fmt):
-
     x = MDFreader(r"test.mdf", no_data_loading=True)
     with Timer(
         "Get all channels", "mdfreader {} nodata mdfv3".format(mdfreader_version), fmt
@@ -572,7 +546,6 @@ def get_all_reader3_nodata(output, fmt):
 
 
 def get_all_reader3_compression(output, fmt):
-
     x = MDFreader(r"test.mdf", compression="blosc")
     with Timer(
         "Get all channels", "mdfreader {} compress mdfv3".format(mdfreader_version), fmt
@@ -586,7 +559,6 @@ def get_all_reader3_compression(output, fmt):
 
 
 def get_all_reader4(output, fmt):
-
     x = MDFreader(r"test.mf4")
     with Timer(
         "Get all channels", "mdfreader {} mdfv4".format(mdfreader_version), fmt
@@ -606,7 +578,6 @@ def get_all_reader4(output, fmt):
 
 
 def get_all_reader4_nodata(output, fmt):
-
     x = MDFreader(r"test.mf4", no_data_loading=True)
     with Timer(
         "Get all channels", "mdfreader {} nodata mdfv4".format(mdfreader_version), fmt
@@ -626,7 +597,6 @@ def get_all_reader4_nodata(output, fmt):
 
 
 def get_all_reader4_compression(output, fmt):
-
     x = MDFreader(r"test.mf4", compression="blosc")
     with Timer(
         "Get all channels", "mdfreader {} compress mdfv4".format(mdfreader_version), fmt
@@ -646,7 +616,6 @@ def get_all_reader4_compression(output, fmt):
 
 
 def merge_reader_v3(output, fmt):
-
     files = [r"test.mdf"] * 3
     with Timer(
         "Merge 3 files", "mdfreader {} v3".format(mdfreader_version), fmt
@@ -663,7 +632,6 @@ def merge_reader_v3(output, fmt):
 
 
 def merge_reader_v3_compress(output, fmt):
-
     files = [r"test.mdf"] * 3
     with Timer(
         "Merge 3 files", "mdfreader {} compress v3".format(mdfreader_version), fmt
@@ -680,7 +648,6 @@ def merge_reader_v3_compress(output, fmt):
 
 
 def merge_reader_v3_nodata(output, fmt):
-
     files = [r"test.mdf"] * 3
     with Timer(
         "Merge 3 files", "mdfreader {} nodata v3".format(mdfreader_version), fmt
@@ -715,7 +682,6 @@ def merge_reader_v4(output, fmt):
 
 
 def merge_reader_v4_compress(output, fmt):
-
     files = [r"test.mf4"] * 3
     with Timer(
         "Merge 3 files", "mdfreader {} compress v4".format(mdfreader_version), fmt
@@ -733,7 +699,6 @@ def merge_reader_v4_compress(output, fmt):
 
 
 def merge_reader_v4_nodata(output, fmt):
-
     files = [r"test.mf4"] * 3
     with Timer(
         "Merge 3 files", "mdfreader {} nodata v4".format(mdfreader_version), fmt
@@ -778,7 +743,6 @@ def filter_asam(output, fmt):
 
 
 def filter_reader4(output, fmt):
-
     with Timer(
         "Filter file", "mdfreader {} mdfv4".format(mdfreader_version), fmt
     ) as timer:
@@ -799,7 +763,6 @@ def filter_reader4(output, fmt):
 
 
 def filter_reader4_compression(output, fmt):
-
     with Timer(
         "Filter file", "mdfreader {} compression mdfv4".format(mdfreader_version), fmt
     ) as timer:
@@ -821,7 +784,6 @@ def filter_reader4_compression(output, fmt):
 
 
 def filter_reader4_nodata(output, fmt):
-
     with Timer(
         "Filter file", "mdfreader {} nodata mdfv4".format(mdfreader_version), fmt
     ) as timer:
@@ -853,40 +815,34 @@ def cut_asam(output, fmt):
 
 
 def cut_reader4(output, fmt):
-
     x = MDFreader(r"test.mf4")
     t = x.get_channel_data(list(x.masterChannelList)[0])
     begin, end = 0.2 * (t[-1] - t[0]) + t[0], 0.8 * (t[-1] - t[0]) + t[0]
     with Timer(
         "Cut file", "mdfreader {} mdfv4".format(mdfreader_version), fmt
     ) as timer:
-
         x.cut(begin=begin, end=end)
     output.send([timer.output, timer.error])
 
 
 def cut_reader4_compression(output, fmt):
-
     x = MDFreader(r"test.mf4", compression="blosc")
     t = x.get_channel_data(list(x.masterChannelList)[0])
     begin, end = 0.2 * (t[-1] - t[0]) + t[0], 0.8 * (t[-1] - t[0]) + t[0]
     with Timer(
         "Cut file", "mdfreader {} compression mdfv4".format(mdfreader_version), fmt
     ) as timer:
-
         x.cut(begin=begin, end=end)
     output.send([timer.output, timer.error])
 
 
 def cut_reader4_nodata(output, fmt):
-
     x = MDFreader(r"test.mf4", no_data_loading=True)
     t = x.get_channel_data(list(x.masterChannelList)[0])
     begin, end = 0.2 * (t[-1] - t[0]) + t[0], 0.8 * (t[-1] - t[0]) + t[0]
     with Timer(
         "Cut file", "mdfreader {} nodata mdfv4".format(mdfreader_version), fmt
     ) as timer:
-
         x.cut(begin=begin, end=end)
     output.send([timer.output, timer.error])
 

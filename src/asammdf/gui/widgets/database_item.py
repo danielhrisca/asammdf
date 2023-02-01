@@ -7,7 +7,6 @@ from ..ui.database_item import Ui_DatabaseItemUI
 
 class DatabaseItem(Ui_DatabaseItemUI, QtWidgets.QWidget):
     def __init__(self, database, bus_type="CAN"):
-
         super().__init__()
         self.setupUi(self)
 

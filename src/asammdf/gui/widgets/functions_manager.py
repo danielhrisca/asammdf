@@ -20,7 +20,6 @@ class FunctionsManager(Ui_FunctionsManager, QtWidgets.QWidget):
     def __init__(
         self, definitions, channels=None, selected_definition="", *args, **kwargs
     ):
-
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -124,7 +123,6 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         self.functions_list.setCurrentRow(row)
 
     def check_syntax(self, silent=False):
-
         _globals = {
             "math": math,
             "np": np,
@@ -183,7 +181,6 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
 
         else:
             if not silent:
-
                 QtWidgets.QMessageBox.information(
                     self,
                     "Function definition check",
@@ -205,7 +202,6 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
             self.function_definition.setPlainText("")
 
     def definition_selection_changed(self, current, previous):
-
         if current:
             name = current.text()
 
@@ -228,7 +224,6 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         )
 
         if file_name:
-
             definitions = {
                 name: info["definition"] for name, info in self.definitions.items()
             }
@@ -280,7 +275,6 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         func, trace = generate_python_function(function_source, in_globals=_globals)
 
         if func is not None:
-
             name = func.__name__
             if name in self.definitions:
                 self.definitions[name][

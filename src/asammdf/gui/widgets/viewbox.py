@@ -77,7 +77,6 @@ class ViewBoxMenu(QtWidgets.QMenu):
 
 
 class ViewBoxWithCursor(pg.ViewBox):
-
     PanMode = 3
     CursorMode = 2
     RectMode = 1
@@ -176,7 +175,6 @@ class ViewBoxWithCursor(pg.ViewBox):
                 end = self.mapSceneToView(ev.scenePos())
                 self.sigZoomChanged.emit((self.zoom_start, end, self.zoom))
                 if ev.isFinish():
-
                     self.sigZoomFinished.emit((self.zoom_start, end, self.zoom))
                     self.zoom_start = None
                     self.sigZoomChanged.emit(None)
@@ -184,13 +182,11 @@ class ViewBoxWithCursor(pg.ViewBox):
                     print("mited plm")
 
         else:
-
             ## Scale or translate based on mouse button
             if ev.button() in [
                 QtCore.Qt.MouseButton.LeftButton,
                 QtCore.Qt.MouseButton.MiddleButton,
             ]:
-
                 tr = self.childGroup.transform()
                 tr = fn.invertQTransform(tr)
                 tr = tr.map(dif * mask) - tr.map(pg.Point(0, 0))
@@ -254,7 +250,6 @@ class ViewBoxWithCursor(pg.ViewBox):
         self.rbScaleBox.show()
 
     def wheelEvent(self, ev, axis=None):
-
         if self.state["mouseMode"] == ViewBoxWithCursor.CursorMode:
             mask = [True, False]
         else:

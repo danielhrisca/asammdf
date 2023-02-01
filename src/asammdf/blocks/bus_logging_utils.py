@@ -46,7 +46,6 @@ def apply_conversion(
                 if b:
                     vals += b
         else:
-
             conv = {}
             for i, (val, text) in enumerate(signal.values.items()):
                 conv[f"upper_{i}"] = val
@@ -59,7 +58,6 @@ def apply_conversion(
             vals = conv.convert(vals)
 
     else:
-
         if (a, b) != (1, 0):
             vals = vals * a
             if b:
@@ -153,7 +151,6 @@ def extract_signal(
 
     if extra_bytes:
         if big_endian:
-
             vals = np.column_stack(
                 [
                     vals[:, start_byte : start_byte + byte_size],

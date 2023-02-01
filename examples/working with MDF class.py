@@ -35,7 +35,6 @@ s_float64 = Signal(
 
 # create empty MDf version 4.00 file
 with MDF(version="4.10") as mdf4:
-
     # append the 3 signals to the new file
     signals = [s_uint8, s_int32, s_float64]
     mdf4.append(signals, comment="Created by Python")

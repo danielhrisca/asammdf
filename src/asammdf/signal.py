@@ -106,7 +106,6 @@ class Signal(object):
         channel_index: int = -1,
         flags: Flags = Flags.no_flags,
     ) -> None:
-
         if samples is None or timestamps is None or not name:
             message = (
                 '"samples", "timestamps" and "name" are mandatory '
@@ -218,7 +217,6 @@ class Signal(object):
 
         """
         try:
-
             from .gui.plot import plot
 
             plot(self, validate=True, index_only=False)
@@ -287,7 +285,6 @@ class Signal(object):
             try:
                 names = self.samples.dtype.names
                 if self.samples.dtype.names is None or len(names) == 1:
-
                     if names:
                         samples = self.samples[names[0]]
                     else:
@@ -924,7 +921,6 @@ class Signal(object):
         float_interpolation_mode = FloatInterpolation(float_interpolation_mode)
 
         if not len(self.samples) or not len(new_timestamps):
-
             return Signal(
                 self.samples[:0].copy(),
                 self.timestamps[:0].copy(),
@@ -943,7 +939,6 @@ class Signal(object):
                 flags=self.flags,
             )
         else:
-
             # # we need to validate first otherwise we can get false invalid data
             # # if the new timebase and the invalidation bits are aligned in an
             # # infavorable way
@@ -987,11 +982,9 @@ class Signal(object):
                 if invalidation_bits is not None:
                     invalidation_bits = invalidation_bits[idx]
             else:
-
                 kind = signal.samples.dtype.kind
 
                 if kind == "f":
-
                     if (
                         float_interpolation_mode
                         == FloatInterpolation.REPEAT_PREVIOUS_SAMPLE

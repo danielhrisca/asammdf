@@ -10,7 +10,6 @@ class BusDatabaseManagerDialog(QtWidgets.QDialog):
         *args,
         **kwargs,
     ):
-
         super().__init__(*args, **kwargs)
 
         self.setObjectName("BusDatabaseManagerDialog")

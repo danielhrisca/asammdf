@@ -67,7 +67,6 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
         self.computation = computation
         if computation:
-
             computation = computation_to_python_function(computation)
 
             self.name.setText(
@@ -101,7 +100,6 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.showMaximized()
 
     def apply(self):
-
         if not self.functions.currentIndex() >= 0:
             return
 

@@ -48,7 +48,6 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
                 return False
 
             if self_value.dtype.kind in "fui":
-
                 if other_value.dtype.kind in "fui":
                     return self_value < other_value
                 else:
@@ -97,7 +96,6 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
         )
 
         if new_background_color is not default_background_color:
-
             self.setBackground(0, new_background_color)
             self.setBackground(1, new_background_color)
             self.setBackground(2, new_background_color)

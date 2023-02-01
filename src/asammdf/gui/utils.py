@@ -366,7 +366,6 @@ def load_dsp(file, background="#000000", flat=False):
                 )
 
             elif elem.tag == "CHANNEL_PATTERN":
-
                 try:
                     filter_type = elem.get("filter_type")
                     if filter_type == "None":
@@ -552,7 +551,6 @@ def load_dsp(file, background="#000000", flat=False):
     if flat:
         info = flatten_dsp(channels)
     else:
-
         plot = {
             "type": "Plot",
             "title": "Display channels",
@@ -814,7 +812,6 @@ def compute_signal(
 
     try:
         if type_ == "python_function":
-
             func, trace = (
                 None,
                 f"{description['function']} not found in the user defined functions",
@@ -866,7 +863,6 @@ def compute_signal(
                     common_timebase = np.array([])
                 signals = [sig.interp(common_timebase) for sig in signals]
             else:
-
                 step = float(description["triggering_value"])
 
                 common_timebase = []
@@ -893,7 +889,6 @@ def compute_signal(
                 description.get("computation_mode", "sample_by_sample")
                 == "sample_by_sample"
             ):
-
                 signals = [sig.samples.tolist() for sig in signals]
                 signals.append(common_timebase)
 
@@ -989,7 +984,6 @@ def computation_to_python_function(description):
                 if operand1.is_integer():
                     operand1 = int(operand1)
             except:
-
                 fargs["arg1"] = [operand1]
                 args.append("arg1=0")
                 operand1 = "arg1"
@@ -1005,7 +999,6 @@ def computation_to_python_function(description):
                 if operand2.is_integer():
                     operand2 = int(operand2)
             except:
-
                 fargs["arg2"] = [operand2]
                 args.append("arg2=0")
                 operand2 = "arg2"
@@ -1178,7 +1171,6 @@ def replace_computation_dependency(computation, old_name, new_name):
 
 
 class HelperChannel:
-
     __slots__ = "entry", "name", "added"
 
     def __init__(self, entry, name):
@@ -1221,7 +1213,6 @@ def get_colors_using_ranges(
             level_class = str
 
         for range_info in ranges:
-
             (
                 background_color,
                 font_color,
@@ -1268,7 +1259,6 @@ def get_colors_using_ranges(
                     continue
 
             if result:
-
                 new_background_color = background_color
                 new_font_color = font_color
                 break
@@ -1294,7 +1284,6 @@ def get_color_using_ranges(
             level_class = str
 
         for range_info in ranges:
-
             (
                 background_color,
                 font_color,
@@ -1341,7 +1330,6 @@ def get_color_using_ranges(
                     continue
 
             if result:
-
                 new_color = font_color
                 break
 
@@ -1388,7 +1376,6 @@ def value_as_hex(value, dtype):
 
 
 def value_as_str(value, format, dtype=None, precision=3):
-
     float_fmt = f"{{:.0{precision}f}}" if precision >= 0 else "{}"
     if isinstance(value, (float, np.floating)):
         kind = "f"
@@ -1473,7 +1460,6 @@ def generate_python_function(definition, in_globals=None):
         func = None
 
     if func is not None:
-
         args = inspect.signature(func)
         if "t" not in args.parameters:
             trace = 'The last function argument must be "t=0"'

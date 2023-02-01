@@ -84,7 +84,6 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
         self.offset.setValue(-bottom * 100 / scaling)
 
     def set_target(self, *args):
-
         original_change = not self._inhibit
 
         if original_change:
@@ -119,7 +118,6 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
         self.scaling.setValue(scaling)
 
     def draw_plot(self, *args):
-
         offset = self.offset.value()
         scale = self.scaling.value()
 

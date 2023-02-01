@@ -48,7 +48,6 @@ class PlotWindow(QtWidgets.QMainWindow):
         plot_background_option = QtGui.QActionGroup(self)
 
         for option in ("Black", "White"):
-
             action = QtGui.QAction(option, menu)
             action.setCheckable(True)
             plot_background_option.addAction(action)
@@ -66,7 +65,6 @@ class PlotWindow(QtWidgets.QMainWindow):
         plot_xaxis_option = QtGui.QActionGroup(self)
 
         for option in ("seconds", "time", "date"):
-
             action = QtGui.QAction(option, menu)
             action.setCheckable(True)
             plot_xaxis_option.addAction(action)
@@ -84,7 +82,6 @@ class PlotWindow(QtWidgets.QMainWindow):
         theme_option = QtGui.QActionGroup(self)
 
         for option in ("Dark", "Light"):
-
             action = QtGui.QAction(option, menu)
             action.setCheckable(True)
             theme_option.addAction(action)
@@ -390,7 +387,6 @@ class PlotWindow(QtWidgets.QMainWindow):
         if option == "Light":
             app.setPalette(self._light_palette)
         else:
-
             palette = QtGui.QPalette()
             brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
             brush.setStyle(QtCore.Qt.SolidPattern)

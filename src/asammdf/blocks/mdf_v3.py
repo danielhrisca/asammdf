@@ -276,7 +276,6 @@ class MDF3(MDF_Common):
         self._sort(progress=progress)
 
         for index, grp in enumerate(self.groups):
-
             self.virtual_groups_map[index] = index
             if index not in self.virtual_groups:
                 self.virtual_groups[index] = VirtualChannelGroup()
@@ -392,7 +391,6 @@ class MDF3(MDF_Common):
                                     finished = True
                                     break
                             else:
-
                                 bts = stream.read(min(split_size, record_count))[
                                     :record_count
                                 ]
@@ -412,7 +410,6 @@ class MDF3(MDF_Common):
                             data = []
                             cur_size = 0
                     else:
-
                         while size >= split_size - cur_size:
                             stream.seek(current_address)
                             if data:
@@ -547,7 +544,6 @@ class MDF3(MDF_Common):
                 bit_count = new_ch.bit_count
 
                 if not new_ch.component_addr:
-
                     # adjust size to 1, 2, 4 or 8 bytes
                     size = bit_offset + bit_count
 
@@ -634,7 +630,6 @@ class MDF3(MDF_Common):
 
         if extra_bytes:
             if big_endian:
-
                 vals = column_stack(
                     [vals, zeros(len(vals), dtype=f"<({extra_bytes},)u1")]
                 )
@@ -746,7 +741,6 @@ class MDF3(MDF_Common):
 
             new_groups = []
             for i in range(cg_nr):
-
                 new_groups.append(Group(None))
                 grp = new_groups[-1]
                 grp.channels = []
@@ -1338,7 +1332,6 @@ class MDF3(MDF_Common):
                 conversion = None
 
             if sig_type == v23c.SIGNAL_TYPE_SCALAR:
-
                 # source for channel
                 if signal.source:
                     source = signal.source
@@ -1535,7 +1528,6 @@ class MDF3(MDF_Common):
                     channel_group_comment = "From mdf v4 structure channel composition"
 
                 for name in names:
-
                     samples = signal.samples[name]
 
                     new_record.append(
@@ -1772,7 +1764,6 @@ class MDF3(MDF_Common):
                 for i, (name, samples) in enumerate(
                     zip(component_names, component_samples)
                 ):
-
                     if i < sd_nr:
                         dep_pair = new_dg_cntr, new_ch_cntr
                         parent_dep.referenced_channels.append(dep_pair)
@@ -1945,7 +1936,6 @@ class MDF3(MDF_Common):
                     for i, (name, samples) in enumerate(
                         zip(component_names, component_samples)
                     ):
-
                         if i < sd_nr:
                             dep_pair = new_dg_cntr, new_ch_cntr
                             parent_dep.referenced_channels.append(dep_pair)
@@ -2256,7 +2246,6 @@ class MDF3(MDF_Common):
             gp_sig_types.append(0)
 
         for signal in df:
-
             sig = df[signal]
             name = signal
 
@@ -2423,7 +2412,6 @@ class MDF3(MDF_Common):
                 self._mapped_file.close()
 
             if self._delete_on_close:
-
                 try:
                     Path(self.name).unlink()
                 except:
@@ -2575,7 +2563,6 @@ class MDF3(MDF_Common):
                     )
 
             else:
-
                 names = signal.dtype.names
 
                 component_samples = []
@@ -3002,7 +2989,6 @@ class MDF3(MDF_Common):
                 types = []
 
                 for dg_nr, ch_nr in dep.referenced_channels:
-
                     sig = self.get(
                         group=dg_nr,
                         index=ch_nr,
@@ -3112,7 +3098,6 @@ class MDF3(MDF_Common):
                         kind_ = dtype_.kind
 
                         if data_type in v23c.INT_TYPES:
-
                             dtype_fmt = get_fmt_v3(
                                 data_type, bits, self.identification.byte_order
                             )
@@ -3313,7 +3298,6 @@ class MDF3(MDF_Common):
                     sampling_rate = 1
                 t = arange(cycles_nr, dtype=float64) * sampling_rate
             else:
-
                 # get data group record
                 if data is None:
                     data = self._load_data(
@@ -3351,7 +3335,6 @@ class MDF3(MDF_Common):
                     t = array([], dtype=float64)
 
                 if time_ch.data_type in v23c.INT_TYPES:
-
                     dtype_fmt = get_fmt_v3(
                         time_ch.data_type,
                         time_ch.bit_count,
@@ -3429,7 +3412,6 @@ class MDF3(MDF_Common):
         for i, gp in enumerate(self.groups):
             trigger = gp.trigger
             if trigger:
-
                 for j in range(trigger["trigger_events_nr"]):
                     trigger_info = {
                         "comment": trigger.comment,
@@ -3552,7 +3534,6 @@ class MDF3(MDF_Common):
 <tool_version>{__version__}</tool_version>
 </FHcomment>"""
         else:
-
             old_history = self.header.comment
             timestamp = time.asctime()
 
@@ -3567,7 +3548,6 @@ class MDF3(MDF_Common):
             destination = dst
 
         with open(destination, "wb+") as dst_:
-
             groups_nr = len(self.groups)
 
             write = dst_.write
@@ -3612,7 +3592,7 @@ class MDF3(MDF_Common):
 
                 # DataBlock
                 dim = 0
-                for (data_bytes, _, __) in self._load_data(gp):
+                for data_bytes, _, __ in self._load_data(gp):
                     dim += len(data_bytes)
                     write(data_bytes)
 
@@ -3766,7 +3746,6 @@ class MDF3(MDF_Common):
             return
         common = defaultdict(list)
         for i, group in enumerate(self.groups):
-
             if group.sorted:
                 continue
 
@@ -3784,7 +3763,6 @@ class MDF3(MDF_Common):
         write = self._tempfile.write
 
         for address, groups in common.items():
-
             partial_records = {id_: [] for (_, id_) in groups}
 
             group = self.groups[groups[0][0]]
@@ -3847,7 +3825,6 @@ class MDF3(MDF_Common):
         skip_master: bool = True,
         minimal: bool = True,
     ) -> dict[int, dict[int, Sequence[int]]]:
-
         if channels is None:
             group = self.groups[index]
             gps = {}
@@ -3901,7 +3878,6 @@ class MDF3(MDF_Common):
                 ]
 
                 if minimal:
-
                     for dep in channel_dependencies:
                         if dep is None:
                             continue
@@ -3929,7 +3905,6 @@ class MDF3(MDF_Common):
         skip_master: bool = True,
         version: str = "4.20",
     ) -> Iterator[Signal | tuple[NDArray[Any], None]]:
-
         if groups is None:
             groups = self.included_channels(index)[index]
 
@@ -3948,7 +3923,6 @@ class MDF3(MDF_Common):
                 group, record_offset=record_offset, record_count=record_count
             )
         ):
-
             self._set_temporary_master(self.get_master(index, data=fragment))
 
             self._prepare_record(group)
@@ -3996,7 +3970,6 @@ class MDF3(MDF_Common):
                             sig.samples = sig.samples.astype(strsig.dtype)
                             del strsig
                             if sig.encoding != "latin-1":
-
                                 if sig.encoding == "utf-16-le":
                                     sig.samples = (
                                         sig.samples.view(uint16)
@@ -4014,11 +3987,9 @@ class MDF3(MDF_Common):
                             encodings.append(None)
                 else:
                     for i, (sig, encoding) in enumerate(zip(signals, encodings)):
-
                         if encoding:
                             samples = sig[0]
                             if encoding != "latin-1":
-
                                 if encoding == "utf-16-le":
                                     samples = (
                                         samples.view(uint16)

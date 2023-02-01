@@ -26,7 +26,6 @@ CHANNEL_LEN = 100000
 
 
 class TestMDF(unittest.TestCase):
-
     tempdir_demo = None
     tempdir_array = None
     tempdir_general = None
@@ -37,7 +36,6 @@ class TestMDF(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-
         url = "https://github.com/danielhrisca/asammdf/files/4078993/test.demo.zip"
         urllib.request.urlretrieve(url, "test.zip")
 
@@ -77,9 +75,7 @@ class TestMDF(unittest.TestCase):
             equal = True
 
             for inp in (input_file, BytesIO(input_file.read_bytes())):
-
                 with MDF(inp) as mdf:
-
                     for i, group in enumerate(mdf.groups):
                         if i == 0:
                             v = np.ones(cycles, dtype=np.uint64)
@@ -110,7 +106,6 @@ class TestMDF(unittest.TestCase):
                                 if not np.array_equal(vals, numexpr.evaluate(f)):
                                     equal = False
                         elif i == 4:
-
                             for j in range(1, 20):
                                 target = np.array(
                                     [
@@ -165,14 +160,11 @@ class TestMDF(unittest.TestCase):
             equal = True
 
             for inp in (input_file, BytesIO(input_file.read_bytes())):
-
                 with MDF(inp) as mdf:
                     mdf.configure(read_fragment_size=8000)
 
                     for i, group in enumerate(mdf.groups):
-
                         if i == 0:
-
                             samples = [
                                 np.ones((cycles, 2, 3), dtype=np.uint64),
                                 np.ones((cycles, 2), dtype=np.uint64),
@@ -180,7 +172,6 @@ class TestMDF(unittest.TestCase):
                             ]
 
                             for j in range(1, 20):
-
                                 types = [
                                     ("Channel_{}".format(j), "(2, 3)<u8"),
                                     ("channel_{}_axis_1".format(j), "(2, )<u8"),
@@ -198,13 +189,11 @@ class TestMDF(unittest.TestCase):
                                     1 / 0
 
                         elif i == 1:
-
                             samples = np.ones((cycles, 2, 3), dtype=np.uint64)
                             axis_0 = np.ones((cycles, 2), dtype=np.uint64)
                             axis_1 = np.ones((cycles, 3), dtype=np.uint64)
 
                             for j in range(1, 20):
-
                                 types = [("Channel_{}".format(j), "(2, 3)<u8")]
                                 types = np.dtype(types)
 
@@ -218,7 +207,6 @@ class TestMDF(unittest.TestCase):
                                     1 / 0
 
                         elif i == 2:
-
                             samples = [
                                 np.ones(cycles, dtype=np.uint8),
                                 np.ones(cycles, dtype=np.uint16),
@@ -231,7 +219,6 @@ class TestMDF(unittest.TestCase):
                             ]
 
                             for j in range(1, 20):
-
                                 types = [
                                     ("struct_{}_channel_0".format(j), np.uint8),
                                     ("struct_{}_channel_1".format(j), np.uint16),
@@ -261,7 +248,6 @@ class TestMDF(unittest.TestCase):
             self.assertTrue(equal)
 
     def test_read_demo(self):
-
         print("MDF read tests")
 
         mdf_files = [
@@ -280,9 +266,7 @@ class TestMDF(unittest.TestCase):
             print(file)
 
             for inp in (file, BytesIO(file.read_bytes())):
-
                 with MDF(inp, use_display_names=True) as input_file:
-
                     for signal in signals:
                         name = signal.stem
                         target = np.load(signal)
@@ -368,7 +352,6 @@ class TestMDF(unittest.TestCase):
                                         )
                                         1 / 0
                             elif i == 4:
-
                                 for j in range(1, 20):
                                     target = np.array(
                                         [
@@ -438,11 +421,8 @@ class TestMDF(unittest.TestCase):
         ]
 
         for file in mdf_files:
-
             for inp in (file, BytesIO(file.read_bytes())):
-
                 with MDF(inp, use_display_names=True) as input_file:
-
                     for out in SUPPORTED_VERSIONS:
                         print(file, out, type(inp))
 
@@ -453,7 +433,6 @@ class TestMDF(unittest.TestCase):
                     converted.close()
 
                     with MDF(outfile, use_display_names=True) as mdf:
-
                         for signal in signals:
                             name = signal.stem
                             target = np.load(signal)
@@ -470,7 +449,6 @@ class TestMDF(unittest.TestCase):
         for input_file in Path(TestMDF.tempdir_general.name).iterdir():
             for whence in (0, 1):
                 for compression in range(3):
-
                     mdf = MDF(input_file)
 
                     mdf.configure(read_fragment_size=8000)
@@ -526,7 +504,6 @@ class TestMDF(unittest.TestCase):
                     concatenated.close()
 
                     with MDF(outfile) as mdf:
-
                         for i, group in enumerate(mdf.groups):
                             if i == 0:
                                 v = np.ones(cycles, dtype=np.uint64)
@@ -582,7 +559,6 @@ class TestMDF(unittest.TestCase):
                                         )
                                     self.assertTrue(cond)
                             elif i == 4:
-
                                 for j in range(1, 20):
                                     target = np.array(
                                         [
@@ -670,9 +646,7 @@ class TestMDF(unittest.TestCase):
                     mdf.configure(read_fragment_size=8000)
 
                     for i, group in enumerate(mdf.groups):
-
                         if i == 0:
-
                             samples = [
                                 np.ones((cycles, 2, 3), dtype=np.uint64),
                                 np.ones((cycles, 2), dtype=np.uint64),
@@ -680,7 +654,6 @@ class TestMDF(unittest.TestCase):
                             ]
 
                             for j in range(1, 20):
-
                                 types = [
                                     ("Channel_{}".format(j), "(2, 3)<u8"),
                                     ("channel_{}_axis_1".format(j), "(2, )<u8"),
@@ -707,13 +680,11 @@ class TestMDF(unittest.TestCase):
                                     1 / 0
 
                         elif i == 1:
-
                             samples = np.ones((cycles, 2, 3), dtype=np.uint64)
                             axis_0 = np.ones((cycles, 2), dtype=np.uint64)
                             axis_1 = np.ones((cycles, 3), dtype=np.uint64)
 
                             for j in range(1, 20):
-
                                 types = [("Channel_{}".format(j), "(2, 3)<u8")]
                                 types = np.dtype(types)
 
@@ -727,7 +698,6 @@ class TestMDF(unittest.TestCase):
                                     1 / 0
 
                         elif i == 2:
-
                             samples = [
                                 np.ones(cycles, dtype=np.uint8),
                                 np.ones(cycles, dtype=np.uint16),
@@ -740,7 +710,6 @@ class TestMDF(unittest.TestCase):
                             ]
 
                             for j in range(1, 20):
-
                                 types = [
                                     ("struct_{}_channel_0".format(j), np.uint8),
                                     ("struct_{}_channel_1".format(j), np.uint16),
@@ -783,9 +752,7 @@ class TestMDF(unittest.TestCase):
             print(file)
 
             for inp in (file, BytesIO(file.read_bytes())):
-
                 with MDF(inp, use_display_names=True) as input_file:
-
                     for whence in (0, 1):
                         print(file, whence)
 
@@ -823,7 +790,6 @@ class TestMDF(unittest.TestCase):
                         concatenated.close()
 
                         with MDF(outfile, use_display_names=True) as mdf2:
-
                             for signal in signals:
                                 target = np.load(signal)
                                 sig = mdf2.get(
@@ -842,7 +808,6 @@ class TestMDF(unittest.TestCase):
                     inp.close()
 
     def test_filter(self):
-
         print("MDF read tests")
 
         mdf_files = [
@@ -861,9 +826,7 @@ class TestMDF(unittest.TestCase):
             print(file)
 
             for inp in (file, BytesIO(file.read_bytes())):
-
                 with MDF(inp, use_display_names=True) as input_file:
-
                     names = [
                         ch.name for gp in input_file.groups for ch in gp.channels[1:]
                     ]
@@ -907,9 +870,7 @@ class TestMDF(unittest.TestCase):
             print(file)
 
             for inp in (file, BytesIO(file.read_bytes())):
-
                 with MDF(inp, use_display_names=True) as input_file:
-
                     names = [
                         ch.name for gp in input_file.groups for ch in gp.channels[1:]
                     ]

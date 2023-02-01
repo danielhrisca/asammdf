@@ -87,7 +87,6 @@ class MDF_Common:
                 raise MdfException(f'Channel "{name}" not found')
             else:
                 if group is None:
-
                     entries = self.channels_db[name]
                     if len(entries) > 1:
                         if self._raise_on_multiple_occurrences:

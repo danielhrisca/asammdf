@@ -259,7 +259,6 @@ def conversion_transfer(
                 )
 
             elif conversion_type == v3c.CONVERSION_TYPE_TABX:
-
                 nr = conversion["ref_param_nr"]
                 kargs = {
                     "val_param_nr": nr,
@@ -273,7 +272,6 @@ def conversion_transfer(
                 conversion = v4b.ChannelConversion(**kargs)
 
             elif conversion_type == v3c.CONVERSION_TYPE_RTABX:
-
                 nr = conversion["ref_param_nr"] - 1
                 kargs = {
                     "val_param_nr": nr * 2,
@@ -460,7 +458,6 @@ def to_dict(conversion: ChannelConversionType) -> Union[dict, None]:
         conversion_dict["conversion_type"] = conversion_type
 
         for key, val in conversion.referenced_blocks.items():
-
             if isinstance(val, str):
                 conversion_dict[key] = val
             elif isinstance(val, v4b.ChannelConversion):
@@ -477,7 +474,6 @@ def to_dict(conversion: ChannelConversionType) -> Union[dict, None]:
         conversion_dict["conversion_type"] = conversion_type
 
         for key, val in conversion.referenced_blocks.items():
-
             if isinstance(val, str):
                 conversion_dict[key] = val
             elif isinstance(val, v4b.ChannelConversion):

@@ -210,7 +210,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         plot_background_option = QtGui.QActionGroup(self)
 
         for option in ("Black", "White"):
-
             action = QtGui.QAction(option, menu)
             action.setCheckable(True)
             plot_background_option.addAction(action)
@@ -228,7 +227,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         plot_xaxis_option = QtGui.QActionGroup(self)
 
         for option in ("seconds", "time", "date"):
-
             action = QtGui.QAction(option, menu)
             action.setCheckable(True)
             plot_xaxis_option.addAction(action)
@@ -246,7 +244,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         theme_option = QtGui.QActionGroup(self)
 
         for option in ("Dark", "Light"):
-
             action = QtGui.QAction(option, menu)
             action.setCheckable(True)
             theme_option.addAction(action)
@@ -299,7 +296,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 "values will use linear interpolation, otherwise the previous sample is used",
             ),
         ):
-
             action = QtGui.QAction(option, menu)
             action.setCheckable(True)
             if tooltip:
@@ -322,7 +318,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         theme_option = QtGui.QActionGroup(self)
 
         for option in ("0 - repeat previous sample", "1 - linear interpolation"):
-
             action = QtGui.QAction(option, menu)
             action.setCheckable(True)
             theme_option.addAction(action)
@@ -885,9 +880,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 self.set_line_style(with_dots=self.with_dots)
 
     def show_sub_windows(self, mode):
-
         if self.stackedWidget.currentIndex() == 0:
-
             widget = self.files.currentWidget()
             if widget:
                 if mode == "tile":
@@ -914,7 +907,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def edit_cursor_options(self, checked=None, action=None):
         if action:
             if action.text() == "Color":
-
                 color = self._settings.value("cursor_color", "white")
                 color = QtWidgets.QColorDialog.getColor(color)
                 if not color.isValid():
@@ -1028,7 +1020,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         if option == "Light":
             app.setPalette(self._light_palette)
         else:
-
             palette = QtGui.QPalette()
             brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
             brush.setStyle(QtCore.Qt.SolidPattern)
@@ -1316,7 +1307,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self._open_file(file_name)
 
     def open_folder(self, event):
-
         folder = QtWidgets.QFileDialog.getExistingDirectory(
             self,
             "Select folder",
@@ -1347,7 +1337,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     if file.lower().endswith(
                         (".csv", ".erg", ".dl3", ".dat", ".mdf", ".mf4", ".mf4z")
                     ):
-
                         row = self.batch.files_list.count()
                         self.batch.files_list.addItem(os.path.join(root, file))
                         self.batch.files_list.item(row).setIcon(icon)
@@ -1368,7 +1357,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         event.accept()
 
     def dragEnterEvent(self, e):
-
         e.accept()
 
     def dropEvent(self, e):
@@ -1385,7 +1373,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                         ".mf4",
                         ".mf4z",
                     ):
-
                         self._open_file(path)
             else:
                 icon = QtGui.QIcon()
@@ -1404,7 +1391,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                         ".mf4",
                         ".mf4z",
                     ):
-
                         row = self.batch.files_list.count()
                         self.batch.files_list.addItem(str(path))
                         self.batch.files_list.item(row).setIcon(icon)
@@ -1449,7 +1435,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 dlg.exec_()
                 result = dlg.result
                 if result:
-
                     ret, ok = QtWidgets.QInputDialog.getItem(
                         None,
                         "Select window type",
@@ -1596,7 +1581,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     file.update_functions(original_definitions, modified_definitions)
 
     def bus_database_manager(self):
-
         dlg = BusDatabaseManagerDialog(parent=self)
         dlg.setModal(True)
         dlg.exec_()

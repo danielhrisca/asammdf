@@ -75,7 +75,6 @@ class SimpleSearch(Ui_SimpleSearchDialog, QtWidgets.QDialog):
         (item.parent() or root).removeChild(item)
 
     def search_text_changed(self):
-
         self.comment.setText("")
         text = self.search_box.text().strip()
         if len(text) >= 2:
@@ -106,12 +105,10 @@ class SimpleSearch(Ui_SimpleSearchDialog, QtWidgets.QDialog):
 
                 self.matches.setFocus()
             except:
-
                 self.status.setText(format_exc())
                 self.matches.clear()
 
     def _add(self, event):
-
         items = set()
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)

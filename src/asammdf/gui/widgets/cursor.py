@@ -10,7 +10,6 @@ class Bookmark(pg.InfiniteLine):
     tool = "asammdf"
 
     def __init__(self, message="", title="", color="#ffffff", tool="", **kwargs):
-
         self.title = title or "Bookmark"
 
         if message:
@@ -229,7 +228,6 @@ class Cursor(pg.InfiniteLine):
         color="#ffffff",
         **kwargs,
     ):
-
         super().__init__(
             *args,
             **kwargs,
@@ -317,13 +315,11 @@ class Cursor(pg.InfiniteLine):
                 paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
 
             else:
-
                 signal, idx = plot.signal_by_uuid(uuid)
                 if signal.enable:
                     index = plot.get_timestamp_index(position, signal.timestamps)
                     y_value, kind, fmt = signal.value_at_index(index)
                     if y_value != "n.a.":
-
                         x, y = plot.scale_curve_to_pixmap(
                             position,
                             y_value,

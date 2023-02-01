@@ -7,7 +7,6 @@ from .database_item import DatabaseItem
 
 class BusDatabaseManager(Ui_BusDatabaseManager, QtWidgets.QWidget):
     def __init__(self, databases, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 

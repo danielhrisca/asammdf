@@ -161,7 +161,6 @@ class DataFrameStorage:
     ###################################
     # Changing columns
     def delete_column(self, ix):
-
         col_name = self.df_unfiltered.columns[ix]
         self.df_unfiltered = self.df_unfiltered.drop(col_name, axis=1)
 
@@ -265,7 +264,6 @@ class DataFrameStorage:
 
     # Refresh PyQt models when the underlying pgdf is changed in anyway that needs to be reflected in the GUI
     def refresh_ui(self):
-
         self.models = []
 
         if self.filter_viewer is not None:
@@ -324,7 +322,6 @@ class DataTableModel(QtCore.QAbstractTableModel):
                 return value_as_str(cell, self.format, None, self.float_precision)
 
         elif role == QtCore.Qt.BackgroundRole:
-
             channel_ranges = self.pgdf.tabular.ranges[name]
 
             try:
@@ -468,7 +465,6 @@ class DataTableView(QtWidgets.QTableView):
         e.accept()
 
     def dropEvent(self, e):
-
         if e.source() is self:
             return
         else:
@@ -480,7 +476,6 @@ class DataTableView(QtWidgets.QTableView):
                 return
 
     def keyPressEvent(self, event):
-
         key = event.key()
         modifiers = event.modifiers()
 
@@ -537,9 +532,7 @@ class HeaderModel(QtCore.QAbstractTableModel):
         col = index.column()
 
         if role == QtCore.Qt.DisplayRole:
-
             if self.orientation == Qt.Horizontal:
-
                 if isinstance(self.pgdf.df.columns, pd.MultiIndex):
                     val = str(self.pgdf.df.columns[col][row])
                 else:
@@ -549,7 +542,6 @@ class HeaderModel(QtCore.QAbstractTableModel):
                 return val
 
             elif self.orientation == Qt.Vertical:
-
                 if isinstance(self.pgdf.df.index, pd.MultiIndex):
                     return str(self.pgdf.df.index[row][col])
                 else:
@@ -674,7 +666,6 @@ class HeaderView(QtWidgets.QTableView):
         if event.button() == QtCore.Qt.LeftButton:
             # When a header is clicked, sort the DataFrame by that column
             if self.orientation == Qt.Horizontal:
-
                 self.pgdf.sort_column(col)
             else:
                 self.on_selectionChanged()
@@ -775,12 +766,10 @@ class HeaderView(QtWidgets.QTableView):
 
     # This sets spans to group together adjacent cells with the same values
     def set_spans(self):
-
         df = self.pgdf.df
         self.clearSpans()
         # Find spans for horizontal HeaderView
         if self.orientation == Qt.Horizontal:
-
             # Find how many levels the MultiIndex has
             if isinstance(df.columns, pd.MultiIndex):
                 N = len(df.columns[0])
@@ -824,7 +813,6 @@ class HeaderView(QtWidgets.QTableView):
                 N = 1
 
             for level in range(N):  # Iterates over the levels
-
                 # Find how many segments the MultiIndex has
                 if isinstance(df.index, pd.MultiIndex):
                     arr = [df.index[i][level] for i in range(len(df.index))]
@@ -836,7 +824,6 @@ class HeaderView(QtWidgets.QTableView):
                 match_start = None
 
                 for row in range(1, len(arr)):  # Iterates over cells in column
-
                     # Check if cell matches cell above
                     if arr[row] == arr[row - 1]:
                         if match_start is None:
@@ -866,7 +853,6 @@ class HeaderView(QtWidgets.QTableView):
 
     # This method handles all the resizing of headers including column width, row height, and header width/height
     def manage_resizing(self, object: QtCore.QObject, event: QtCore.QEvent):
-
         # This is used for resizing column widths and row heights
         # For the horizontal header, return the column edge the mouse is over
         # For the vertical header, return the row edge the mouse is over
@@ -998,7 +984,6 @@ class HeaderView(QtWidgets.QTableView):
 
     # Return the size of the header needed to match the corresponding DataTableView
     def sizeHint(self):
-
         # Columm headers
         if self.orientation == Qt.Horizontal:
             # Width of DataTableView
@@ -1051,7 +1036,6 @@ class HeaderNamesModel(QtCore.QAbstractTableModel):
         col = index.column()
 
         if role == QtCore.Qt.DisplayRole:
-
             if self.orientation == Qt.Horizontal:
                 val = self.pgdf.df.columns.names[row]
                 if val is None:
@@ -1501,7 +1485,6 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                     filters.append(column_name)
             else:
                 if column_name == "timestamps" and df["timestamps"].dtype.kind == "M":
-
                     ts = pd.Timestamp(target, tz=LOCAL_TIMEZONE)
                     ts = ts.tz_convert("UTC").to_datetime64()
 
@@ -1654,7 +1637,6 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.update_horizontal_scroll()
 
     def to_config(self):
-
         count = self.filters.count()
 
         pattern = self.pattern
@@ -1817,7 +1799,6 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                 progress.cancel()
 
     def keyPressEvent(self, event):
-
         key = event.key()
         modifiers = event.modifiers()
 
@@ -1951,7 +1932,6 @@ class DataFrameViewer(QtWidgets.QWidget):
         global MONOSPACE_FONT
 
         if MONOSPACE_FONT is None:
-
             families = QtGui.QFontDatabase().families()
             for family in (
                 "Consolas",
@@ -2216,7 +2196,6 @@ class DataFrameViewer(QtWidgets.QWidget):
         self.columnHeader.on_selectionChanged(force=True)
 
     def keyPressEvent(self, event):
-
         QtWidgets.QWidget.keyPressEvent(self, event)
         mods = event.modifiers()
 
@@ -2355,7 +2334,6 @@ class DataFrameViewer(QtWidgets.QWidget):
         self.update_horizontal_scroll()
 
     def refresh_ui(self):
-
         self.models = [
             self.dataView.model(),
             self.columnHeader.model(),

@@ -348,7 +348,6 @@ def extract_display_names(comment: str) -> dict[str, str]:
     comment = comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
     display_names = {}
     if comment.startswith("<CN") and "<names>" in comment:
-
         try:
             start = comment.index("<names>")
             end = comment.index("</names>") + 8
@@ -368,7 +367,6 @@ def extract_encryption_information(comment: str) -> dict[str, str]:
     info = {}
     comment = comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
     if comment.startswith("<ATcomment") and "<encrypted>" in comment:
-
         try:
             comment = ET.fromstring(comment)
             for match in comment.findall(".//extensions/extension"):
@@ -1224,7 +1222,6 @@ def get_video_stream_duration(stream: bytes) -> float | None:
 
 
 class Group:
-
     __slots__ = (
         "channels",
         "channel_dependencies",
@@ -1395,7 +1392,6 @@ def components(
             values = values.byteswap().newbyteorder()
 
         if len(values.shape) > 1:
-
             values = Series(
                 list(values),
                 index=master,
@@ -1433,7 +1429,6 @@ def components(
 
     # structure composition
     else:
-
         for name in channel.dtype.names:
             values = channel[name]
 
@@ -1448,7 +1443,6 @@ def components(
                 )
 
             else:
-
                 if values.dtype.byteorder not in target_byte_order:
                     values = values.byteswap().newbyteorder()
 
@@ -1475,7 +1469,6 @@ def components(
 
 
 class DataBlockInfo:
-
     __slots__ = (
         "address",
         "block_type",
@@ -1517,7 +1510,6 @@ class DataBlockInfo:
 
 
 class InvalidationBlockInfo(DataBlockInfo):
-
     __slots__ = ("all_valid",)
 
     def __init__(
@@ -1548,7 +1540,6 @@ class InvalidationBlockInfo(DataBlockInfo):
 
 
 class SignalDataBlockInfo:
-
     __slots__ = (
         "address",
         "original_size",
@@ -1650,7 +1641,6 @@ def master_using_raster(
     if not raster:
         master = np.array([], dtype="<f8")
     else:
-
         t_min = []
         t_max = []
         for group_index in mdf.virtual_groups:
@@ -1828,7 +1818,6 @@ def load_can_database(
         dbs = {name: db for name, db in dbs.items() if db.type == matrix_class.CAN}
 
     if dbs:
-
         cluster_name = kwargs.get("cluster_name", None)
         if cluster_name is not None:
             dbs = {name: db for name, db in dbs.items() if name == cluster_name}

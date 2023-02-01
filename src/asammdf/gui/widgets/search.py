@@ -7,7 +7,6 @@ from ..ui.search_widget import Ui_SearchWidget
 
 
 class SearchWidget(Ui_SearchWidget, QtWidgets.QWidget):
-
     selectionChanged = QtCore.Signal()
 
     def __init__(self, sorted_keys, channels_db, *args, **kwargs):

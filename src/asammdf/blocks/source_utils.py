@@ -15,7 +15,6 @@ from ..types import SourceType
 
 
 class Source:
-
     __slots__ = "name", "path", "comment", "source_type", "bus_type"
 
     SOURCE_OTHER = v4c.SOURCE_OTHER
