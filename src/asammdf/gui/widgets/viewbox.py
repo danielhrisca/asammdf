@@ -154,8 +154,6 @@ class ViewBoxWithCursor(pg.ViewBox):
         ## if axis is specified, event will only affect that axis.
         ev.accept()  ## we accept all buttons
 
-        print("view mouse drag", self.state["mouseMode"])
-
         pos = ev.scenePos()
         dif = pos - ev.lastScenePos()
         dif = dif * -1
@@ -178,8 +176,6 @@ class ViewBoxWithCursor(pg.ViewBox):
                     self.sigZoomFinished.emit((self.zoom_start, end, self.zoom))
                     self.zoom_start = None
                     self.sigZoomChanged.emit(None)
-
-                    print("mited plm")
 
         else:
             ## Scale or translate based on mouse button
