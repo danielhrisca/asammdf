@@ -912,7 +912,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             mdf = cls(file_name).export_mdf()
 
-        elif suffix in (".mdf", ".mf4"):
+        elif suffix in (".mdf", ".mf4", ".mf4z"):
             mdf = MDF(file_name)
 
         return mdf
