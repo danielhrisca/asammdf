@@ -1,0 +1,387 @@
+{
+  "selected_channels": [],
+  "windows": [
+    {
+      "title": "Plot 0",
+      "configuration": {
+        "channels": [
+          {
+            "type": "group",
+            "name": "CAN Data",
+            "enabled": true,
+            "pattern": null,
+            "ranges": [],
+            "origin_uuid": "59e30cbad3e6",
+            "expanded": true,
+            "disabled": false,
+            "channels": [
+              {
+                "type": "channel",
+                "name": "CAN_DataFrame.BusChannel",
+                "unit": "",
+                "flags": 0,
+                "enabled": true,
+                "individual_axis": false,
+                "common_axis": false,
+                "color": "#1f77b4",
+                "computed": false,
+                "ranges": [],
+                "precision": 3,
+                "fmt": "{:.3f}",
+                "format": "phys",
+                "mode": "phys",
+                "y_range": [
+                  -13.31,
+                  2.0900000000000016
+                ],
+                "origin_uuid": "014aa309cbcb"
+              },
+              {
+                "type": "channel",
+                "name": "CAN_DataFrame.DLC",
+                "unit": "",
+                "flags": 0,
+                "enabled": true,
+                "individual_axis": false,
+                "common_axis": false,
+                "color": "#ff7f0e",
+                "computed": false,
+                "ranges": [],
+                "precision": 3,
+                "fmt": "{}",
+                "format": "phys",
+                "mode": "phys",
+                "y_range": [
+                  -8.11,
+                  7.290000000000003
+                ],
+                "origin_uuid": "014aa309cbcb"
+              },
+              {
+                "type": "channel",
+                "name": "CAN_DataFrame.Flags",
+                "unit": "",
+                "flags": 0,
+                "enabled": true,
+                "individual_axis": false,
+                "common_axis": false,
+                "color": "#2ca02c",
+                "computed": false,
+                "ranges": [],
+                "precision": 3,
+                "fmt": "{}",
+                "format": "phys",
+                "mode": "phys",
+                "y_range": [
+                  -9.91,
+                  5.490000000000002
+                ],
+                "origin_uuid": "014aa309cbcb"
+              },
+              {
+                "type": "channel",
+                "name": "CAN_DataFrame.ID",
+                "unit": "",
+                "flags": 0,
+                "enabled": true,
+                "individual_axis": false,
+                "common_axis": false,
+                "color": "#d62728",
+                "computed": false,
+                "ranges": [],
+                "precision": 3,
+                "fmt": "{:.3f}",
+                "format": "phys",
+                "mode": "phys",
+                "y_range": [
+                  92.29,
+                  107.69000000000001
+                ],
+                "origin_uuid": "014aa309cbcb"
+              }
+            ]
+          },
+          {
+            "type": "channel",
+            "name": "Curve",
+            "unit": "",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#8c564b",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{:.3f}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              -168.596,
+              441.244
+            ],
+            "origin_uuid": "014aa309cbcb"
+          },
+          {
+            "type": "channel",
+            "name": "State",
+            "unit": "",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#e377c2",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              -3.3100000000000005,
+              12.090000000000003
+            ],
+            "origin_uuid": "014aa309cbcb"
+          },
+          {
+            "type": "channel",
+            "name": "Counter",
+            "unit": "",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#9467bd",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              -1.11,
+              14.290000000000003
+            ],
+            "origin_uuid": "014aa309cbcb"
+          }
+        ],
+        "pattern": {},
+        "splitter": [
+          394,
+          414,
+          0
+        ],
+        "y_axis_width": 48.0,
+        "grid": [
+          false,
+          false
+        ],
+        "cursor_precision": 6,
+        "font_size": 9,
+        "locked": false,
+        "common_axis_y_range": [
+          0.0,
+          1.0
+        ],
+        "channels_header": [
+          394,
+          [
+            220,
+            83,
+            28,
+            35,
+            35
+          ]
+        ],
+        "hide_axes": false,
+        "hide_selected_channel_value_panel": false,
+        "focused_mode": false,
+        "delta_mode": "value",
+        "hide_bookmarks": true
+      },
+      "geometry": [
+        824,
+        278,
+        822,
+        672
+      ],
+      "maximized": false,
+      "minimized": false,
+      "type": "Plot"
+    },
+    {
+      "title": "Numeric 0",
+      "configuration": {
+        "format": "Physical",
+        "mode": "offline",
+        "channels": [
+          {
+            "origin_uuid": "0",
+            "name": "CAN_DataFrame.BusChannel",
+            "ranges": [],
+            "format": "phys"
+          },
+          {
+            "origin_uuid": "0",
+            "name": "CAN_DataFrame.DLC",
+            "ranges": [],
+            "format": "phys"
+          },
+          {
+            "origin_uuid": "0",
+            "name": "CAN_DataFrame.Flags",
+            "ranges": [],
+            "format": "phys"
+          },
+          {
+            "origin_uuid": "0",
+            "name": "CAN_DataFrame.ID",
+            "ranges": [],
+            "format": "phys"
+          }
+        ],
+        "pattern": {},
+        "float_precision": -1,
+        "header_sections_width": [
+          259,
+          130,
+          142,
+          130
+        ],
+        "font_size": 9
+      },
+      "geometry": [
+        0,
+        716,
+        824,
+        234
+      ],
+      "maximized": false,
+      "minimized": false,
+      "type": "Numeric"
+    },
+    {
+      "title": "Tabular 0",
+      "configuration": {
+        "sorted": true,
+        "channels": [
+          "timestamps",
+          "State",
+          "Curve",
+          "Counter"
+        ],
+        "filtered": false,
+        "filters": [],
+        "time_as_date": false,
+        "pattern": {},
+        "format": "phys",
+        "ranges": {
+          "Counter": [],
+          "Curve": [],
+          "State": [],
+          "timestamps": []
+        },
+        "header_sections_width": [
+          220,
+          116,
+          206,
+          130
+        ],
+        "font_size": 9
+      },
+      "geometry": [
+        824,
+        0,
+        822,
+        279
+      ],
+      "maximized": false,
+      "minimized": false,
+      "type": "Tabular"
+    },
+    {
+      "title": "CAN Bus Trace 0",
+      "configuration": {
+        "sorted": true,
+        "channels": [
+          "timestamps",
+          "Bus",
+          "ID",
+          "Direction",
+          "Name",
+          "Event Type",
+          "Details",
+          "ESI",
+          "EDL",
+          "BRS",
+          "DLC",
+          "Data Length",
+          "Data Bytes"
+        ],
+        "filtered": false,
+        "filters": [],
+        "time_as_date": false,
+        "pattern": {},
+        "format": "phys",
+        "ranges": {
+          "timestamps": [],
+          "Bus": [],
+          "ID": [],
+          "Direction": [],
+          "Name": [],
+          "Event Type": [
+            {
+              "background_color": "#ff0000",
+              "font_color": "#000000",
+              "op1": "==",
+              "op2": "==",
+              "value1": "Error Frame",
+              "value2": null
+            },
+            {
+              "background_color": "#00ff00",
+              "font_color": "#000000",
+              "op1": "==",
+              "op2": "==",
+              "value1": "Remote Frame",
+              "value2": null
+            }
+          ],
+          "Details": [],
+          "ESI": [],
+          "EDL": [],
+          "BRS": [],
+          "DLC": [],
+          "Data Length": [],
+          "Data Bytes": []
+        },
+        "header_sections_width": [
+          159,
+          54,
+          41,
+          83,
+          96,
+          90,
+          68,
+          40,
+          103,
+          41,
+          39,
+          97,
+          181
+        ],
+        "font_size": 9
+      },
+      "geometry": [
+        0,
+        0,
+        824,
+        717
+      ],
+      "maximized": false,
+      "minimized": false,
+      "type": "CAN Bus Trace"
+    }
+  ],
+  "functions": {}
+}

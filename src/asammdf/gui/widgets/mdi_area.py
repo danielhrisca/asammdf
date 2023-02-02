@@ -1110,8 +1110,6 @@ class WithMDIArea:
                         )
                         columns["Data Bytes"] = vals
 
-                        y = data["CAN_DataFrame.Dir"]
-
                         if "CAN_DataFrame.Dir" in names:
                             if data["CAN_DataFrame.Dir"].dtype.kind == "S":
                                 columns["Direction"] = [
