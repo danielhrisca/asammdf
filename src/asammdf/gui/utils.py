@@ -37,6 +37,8 @@ ERROR_ICON = None
 RANGE_INDICATOR_ICON = None
 NO_ERROR_ICON = None
 
+COMPUTED_FUNCTION_ERROR_VALUE = float('nan')
+
 
 COLORS = [
     "#1f77b4",
@@ -892,15 +894,18 @@ def compute_signal(
                 signals = [sig.samples.tolist() for sig in signals]
                 signals.append(common_timebase)
 
-                samples = [
-                    func(
-                        **{
-                            arg_name: arg_val
-                            for arg_name, arg_val in zip(names, values)
-                        }
-                    )
-                    for values in zip(*signals)
-                ]
+                samples = []
+                for values in zip(*signals):
+                    try:
+                        current_sample = func(
+                            **{
+                                arg_name: arg_val
+                                for arg_name, arg_val in zip(names, values)
+                            }
+                        )
+                    except:
+                        current_sample = COMPUTED_FUNCTION_ERROR_VALUE
+                    samples.append(current_sample)
 
                 result = Signal(
                     name="_",
