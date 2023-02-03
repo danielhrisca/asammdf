@@ -21,10 +21,12 @@ import dateutil.tz
 
 try:
     from isal.isal_zlib import compress, decompress
+
     COMPRESSION_LEVEL = 2
 
 except ImportError:
     from zlib import compress, decompress
+
     COMPRESSION_LEVEL = 1
 
 
