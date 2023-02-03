@@ -92,7 +92,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 for i, names in enumerate(computation["args"].values()):
                     self.arg_widgets[i][1].insertPlainText("\n".join(names))
 
-            if computation.get("computation_mode", "sample_by_sample"):
+            if computation.get("computation_mode", "sample_by_sample") == "sample_by_sample":
                 self.sample_by_sample.setChecked(True)
             else:
                 self.complete_signal.setChecked(True)

@@ -1153,7 +1153,7 @@ def computation_to_python_function(description):
             }
         else:
             new_description = description
-            new_description["computation_mode"] = new_description.get(
+            new_description["computation_mode"] = description.get(
                 "computation_mode", "sample_by_sample"
             )
 
