@@ -7,7 +7,7 @@ import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..ui import resource_rc
-from .plot import Plot
+from .plot import Plot, PlotSignal
 
 bin_ = bin
 
@@ -35,7 +35,7 @@ class PlotWindow(QtWidgets.QMainWindow):
         self.with_dots = self._settings.value("dots", False, type=bool)
 
         if isinstance(signals, (list, tuple)):
-            signals = {sig.name: sig for sig in signals}
+            signals = {sig.name: PlotSignal(sig) for sig in signals}
 
         self.plot = Plot({}, self.with_dots)
 

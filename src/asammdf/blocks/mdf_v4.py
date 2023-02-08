@@ -637,12 +637,18 @@ class MDF4(MDF_Common):
                     inval_total_size += (
                         channel_group.invalidation_bytes_nr * channel_group.cycles_nr
                     )
+                    record_size = channel_group.samples_byte_nr
                 else:
                     block_type = b"##DT"
                     total_size += (
                         channel_group.samples_byte_nr
                         + channel_group.invalidation_bytes_nr
                     ) * channel_group.cycles_nr
+
+                    record_size = (
+                        channel_group.samples_byte_nr
+                        + channel_group.invalidation_bytes_nr
+                    )
 
             if (
                 self.identification["unfinalized_standard_flags"]
@@ -658,6 +664,7 @@ class MDF4(MDF_Common):
                 mapped=mapped,
                 total_size=total_size,
                 inval_total_size=inval_total_size,
+                record_size=record_size,
             )
             data_blocks = []
             uses_ld = self._uses_ld(
@@ -1357,6 +1364,7 @@ class MDF4(MDF_Common):
                 invalidation_split_size = invalidation_size
 
             split_size = int(split_size)
+
             invalidation_split_size = int(invalidation_split_size)
 
             blocks = iter(group.data_blocks)
@@ -1776,8 +1784,14 @@ class MDF4(MDF_Common):
         mapped: bool = False,
         total_size: int = 0,
         inval_total_size: int = 0,
+        record_size: int = 0,
     ) -> Iterator[DataBlockInfo]:
         mapped = mapped or not is_file_like(stream)
+
+        if record_size:
+            _32_MB = 32 * 1024 * 1024 // record_size * record_size
+        else:
+            _32_MB = 32 * 1024 * 1024
 
         if mapped:
             if address:
@@ -1787,19 +1801,38 @@ class MDF4(MDF_Common):
                 if id_string == block_type:
                     size = block_len - 24
                     if size:
-                        if total_size < size:
-                            block_limit = total_size
-                        else:
-                            block_limit = None
-                        total_size -= size
-                        yield DataBlockInfo(
-                            address=address + COMMON_SIZE,
-                            block_type=v4c.DT_BLOCK,
-                            original_size=size,
-                            compressed_size=size,
-                            param=0,
-                            block_limit=block_limit,
-                        )
+                        address = address + COMMON_SIZE
+
+                        # split the DTBLOCK into chucks of up to 32MB
+                        while True:
+                            if size > _32_MB:
+                                total_size -= _32_MB
+                                size -= _32_MB
+
+                                yield DataBlockInfo(
+                                    address=address,
+                                    block_type=v4c.DT_BLOCK,
+                                    original_size=_32_MB,
+                                    compressed_size=_32_MB,
+                                    param=0,
+                                    block_limit=None,
+                                )
+                                address += _32_MB
+                            else:
+                                if total_size < size:
+                                    block_limit = total_size
+                                else:
+                                    block_limit = None
+
+                                yield DataBlockInfo(
+                                    address=address,
+                                    block_type=v4c.DT_BLOCK,
+                                    original_size=size,
+                                    compressed_size=size,
+                                    param=0,
+                                    block_limit=block_limit,
+                                )
+                                break
 
                 # or a DataZippedBlock
                 elif id_string == b"##DZ":
@@ -1844,19 +1877,40 @@ class MDF4(MDF_Common):
                             if id_string == block_type:
                                 size = block_len - 24
                                 if size:
-                                    if total_size < size:
-                                        block_limit = total_size
-                                    else:
-                                        block_limit = None
-                                    total_size -= size
-                                    yield DataBlockInfo(
-                                        address=addr + COMMON_SIZE,
-                                        block_type=v4c.DT_BLOCK,
-                                        original_size=size,
-                                        compressed_size=size,
-                                        param=0,
-                                        block_limit=block_limit,
-                                    )
+                                    addr = addr + COMMON_SIZE
+
+                                    # split the DTBLOCK into chucks of up to 32MB
+                                    while True:
+                                        if size > _32_MB:
+                                            total_size -= _32_MB
+                                            size -= _32_MB
+
+                                            yield DataBlockInfo(
+                                                address=addr,
+                                                block_type=v4c.DT_BLOCK,
+                                                original_size=_32_MB,
+                                                compressed_size=_32_MB,
+                                                param=0,
+                                                block_limit=None,
+                                            )
+                                            addr += _32_MB
+                                        else:
+                                            if total_size < size:
+                                                block_limit = total_size
+                                            else:
+                                                block_limit = None
+
+                                            total_size -= size
+
+                                            yield DataBlockInfo(
+                                                address=addr,
+                                                block_type=v4c.DT_BLOCK,
+                                                original_size=size,
+                                                compressed_size=size,
+                                                param=0,
+                                                block_limit=block_limit,
+                                            )
+                                            break
 
                             # or a DataZippedBlock
                             elif id_string == b"##DZ":
@@ -2034,6 +2088,7 @@ class MDF4(MDF_Common):
                         mapped,
                         total_size,
                         inval_total_size,
+                        record_size,
                     )
         else:
             if address:
@@ -2044,19 +2099,38 @@ class MDF4(MDF_Common):
                 if id_string == block_type:
                     size = block_len - 24
                     if size:
-                        if total_size < size:
-                            block_limit = total_size
-                        else:
-                            block_limit = None
-                        total_size -= size
-                        yield DataBlockInfo(
-                            address=address + COMMON_SIZE,
-                            block_type=v4c.DT_BLOCK,
-                            original_size=size,
-                            compressed_size=size,
-                            param=0,
-                            block_limit=block_limit,
-                        )
+                        address = address + COMMON_SIZE
+
+                        # split the DTBLOCK into chucks of up to 32MB
+                        while True:
+                            if size > _32_MB:
+                                total_size -= _32_MB
+                                size -= _32_MB
+
+                                yield DataBlockInfo(
+                                    address=address,
+                                    block_type=v4c.DT_BLOCK,
+                                    original_size=_32_MB,
+                                    compressed_size=_32_MB,
+                                    param=0,
+                                    block_limit=None,
+                                )
+                                address += _32_MB
+                            else:
+                                if total_size < size:
+                                    block_limit = total_size
+                                else:
+                                    block_limit = None
+
+                                yield DataBlockInfo(
+                                    address=address,
+                                    block_type=v4c.DT_BLOCK,
+                                    original_size=size,
+                                    compressed_size=size,
+                                    param=0,
+                                    block_limit=block_limit,
+                                )
+                                break
 
                 # or a DataZippedBlock
                 elif id_string == b"##DZ":
@@ -2104,19 +2178,40 @@ class MDF4(MDF_Common):
                             if id_string == block_type:
                                 size = block_len - 24
                                 if size:
-                                    if total_size < size:
-                                        block_limit = total_size
-                                    else:
-                                        block_limit = None
-                                    total_size -= size
-                                    yield DataBlockInfo(
-                                        address=addr + COMMON_SIZE,
-                                        block_type=v4c.DT_BLOCK,
-                                        original_size=size,
-                                        compressed_size=size,
-                                        param=0,
-                                        block_limit=block_limit,
-                                    )
+                                    addr = addr + COMMON_SIZE
+
+                                    # split the DTBLOCK into chucks of up to 32MB
+                                    while True:
+                                        if size > _32_MB:
+                                            total_size -= _32_MB
+                                            size -= _32_MB
+
+                                            yield DataBlockInfo(
+                                                address=addr,
+                                                block_type=v4c.DT_BLOCK,
+                                                original_size=_32_MB,
+                                                compressed_size=_32_MB,
+                                                param=0,
+                                                block_limit=None,
+                                            )
+                                            addr += _32_MB
+                                        else:
+                                            if total_size < size:
+                                                block_limit = total_size
+                                            else:
+                                                block_limit = None
+
+                                            total_size -= size
+
+                                            yield DataBlockInfo(
+                                                address=addr,
+                                                block_type=v4c.DT_BLOCK,
+                                                original_size=size,
+                                                compressed_size=size,
+                                                param=0,
+                                                block_limit=block_limit,
+                                            )
+                                            break
 
                             # or a DataZippedBlock
                             elif id_string == b"##DZ":
@@ -2302,6 +2397,7 @@ class MDF4(MDF_Common):
                         mapped,
                         total_size,
                         inval_total_size,
+                        record_size,
                     )
 
     def _get_signal_data_blocks_info(
