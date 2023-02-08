@@ -25,6 +25,7 @@ from asammdf.gui.widgets.plot import PlotSignal
 
 from ...blocks.conversion_utils import from_dict, to_dict
 from ..ui import resource_rc
+from ..ui.numeric_offline import Ui_NumericDisplay
 from ..utils import FONT_SIZE
 from .loader import load_ui
 
@@ -522,7 +523,6 @@ class TableModel(QtCore.QAbstractTableModel):
                 return int(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
 
         elif role == QtCore.Qt.DecorationRole:
-            print("decoration", signal.exists)
             if col == 0:
                 if not signal.exists:
                     icon = utils.ERROR_ICON
@@ -1202,7 +1202,7 @@ class NumericViewer(QtWidgets.QWidget):
             view.updateGeometry()
 
 
-class Numeric(QtWidgets.QWidget):
+class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.Signal(list)
     timestamp_changed_signal = QtCore.Signal(object, float)
 
@@ -1216,11 +1216,7 @@ class Numeric(QtWidgets.QWidget):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-
-        if mode == "offline":
-            load_ui(HERE.joinpath("..", "ui", "numeric_offline.ui"), self)
-        else:
-            load_ui(HERE.joinpath("..", "ui", "numeric_online.ui"), self)
+        self.setupUi(self)
 
         self.mode = mode
 
@@ -1281,6 +1277,10 @@ class Numeric(QtWidgets.QWidget):
             self.search_group.setHidden(True)
 
             self.toggle_controls_btn.clicked.connect(self.toggle_controls)
+        else:
+            self.toggle_controls_btn.setHidden(True)
+            self.time_group.setHidden(True)
+            self.search_group.setHidden(True)
 
     def add_new_channels(self, channels, mime_data=None):
         if self.mode == "online":
