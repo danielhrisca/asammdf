@@ -6636,6 +6636,22 @@ class MDF4(MDF_Common):
 
         master_is_required = not samples_only or raster
 
+        if (
+            channel.byte_offset + (channel.bit_offset + channel.bit_count) / 8
+            > grp.channel_group.samples_byte_nr
+        ):
+            raise MdfException(
+                "\n\t".join(
+                    [
+                        f"Channel {channel.name} byte offset too high:",
+                        f"byte offset = {channel.byte_offset}",
+                        f"bit offset = {channel.bit_offset}",
+                        f"bit count = {channel.bit_count}",
+                        f"group record size = {grp.channel_group.samples_byte_nr}",
+                    ]
+                )
+            )
+
         if dependency_list:
             if not isinstance(dependency_list[0], ChannelArrayBlock):
                 vals, timestamps, invalidation_bits, encoding = self._get_structure(

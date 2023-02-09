@@ -131,7 +131,8 @@ ALLOWED_MATLAB_CHARS = set(string.ascii_letters + string.digits + "_")
 class MdfException(Exception):
     """MDF Exception class"""
 
-    pass
+    def __repr__(self):
+        return f"asammdf MdfException: {self.text}"
 
 
 def extract_xml_comment(comment: str) -> str:

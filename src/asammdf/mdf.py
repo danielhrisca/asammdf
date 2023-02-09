@@ -279,16 +279,17 @@ class MDF:
             elif isinstance(name, zipfile.ZipFile):
                 archive = name
                 files = archive.namelist()
-                if len(files) != 1:
-                    raise Exception("invalid zipped MF4: must contain a single file")
-                fname = original_name = files[0]
+
+                for fname in files:
+                    if Path(fname).suffix.lower() in (".mdf", ".dat", ".mf4"):
+                        original_name = fname
+                        break
+                else:
+                    raise Exception(
+                        "invalid zipped MF4: no supported file found in the archive"
+                    )
 
                 name = get_temporary_filename(Path(original_name), dir=temporary_folder)
-
-                if Path(fname).suffix.lower() not in (".mdf", ".dat", ".mf4"):
-                    raise Exception(
-                        "invalid zipped MF4: must contain a single MDF file"
-                    )
 
                 tmpdir = mkdtemp()
                 output = archive.extract(fname, tmpdir)
@@ -306,15 +307,13 @@ class MDF:
                     name = get_temporary_filename(original_name, dir=temporary_folder)
                     with zipfile.ZipFile(original_name, allowZip64=True) as archive:
                         files = archive.namelist()
-                        if len(files) != 1:
+                        for fname in files:
+                            if Path(fname).suffix.lower() in (".mdf", ".dat", ".mf4"):
+                                original_name = fname
+                                break
+                        else:
                             raise Exception(
-                                "invalid zipped MF4: must contain a single file"
-                            )
-                        fname = files[0]
-
-                        if Path(fname).suffix.lower() not in (".mdf", ".dat", ".mf4"):
-                            raise Exception(
-                                "invalid zipped MF4: must contain a single MDF file"
+                                "invalid zipped MF4: no supported file found in the archive"
                             )
 
                         tmpdir = mkdtemp()
