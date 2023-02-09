@@ -412,7 +412,7 @@ class DataTableView(QtWidgets.QTableView):
         self.setFont(font)
 
         self.setAcceptDrops(False)
-        self.setDragDropMode(self.NoDragDrop)
+        self.setDragDropMode(QtWidgets.QAbstractItemView.NoDragDrop)
         self.setDropIndicatorShown(False)
 
     def on_selectionChanged(self):
