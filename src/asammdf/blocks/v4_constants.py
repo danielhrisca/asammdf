@@ -260,7 +260,7 @@ EVENT_TYPE_MARKER = 6
 
 EVENT_TYPE_TO_STRING = {
     EVENT_TYPE_RECORDING: "Recording",
-    EVENT_TYPE_RECORDING_INTERRUPT: "REcording interrupt",
+    EVENT_TYPE_RECORDING_INTERRUPT: "Recording interrupt",
     EVENT_TYPE_ACQUISITION_INTERRUPT: "Acquisition interrupt",
     EVENT_TYPE_START_RECORDING_TRIGGER: "Start recording trigger",
     EVENT_TYPE_STOP_RECORDING_TRIGGER: "Stop recording trigger",

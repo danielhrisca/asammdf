@@ -3790,7 +3790,6 @@ class WithMDIArea:
                     else:
                         widget.plot.viewbox.setXLink(viewbox)
                     widget.cursor_moved_signal.connect(self.set_cursor)
-                    widget.cursor_removed_signal.connect(self.remove_cursor)
                     widget.region_removed_signal.connect(self.remove_region)
                     widget.region_moved_signal.connect(self.set_region)
                     widget.splitter_moved.connect(self.set_splitter)
@@ -3803,10 +3802,6 @@ class WithMDIArea:
                     widget.plot.viewbox.setXLink(None)
                     try:
                         widget.cursor_moved_signal.disconnect(self.set_cursor)
-                    except:
-                        pass
-                    try:
-                        widget.cursor_removed_signal.disconnect(self.remove_cursor)
                     except:
                         pass
                     try:
@@ -3831,33 +3826,36 @@ class WithMDIArea:
         if not self.subplots_link:
             return
 
-        if self._cursor_source is None:
-            self._cursor_source = widget
-            for mdi in self.mdi_area.subWindowList():
-                wid = mdi.widget()
-                if wid is not widget:
-                    wid.set_timestamp(pos)
+        active_widget = self.mdi_area.activeSubWindow().widget()
 
-            self._cursor_source = None
+        if widget is not active_widget:
+            return
+
+        for mdi in self.mdi_area.subWindowList():
+            wid = mdi.widget()
+            if wid is not widget:
+                wid.set_timestamp(pos)
 
     def set_region(self, widget, region):
         if not self.subplots_link:
             return
 
-        if self._region_source is None:
-            self._region_source = widget
-            for mdi in self.mdi_area.subWindowList():
-                wid = mdi.widget()
-                if isinstance(wid, Plot) and wid is not widget:
-                    if wid.plot.region is None:
-                        event = QtGui.QKeyEvent(
-                            QtCore.QEvent.KeyPress,
-                            QtCore.Qt.Key_R,
-                            QtCore.Qt.NoModifier,
-                        )
-                        wid.plot.keyPressEvent(event)
-                    wid.plot.region.setRegion(region)
-            self._region_source = None
+        active_widget = self.mdi_area.activeSubWindow().widget()
+
+        if widget is not active_widget:
+            return
+
+        for mdi in self.mdi_area.subWindowList():
+            wid = mdi.widget()
+            if isinstance(wid, Plot) and wid is not widget:
+                if wid.plot.region is None:
+                    event = QtGui.QKeyEvent(
+                        QtCore.QEvent.KeyPress,
+                        QtCore.Qt.Key_R,
+                        QtCore.Qt.NoModifier,
+                    )
+                    wid.plot.keyPressEvent(event)
+                wid.plot.region.setRegion(region)
 
     def set_splitter(self, widget, selection_width):
         if not self.subplots_link:
@@ -3968,18 +3966,6 @@ class WithMDIArea:
                     iterator += 1
 
         return bool(new or changed or deleted)
-
-    def remove_cursor(self, widget):
-        if not self.subplots_link:
-            return
-
-        if self._cursor_source is None:
-            self._cursor_source = widget
-            for mdi in self.mdi_area.subWindowList():
-                plt = mdi.widget()
-                if isinstance(plt, Plot) and plt is not widget:
-                    plt.cursor_removed()
-            self._cursor_source = None
 
     def remove_region(self, widget):
         if not self.subplots_link:

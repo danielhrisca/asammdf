@@ -640,7 +640,7 @@ class TableView(QtWidgets.QTableView):
 
         self.doubleClicked.connect(self.edit_ranges)
 
-        self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMov)
+        self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
 
         self.double_clicked_enabled = True
 
