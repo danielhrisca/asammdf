@@ -223,7 +223,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
             "Functions definition file (*.def)",
         )
 
-        if file_name:
+        if file_name and Path(file_name).suffix.lower() == ".def":
             definitions = {
                 name: info["definition"] for name, info in self.definitions.items()
             }
@@ -240,7 +240,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
             "Functions definitions file (*.def)",
         )
 
-        if file_name:
+        if file_name and Path(file_name).suffix.lower() == ".def":
             file_name = Path(file_name)
 
             with open(file_name, "r") as infile:

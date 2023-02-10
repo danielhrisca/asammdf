@@ -992,7 +992,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "All file types (*.cfg *.dsp *.dspf *.lab *.txt)",
             )
 
-        if file_name:
+        if file_name and Path(file_name).suffix.lower() in (
+            ".cfg",
+            ".dsp",
+            ".dspf",
+            ".lab",
+            ".txt",
+        ):
             if not isinstance(file_name, dict):
                 file_name = Path(file_name)
 
@@ -1223,7 +1229,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "CANape Lab file (*.lab)",
             )
 
-        if file_name:
+        if file_name and Path(file_name).suffix.lower() in (
+            ".cfg",
+            ".dsp",
+            ".dspf",
+            ".lab",
+            ".txt",
+        ):
             if not isinstance(file_name, dict):
                 file_name = Path(file_name)
 
@@ -1990,6 +2002,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         )
 
         if file_names:
+            file_names = [
+                name
+                for name in file_names
+                if Path(name).suffix.lower() in (".arxml", ".dbc")
+            ]
+
+        if file_names:
             for database in file_names:
                 item = QtWidgets.QListWidgetItem()
                 widget = DatabaseItem(database, bus_type="CAN")
@@ -2006,6 +2025,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             "ARXML or DBC database (*.dbc *.arxml);;LDF database (*.ldf);;All supported formats (*.dbc *.arxml *ldf)",
             "All supported formats (*.dbc *.arxml *ldf)",
         )
+
+        if file_names:
+            file_names = [
+                name
+                for name in file_names
+                if Path(name).suffix.lower() in (".arxml", ".dbc", ".ldf")
+            ]
 
         if file_names:
             for database in file_names:

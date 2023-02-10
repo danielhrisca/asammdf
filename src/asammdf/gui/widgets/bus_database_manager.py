@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from pathlib import Path
+
 from PySide6 import QtCore, QtWidgets
 
 from ..ui.bus_database_manager import Ui_BusDatabaseManager
@@ -65,6 +67,13 @@ class BusDatabaseManager(Ui_BusDatabaseManager, QtWidgets.QWidget):
         )
 
         if file_names:
+            file_names = [
+                name
+                for name in file_names
+                if Path(name).suffix.lower() in (".arxml", ".dbc")
+            ]
+
+        if file_names:
             for database in file_names:
                 item = QtWidgets.QListWidgetItem()
                 widget = DatabaseItem(database, bus_type="CAN")
@@ -81,6 +90,13 @@ class BusDatabaseManager(Ui_BusDatabaseManager, QtWidgets.QWidget):
             "ARXML or DBC database (*.dbc *.arxml);;LDF database (*.ldf);;All supported formats (*.dbc *.arxml *ldf)",
             "All supported formats (*.dbc *.arxml *ldf)",
         )
+
+        if file_names:
+            file_names = [
+                name
+                for name in file_names
+                if Path(name).suffix.lower() in (".arxml", ".dbc", ".ldf")
+            ]
 
         if file_names:
             for database in file_names:
