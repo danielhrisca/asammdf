@@ -9,6 +9,7 @@ import json
 import math
 import os
 from pathlib import Path
+import random
 import re
 import sys
 from textwrap import dedent, indent
@@ -1489,6 +1490,90 @@ def generate_python_function(definition, in_globals=None):
                         break
 
     return func, trace
+
+
+def check_generated_function(func, trace, function_source, silent, parent=None):
+    if trace is not None:
+        ErrorDialog(
+            title="Function definition check",
+            message="The syntax is not correct. The following error was found",
+            trace=f"{trace}\n\nin the function\n\n{function_source}",
+            parent=parent,
+        ).exec()
+        return False, None
+
+    args = inspect.signature(func)
+    kwargs = {}
+    for i, (arg_name, arg) in enumerate(args.parameters.items()):
+        kwargs[arg_name] = random.randint(1, 2**64)
+
+    trace = ""
+
+    # try with sample by sample call
+    sample_by_sample = True
+    try:
+        func(**kwargs)
+    except ZeroDivisionError:
+        pass
+    except:
+        sample_by_sample = False
+        trace = format_exc()
+
+    kwargs = {}
+    for i, (arg_name, arg) in enumerate(args.parameters.items()):
+        kwargs[arg_name] = np.ones(10000, dtype="i1") * random.randint(1, 2**64)
+
+    # try with sample by sample call
+    complete_signal = True
+    try:
+        func(**kwargs)
+    except ZeroDivisionError:
+        pass
+    except:
+        complete_signal = False
+        if trace:
+            trace += "\n\n" + format_exc()
+        else:
+            trace = format_exc()
+
+    if not sample_by_sample and not complete_signal:
+        ErrorDialog(
+            title="Function definition check",
+            message="The syntax is not correct. The following error was found",
+            trace=f"{trace}\n\nin the function\n\n{function_source}",
+            parent=parent,
+        ).exec()
+
+        return False, None
+
+    elif not sample_by_sample:
+        if not silent:
+            QtWidgets.QMessageBox.information(
+                parent,
+                "Function definition check",
+                "The function definition appears to be correct only for complete signal mode.",
+            )
+
+        return True, func
+
+    elif not complete_signal:
+        if not silent:
+            QtWidgets.QMessageBox.information(
+                parent,
+                "Function definition check",
+                "The function definition appears to be correct only for sample by sample mode.",
+            )
+
+        return True, func
+    else:
+        if not silent:
+            QtWidgets.QMessageBox.information(
+                parent,
+                "Function definition check",
+                "The function definition appears to be correct for both sample by sample and complete signal modes.",
+            )
+
+        return True, func
 
 
 if __name__ == "__main__":

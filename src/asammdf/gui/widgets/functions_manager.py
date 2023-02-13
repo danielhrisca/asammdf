@@ -4,6 +4,7 @@ import json
 import math
 import os
 from pathlib import Path
+import random
 from traceback import format_exc
 
 from natsort import natsorted
@@ -12,7 +13,12 @@ import pandas as pd
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..ui.functions_manager import Ui_FunctionsManager
-from ..utils import ErrorDialog, FUNC_NAME, generate_python_function
+from ..utils import (
+    check_generated_function,
+    ErrorDialog,
+    FUNC_NAME,
+    generate_python_function,
+)
 from .python_highlighter import PythonHighlighter
 
 
@@ -135,59 +141,9 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         function_source = self.function_definition.toPlainText().replace("\t", "    ")
         func, trace = generate_python_function(function_source, in_globals=_globals)
 
-        if trace is not None:
-            ErrorDialog(
-                title="Function definition check",
-                message="The syntax is not correct. The following error was found",
-                trace=f"{trace}\n\nin the function\n\n{function_source}",
-                parent=self,
-            ).exec()
-            return False, None
-
-        try:
-            func()
-        except ZeroDivisionError:
-            pass
-        except ValueError:
-            trace = format_exc()
-            try:
-                args = inspect.signature(func)
-                kwargs = {}
-                for i, (arg_name, arg) in enumerate(args.parameters.items()):
-                    kwargs[arg_name] = np.ones(1, dtype="i1") * arg.default
-                func(**kwargs)
-
-            except:
-                ErrorDialog(
-                    title="Function definition check",
-                    message="The syntax is not correct. The following error was found",
-                    trace=f"{trace}\n\nin the function\n\n{function_source}",
-                    parent=self,
-                ).exec()
-
-                return False, None
-
-        except:
-            trace = format_exc()
-
-            ErrorDialog(
-                title="Function definition check",
-                message="The syntax is not correct. The following error was found",
-                trace=f"{trace}\n\nin the function\n\n{function_source}",
-                parent=self,
-            ).exec()
-
-            return False, None
-
-        else:
-            if not silent:
-                QtWidgets.QMessageBox.information(
-                    self,
-                    "Function definition check",
-                    "The function definition appears to be correct.",
-                )
-
-        return True, func
+        return check_generated_function(
+            func, trace, function_source, silent, parent=self
+        )
 
     def definitions_deleted(self, deleted):
         count = self.functions_list.count()

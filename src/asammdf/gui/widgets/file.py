@@ -992,178 +992,180 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "All file types (*.cfg *.dsp *.dspf *.lab *.txt)",
             )
 
-        if file_name and Path(file_name).suffix.lower() in (
-            ".cfg",
-            ".dsp",
-            ".dspf",
-            ".lab",
-            ".txt",
-        ):
-            if not isinstance(file_name, dict):
-                file_name = Path(file_name)
+            if not file_name or Path(file_name).suffix.lower() not in (
+                ".cfg",
+                ".dsp",
+                ".dspf",
+                ".lab",
+                ".txt",
+            ):
+                return
 
-                extension = file_name.suffix.lower()
-                if extension == ".dsp":
-                    palette = self.palette()
-                    info = load_dsp(file_name, palette.color(palette.Base).name())
-                    if info.get("has_virtual_channels", False):
-                        message = (
-                            "The DSP file contains virtual channels that are not supported.\n"
-                            'For tracking purpose, the virtual channels will appear as regular (no computation) channels inside the group "Datalyser Virtual channels"'
+        if not isinstance(file_name, dict):
+            file_name = Path(file_name)
+
+            extension = file_name.suffix.lower()
+            if extension == ".dsp":
+                palette = self.palette()
+                info = load_dsp(file_name, palette.color(palette.Base).name())
+                if info.get("has_virtual_channels", False):
+                    message = (
+                        "The DSP file contains virtual channels that are not supported.\n"
+                        'For tracking purpose, the virtual channels will appear as regular (no computation) channels inside the group "Datalyser Virtual channels"'
+                    )
+                    c_functions = info.get("c_functions", [])
+
+                    msg = QtWidgets.QMessageBox(
+                        QtWidgets.QMessageBox.Information,
+                        "DSP loading warning",
+                        message,
+                        parent=self,
+                    )
+                    if c_functions:
+                        msg.setInformativeText(
+                            'The user defined C function will NOT be available. Press "Show details" for the complete list'
                         )
-                        c_functions = info.get("c_functions", [])
+                        msg.setDetailedText("\n".join(c_functions))
 
-                        msg = QtWidgets.QMessageBox(
-                            QtWidgets.QMessageBox.Information,
-                            "DSP loading warning",
-                            message,
-                            parent=self,
-                        )
-                        if c_functions:
-                            msg.setInformativeText(
-                                'The user defined C function will NOT be available. Press "Show details" for the complete list'
-                            )
-                            msg.setDetailedText("\n".join(c_functions))
+                    msg.exec()
+                channels = info.get("display", [])
 
-                        msg.exec()
-                    channels = info.get("display", [])
+            elif extension == ".lab":
+                info = load_lab(file_name)
+                if info:
+                    section, ok = QtWidgets.QInputDialog.getItem(
+                        None,
+                        "Select section",
+                        "Available sections:",
+                        list(info),
+                        0,
+                        False,
+                    )
+                    if ok:
+                        channels = info[section]
+                    else:
+                        return
 
-                elif extension == ".lab":
-                    info = load_lab(file_name)
-                    if info:
-                        section, ok = QtWidgets.QInputDialog.getItem(
-                            None,
-                            "Select section",
-                            "Available sections:",
-                            list(info),
-                            0,
-                            False,
-                        )
-                        if ok:
-                            channels = info[section]
-                        else:
-                            return
-
-                elif extension in (".cfg", ".txt", ".dspf"):
-                    with open(file_name, "r") as infile:
-                        info = json.load(infile)
-                    channels = info.get("selected_channels", [])
-                else:
-                    return
-
-                worker = sha1()
-                worker.update(file_name.read_bytes())
-                self.loaded_display_file = file_name, worker.hexdigest()
-
-            else:
-                extension = None
-                info = file_name
+            elif extension in (".cfg", ".txt", ".dspf"):
+                with open(file_name, "r") as infile:
+                    info = json.load(infile)
                 channels = info.get("selected_channels", [])
-                self.loaded_display_file = Path(info.get("display_file_name", "")), b""
+            else:
+                return
 
-                self.functions.update(info.get("functions", {}))
+            worker = sha1()
+            worker.update(file_name.read_bytes())
+            self.loaded_display_file = file_name, worker.hexdigest()
 
-            if channels:
-                iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
+        else:
+            extension = None
+            info = file_name
+            channels = info.get("selected_channels", [])
+            self.loaded_display_file = Path(info.get("display_file_name", "")), b""
 
-                if self.channel_view.currentText() == "Internal file structure":
-                    while iterator.value():
-                        item = iterator.value()
-                        if item.parent() is None:
-                            iterator += 1
-                            continue
+            self.functions.update(info.get("functions", {}))
 
-                        channel_name = item.text(0)
-                        if channel_name in channels:
-                            item.setCheckState(0, QtCore.Qt.Checked)
-                            channels.pop(channels.index(channel_name))
-                        else:
-                            item.setCheckState(0, QtCore.Qt.Unchecked)
+        if channels:
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
+            if self.channel_view.currentText() == "Internal file structure":
+                while iterator.value():
+                    item = iterator.value()
+                    if item.parent() is None:
                         iterator += 1
-                else:
-                    while iterator.value():
-                        item = iterator.value()
+                        continue
 
-                        channel_name = item.text(0)
-                        if channel_name in channels:
-                            item.setCheckState(0, QtCore.Qt.Checked)
-                            channels.pop(channels.index(channel_name))
-                        else:
-                            item.setCheckState(0, QtCore.Qt.Unchecked)
+                    channel_name = item.text(0)
+                    if channel_name in channels:
+                        item.setCheckState(0, QtCore.Qt.Checked)
+                        channels.pop(channels.index(channel_name))
+                    else:
+                        item.setCheckState(0, QtCore.Qt.Unchecked)
 
-                        iterator += 1
+                    iterator += 1
+            else:
+                while iterator.value():
+                    item = iterator.value()
 
-            if extension in (".dspf", ".dsp"):
-                new_functions = {}
+                    channel_name = item.text(0)
+                    if channel_name in channels:
+                        item.setCheckState(0, QtCore.Qt.Checked)
+                        channels.pop(channels.index(channel_name))
+                    else:
+                        item.setCheckState(0, QtCore.Qt.Unchecked)
 
-                if "functions" in info:
-                    for name, definition in info["functions"].items():
-                        if name in self.functions:
-                            if self.functions[name] != definition:
-                                new_functions[os.urandom(6).hex()] = {
-                                    "name": name,
-                                    "definition": definition,
-                                }
-                        else:
+                    iterator += 1
+
+        if extension in (".dspf", ".dsp"):
+            new_functions = {}
+
+            if "functions" in info:
+                for name, definition in info["functions"].items():
+                    if name in self.functions:
+                        if self.functions[name] != definition:
                             new_functions[os.urandom(6).hex()] = {
                                 "name": name,
                                 "definition": definition,
                             }
+                    else:
+                        new_functions[os.urandom(6).hex()] = {
+                            "name": name,
+                            "definition": definition,
+                        }
 
-                else:
-                    for window in info["windows"]:
-                        if window["type"] == "Plot":
-                            for name, definition in get_functions(
-                                window["configuration"]["channels"]
-                            ).items():
-                                if name in self.functions:
-                                    if self.functions[name] != definition:
-                                        new_functions[os.urandom(6).hex()] = {
-                                            "name": name,
-                                            "definition": definition,
-                                        }
-                                else:
+            else:
+                for window in info["windows"]:
+                    if window["type"] == "Plot":
+                        for name, definition in get_functions(
+                            window["configuration"]["channels"]
+                        ).items():
+                            if name in self.functions:
+                                if self.functions[name] != definition:
                                     new_functions[os.urandom(6).hex()] = {
                                         "name": name,
                                         "definition": definition,
                                     }
+                            else:
+                                new_functions[os.urandom(6).hex()] = {
+                                    "name": name,
+                                    "definition": definition,
+                                }
 
-                if new_functions:
-                    self.update_functions({}, new_functions)
+            if new_functions:
+                self.update_functions({}, new_functions)
 
-            self.clear_windows()
+        self.clear_windows()
 
-            windows = info.get("windows", [])
-            if windows:
-                count = len(windows)
+        windows = info.get("windows", [])
+        if windows:
+            count = len(windows)
 
-                progress = setup_progress(
-                    parent=self,
-                    title=f"Loading display windows",
-                    message=f"",
-                    icon_name="window",
-                )
-                progress.setRange(0, count - 1)
-                progress.resize(500, progress.height())
+            progress = setup_progress(
+                parent=self,
+                title=f"Loading display windows",
+                message=f"",
+                icon_name="window",
+            )
+            progress.setRange(0, count - 1)
+            progress.resize(500, progress.height())
 
-                try:
-                    for i, window in enumerate(windows, 1):
-                        window = _process_dict(window)
-                        window_type = window["type"]
-                        window_title = window["title"]
-                        progress.setLabelText(
-                            f"Loading {window_type} window <{window_title}>"
-                        )
-                        QtWidgets.QApplication.processEvents()
-                        self.load_window(window)
-                        progress.setValue(i)
-                except:
-                    print(format_exc())
-                finally:
-                    progress.cancel()
+            try:
+                for i, window in enumerate(windows, 1):
+                    window = _process_dict(window)
+                    window_type = window["type"]
+                    window_title = window["title"]
+                    progress.setLabelText(
+                        f"Loading {window_type} window <{window_title}>"
+                    )
+                    QtWidgets.QApplication.processEvents()
+                    self.load_window(window)
+                    progress.setValue(i)
+            except:
+                print(format_exc())
+            finally:
+                progress.cancel()
 
-            self.display_file_modified.emit(Path(self.loaded_display_file[0]).name)
+        self.display_file_modified.emit(Path(self.loaded_display_file[0]).name)
 
     def save_filter_list(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -1229,130 +1231,130 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "CANape Lab file (*.lab)",
             )
 
-        if file_name and Path(file_name).suffix.lower() in (
-            ".cfg",
-            ".dsp",
-            ".dspf",
-            ".lab",
-            ".txt",
-        ):
-            if not isinstance(file_name, dict):
-                file_name = Path(file_name)
+            if file_name is None or Path(file_name).suffix.lower() not in (
+                ".cfg",
+                ".dsp",
+                ".dspf",
+                ".lab",
+                ".txt",
+            ):
+                return
 
-                extension = file_name.suffix.lower()
-                if extension == ".dsp":
-                    channels = load_dsp(file_name, flat=True)
+        if not isinstance(file_name, dict):
+            file_name = Path(file_name)
 
-                elif extension == ".dspf":
-                    with open(file_name, "r") as infile:
-                        info = json.load(infile)
+            extension = file_name.suffix.lower()
+            if extension == ".dsp":
+                channels = load_dsp(file_name, flat=True)
 
-                    channels = []
-                    for window in info["windows"]:
-                        if window["type"] == "Plot":
-                            channels.extend(
-                                flatten_dsp(window["configuration"]["channels"])
-                            )
-                        elif window["type"] == "Numeric":
-                            channels.extend(
-                                [
-                                    item["name"]
-                                    for item in window["configuration"]["channels"]
-                                ]
-                            )
-                        elif window["type"] == "Tabular":
-                            channels.extend(window["configuration"]["channels"])
+            elif extension == ".dspf":
+                with open(file_name, "r") as infile:
+                    info = json.load(infile)
 
-                elif extension == ".lab":
-                    info = load_lab(file_name)
-                    if info:
-                        if len(info) > 1:
-                            section, ok = QtWidgets.QInputDialog.getItem(
-                                self,
-                                "Please select the ASAP section name",
-                                "Available sections:",
-                                list(info),
-                                0,
-                                False,
-                            )
-                            if ok:
-                                channels = info[section]
-                            else:
-                                return
+                channels = []
+                for window in info["windows"]:
+                    if window["type"] == "Plot":
+                        channels.extend(
+                            flatten_dsp(window["configuration"]["channels"])
+                        )
+                    elif window["type"] == "Numeric":
+                        channels.extend(
+                            [
+                                item["name"]
+                                for item in window["configuration"]["channels"]
+                            ]
+                        )
+                    elif window["type"] == "Tabular":
+                        channels.extend(window["configuration"]["channels"])
+
+            elif extension == ".lab":
+                info = load_lab(file_name)
+                if info:
+                    if len(info) > 1:
+                        section, ok = QtWidgets.QInputDialog.getItem(
+                            self,
+                            "Please select the ASAP section name",
+                            "Available sections:",
+                            list(info),
+                            0,
+                            False,
+                        )
+                        if ok:
+                            channels = info[section]
                         else:
-                            channels = list(info.values())[0]
+                            return
+                    else:
+                        channels = list(info.values())[0]
 
-                elif extension == ".cfg":
+            elif extension == ".cfg":
+                with open(file_name, "r") as infile:
+                    info = json.load(infile)
+                channels = info.get("selected_channels", [])
+            elif extension == ".txt":
+                try:
                     with open(file_name, "r") as infile:
                         info = json.load(infile)
                     channels = info.get("selected_channels", [])
-                elif extension == ".txt":
-                    try:
-                        with open(file_name, "r") as infile:
-                            info = json.load(infile)
-                        channels = info.get("selected_channels", [])
-                    except:
-                        with open(file_name, "r") as infile:
-                            channels = [line.strip() for line in infile.readlines()]
-                            channels = [name for name in channels if name]
+                except:
+                    with open(file_name, "r") as infile:
+                        channels = [line.strip() for line in infile.readlines()]
+                        channels = [name for name in channels if name]
+
+        else:
+            info = file_name
+            channels = info.get("selected_channels", [])
+
+        if channels:
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
+
+            if self.filter_view.currentText() == "Internal file structure":
+                while iterator.value():
+                    item = iterator.value()
+                    if item.parent() is None:
+                        iterator += 1
+                        continue
+
+                    channel_name = item.text(0)
+                    if channel_name in channels:
+                        item.setCheckState(0, QtCore.Qt.Checked)
+                        channels.pop(channels.index(channel_name))
+                    else:
+                        item.setCheckState(0, QtCore.Qt.Unchecked)
+
+                    iterator += 1
+            elif self.filter_view.currentText() == "Natural sort":
+                while iterator.value():
+                    item = iterator.value()
+
+                    channel_name = item.text(0)
+                    if channel_name in channels:
+                        item.setCheckState(0, QtCore.Qt.Checked)
+                        channels.pop(channels.index(channel_name))
+                    else:
+                        item.setCheckState(0, QtCore.Qt.Unchecked)
+
+                    iterator += 1
 
             else:
-                info = file_name
-                channels = info.get("selected_channels", [])
+                items = []
+                self.filter_tree.clear()
 
-            if channels:
-                iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
+                for i, gp in enumerate(self.mdf.groups):
+                    for j, ch in enumerate(gp.channels):
+                        if ch.name in channels:
+                            entry = i, j
+                            channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
+                            channel.setText(0, ch.name)
+                            channel.setCheckState(0, QtCore.Qt.Checked)
+                            items.append(channel)
 
-                if self.filter_view.currentText() == "Internal file structure":
-                    while iterator.value():
-                        item = iterator.value()
-                        if item.parent() is None:
-                            iterator += 1
-                            continue
+                            channels.pop(channels.index(ch.name))
 
-                        channel_name = item.text(0)
-                        if channel_name in channels:
-                            item.setCheckState(0, QtCore.Qt.Checked)
-                            channels.pop(channels.index(channel_name))
-                        else:
-                            item.setCheckState(0, QtCore.Qt.Unchecked)
-
-                        iterator += 1
-                elif self.filter_view.currentText() == "Natural sort":
-                    while iterator.value():
-                        item = iterator.value()
-
-                        channel_name = item.text(0)
-                        if channel_name in channels:
-                            item.setCheckState(0, QtCore.Qt.Checked)
-                            channels.pop(channels.index(channel_name))
-                        else:
-                            item.setCheckState(0, QtCore.Qt.Unchecked)
-
-                        iterator += 1
-
+                if len(items) < 30000:
+                    items = natsorted(items, key=lambda x: x.name)
                 else:
-                    items = []
-                    self.filter_tree.clear()
-
-                    for i, gp in enumerate(self.mdf.groups):
-                        for j, ch in enumerate(gp.channels):
-                            if ch.name in channels:
-                                entry = i, j
-                                channel = TreeItem(
-                                    entry, ch.name, origin_uuid=self.uuid
-                                )
-                                channel.setText(0, ch.name)
-                                channel.setCheckState(0, QtCore.Qt.Checked)
-                                items.append(channel)
-
-                                channels.pop(channels.index(ch.name))
-
-                    if len(items) < 30000:
-                        items = natsorted(items, key=lambda x: x.name)
-                    else:
-                        items.sort(key=lambda x: x.name)
-                    self.filter_tree.addTopLevelItems(items)
+                    items.sort(key=lambda x: x.name)
+                self.filter_tree.addTopLevelItems(items)
 
     def compute_cut_hints(self):
         t_min = []
