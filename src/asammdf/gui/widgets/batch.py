@@ -1853,101 +1853,101 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "CANape Lab file (*.lab)",
             )
 
-        if file_name and Path(file_name).suffix.lower() in (
-            ".cfg",
-            ".dsp",
-            ".dspf",
-            ".lab",
-        ):
-            if not isinstance(file_name, dict):
-                file_name = Path(file_name)
+            if file_name is None or Path(file_name).suffix.lower() not in (
+                ".cfg",
+                ".dsp",
+                ".dspf",
+                ".lab",
+            ):
+                return
 
-                extension = file_name.suffix.lower()
-                if extension == ".dsp":
-                    info = load_dsp(file_name)
-                    channels = info.get("display", [])
+        if not isinstance(file_name, dict):
+            file_name = Path(file_name)
 
-                elif extension == ".lab":
-                    info = load_lab(file_name)
-                    if info:
-                        if len(info) > 1:
-                            section, ok = QtWidgets.QInputDialog.getItem(
-                                None,
-                                "Please select the section",
-                                "Available sections:",
-                                list(info),
-                                0,
-                                False,
-                            )
-                            if ok:
-                                channels = info[section]
-                            else:
-                                return
+            extension = file_name.suffix.lower()
+            if extension == ".dsp":
+                info = load_dsp(file_name)
+                channels = info.get("display", [])
+
+            elif extension == ".lab":
+                info = load_lab(file_name)
+                if info:
+                    if len(info) > 1:
+                        section, ok = QtWidgets.QInputDialog.getItem(
+                            None,
+                            "Please select the section",
+                            "Available sections:",
+                            list(info),
+                            0,
+                            False,
+                        )
+                        if ok:
+                            channels = info[section]
                         else:
-                            channels = list(info.values())[0]
+                            return
+                    else:
+                        channels = list(info.values())[0]
 
-                elif extension in (".cfg", ".dspf"):
-                    with open(file_name, "r") as infile:
-                        info = json.load(infile)
+            elif extension in (".cfg", ".dspf"):
+                with open(file_name, "r") as infile:
+                    info = json.load(infile)
 
-                    channels = info.get("selected_channels", [])
-                else:
-                    channels = []
+                channels = info.get("selected_channels", [])
+            else:
+                channels = []
+
+        else:
+            info = file_name
+            channels = info.get("selected_channels", [])
+
+        if channels:
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
+
+            if self.filter_view.currentText() == "Internal file structure":
+                while iterator.value():
+                    item = iterator.value()
+                    if item.parent() is None:
+                        iterator += 1
+                        continue
+
+                    channel_name = item.text(0)
+                    if channel_name in channels:
+                        item.setCheckState(0, QtCore.Qt.Checked)
+                        channels.pop(channels.index(channel_name))
+                    else:
+                        item.setCheckState(0, QtCore.Qt.Unchecked)
+
+                    iterator += 1
+            elif self.filter_view.currentText() == "Natural sort":
+                while iterator.value():
+                    item = iterator.value()
+
+                    channel_name = item.text(0)
+                    if channel_name in channels:
+                        item.setCheckState(0, QtCore.Qt.Checked)
+                        channels.pop(channels.index(channel_name))
+                    else:
+                        item.setCheckState(0, QtCore.Qt.Unchecked)
+
+                    iterator += 1
 
             else:
-                info = file_name
-                channels = info.get("selected_channels", [])
+                items = []
+                self.filter_tree.clear()
 
-            if channels:
-                iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
+                for i, gp in enumerate(self.mdf.groups):
+                    for j, ch in enumerate(gp.channels):
+                        if ch.name in channels:
+                            entry = i, j
+                            channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
+                            channel.setText(0, ch.name)
+                            channel.setCheckState(0, QtCore.Qt.Checked)
+                            items.append(channel)
 
-                if self.filter_view.currentText() == "Internal file structure":
-                    while iterator.value():
-                        item = iterator.value()
-                        if item.parent() is None:
-                            iterator += 1
-                            continue
+                            channels.pop(channels.index(ch.name))
 
-                        channel_name = item.text(0)
-                        if channel_name in channels:
-                            item.setCheckState(0, QtCore.Qt.Checked)
-                            channels.pop(channels.index(channel_name))
-                        else:
-                            item.setCheckState(0, QtCore.Qt.Unchecked)
-
-                        iterator += 1
-                elif self.filter_view.currentText() == "Natural sort":
-                    while iterator.value():
-                        item = iterator.value()
-
-                        channel_name = item.text(0)
-                        if channel_name in channels:
-                            item.setCheckState(0, QtCore.Qt.Checked)
-                            channels.pop(channels.index(channel_name))
-                        else:
-                            item.setCheckState(0, QtCore.Qt.Unchecked)
-
-                        iterator += 1
-
+                if len(items) < 30000:
+                    items = natsorted(items, key=lambda x: x.name)
                 else:
-                    items = []
-                    self.filter_tree.clear()
-
-                    for i, gp in enumerate(self.mdf.groups):
-                        for j, ch in enumerate(gp.channels):
-                            if ch.name in channels:
-                                entry = i, j
-                                channel = TreeItem(
-                                    entry, ch.name, origin_uuid=self.uuid
-                                )
-                                channel.setText(0, ch.name)
-                                channel.setCheckState(0, QtCore.Qt.Checked)
-                                items.append(channel)
-
-                                channels.pop(channels.index(ch.name))
-
-                    if len(items) < 30000:
-                        items = natsorted(items, key=lambda x: x.name)
-                    else:
-                        items.sort(key=lambda x: x.name)
-                    self.filter_tree.addTopLevelItems(items)
+                    items.sort(key=lambda x: x.name)
+                self.filter_tree.addTopLevelItems(items)

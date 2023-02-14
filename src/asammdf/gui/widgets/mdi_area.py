@@ -270,6 +270,7 @@ def extract_signals_using_pattern(
         uuid = os.urandom(6).hex()
         sig.uuid = uuid
         sig.format = integer_format
+        sig.ranges = []
         output_signals[uuid] = sig
 
     return output_signals
@@ -1944,15 +1945,8 @@ class WithMDIArea:
 
             signals.extend(selected_signals)
 
-            for (
-                name,
-                pattern_info,
-                channels,
-                origin_uuid,
-                type_,
-                ranges,
-            ) in get_pattern_groups(names):
-                file_info = self.file_by_uuid(origin_uuid)
+            for pattern_group in get_pattern_groups(names):
+                file_info = self.file_by_uuid(uuid)
                 if not file_info:
                     continue
 
@@ -1961,7 +1955,7 @@ class WithMDIArea:
                 signals.extend(
                     extract_signals_using_pattern(
                         file.mdf,
-                        pattern_info,
+                        pattern_group["pattern"],
                         file.ignore_value2text_conversions,
                         file.uuid,
                     ).values()
@@ -2576,6 +2570,19 @@ class WithMDIArea:
 
             file_index, file = file_info
             start.append(file.mdf.header.start_time)
+
+            for pattern_group in get_pattern_groups(names):
+                uuids_signals.extend(
+                    [
+                        (sig.name, sig.group_index, sig.channel_index)
+                        for sig in extract_signals_using_pattern(
+                            file.mdf,
+                            pattern_group["pattern"],
+                            file.ignore_value2text_conversions,
+                            file.uuid,
+                        ).values()
+                    ]
+                )
 
             uuids_signals = [
                 entry
@@ -3826,7 +3833,11 @@ class WithMDIArea:
         if not self.subplots_link:
             return
 
-        active_widget = self.mdi_area.activeSubWindow().widget()
+        active_window = self.mdi_area.activeSubWindow()
+        if active_window is None:
+            return
+
+        active_widget = active_window.widget()
 
         if widget is not active_widget:
             return
@@ -3840,7 +3851,11 @@ class WithMDIArea:
         if not self.subplots_link:
             return
 
-        active_widget = self.mdi_area.activeSubWindow().widget()
+        active_window = self.mdi_area.activeSubWindow()
+        if active_window is None:
+            return
+
+        active_widget = active_window.widget()
 
         if widget is not active_widget:
             return
