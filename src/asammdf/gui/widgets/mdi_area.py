@@ -1097,11 +1097,13 @@ class WithMDIArea:
                         vals = data["CAN_DataFrame.ID"].astype("u4") & 0x1FFFFFFF
                         columns["ID"] = vals
                         if frame_map:
-                            columns["Name"] = [frame_map[_id] for _id in vals]
+                            columns["Name"] = [
+                                frame_map.get(_id, "") for _id in vals.tolist()
+                            ]
 
                         columns["DLC"] = data["CAN_DataFrame.DLC"].astype("u1")
                         data_length = (
-                            data["CAN_DataFrame.DataLength"].astype("u2").tolist()
+                            data["CAN_DataFrame.DataLength"].astype("u1").tolist()
                         )
                         columns["Data Length"] = data_length
 
@@ -1160,22 +1162,30 @@ class WithMDIArea:
                         vals = data["CAN_RemoteFrame.ID"].astype("u4") & 0x1FFFFFFF
                         columns["ID"] = vals
                         if frame_map:
-                            columns["Name"] = [frame_map[_id] for _id in vals]
+                            columns["Name"] = [
+                                frame_map.get(_id, "") for _id in vals.tolist()
+                            ]
 
                         columns["DLC"] = data["CAN_RemoteFrame.DLC"].astype("u1")
                         data_length = (
-                            data["CAN_RemoteFrame.DataLength"].astype("u2").tolist()
+                            data["CAN_RemoteFrame.DataLength"].astype("u1").tolist()
                         )
                         columns["Data Length"] = data_length
                         columns["Event Type"] = "Remote Frame"
 
                         if "CAN_RemoteFrame.Dir" in names:
-                            columns["Direction"] = [
-                                "TX" if dir else "RX"
-                                for dir in data["CAN_RemoteFrame.Dir"]
-                                .astype("u1")
-                                .tolist()
-                            ]
+                            if data["CAN_RemoteFrame.Dir"].dtype.kind == "S":
+                                columns["Direction"] = [
+                                    v.decode("utf-8")
+                                    for v in data["CAN_RemoteFrame.Dir"].tolist()
+                                ]
+                            else:
+                                columns["Direction"] = [
+                                    "TX" if dir else "RX"
+                                    for dir in data["CAN_RemoteFrame.Dir"]
+                                    .astype("u1")
+                                    .tolist()
+                                ]
 
                         vals = None
                         data_length = None
@@ -1192,14 +1202,16 @@ class WithMDIArea:
                             vals = data["CAN_ErrorFrame.ID"].astype("u4") & 0x1FFFFFFF
                             columns["ID"] = vals
                             if frame_map:
-                                columns["Name"] = [frame_map[_id] for _id in vals]
+                                columns["Name"] = [
+                                    frame_map.get(_id, "") for _id in vals.tolist()
+                                ]
 
                         if "CAN_ErrorFrame.DLC" in names:
                             columns["DLC"] = data["CAN_ErrorFrame.DLC"].astype("u1")
 
                         if "CAN_ErrorFrame.DataLength" in names:
                             columns["Data Length"] = (
-                                data["CAN_ErrorFrame.DataLength"].astype("u2").tolist()
+                                data["CAN_ErrorFrame.DataLength"].astype("u1").tolist()
                             )
 
                         columns["Event Type"] = "Error Frame"
@@ -1216,12 +1228,18 @@ class WithMDIArea:
                             columns["Details"] = vals
 
                         if "CAN_ErrorFrame.Dir" in names:
-                            columns["Direction"] = [
-                                "TX" if dir else "RX"
-                                for dir in data["CAN_ErrorFrame.Dir"]
-                                .astype("u1")
-                                .tolist()
-                            ]
+                            if data["CAN_ErrorFrame.Dir"].dtype.kind == "S":
+                                columns["Direction"] = [
+                                    v.decode("utf-8")
+                                    for v in data["CAN_ErrorFrame.Dir"].tolist()
+                                ]
+                            else:
+                                columns["Direction"] = [
+                                    "TX" if dir else "RX"
+                                    for dir in data["CAN_ErrorFrame.Dir"]
+                                    .astype("u1")
+                                    .tolist()
+                                ]
 
                     dfs.append(pd.DataFrame(columns, index=df_index))
 
@@ -1352,9 +1370,9 @@ class WithMDIArea:
         #     sys.intern(string)
 
         for _ in range(count):
-            item, names = items.pop()
+            data, names = items.pop()
 
-            frame_map = None
+            frame_map = {}
 
             # TO DO : add flexray fibex support
             # if item.attachment and item.attachment[0]:
@@ -1367,64 +1385,91 @@ class WithMDIArea:
             #         for name in frame_map.values():
             #             sys.intern(name)
 
-            if item.name == "FLX_Frame":
-                index = np.searchsorted(df_index, item.timestamps)
+            if data.name == "FLX_Frame":
+                index = np.searchsorted(df_index, data.timestamps)
 
-                vals = item["FLX_Frame.FlxChannel"].astype("u1")
+                vals = data["FLX_Frame.FlxChannel"].astype("u1")
 
                 vals = [f"FlexRay {chn}" for chn in vals.tolist()]
                 columns["Bus"][index] = vals
 
-                vals = item["FLX_Frame.ID"].astype("u2")
+                vals = data["FLX_Frame.ID"].astype("u2")
                 columns["ID"][index] = vals
                 if frame_map:
-                    columns["Name"][index] = [frame_map[_id] for _id in vals]
+                    columns["Name"][index] = [
+                        frame_map.get(_id, "") for _id in vals.tolist()
+                    ]
 
-                vals = item["FLX_Frame.Cycle"].astype("u1")
+                vals = data["FLX_Frame.Cycle"].astype("u1")
                 columns["Cycle"][index] = vals
 
-                data_length = item["FLX_Frame.PayloadLength"].astype("u1").tolist()
+                data_length = data["FLX_Frame.DataLength"].astype("u1")
                 columns["Data Length"][index] = data_length
 
                 vals = csv_bytearray2hex(
-                    pd.Series(list(item["FLX_Frame.DataBytes"])),
+                    pd.Series(list(data["FLX_Frame.DataBytes"])),
                     data_length,
                 )
                 columns["Data Bytes"][index] = vals
 
-                vals = item["FLX_Frame.HeaderCRC"].astype("u2")
+                vals = data["FLX_Frame.HeaderCRC"].astype("u2")
                 columns["Header CRC"][index] = vals
+
+                if "FLX_Frame.Dir" in names:
+                    if data["FLX_Frame.Dir"].dtype.kind == "S":
+                        columns["Direction"][index] = [
+                            v.decode("utf-8") for v in data["FLX_Frame.Dir"].tolist()
+                        ]
+                    else:
+                        columns["Direction"][index] = [
+                            "TX" if dir else "RX"
+                            for dir in data["FLX_Frame.Dir"].astype("u1").tolist()
+                        ]
 
                 vals = None
                 data_length = None
 
-            elif item.name == "FLX_NullFrame":
-                index = np.searchsorted(df_index, item.timestamps)
+            elif data.name == "FLX_NullFrame":
+                index = np.searchsorted(df_index, data.timestamps)
 
-                vals = item["FLX_NullFrame.FlxChannel"].astype("u1")
+                vals = data["FLX_NullFrame.FlxChannel"].astype("u1")
                 vals = [f"FlexRay {chn}" for chn in vals.tolist()]
                 columns["Bus"][index] = vals
 
-                vals = item["FLX_NullFrame.ID"].astype("u2")
+                vals = data["FLX_NullFrame.ID"].astype("u2")
                 columns["ID"][index] = vals
                 if frame_map:
-                    columns["Name"][index] = [frame_map[_id] for _id in vals]
+                    columns["Name"][index] = [
+                        frame_map.get(_id, "") for _id in vals.tolist()
+                    ]
 
-                vals = item["FLX_NullFrame.Cycle"].astype("u1")
+                vals = data["FLX_NullFrame.Cycle"].astype("u1")
                 columns["Cycle"][index] = vals
 
                 columns["Event Type"][index] = "FlexRay NullFrame"
 
-                vals = item["FLX_NullFrame.HeaderCRC"].astype("u2")
+                vals = data["FLX_NullFrame.HeaderCRC"].astype("u2")
                 columns["Header CRC"][index] = vals
+
+                if "FLX_NullFrame.Dir" in names:
+                    if data["FLX_NullFrame.Dir"].dtype.kind == "S":
+                        columns["Direction"][index] = [
+                            v.decode("utf-8")
+                            for v in data["FLX_NullFrame.Dir"].tolist()
+                        ]
+                    else:
+                        columns["Direction"][index] = [
+                            "TX" if dir else "RX"
+                            for dir in data["FLX_NullFrame.Dir"].astype("u1").tolist()
+                        ]
 
                 vals = None
                 data_length = None
 
-            elif item.name == "FLX_StartCycle":
-                index = np.searchsorted(df_index, item.timestamps)
+            elif data.name == "FLX_StartCycle":
+                index = np.searchsorted(df_index, data.timestamps)
 
-                vals = item["FLX_StartCycle.cycleCount"].astype("u1")
+                vals = data["FLX_StartCycle.Cycle"].astype("u1")
                 columns["Cycle"][index] = vals
 
                 columns["Event Type"][index] = "FlexRay StartCycle"
@@ -1432,10 +1477,10 @@ class WithMDIArea:
                 vals = None
                 data_length = None
 
-            elif item.name == "FLX_Status":
-                index = np.searchsorted(df_index, item.timestamps)
+            elif data.name == "FLX_Status":
+                index = np.searchsorted(df_index, data.timestamps)
 
-                vals = item["FLX_Status.StatusType"].astype("u1")
+                vals = data["FLX_Status.StatusType"].astype("u1")
                 columns["Details"][index] = vals.astype("U").astype("O")
 
                 columns["Event Type"][index] = "FlexRay Status"
@@ -1623,7 +1668,9 @@ class WithMDIArea:
                         vals = data["LIN_Frame.ID"].astype("u1") & 0x3F
                         columns["ID"] = vals
                         if frame_map:
-                            columns["Name"] = [frame_map[_id] for _id in vals]
+                            columns["Name"] = [
+                                frame_map.get(_id, "") for _id in vals.tolist()
+                            ]
 
                         columns["Received Byte Count"] = data[
                             "LIN_Frame.ReceivedDataByteCount"
@@ -1694,7 +1741,9 @@ class WithMDIArea:
                         vals = data["LIN_TransmissionError.ID"].astype("u1") & 0x3F
                         columns["ID"] = vals
                         if frame_map:
-                            columns["Name"] = [frame_map[_id] for _id in vals]
+                            columns["Name"] = [
+                                frame_map.get(_id, "") for _id in vals.tolist()
+                            ]
 
                         columns["Event Type"] = "Transmission Error Frame"
                         columns["Direction"] = ["TX"] * count

@@ -5805,6 +5805,388 @@ class MDF:
 
         return channels
 
+    def _asc_export(self, file_name):
+        if self.version < "4.00":
+            return
+
+        groups_count = len(self.groups)
+
+        dfs = []
+
+        for index in range(groups_count):
+            group = self.groups[index]
+            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                source = group.channel_group.acq_source
+
+                names = [ch.name for ch in group.channels]
+
+                if source and source.bus_type == v4c.BUS_TYPE_CAN:
+                    if "CAN_DataFrame" in names:
+                        data = self.get("CAN_DataFrame", index)  # , raw=True)
+
+                    elif "CAN_RemoteFrame" in names:
+                        data = self.get("CAN_RemoteFrame", index, raw=True)
+
+                    elif "CAN_ErrorFrame" in names:
+                        data = self.get("CAN_ErrorFrame", index, raw=True)
+
+                    else:
+                        continue
+
+                    df_index = data.timestamps
+                    count = len(df_index)
+
+                    columns = {
+                        "timestamps": df_index,
+                        "type": np.full(count, "CAN", dtype="O"),
+                        "Bus": np.zeros(count, dtype="u1"),
+                        "ID": np.full(count, 0xFFFFFFFF, dtype="u4"),
+                        "IDE": np.zeros(count, dtype="u1"),
+                        "Direction": np.full(count, "Rx", dtype="O"),
+                        "Event Type": np.full(count, "CAN Frame", dtype="O"),
+                        "Details": np.full(count, "", dtype="O"),
+                        "ESI": np.zeros(count, dtype="u1"),
+                        "EDL": np.zeros(count, dtype="u1"),
+                        "BRS": np.zeros(count, dtype="u1"),
+                        "DLC": np.zeros(count, dtype="u1"),
+                        "Data Length": np.zeros(count, dtype="u1"),
+                        "Data Bytes": np.full(count, "", dtype="O"),
+                        "Name": np.full(count, "", dtype="O"),
+                    }
+
+                    for string in v4c.CAN_ERROR_TYPES.values():
+                        sys.intern(string)
+
+                    frame_map = None
+                    if data.attachment and data.attachment[0]:
+                        dbc = load_can_database(data.attachment[1], data.attachment[0])
+                        if dbc:
+                            frame_map = {
+                                frame.arbitration_id.id: frame.name for frame in dbc
+                            }
+
+                            for name in frame_map.values():
+                                sys.intern(name)
+
+                    if data.name == "CAN_DataFrame":
+                        columns["Bus"] = data["CAN_DataFrame.BusChannel"].astype("u1")
+
+                        vals = data["CAN_DataFrame.ID"].astype("u4") & 0x1FFFFFFF
+                        columns["ID"] = vals
+                        if frame_map:
+                            columns["Name"] = [
+                                frame_map.get(_id, "") for _id in vals.tolist()
+                            ]
+
+                        columns["DLC"] = data["CAN_DataFrame.DLC"].astype("u1")
+                        columns["Data Length"] = data[
+                            "CAN_DataFrame.DataLength"
+                        ].astype("u1")
+
+                        vals = csv_bytearray2hex(
+                            pd.Series(list(data["CAN_DataFrame.DataBytes"])),
+                            columns["Data Length"],
+                        )
+                        columns["Data Bytes"] = vals
+
+                        if "CAN_DataFrame.Dir" in names:
+                            if data["CAN_DataFrame.Dir"].dtype.kind == "S":
+                                columns["Direction"] = [
+                                    v.decode("utf-8").capitalize()
+                                    for v in data["CAN_DataFrame.Dir"].tolist()
+                                ]
+                            else:
+                                columns["Direction"] = [
+                                    "Tx" if dir else "Rx"
+                                    for dir in data["CAN_DataFrame.Dir"]
+                                    .astype("u1")
+                                    .tolist()
+                                ]
+
+                        if "CAN_DataFrame.ESI" in names:
+                            columns["ESI"] = data["CAN_DataFrame.ESI"].astype("u1")
+
+                        if "CAN_DataFrame.EDL" in names:
+                            columns["EDL"] = data["CAN_DataFrame.EDL"].astype("u1")
+
+                        if "CAN_DataFrame.BRS" in names:
+                            columns["BRS"] = data["CAN_DataFrame.BRS"].astype("u1")
+
+                    elif data.name == "CAN_RemoteFrame":
+                        columns["Bus"] = data["CAN_RemoteFrame.BusChannel"].astype("u1")
+
+                        vals = data["CAN_RemoteFrame.ID"].astype("u4") & 0x1FFFFFFF
+                        columns["ID"] = vals
+                        if frame_map:
+                            columns["Name"] = [
+                                frame_map.get(_id, "") for _id in vals.tolist()
+                            ]
+
+                        columns["DLC"] = data["CAN_RemoteFrame.DLC"].astype("u1")
+                        columns["Data Length"] = data[
+                            "CAN_RemoteFrame.DataLength"
+                        ].astype("u1")
+                        columns["Event Type"] = "Remote Frame"
+
+                        if "CAN_RemoteFrame.Dir" in names:
+                            if data["CAN_RemoteFrame.Dir"].dtype.kind == "S":
+                                columns["Direction"] = [
+                                    v.decode("utf-8").capitalize()
+                                    for v in data["CAN_RemoteFrame.Dir"].tolist()
+                                ]
+                            else:
+                                columns["Direction"] = [
+                                    "Tx" if dir else "Rx"
+                                    for dir in data["CAN_RemoteFrame.Dir"]
+                                    .astype("u1")
+                                    .tolist()
+                                ]
+
+                    elif data.name == "CAN_ErrorFrame":
+                        names = set(data.samples.dtype.names)
+
+                        if "CAN_ErrorFrame.BusChannel" in names:
+                            columns["Bus"] = data["CAN_ErrorFrame.BusChannel"].astype(
+                                "u1"
+                            )
+
+                        if "CAN_ErrorFrame.ID" in names:
+                            vals = data["CAN_ErrorFrame.ID"].astype("u4") & 0x1FFFFFFF
+                            columns["ID"] = vals
+                            if frame_map:
+                                columns["Name"] = [
+                                    frame_map.get(_id, "") for _id in vals.tolist()
+                                ]
+
+                        if "CAN_ErrorFrame.DLC" in names:
+                            columns["DLC"] = data["CAN_ErrorFrame.DLC"].astype("u1")
+
+                        if "CAN_ErrorFrame.DataLength" in names:
+                            columns["Data Length"] = data[
+                                "CAN_ErrorFrame.DataLength"
+                            ].astype("u1")
+
+                        columns["Event Type"] = "Error Frame"
+
+                        if "CAN_ErrorFrame.ErrorType" in names:
+                            vals = (
+                                data["CAN_ErrorFrame.ErrorType"].astype("u1").tolist()
+                            )
+                            vals = [
+                                v4c.CAN_ERROR_TYPES.get(err, "Other error")
+                                for err in vals
+                            ]
+
+                            columns["Details"] = vals
+
+                        if "CAN_ErrorFrame.Dir" in names:
+                            if data["CAN_ErrorFrame.Dir"].dtype.kind == "S":
+                                columns["Direction"] = [
+                                    v.decode("utf-8").capitalize()
+                                    for v in data["CAN_ErrorFrame.Dir"].tolist()
+                                ]
+                            else:
+                                columns["Direction"] = [
+                                    "Tx" if dir else "Rx"
+                                    for dir in data["CAN_ErrorFrame.Dir"]
+                                    .astype("u1")
+                                    .tolist()
+                                ]
+
+                    dfs.append(pd.DataFrame(columns, index=df_index))
+
+                elif source and source.bus_type == v4c.BUS_TYPE_FLEXRAY:
+                    if "FLX_Frame" in names:
+                        data = self.get("FLX_Frame", index, raw=True)
+
+                    elif "FLX_NullFrame" in names:
+                        data = self.get("FLX_NullFrame", index, raw=True)
+
+                    elif "FLX_StartCycle" in names:
+                        data = self.get("FLX_StartCycle", index, raw=True)
+
+                    elif "FLX_Status" in names:
+                        data = self.get("FLX_Status", index, raw=True)
+                    else:
+                        continue
+
+                    df_index = data.timestamps
+                    count = len(df_index)
+
+                    columns = {
+                        "timestamps": df_index,
+                        "type": np.full(count, "FLEXRAY", dtype="O"),
+                        "Bus": np.zeros(count, dtype="u1"),
+                        "ID": np.full(count, 0xFFFF, dtype="u2"),
+                        "ControllerFlags": np.zeros(count, dtype="u2"),
+                        "FrameFlags": np.zeros(count, dtype="u4"),
+                        "Direction": np.full(count, "Rx", dtype="O"),
+                        "Cycle": np.full(count, 0xFF, dtype="u1"),
+                        "Event Type": np.full(count, "FlexRay Frame", dtype="O"),
+                        "Details": np.full(count, "", dtype="O"),
+                        "Data Length": np.zeros(count, dtype="u1"),
+                        "Data Bytes": np.full(count, "", dtype="O"),
+                        "Header CRC": np.full(count, 0xFFFF, dtype="u2"),
+                    }
+
+                    if data.name == "FLX_Frame":
+                        columns["Bus"] = data["FLX_Frame.FlxChannel"].astype("u1")
+                        columns["ID"] = data["FLX_Frame.ID"].astype("u2")
+                        columns["Cycle"] = data["FLX_Frame.Cycle"].astype("u1")
+
+                        data_length = data["FLX_Frame.DataLength"].astype("u1").tolist()
+                        columns["Data Length"] = data_length
+
+                        vals = csv_bytearray2hex(
+                            pd.Series(list(data["FLX_Frame.DataBytes"])),
+                            data_length,
+                        )
+                        columns["Data Bytes"] = vals
+
+                        columns["Header CRC"] = data["FLX_Frame.HeaderCRC"].astype("u2")
+
+                        if "FLX_Frame.Dir" in names:
+                            if data["FLX_Frame.Dir"].dtype.kind == "S":
+                                columns["Direction"] = [
+                                    v.decode("utf-8").capitalize()
+                                    for v in data["FLX_Frame.Dir"].tolist()
+                                ]
+                            else:
+                                columns["Direction"] = [
+                                    "Tx" if dir else "Rx"
+                                    for dir in data["FLX_Frame.Dir"]
+                                    .astype("u1")
+                                    .tolist()
+                                ]
+
+                        if "FLX_Frame.ControllerFlags" in names:
+                            columns["ControllerFlags"] = np.frombuffer(
+                                data["FLX_Frame.ControllerFlags"].tobytes(), dtype="<u2"
+                            )
+                        if "FLX_Frame.FrameFlags" in names:
+                            columns["FrameFlags"] = np.frombuffer(
+                                data["FLX_Frame.FrameFlags"].tobytes(), dtype="<u4"
+                            )
+
+                    elif data.name == "FLX_NullFrame":
+                        columns["Bus"] = data["FLX_NullFrame.FlxChannel"].astype("u1")
+                        columns["ID"] = data["FLX_NullFrame.ID"].astype("u2")
+                        columns["Cycle"] = data["FLX_NullFrame.Cycle"].astype("u1")
+
+                        columns["Event Type"] = "FlexRay NullFrame"
+                        columns["Header CRC"] = data["FLX_NullFrame.HeaderCRC"].astype(
+                            "u2"
+                        )
+
+                        if "FLX_NullFrame.Dir" in names:
+                            if data["FLX_NullFrame.Dir"].dtype.kind == "S":
+                                columns["Direction"] = [
+                                    v.decode("utf-8").capitalize()
+                                    for v in data["FLX_NullFrame.Dir"].tolist()
+                                ]
+                            else:
+                                columns["Direction"] = [
+                                    "Tx" if dir else "Rx"
+                                    for dir in data["FLX_NullFrame.Dir"]
+                                    .astype("u1")
+                                    .tolist()
+                                ]
+
+                    elif data.name == "FLX_StartCycle":
+                        columns["Cycle"] = data["FLX_StartCycle.Cycle"].astype("u1")
+                        columns["Event Type"] = "FlexRay StartCycle"
+
+                    elif data.name == "FLX_Status":
+                        vals = data["FLX_Status.StatusType"].astype("u1")
+                        columns["Details"] = vals.astype("U").astype("O")
+
+                        columns["Event Type"] = "FlexRay Status"
+
+                    dfs.append(pd.DataFrame(columns, index=df_index))
+
+        if dfs:
+            signals = pd.concat(dfs).sort_index()
+
+            index = pd.Index(range(len(signals)))
+            signals.set_index(index, inplace=True)
+        else:
+            signals = pd.DataFrame()
+
+        with open(file_name, "w") as asc:
+            start = self.start_time.strftime("%a %b %d %I:%M:%S.%f %p %Y")
+            asc.write(f"date {start}\n")
+            asc.write("base hex  timestamps absolute\n")
+            asc.write("no internal events logged\n")
+
+            for row in signals.to_dict("records"):
+                if row["type"] == "CAN":
+                    if row["Event Type"] == "CAN Frame":
+                        if row["EDL"]:
+                            data = row["Data Bytes"].lower()
+                            id = f"{row['ID']:x}"
+
+                            if row["IDE"]:
+                                id = f"{id}x"
+
+                            bus = row["Bus"]
+                            dir = row["Direction"]
+                            t = row["timestamps"]
+
+                            flags = 1 << 12
+                            brs = row["BRS"]
+                            if brs:
+                                flags |= 1 << 13
+
+                            esi = row["ESI"]
+                            if esi:
+                                flags |= 1 << 14
+
+                            name = row["Name"]
+                            dlc = row["DLC"]
+                            data_length = row["Data Length"]
+
+                            asc.write(
+                                f"   {t: 9.6f} CANFD {bus:>3} {dir:<4} {id:>8}  {name:>32} {brs} {esi} {dlc:x} {data_length:>2} {data}        0    0 {flags:>8x}        0        0        0        0        0\n"
+                            )
+
+                        else:
+                            dlc = row["DLC"]
+                            data = row["Data Bytes"]
+                            id = f"{row['ID']:x}"
+
+                            if row["IDE"]:
+                                id = f"{id}x"
+
+                            bus = row["Bus"]
+                            dir = row["Direction"]
+                            t = row["timestamps"]
+
+                            asc.write(
+                                f"{t: 9.6f} {bus}  {id:<15} {dir:<4} d {dlc:x} {data}\n"
+                            )
+
+                    elif row["Event Type"] == "Error Frame":
+                        asc.write(
+                            f"   {row['timestamps']: 9.6f} {row['Bus']} ErrorFrame\n"
+                        )
+
+                    elif row["Event Type"] == "Remote Frame":
+                        dlc = row["DLC"]
+                        id = f"{row['ID']:x}"
+
+                        if row["IDE"]:
+                            id = f"{id}x"
+
+                        bus = row["Bus"]
+                        dir = row["Direction"]
+                        t = row["timestamps"]
+
+                        asc.write(f"   {t: 9.6f} {bus}  {id:<15} {dir:<4} r {dlc:x}\n")
+
+                elif row["type"] == "FLEXRAY":
+                    if row["Event Type"] == "FlexRay Frame":
+                        print(hex(row["ControllerFlags"]), hex(row["FrameFlags"]))
+
 
 if __name__ == "__main__":
     pass
