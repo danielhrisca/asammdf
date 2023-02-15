@@ -1130,12 +1130,11 @@ class MDF:
 
         out._transfer_metadata(self, message=f"Cut from {start_} to {stop_}")
 
-        print("retuirn out")
         return out
 
     def export(
         self,
-        fmt: Literal["csv", "hdf5", "mat", "parquet"],
+        fmt: Literal["asc", "csv", "hdf5", "mat", "parquet"],
         filename: StrPathType | None = None,
         progress=None,
         **kwargs,
@@ -1166,6 +1165,9 @@ class MDF:
               ( *<cntr>* is the data group index starting from 0)
 
             * `parquet` : export to Apache parquet format
+            * `asc`: Vector ASCII format for bus logging
+
+                .. versionadded:: 7.3.3
 
         filename : string | pathlib.Path
             export file name
@@ -1264,6 +1266,8 @@ class MDF:
             "subject_field",
         )
 
+        fmt = fmt.lower()
+
         if fmt != "pandas" and filename is None and self.name is None:
             message = (
                 "Must specify filename for export"
@@ -1332,7 +1336,7 @@ class MDF:
                     )
                     return
 
-        elif fmt not in ("csv",):
+        elif fmt not in ("csv", "asc"):
             raise MdfException(f"Export to {fmt} is not implemented")
 
         if progress is not None:
@@ -1344,6 +1348,9 @@ class MDF:
 
                 if progress.stop:
                     return TERMINATED
+
+        if fmt == "asc":
+            return self._asc_export(filename.with_suffix(".asc"))
 
         if single_time_base or fmt == "parquet":
             df = self.to_dataframe(
@@ -6025,6 +6032,7 @@ class MDF:
                         "Event Type": np.full(count, "FlexRay Frame", dtype="O"),
                         "Details": np.full(count, "", dtype="O"),
                         "Data Length": np.zeros(count, dtype="u1"),
+                        "Payload Length": np.zeros(count, dtype="u1"),
                         "Data Bytes": np.full(count, "", dtype="O"),
                         "Header CRC": np.full(count, 0xFFFF, dtype="u2"),
                     }
@@ -6033,13 +6041,16 @@ class MDF:
                         columns["Bus"] = data["FLX_Frame.FlxChannel"].astype("u1")
                         columns["ID"] = data["FLX_Frame.ID"].astype("u2")
                         columns["Cycle"] = data["FLX_Frame.Cycle"].astype("u1")
-
-                        data_length = data["FLX_Frame.DataLength"].astype("u1").tolist()
-                        columns["Data Length"] = data_length
+                        columns["Data Length"] = data["FLX_Frame.DataLength"].astype(
+                            "u1"
+                        )
+                        columns["Payload Length"] = (
+                            data["FLX_Frame.PayloadLength"].astype("u1") * 2
+                        )
 
                         vals = csv_bytearray2hex(
                             pd.Series(list(data["FLX_Frame.DataBytes"])),
-                            data_length,
+                            columns["Data Length"],
                         )
                         columns["Data Bytes"] = vals
 
@@ -6185,7 +6196,37 @@ class MDF:
 
                 elif row["type"] == "FLEXRAY":
                     if row["Event Type"] == "FlexRay Frame":
-                        print(hex(row["ControllerFlags"]), hex(row["FrameFlags"]))
+                        frame_flags = f'{row["FrameFlags"]:x}'
+                        controller_flags = f'{row["ControllerFlags"]:x}'
+                        data = row["Data Bytes"]
+                        header_crc = f'{row["Header CRC"]:x}'
+                        data_length = f'{row["Data Length"]:x}'
+                        payload_length = f'{row["Payload Length"]:x}'
+                        bus = f'{row["Bus"] + 1:x}'
+                        slot = f'{row["ID"]:x}'
+                        cycle = f'{row["Cycle"]:x}'
+                        dir = row["Direction"]
+                        t = row["timestamps"]
+
+                        asc.write(
+                            f"   {t: 9.6f} Fr RMSG  0 0 1 {bus} {slot} {cycle} {dir} 0 {frame_flags} 5  {controller_flags}  {header_crc} x {payload_length} {data_length} {data} 0  0  0\n"
+                        )
+
+                    elif row["Event Type"] == "FlexRay NullFrame":
+                        print(row)
+                        frame_flags = f'{row["FrameFlags"]:x}'
+                        controller_flags = f'{row["ControllerFlags"]:x}'
+                        header_crc = f'{row["Header CRC"]:x}'
+                        payload_length = f'{row["Payload Length"]:x}'
+                        bus = f'{row["Bus"] + 1:x}'
+                        slot = f'{row["ID"]:x}'
+                        cycle = f'{row["Cycle"]:x}'
+                        dir = row["Direction"]
+                        t = row["timestamps"]
+
+                        asc.write(
+                            f"   {t: 9.6f} Fr RMSG  0 0 1 {bus} {slot} {cycle} {dir} 0 {frame_flags} 5  {controller_flags}  {header_crc} x {payload_length} 0 0  0  0\n"
+                        )
 
 
 if __name__ == "__main__":

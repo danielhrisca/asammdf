@@ -612,6 +612,11 @@
                   </item>
                   <item>
                    <property name="text">
+                    <string>ASC</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
                     <string>CSV</string>
                    </property>
                   </item>
@@ -1160,6 +1165,7 @@
                     </item>
                    </layout>
                   </widget>
+                  <widget class="QWidget" name="page"/>
                  </widget>
                 </item>
                </layout>

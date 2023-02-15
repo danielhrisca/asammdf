@@ -669,6 +669,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.export_compression_mat.setCurrentIndex(0)
         elif name == "CSV":
             self.output_options.setCurrentIndex(3)
+        elif name == "ASC":
+            self.output_options.setCurrentIndex(4)
 
         else:
             self.output_options.setCurrentIndex(1)
@@ -2634,6 +2636,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         else:
             filters = {
+                "ASC": "Vector ascii files (*.asc)",
                 "CSV": "CSV files (*.csv)",
                 "HDF5": "HDF5 files (*.hdf)",
                 "MAT": "Matlab MAT files (*.mat)",

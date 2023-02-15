@@ -322,6 +322,7 @@ class Ui_batch_widget(object):
         self.output_format.addItem("")
         self.output_format.addItem("")
         self.output_format.addItem("")
+        self.output_format.addItem("")
         self.output_format.setObjectName(u"output_format")
 
         self.verticalLayout_21.addWidget(self.output_format)
@@ -686,6 +687,9 @@ class Ui_batch_widget(object):
         self.gridLayout_2.addWidget(self.add_units, 6, 0, 1, 2)
 
         self.output_options.addWidget(self.CSV)
+        self.page = QWidget()
+        self.page.setObjectName(u"page")
+        self.output_options.addWidget(self.page)
 
         self.verticalLayout_21.addWidget(self.output_options)
 
@@ -1124,7 +1128,7 @@ class Ui_batch_widget(object):
 
         self.retranslateUi(batch_widget)
 
-        self.aspects.setCurrentIndex(1)
+        self.aspects.setCurrentIndex(0)
         self.output_options.setCurrentIndex(0)
         self.quoting.setCurrentIndex(1)
         self.quoting_bus.setCurrentIndex(1)
@@ -1189,10 +1193,11 @@ class Ui_batch_widget(object):
         self.resample_time_from_zero.setText(QCoreApplication.translate("batch_widget", u"Time from 0s", None))
         self.groupBox_11.setTitle(QCoreApplication.translate("batch_widget", u"Ouput format", None))
         self.output_format.setItemText(0, QCoreApplication.translate("batch_widget", u"MDF", None))
-        self.output_format.setItemText(1, QCoreApplication.translate("batch_widget", u"CSV", None))
-        self.output_format.setItemText(2, QCoreApplication.translate("batch_widget", u"HDF5", None))
-        self.output_format.setItemText(3, QCoreApplication.translate("batch_widget", u"MAT", None))
-        self.output_format.setItemText(4, QCoreApplication.translate("batch_widget", u"Parquet", None))
+        self.output_format.setItemText(1, QCoreApplication.translate("batch_widget", u"ASC", None))
+        self.output_format.setItemText(2, QCoreApplication.translate("batch_widget", u"CSV", None))
+        self.output_format.setItemText(3, QCoreApplication.translate("batch_widget", u"HDF5", None))
+        self.output_format.setItemText(4, QCoreApplication.translate("batch_widget", u"MAT", None))
+        self.output_format.setItemText(5, QCoreApplication.translate("batch_widget", u"Parquet", None))
 
         self.mdf_split.setText(QCoreApplication.translate("batch_widget", u"Split data blocks", None))
         self.label_39.setText(QCoreApplication.translate("batch_widget", u"Compression", None))

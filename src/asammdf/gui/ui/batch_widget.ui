@@ -535,6 +535,11 @@
                    </item>
                    <item>
                     <property name="text">
+                     <string>ASC</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
                      <string>CSV</string>
                     </property>
                    </item>
@@ -1095,6 +1100,7 @@
                      </item>
                     </layout>
                    </widget>
+                   <widget class="QWidget" name="page"/>
                   </widget>
                  </item>
                 </layout>
@@ -1774,7 +1780,7 @@
   <customwidget>
    <class>MinimalListWidget</class>
    <extends>QListWidget</extends>
-   <header>asammdf/gui/widgets/list.h</header>
+   <header>asammdf.gui.widgets.list.h</header>
   </customwidget>
   <customwidget>
    <class>TreeWidget</class>

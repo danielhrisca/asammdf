@@ -1433,6 +1433,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         elif output_format == "CSV":
             suffix = ".csv"
 
+        elif output_format == "ASC":
+            suffix = ".asc"
+
         needs_filter, channels = self._get_filtered_channels()
 
         output_folder = self.modify_output_folder.text().strip()
@@ -1721,6 +1724,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.export_compression_mat.setCurrentIndex(0)
         elif name == "CSV":
             self.output_options.setCurrentIndex(3)
+        elif name == "ASC":
+            self.output_options.setCurrentIndex(4)
         else:
             self.output_options.setCurrentIndex(1)
             if name == "Parquet":
