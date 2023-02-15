@@ -19,7 +19,7 @@ from ..ui import resource_rc
 from ..ui.batch_widget import Ui_batch_widget
 from ..utils import (
     HelperChannel,
-    load_dsp,
+    load_channel_names_from_file,
     load_lab,
     run_thread_with_progress,
     setup_progress,
@@ -1794,7 +1794,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self,
             "Select output filter list file",
             "",
-            "CANape Lab file (*.lab);;TXT files (*.txt);;All file types (*.lab *.txt)",
+            "CANape Lab file (*.lab)",
             "CANape Lab file (*.lab)",
         )
 
@@ -1850,7 +1850,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "Select channel list file",
                 "",
                 "Config file (*.cfg);;Display files (*.dsp *.dspf);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.dspf *.lab)",
-                "CANape Lab file (*.lab)",
+                "All file types (*.cfg *.dsp *.dspf *.lab)",
             )
 
             if file_name is None or Path(file_name).suffix.lower() not in (
@@ -1864,37 +1864,27 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         if not isinstance(file_name, dict):
             file_name = Path(file_name)
 
-            extension = file_name.suffix.lower()
-            if extension == ".dsp":
-                info = load_dsp(file_name)
-                channels = info.get("display", [])
-
-            elif extension == ".lab":
+            if file_name.suffix.lower() == ".lab":
                 info = load_lab(file_name)
                 if info:
                     if len(info) > 1:
-                        section, ok = QtWidgets.QInputDialog.getItem(
-                            None,
-                            "Please select the section",
+                        lab_section, ok = QtWidgets.QInputDialog.getItem(
+                            self,
+                            "Please select the ASAP section name",
                             "Available sections:",
                             list(info),
                             0,
                             False,
                         )
                         if ok:
-                            channels = info[section]
+                            channels = info[lab_section]
                         else:
                             return
                     else:
                         channels = list(info.values())[0]
 
-            elif extension in (".cfg", ".dspf"):
-                with open(file_name, "r") as infile:
-                    info = json.load(infile)
-
-                channels = info.get("selected_channels", [])
             else:
-                channels = []
+                channels = load_channel_names_from_file(file_name)
 
         else:
             info = file_name

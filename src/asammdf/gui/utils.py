@@ -581,6 +581,53 @@ def flatten_dsp(channels):
     return res
 
 
+def load_channel_names_from_file(file_name, lab_section=""):
+    file_name = Path(file_name)
+
+    extension = file_name.suffix.lower()
+    if extension == ".dsp":
+        channels = load_dsp(file_name, flat=True)
+
+    elif extension == ".dspf":
+        with open(file_name, "r") as infile:
+            info = json.load(infile)
+
+        channels = []
+        for window in info["windows"]:
+            if window["type"] == "Plot":
+                channels.extend(flatten_dsp(window["configuration"]["channels"]))
+            elif window["type"] == "Numeric":
+                channels.extend(
+                    [item["name"] for item in window["configuration"]["channels"]]
+                )
+            elif window["type"] == "Tabular":
+                channels.extend(window["configuration"]["channels"])
+
+    elif extension == ".lab":
+        info = load_lab(file_name)
+        if info:
+            if len(info) > 1 and lab_section:
+                channels = info[lab_section]
+            else:
+                channels = list(info.values())[0]
+
+    elif extension == ".cfg":
+        with open(file_name, "r") as infile:
+            info = json.load(infile)
+        channels = info.get("selected_channels", [])
+    elif extension == ".txt":
+        try:
+            with open(file_name, "r") as infile:
+                info = json.load(infile)
+            channels = info.get("selected_channels", [])
+        except:
+            with open(file_name, "r") as infile:
+                channels = [line.strip() for line in infile.readlines()]
+                channels = [name for name in channels if name]
+
+    return sorted(set(channels))
+
+
 def load_lab(file):
     sections = {}
     with open(file, "r") as lab:

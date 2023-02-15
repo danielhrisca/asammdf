@@ -321,9 +321,12 @@ class OfflineBackEnd:
                 self.signals.append(signal)
 
         if self.signals:
-            self.timebase = np.unique(
-                np.concatenate([signal.signal.timestamps for signal in self.signals])
-            )
+            timestamps = {
+                id(signal.signal.timestamps): signal.signal.timestamps
+                for signal in self.signals
+            }
+            timestamps = list(timestamps.values())
+            self.timebase = np.unique(np.concatenate(timestamps))
         else:
             self.timebase = np.array([])
 
@@ -1250,6 +1253,9 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
         self.float_precision.setCurrentIndex(float_precision + 1)
 
+        self.timebase = np.array([])
+        self._timestamp = None
+
         if channels:
             self.add_new_channels(channels)
 
@@ -1260,9 +1266,6 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         if self.mode == "offline":
             self.pattern = {}
-
-            self._min = float("inf")
-            self._max = -float("inf")
 
             self.timestamp.valueChanged.connect(self._timestamp_changed)
             self.timestamp_slider.valueChanged.connect(self._timestamp_slider_changed)
@@ -1341,29 +1344,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     self.channels.dataView.ranges[sig.entry] = ranges
 
         self.channels.backend.update(others)
-
-        if self.mode == "offline":
-            numeric = self
-            numeric._min = float("inf")
-            numeric._max = -float("inf")
-
-            for sig in self.channels.backend.signals:
-                timestamps = sig.signal.timestamps
-                if timestamps.size:
-                    numeric._min = min(numeric._min, timestamps[0])
-                    numeric._max = max(numeric._max, timestamps[-1])
-
-            if numeric._min == float("inf"):
-                numeric._min = numeric._max = 0
-
-            numeric._timestamp = numeric._min
-
-            numeric.timestamp.setRange(numeric._min, numeric._max)
-            numeric.min_t.setText(f"{numeric._min:.9f}s")
-            numeric.max_t.setText(f"{numeric._max:.9f}s")
-            numeric.set_timestamp(numeric._min)
-
         self.channels.auto_size_header()
+        self.update_timebase()
 
     def reset(self):
         self.channels.backend.reset()
@@ -1481,29 +1463,39 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         if not self._inhibit:
             self.set_timestamp(stamp)
 
-    def _timestamp_slider_changed(self, stamp):
+    def _timestamp_slider_changed(self, idx):
         if not self._inhibit:
-            factor = stamp / 99999
-            stamp = (self._max - self._min) * factor + self._min
-            actual_stamp = self.channels.backend.get_timestamp(stamp)
-            self.set_timestamp(actual_stamp)
+            if not len(self.timebase):
+                return
 
-    def set_timestamp(self, stamp=None):
+            self.set_timestamp(self.timebase[idx])
+
+    def set_timestamp(self, stamp=None, emit=True):
         if stamp is None:
-            stamp = self._timestamp
+            if self._timestamp is None:
+                if len(self.timebase):
+                    stamp = self.timebase[0]
+                else:
+                    return
+            else:
+                stamp = self._timestamp
 
-        if not (self._min <= stamp <= self._max):
+        if not len(self.timebase):
             return
+
+        idx = np.searchsorted(self.timebase, stamp)
+        stamp = self.timebase[idx]
+        self._timestamp = stamp
 
         self.channels.backend.set_timestamp(stamp)
 
         self._inhibit = True
-        if self._min != self._max:
-            val = int((stamp - self._min) / (self._max - self._min) * 99999)
-            self.timestamp_slider.setValue(val)
+        self.timestamp_slider.setValue(idx)
         self.timestamp.setValue(stamp)
         self._inhibit = False
-        self.timestamp_changed_signal.emit(self, stamp)
+
+        if emit:
+            self.timestamp_changed_signal.emit(self, stamp)
 
     def search_forward(self):
         if (
@@ -1659,6 +1651,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             and modifiers == QtCore.Qt.NoModifier
             and self.mode == "offline"
         ):
+            print(">", self.timestamp_slider.value())
             self.timestamp_slider.setValue(self.timestamp_slider.value() + 1)
 
         elif (
@@ -1666,6 +1659,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             and modifiers == QtCore.Qt.NoModifier
             and self.mode == "offline"
         ):
+            print("<", self.timestamp_slider.value())
             self.timestamp_slider.setValue(self.timestamp_slider.value() - 1)
 
         elif (
@@ -1766,3 +1760,26 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
             )
             self.toggle_controls_btn.setIcon(icon)
+
+    def update_timebase(self):
+        if self.mode == "online":
+            return
+
+        self.timebase = self.channels.backend.timebase
+
+        count = len(self.timebase)
+
+        if count:
+            min_, max_ = self.timebase[0], self.timebase[-1]
+            self.timestamp_slider.setRange(0, count - 1)
+
+        else:
+            min_, max_ = 0.0, 0.0
+            self.timestamp_slider.setRange(0, 0)
+
+        self.timestamp.setRange(min_, max_)
+
+        self.min_t.setText(f"{min_:.9f}s")
+        self.max_t.setText(f"{max_:.9f}s")
+
+        self.set_timestamp(emit=False)

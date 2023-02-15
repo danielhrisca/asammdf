@@ -35,8 +35,8 @@ from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..ui import resource_rc
 from ..ui.file_widget import Ui_file_widget
 from ..utils import (
-    flatten_dsp,
     HelperChannel,
+    load_channel_names_from_file,
     load_dsp,
     load_lab,
     run_thread_with_progress,
@@ -1172,7 +1172,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self,
             "Select output filter list file",
             self.default_folder,
-            "CANape Lab file (*.lab);;TXT files (*.txt);;All file types (*.lab *.txt)",
+            "CANape Lab file (*.lab)",
             "CANape Lab file (*.lab)",
         )
 
@@ -1227,8 +1227,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 self,
                 "Select channel list file",
                 self.default_folder,
-                "Config file (*.cfg);;TXT files (*.txt);;Display files (*.dsp *.dspf);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.dspf *.lab *.txt)",
-                "CANape Lab file (*.lab)",
+                "Config file (*.cfg);;Display files (*.dsp *.dspf);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.dspf *.lab)",
+                "All file types (*.cfg *.dsp *.dspf *.lab)",
             )
 
             if file_name is None or Path(file_name).suffix.lower() not in (
@@ -1243,35 +1243,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         if not isinstance(file_name, dict):
             file_name = Path(file_name)
 
-            extension = file_name.suffix.lower()
-            if extension == ".dsp":
-                channels = load_dsp(file_name, flat=True)
-
-            elif extension == ".dspf":
-                with open(file_name, "r") as infile:
-                    info = json.load(infile)
-
-                channels = []
-                for window in info["windows"]:
-                    if window["type"] == "Plot":
-                        channels.extend(
-                            flatten_dsp(window["configuration"]["channels"])
-                        )
-                    elif window["type"] == "Numeric":
-                        channels.extend(
-                            [
-                                item["name"]
-                                for item in window["configuration"]["channels"]
-                            ]
-                        )
-                    elif window["type"] == "Tabular":
-                        channels.extend(window["configuration"]["channels"])
-
-            elif extension == ".lab":
+            if file_name.suffix.lower() == ".lab":
                 info = load_lab(file_name)
                 if info:
                     if len(info) > 1:
-                        section, ok = QtWidgets.QInputDialog.getItem(
+                        lab_section, ok = QtWidgets.QInputDialog.getItem(
                             self,
                             "Please select the ASAP section name",
                             "Available sections:",
@@ -1280,25 +1256,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             False,
                         )
                         if ok:
-                            channels = info[section]
+                            channels = info[lab_section]
                         else:
                             return
                     else:
                         channels = list(info.values())[0]
 
-            elif extension == ".cfg":
-                with open(file_name, "r") as infile:
-                    info = json.load(infile)
-                channels = info.get("selected_channels", [])
-            elif extension == ".txt":
-                try:
-                    with open(file_name, "r") as infile:
-                        info = json.load(infile)
-                    channels = info.get("selected_channels", [])
-                except:
-                    with open(file_name, "r") as infile:
-                        channels = [line.strip() for line in infile.readlines()]
-                        channels = [name for name in channels if name]
+            else:
+                channels = load_channel_names_from_file(file_name)
 
         else:
             info = file_name
