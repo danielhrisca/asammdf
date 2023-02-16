@@ -6648,9 +6648,12 @@ class MDF4(MDF_Common):
                         f"bit offset = {channel.bit_offset}",
                         f"bit count = {channel.bit_count}",
                         f"group record size = {grp.channel_group.samples_byte_nr}",
+                        f"group index = {gp_nr}",
+                        f"channel index = {ch_nr}",
                     ]
                 )
             )
+            pass
 
         if dependency_list:
             if not isinstance(dependency_list[0], ChannelArrayBlock):

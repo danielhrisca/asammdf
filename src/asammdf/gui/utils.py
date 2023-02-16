@@ -183,21 +183,28 @@ def excepthook(exc_type, exc_value, tracebackobj):
     ).exec_()
 
 
-def extract_mime_names(data):
-    def fix_comparison_name(data):
+def extract_mime_names(data, disable_new_channels=None):
+    def fix_comparison_name(data, disable_new_channels=None):
         for item in data:
             if item["type"] == "channel":
+                if disable_new_channels is not None:
+                    item["enabled"] = not disable_new_channels
+
                 if (item["group_index"], item["channel_index"]) != (-1, -1):
                     name = COMPARISON_NAME.match(item["name"]).group("name").strip()
                     item["name"] = name
             else:
-                fix_comparison_name(item["channels"])
+                if disable_new_channels is not None:
+                    item["enabled"] = not disable_new_channels
+                fix_comparison_name(
+                    item["channels"], disable_new_channels=disable_new_channels
+                )
 
     names = []
     if data.hasFormat("application/octet-stream-asammdf"):
         data = bytes(data.data("application/octet-stream-asammdf")).decode("utf-8")
         data = json.loads(data)
-        fix_comparison_name(data)
+        fix_comparison_name(data, disable_new_channels=disable_new_channels)
         names = data
 
     return names

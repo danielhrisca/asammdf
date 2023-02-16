@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>306</width>
-    <height>300</height>
+    <width>453</width>
+    <height>435</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -39,8 +39,8 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>268</width>
-           <height>220</height>
+           <width>415</width>
+           <height>325</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -61,6 +61,13 @@
           </item>
          </layout>
         </widget>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="disable_channels">
+        <property name="text">
+         <string>Disable newly added channels</string>
+        </property>
        </widget>
       </item>
      </layout>

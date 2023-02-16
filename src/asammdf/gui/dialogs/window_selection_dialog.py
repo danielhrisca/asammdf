@@ -23,3 +23,6 @@ class WindowSelectionDialog(Ui_WindowSelectionDialog, QtWidgets.QDialog):
             if radio.isChecked():
                 return radio.text()
         return ""
+
+    def disable_new_channels(self):
+        return self.disable_channels.isChecked()

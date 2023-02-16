@@ -232,7 +232,7 @@ class PlotSignal(Signal):
         self.precision = getattr(signal, "precision", 3)
 
         self._mode = "raw"
-        self._enable = True
+        self._enable = getattr(signal, "enable", 3)
 
         self.format = getattr(signal, "format", "phys")
 

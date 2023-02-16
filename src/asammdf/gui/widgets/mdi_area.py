@@ -517,24 +517,16 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
         else:
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
-
-                def count(data):
-                    s = 0
-                    for item in data:
-                        if item.get("type", "channel") == "channel":
-                            s += 1
-                        else:
-                            s += count(item["channels"])
-                    return s
-
-                names = extract_mime_names(data)
-
                 dialog = WindowSelectionDialog(parent=self)
                 dialog.setModal(True)
                 dialog.exec_()
 
                 if dialog.result():
                     window_type = dialog.selected_type()
+                    disable_new_channels = dialog.disable_new_channels()
+                    names = extract_mime_names(
+                        data, disable_new_channels=disable_new_channels
+                    )
 
                     self.add_window_request.emit([window_type, names])
             else:
@@ -2108,7 +2100,7 @@ class WithMDIArea:
 
         self.windows_modified.emit()
 
-    def _add_plot_window(self, signals):
+    def _add_plot_window(self, signals, disable_new_channels=False):
         if signals and isinstance(signals[0], str):
             mime_data = [
                 {
@@ -2119,6 +2111,7 @@ class WithMDIArea:
                     "type": "channel",
                     "ranges": [],
                     "uuid": os.urandom(6).hex(),
+                    "enabled": not disable_new_channels,
                 }
                 for name in signals
                 if name in self.mdf
@@ -2135,6 +2128,9 @@ class WithMDIArea:
         else:
             mime_data = substitude_mime_uuids(mime_data, uuid=self.uuid, force=True)
             flatten_entries = get_flatten_entries_from_mime(mime_data)
+
+        for entry in flatten_entries:
+            not disable_new_channels
 
         signals_ = {
             entry["uuid"]: entry
@@ -2195,6 +2191,7 @@ class WithMDIArea:
                     sig.color = sig_["color"]
 
                 sig.ranges = sig_["ranges"]
+                sig.enable = sig_["enabled"]
 
                 if not hasattr(self, "mdf"):
                     # MainWindow => comparison plots
@@ -2244,6 +2241,7 @@ class WithMDIArea:
                         new_sig.computation = {}
                         new_sig.origin_uuid = sig.origin_uuid
                         new_sig.uuid = os.urandom(6).hex()
+                        new_sig.enable = getattr(sig, "enable", True)
 
                         signals[new_sig.uuid] = new_sig
                 else:
@@ -2276,6 +2274,7 @@ class WithMDIArea:
                             new_sig.computation = {}
                             new_sig.origin_uuid = sig.origin_uuid
                             new_sig.uuid = os.urandom(6).hex()
+                            new_sig.enable = getattr(sig, "enable", True)
 
                             signals[new_sig.uuid] = new_sig
 
@@ -2310,6 +2309,7 @@ class WithMDIArea:
             sig.origin_uuid = self.uuid
             sig.group_index = NOT_FOUND
             sig.channel_index = NOT_FOUND
+            sig.enable = sig_["enabled"]
             if "color" in sig_:
                 sig.color = sig_["color"]
 
@@ -2371,6 +2371,7 @@ class WithMDIArea:
                 signal.name = channel["name"]
                 signal.unit = channel["unit"]
                 signal.color = channel["color"]
+                signal.enable = channel["enabled"]
                 signal.flags |= signal.Flags.computed
                 signal.computation = channel["computation"]
                 signal.group_index = -1

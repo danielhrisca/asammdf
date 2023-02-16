@@ -30,6 +30,7 @@ from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
+from ..dialogs.error_dialog import ErrorDialog
 from ..dialogs.gps_dialog import GPSDialog
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..ui import resource_rc
@@ -739,7 +740,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                 "type": "Plot",
                                 "title": result["pattern"],
                                 "configuration": {"channels": [], "pattern": result},
-                            }
+                            },
                         )
                     elif window_type == "New pattern based numeric window":
                         self.load_window(
@@ -845,7 +846,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     ] + [
                         mdi.windowTitle()
                         for mdi in self.mdi_area.subWindowList()
-                        if not isinstance(mdi.widget(), CANBusTrace)
+                        if not isinstance(
+                            mdi.widget(),
+                            (CANBusTrace, LINBusTrace, FlexRayBusTrace, GPSDialog),
+                        )
                     ]
 
                     dialog = WindowSelectionDialog(options=options, parent=self)
@@ -854,6 +858,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                     if dialog.result():
                         window_type = dialog.selected_type()
+                        disable_new_channels = dialog.disable_new_channels()
 
                         signals = natsorted(
                             [
@@ -865,7 +870,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                     "type": "channel",
                                     "ranges": [],
                                     "uuid": os.urandom(6).hex(),
-                                    "enabled": True,
+                                    "enabled": not disable_new_channels,
                                 }
                                 for name, dg_cntr, ch_cntr in names
                             ],
@@ -1139,6 +1144,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.clear_windows()
 
         windows = info.get("windows", [])
+        errors = {}
         if windows:
             count = len(windows)
 
@@ -1151,23 +1157,30 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             progress.setRange(0, count - 1)
             progress.resize(500, progress.height())
 
-            try:
-                for i, window in enumerate(windows, 1):
-                    window = _process_dict(window)
-                    window_type = window["type"]
-                    window_title = window["title"]
-                    progress.setLabelText(
-                        f"Loading {window_type} window <{window_title}>"
-                    )
-                    QtWidgets.QApplication.processEvents()
+            for i, window in enumerate(windows, 1):
+                window = _process_dict(window)
+                window_type = window["type"]
+                window_title = window["title"]
+                progress.setLabelText(f"Loading {window_type} window <{window_title}>")
+                QtWidgets.QApplication.processEvents()
+                try:
                     self.load_window(window)
                     progress.setValue(i)
-            except:
-                print(format_exc())
-            finally:
-                progress.cancel()
+                except:
+                    print(format_exc())
+                    errors[window_title] = format_exc()
+
+            progress.cancel()
 
         self.display_file_modified.emit(Path(self.loaded_display_file[0]).name)
+
+        if errors:
+            ErrorDialog(
+                title="Errors while loading display file",
+                message=f"There were errors while loading the following windows : {list(errors)}",
+                trace="\n\n".join(list(errors.values())),
+                parent=self,
+            ).exec()
 
     def save_filter_list(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -1451,6 +1464,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             else:
                 window_type = None
 
+            disable_new_channels = dialog.disable_new_channels()
+
         if window_type is None:
             return
         elif window_type in ("CAN Bus Trace", "FlexRay Bus Trace", "LIN Bus Trace"):
@@ -1537,6 +1552,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                         "type": "channel",
                                         "ranges": [],
                                         "uuid": os.urandom(6).hex(),
+                                        "enabled": not disable_new_channels,
                                     }
                                 )
 
@@ -1558,6 +1574,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                         "type": "channel",
                                         "ranges": [],
                                         "uuid": os.urandom(6).hex(),
+                                        "enabled": not disable_new_channels,
                                     }
                                 )
 

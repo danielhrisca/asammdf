@@ -5962,7 +5962,7 @@ class SourceInformation:
             mapped = kwargs["mapped"]
             try:
                 block = kwargs["raw_bytes"]
-                self.address = kwargs["address"]
+                self.address = address = kwargs["address"]
             except KeyError:
                 self.address = address = kwargs["address"]
                 stream.seek(address)
