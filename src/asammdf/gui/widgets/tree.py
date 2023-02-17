@@ -915,24 +915,31 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addAction(self.tr("Rename group"))
         menu.addSeparator()
 
+        submenu = QtWidgets.QMenu("Enable/disable")
         if item is not None and item.type() == item.Group and item.isDisabled():
-            menu.addAction(self.tr("Activate group"))
-        menu.addAction(self.tr("Deactivate groups"))
-        menu.addAction(self.tr("Enable all"))
-        menu.addAction(self.tr("Disable all"))
+            submenu.addAction(self.tr("Activate group"))
+        submenu.addAction(self.tr("Deactivate groups"))
+        submenu.addAction(self.tr("Enable all"))
+        submenu.addAction(self.tr("Disable all"))
+        submenu.addAction(self.tr("Enable selected"))
+        submenu.addAction(self.tr("Disable selected"))
         if item:
-            menu.addAction(self.tr("Disable all but this"))
+            submenu.addAction(self.tr("Disable all but this"))
+        menu.addMenu(submenu)
         menu.addSeparator()
+        submenu = QtWidgets.QMenu("Show/hide")
+
         if self.hide_disabled_channels:
             show_disabled_channels = "Show disabled items"
         else:
             show_disabled_channels = "Hide disabled items"
-        menu.addAction(self.tr(show_disabled_channels))
+        submenu.addAction(self.tr(show_disabled_channels))
         if self.hide_missing_channels:
             show_missing_channels = "Show missing items"
         else:
             show_missing_channels = "Hide missing items"
-        menu.addAction(self.tr(show_missing_channels))
+        submenu.addAction(self.tr(show_missing_channels))
+        menu.addMenu(submenu)
         menu.addSeparator()
 
         menu.addAction(self.tr("Edit Y axis scaling [Ctrl+G]"))
@@ -947,16 +954,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addAction(self.tr("Set channel conversion"))
         menu.addAction(self.tr("Set channel comment"))
         menu.addAction(self.tr("Set unit"))
+        if item.signal.flags & Signal.Flags.computed:
+            menu.addSeparator()
+            menu.addAction(self.tr("Edit this computed channel"))
         menu.addSeparator()
 
         if item and item.type() == ChannelsTreeItem.Channel:
             menu.addSeparator()
-            menu.addAction(self.tr("Relative time base shift"))
-            menu.addAction(self.tr("Set time base start offset"))
-
-            if item.signal.flags & Signal.Flags.computed:
-                menu.addSeparator()
-                menu.addAction(self.tr("Edit this computed channel"))
+            submenu = QtWidgets.QMenu("Time shift")
+            submenu.addAction(self.tr("Relative time base shift"))
+            submenu.addAction(self.tr("Set time base start offset"))
 
             try:
                 import scipy
@@ -964,6 +971,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 menu.addAction(self.tr("Compute FFT"))
             except ImportError:
                 pass
+
+            menu.addMenu(submenu)
             menu.addSeparator()
         if item:
             menu.addAction(self.tr("Delete [Del]"))
@@ -1135,6 +1144,20 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 item = self.topLevelItem(i)
                 if item.type() != item.Info:
                     item.setCheckState(self.NameColumn, QtCore.Qt.Unchecked)
+
+        elif action.text() == "Enable selected":
+            selected_items = self.selectedItems()
+
+            for item in selected_items:
+                if item.type() in (item.Channel, item.Group):
+                    item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
+
+        elif action.text() == "Disable selected":
+            selected_items = self.selectedItems()
+
+            for item in selected_items:
+                if item.type() in (item.Channel, item.Group):
+                    item.setCheckState(item.NameColumn, QtCore.Qt.Unchecked)
 
         elif action.text() == "Disable all but this":
             selected_items = self.selectedItems()
