@@ -32,8 +32,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self._settings.setValue("current_theme", self._settings.value("theme", "Light"))
         self._light_palette = self.palette()
 
-        self.line_width = 1
-
         self.ignore_value2text_conversions = self._settings.value(
             "ignore_value2text_conversions", False, type=bool
         )

@@ -2461,7 +2461,6 @@ class WithMDIArea:
             events=events,
             with_dots=self.with_dots,
             line_interconnect=self.line_interconnect,
-            line_width=self.line_width,
             origin=origin,
             mdf=mdf,
             parent=self,

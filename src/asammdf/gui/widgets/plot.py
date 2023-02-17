@@ -1435,7 +1435,6 @@ class Plot(QtWidgets.QWidget):
         origin=None,
         mdf=None,
         line_interconnect="line",
-        line_width=1,
         hide_missing_channels=False,
         hide_disabled_channels=False,
         x_axis="time",
@@ -1937,7 +1936,6 @@ class Plot(QtWidgets.QWidget):
         )
 
         self.splitter.splitterMoved.connect(self.set_splitter)
-        self.line_width = line_width
 
         self.hide_selected_channel_value(
             hide=self._settings.value(
@@ -2743,7 +2741,7 @@ class Plot(QtWidgets.QWidget):
                 super().dropEvent(e)
 
     def flash_curve(self, item, column):
-        self.plot.flash_current_signal = 4
+        self.plot.flash_current_signal = 6
         self.plot.update()
 
     def hide_axes(self, event=None, hide=None):
@@ -3121,16 +3119,6 @@ class Plot(QtWidgets.QWidget):
 
         else:
             super().keyPressEvent(event)
-
-    @property
-    def line_width(self):
-        return self.plot.line_width
-
-    @line_width.setter
-    def line_width(self, value):
-        self.plot.line_width = value
-        self.plot.dot_width = value + 4
-        self.plot.update()
 
     def mousePressEvent(self, event):
         self.clicked.emit()
@@ -3696,9 +3684,6 @@ class _Plot(pg.PlotWidget):
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
 
         self.autoFillBackground()
-
-        self.line_width = 1
-        self.dot_width = 4
 
         self._pixmap = None
 
@@ -5303,14 +5288,19 @@ class _Plot(pg.PlotWidget):
             x_start = self.x_range[0]
 
             no_brush = QtGui.QBrush()
-            pen_width = self.line_width
-            dots_with = self.dot_width
+            pen_width = self._settings.value("line_width", 1, type=int)
+            dots_with = self._settings.value("dots_width", 4, type=int)
 
             paint.resetTransform()
             paint.translate(0, 0)
             paint.setBrush(no_brush)
 
             flash_current_signal = self.flash_current_signal
+
+            if self._settings.value("curve_dots_cap_style", "square") == "square":
+                cap_style = None
+            else:
+                cap_style = QtCore.Qt.RoundCap
 
             for i, sig in enumerate(self.signals):
                 if (
@@ -5343,7 +5333,8 @@ class _Plot(pg.PlotWidget):
 
                     _pen = fn.mkPen(sig.color.name())
                     _pen.setWidth(dots_with)
-                    _pen.setCapStyle(QtCore.Qt.RoundCap)
+                    if cap_style is not None:
+                        _pen.setCapStyle(QtCore.Qt.RoundCap)
                     paint.setPen(_pen)
 
                     poly, arr = polygon_and_ndarray(x.size)
@@ -5428,7 +5419,8 @@ class _Plot(pg.PlotWidget):
                                     paint.RenderHint.Antialiasing, True
                                 )
                                 pen.setWidth(dots_with)
-                                pen.setCapStyle(QtCore.Qt.RoundCap)
+                                if cap_style is not None:
+                                    pen.setCapStyle(QtCore.Qt.RoundCap)
                                 paint.setPen(pen)
 
                                 pos = np.isfinite(y)

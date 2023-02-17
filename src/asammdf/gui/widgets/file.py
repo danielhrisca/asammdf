@@ -104,7 +104,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         ignore_value2text_conversions=False,
         display_cg_name=False,
         line_interconnect="line",
-        line_width=1,
         password=None,
         hide_missing_channels=False,
         hide_disabled_channels=False,
@@ -118,8 +117,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self._progress = None
 
         self.loaded_display_file = Path(""), b""
-
-        self.line_width = line_width
 
         super(Ui_file_widget, self).__init__(*args, **kwargs)
         WithMDIArea.__init__(self)
