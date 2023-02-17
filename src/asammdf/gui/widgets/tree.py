@@ -12,13 +12,13 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from .. import utils
 from ...blocks.conversion_utils import from_dict, to_dict
+from ...blocks.utils import extract_mime_names
 from ...signal import Signal
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.conversion_editor import ConversionEditor
 from ..dialogs.range_editor import RangeEditor
 from ..utils import (
     copy_ranges,
-    extract_mime_names,
     get_color_using_ranges,
     get_colors_using_ranges,
     SCROLLBAR_STYLE,

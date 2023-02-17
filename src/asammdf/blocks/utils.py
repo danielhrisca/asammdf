@@ -6,8 +6,11 @@ asammdf utility functions and classes
 from __future__ import annotations
 
 from collections.abc import Iterator
+from copy import deepcopy
+from enum import IntFlag
 from functools import lru_cache
 from io import StringIO
+import json
 import logging
 from pathlib import Path
 from random import randint
@@ -17,13 +20,49 @@ from struct import Struct
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
+from traceback import format_exc
 from typing import Any, Dict, overload, Tuple
 import xml.etree.ElementTree as ET
 
+import lxml
 from typing_extensions import Literal, TypedDict
 
 TERMINATED = object()
+COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
+C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
 target_byte_order = "<=" if sys.byteorder == "little" else ">="
+
+COLORS = [
+    "#1f77b4",
+    "#ff7f0e",
+    "#2ca02c",
+    "#d62728",
+    "#9467bd",
+    "#8c564b",
+    "#e377c2",
+    "#7f7f7f",
+    "#bcbd22",
+    "#17becf",
+]
+COLORS_COUNT = len(COLORS)
+
+try:
+    from pyqtgraph import functions as fn
+except ImportError:
+
+    class fn:
+        @classmethod
+        def mkColor(cls, color):
+            return color
+
+        @classmethod
+        def mkPen(cls, color):
+            return color
+
+        @classmethod
+        def mkBrush(cls, color):
+            return color
+
 
 try:
     from cchardet import detect
@@ -1930,3 +1969,492 @@ table = str.maketrans(
 
 def escape_xml_string(string: str) -> str:
     return string.translate(table)
+
+
+def extract_mime_names(data, disable_new_channels=None):
+    def fix_comparison_name(data, disable_new_channels=None):
+        for item in data:
+            if item["type"] == "channel":
+                if disable_new_channels is not None:
+                    item["enabled"] = not disable_new_channels
+
+                if (item["group_index"], item["channel_index"]) != (-1, -1):
+                    name = COMPARISON_NAME.match(item["name"]).group("name").strip()
+                    item["name"] = name
+            else:
+                if disable_new_channels is not None:
+                    item["enabled"] = not disable_new_channels
+                fix_comparison_name(
+                    item["channels"], disable_new_channels=disable_new_channels
+                )
+
+    names = []
+    if data.hasFormat("application/octet-stream-asammdf"):
+        data = bytes(data.data("application/octet-stream-asammdf")).decode("utf-8")
+        data = json.loads(data)
+        fix_comparison_name(data, disable_new_channels=disable_new_channels)
+        names = data
+
+    return names
+
+
+def set_mime_enable(mime, enable):
+    for item in mime:
+        if item["type"] == "channel":
+            item["enabled"] = enable
+        else:
+            set_mime_enable(item["channels"], enable)
+
+
+def load_dsp(file, background="#000000", flat=False):
+    if isinstance(background, str):
+        background = fn.mkColor(background)
+
+    def parse_conversions(display):
+        conversions = {}
+
+        if display is None:
+            return conversions
+
+        for item in display.findall("COMPU_METHOD"):
+            try:
+                conv = {
+                    "name": item.get("name"),
+                    "comment": item.get("description"),
+                    "unit": item.get("unit"),
+                }
+
+                conversion_type = int(item.get("cnv_type"))
+                if conversion_type == 0:
+                    conv["conversion_type"] = v4c.CONVERSION_TYPE_LIN
+
+                    coeffs = item.find("COEFFS_LINIAR")
+
+                    conv["a"] = float(coeffs.get("P1"))
+                    conv["b"] = float(coeffs.get("P2"))
+
+                elif conversion_type == 9:
+                    conv["conversion_type"] = v4c.CONVERSION_TYPE_RAT
+
+                    coeffs = item.find("COEFFS")
+                    for i in range(1, 7):
+                        conv[f"P{i}"] = float(coeffs.get(f"P{i}"))
+
+                elif conversion_type == 11:
+                    conv["conversion_type"] = v4c.CONVERSION_TYPE_TABX
+                    vtab = item.find("COMPU_VTAB")
+
+                    if vtab is not None:
+                        for i, item in enumerate(vtab.findall("tab")):
+                            conv[f"val_{i}"] = float(item.get("min"))
+                            text = item.get("text")
+                            if isinstance(text, bytes):
+                                text = text.decode("utf-8", errors="replace")
+                            conv[f"text_{i}"] = text
+
+                elif conversion_type == 12:
+                    conv["conversion_type"] = v4c.CONVERSION_TYPE_RTABX
+                    vtab = item.find("COMPU_VTAB_RANGE")
+
+                    if vtab is not None:
+                        text = vtab.get("default")
+                        if isinstance(text, bytes):
+                            text = text.decode("utf-8", errors="replace")
+                        conv["default_addr"] = vtab.get("default")
+                        for i, item in enumerate(vtab.findall("tab_range")):
+                            conv[f"upper_{i}"] = float(item.get("max"))
+                            conv[f"lower_{i}"] = float(item.get("min"))
+                            text = item.get("text")
+                            if isinstance(text, bytes):
+                                text = text.decode("utf-8", errors="replace")
+                            conv[f"text_{i}"] = text
+                else:
+                    continue
+
+                conversions[conv["name"]] = conv
+
+            except:
+                print(format_exc())
+                continue
+
+        return conversions
+
+    def parse_channels(display, conversions):
+        channels = []
+        for elem in display.iterchildren():
+            if elem.tag == "CHANNEL":
+                channel_name = elem.get("name")
+
+                comment = elem.find("COMMENT")
+                if comment is not None:
+                    comment = elem.get("text")
+                else:
+                    comment = ""
+
+                color_ = int(elem.get("color"))
+                c = 0
+                for i in range(3):
+                    c = c << 8
+                    c += color_ & 0xFF
+                    color_ = color_ >> 8
+
+                if c in (0xFFFFFF, 0x0):
+                    c = 0x808080
+
+                gain = float(elem.get("gain"))
+                offset = float(elem.get("offset")) / 100
+
+                multi_color = elem.find("MULTI_COLOR")
+
+                ranges = []
+
+                if multi_color is not None:
+                    for color in multi_color.findall("color"):
+                        min_ = float(color.find("min").get("data"))
+                        max_ = float(color.find("max").get("data"))
+                        color_ = int(color.find("color").get("data"))
+                        c = 0
+                        for i in range(3):
+                            c = c << 8
+                            c += color_ & 0xFF
+                            color_ = color_ >> 8
+                        color = fn.mkColor(f"#{c:06X}")
+                        ranges.append(
+                            {
+                                "background_color": background,
+                                "font_color": color,
+                                "op1": "<=",
+                                "op2": "<=",
+                                "value1": min_,
+                                "value2": max_,
+                            }
+                        )
+
+                chan = {
+                    "color": f"#{c:06X}",
+                    "common_axis": False,
+                    "computed": False,
+                    "flags": 0,
+                    "comment": comment,
+                    "enabled": elem.get("on") == "1",
+                    "fmt": "{}",
+                    "individual_axis": False,
+                    "name": channel_name,
+                    "mode": "phys",
+                    "precision": 3,
+                    "ranges": ranges,
+                    "unit": "",
+                    "type": "channel",
+                    "y_range": [
+                        -gain * offset,
+                        -gain * offset + 19 * gain,
+                    ],
+                    "origin_uuid": "000000000000",
+                }
+
+                conv_name = elem.get("cnv_name")
+                if conv_name in conversions:
+                    chan["conversion"] = deepcopy(conversions[conv_name])
+
+                channels.append(chan)
+
+            elif elem.tag.startswith("GROUP"):
+                channels.append(
+                    {
+                        "name": elem.get("data"),
+                        "enabled": elem.get("on") == "1",
+                        "type": "group",
+                        "channels": parse_channels(elem, conversions=conversions),
+                        "pattern": None,
+                        "origin_uuid": "000000000000",
+                        "ranges": [],
+                    }
+                )
+
+            elif elem.tag == "CHANNEL_PATTERN":
+                try:
+                    filter_type = elem.get("filter_type")
+                    if filter_type == "None":
+                        filter_type = "Unspecified"
+                    info = {
+                        "pattern": elem.get("name_pattern"),
+                        "name": elem.get("name_pattern"),
+                        "match_type": "Wildcard",
+                        "filter_type": filter_type,
+                        "filter_value": float(elem.get("filter_value")),
+                        "raw": bool(int(elem.get("filter_use_raw"))),
+                    }
+
+                    multi_color = elem.find("MULTI_COLOR")
+
+                    ranges = []
+
+                    if multi_color is not None:
+                        for color in multi_color.findall("color"):
+                            min_ = float(color.find("min").get("data"))
+                            max_ = float(color.find("max").get("data"))
+                            color_ = int(color.find("color").get("data"))
+                            c = 0
+                            for i in range(3):
+                                c = c << 8
+                                c += color_ & 0xFF
+                                color_ = color_ >> 8
+                            color = fn.mkColor(f"#{c:06X}")
+                            ranges.append(
+                                {
+                                    "background_color": background,
+                                    "font_color": color,
+                                    "op1": "<=",
+                                    "op2": "<=",
+                                    "value1": min_,
+                                    "value2": max_,
+                                }
+                            )
+
+                    info["ranges"] = ranges
+
+                    channels.append(
+                        {
+                            "channels": [],
+                            "enabled": True,
+                            "name": info["pattern"],
+                            "pattern": info,
+                            "type": "group",
+                            "ranges": [],
+                            "origin_uuid": "000000000000",
+                        }
+                    )
+
+                except:
+                    print(format_exc())
+                    continue
+
+        return channels
+
+    def parse_virtual_channels(display):
+        channels = {}
+
+        if display is None:
+            return channels
+
+        for item in display.findall("V_CHAN"):
+            try:
+                virtual_channel = {}
+
+                parent = item.find("VIR_TIME_CHAN")
+                vtab = item.find("COMPU_VTAB")
+                if parent is None or vtab is None:
+                    continue
+
+                name = item.get("name")
+
+                virtual_channel["name"] = name
+                virtual_channel["parent"] = parent.get("data")
+                virtual_channel["comment"] = item.find("description").get("data")
+
+                conv = {}
+                for i, item in enumerate(vtab.findall("tab")):
+                    conv[f"val_{i}"] = float(item.get("min"))
+                    text = item.get("text")
+                    if isinstance(text, bytes):
+                        text = text.decode("utf-8", errors="replace")
+                    conv[f"text_{i}"] = text
+
+                virtual_channel["vtab"] = conv
+
+                channels[name] = virtual_channel
+            except:
+                continue
+
+        return channels
+
+    def parse_c_functions(display):
+        c_functions = set()
+
+        if display is None:
+            return c_functions
+
+        for item in display.findall("CALC_FUNC"):
+            string = item.text
+
+            for match in C_FUNCTION.finditer(string):
+                c_functions.add(match.group("function"))
+
+        return sorted(c_functions)
+
+    dsp = Path(file).read_bytes().replace(b"\0", b"")
+    dsp = lxml.etree.fromstring(dsp)
+
+    conversions = parse_conversions(dsp.find("COMPU_METHODS"))
+
+    channels = parse_channels(dsp.find("DISPLAY_INFO"), conversions)
+    c_functions = parse_c_functions(dsp)
+
+    functions = {}
+    virtual_channels = []
+
+    for i, ch in enumerate(
+        parse_virtual_channels(dsp.find("VIRTUAL_CHANNEL")).values()
+    ):
+        virtual_channels.append(
+            {
+                "color": COLORS[i % len(COLORS)],
+                "common_axis": False,
+                "computed": True,
+                "computation": {
+                    "args": {"arg1": []},
+                    "type": "python_function",
+                    "channel_comment": ch["comment"],
+                    "channel_name": ch["name"],
+                    "channel_unit": "",
+                    "function": f"f_{ch['name']}",
+                    "triggering": "triggering_on_all",
+                    "triggering_value": "all",
+                },
+                "flags": int(
+                    SignalFlags.computed | SignalFlags.user_defined_conversion
+                ),
+                "enabled": True,
+                "fmt": "{}",
+                "individual_axis": False,
+                "name": ch["parent"],
+                "precision": 3,
+                "ranges": [],
+                "unit": "",
+                "conversion": ch["vtab"],
+                "user_defined_name": ch["name"],
+                "comment": f"Datalyser virtual channel: {ch['comment']}",
+                "origin_uuid": "000000000000",
+                "type": "channel",
+            }
+        )
+
+        functions[
+            f"f_{ch['name']}"
+        ] = f"def f_{ch['name']}(arg1=0, t=0):\n    return arg1"
+
+    if virtual_channels:
+        channels.append(
+            {
+                "name": "Datalyser Virtual Channels",
+                "enabled": False,
+                "type": "group",
+                "channels": virtual_channels,
+                "pattern": None,
+                "origin_uuid": "000000000000",
+                "ranges": [],
+            }
+        )
+
+    info = {
+        "selected_channels": [],
+        "windows": [],
+        "has_virtual_channels": bool(virtual_channels),
+        "c_functions": c_functions,
+        "functions": functions,
+    }
+
+    if flat:
+        info = flatten_dsp(channels)
+    else:
+        plot = {
+            "type": "Plot",
+            "title": "Display channels",
+            "maximized": True,
+            "configuration": {
+                "channels": channels,
+                "locked": True,
+            },
+        }
+
+        info["windows"].append(plot)
+
+    return info
+
+
+def flatten_dsp(channels):
+    res = []
+
+    for item in channels:
+        if item["type"] == "group":
+            res.extend(flatten_dsp(item["channels"]))
+        else:
+            res.append(item["name"])
+
+    return res
+
+
+def load_channel_names_from_file(file_name, lab_section=""):
+    file_name = Path(file_name)
+
+    extension = file_name.suffix.lower()
+    if extension == ".dsp":
+        channels = load_dsp(file_name, flat=True)
+
+    elif extension == ".dspf":
+        with open(file_name, "r") as infile:
+            info = json.load(infile)
+
+        channels = []
+        for window in info["windows"]:
+            if window["type"] == "Plot":
+                channels.extend(flatten_dsp(window["configuration"]["channels"]))
+            elif window["type"] == "Numeric":
+                channels.extend(
+                    [item["name"] for item in window["configuration"]["channels"]]
+                )
+            elif window["type"] == "Tabular":
+                channels.extend(window["configuration"]["channels"])
+
+    elif extension == ".lab":
+        info = load_lab(file_name)
+        if info:
+            if len(info) > 1 and lab_section:
+                channels = info[lab_section]
+            else:
+                channels = list(info.values())[0]
+
+    elif extension == ".cfg":
+        with open(file_name, "r") as infile:
+            info = json.load(infile)
+        channels = info.get("selected_channels", [])
+    elif extension == ".txt":
+        try:
+            with open(file_name, "r") as infile:
+                info = json.load(infile)
+            channels = info.get("selected_channels", [])
+        except:
+            with open(file_name, "r") as infile:
+                channels = [line.strip() for line in infile.readlines()]
+                channels = [name for name in channels if name]
+
+    return sorted(set(channels))
+
+
+def load_lab(file):
+    sections = {}
+    with open(file, "r") as lab:
+        for line in lab:
+            line = line.strip()
+            if not line:
+                continue
+
+            if line.startswith("[") and line.endswith("]"):
+                section_name = line.strip("[]")
+                s = []
+                sections[section_name] = s
+
+            else:
+                s.append(line)
+
+    return {name: channels for name, channels in sections.items() if channels}
+
+
+class SignalFlags(IntFlag):
+    no_flags = 0x0
+    user_defined_comment = 0x1
+    user_defined_conversion = 0x2
+    user_defined_unit = 0x4
+    user_defined_name = 0x8
+    stream_sync = 0x10
+    computed = 0x20

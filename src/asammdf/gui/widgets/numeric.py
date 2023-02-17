@@ -15,19 +15,13 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from asammdf import MDF
 from asammdf.gui import utils
 from asammdf.gui.dialogs.range_editor import RangeEditor
-from asammdf.gui.utils import (
-    copy_ranges,
-    extract_mime_names,
-    get_colors_using_ranges,
-    value_as_str,
-)
+from asammdf.gui.utils import copy_ranges, get_colors_using_ranges, value_as_str
 from asammdf.gui.widgets.plot import PlotSignal
 
-from ...blocks.conversion_utils import from_dict, to_dict
+from ...blocks.utils import extract_mime_names
 from ..ui import resource_rc
 from ..ui.numeric_offline import Ui_NumericDisplay
 from ..utils import FONT_SIZE
-from .loader import load_ui
 
 HERE = Path(__file__).resolve().parent
 

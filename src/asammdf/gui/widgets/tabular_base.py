@@ -41,14 +41,17 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 Qt = QtCore.Qt
 
-from ...blocks.utils import csv_bytearray2hex, pandas_query_compatible
+from ...blocks.utils import (
+    csv_bytearray2hex,
+    extract_mime_names,
+    pandas_query_compatible,
+)
 from ...mdf import MDF
 from ..dialogs.range_editor import RangeEditor
 from ..ui import resource_rc
 from ..ui.tabular import Ui_TabularDisplay
 from ..utils import (
     copy_ranges,
-    extract_mime_names,
     FONT_SIZE,
     get_colors_using_ranges,
     run_thread_with_progress,

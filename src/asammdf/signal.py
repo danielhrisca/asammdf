@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from enum import IntFlag
 import logging
 from textwrap import fill
 from traceback import format_exc
@@ -19,7 +18,7 @@ from .blocks import v4_blocks as v4b
 from .blocks.conversion_utils import from_dict
 from .blocks.options import FloatInterpolation, IntegerInterpolation
 from .blocks.source_utils import Source
-from .blocks.utils import extract_xml_comment, MdfException
+from .blocks.utils import extract_xml_comment, MdfException, SignalFlags
 from .types import (
     ChannelConversionType,
     FloatInterpolationModeType,
@@ -77,14 +76,7 @@ class Signal(object):
 
     """
 
-    class Flags(IntFlag):
-        no_flags = 0x0
-        user_defined_comment = 0x1
-        user_defined_conversion = 0x2
-        user_defined_unit = 0x4
-        user_defined_name = 0x8
-        stream_sync = 0x10
-        computed = 0x20
+    Flags = SignalFlags
 
     def __init__(
         self,

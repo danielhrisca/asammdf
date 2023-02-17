@@ -148,10 +148,11 @@ def monkey_patch_pyqtgraph():
     fn.mkPen = mkPen
 
 
+from ...blocks.utils import extract_mime_names
 from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.define_channel import DefineChannel
-from ..utils import COLORS, COLORS_COUNT, copy_ranges, extract_mime_names
+from ..utils import COLORS, COLORS_COUNT, copy_ranges
 from .channel_stats import ChannelStats
 from .cursor import Bookmark, Cursor, Region
 from .dict_to_tree import ComputedChannelInfoWindow

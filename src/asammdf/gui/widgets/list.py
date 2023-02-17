@@ -7,7 +7,7 @@ from traceback import format_exc
 from natsort import natsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ..utils import extract_mime_names
+from ...blocks.utils import extract_mime_names
 
 
 class ListWidget(QtWidgets.QListWidget):

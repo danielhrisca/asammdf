@@ -16,7 +16,13 @@ import psutil
 import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ...blocks.utils import extract_xml_comment, TERMINATED
+from ...blocks.utils import (
+    extract_xml_comment,
+    load_channel_names_from_file,
+    load_dsp,
+    load_lab,
+    TERMINATED,
+)
 from ...blocks.v4_constants import (
     BUS_TYPE_CAN,
     BUS_TYPE_ETHERNET,
@@ -35,14 +41,7 @@ from ..dialogs.gps_dialog import GPSDialog
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..ui import resource_rc
 from ..ui.file_widget import Ui_file_widget
-from ..utils import (
-    HelperChannel,
-    load_channel_names_from_file,
-    load_dsp,
-    load_lab,
-    run_thread_with_progress,
-    setup_progress,
-)
+from ..utils import HelperChannel, run_thread_with_progress, setup_progress
 from .attachment import Attachment
 from .can_bus_trace import CANBusTrace
 from .database_item import DatabaseItem
