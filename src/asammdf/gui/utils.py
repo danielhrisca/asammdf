@@ -210,6 +210,14 @@ def extract_mime_names(data, disable_new_channels=None):
     return names
 
 
+def set_mime_enable(mime, enable):
+    for item in mime:
+        if item["type"] == "channel":
+            item["enabled"] = enable
+        else:
+            set_mime_enable(item["channels"], enable)
+
+
 def load_dsp(file, background="#000000", flat=False):
     if isinstance(background, str):
         background = fn.mkColor(background)
