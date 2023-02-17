@@ -36,7 +36,10 @@ from ..utils import (
     computation_to_python_function,
     compute_signal,
     copy_ranges,
+    generate_python_function,
     replace_computation_dependency,
+    VARIABLE,
+    VARIABLE_GET_DATA,
 )
 from .can_bus_trace import CANBusTrace
 from .flexray_bus_trace import FlexRayBusTrace
@@ -2839,7 +2842,7 @@ class WithMDIArea:
                     widget.edit_channel_request.emit(computed_channel, item)
 
     def get_current_widget(self):
-        mdi = self.mdi_area.activeSubWindow()
+        mdi = self.mdi_area.currentSubWindow()
         if mdi is not None:
             widget = mdi.widget()
 
@@ -3880,7 +3883,7 @@ class WithMDIArea:
         if not self.subplots_link:
             return
 
-        active_window = self.mdi_area.activeSubWindow()
+        active_window = self.mdi_area.currentSubWindow()
         if active_window is None:
             return
 
@@ -3898,7 +3901,7 @@ class WithMDIArea:
         if not self.subplots_link:
             return
 
-        active_window = self.mdi_area.activeSubWindow()
+        active_window = self.mdi_area.currentSubWindow()
         if active_window is None:
             return
 
