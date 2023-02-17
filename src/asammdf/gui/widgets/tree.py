@@ -916,7 +916,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addSeparator()
 
         submenu = QtWidgets.QMenu("Enable/disable")
-        if item is not None and item.type() == item.Group and item.isDisabled():
+        if item and item.type() == item.Group and item.isDisabled():
             submenu.addAction(self.tr("Activate group"))
         submenu.addAction(self.tr("Deactivate groups"))
         submenu.addAction(self.tr("Enable all"))
@@ -954,7 +954,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addAction(self.tr("Set channel conversion"))
         menu.addAction(self.tr("Set channel comment"))
         menu.addAction(self.tr("Set unit"))
-        if item.signal.flags & Signal.Flags.computed:
+        if item and item.signal.flags & Signal.Flags.computed:
             menu.addSeparator()
             menu.addAction(self.tr("Edit this computed channel"))
         menu.addSeparator()

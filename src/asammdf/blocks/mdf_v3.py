@@ -3830,7 +3830,7 @@ class MDF3(MDF_Common):
             gps = {}
             included_channels = set(range(len(group.channels)))
             master_index = self.masters_db.get(index, None)
-            if master_index is not None:
+            if master_index is not None and len(included_channels) > 1:
                 included_channels.remove(master_index)
 
             for dep in group.channel_dependencies:
@@ -3889,7 +3889,12 @@ class MDF3(MDF_Common):
                                     pass
 
                 gp_master = self.masters_db.get(group_index, None)
-                if skip_master and gp_master is not None and gp_master in channels:
+                if (
+                    skip_master
+                    and gp_master is not None
+                    and gp_master in channels
+                    and len(channels) > 1
+                ):
                     channels.remove(gp_master)
 
                 result[group_index] = {group_index: sorted(channels)}
