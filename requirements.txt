@@ -5,4 +5,5 @@ numpy>=1.23.0
 pandas
 typing_extensions
 python-dateutil
+natsort
 isal; platform_machine == "x86_64" or platform_machine == "AMD64"
