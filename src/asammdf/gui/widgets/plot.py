@@ -5298,7 +5298,7 @@ class _Plot(pg.PlotWidget):
             flash_current_signal = self.flash_current_signal
 
             if self._settings.value("curve_dots_cap_style", "square") == "square":
-                cap_style = None
+                cap_style = QtCore.Qt.SquareCap
             else:
                 cap_style = QtCore.Qt.RoundCap
 
@@ -5333,8 +5333,7 @@ class _Plot(pg.PlotWidget):
 
                     _pen = fn.mkPen(sig.color.name())
                     _pen.setWidth(dots_with)
-                    if cap_style is not None:
-                        _pen.setCapStyle(QtCore.Qt.RoundCap)
+                    _pen.setCapStyle(cap_style)
                     paint.setPen(_pen)
 
                     poly, arr = polygon_and_ndarray(x.size)
@@ -5419,8 +5418,7 @@ class _Plot(pg.PlotWidget):
                                     paint.RenderHint.Antialiasing, True
                                 )
                                 pen.setWidth(dots_with)
-                                if cap_style is not None:
-                                    pen.setCapStyle(QtCore.Qt.RoundCap)
+                                pen.setCapStyle(cap_style)
                                 paint.setPen(pen)
 
                                 pos = np.isfinite(y)

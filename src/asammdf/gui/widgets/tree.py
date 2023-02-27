@@ -954,7 +954,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addAction(self.tr("Set channel conversion"))
         menu.addAction(self.tr("Set channel comment"))
         menu.addAction(self.tr("Set unit"))
-        if item and item.signal.flags & Signal.Flags.computed:
+        if (
+            item
+            and item.type() == ChannelsTreeItem.Channel
+            and item.signal.flags & Signal.Flags.computed
+        ):
             menu.addSeparator()
             menu.addAction(self.tr("Edit this computed channel"))
         menu.addSeparator()
@@ -981,8 +985,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if item and item.type() == ChannelsTreeItem.Channel:
             menu.addAction(self.tr("File/Computation properties"))
         elif item and item.type() == ChannelsTreeItem.Group:
-            if item.pattern:
-                menu.addAction(self.tr("Edit pattern"))
+            menu.addAction(self.tr("Edit group"))
             menu.addAction(self.tr("Group properties"))
 
         action = menu.exec_(self.viewport().mapToGlobal(position))
@@ -1391,40 +1394,50 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 text = text.strip()
                 item.name = text
 
-        elif action.text() == "Edit pattern":
-            pattern = dict(item.pattern)
-            pattern["ranges"] = copy_ranges(item.ranges)
-            dlg = AdvancedSearch(
-                None,
-                show_add_window=False,
-                show_apply=True,
-                show_search=False,
-                window_title="Add pattern based group",
-                parent=self,
-                pattern=pattern,
-            )
-            dlg.setModal(True)
-            dlg.exec_()
-            pattern = dlg.result
-
-            if pattern:
-                item.pattern = pattern
-                item.set_ranges(pattern["ranges"])
-
-                self.clearSelection()
-
-                count = item.childCount()
-                for i in range(count):
-                    child = item.child(i)
-                    child.setSelected(True)
-
-                event = QtGui.QKeyEvent(
-                    QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier
+        elif action.text() == "Edit group":
+            if item.pattern:
+                pattern = dict(item.pattern)
+                pattern["ranges"] = copy_ranges(item.ranges)
+                dlg = AdvancedSearch(
+                    None,
+                    show_add_window=False,
+                    show_apply=True,
+                    show_search=False,
+                    window_title="Add pattern based group",
+                    parent=self,
+                    pattern=pattern,
                 )
-                self.keyPressEvent(event)
+                dlg.setModal(True)
+                dlg.exec_()
+                pattern = dlg.result
 
-                self.pattern_group_added.emit(item)
-                self.refresh()
+                if pattern:
+                    item.pattern = pattern
+                    item.name = pattern["name"]
+                    item.set_ranges(pattern["ranges"])
+
+                    self.clearSelection()
+
+                    count = item.childCount()
+                    for i in range(count):
+                        child = item.child(i)
+                        child.setSelected(True)
+
+                    event = QtGui.QKeyEvent(
+                        QtCore.QEvent.KeyPress,
+                        QtCore.Qt.Key_Delete,
+                        QtCore.Qt.NoModifier,
+                    )
+                    self.keyPressEvent(event)
+
+                    self.pattern_group_added.emit(item)
+                    self.refresh()
+            else:
+                text, ok = QtWidgets.QInputDialog.getText(
+                    self, "Edit channel group name", "New channel group name:"
+                )
+                if ok:
+                    item.name = text
 
         self.update_channel_groups_count()
 

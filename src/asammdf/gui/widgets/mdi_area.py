@@ -3401,7 +3401,6 @@ class WithMDIArea:
             [],
             with_dots=self.with_dots,
             line_interconnect=self.line_interconnect,
-            line_width=self.line_width,
             events=events,
             origin=origin,
             mdf=mdf,
@@ -3418,7 +3417,6 @@ class WithMDIArea:
         plot.pattern_group_added.connect(self.add_pattern_group)
         plot.verify_bookmarks.connect(self.verify_bookmarks)
         plot.pattern = pattern_info
-        plot.line_width = self.line_width
 
         plot.plot._can_paint_global = False
 
@@ -3823,13 +3821,6 @@ class WithMDIArea:
             if isinstance(widget, Plot):
                 widget.line_interconnect = line_interconnect
                 widget.plot.set_line_interconnect(line_interconnect)
-
-    def set_line_width(self, line_width):
-        self.line_width = line_width
-        for i, mdi in enumerate(self.mdi_area.subWindowList()):
-            widget = mdi.widget()
-            if isinstance(widget, Plot):
-                widget.line_width = line_width
 
     def set_subplots(self, option):
         self.subplots = option
