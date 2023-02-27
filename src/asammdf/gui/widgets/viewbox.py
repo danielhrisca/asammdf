@@ -119,7 +119,7 @@ class ViewBoxWithCursor(pg.ViewBox):
         self.updateMatrix()
 
     def __repr__(self):
-        return "ASAM ViewbOx"
+        return "ASAM ViewBox"
 
     def setMouseMode(self, mode):
         """
@@ -281,7 +281,3 @@ class ViewBoxWithCursor(pg.ViewBox):
         self.scaleBy(s, center)
         ev.accept()
         self.sigRangeChangedManually.emit(mask)
-
-    sigCursorMoved = QtCore.Signal(object)
-    sigZoomChanged = QtCore.Signal(object)
-    sigZoomFinished = QtCore.Signal(object)

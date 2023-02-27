@@ -3934,6 +3934,14 @@ class _Plot(pg.PlotWidget):
                     QtCore.Qt.Key_O,
                 ).toCombined(),
                 QtCore.QKeyCombination(
+                    QtCore.Qt.ShiftModifier,
+                    QtCore.Qt.Key_I,
+                ).toCombined(),
+                QtCore.QKeyCombination(
+                    QtCore.Qt.ShiftModifier,
+                    QtCore.Qt.Key_O,
+                ).toCombined(),
+                QtCore.QKeyCombination(
                     QtCore.Qt.NoModifier,
                     QtCore.Qt.Key_X,
                 ).toCombined(),
@@ -4689,6 +4697,35 @@ class _Plot(pg.PlotWidget):
                     pos = self.cursor1.value()
                     x_range = pos - delta / 2, pos + delta / 2
                 self.viewbox.setXRange(x_range[0] - step, x_range[1] + step, padding=0)
+
+            elif (
+                key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O)
+                and modifier == QtCore.Qt.ShiftModifier
+                and not self.locked
+            ):
+                if key == QtCore.Qt.Key_I:
+                    factor = 0.25
+                else:
+                    factor = -0.25
+
+                self.block_zoom_signal = True
+
+                for sig in self.signals:
+                    sig_y_bottom, sig_y_top = sig.y_range
+                    delta = sig_y_top - sig_y_bottom
+                    sig_y_top -= delta * factor
+                    sig_y_bottom += delta * factor
+
+                    sig, idx = self.signal_by_uuid(sig.uuid)
+
+                    axis = self.axes[idx]
+                    if isinstance(axis, FormatedAxis):
+                        axis.setRange(sig_y_bottom, sig_y_top)
+                    else:
+                        self.set_y_range(sig.uuid, (sig_y_bottom, sig_y_top))
+
+                self.block_zoom_signal = False
+                self.zoom_changed.emit(False)
 
             elif key == QtCore.Qt.Key_R and modifier == QtCore.Qt.NoModifier:
                 if self.region is None:
