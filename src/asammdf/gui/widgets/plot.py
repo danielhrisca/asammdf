@@ -2836,9 +2836,10 @@ class Plot(QtWidgets.QWidget):
             key in (QtCore.Qt.Key_B, QtCore.Qt.Key_H, QtCore.Qt.Key_P, QtCore.Qt.Key_T)
             and modifiers == QtCore.Qt.ControlModifier
         ):
-            selected_items = self.channel_selection.selectedItems() or (
-                self.channel_selection.invisibleRootItem(),
-            )
+            selected_items = self.channel_selection.selectedItems() or [
+                self.channel_selection.topLevelItem(i)
+                for i in range(self.channel_selection.topLevelItemCount())
+            ]
 
             if key == QtCore.Qt.Key_B:
                 fmt = "bin"
@@ -3662,7 +3663,7 @@ class _Plot(pg.PlotWidget):
         **kwargs,
     ):
         events = kwargs.pop("events", [])
-        viewBox = ViewBoxWithCursor()
+        viewBox = ViewBoxWithCursor(plot=self)
         super().__init__(viewBox=viewBox)
 
         # del self.plotItem.vb
@@ -3782,6 +3783,7 @@ class _Plot(pg.PlotWidget):
                 pos=pos, angle=90, movable=True, pen=color, hoverPen=color
             )
 
+            self.viewbox.cursor = self.cursor1
             self.viewbox.addItem(self.cursor1, ignoreBounds=True)
 
             self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
@@ -4693,7 +4695,7 @@ class _Plot(pg.PlotWidget):
                     step = -delta * 0.25
                 else:
                     step = delta * 0.5
-                if self.cursor1:
+                if self.cursor1.isVisible():
                     pos = self.cursor1.value()
                     x_range = pos - delta / 2, pos + delta / 2
                 self.viewbox.setXRange(x_range[0] - step, x_range[1] + step, padding=0)

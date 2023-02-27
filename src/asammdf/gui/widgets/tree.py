@@ -1316,10 +1316,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                     if item.type() == ChannelsTreeItem.Channel:
                         item.details = ChannelsTreeItem(
-                            ChannelsTreeItem.Info,
+                            type=ChannelsTreeItem.Info,
                             name=item.details_text,
                             signal=item.signal,
                         )
+
                         item.addChild(item.details)
 
                         if count <= 200:

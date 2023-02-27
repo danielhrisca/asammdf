@@ -106,7 +106,7 @@ class ViewBoxWithCursor(pg.ViewBox):
         ).toCombined(),
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, plot, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.menu.setParent(None)
@@ -117,6 +117,9 @@ class ViewBoxWithCursor(pg.ViewBox):
         self.zoom_start = None
         self._matrixNeedsUpdate = True
         self.updateMatrix()
+
+        self.cursor = None
+        self.plot = plot
 
     def __repr__(self):
         return "ASAM ViewBox"
@@ -272,12 +275,27 @@ class ViewBoxWithCursor(pg.ViewBox):
             ev.delta() * self.state["wheelScaleFactor"]
         )  # actual scaling factor
 
-        s = [(None if m is False else s) for m in mask]
-        center = pg.Point(
-            fn.invertQTransform(self.childGroup.transform()).map(ev.pos())
-        )
+        if self.cursor is not None and self.cursor.isVisible():
+            x_range, _ = self.viewRange()
+            delta = x_range[1] - x_range[0]
 
-        self._resetTarget()
-        self.scaleBy(s, center)
+            if ev.delta() < 0:
+                step = delta * 0.25
+            else:
+                step = -delta * 0.25
+
+            pos = self.cursor.value()
+            x_range = pos - delta / 2, pos + delta / 2
+            self.setXRange(x_range[0] - step, x_range[1] + step, padding=0)
+
+        else:
+            pos = ev.pos()
+
+            s = [(None if m is False else s) for m in mask]
+            center = pg.Point(fn.invertQTransform(self.childGroup.transform()).map(pos))
+
+            self._resetTarget()
+            self.scaleBy(s, center)
+
         ev.accept()
         self.sigRangeChangedManually.emit(mask)

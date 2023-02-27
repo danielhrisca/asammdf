@@ -5128,17 +5128,11 @@ class MDF:
                                                 "invalidation_bits"
                                             ],
                                             display_names={
-                                                f"CAN{bus}.{message.name}.{signal_name}": "display"
+                                                f"CAN{bus}.{message.name}.{signal_name}": "bus",
+                                                f"{message.name}.{signal_name}": "message",
                                             },
                                         )
 
-                                        sig.comment = f"""\
-<CNcomment>
-<TX>{sig.comment}</TX>
-<names>
-    <display>CAN{bus}.{message.name}.{signal_name}</display>
-</names>
-</CNcomment>"""
                                         sigs.append(sig)
 
                                     if is_j1939:
@@ -5446,17 +5440,11 @@ class MDF:
                                                 "invalidation_bits"
                                             ],
                                             display_names={
-                                                f"LIN{bus}.{message.name}.{signal_name}": "display"
+                                                f"LIN{bus}.{message.name}.{signal_name}": "bus",
+                                                f"{message.name}.{signal_name}": "message",
                                             },
                                         )
 
-                                        sig.comment = f"""\
-<CNcomment>
-    <TX>{sig.comment}</TX>
-    <names>
-        <display>LIN{bus}.{message.name}.{signal_name}</display>
-    </names>
-</CNcomment>"""
                                         sigs.append(sig)
 
                                     if prefix:
