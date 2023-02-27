@@ -1709,6 +1709,14 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             for row in range(count):
                 child = self.child(row)
                 child.color = value
+        elif self.type() == self.Info:
+            value = fn.mkColor(value)
+
+            self.setForeground(self.NameColumn, value)
+            self.setForeground(self.ValueColumn, value)
+            self.setForeground(self.CommonAxisColumn, value)
+            self.setForeground(self.IndividualAxisColumn, value)
+            self.setForeground(self.UnitColumn, value)
 
     @property
     def comment(self):

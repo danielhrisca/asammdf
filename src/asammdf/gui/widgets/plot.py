@@ -1338,9 +1338,14 @@ class PlotSignal(Signal):
         else:
             kind = self.phys_samples.dtype.kind
 
-        if index is None:
+        size = len(self)
+
+        if index is None or size == 0:
             value = "n.a."
         else:
+            if index >= size:
+                index = size - 1
+
             if self.mode == "raw":
                 value = self.raw_samples[index]
             else:
