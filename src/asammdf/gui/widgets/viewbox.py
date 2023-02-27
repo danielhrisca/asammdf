@@ -168,14 +168,27 @@ class ViewBoxWithCursor(pg.ViewBox):
             self.state["mouseMode"] == ViewBoxWithCursor.CursorMode
             and not ignore_cursor
         ):
-            self.sigCursorMoved.emit(ev)
-            if self.zoom_start is not None:
-                end = self.mapSceneToView(ev.scenePos())
-                self.sigZoomChanged.emit((self.zoom_start, end, self.zoom))
-                if ev.isFinish():
-                    self.sigZoomFinished.emit((self.zoom_start, end, self.zoom))
-                    self.zoom_start = None
-                    self.sigZoomChanged.emit(None)
+            if ev.button() == QtCore.Qt.MouseButton.LeftButton:
+                self.sigCursorMoved.emit(ev)
+                if self.zoom_start is not None:
+                    end = self.mapSceneToView(ev.scenePos())
+                    self.sigZoomChanged.emit((self.zoom_start, end, self.zoom))
+                    if ev.isFinish():
+                        self.sigZoomFinished.emit((self.zoom_start, end, self.zoom))
+                        self.zoom_start = None
+                        self.sigZoomChanged.emit(None)
+
+            else:
+                tr = self.childGroup.transform()
+                tr = fn.invertQTransform(tr)
+                tr = tr.map(dif * mask) - tr.map(pg.Point(0, 0))
+
+                x = tr.x() if mask[0] == 1 else None
+
+                self._resetTarget()
+                if x is not None:
+                    self.translateBy(x=x, y=0)
+                self.sigRangeChangedManually.emit(self.state["mouseEnabled"])
 
         else:
             ## Scale or translate based on mouse button
