@@ -3519,7 +3519,7 @@ class WithMDIArea:
         if "channels_header" in window_info["configuration"]:
             width, sizes = window_info["configuration"]["channels_header"]
             current_width = sum(plot.splitter.sizes())
-            plot.splitter.setSizes([width, current_width - width])
+            plot.splitter.setSizes([width, max(current_width - width, 50)])
             for i, size in enumerate(sizes):
                 plot.channel_selection.setColumnWidth(i, size)
 
