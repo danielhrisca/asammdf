@@ -355,8 +355,11 @@
       <property name="bottomMargin">
        <number>4</number>
       </property>
-      <property name="spacing">
+      <property name="horizontalSpacing">
        <number>2</number>
+      </property>
+      <property name="verticalSpacing">
+       <number>12</number>
       </property>
       <item row="0" column="0">
        <widget class="QRadioButton" name="sample_by_sample">

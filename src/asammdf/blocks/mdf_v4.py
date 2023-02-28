@@ -6637,10 +6637,14 @@ class MDF4(MDF_Common):
 
         master_is_required = not samples_only or raster
 
+        vals = None
+        all_invalid = False
+
         if (
             channel.byte_offset + (channel.bit_offset + channel.bit_count) / 8
             > grp.channel_group.samples_byte_nr
         ):
+            all_invalid = True
             logger.warning(
                 "\n\t".join(
                     [
@@ -6654,27 +6658,49 @@ class MDF4(MDF_Common):
                     ]
                 )
             )
-            channel = deepcopy(channel)
-            # channel.
 
-        if dependency_list:
-            if not isinstance(dependency_list[0], ChannelArrayBlock):
-                vals, timestamps, invalidation_bits, encoding = self._get_structure(
-                    channel=channel,
-                    group=grp,
-                    group_index=gp_nr,
-                    channel_index=ch_nr,
-                    dependency_list=dependency_list,
-                    raster=raster,
-                    data=data,
-                    ignore_invalidation_bits=ignore_invalidation_bits,
-                    record_offset=record_offset,
-                    record_count=record_count,
-                    master_is_required=master_is_required,
-                    raw=raw,
-                )
+            if (
+                channel.bit_offset + channel.bit_count
+            ) / 8 > grp.channel_group.samples_byte_nr:
+                vals, timestamps, invalidation_bits, encoding = [], [], None, None
             else:
-                vals, timestamps, invalidation_bits, encoding = self._get_array(
+                channel = deepcopy(channel)
+                channel.byte_offset = 0
+
+        if vals is None:
+            if dependency_list:
+                if not isinstance(dependency_list[0], ChannelArrayBlock):
+                    vals, timestamps, invalidation_bits, encoding = self._get_structure(
+                        channel=channel,
+                        group=grp,
+                        group_index=gp_nr,
+                        channel_index=ch_nr,
+                        dependency_list=dependency_list,
+                        raster=raster,
+                        data=data,
+                        ignore_invalidation_bits=ignore_invalidation_bits,
+                        record_offset=record_offset,
+                        record_count=record_count,
+                        master_is_required=master_is_required,
+                        raw=raw,
+                    )
+                else:
+                    vals, timestamps, invalidation_bits, encoding = self._get_array(
+                        channel=channel,
+                        group=grp,
+                        group_index=gp_nr,
+                        channel_index=ch_nr,
+                        dependency_list=dependency_list,
+                        raster=raster,
+                        data=data,
+                        ignore_invalidation_bits=ignore_invalidation_bits,
+                        record_offset=record_offset,
+                        record_count=record_count,
+                        master_is_required=master_is_required,
+                    )
+
+            else:
+                vals, timestamps, invalidation_bits, encoding = self._get_scalar(
                     channel=channel,
                     group=grp,
                     group_index=gp_nr,
@@ -6688,20 +6714,8 @@ class MDF4(MDF_Common):
                     master_is_required=master_is_required,
                 )
 
-        else:
-            vals, timestamps, invalidation_bits, encoding = self._get_scalar(
-                channel=channel,
-                group=grp,
-                group_index=gp_nr,
-                channel_index=ch_nr,
-                dependency_list=dependency_list,
-                raster=raster,
-                data=data,
-                ignore_invalidation_bits=ignore_invalidation_bits,
-                record_offset=record_offset,
-                record_count=record_count,
-                master_is_required=master_is_required,
-            )
+        if all_invalid:
+            invalidation_bits = np.ones(len(vals), dtype=bool)
 
         if samples_only:
             if not raw:
