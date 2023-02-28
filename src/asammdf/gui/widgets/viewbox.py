@@ -271,18 +271,15 @@ class ViewBoxWithCursor(pg.ViewBox):
             else:
                 mask = self.state["mouseEnabled"][:]
 
-        s = 1.02 ** (
-            ev.delta() * self.state["wheelScaleFactor"]
-        )  # actual scaling factor
-
         if self.cursor is not None and self.cursor.isVisible():
             x_range, _ = self.viewRange()
             delta = x_range[1] - x_range[0]
 
-            if ev.delta() < 0:
-                step = delta * 0.25
-            else:
-                step = -delta * 0.25
+            # mouse scroll wheel has 120 delta for each step
+            # touchpad has much lower delta values but is triggerd more often
+            event_delta = ev.delta() * 0.15 / 120
+
+            step = -delta * event_delta
 
             pos = self.cursor.value()
             x_range = pos - delta / 2, pos + delta / 2
@@ -290,6 +287,10 @@ class ViewBoxWithCursor(pg.ViewBox):
 
         else:
             pos = ev.pos()
+
+            s = 1.02 ** (
+                ev.delta() * self.state["wheelScaleFactor"]
+            )  # actual scaling factor
 
             s = [(None if m is False else s) for m in mask]
             center = pg.Point(fn.invertQTransform(self.childGroup.transform()).map(pos))

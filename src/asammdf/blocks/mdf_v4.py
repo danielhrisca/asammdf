@@ -7,6 +7,7 @@ from __future__ import annotations
 import bisect
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator, Sequence, Sized
+from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
 from hashlib import md5
@@ -6640,7 +6641,7 @@ class MDF4(MDF_Common):
             channel.byte_offset + (channel.bit_offset + channel.bit_count) / 8
             > grp.channel_group.samples_byte_nr
         ):
-            raise MdfException(
+            logger.warning(
                 "\n\t".join(
                     [
                         f"Channel {channel.name} byte offset too high:",
@@ -6653,7 +6654,8 @@ class MDF4(MDF_Common):
                     ]
                 )
             )
-            pass
+            channel = deepcopy(channel)
+            # channel.
 
         if dependency_list:
             if not isinstance(dependency_list[0], ChannelArrayBlock):
