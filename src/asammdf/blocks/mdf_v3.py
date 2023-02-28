@@ -2173,7 +2173,7 @@ class MDF3(MDF_Common):
 
         dg_cntr = len(self.groups)
 
-        gp = {}
+        gp = Group(None)
         gp.channels = gp_channels = []
         gp.channel_dependencies = gp_dep = []
         gp.signal_types = gp_sig_types = []
@@ -2238,7 +2238,7 @@ class MDF3(MDF_Common):
 
             fields.append(timestamps)
             types.append((name, timestamps.dtype))
-            field_names.add(name)
+            field_names.get_unique_name(name)
 
             offset += t_size
             ch_cntr += 1
