@@ -3295,7 +3295,7 @@ class WithMDIArea:
                     signal.flags |= signal.Flags.user_defined_conversion
 
                 if channel["flags"] & Signal.Flags.user_defined_name:
-                    signal.name = channel["user_defined_name"]
+                    signal.name = channel["user_defined_name"] or ""
                     signal.flags |= signal.Flags.user_defined_name
 
                 plot_signals[sig_uuid] = signal
@@ -3325,11 +3325,11 @@ class WithMDIArea:
                     sig.flags |= Signal.Flags.user_defined_conversion
 
                 if description["flags"] & Signal.Flags.user_defined_name:
-                    sig.name = description["user_defined_name"]
+                    sig.name = description["user_defined_name"] or ""
                     sig.flags |= Signal.Flags.user_defined_name
 
                 if description["flags"] & Signal.Flags.user_defined_unit:
-                    sig.unit = description.get("user_defined_unit", "")
+                    sig.unit = description.get("user_defined_unit", "") or ""
                     sig.flags |= Signal.Flags.user_defined_unit
 
                 signals[uuid] = sig

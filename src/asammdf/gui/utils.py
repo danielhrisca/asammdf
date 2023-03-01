@@ -310,11 +310,16 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.thread_finished = True
         super().close()
 
+    def cancel(self):
+        super().cancel()
+        self.destroy()
+
     def close(self):
         while not self.thread_finished:
             self.worker.stop = True
             sleep(0.01)
             QtCore.QCoreApplication.processEvents()
+        self.destroy()
 
     def keyPressEvent(self, event):
         if (

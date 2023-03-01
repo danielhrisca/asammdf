@@ -2120,7 +2120,7 @@ class Plot(QtWidgets.QWidget):
             sig.mode = description.get("mode", "phys")
 
             if "comment" in description:
-                sig.comment = description["comment"]
+                sig.comment = description["comment"] or ""
                 sig.flags |= Signal.Flags.user_defined_comment
 
             item = ChannelsTreeItem(
@@ -2403,6 +2403,7 @@ class Plot(QtWidgets.QWidget):
             brush = QtGui.QBrush(item.foreground(item.NameColumn))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.WindowText, brush)
+            palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.WindowText, brush)
 
             brush = QtGui.QBrush(item.background(item.NameColumn))
             brush.setStyle(QtCore.Qt.SolidPattern)
@@ -2607,6 +2608,7 @@ class Plot(QtWidgets.QWidget):
             brush = QtGui.QBrush(sig.color)
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.WindowText, brush)
+            palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.WindowText, brush)
             self.selected_channel_value.setPalette(palette)
 
             item = self.item_by_uuid(uuid)
@@ -5818,7 +5820,7 @@ class _Plot(pg.PlotWidget):
 
     def set_name(self, uuid, name):
         sig, index = self.signal_by_uuid(uuid)
-        sig.name = name
+        sig.name = name or ""
 
         sig_axis = [self.get_axis(index)]
 
@@ -5914,7 +5916,7 @@ class _Plot(pg.PlotWidget):
 
     def set_unit(self, uuid, unit):
         sig, index = self.signal_by_uuid(uuid)
-        sig.unit = unit
+        sig.unit = unit or ""
 
         sig_axis = [self.get_axis(index)]
 
