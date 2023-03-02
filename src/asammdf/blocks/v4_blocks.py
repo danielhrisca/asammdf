@@ -4672,7 +4672,7 @@ class DataList(_DataListBase):
             if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
                 self.data_block_len = kwargs["data_block_len"]
             else:
-                for i, offset in enumerate(self.links_nr - 1):
+                for i in range(self.links_nr - 1):
                     self[f"offset_{i}"] = kwargs[f"offset_{i}"]
 
     def __getitem__(self, item: str) -> Any:
