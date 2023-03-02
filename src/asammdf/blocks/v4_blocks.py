@@ -16,7 +16,7 @@ import time
 from traceback import format_exc
 from typing import Any, TYPE_CHECKING
 import xml.etree.ElementTree as ET
-
+import re
 import dateutil.tz
 
 try:
@@ -5383,7 +5383,7 @@ class HeaderBlock:
             comment = string
             try:
                 comment_xml = ET.fromstring(
-                    comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
+                    re.sub(r' xmlns=[\'\"]http://www.asam.net/mdf/v4[\'\"]', "", comment)
                 )
             except ET.ParseError as e:
                 self.description = string
