@@ -10,13 +10,14 @@ from functools import lru_cache
 from hashlib import md5
 import logging
 from pathlib import Path
+import re
 from struct import pack, unpack, unpack_from
 from textwrap import wrap
 import time
 from traceback import format_exc
 from typing import Any, TYPE_CHECKING
 import xml.etree.ElementTree as ET
-import re
+
 import dateutil.tz
 
 try:
@@ -4672,7 +4673,10 @@ class DataList(_DataListBase):
             if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
                 self.data_block_len = kwargs["data_block_len"]
             else:
-                for i in range(self.links_nr - 1):
+                self.block_len = (
+                    40 + 8 * kwargs.get("links_nr", 2) - 8 + 8 * self.data_block_nr
+                )
+                for i in range(self.data_block_nr):
                     self[f"offset_{i}"] = kwargs[f"offset_{i}"]
 
     def __getitem__(self, item: str) -> Any:
@@ -4682,11 +4686,18 @@ class DataList(_DataListBase):
         self.__setattr__(item, value)
 
     def __bytes__(self) -> bytes:
-        fmt = v4c.FMT_DATA_LIST.format(self.links_nr)
         keys = ("id", "reserved0", "block_len", "links_nr", "next_dl_addr")
         keys += tuple(f"data_block_addr{i}" for i in range(self.links_nr - 1))
-        keys += ("flags", "reserved1", "data_block_nr", "data_block_len")
+        if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
+            keys += ("flags", "reserved1", "data_block_nr", "data_block_len")
+            fmt = v4c.FMT_DATA_EQUAL_LIST.format(self.links_nr)
+        else:
+            keys += ("flags", "reserved1", "data_block_nr")
+            keys += tuple(f"offset_{i}" for i in range(self.data_block_nr))
+            fmt = v4c.FMT_DATA_LIST.format(self.links_nr, self.data_block_nr)
+
         result = pack(fmt, *[getattr(self, key) for key in keys])
+
         return result
 
 
@@ -5383,7 +5394,9 @@ class HeaderBlock:
             comment = string
             try:
                 comment_xml = ET.fromstring(
-                    re.sub(r' xmlns=[\'\"]http://www.asam.net/mdf/v4[\'\"]', "", comment)
+                    re.sub(
+                        r" xmlns=[\'\"]http://www.asam.net/mdf/v4[\'\"]", "", comment
+                    )
                 )
             except ET.ParseError as e:
                 self.description = string
@@ -5623,7 +5636,7 @@ class HeaderList:
             self.block_len = v4c.HL_BLOCK_SIZE
             self.links_nr = 1
             self.first_dl_addr = kwargs.get("first_dl_addr", 0)
-            self.flags = 1
+            self.flags = kwargs.get("flags", 1)
             self.zip_type = kwargs.get("zip_type", 0)
             self.reserved1 = b"\x00" * 5
 
