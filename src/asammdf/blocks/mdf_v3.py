@@ -3482,6 +3482,7 @@ class MDF3(MDF_Common):
         overwrite: bool = False,
         compression: CompressionType = 0,
         progress=None,
+        add_history_block: bool = True,
     ) -> Path | None:
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>',

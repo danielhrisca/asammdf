@@ -359,6 +359,9 @@ class AttachmentBlock:
         result = pack(fmt, *[self[key] for key in v4c.KEYS_AT_BLOCK])
         return result
 
+    def __repr__(self):
+        return f"ATBLOCK(address={self.address:x}, file_name={self.file_name}, comment={self.comment})"
+
 
 CN = b"##CN"
 
@@ -5256,6 +5259,9 @@ class FileHistory:
             self.tz_offset = tz_offset
             self.daylight_save_time = dst
             self.abs_time = int(timestamp.timestamp() * 10**9)
+
+    def __repr__(self):
+        return f"FHBLOCK(time={self.time_stamp}, comment={self.comment})"
 
 
 class HeaderBlock:

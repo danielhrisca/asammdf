@@ -9160,6 +9160,7 @@ class MDF4(MDF_Common):
         overwrite: bool = False,
         compression: CompressionType = 0,
         progress=None,
+        add_history_block: bool = True,
     ) -> Path:
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>', were
@@ -9179,6 +9180,9 @@ class MDF4(MDF_Common):
             * 1 - deflate (slower, but produces smaller files)
             * 2 - transposition + deflate (slowest, but produces
               the smallest files)
+
+        add_history_block : bool
+            option to add file historyu block
 
         Returns
         -------
@@ -9233,15 +9237,16 @@ class MDF4(MDF_Common):
         else:
             comment = "updated"
 
-        fh = FileHistory()
-        fh.comment = f"""<FHcomment>
+        if add_history_block:
+            fh = FileHistory()
+            fh.comment = f"""<FHcomment>
 <TX>{comment}</TX>
 <tool_id>asammdf</tool_id>
 <tool_vendor>asammdf</tool_vendor>
 <tool_version>{__version__}</tool_version>
 </FHcomment>"""
 
-        self.file_history.append(fh)
+            self.file_history.append(fh)
 
         cg_map = {}
 
