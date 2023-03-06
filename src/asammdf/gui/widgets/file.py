@@ -139,6 +139,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.info_index = None
         self.with_dots = with_dots
 
+        self.unknown_windows = []
+
         self._show_filter_tree = False
         self.line_interconnect = line_interconnect
 
@@ -920,7 +922,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         config["selected_channels"] = signals
 
-        windows = []
+        windows = list(self.unknown_windows)
         for window in self.mdi_area.subWindowList():
             wid = window.widget()
             geometry = window.geometry()

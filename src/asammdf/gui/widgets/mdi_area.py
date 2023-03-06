@@ -2860,24 +2860,30 @@ class WithMDIArea:
             "LIN Bus Trace": self._load_lin_bus_trace_window,
         }
 
-        load_window_function = functions[window_info["type"]]
+        if window_info["type"] not in functions:
+            self.unknown_windows.append(window_info)
 
-        w, pattern_info = load_window_function(window_info)
+        else:
+            load_window_function = functions[window_info["type"]]
 
-        if w:
-            if self._frameless_windows:
-                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+            w, pattern_info = load_window_function(window_info)
 
-            if pattern_info:
-                icon = QtGui.QIcon()
-                icon.addPixmap(
-                    QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-                )
-                w.setWindowIcon(icon)
+            if w:
+                if self._frameless_windows:
+                    w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
-            w.layout().setSpacing(1)
+                if pattern_info:
+                    icon = QtGui.QIcon()
+                    icon.addPixmap(
+                        QtGui.QPixmap(":/filter.png"),
+                        QtGui.QIcon.Normal,
+                        QtGui.QIcon.Off,
+                    )
+                    w.setWindowIcon(icon)
 
-            self.windows_modified.emit()
+                w.layout().setSpacing(1)
+
+                self.windows_modified.emit()
 
     def _load_numeric_window(self, window_info):
         uuid = self.uuid
