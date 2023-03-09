@@ -2130,7 +2130,7 @@ class WithMDIArea:
             flatten_entries = get_flatten_entries_from_mime(mime_data)
 
         for entry in flatten_entries:
-            not disable_new_channels
+            entry["enabled"] = not disable_new_channels
 
         signals_ = {
             entry["uuid"]: entry
@@ -2605,19 +2605,31 @@ class WithMDIArea:
                 if entry["origin_uuid"] == uuid
             ]
 
-            ranges.update(
-                {
-                    entry["name"]: entry["ranges"]
-                    for entry in signals_
-                    if entry["origin_uuid"] == uuid
-                }
-            )
-
             file_info = self.file_by_uuid(uuid)
             if not file_info:
                 continue
 
             file_index, file = file_info
+
+            if not hasattr(self, "mdf"):
+                # MainWindow => comparison plots
+
+                ranges.update(
+                    {
+                        f"{file_index+1}: {entry['name']}": entry["ranges"]
+                        for entry in signals_
+                        if entry["origin_uuid"] == uuid
+                    }
+                )
+            else:
+                ranges.update(
+                    {
+                        entry["name"]: entry["ranges"]
+                        for entry in signals_
+                        if entry["origin_uuid"] == uuid
+                    }
+                )
+
             start.append(file.mdf.header.start_time)
 
             for pattern_group in get_pattern_groups(names):
