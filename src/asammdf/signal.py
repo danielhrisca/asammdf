@@ -233,7 +233,7 @@ class Signal(object):
 
         if len(self.samples.shape) <= 1 and self.samples.dtype.names is None:
             fig = plt.figure()
-            fig.canvas.set_window_title(self.name)
+            fig.canvas.manager.set_window_title(self.name)
             fig.text(
                 0.95,
                 0.05,
