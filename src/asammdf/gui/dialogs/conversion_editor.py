@@ -366,7 +366,15 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
             self.vrtt_default_conversion = dlg.conversion()
 
     def insert(self, event):
-        widget = VTTWidget()
+        count = self.vtt_list.count()
+        if count:
+            item = self.vtt_list.item(count - 1)
+            last = self.vtt_list.itemWidget(item)
+            value = last.value.value() + 1
+        else:
+            value = 0
+
+        widget = VTTWidget(value=value)
 
         item = QtWidgets.QListWidgetItem()
         item.setSizeHint(widget.sizeHint())
@@ -374,7 +382,18 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
         self.vtt_list.setItemWidget(item, widget)
 
     def insert_vrtt(self, event):
-        widget = VRTTWidget()
+        count = self.vrtt_list.count()
+        if count:
+            item = self.vrtt_list.item(count - 1)
+            last = self.vrtt_list.itemWidget(item)
+            lower = last.upper.value()
+            upper = lower + 1
+
+        else:
+            lower = 0
+            upper = 1
+
+        widget = VRTTWidget(lower=lower, upper=upper)
 
         item = QtWidgets.QListWidgetItem()
         item.setSizeHint(widget.sizeHint())

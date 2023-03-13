@@ -1506,7 +1506,7 @@ class Plot(QtWidgets.QWidget):
         self.splitter.addWidget(widget)
         self.splitter.setOpaqueResize(False)
 
-        self.plot = _Plot(
+        self.plot = PlotGraphics(
             with_dots=with_dots,
             line_interconnect=self.line_interconnect,
             parent=self,
@@ -3639,7 +3639,7 @@ class Plot(QtWidgets.QWidget):
                     self.undo_btn.setEnabled(True)
 
 
-class _Plot(pg.PlotWidget):
+class PlotGraphics(pg.PlotWidget):
     cursor_moved = QtCore.Signal(object)
     cursor_removed = QtCore.Signal()
     range_removed = QtCore.Signal()
@@ -5360,34 +5360,35 @@ class _Plot(pg.PlotWidget):
                 y = sig.plot_samples
                 x = sig.plot_timestamps
 
-                x, y = self.scale_curve_to_pixmap(
-                    x, y, y_range=sig.y_range, x_start=x_start, delta=delta
-                )
+                if len(x):
+                    x, y = self.scale_curve_to_pixmap(
+                        x, y, y_range=sig.y_range, x_start=x_start, delta=delta
+                    )
 
-                sig.pen.setWidth(pen_width)
+                    sig.pen.setWidth(pen_width)
 
-                paint.setPen(sig.pen)
+                    paint.setPen(sig.pen)
 
-                pth = self.generatePath(x, y, sig)
-                paint.drawPath(pth)
+                    pth = self.generatePath(x, y, sig)
+                    paint.drawPath(pth)
 
-                if with_dots:
-                    paint.setRenderHints(paint.RenderHint.Antialiasing, True)
-                    pos = np.isfinite(y)
-                    y = y[pos]
-                    x = x[pos]
+                    if with_dots:
+                        paint.setRenderHints(paint.RenderHint.Antialiasing, True)
+                        pos = np.isfinite(y)
+                        y = y[pos]
+                        x = x[pos]
 
-                    _pen = fn.mkPen(sig.color.name())
-                    _pen.setWidth(dots_with)
-                    _pen.setCapStyle(cap_style)
-                    paint.setPen(_pen)
+                        _pen = fn.mkPen(sig.color.name())
+                        _pen.setWidth(dots_with)
+                        _pen.setCapStyle(cap_style)
+                        paint.setPen(_pen)
 
-                    poly, arr = polygon_and_ndarray(x.size)
+                        poly, arr = polygon_and_ndarray(x.size)
 
-                    arr[:, 0] = x
-                    arr[:, 1] = y
-                    paint.drawPoints(poly)
-                    paint.setRenderHints(paint.RenderHint.Antialiasing, False)
+                        arr[:, 0] = x
+                        arr[:, 1] = y
+                        paint.drawPoints(poly)
+                        paint.setRenderHints(paint.RenderHint.Antialiasing, False)
 
                 item = self.plot_parent.item_by_uuid(sig.uuid)
                 if not item:
@@ -6010,8 +6011,8 @@ class _Plot(pg.PlotWidget):
             if sig.enable:
                 sig.trim(start, stop, width, force)
 
-    def update(self, *args, **kwargs):
-        self._pixmap = None
+    def update(self, *args, pixmap=None, **kwargs):
+        self._pixmap = pixmap
         self.viewbox.update()
 
     def update_views(self):

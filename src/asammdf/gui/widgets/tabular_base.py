@@ -488,13 +488,10 @@ class DataTableView(QtWidgets.QTableView):
             )
 
             if selected_items:
+                ranges = []
                 for index in selected_items:
                     original_name = self.pgdf.df_unfiltered.columns[index]
-                    ranges = self.pgdf.tabular.ranges[original_name]
-                    if ranges:
-                        break
-                else:
-                    ranges = []
+                    ranges.update(self.pgdf.tabular.ranges[original_name])
 
                 dlg = RangeEditor(
                     "<selected signals>", "", ranges=ranges, parent=self, brush=True

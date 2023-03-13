@@ -2006,7 +2006,8 @@ class MDF:
                         if callable(progress):
                             progress(i + 1, groups_nr)
                         else:
-                            progress.signals.setValue.emit(i + 1, count)
+                            progress.signals.setValue.emit(i + 1)
+                            progress.signals.setMaximum.emit(count)
 
                             if progress.stop:
                                 return TERMINATED

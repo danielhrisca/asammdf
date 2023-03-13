@@ -777,7 +777,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         item.set_value(item._value, update=True)
 
             else:
-                dlg = RangeEditor(f"<selected items>", ranges=[], parent=self)
+                ranges = []
+                for item in selected_items:
+                    ranges.extend(item.ranges)
+                dlg = RangeEditor(f"<selected items>", ranges=ranges, parent=self)
                 dlg.exec_()
                 if dlg.pressed_button == "apply":
                     for item in selected_items:

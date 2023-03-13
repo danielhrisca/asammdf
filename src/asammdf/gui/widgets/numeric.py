@@ -677,7 +677,7 @@ class TableView(QtWidgets.QTableView):
                 for row in selected_items:
                     signal = self.backend.signals[row]
                     if self.ranges[signal.entry]:
-                        ranges = self.ranges[signal.entry]
+                        ranges.update(self.ranges[signal.entry])
                         break
 
                 dlg = RangeEditor(
