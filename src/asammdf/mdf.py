@@ -309,7 +309,6 @@ class MDF:
                         files = archive.namelist()
                         for fname in files:
                             if Path(fname).suffix.lower() in (".mdf", ".dat", ".mf4"):
-                                original_name = fname
                                 break
                         else:
                             raise Exception(

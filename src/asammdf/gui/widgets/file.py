@@ -979,8 +979,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             file_name.write_text(json.dumps(self.to_config(), indent=2))
 
             loaded_display_file, hash_sum = self.loaded_display_file
+            loaded_display_file = Path(loaded_display_file)
             if (
-                file_name.samefile(loaded_display_file)
+                loaded_display_file.exists()
+                and file_name.samefile(loaded_display_file)
                 and file_name.suffix.lower() == ".dspf"
             ):
                 worker = sha1()

@@ -1616,7 +1616,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                 if output_folder is not None:
                     if root is None:
-                        file_name = output_folder / Path(mdf_file.name).name
+                        file_name = output_folder / Path(mdf_file.original_name).name
                     else:
                         file_name = output_folder / Path(mdf_file.name).relative_to(
                             root
@@ -1625,10 +1625,11 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     if not file_name.parent.exists():
                         os.makedirs(file_name.parent, exist_ok=True)
                 else:
-                    file_name = Path(mdf_file.name)
+                    file_name = Path(mdf_file.original_name)
                     file_name = file_name.parent / (
                         file_name.stem + ".modified" + suffix
                     )
+
                 file_name = file_name.with_suffix(suffix)
 
                 # then save it

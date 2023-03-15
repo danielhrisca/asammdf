@@ -13,13 +13,13 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 import numpy as np
 import pyqtgraph as pg
-import pyqtgraph.canvas.CanvasTemplate_pyside6
-import pyqtgraph.canvas.TransformGuiTemplate_pyside6
 
 # imports for pyinstaller
 import pyqtgraph.functions as fn
 
 try:
+    import pyqtgraph.canvas.CanvasTemplate_pyside6
+    import pyqtgraph.canvas.TransformGuiTemplate_pyside6
     import pyqtgraph.console.template_pyside6
     import pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyside6
     import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyside6
