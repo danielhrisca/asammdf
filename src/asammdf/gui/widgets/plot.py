@@ -1935,6 +1935,10 @@ class Plot(QtWidgets.QWidget):
                         QtCore.Qt.ShiftModifier,
                         QtCore.Qt.Key_Backspace,
                     ).toCombined(),
+                    QtCore.QKeyCombination(
+                        QtCore.Qt.ShiftModifier,
+                        QtCore.Qt.Key_W,
+                    ).toCombined(),
                 ]
             )
             | self.plot.keyboard_events
@@ -3124,6 +3128,30 @@ class Plot(QtWidgets.QWidget):
                 self.redo_zoom()
             else:
                 self.undo_zoom()
+
+        elif key == QtCore.Qt.Key_W and modifiers == QtCore.Qt.ShiftModifier:
+            if self.enable_zoom_history and self.zoom_history:
+                self.zoom_history_index = 0
+
+                snapshot = self.zoom_history[self.zoom_history_index]
+
+                self.plot.block_zoom_signal = True
+
+                for sig in self.plot.signals:
+                    y_range = snapshot["y"].get(sig.uuid, None)
+
+                    if y_range is None:
+                        continue
+
+                    self.plot.set_y_range(sig.uuid, y_range, emit=False)
+
+                self.plot.viewbox.setXRange(*snapshot["x"], padding=0)
+
+                self.undo_btn.setEnabled(False)
+                if len(self.zoom_history) > 1:
+                    self.redo_btn.setEnabled(True)
+
+                self.plot.block_zoom_signal = False
 
         else:
             super().keyPressEvent(event)

@@ -791,6 +791,72 @@ def copy_ranges(ranges):
         return ranges
 
 
+def unique_ranges(ranges):
+    def compare(r):
+        v1, v2, op1, op2, c1, c2 = r
+        if v1 is None:
+            v1 = -float("inf")
+        if v2 is None:
+            v2 = -float("inf")
+
+        return v1, v2, op1, op2, c1, c2
+
+    if ranges:
+        new_ranges = set()
+        for range_info in ranges:
+            if isinstance(range_info["background_color"], QtGui.QColor):
+                new_ranges.add(
+                    (
+                        range_info["value1"],
+                        range_info["value2"],
+                        range_info["op1"],
+                        range_info["op2"],
+                        (0, range_info["background_color"].name()),
+                        (0, range_info["font_color"].name()),
+                    )
+                )
+            else:
+                new_ranges.add(
+                    (
+                        range_info["value1"],
+                        range_info["value2"],
+                        range_info["op1"],
+                        range_info["op2"],
+                        (1, range_info["background_color"].color().name()),
+                        (1, range_info["font_color"].color().name()),
+                    )
+                )
+
+        ranges = []
+        for value1, value2, op1, op2, bk_color, ft_color in sorted(
+            new_ranges, key=compare
+        ):
+            if bk_color[0] == 0:
+                ranges.append(
+                    {
+                        "background_color": fn.mkColor(bk_color[1]),
+                        "font_color": fn.mkColor(ft_color[1]),
+                        "op1": op1,
+                        "op2": op2,
+                        "value1": value1,
+                        "value2": value2,
+                    }
+                )
+            else:
+                ranges.append(
+                    {
+                        "background_color": fn.mkBrush(bk_color[1]),
+                        "font_color": fn.mkBrush(ft_color[1]),
+                        "op1": op1,
+                        "op2": op2,
+                        "value1": value1,
+                        "value2": value2,
+                    }
+                )
+
+    return ranges
+
+
 def get_colors_using_ranges(
     value, ranges, default_background_color, default_font_color
 ):

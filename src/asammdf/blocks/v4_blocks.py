@@ -3812,11 +3812,6 @@ formula: {self.formula}
 
     def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
-        try:
-            return self.__getattribute__(item)
-        except:
-            print(self)
-            raise
 
     def __setitem__(self, item: str, value: Any) -> None:
         self.__setattr__(item, value)

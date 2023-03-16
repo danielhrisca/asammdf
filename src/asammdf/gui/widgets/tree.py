@@ -22,6 +22,7 @@ from ..utils import (
     get_color_using_ranges,
     get_colors_using_ranges,
     SCROLLBAR_STYLE,
+    unique_ranges,
     value_as_str,
 )
 from .tree_item import TreeItem
@@ -780,7 +781,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 ranges = []
                 for item in selected_items:
                     ranges.extend(item.ranges)
-                dlg = RangeEditor(f"<selected items>", ranges=ranges, parent=self)
+                dlg = RangeEditor(
+                    f"<selected items>", ranges=unique_ranges(ranges), parent=self
+                )
                 dlg.exec_()
                 if dlg.pressed_button == "apply":
                     for item in selected_items:

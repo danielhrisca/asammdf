@@ -70,8 +70,6 @@ class BusDatabaseManagerDialog(QtWidgets.QDialog):
     def store(self):
         databases = self.widget.to_config()
 
-        print(databases)
-
         dbs = []
         for bus, database in databases["CAN"]:
             dbs.append(bus)

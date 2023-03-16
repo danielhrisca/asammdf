@@ -15,7 +15,12 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from asammdf import MDF
 from asammdf.gui import utils
 from asammdf.gui.dialogs.range_editor import RangeEditor
-from asammdf.gui.utils import copy_ranges, get_colors_using_ranges, value_as_str
+from asammdf.gui.utils import (
+    copy_ranges,
+    get_colors_using_ranges,
+    unique_ranges,
+    value_as_str,
+)
 from asammdf.gui.widgets.plot import PlotSignal
 
 from ...blocks.utils import extract_mime_names
@@ -677,11 +682,14 @@ class TableView(QtWidgets.QTableView):
                 for row in selected_items:
                     signal = self.backend.signals[row]
                     if self.ranges[signal.entry]:
-                        ranges.update(self.ranges[signal.entry])
-                        break
+                        ranges.extend(self.ranges[signal.entry])
 
                 dlg = RangeEditor(
-                    "<selected items>", "", ranges, parent=self, brush=True
+                    "<selected items>",
+                    "",
+                    ranges=unique_ranges(ranges),
+                    parent=self,
+                    brush=True,
                 )
                 dlg.exec_()
                 if dlg.pressed_button == "apply":
@@ -1645,7 +1653,6 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             and modifiers == QtCore.Qt.NoModifier
             and self.mode == "offline"
         ):
-            print(">", self.timestamp_slider.value())
             self.timestamp_slider.setValue(self.timestamp_slider.value() + 1)
 
         elif (
@@ -1653,7 +1660,6 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             and modifiers == QtCore.Qt.NoModifier
             and self.mode == "offline"
         ):
-            print("<", self.timestamp_slider.value())
             self.timestamp_slider.setValue(self.timestamp_slider.value() - 1)
 
         elif (
