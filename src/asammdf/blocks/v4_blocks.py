@@ -3174,7 +3174,6 @@ class ChannelConversion(_ChannelConversionBase):
         return address
 
     def convert(self, values, as_object=False):
-        valuesvalues = values
         if not isinstance(values, np.ndarray):
             values = np.array(values)
 
