@@ -3174,10 +3174,12 @@ class ChannelConversion(_ChannelConversionBase):
         return address
 
     def convert(self, values, as_object=False):
+        valuesvalues = values
         if not isinstance(values, np.ndarray):
             values = np.array(values)
 
         values_count = len(values)
+
         conversion_type = self.conversion_type
         if conversion_type == v4c.CONVERSION_TYPE_NON:
             pass
@@ -3503,7 +3505,7 @@ class ChannelConversion(_ChannelConversionBase):
                         if isinstance(v_, bytes):
                             ret.append(v_)
                         else:
-                            v_ = v_.convert(v)[0]
+                            v_ = v_.convert([v])[0]
                             ret.append(v_)
                             if all_bytes and not isinstance(v_, bytes):
                                 all_bytes = False
@@ -3513,7 +3515,7 @@ class ChannelConversion(_ChannelConversionBase):
                             ret.append(default)
 
                         else:
-                            v_ = default.convert(v)
+                            v_ = default.convert([v])
                             ret.append(v_)
                             if all_bytes and not isinstance(v_, bytes):
                                 all_bytes = False
@@ -3551,7 +3553,7 @@ class ChannelConversion(_ChannelConversionBase):
                         if isinstance(v_, bytes):
                             ret.append(v_)
                         else:
-                            v_ = v_.convert(v)[0]
+                            v_ = v_.convert([v])[0]
                             ret.append(v_)
                             if all_bytes and not isinstance(v_, bytes):
                                 all_bytes = False
@@ -3561,7 +3563,7 @@ class ChannelConversion(_ChannelConversionBase):
                             ret.append(default)
 
                         else:
-                            v_ = default.convert(v)
+                            v_ = default.convert([v])
                             ret.append(v_)
                             if all_bytes and not isinstance(v_, bytes):
                                 all_bytes = False
@@ -3687,7 +3689,7 @@ class ChannelConversion(_ChannelConversionBase):
                             if isinstance(p, bytes):
                                 ret.append(p)
                             else:
-                                p = p.convert(v)[0]
+                                p = p.convert([v])[0]
                                 ret.append(p)
                                 if all_bytes and not isinstance(p, bytes):
                                     all_bytes = False
@@ -3697,7 +3699,7 @@ class ChannelConversion(_ChannelConversionBase):
                             ret.append(default)
 
                         else:
-                            v_ = default.convert(v)
+                            v_ = default.convert([v])
                             ret.append(v_)
                             if all_bytes and not isinstance(v_, bytes):
                                 all_bytes = False
@@ -3709,7 +3711,7 @@ class ChannelConversion(_ChannelConversionBase):
                             if isinstance(p, bytes):
                                 ret.append(p)
                             else:
-                                p = p.convert(v)[0]
+                                p = p.convert([v])[0]
                                 ret.append(p)
                                 if all_bytes and not isinstance(p, bytes):
                                     all_bytes = False
@@ -3719,7 +3721,7 @@ class ChannelConversion(_ChannelConversionBase):
                             ret.append(default)
 
                         else:
-                            v_ = default.convert(v)
+                            v_ = default.convert([v])
                             ret.append(v_)
                             if all_bytes and not isinstance(v_, bytes):
                                 all_bytes = False

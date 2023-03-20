@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import re
+from threading import Lock
 from traceback import format_exc
 
 from natsort import natsorted
@@ -1225,6 +1226,9 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         self.mode = mode
 
+        self.lock = Lock()
+        self.visible_entries_modified = True
+
         self._settings = QtCore.QSettings()
 
         if mode == "offline":
@@ -1458,6 +1462,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             else:
                 for row in range(top, bottom + 1):
                     visible.add(self.channels.backend.signals[row].entry)
+
+        self.visible_entries_modified = True
 
         return visible
 
