@@ -5,6 +5,7 @@ classes that implement the blocks for MDF version 4
 
 from __future__ import annotations
 
+from bisect import bisect_left, bisect_right
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from hashlib import md5
@@ -3175,6 +3176,8 @@ class ChannelConversion(_ChannelConversionBase):
     def convert(self, values, as_object=False):
         if not isinstance(values, np.ndarray):
             values = np.array(values)
+
+        values_count = len(values)
         conversion_type = self.conversion_type
         if conversion_type == v4c.CONVERSION_TYPE_NON:
             pass
@@ -3321,7 +3324,7 @@ class ChannelConversion(_ChannelConversionBase):
 
             values = new_values
 
-        elif conversion_type == v4c.CONVERSION_TYPE_TABX:
+        elif conversion_type == v4c.CONVERSION_TYPE_TABX and values_count >= 150:
             if self._cache is None:
                 nr = self.val_param_nr
                 raw_vals = [self[f"val_{i}"] for i in range(nr)]
@@ -3464,7 +3467,121 @@ class ChannelConversion(_ChannelConversionBase):
 
                 values = ret
 
-        elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
+        elif conversion_type == v4c.CONVERSION_TYPE_TABX:
+            if self._cache is None:
+                nr = self.val_param_nr
+                raw_vals = [self[f"val_{i}"] for i in range(nr)]
+
+                phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
+
+                x = sorted(zip(raw_vals, phys))
+                raw_vals = [e[0] for e in x]
+                phys = [e[1] for e in x]
+
+                self._cache = {"phys": phys, "raw_vals": raw_vals}
+            else:
+                phys = self._cache["phys"]
+                raw_vals = self._cache["raw_vals"]
+
+            default = self.referenced_blocks["default_addr"]
+            default_is_bytes = isinstance(default, bytes)
+
+            names = values.dtype.names
+
+            if names:
+                name = names[0]
+                vals = values[name]
+                shape = vals.shape
+                vals = vals.ravel().tolist()
+
+                ret = []
+                all_bytes = True
+
+                for v in vals:
+                    try:
+                        v_ = phys[raw_vals.index(v)]
+                        if isinstance(v_, bytes):
+                            ret.append(v_)
+                        else:
+                            v_ = v_.convert(v)[0]
+                            ret.append(v_)
+                            if all_bytes and not isinstance(v_, bytes):
+                                all_bytes = False
+
+                    except:
+                        if default_is_bytes:
+                            ret.append(default)
+
+                        else:
+                            v_ = default.convert(v)
+                            ret.append(v_)
+                            if all_bytes and not isinstance(v_, bytes):
+                                all_bytes = False
+
+                if not all_bytes:
+                    try:
+                        ret = np.array(ret, dtype="<f8")
+                    except:
+                        ret = np.array(ret)
+                        if not as_object:
+                            ret = np.array(
+                                [np.nan if isinstance(v, bytes) else v for v in ret]
+                            )
+
+                else:
+                    ret = np.array(ret, dtype=bytes)
+
+                ret = ret.reshape(shape)
+                values = np.core.records.fromarrays(
+                    [ret] + [values[name] for name in names[1:]],
+                    dtype=[(name, ret.dtype, ret.shape[1:])]
+                    + [
+                        (name, values[name].dtype, values[name].shape[1:])
+                        for name in names[1:]
+                    ],
+                )
+            else:
+                ret = []
+                all_bytes = True
+                vals = values.tolist()
+
+                for v in vals:
+                    try:
+                        v_ = phys[raw_vals.index(v)]
+                        if isinstance(v_, bytes):
+                            ret.append(v_)
+                        else:
+                            v_ = v_.convert(v)[0]
+                            ret.append(v_)
+                            if all_bytes and not isinstance(v_, bytes):
+                                all_bytes = False
+
+                    except:
+                        if default_is_bytes:
+                            ret.append(default)
+
+                        else:
+                            v_ = default.convert(v)
+                            ret.append(v_)
+                            if all_bytes and not isinstance(v_, bytes):
+                                all_bytes = False
+
+                if not all_bytes:
+                    try:
+                        ret = np.array(ret, dtype="<f8")
+                    except:
+                        ret = np.array(ret)
+                        if not as_object:
+                            ret = np.array(
+                                [np.nan if isinstance(v, bytes) else v for v in ret]
+                            )
+
+                else:
+                    ret = np.array(ret, dtype=bytes)
+
+                values = ret
+
+        elif conversion_type == v4c.CONVERSION_TYPE_RTABX and values_count >= 100:
             if self._cache is None:
                 nr = self.val_param_nr // 2
 
@@ -3529,6 +3646,96 @@ class ChannelConversion(_ChannelConversionBase):
                         ret = np.array(
                             [np.nan if isinstance(v, bytes) else v for v in ret]
                         )
+
+            values = ret
+
+        elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
+            if self._cache is None:
+                nr = self.val_param_nr // 2
+
+                phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
+
+                lower = [self[f"lower_{i}"] for i in range(nr)]
+                upper = [self[f"upper_{i}"] for i in range(nr)]
+
+                x = sorted(zip(lower, upper, phys))
+                lower = [e[0] for e in x]
+                upper = [e[1] for e in x]
+                phys = [e[2] for e in x]
+
+                self._cache = {
+                    "phys": phys,
+                    "lower": lower,
+                    "upper": upper,
+                }
+            else:
+                phys = self._cache["phys"]
+                lower = self._cache["lower"]
+                upper = self._cache["upper"]
+
+            default = self.referenced_blocks["default_addr"]
+            default_is_bytes = isinstance(default, bytes)
+
+            ret = []
+            vals = values.tolist()
+            all_bytes = True
+
+            if values.dtype.kind in "ui":
+                for v in vals:
+                    for l, u, p in zip(lower, upper, phys):
+                        if l <= v <= u:
+                            if isinstance(p, bytes):
+                                ret.append(p)
+                            else:
+                                p = p.convert(v)[0]
+                                ret.append(p)
+                                if all_bytes and not isinstance(p, bytes):
+                                    all_bytes = False
+                            break
+                    else:
+                        if default_is_bytes:
+                            ret.append(default)
+
+                        else:
+                            v_ = default.convert(v)
+                            ret.append(v_)
+                            if all_bytes and not isinstance(v_, bytes):
+                                all_bytes = False
+
+            else:
+                for v in vals:
+                    for l, u, p in zip(lower, upper, phys):
+                        if l <= v < u:
+                            if isinstance(p, bytes):
+                                ret.append(p)
+                            else:
+                                p = p.convert(v)[0]
+                                ret.append(p)
+                                if all_bytes and not isinstance(p, bytes):
+                                    all_bytes = False
+                            break
+                    else:
+                        if default_is_bytes:
+                            ret.append(default)
+
+                        else:
+                            v_ = default.convert(v)
+                            ret.append(v_)
+                            if all_bytes and not isinstance(v_, bytes):
+                                all_bytes = False
+
+            if not all_bytes:
+                try:
+                    ret = np.array(ret, dtype="<f8")
+                except:
+                    ret = np.array(ret)
+                    if not as_object:
+                        ret = np.array(
+                            [np.nan if isinstance(v, bytes) else v for v in ret]
+                        )
+
+            else:
+                ret = np.array(ret, dtype=bytes)
 
             values = ret
 
