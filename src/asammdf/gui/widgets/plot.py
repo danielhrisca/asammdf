@@ -1786,6 +1786,8 @@ class Plot(QtWidgets.QWidget):
         )
         self.plot.curve_clicked.connect(self.curve_clicked)
         self._visible_entries = set()
+        self.visible_entries_modified = False
+        self.lock = Lock()
         self._visible_items = {}
         self._item_cache = {}
 
@@ -3596,30 +3598,33 @@ class Plot(QtWidgets.QWidget):
             self.cursor_moved()
 
     def _update_visibile_entries(self):
-        _item_cache = self._item_cache = {}
-        _visible_entries = self._visible_entries = set()
-        _visible_items = self._visible_items = {}
-        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        with self.lock:
+            _item_cache = self._item_cache = {}
+            _visible_entries = self._visible_entries = set()
+            _visible_items = self._visible_items = {}
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
 
-        while True:
-            item = iterator.value()
-            if item is None:
-                break
-            iterator += 1
-            if item.type() == ChannelsTreeItem.Channel:
-                _item_cache[item.uuid] = item
+            while True:
+                item = iterator.value()
+                if item is None:
+                    break
+                iterator += 1
+                if item.type() == ChannelsTreeItem.Channel:
+                    _item_cache[item.uuid] = item
 
-                if (
-                    item.uuid == self.info_uuid
-                    or item.exists
-                    and (
-                        item.checkState(item.NameColumn) == QtCore.Qt.Checked
-                        or item._is_visible
-                    )
-                ):
-                    entry = (item.origin_uuid, item.signal.name, item.uuid)
-                    _visible_entries.add(entry)
-                    _visible_items[entry] = item
+                    if (
+                        item.uuid == self.info_uuid
+                        or item.exists
+                        and (
+                            item.checkState(item.NameColumn) == QtCore.Qt.Checked
+                            or item._is_visible
+                        )
+                    ):
+                        entry = (item.origin_uuid, item.signal.name, item.uuid)
+                        _visible_entries.add(entry)
+                        _visible_items[entry] = item
+
+            self.visible_entries_modified = True
 
         if self.plot.cursor1 is not None:
             self.cursor_moved()
