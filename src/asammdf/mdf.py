@@ -327,6 +327,8 @@ class MDF:
             magic_header = file_stream.read(8)
 
             if magic_header.strip() not in (b"MDF", b"UnFinMF"):
+                if do_close:
+                    file_stream.close()
                 raise MdfException(
                     f'"{name}" is not a valid ASAM MDF file: magic header is {magic_header}'
                 )
