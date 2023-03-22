@@ -41,7 +41,7 @@ from ..dialogs.gps_dialog import GPSDialog
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..ui import resource_rc
 from ..ui.file_widget import Ui_file_widget
-from ..utils import HelperChannel, run_thread_with_progress, setup_progress
+from ..utils import GREEN, HelperChannel, run_thread_with_progress, setup_progress
 from .attachment import Attachment
 from .can_bus_trace import CANBusTrace
 from .database_item import DatabaseItem
@@ -617,7 +617,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 )
 
                 if group.channel_group.cycles_nr:
-                    channel_group.setForeground(0, QtGui.QBrush(QtCore.Qt.darkGreen))
+                    channel_group.setForeground(0, QtGui.QBrush(QtGui.QColor(GREEN)))
                 items.append(channel_group)
 
                 channels = [
@@ -2377,7 +2377,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 item.setText(0, "Cycles")
                 item.setText(1, str(cycles))
                 if cycles:
-                    item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
+                    item.setForeground(1, QtGui.QBrush(QtGui.QColor(GREEN)))
                 channel_group_item.addChild(item)
 
                 if size <= 1 << 10:
@@ -2393,7 +2393,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 item.setText(0, "Raw size")
                 item.setText(1, text)
                 if cycles:
-                    item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
+                    item.setForeground(1, QtGui.QBrush(QtGui.QColor(GREEN)))
                 channel_group_item.addChild(item)
 
                 channel_groups_children.append(channel_group_item)

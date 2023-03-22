@@ -4,6 +4,7 @@ import pyqtgraph as pg
 from PySide6 import QtCore, QtGui
 
 from ...blocks.utils import escape_xml_string
+from ..utils import BLUE
 
 
 class Bookmark(pg.InfiniteLine):
@@ -40,7 +41,7 @@ class Bookmark(pg.InfiniteLine):
         self.edited = False
         self.deleted = False
 
-        self.fill = pg.mkBrush("#61b2e2")
+        self.fill = pg.mkBrush(BLUE)
         self.border = pg.mkPen(
             {
                 "color": color,

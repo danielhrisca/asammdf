@@ -9,6 +9,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..ui import resource_rc
 from ..ui.signal_scale import Ui_ScaleDialog
+from ..utils import BLUE
 from .plot import PlotSignal
 
 PLOT_HEIGTH = 600  # pixels
@@ -188,7 +189,7 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
         for i, x in enumerate(range(0, PLOT_HEIGTH + step, step)):
             painter.drawLine(0, x, PLOT_HEIGTH + 2 * TEXT_WIDTH, x)
 
-        pen = QtGui.QPen("#61b2e2")
+        pen = QtGui.QPen(BLUE)
         pen.setWidth(2)
         painter.setPen(pen)
         painter.drawPolyline(polygon)

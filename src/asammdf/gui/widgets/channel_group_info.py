@@ -7,6 +7,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ...blocks.utils import csv_bytearray2hex
 from ..ui import resource_rc
 from ..ui.channel_group_info_widget import Ui_ChannelGroupInfo
+from ..utils import BLUE
 from ..widgets.list_item import ListItem
 
 
@@ -100,11 +101,11 @@ p, li { white-space: pre-wrap; }
         ]
 
         if self.byte_count == 0:
-            template = f'<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-weight:600; color:#61b2e2;">{{index: >{self.index_size}}}: </span>{{line}}</p>'
+            template = f'<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-weight:600; color:{BLUE};">{{index: >{self.index_size}}}: </span>{{line}}</p>'
             for i, l in enumerate(data, record_offset):
                 lines.append(template.format(index=i, line=l))
         else:
-            template = f'<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-weight:600; color:#61b2e2;">{{index: >{self.index_size}}}: </span>{{start}}<span style=" font-weight:600; color:#ff5500;">{{middle}}</span>{{end}}</p>'
+            template = f'<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-weight:600; color:{BLUE};">{{index: >{self.index_size}}}: </span>{{start}}<span style=" font-weight:600; color:#ff5500;">{{middle}}</span>{{end}}</p>'
             for i, l in enumerate(data, record_offset):
                 lines.append(
                     template.format(

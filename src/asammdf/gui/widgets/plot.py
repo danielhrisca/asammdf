@@ -38,7 +38,7 @@ PLOT_BUFFER_SIZE = 4000
 
 from ...blocks.conversion_utils import from_dict, to_dict
 from ...blocks.utils import target_byte_order
-from ..utils import FONT_SIZE, timeit, value_as_str
+from ..utils import BLUE, FONT_SIZE, GREEN, timeit, value_as_str
 from .viewbox import ViewBoxWithCursor
 
 try:
@@ -1678,6 +1678,7 @@ class Plot(QtWidgets.QWidget):
             btn.setEnabled(False)
 
         self.lock_btn = btn = QtWidgets.QPushButton("")
+        btn.setObjectName("lock_btn")
         btn.clicked.connect(self.set_locked)
         icon = QtGui.QIcon()
         icon.addPixmap(
@@ -1690,60 +1691,57 @@ class Plot(QtWidgets.QWidget):
         self.locked = False
 
         self.hide_axes_btn = btn = QtWidgets.QPushButton("")
+        btn.setObjectName("hide_axes_btn")
         self.hide_axes_btn.clicked.connect(self.hide_axes)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/axis.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/axis_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         btn.setIcon(icon)
         btn.setToolTip("Hide axis")
         hbox.addWidget(self.hide_axes_btn)
 
         self.selected_channel_value_btn = btn = QtWidgets.QPushButton("")
+        btn.setObjectName("selected_channel_value_btn")
         self.selected_channel_value_btn.clicked.connect(
             self.hide_selected_channel_value
         )
         icon = QtGui.QIcon()
         icon.addPixmap(
-            QtGui.QPixmap(":/number.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            QtGui.QPixmap(":/number_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
         )
         btn.setIcon(icon)
         btn.setToolTip("Hide axis")
         hbox.addWidget(self.selected_channel_value_btn)
 
         self.focused_mode_btn = btn = QtWidgets.QPushButton("")
+        btn.setObjectName("focused_mode_btn")
         self.focused_mode_btn.clicked.connect(self.toggle_focused_mode)
         icon = QtGui.QIcon()
         icon.addPixmap(
-            QtGui.QPixmap(":/focus.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            QtGui.QPixmap(":/focus_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
         )
         btn.setIcon(icon)
         btn.setToolTip("Toggle focused mode")
         hbox.addWidget(self.focused_mode_btn)
 
         self.delta_btn = btn = QtWidgets.QPushButton("")
+        btn.setObjectName("delta_btn")
         self.delta_btn.clicked.connect(self.toggle_region_values_display_mode)
         icon = QtGui.QIcon()
-        pix = QtGui.QPixmap(64, 64)
-        color = QtGui.QColor("#000000")
-        color.setAlpha(0)
-        pix.fill(color)
-        painter = QtGui.QPainter(pix)
-        font = painter.font()
-        font.setPointSize(48)
-        font.setBold(True)
-        painter.setFont(font)
-        painter.setPen(QtGui.QColor("#61b2e2"))
-        painter.drawText(QtCore.QPoint(12, 52), "Δ")
-        painter.end()
-        icon.addPixmap(pix, QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/delta_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         btn.setIcon(icon)
         btn.setToolTip("Toggle region values display mode")
         hbox.addWidget(self.delta_btn)
 
         self.bookmark_btn = btn = QtWidgets.QPushButton("")
+        btn.setObjectName("bookmark_btn")
         btn.clicked.connect(self.toggle_bookmarks)
         icon = QtGui.QIcon()
         icon.addPixmap(
-            QtGui.QPixmap(":/bookmark.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            QtGui.QPixmap(":/bookmark_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
         )
         btn.setIcon(icon)
         btn.setToolTip("Toggle bookmarks")
@@ -2773,6 +2771,14 @@ class Plot(QtWidgets.QWidget):
             self.hide_axes_btn.setFlat(False)
             self.hide_axes_btn.setToolTip("Hide axes")
 
+        if hide:
+            png = ":/axis.png"
+        else:
+            png = ":/axis_on.png"
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.hide_axes_btn.setIcon(icon)
+
     def hide_selected_channel_value(self, event=None, hide=None):
         if hide is None:
             hide = not self.selected_channel_value_btn.isFlat()
@@ -2790,6 +2796,14 @@ class Plot(QtWidgets.QWidget):
             self.selected_channel_value_btn.setToolTip(
                 "Hide selected channel value panel"
             )
+
+        if hide:
+            png = ":/number.png"
+        else:
+            png = ":/number_on.png"
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.selected_channel_value_btn.setIcon(icon)
 
     def increase_font(self):
         font = self.font()
@@ -3370,6 +3384,10 @@ class Plot(QtWidgets.QWidget):
             tooltip = "The Y axis is unlocked. Press to lock"
             png = ":/unlocked.png"
             self.lock_btn.setFlat(False)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.lock_btn.setToolTip(tooltip)
+        self.lock_btn.setIcon(icon)
 
         self.channel_selection.setColumnHidden(
             self.channel_selection.CommonAxisColumn, locked
@@ -3377,11 +3395,6 @@ class Plot(QtWidgets.QWidget):
 
         self.locked = locked
         self.plot.set_locked(locked)
-
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.lock_btn.setToolTip(tooltip)
-        self.lock_btn.setIcon(icon)
 
     def set_splitter(self, pos, index):
         self.splitter_moved.emit(self, pos)
@@ -3509,6 +3522,14 @@ class Plot(QtWidgets.QWidget):
         )
         self.keyPressEvent(key_event)
 
+        if not self.show_bookmarks:
+            png = ":/bookmark.png"
+        else:
+            png = ":/bookmark_on.png"
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.bookmark_btn.setIcon(icon)
+
         if hide is None:
             self._settings.setValue("plot_bookmarks", not self.bookmark_btn.isFlat())
 
@@ -3532,6 +3553,14 @@ class Plot(QtWidgets.QWidget):
             self.focused_mode_btn.setFlat(False)
             self.focused_mode_btn.setToolTip("Switch off focused mode")
 
+        if not self.focused_mode:
+            png = ":/focus.png"
+        else:
+            png = ":/focus_on.png"
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.focused_mode_btn.setIcon(icon)
+
     def toggle_region_values_display_mode(self, event=None, mode=None):
         if mode is None:
             self.region_values_display_mode = (
@@ -3548,6 +3577,14 @@ class Plot(QtWidgets.QWidget):
             self.delta_btn.setToolTip(
                 "Switch to active region cursor value display mode"
             )
+
+        if self.delta_btn.isFlat():
+            png = ":/delta.png"
+        else:
+            png = ":/delta_on.png"
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.delta_btn.setIcon(icon)
 
         if mode is None:
             self._settings.setValue(

@@ -5,7 +5,9 @@
     <file alias="alphabetical_sorting.png">images/alphabetical_sorting.png</file>
     <file alias="asammdf.png">images/asammdf.png</file>
     <file alias="axis.png">images/axis.png</file>
+    <file alias="axis_on.png">images/axis_on.png</file>
     <file alias="bookmark.png">images/bookmark.png</file>
+    <file alias="bookmark_on.png">images/bookmark_on.png</file>
     <file alias="bus_can.png">images/bus_can.png</file>
     <file alias="bus_eth.png">images/bus_eth.png</file>
     <file alias="bus_flx.png">images/bus_flx.png</file>
@@ -20,6 +22,8 @@
     <file alias="cursor.png">images/cursor.png</file>
     <file alias="cut.png">images/cut.png</file>
     <file alias="decrease-font.png">images/decrease-font.png</file>
+    <file alias="delta.png">images/delta.png</file>
+    <file alias="delta_on.png">images/delta_on.png</file>
     <file alias="down.png">images/down.png</file>
     <file alias="edit.png">images/edit.png</file>
     <file alias="erase.png">images/erase.png</file>
@@ -29,6 +33,7 @@
     <file alias="filter.png">images/filter.png</file>
     <file alias="fit.png">images/fit.png</file>
     <file alias="focus.png">images/focus.png</file>
+    <file alias="focus_on.png">images/focus_on.png</file>
     <file alias="globe.png">images/globe.png</file>
     <file alias="graph.png">images/graph.png</file>
     <file alias="grid.png">images/grid.png</file>
@@ -46,6 +51,7 @@
     <file alias="memory.png">images/memory.png</file>
     <file alias="minus.png">images/minus.png</file>
     <file alias="number.png">images/number.png</file>
+    <file alias="number_on.png">images/number_on.png</file>
     <file alias="numeric.png">images/numeric.png</file>
     <file alias="open.png">images/open.png</file>
     <file alias="paint.png">images/paint.png</file>
