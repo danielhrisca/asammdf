@@ -2199,7 +2199,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             # self.mdf.reload_header()
             # info tab
             try:
-                file_stats = os.stat(self.mdf.name)
+                file_stats = os.stat(self.mdf.original_name)
             except:
                 file_stats = None
             file_info = QtWidgets.QTreeWidgetItem()
@@ -2211,7 +2211,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             item = QtWidgets.QTreeWidgetItem()
             item.setText(0, "Path")
-            item.setText(1, str(self.mdf.name))
+            item.setText(1, str(self.mdf.original_name))
             children.append(item)
 
             item = QtWidgets.QTreeWidgetItem()
@@ -2231,7 +2231,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 date_ = datetime.now(timezone.utc)
             item = QtWidgets.QTreeWidgetItem()
             item.setText(0, "Created")
-            item.setText(1, date_.strftime("%d-%b-%Y %H-%M-%S"))
+            item.setText(1, date_.strftime("%d-%b-%Y %H:%M:%S"))
             children.append(item)
 
             if file_stats is not None:
