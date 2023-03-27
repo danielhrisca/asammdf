@@ -3388,7 +3388,10 @@ class ChannelConversion(_ChannelConversionBase):
                     except:
                         if not as_object:
                             ret = np.array(
-                                [np.nan if isinstance(v, bytes) else v for v in ret.tolist()]
+                                [
+                                    np.nan if isinstance(v, bytes) else v
+                                    for v in ret.tolist()
+                                ]
                             )
 
                 else:
@@ -3466,7 +3469,10 @@ class ChannelConversion(_ChannelConversionBase):
                     except:
                         if not as_object:
                             ret = np.array(
-                                [np.nan if isinstance(v, bytes) else v for v in ret.tolist()]
+                                [
+                                    np.nan if isinstance(v, bytes) else v
+                                    for v in ret.tolist()
+                                ]
                             )
                 else:
                     ret = ret.astype(bytes)
