@@ -1233,7 +1233,8 @@ class WithMDIArea:
                                     .tolist()
                                 ]
 
-                    dfs.append(pd.DataFrame(columns, index=df_index))
+                    df = pd.DataFrame(columns, index=df_index)
+                    dfs.append(df)
 
         if not dfs:
             return
