@@ -171,7 +171,7 @@ class MdfException(Exception):
     """MDF Exception class"""
 
     def __repr__(self):
-        return f"asammdf MdfException: {self.text}"
+        return f"asammdf MdfException: {self.args[0]}"
 
 
 def extract_xml_comment(comment: str) -> str:
