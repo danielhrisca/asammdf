@@ -3648,17 +3648,25 @@ class ChannelConversion(_ChannelConversionBase):
                         except:
                             raise
 
-            try:
-                ret = ret.astype("<f8")
+            all_bytes = True
+            for v in ret.tolist():
+                if not isinstance(v, bytes):
+                    all_bytes = False
+                    break
 
-            except:
+            if not all_bytes:
                 try:
-                    ret = ret.astype(bytes)
+                    ret = ret.astype("f8")
                 except:
                     if not as_object:
                         ret = np.array(
-                            [np.nan if isinstance(v, bytes) else v for v in ret]
+                            [
+                                np.nan if isinstance(v, bytes) else v
+                                for v in ret.tolist()
+                            ]
                         )
+            else:
+                ret = ret.astype(bytes)
 
             values = ret
 
@@ -3710,7 +3718,7 @@ class ChannelConversion(_ChannelConversionBase):
                             ret.append(default)
 
                         else:
-                            v_ = default.convert([v])
+                            v_ = default.convert([v])[0]
                             ret.append(v_)
                             if all_bytes and not isinstance(v_, bytes):
                                 all_bytes = False
@@ -3732,21 +3740,21 @@ class ChannelConversion(_ChannelConversionBase):
                             ret.append(default)
 
                         else:
-                            v_ = default.convert([v])
+                            v_ = default.convert([v])[0]
                             ret.append(v_)
                             if all_bytes and not isinstance(v_, bytes):
                                 all_bytes = False
 
             if not all_bytes:
                 try:
-                    ret = np.array(ret, dtype="<f8")
+                    ret = np.array(ret, dtype="f8")
                 except:
-                    ret = np.array(ret)
                     if not as_object:
                         ret = np.array(
                             [np.nan if isinstance(v, bytes) else v for v in ret]
                         )
-
+                    else:
+                        ret = np.array(ret)
             else:
                 ret = np.array(ret, dtype=bytes)
 
