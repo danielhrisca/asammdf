@@ -4995,7 +4995,7 @@ class MDF4(MDF_Common):
                     sig_type = v4c.SIGNAL_TYPE_ARRAY
 
             if sig_type in (v4c.SIGNAL_TYPE_SCALAR, v4c.SIGNAL_TYPE_STRING):
-                s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape)
+                s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape[1:)
                 byte_size = s_size // 8 or 1
 
                 # add channel block
