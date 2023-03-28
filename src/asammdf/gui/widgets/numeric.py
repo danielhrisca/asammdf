@@ -1491,7 +1491,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         if not len(self.timebase):
             return
 
-        idx = np.searchsorted(self.timebase, stamp)
+        idx = np.searchsorted(self.timebase, stamp, side="right") - 1
+
         stamp = self.timebase[idx]
         self._timestamp = stamp
 
