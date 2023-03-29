@@ -472,6 +472,9 @@ def get_fmt_v3(
             v3c.DATA_TYPE_UNSIGNED_INTEL,
             v3c.DATA_TYPE_UNSIGNED,
             v3c.DATA_TYPE_UNSIGNED_MOTOROLA,
+            v3c.DATA_TYPE_SIGNED_INTEL,
+            v3c.DATA_TYPE_SIGNED,
+            v3c.DATA_TYPE_SIGNED_MOTOROLA,
         ):
             fmt = f"({size // 8},)u1"
         else:
@@ -601,6 +604,8 @@ def get_fmt_v4(
         if size > 64 and data_type in (
             v4c.DATA_TYPE_UNSIGNED_INTEL,
             v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+            v4c.DATA_TYPE_SIGNED_INTEL,
+            v4c.DATA_TYPE_SIGNED_MOTOROLA,
         ):
             fmt = f"({size // 8},)u1"
         else:
