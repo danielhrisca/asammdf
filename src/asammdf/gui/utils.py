@@ -309,7 +309,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.error = error
 
     def thread_complete(self):
-        self.finished.emit(self.parent)
+        self.finished.emit()
         self.thread_finished = True
         super().close()
 
