@@ -2950,37 +2950,43 @@ class HeaderBlock:
 
         """
 
-        if self.block_len > v23c.HEADER_COMMON_SIZE:
-            if self.abs_time:
-                timestamp = self.abs_time / 10**9
+        try:
 
-                tz = timezone(timedelta(hours=self.tz_offset))
+            if self.block_len > v23c.HEADER_COMMON_SIZE:
+                if self.abs_time:
+                    timestamp = self.abs_time / 10**9
 
-                try:
-                    timestamp = datetime.fromtimestamp(timestamp, tz)
-                except OverflowError:
-                    timestamp = datetime.fromtimestamp(0, tz) + timedelta(
-                        seconds=timestamp
+                    tz = timezone(timedelta(hours=self.tz_offset))
+
+                    try:
+                        timestamp = datetime.fromtimestamp(timestamp, tz)
+                    except OverflowError:
+                        timestamp = datetime.fromtimestamp(0, tz) + timedelta(
+                            seconds=timestamp
+                        )
+                    except OSError:
+                        timestamp = datetime.now(tz)
+                else:
+                    timestamp = "{} {}".format(
+                        self.date.decode("ascii"), self.time.decode("ascii")
                     )
-                except OSError:
-                    timestamp = datetime.now(tz)
+
+                    timestamp = datetime.strptime(
+                        timestamp, "%d:%m:%Y %H:%M:%S"
+                    ).astimezone(timezone.utc)
+
             else:
                 timestamp = "{} {}".format(
                     self.date.decode("ascii"), self.time.decode("ascii")
                 )
 
-                timestamp = datetime.strptime(
-                    timestamp, "%d:%m:%Y %H:%M:%S"
-                ).astimezone(timezone.utc)
-
-        else:
-            timestamp = "{} {}".format(
-                self.date.decode("ascii"), self.time.decode("ascii")
-            )
-
-            timestamp = datetime.strptime(timestamp, "%d:%m:%Y %H:%M:%S").astimezone(
-                timezone.utc
-            )
+                timestamp = datetime.strptime(timestamp, "%d:%m:%Y %H:%M:%S").astimezone(
+                    timezone.utc
+                )
+        except:
+            return datetime.now().astimezone(
+                    timezone.utc
+                )
 
         return timestamp
 
