@@ -136,7 +136,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                     matches = {}
 
                     for group_index, group in enumerate(self.mdf.groups):
-                        cg_source = group.channel_group.acq_source
+                        cg_source = getattr(group.channel_group, "acq_source", None)
 
                         # check channel group source name
 
@@ -257,7 +257,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                 ]
                                 cg = self.mdf.groups[group_index].channel_group
 
-                                source = ch.source or cg.acq_source
+                                source = ch.source or getattr(cg, "acq_source", None)
 
                                 matches[entry] = {
                                     "names": [],

@@ -2951,7 +2951,6 @@ class HeaderBlock:
         """
 
         try:
-
             if self.block_len > v23c.HEADER_COMMON_SIZE:
                 if self.abs_time:
                     timestamp = self.abs_time / 10**9
@@ -2980,13 +2979,11 @@ class HeaderBlock:
                     self.date.decode("ascii"), self.time.decode("ascii")
                 )
 
-                timestamp = datetime.strptime(timestamp, "%d:%m:%Y %H:%M:%S").astimezone(
-                    timezone.utc
-                )
+                timestamp = datetime.strptime(
+                    timestamp, "%d:%m:%Y %H:%M:%S"
+                ).astimezone(timezone.utc)
         except:
-            return datetime.now().astimezone(
-                    timezone.utc
-                )
+            return datetime.now().astimezone(timezone.utc)
 
         return timestamp
 
