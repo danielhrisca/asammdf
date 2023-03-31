@@ -56,8 +56,6 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         self.min_t.setText(f"{self._min:.6f}s")
         self.max_t.setText(f"{self._max:.6f}s")
 
-        leaflet.core.Evented.mapWidget = None
-
         self.mapWidget = MapWidget()
         self.map_layout.insertWidget(0, self.mapWidget)
         self.map_layout.setStretch(0, 1)
@@ -66,9 +64,7 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
 
         self.map.setView([50.1364092, 8.5991296], zoom)
 
-        L.tileLayer("https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png").addTo(
-            self.map
-        )
+        L.tileLayer("https://{s}.tile.osm.org/{z}/{x}/{y}.png").addTo(self.map)
 
         # L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png").addTo(self.map)
 
