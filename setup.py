@@ -35,6 +35,7 @@ def _get_ext_modules():
             "asammdf.blocks.cutils",
             ["src/asammdf/blocks/cutils.c"],
             include_dirs=[get_include()],
+            extra_compile_args=['-std=c99']
         )
     ]
 
