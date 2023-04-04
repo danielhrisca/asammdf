@@ -6,7 +6,6 @@ from pathlib import Path
 
 from numpy import get_include
 from setuptools import Extension, find_packages, setup
-import sys
 
 PROJECT_PATH = Path(__file__).parent
 
@@ -36,7 +35,7 @@ def _get_ext_modules():
             "asammdf.blocks.cutils",
             ["src/asammdf/blocks/cutils.c"],
             include_dirs=[get_include()],
-            extra_compile_args=['-std=c99'] if sys.version_info > (3, 8) else []
+            extra_compile_args=["-std=c99"],
         )
     ]
 
