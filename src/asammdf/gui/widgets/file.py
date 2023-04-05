@@ -2546,21 +2546,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
         channels = []
-        count = 0
-        total = 0
 
         if self.filter_view.currentText() == "Internal file structure":
             while iterator.value():
                 item = iterator.value()
 
                 group, index = item.entry
-                if index != 0xFFFFFFFFFFFFFFFF:
-                    total += 1
 
                 if item.checkState(0) == QtCore.Qt.Checked:
                     if index != 0xFFFFFFFFFFFFFFFF:
                         channels.append((None, group, index))
-                        count += 1
 
                 iterator += 1
         else:
@@ -2570,19 +2565,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 if item.checkState(0) == QtCore.Qt.Checked:
                     group, index = item.entry
                     channels.append((None, group, index))
-                    count += 1
-
-                total += 1
 
                 iterator += 1
 
-        if not channels:
-            return False, channels
-        else:
-            if total == count:
-                return False, channels
-            else:
-                return True, channels
+        needs_filter = self.selected_filter_channels.count() > 0
+
+        return needs_filter, channels
 
     def apply_processing(self, event):
         needs_filter, channels = self._get_filtered_channels()
