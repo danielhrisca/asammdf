@@ -356,7 +356,7 @@ static PyObject* get_vlsd_max_sample_size(PyObject* self, PyObject* args)
     npy_intp dim[1];
     unsigned long long max_size = 0;
     unsigned long vlsd_size = 0;
-    char* inptr=NULL;
+    char* inptr=NULL, *data_end=NULL, *current_position=NULL;
 
     unsigned long long current_size = 0, * offsets_array;
 
@@ -369,9 +369,14 @@ static PyObject* get_vlsd_max_sample_size(PyObject* self, PyObject* args)
     {
         offsets_array = (unsigned long long*)PyArray_GETPTR1(offsets, 0);
         inptr = PyBytes_AsString(data);
+        data_end = inptr + PyBytes_GET_SIZE(data);
 
         for (i = 0; i < count; i++, offsets_array++)
         {
+            current_position = inptr + *offsets_array;
+            if (current_position >= data_end) {
+                return PyLong_FromUnsignedLongLong(max_size);
+            }
             memcpy(&vlsd_size, inptr + *offsets_array, 4);
             if (vlsd_size > max_size) {
                 max_size = vlsd_size;
