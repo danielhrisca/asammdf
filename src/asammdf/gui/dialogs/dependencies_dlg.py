@@ -1,7 +1,7 @@
 import contextlib
+from importlib.metadata import distribution, PackageNotFoundError
 import re
-from importlib.metadata import PackageNotFoundError, distribution
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 from packaging.requirements import Requirement
 from PySide6.QtCore import QSize
@@ -37,7 +37,7 @@ class DependenciesDlg(QDialog):
         self.setMinimumHeight(500)
 
         icon = QIcon()
-        icon.addFile(u":/asammdf.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(":/asammdf.png", QSize(), QIcon.Normal, QIcon.Off)
         self.setWindowIcon(icon)
 
         headers = ["package", "required", "installed", "summary", "url"]

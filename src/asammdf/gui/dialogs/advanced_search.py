@@ -127,7 +127,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             match_kind = self.match_kind.currentText()
 
             if match_kind == "Wildcard":
-                wildcard = f'{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}'
+                wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
                 pattern = text.replace("*", wildcard)
                 pattern = re.escape(pattern)
                 pattern = pattern.replace(wildcard, ".*")
@@ -146,8 +146,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                         # check channel group source name
 
                         if cg_source and (
-                                pattern.fullmatch(cg_source.name or "")
-                                or pattern.fullmatch(cg_source.path or "")
+                            pattern.fullmatch(cg_source.name or "")
+                            or pattern.fullmatch(cg_source.path or "")
                         ):
                             matches.update(
                                 {
