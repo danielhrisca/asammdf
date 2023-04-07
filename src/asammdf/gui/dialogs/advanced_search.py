@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from fnmatch import fnmatch, fnmatchcase
+import os
 import re
 from traceback import format_exc
 
@@ -127,11 +127,16 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             match_kind = self.match_kind.currentText()
 
             if match_kind == "Wildcard":
-                pattern = text.casefold()
+                wildcard = f'{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}'
+                pattern = text.replace("*", wildcard)
+                pattern = re.escape(pattern)
+                pattern = pattern.replace(wildcard, ".*")
             else:
-                pattern = re.compile(f"(?i){text}")
+                pattern = text
 
             try:
+                pattern = re.compile(f"(?i){pattern}")
+
                 if extened_search:
                     matches = {}
 
@@ -141,16 +146,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                         # check channel group source name
 
                         if cg_source and (
-                            match_kind == "Wildcard"
-                            and (
-                                fnmatch((cg_source.name or "").casefold(), pattern)
-                                or fnmatch((cg_source.path or "").casefold(), pattern)
-                            )
-                            or match_kind != "Wildcard"
-                            and (
                                 pattern.fullmatch(cg_source.name or "")
                                 or pattern.fullmatch(cg_source.path or "")
-                            )
                         ):
                             matches.update(
                                 {
@@ -180,12 +177,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                 ]
 
                                 for target in targets:
-                                    if (
-                                        match_kind != "Wildcard"
-                                        and pattern.fullmatch(target)
-                                        or match_kind == "Wildcard"
-                                        and fnmatch(target.casefold(), pattern)
-                                    ):
+                                    if pattern.fullmatch(target):
                                         if entry not in matches:
                                             matches[entry] = {
                                                 "names": [target],
@@ -212,12 +204,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                         targets.append(source.path)
 
                                     for target in targets:
-                                        if (
-                                            match_kind != "Wildcard"
-                                            and pattern.fullmatch(target)
-                                            or match_kind == "Wildcard"
-                                            and fnmatch(target.casefold(), pattern)
-                                        ):
+                                        if pattern.fullmatch(target):
                                             matches[entry] = {
                                                 "names": [ch.name],
                                                 "comment": extract_xml_comment(
@@ -236,16 +223,9 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                             break
 
                 else:
-                    if match_kind == "Wildcard":
-                        found_names = [
-                            name
-                            for name in self.channels_db
-                            if fnmatch(name.casefold(), pattern)
-                        ]
-                    else:
-                        found_names = [
-                            name for name in self.channels_db if pattern.fullmatch(name)
-                        ]
+                    found_names = [
+                        name for name in self.channels_db if pattern.fullmatch(name)
+                    ]
 
                     matches = {}
                     for name in found_names:
