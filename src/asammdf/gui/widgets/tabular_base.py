@@ -1088,7 +1088,7 @@ class HeaderNamesView(QtWidgets.QTableView):
         self.horizontalHeader().hide()
         self.verticalHeader().hide()
 
-        self.setSelectionMode(self.NoSelection)
+        self.setSelectionMode(self.SelectionMode.NoSelection)
 
         # Automatically stretch rows/columns as widget is resized
         if self.orientation == Qt.Horizontal:
