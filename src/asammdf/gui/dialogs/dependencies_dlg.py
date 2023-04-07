@@ -59,6 +59,10 @@ class DependenciesDlg(QDialog):
 
     def _populate_tree(self, package_name: str) -> None:
         package_dist = distribution(package_name)
+        requires = package_dist.requires
+        if requires is None:
+            return
+
         root_nodes: Dict[str, QTreeWidgetItem] = {}
 
         def get_root_node(name: Optional[str] = None) -> QTreeWidgetItem:
@@ -78,7 +82,7 @@ class DependenciesDlg(QDialog):
             self._tree.invisibleRootItem().addChild(new_root_node)
             return new_root_node
 
-        for req_string in package_dist.requires:
+        for req_string in requires:
             req = Requirement(req_string)
 
             parent = get_root_node()
