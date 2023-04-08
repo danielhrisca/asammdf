@@ -8,9 +8,9 @@ os.environ["PYQTGRAPH_QT_LIB"] = "PySide6"
 os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
 
 import pyqtgraph
-from PySide6 import QtGui, QtWidgets
+from PySide6 import QtWidgets
 
-from asammdf.gui.utils import excepthook
+from asammdf.gui.utils import excepthook, set_app_user_model_id
 from asammdf.gui.widgets.main import MainWindow
 from asammdf.gui.widgets.plot import monkey_patch_pyqtgraph
 
@@ -33,8 +33,9 @@ def main(measurements=None):
     app.setOrganizationName("py-asammdf")
     app.setOrganizationDomain("py-asammdf")
     app.setApplicationName("py-asammdf")
+    set_app_user_model_id("py-asammdf")
 
-    main = MainWindow(args.measurements)
+    _main_window = MainWindow(args.measurements)
     app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
 
     app.exec()

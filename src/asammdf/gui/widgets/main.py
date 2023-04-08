@@ -13,6 +13,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...version import __version__ as libversion
 from ..dialogs.bus_database_manager import BusDatabaseManagerDialog
+from ..dialogs.dependencies_dlg import DependenciesDlg
 from ..dialogs.functions_manager import FunctionsManagerDialog
 from ..dialogs.multi_search import MultiSearch
 from ..ui.main_window import Ui_PyMDFMainWindow
@@ -797,6 +798,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         menu = self.menubar.addMenu("Help")
         open_group = QtGui.QActionGroup(self)
+        action = QtGui.QAction("Dependencies", menu)
+        action.triggered.connect(partial(DependenciesDlg.show_dependencies, "asammdf"))
+        open_group.addAction(action)
         action = QtGui.QAction("Online documentation", menu)
         action.triggered.connect(self.help)
         action.setShortcut(QtGui.QKeySequence("F1"))

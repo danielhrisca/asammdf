@@ -114,6 +114,7 @@ setup(
             "PySide6",
             "pyqtgraph>=0.12.4",
             "pyqtlet2>=0.8.0",
+            "packaging",
         ],
         "encryption": ["cryptography", "keyring"],
         "symbolic_math": "numexpr3",
