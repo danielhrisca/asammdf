@@ -1,13 +1,11 @@
 import pathlib
-from unittest import mock
-
-from PySide6 import QtCore, QtGui, QtWidgets
-
-assert QtGui == QtGui
-
-from asammdf.gui.widgets.file import FileWidget
 from test.asammdf.gui import QtCore, QtTest, QtWidgets
 from test.asammdf.gui.test_base import TestBase
+from unittest import mock
+
+from PySide6 import QtCore, QtWidgets
+
+from asammdf.gui.widgets.file import FileWidget
 
 
 class TestFileWidget(TestBase):
@@ -329,8 +327,12 @@ class TestFileWidget(TestBase):
         """
         # Setup
         valid_lab = str(pathlib.Path(self.resource, "valid.lab"))
-        invalid_missing_section_lab = str(pathlib.Path(self.resource, "invalid_MissingSection.lab"))
-        invalid_empty_section_lab = str(pathlib.Path(self.resource, "invalid_EmptySection.lab"))
+        invalid_missing_section_lab = str(
+            pathlib.Path(self.resource, "invalid_MissingSection.lab")
+        )
+        invalid_empty_section_lab = str(
+            pathlib.Path(self.resource, "invalid_EmptySection.lab")
+        )
         measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
         # Event
@@ -349,7 +351,9 @@ class TestFileWidget(TestBase):
         # Case 0:
         with self.subTest("test_PushButton_LoadOfflineWindows_LAB_0"):
             with (
-                mock.patch("src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName") as mo_getOpenFileName,
+                mock.patch(
+                    "src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+                ) as mo_getOpenFileName,
             ):
                 mo_getOpenFileName.return_value = invalid_empty_section_lab, None
                 QtTest.QTest.mouseClick(
@@ -370,13 +374,16 @@ class TestFileWidget(TestBase):
                     iterator += 1
                 self.assertEqual(0, len(checked_items))
                 self.assertNotRegex(
-                    str(self.mc_ErrorDialog.mock_calls), r"local variable .* referenced before assignment"
+                    str(self.mc_ErrorDialog.mock_calls),
+                    r"local variable .* referenced before assignment",
                 )
 
         # Case 1:
         with self.subTest("test_PushButton_LoadOfflineWindows_LAB_1"):
             with (
-                mock.patch("src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName") as mo_getOpenFileName,
+                mock.patch(
+                    "src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+                ) as mo_getOpenFileName,
             ):
                 mo_getOpenFileName.return_value = invalid_missing_section_lab, None
                 QtTest.QTest.mouseClick(
@@ -397,14 +404,19 @@ class TestFileWidget(TestBase):
                     iterator += 1
                 self.assertEqual(0, len(checked_items))
                 self.assertNotRegex(
-                    str(self.mc_ErrorDialog.mock_calls), r"local variable .* referenced before assignment"
+                    str(self.mc_ErrorDialog.mock_calls),
+                    r"local variable .* referenced before assignment",
                 )
 
         # Case 2:
         with self.subTest("test_PushButton_LoadOfflineWindows_LAB_2"):
             with (
-                mock.patch("src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName") as mo_getOpenFileName,
-                mock.patch("asammdf.gui.widgets.file.QtWidgets.QInputDialog.getItem") as mo_getItem
+                mock.patch(
+                    "src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+                ) as mo_getOpenFileName,
+                mock.patch(
+                    "asammdf.gui.widgets.file.QtWidgets.QInputDialog.getItem"
+                ) as mo_getItem,
             ):
                 mo_getOpenFileName.return_value = valid_lab, None
                 mo_getItem.return_value = "lab", True
@@ -426,13 +438,15 @@ class TestFileWidget(TestBase):
                     iterator += 1
                 self.assertEqual(7, len(checked_items))
                 self.assertSetEqual(
-                    {"ASAM.M.SCALAR.FLOAT64.IDENTICAL",
-                     "ASAM.M.SCALAR.UBYTE.FORM_X_PLUS_4",
-                     "ASAM_[1].M.MATRIX_DIM_16.UBYTE.IDENTICAL",
-                     "ASAM_[11].M.MATRIX_DIM_16.UBYTE.IDENTICAL",
-                     "ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL",
-                     "time"},
-                    set(checked_items)
+                    {
+                        "ASAM.M.SCALAR.FLOAT64.IDENTICAL",
+                        "ASAM.M.SCALAR.UBYTE.FORM_X_PLUS_4",
+                        "ASAM_[1].M.MATRIX_DIM_16.UBYTE.IDENTICAL",
+                        "ASAM_[11].M.MATRIX_DIM_16.UBYTE.IDENTICAL",
+                        "ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL",
+                        "time",
+                    },
+                    set(checked_items),
                 )
 
     def test_PushButton_SaveOfflineWindows(self):
@@ -505,7 +519,7 @@ class TestFileWidget(TestBase):
                 iterator += 1
                 continue
             # Select item: ASAM.M.SCALAR.UBYTE.VTAB_RANGE_NO_DEFAULT_VALUE
-            if item.text(0) == 'ASAM.M.SCALAR.UBYTE.VTAB_RANGE_NO_DEFAULT_VALUE':
+            if item.text(0) == "ASAM.M.SCALAR.UBYTE.VTAB_RANGE_NO_DEFAULT_VALUE":
                 item.setSelected(True)
 
                 # item_rect = channels_tree.visualItemRect(item)
@@ -520,22 +534,35 @@ class TestFileWidget(TestBase):
                 #     QtCore.Qt.NoModifier,
                 #     item_center
                 # )
-                with mock.patch("asammdf.gui.widgets.mdi_area.WindowSelectionDialog") as mc_WindowSelectionDialog:
+                with mock.patch(
+                    "asammdf.gui.widgets.mdi_area.WindowSelectionDialog"
+                ) as mc_WindowSelectionDialog:
                     # Setup
                     mc_WindowSelectionDialog.return_value.result.return_value = True
-                    mc_WindowSelectionDialog.return_value.disable_new_channels.return_value = False
-                    mc_WindowSelectionDialog.return_value.selected_type.return_value = "Plot"
+                    mc_WindowSelectionDialog.return_value.disable_new_channels.return_value = (
+                        False
+                    )
+                    mc_WindowSelectionDialog.return_value.selected_type.return_value = (
+                        "Plot"
+                    )
 
                     channels_tree.startDrag(QtCore.Qt.MoveAction)
                     # Move item
                     QtTest.QTest.mouseMove(mdi_area, drop_position)
                     # Release item
-                    QtTest.QTest.mouseRelease(mdi_area, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier, drop_position)
+                    QtTest.QTest.mouseRelease(
+                        mdi_area,
+                        QtCore.Qt.LeftButton,
+                        QtCore.Qt.NoModifier,
+                        drop_position,
+                    )
                 break
             iterator += 1
 
         # Press PushButton: "Save offline windows"
-        with mock.patch("asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName") as mo_getSaveFileName:
+        with mock.patch(
+            "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName"
+        ) as mo_getSaveFileName:
             mo_getSaveFileName.return_value = str(saved_dspf), None
             QtTest.QTest.mouseClick(
                 self.widget.save_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
@@ -566,4 +593,3 @@ class TestFileWidget(TestBase):
                 )
             )
             self.assertSetEqual({"Plot"}, widget_types)
-

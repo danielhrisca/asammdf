@@ -50,7 +50,9 @@ if QT_LIB is None:
 mandatory = ["QtCore", "QtGui", "QtTest", "QtWidgets"]
 QT_LIB = __import__(f"{QT_LIB}", fromlist=mandatory)
 if not QT_LIB:
-    raise ModuleNotFoundError(f"At least one of the following modules are not present in {QT_LIB}: {mandatory}")
+    raise ModuleNotFoundError(
+        f"At least one of the following modules are not present in {QT_LIB}: {mandatory}"
+    )
 
 QtCore = getattr(QT_LIB, "QtCore")
 QtGui = getattr(QT_LIB, "QtGui")
