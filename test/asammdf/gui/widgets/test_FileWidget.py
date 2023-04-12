@@ -49,7 +49,7 @@ class TestFileWidget(TestBase):
 
         with (
             mock.patch(
-                "src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+                "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
             ) as mo_getOpenFileName,
         ):
             mo_getOpenFileName.return_value = valid_dsp, None
@@ -148,7 +148,7 @@ class TestFileWidget(TestBase):
                     self.widget, "load_window", wraps=self.widget.load_window
                 ) as mo_load_window,
                 mock.patch(
-                    "src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+                    "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
                 ) as mo_getOpenFileName,
             ):
                 mo_getOpenFileName.return_value = None, None
@@ -166,7 +166,7 @@ class TestFileWidget(TestBase):
                     self.widget, "load_window", wraps=self.widget.load_window
                 ) as mo_load_window,
                 mock.patch(
-                    "src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+                    "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
                 ) as mo_getOpenFileName,
             ):
                 mo_getOpenFileName.return_value = valid_dspf[:-2], None
@@ -184,7 +184,7 @@ class TestFileWidget(TestBase):
                     self.widget, "load_window", wraps=self.widget.load_window
                 ) as mo_load_window,
                 mock.patch(
-                    "src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+                    "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
                 ) as mo_getOpenFileName,
             ):
                 mo_getOpenFileName.return_value = invalid_json_decode_error_dspf, None
@@ -203,7 +203,7 @@ class TestFileWidget(TestBase):
                 # Magic. Trust me.
                 mock.patch("asammdf.gui.widgets.file.ErrorDialog") as mc_ErrorDialog,
                 mock.patch(
-                    "src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+                    "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
                 ) as mo_getOpenFileName,
             ):
                 mo_getOpenFileName.return_value = (
@@ -231,7 +231,7 @@ class TestFileWidget(TestBase):
                 # Magic. Trust me.
                 mock.patch("asammdf.gui.widgets.file.ErrorDialog") as mc_ErrorDialog,
                 mock.patch(
-                    "src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+                    "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
                 ) as mo_getOpenFileName,
             ):
                 mo_getOpenFileName.return_value = (
@@ -259,7 +259,7 @@ class TestFileWidget(TestBase):
                 # Magic. Trust me.
                 mock.patch("asammdf.gui.widgets.file.ErrorDialog") as mc_ErrorDialog,
                 mock.patch(
-                    "src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+                    "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
                 ) as mo_getOpenFileName,
             ):
                 mo_getOpenFileName.return_value = (
@@ -288,7 +288,7 @@ class TestFileWidget(TestBase):
                     self.widget, "load_window", wraps=self.widget.load_window
                 ) as mo_load_window,
                 mock.patch(
-                    "src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+                    "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
                 ) as mo_getOpenFileName,
             ):
                 mo_getOpenFileName.return_value = valid_dspf, None
@@ -352,7 +352,7 @@ class TestFileWidget(TestBase):
         with self.subTest("test_PushButton_LoadOfflineWindows_LAB_0"):
             with (
                 mock.patch(
-                    "src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+                    "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
                 ) as mo_getOpenFileName,
             ):
                 mo_getOpenFileName.return_value = invalid_empty_section_lab, None
@@ -382,7 +382,7 @@ class TestFileWidget(TestBase):
         with self.subTest("test_PushButton_LoadOfflineWindows_LAB_1"):
             with (
                 mock.patch(
-                    "src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+                    "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
                 ) as mo_getOpenFileName,
             ):
                 mo_getOpenFileName.return_value = invalid_missing_section_lab, None
@@ -412,7 +412,7 @@ class TestFileWidget(TestBase):
         with self.subTest("test_PushButton_LoadOfflineWindows_LAB_2"):
             with (
                 mock.patch(
-                    "src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+                    "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
                 ) as mo_getOpenFileName,
                 mock.patch(
                     "asammdf.gui.widgets.file.QtWidgets.QInputDialog.getItem"
@@ -492,7 +492,7 @@ class TestFileWidget(TestBase):
                 self.widget, "load_window", wraps=self.widget.load_window
             ) as mo_load_window,
             mock.patch(
-                "src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+                "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
             ) as mo_getOpenFileName,
         ):
             mo_getOpenFileName.return_value = valid_dspf, None
@@ -524,7 +524,9 @@ class TestFileWidget(TestBase):
 
                 # item_rect = channels_tree.visualItemRect(item)
                 # drag_position = item_rect.center()
-                drop_position = mdi_area.viewport().rect().center() - QtCore.QPoint(200, 200)
+                drop_position = mdi_area.viewport().rect().center() - QtCore.QPoint(
+                    200, 200
+                )
 
                 # Press on item
                 # Don't know how to trigger startDrag for now.
@@ -577,7 +579,7 @@ class TestFileWidget(TestBase):
                 self.widget, "load_window", wraps=self.widget.load_window
             ) as mo_load_window,
             mock.patch(
-                "src.asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+                "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
             ) as mo_getOpenFileName,
         ):
             mo_getOpenFileName.return_value = saved_dspf, None
