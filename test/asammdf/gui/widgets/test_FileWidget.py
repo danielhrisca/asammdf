@@ -524,7 +524,7 @@ class TestFileWidget(TestBase):
 
                 # item_rect = channels_tree.visualItemRect(item)
                 # drag_position = item_rect.center()
-                drop_position = mdi_area.viewport().rect().center()
+                drop_position = mdi_area.viewport().rect().center() - QtCore.QPoint(200, 200)
 
                 # Press on item
                 # Don't know how to trigger startDrag for now.
@@ -559,6 +559,7 @@ class TestFileWidget(TestBase):
                 break
             iterator += 1
 
+        QtTest.QTest.qWait(10)
         # Press PushButton: "Save offline windows"
         with mock.patch(
             "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName"
