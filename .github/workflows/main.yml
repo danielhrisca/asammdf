@@ -23,6 +23,10 @@ jobs:
       - name: Install packages
         run: |
             pip install tox tox-gh-actions
+            if [ "$RUNNER_OS" == "Linux" ]; then
+               sudo apt update
+               sudo apt install libegl1 libopengl0 libgl1
+            fi
             
       # see: https://github.com/ymyzk/tox-gh-actions
       - name: Run tests

@@ -48,11 +48,9 @@ class TestFileWidget(TestBase):
             None,  # hide_disabled_channels
         )
 
-        with (
-            mock.patch(
-                "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
-            ) as mo_getOpenFileName,
-        ):
+        with mock.patch(
+            "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
+        ) as mo_getOpenFileName:
             mo_getOpenFileName.return_value = valid_dsp, None
             QtTest.QTest.mouseClick(
                 self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
