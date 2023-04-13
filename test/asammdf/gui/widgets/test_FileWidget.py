@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import pathlib
 from test.asammdf.gui import QtCore, QtTest, QtWidgets
 from test.asammdf.gui.test_base import TestBase
