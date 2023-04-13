@@ -38,6 +38,7 @@ jobs:
             if [ "$RUNNER_OS" == "Linux" ]; then
                  sudo apt update
                  sudo apt install libegl1 libopengl0
+                 sudo apt-get install '^libxcb.*-dev' libx11-xcb-dev libglu1-mesa-dev libxrender-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev
             fi
             pyinstaller asammdf.spec --distpath dist/${RUNNER_OS} --noconfirm --clean
 
