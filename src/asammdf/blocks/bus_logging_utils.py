@@ -352,6 +352,16 @@ def extract_mux(
             pair_signals = pairs.setdefault(entry, [])
             pair_signals.append(signal)
 
+    if message.is_pdu_container:
+        for pdu in message.pdus:
+            for signal in pdu.signals:
+                try:
+                    entry = signal.mux_val_min, signal.mux_val_max
+                except:
+                    entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0, 0)
+                pair_signals = pairs.setdefault(entry, [])
+                pair_signals.append(signal)
+
     for pair, pair_signals in pairs.items():
         entry = bus, message_id, original_message_id, muxer, *pair
 
