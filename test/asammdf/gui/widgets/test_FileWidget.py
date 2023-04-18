@@ -71,7 +71,8 @@ class TestFileWidget(TestBase):
         sys.platform == "linux",
         "Test is failing due to Segmentation Fault on Linux platform.",
     )
-    def test_PushButton_LoadOfflineWindows_DSPF(self):
+    @mock.patch("asammdf.gui.widgets.file.ErrorDialog")
+    def test_PushButton_LoadOfflineWindows_DSPF(self, mc_file_ErrorDialog):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -293,6 +294,8 @@ class TestFileWidget(TestBase):
                 )
                 self.assertListEqual(["Numeric", "Plot", "Tabular"], widget_types)
 
+        mc_file_ErrorDialog.assert_not_called()
+
     def test_PushButton_LoadOfflineWindows_LAB(self):
         """
         Events:
@@ -450,6 +453,7 @@ class TestFileWidget(TestBase):
         def dropAction():
             # Move item
             QtTest.QTest.mouseMove(mdi_area, drop_position)
+            QtTest.QTest.qWait(50)
             # Release item
             QtTest.QTest.mouseRelease(
                 mdi_area,
@@ -541,7 +545,7 @@ class TestFileWidget(TestBase):
                     QtCore.QTimer.singleShot(100, dropAction)
                     channels_tree.startDrag(QtCore.Qt.MoveAction)
                     QtCore.QTimer.singleShot(100, dropAction)
-                    print('Debug..')
+                    print("Debug..")
                     # # Move item
                     # QtTest.QTest.mouseMove(mdi_area, drop_position)
                     # # Release item

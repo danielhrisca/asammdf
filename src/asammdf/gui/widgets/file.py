@@ -1175,7 +1175,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.display_file_modified.emit(Path(self.loaded_display_file[0]).name)
 
         if errors:
-            print(ErrorDialog)
             ErrorDialog(
                 title="Errors while loading display file",
                 message=f"There were errors while loading the following windows : {list(errors)}",
