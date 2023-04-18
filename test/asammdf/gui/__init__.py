@@ -48,16 +48,19 @@ if QT_LIB is None:
         "PyQtGraph requires one of PyQt5, PyQt6, PySide2 or PySide6; none of these packages could be imported."
     )
 
-mandatory = ["QtCore", "QtGui", "QtTest", "QtWidgets"]
+mandatory = ["QtCore", "QtGui", "QtQuick", "QtTest", "QtWidgets"]
 QT_LIB = __import__(f"{QT_LIB}", fromlist=mandatory)
 if not QT_LIB:
     raise ModuleNotFoundError(
         f"At least one of the following modules are not present in {QT_LIB}: {mandatory}"
     )
 
-QtCore = getattr(QT_LIB, "QtCore")
-QtGui = getattr(QT_LIB, "QtGui")
-QtTest = getattr(QT_LIB, "QtTest")
-QtWidgets = getattr(QT_LIB, "QtWidgets")
+for m in mandatory:
+    globals()[m] = getattr(QT_LIB, m)
 
-__all__ = ["QtCore", "QtGui", "QtTest", "QtWidgets"]
+# QtCore = getattr(QT_LIB, "QtCore")
+# QtGui = getattr(QT_LIB, "QtGui")
+# QtTest = getattr(QT_LIB, "QtTest")
+# QtWidgets = getattr(QT_LIB, "QtWidgets")
+
+__all__ = mandatory
