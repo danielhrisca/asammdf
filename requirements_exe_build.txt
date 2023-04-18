@@ -25,3 +25,4 @@ keyring
 pyinstaller; sys_platform=="win32"
 pyinstaller; sys_platform=="darwin"
 pyinstaller==4.10; sys_platform=="linux"
+scipy
