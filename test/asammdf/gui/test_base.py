@@ -2,7 +2,6 @@
 import os
 import shutil
 import sys
-from test.asammdf.gui import QtCore, QtQuick
 import time
 import unittest
 from unittest import mock
@@ -10,10 +9,6 @@ from unittest import mock
 import pyqtgraph
 
 from asammdf.gui.utils import excepthook
-
-if sys.platform == "linux":
-    QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts)
-    QtQuick.QQuickWindow.setGraphicsApi(QtQuick.QSRendererInterface.OpenGLRhi)
 
 app = pyqtgraph.mkQApp()
 app.setOrganizationName("py-asammdf")
