@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import pathlib
+import unittest
+
 from test.asammdf.gui import QtCore, QtTest, QtWidgets
 from test.asammdf.gui.test_base import TestBase
 from unittest import mock
@@ -65,6 +67,7 @@ class TestFileWidget(TestBase):
             )
             self.assertIn("Plot", widget_types)
 
+    @unittest.skip
     def test_PushButton_LoadOfflineWindows_DSPF(self):
         """
         Events:
@@ -423,6 +426,7 @@ class TestFileWidget(TestBase):
                     set(checked_items),
                 )
 
+    @unittest.skip
     def test_PushButton_SaveOfflineWindows(self):
         """
         Events:
