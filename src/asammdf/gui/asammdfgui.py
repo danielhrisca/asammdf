@@ -7,6 +7,12 @@ os.environ["QT_API"] = "pyside6"
 os.environ["PYQTGRAPH_QT_LIB"] = "PySide6"
 os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
 
+alternative_sitepacakges = os.environ.get("ASAMMDF_PYTHONPATH", "")
+
+if alternative_sitepacakges:
+    os.environ["PYTHONPATH"] = alternative_sitepacakges
+    sys.path.insert(0, alternative_sitepacakges)
+
 import pyqtgraph
 from PySide6 import QtGui, QtWidgets
 

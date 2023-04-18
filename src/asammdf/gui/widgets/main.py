@@ -4,6 +4,7 @@ import gc
 import os
 from pathlib import Path
 import platform
+import sys
 from textwrap import wrap
 import webbrowser
 
@@ -796,11 +797,20 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.menubar.addMenu(self.plot_menu)
 
         menu = self.menubar.addMenu("Help")
+
         open_group = QtGui.QActionGroup(self)
         action = QtGui.QAction("Online documentation", menu)
         action.triggered.connect(self.help)
         action.setShortcut(QtGui.QKeySequence("F1"))
         open_group.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtGui.QAction(icon, "About asammdf-gui", menu)
+        action.triggered.connect(self.show_about)
+        open_group.addAction(action)
+        open_group.addAction(action)
+
         menu.addActions(open_group.actions())
 
         self.with_dots = self._settings.value("dots", False, type=bool)
@@ -1585,3 +1595,26 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         if dlg.pressed_button == "apply":
             dlg.store()
+
+    def show_about(self):
+        bits = "x86" if sys.maxsize < 2**32 else "x64"
+        cpython = ".".join(str(e) for e in sys.version_info[:3])
+        cpython = f"{cpython} {bits}"
+
+        QtWidgets.QMessageBox.about(
+            self,
+            "About asammdf-gui",
+            f"""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+    <html><head><meta name="qrichtext" content="1" /><meta charset="utf-8" /><style type="text/css">
+    p, li {{ white-space: pre-wrap; }}
+    hr {{ height: 1px; border-width: 0; }}
+    </style></head><body style=" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;">
+    <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-family:'MS Shell Dlg 2'; font-size:8pt;">Graphical user interface for the asammdf package </span></p>
+    <hr />
+    <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Build information:</p>
+    <ul style="margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;">
+    <li style=" font-family:'MS Shell Dlg 2'; font-size:8pt;" style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">version {libversion}</li>
+    <li style=" font-family:'MS Shell Dlg 2'; font-size:8pt;" style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">CPython {cpython}</li></ul>
+    <p style="-qt-paragraph-type:empty; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
+    <p>Copyright © 2018-2023 Daniel Hrisca</p></body></html>""",
+        )
