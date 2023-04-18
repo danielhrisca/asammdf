@@ -537,7 +537,7 @@ class TestFileWidget(TestBase):
                         "Plot"
                     )
 
-                    QtCore.QTimer.singleShot(100, dropAction)
+                    QtCore.QTimer.singleShot(1000, dropAction)
                     channels_tree.startDrag(QtCore.Qt.MoveAction)
                     # # Move item
                     # QtTest.QTest.mouseMove(mdi_area, drop_position)
