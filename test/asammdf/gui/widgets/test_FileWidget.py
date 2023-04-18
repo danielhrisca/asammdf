@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 import pathlib
-import unittest
-
 from test.asammdf.gui import QtCore, QtTest, QtWidgets
 from test.asammdf.gui.test_base import TestBase
+import unittest
 from unittest import mock
 
 from PySide6 import QtCore, QtWidgets
@@ -426,7 +425,6 @@ class TestFileWidget(TestBase):
                     set(checked_items),
                 )
 
-    @unittest.skip
     def test_PushButton_SaveOfflineWindows(self):
         """
         Events:
@@ -444,6 +442,18 @@ class TestFileWidget(TestBase):
             - Evaluate that new dspf file was saved.
             - Evaluate that two Plot Windows are loaded.
         """
+
+        def dropAction():
+            # Move item
+            QtTest.QTest.mouseMove(mdi_area, drop_position)
+            # Release item
+            QtTest.QTest.mouseRelease(
+                mdi_area,
+                QtCore.Qt.LeftButton,
+                QtCore.Qt.NoModifier,
+                drop_position,
+            )
+
         # Setup
         valid_dspf = str(pathlib.Path(self.resource, "valid.dspf"))
         saved_dspf = pathlib.Path(self.test_workspace, f"{self.id()}.dspf")
@@ -523,16 +533,17 @@ class TestFileWidget(TestBase):
                         "Plot"
                     )
 
+                    QtCore.QTimer.singleShot(100, dropAction)
                     channels_tree.startDrag(QtCore.Qt.MoveAction)
-                    # Move item
-                    QtTest.QTest.mouseMove(mdi_area, drop_position)
-                    # Release item
-                    QtTest.QTest.mouseRelease(
-                        mdi_area,
-                        QtCore.Qt.LeftButton,
-                        QtCore.Qt.NoModifier,
-                        drop_position,
-                    )
+                    # # Move item
+                    # QtTest.QTest.mouseMove(mdi_area, drop_position)
+                    # # Release item
+                    # QtTest.QTest.mouseRelease(
+                    #     mdi_area,
+                    #     QtCore.Qt.LeftButton,
+                    #     QtCore.Qt.NoModifier,
+                    #     drop_position,
+                    # )
                 break
             iterator += 1
 
