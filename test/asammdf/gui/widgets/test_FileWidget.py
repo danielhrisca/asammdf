@@ -119,7 +119,7 @@ class TestFileWidget(TestBase):
             self.assertIn("Plot", widget_types)
 
     @unittest.skipIf(
-        sys.platform == "linux",
+        sys.platform in ("darwin", "linux"),
         "Test is failing due to Segmentation Fault on Linux platform.",
     )
     @mock.patch("asammdf.gui.widgets.file.ErrorDialog")

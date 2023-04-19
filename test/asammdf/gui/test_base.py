@@ -10,14 +10,14 @@ import pyqtgraph
 
 from asammdf.gui.utils import excepthook
 
-if sys.platform == 'win32':
-    os.environ['QT_QPA_PLATFORM'] = 'windows'
-elif sys.platform == 'linux':
-    os.environ['QT_QPA_PLATFORM'] = 'xcb'
-elif sys.platform == 'darwin':
-    os.environ['QT_QPA_PLATFORM'] = 'cocoa'
+if sys.platform == "win32":
+    os.environ["QT_QPA_PLATFORM"] = "windows"
+elif sys.platform == "linux":
+    os.environ["QT_QPA_PLATFORM"] = "xcb"
+elif sys.platform == "darwin":
+    os.environ["QT_QPA_PLATFORM"] = "cocoa"
 else:
-    os.environ['QT_QPA_PLATFORM'] = 'windows'
+    os.environ["QT_QPA_PLATFORM"] = "windows"
 
 app = pyqtgraph.mkQApp()
 app.setOrganizationName("py-asammdf")
