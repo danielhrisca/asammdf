@@ -86,7 +86,10 @@ class SimpleSearch(Ui_SimpleSearchDialog, QtWidgets.QDialog):
                 pattern = text
 
             try:
-                pattern = re.compile(f"(?i){pattern}")
+                if self.case_sensitivity.currentText() == "Case insensitive":
+                    pattern = re.compile(f"(?i){pattern}")
+                else:
+                    pattern = re.compile(pattern)
 
                 matches = []
                 for name in self.channels_db:

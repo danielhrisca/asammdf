@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QComboBox, QDial
     QGridLayout, QHBoxLayout, QHeaderView, QLabel,
     QLineEdit, QPushButton, QSizePolicy, QSpacerItem,
     QTreeWidget, QTreeWidgetItem, QWidget)
-from . import resource_rc
+import resource_rc
 
 class Ui_SimpleSearchDialog(object):
     def setupUi(self, SimpleSearchDialog):
@@ -29,6 +29,30 @@ class Ui_SimpleSearchDialog(object):
         SimpleSearchDialog.setSizeGripEnabled(True)
         self.gridLayout = QGridLayout(SimpleSearchDialog)
         self.gridLayout.setObjectName(u"gridLayout")
+        self.matches = QTreeWidget(SimpleSearchDialog)
+        self.matches.setObjectName(u"matches")
+        self.matches.setFocusPolicy(Qt.TabFocus)
+        self.matches.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.matches.setSortingEnabled(True)
+
+        self.gridLayout.addWidget(self.matches, 3, 0, 2, 1)
+
+        self.status = QLabel(SimpleSearchDialog)
+        self.status.setObjectName(u"status")
+
+        self.gridLayout.addWidget(self.status, 9, 0, 1, 1)
+
+        self.selection = QTreeWidget(SimpleSearchDialog)
+        self.selection.setObjectName(u"selection")
+        self.selection.setSortingEnabled(True)
+
+        self.gridLayout.addWidget(self.selection, 3, 2, 2, 1)
+
+        self.label = QLabel(SimpleSearchDialog)
+        self.label.setObjectName(u"label")
+
+        self.gridLayout.addWidget(self.label, 2, 2, 1, 1)
+
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
@@ -37,6 +61,30 @@ class Ui_SimpleSearchDialog(object):
 
 
         self.gridLayout.addLayout(self.horizontalLayout_2, 0, 2, 1, 1)
+
+        self.add_btn = QPushButton(SimpleSearchDialog)
+        self.add_btn.setObjectName(u"add_btn")
+        icon = QIcon()
+        icon.addFile(u":/left.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.add_btn.setIcon(icon)
+
+        self.gridLayout.addWidget(self.add_btn, 3, 1, 1, 1)
+
+        self.search_box = QLineEdit(SimpleSearchDialog)
+        self.search_box.setObjectName(u"search_box")
+
+        self.gridLayout.addWidget(self.search_box, 2, 0, 1, 1)
+
+        self.match_kind = QComboBox(SimpleSearchDialog)
+        self.match_kind.addItem("")
+        self.match_kind.addItem("")
+        self.match_kind.setObjectName(u"match_kind")
+
+        self.gridLayout.addWidget(self.match_kind, 0, 0, 1, 1)
+
+        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+
+        self.gridLayout.addItem(self.verticalSpacer_2, 4, 1, 1, 1)
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
@@ -56,60 +104,19 @@ class Ui_SimpleSearchDialog(object):
 
         self.horizontalLayout.setStretch(1, 1)
 
-        self.gridLayout.addLayout(self.horizontalLayout, 5, 0, 1, 3)
-
-        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-
-        self.gridLayout.addItem(self.verticalSpacer_2, 3, 1, 1, 1)
-
-        self.add_btn = QPushButton(SimpleSearchDialog)
-        self.add_btn.setObjectName(u"add_btn")
-        icon = QIcon()
-        icon.addFile(u":/left.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.add_btn.setIcon(icon)
-
-        self.gridLayout.addWidget(self.add_btn, 2, 1, 1, 1)
-
-        self.label = QLabel(SimpleSearchDialog)
-        self.label.setObjectName(u"label")
-
-        self.gridLayout.addWidget(self.label, 1, 2, 1, 1)
-
-        self.match_kind = QComboBox(SimpleSearchDialog)
-        self.match_kind.addItem("")
-        self.match_kind.addItem("")
-        self.match_kind.setObjectName(u"match_kind")
-
-        self.gridLayout.addWidget(self.match_kind, 0, 0, 1, 1)
-
-        self.matches = QTreeWidget(SimpleSearchDialog)
-        self.matches.setObjectName(u"matches")
-        self.matches.setFocusPolicy(Qt.TabFocus)
-        self.matches.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.matches.setSortingEnabled(True)
-
-        self.gridLayout.addWidget(self.matches, 2, 0, 2, 1)
-
-        self.search_box = QLineEdit(SimpleSearchDialog)
-        self.search_box.setObjectName(u"search_box")
-
-        self.gridLayout.addWidget(self.search_box, 1, 0, 1, 1)
-
-        self.selection = QTreeWidget(SimpleSearchDialog)
-        self.selection.setObjectName(u"selection")
-        self.selection.setSortingEnabled(True)
-
-        self.gridLayout.addWidget(self.selection, 2, 2, 2, 1)
-
-        self.status = QLabel(SimpleSearchDialog)
-        self.status.setObjectName(u"status")
-
-        self.gridLayout.addWidget(self.status, 8, 0, 1, 1)
+        self.gridLayout.addLayout(self.horizontalLayout, 6, 0, 1, 3)
 
         self.comment = QLabel(SimpleSearchDialog)
         self.comment.setObjectName(u"comment")
 
-        self.gridLayout.addWidget(self.comment, 4, 0, 1, 3)
+        self.gridLayout.addWidget(self.comment, 5, 0, 1, 3)
+
+        self.case_sensitivity = QComboBox(SimpleSearchDialog)
+        self.case_sensitivity.addItem("")
+        self.case_sensitivity.addItem("")
+        self.case_sensitivity.setObjectName(u"case_sensitivity")
+
+        self.gridLayout.addWidget(self.case_sensitivity, 1, 0, 1, 1)
 
         QWidget.setTabOrder(self.search_box, self.matches)
         QWidget.setTabOrder(self.matches, self.match_kind)
@@ -128,19 +135,22 @@ class Ui_SimpleSearchDialog(object):
 
     def retranslateUi(self, SimpleSearchDialog):
         SimpleSearchDialog.setWindowTitle(QCoreApplication.translate("SimpleSearchDialog", u"Dialog", None))
-        self.cancel_btn.setText(QCoreApplication.translate("SimpleSearchDialog", u"Cancel", None))
-        self.apply_btn.setText(QCoreApplication.translate("SimpleSearchDialog", u"Apply", None))
-        self.add_btn.setText("")
+        ___qtreewidgetitem = self.matches.headerItem()
+        ___qtreewidgetitem.setText(0, QCoreApplication.translate("SimpleSearchDialog", u"Channel", None));
+        self.status.setText("")
+        ___qtreewidgetitem1 = self.selection.headerItem()
+        ___qtreewidgetitem1.setText(0, QCoreApplication.translate("SimpleSearchDialog", u"Channel", None));
         self.label.setText(QCoreApplication.translate("SimpleSearchDialog", u"Final selection", None))
+        self.add_btn.setText("")
+        self.search_box.setText("")
         self.match_kind.setItemText(0, QCoreApplication.translate("SimpleSearchDialog", u"Wildcard", None))
         self.match_kind.setItemText(1, QCoreApplication.translate("SimpleSearchDialog", u"Regex", None))
 
-        ___qtreewidgetitem = self.matches.headerItem()
-        ___qtreewidgetitem.setText(0, QCoreApplication.translate("SimpleSearchDialog", u"Channel", None));
-        self.search_box.setText("")
-        ___qtreewidgetitem1 = self.selection.headerItem()
-        ___qtreewidgetitem1.setText(0, QCoreApplication.translate("SimpleSearchDialog", u"Channel", None));
-        self.status.setText("")
+        self.cancel_btn.setText(QCoreApplication.translate("SimpleSearchDialog", u"Cancel", None))
+        self.apply_btn.setText(QCoreApplication.translate("SimpleSearchDialog", u"Apply", None))
         self.comment.setText("")
+        self.case_sensitivity.setItemText(0, QCoreApplication.translate("SimpleSearchDialog", u"Case insensitive", None))
+        self.case_sensitivity.setItemText(1, QCoreApplication.translate("SimpleSearchDialog", u"Case sensitive", None))
+
     # retranslateUi
 

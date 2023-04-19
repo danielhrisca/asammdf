@@ -5909,6 +5909,9 @@ class MDF:
                         if "CAN_DataFrame.BRS" in names:
                             columns["BRS"] = data["CAN_DataFrame.BRS"].astype("u1")
 
+                        if "CAN_DataFrame.IDE" in names:
+                            columns["IDE"] = data["CAN_DataFrame.IDE"].astype("u1")
+
                     elif data.name == "CAN_RemoteFrame":
                         columns["Bus"] = data["CAN_RemoteFrame.BusChannel"].astype("u1")
 
@@ -5938,6 +5941,9 @@ class MDF:
                                     .astype("u1")
                                     .tolist()
                                 ]
+
+                        if "CAN_RemoteFrame.IDE" in names:
+                            columns["IDE"] = data["CAN_RemoteFrame.IDE"].astype("u1")
 
                     elif data.name == "CAN_ErrorFrame":
                         names = set(data.samples.dtype.names)

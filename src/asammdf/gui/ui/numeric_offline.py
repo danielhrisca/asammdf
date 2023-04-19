@@ -117,10 +117,31 @@ class Ui_NumericDisplay(object):
 
         self.gridLayout.addWidget(self.op, 0, 2, 1, 1)
 
+        self.match_type = QComboBox(self.search_group)
+        self.match_type.addItem("")
+        self.match_type.addItem("")
+        self.match_type.setObjectName(u"match_type")
+
+        self.gridLayout.addWidget(self.match_type, 1, 1, 1, 1)
+
         self.target = QLineEdit(self.search_group)
         self.target.setObjectName(u"target")
 
         self.gridLayout.addWidget(self.target, 0, 3, 1, 1)
+
+        self.match_mode = QComboBox(self.search_group)
+        self.match_mode.addItem("")
+        self.match_mode.addItem("")
+        self.match_mode.setObjectName(u"match_mode")
+
+        self.gridLayout.addWidget(self.match_mode, 0, 0, 1, 1)
+
+        self.case_sensitivity = QComboBox(self.search_group)
+        self.case_sensitivity.addItem("")
+        self.case_sensitivity.addItem("")
+        self.case_sensitivity.setObjectName(u"case_sensitivity")
+
+        self.gridLayout.addWidget(self.case_sensitivity, 2, 1, 1, 1)
 
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
@@ -145,19 +166,12 @@ class Ui_NumericDisplay(object):
         self.horizontalLayout_3.addWidget(self.forward)
 
 
-        self.gridLayout.addLayout(self.horizontalLayout_3, 1, 3, 1, 1)
-
-        self.match_mode = QComboBox(self.search_group)
-        self.match_mode.addItem("")
-        self.match_mode.addItem("")
-        self.match_mode.setObjectName(u"match_mode")
-
-        self.gridLayout.addWidget(self.match_mode, 0, 0, 1, 1)
+        self.gridLayout.addLayout(self.horizontalLayout_3, 1, 3, 2, 1)
 
         self.match = QLabel(self.search_group)
         self.match.setObjectName(u"match")
 
-        self.gridLayout.addWidget(self.match, 1, 0, 1, 2)
+        self.gridLayout.addWidget(self.match, 3, 0, 1, 4)
 
         self.gridLayout.setColumnStretch(1, 1)
 
@@ -191,12 +205,18 @@ class Ui_NumericDisplay(object):
         self.op.setItemText(4, QCoreApplication.translate("NumericDisplay", u">", None))
         self.op.setItemText(5, QCoreApplication.translate("NumericDisplay", u">=", None))
 
+        self.match_type.setItemText(0, QCoreApplication.translate("NumericDisplay", u"Wildcard", None))
+        self.match_type.setItemText(1, QCoreApplication.translate("NumericDisplay", u"Regex", None))
+
         self.target.setPlaceholderText(QCoreApplication.translate("NumericDisplay", u"target value", None))
-        self.backward.setText("")
-        self.forward.setText("")
         self.match_mode.setItemText(0, QCoreApplication.translate("NumericDisplay", u"Raw", None))
         self.match_mode.setItemText(1, QCoreApplication.translate("NumericDisplay", u"Scaled", None))
 
+        self.case_sensitivity.setItemText(0, QCoreApplication.translate("NumericDisplay", u"Case insensitive", None))
+        self.case_sensitivity.setItemText(1, QCoreApplication.translate("NumericDisplay", u"Case sensitive", None))
+
+        self.backward.setText("")
+        self.forward.setText("")
         self.match.setText("")
     # retranslateUi
 

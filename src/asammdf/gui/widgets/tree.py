@@ -2232,9 +2232,17 @@ class ChannnelGroupDialog(QtWidgets.QDialog):
             self.setWindowTitle(f"<{name}> pattern group details")
 
             for i, key in enumerate(
-                ("name", "pattern", "match_type", "filter_type", "filter_value", "raw")
+                (
+                    "name",
+                    "pattern",
+                    "match_type",
+                    "case_sensitive",
+                    "filter_type",
+                    "filter_value",
+                    "raw",
+                )
             ):
-                widget = QtWidgets.QLabel(str(pattern[key]))
+                widget = QtWidgets.QLabel(str(pattern.get(key, "")))
 
                 if key == "raw":
                     key = "Use raw values"

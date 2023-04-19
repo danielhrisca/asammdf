@@ -98,6 +98,10 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             self.filter_type.setCurrentText(pattern["filter_type"])
             self.filter_value.setValue(pattern["filter_value"])
             self.pattern_match_type.setCurrentText(pattern["match_type"])
+            if pattern.get("case_sensitive", False):
+                self.case_sensitivity_pattern.setCurrentText("Case sensitive")
+            else:
+                self.case_sensitivity_pattern.setCurrentText("Case insensitive")
             self.raw.setCheckState(
                 QtCore.Qt.Checked if pattern["raw"] else QtCore.Qt.Unchecked
             )
@@ -135,7 +139,10 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                 pattern = text
 
             try:
-                pattern = re.compile(f"(?i){pattern}")
+                if self.case_sensitivity.currentText() == "Case insensitive":
+                    pattern = re.compile(f"(?i){pattern}")
+                else:
+                    pattern = re.compile(pattern)
 
                 if extened_search:
                     matches = {}
@@ -371,6 +378,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.result = {
             "pattern": self.pattern.text().strip(),
             "match_type": self.pattern_match_type.currentText(),
+            "case_sensitive": self.case_sensitivity_pattern.currentText()
+            == "Case sensitive",
             "filter_type": self.filter_type.currentText(),
             "filter_value": self.filter_value.value(),
             "raw": self.raw.checkState() == QtCore.Qt.Checked,

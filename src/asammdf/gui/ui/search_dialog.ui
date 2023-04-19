@@ -31,74 +31,7 @@
        <string>Search</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="0" column="0">
-        <widget class="QLineEdit" name="search_box">
-         <property name="focusPolicy">
-          <enum>Qt::StrongFocus</enum>
-         </property>
-         <property name="inputMask">
-          <string/>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="placeholderText">
-          <string>channel name pattern</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_7">
-         <property name="text">
-          <string>Search results</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLabel" name="status">
-         <property name="minimumSize">
-          <size>
-           <width>100</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>No results</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="2">
-        <widget class="QComboBox" name="match_kind">
-         <property name="currentIndex">
-          <number>0</number>
-         </property>
-         <item>
-          <property name="text">
-           <string>Wildcard</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Regex</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>Final selection</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="3">
-        <widget class="QCheckBox" name="extended_search">
-         <property name="text">
-          <string>Extended search</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0" colspan="4">
+       <item row="2" column="0" colspan="5">
         <widget class="QTreeWidget" name="matches">
          <property name="selectionMode">
           <enum>QAbstractItemView::ExtendedSelection</enum>
@@ -152,7 +85,44 @@
          </column>
         </widget>
        </item>
-       <item row="3" column="0" colspan="4">
+       <item row="0" column="2">
+        <widget class="QComboBox" name="match_kind">
+         <property name="currentIndex">
+          <number>0</number>
+         </property>
+         <item>
+          <property name="text">
+           <string>Wildcard</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Regex</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="status">
+         <property name="minimumSize">
+          <size>
+           <width>100</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>No results</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="4">
+        <widget class="QCheckBox" name="extended_search">
+         <property name="text">
+          <string>Extended search</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0" colspan="5">
         <layout class="QHBoxLayout" name="horizontalLayout_2">
          <item>
           <spacer name="horizontalSpacer_4">
@@ -196,7 +166,7 @@
          </item>
         </layout>
        </item>
-       <item row="5" column="0" colspan="4">
+       <item row="5" column="0" colspan="5">
         <widget class="QTreeWidget" name="selection">
          <property name="sortingEnabled">
           <bool>false</bool>
@@ -244,7 +214,14 @@
          </column>
         </widget>
        </item>
-       <item row="6" column="0" colspan="4">
+       <item row="4" column="0">
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Final selection</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0" colspan="5">
         <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0,0,0">
          <item>
           <widget class="QPushButton" name="cancel_btn">
@@ -307,21 +284,126 @@
          </item>
         </layout>
        </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_7">
+         <property name="text">
+          <string>Search results</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLineEdit" name="search_box">
+         <property name="focusPolicy">
+          <enum>Qt::StrongFocus</enum>
+         </property>
+         <property name="inputMask">
+          <string/>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="placeholderText">
+          <string>channel name pattern</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="3">
+        <widget class="QComboBox" name="case_sensitivity">
+         <item>
+          <property name="text">
+           <string>Case insensitive</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Case sensitive</string>
+          </property>
+         </item>
+        </widget>
+       </item>
       </layout>
      </widget>
      <widget class="QWidget" name="tab_2">
       <attribute name="title">
        <string>Pattern definition</string>
       </attribute>
-      <layout class="QGridLayout" name="gridLayout_3" rowstretch="0,0,0,0,1,0,0,0,0,0" columnstretch="0,0,0,1,0">
-       <item row="4" column="1">
-        <widget class="QLabel" name="label_4">
-         <property name="text">
-          <string>Filter value</string>
+      <layout class="QGridLayout" name="gridLayout_3" rowstretch="0,0,0,0,1,0,0,0,0,0,0" columnstretch="0,0,0,1,0">
+       <item row="1" column="2">
+        <widget class="QLineEdit" name="pattern">
+         <property name="minimumSize">
+          <size>
+           <width>300</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="placeholderText">
+          <string>channel name pattern</string>
          </property>
         </widget>
        </item>
-       <item row="9" column="3">
+       <item row="6" column="2">
+        <widget class="QCheckBox" name="raw">
+         <property name="text">
+          <string>Asses the raw channel values</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Pattern</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="1">
+        <widget class="QLabel" name="label_9">
+         <property name="text">
+          <string>Integer format</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>Filter type</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <widget class="QLineEdit" name="name"/>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="label_6">
+         <property name="text">
+          <string>Name</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="2">
+        <widget class="QComboBox" name="integer_format">
+         <item>
+          <property name="text">
+           <string>phys</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>bin</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>hex</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>ascii</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item row="10" column="3">
         <spacer name="horizontalSpacer_3">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
@@ -334,28 +416,7 @@
          </property>
         </spacer>
        </item>
-       <item row="0" column="1">
-        <widget class="QLabel" name="label_6">
-         <property name="text">
-          <string>Name</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="2">
-        <widget class="QCheckBox" name="raw">
-         <property name="text">
-          <string>Asses the raw channel values</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QLabel" name="label_5">
-         <property name="text">
-          <string>Match type</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="2">
+       <item row="4" column="2">
         <widget class="QComboBox" name="filter_type">
          <item>
           <property name="text">
@@ -379,7 +440,56 @@
          </item>
         </widget>
        </item>
-       <item row="8" column="1">
+       <item row="10" column="1">
+        <widget class="QPushButton" name="cancel_pattern_btn">
+         <property name="text">
+          <string>Cancel</string>
+         </property>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/erase.png</normaloff>:/erase.png</iconset>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="2">
+        <widget class="QPushButton" name="define_ranges_btn">
+         <property name="text">
+          <string>Define ranges</string>
+         </property>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/range.png</normaloff>:/range.png</iconset>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="2">
+        <widget class="QDoubleSpinBox" name="filter_value">
+         <property name="decimals">
+          <number>6</number>
+         </property>
+         <property name="minimum">
+          <double>-9999999999999999635896294965248.000000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>999999999999999983222784.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>Filter value</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>Match type</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="1">
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -391,48 +501,6 @@
           </size>
          </property>
         </spacer>
-       </item>
-       <item row="9" column="4">
-        <widget class="QPushButton" name="apply_pattern_btn">
-         <property name="text">
-          <string>Apply</string>
-         </property>
-         <property name="icon">
-          <iconset resource="resource.qrc">
-           <normaloff>:/checkmark.png</normaloff>:/checkmark.png</iconset>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="2">
-        <widget class="QLineEdit" name="pattern">
-         <property name="minimumSize">
-          <size>
-           <width>300</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="placeholderText">
-          <string>channel name pattern</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="2">
-        <widget class="QPushButton" name="define_ranges_btn">
-         <property name="text">
-          <string>Define ranges</string>
-         </property>
-         <property name="icon">
-          <iconset resource="resource.qrc">
-           <normaloff>:/range.png</normaloff>:/range.png</iconset>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>Filter type</string>
-         </property>
-        </widget>
        </item>
        <item row="2" column="2">
         <widget class="QComboBox" name="pattern_match_type">
@@ -448,67 +516,27 @@
          </item>
         </widget>
        </item>
-       <item row="4" column="2">
-        <widget class="QDoubleSpinBox" name="filter_value">
-         <property name="decimals">
-          <number>6</number>
-         </property>
-         <property name="minimum">
-          <double>-9999999999999999635896294965248.000000000000000</double>
-         </property>
-         <property name="maximum">
-          <double>999999999999999983222784.000000000000000</double>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="2">
-        <widget class="QLineEdit" name="name"/>
-       </item>
-       <item row="1" column="1">
-        <widget class="QLabel" name="label_2">
+       <item row="10" column="4">
+        <widget class="QPushButton" name="apply_pattern_btn">
          <property name="text">
-          <string>Pattern</string>
-         </property>
-        </widget>
-       </item>
-       <item row="9" column="1">
-        <widget class="QPushButton" name="cancel_pattern_btn">
-         <property name="text">
-          <string>Cancel</string>
+          <string>Apply</string>
          </property>
          <property name="icon">
           <iconset resource="resource.qrc">
-           <normaloff>:/erase.png</normaloff>:/erase.png</iconset>
+           <normaloff>:/checkmark.png</normaloff>:/checkmark.png</iconset>
          </property>
         </widget>
        </item>
-       <item row="7" column="1">
-        <widget class="QLabel" name="label_9">
-         <property name="text">
-          <string>Integer format</string>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="2">
-        <widget class="QComboBox" name="integer_format">
+       <item row="3" column="2">
+        <widget class="QComboBox" name="case_sensitivity_pattern">
          <item>
           <property name="text">
-           <string>phys</string>
+           <string>Case insensitive</string>
           </property>
          </item>
          <item>
           <property name="text">
-           <string>bin</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>hex</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>ascii</string>
+           <string>Case sensitive</string>
           </property>
          </item>
         </widget>

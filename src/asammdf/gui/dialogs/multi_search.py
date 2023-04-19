@@ -48,6 +48,7 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
 
     def search_text_changed(self):
         text = self.search_box.text().strip()
+        case_sensitive = self.case_sensitivity.currentText() == "Case sensitive"
         if len(text) >= 2:
             if self.match_kind.currentText() == "Wildcard":
                 pattern = text.replace("*", "_WILDCARD_")
@@ -60,7 +61,10 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
             results = []
 
             try:
-                pattern = re.compile(f"(?i){pattern}")
+                if case_sensitive:
+                    pattern = re.compile(pattern)
+                else:
+                    pattern = re.compile(f"(?i){pattern}")
                 for i, channels_db in enumerate(self.channels_dbs, 1):
                     match_results = [
                         f"{i:> 2}: {name}"
