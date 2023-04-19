@@ -25,9 +25,8 @@ jobs:
       - name: Build wheels
         shell: bash
         env:
-          CIBW_TEST_COMMAND: 'pytest {project}/test --continue-on-collection-errors -k "not gui/*"'
+          CIBW_TEST_COMMAND: "pytest {project}/test --ignore={project}/test/asammdf/gui"
           # Install packages only to pass over imports. GUI Tests must be skipped.
-          CIBW_TEST_REQUIRES: "pytest pyqtgraph==0.12.4 PySide6==6.2.2"
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
              sudo apt update
