@@ -14,11 +14,12 @@ from asammdf.gui.widgets.file import FileWidget
 
 class DragAndDrop:
     class MoveThread(QtCore.QThread):
-        def __init__(self, widget, position=None, step=None):
+        def __init__(self, widget, position=None, step=None, drop=False):
             super().__init__()
             self.widget = widget
             self.position = position
             self.step = step
+            self.drop = drop
 
         def run(self):
             time.sleep(0.1)
@@ -30,31 +31,32 @@ class DragAndDrop:
                         self.widget, self.position + QtCore.QPoint(step, step)
                     )
                     QtTest.QTest.qWait(2)
-            QtTest.QTest.qWait(10)
+            QtTest.QTest.qWait(50)
+            if self.drop:
+                QtTest.QTest.mouseRelease(
+                    self.widget,
+                    QtCore.Qt.LeftButton,
+                    QtCore.Qt.NoModifier,
+                    self.position,
+                )
+                QtTest.QTest.qWait(10)
 
     def __init__(self, source_widget, destination_widget, source_pos, destination_pos):
         # Press on Source Widget
         QtTest.QTest.mousePress(
             source_widget, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier, source_pos
         )
-        QtTest.QTest.qWait(50)
         # Drag few pixels in order to detect startDrag event
         # drag_thread = DragAndDrop.MoveThread(widget=source_widget, position=source_pos, step=50)
         # drag_thread.start()
         # Move to Destination Widget
         move_thread = DragAndDrop.MoveThread(
-            widget=destination_widget, position=destination_pos
+            widget=destination_widget, position=destination_pos, drop=True
         )
         move_thread.start()
+
         source_widget.startDrag(QtCore.Qt.MoveAction)
-        # Release
-        QtTest.QTest.mouseRelease(
-            destination_widget,
-            QtCore.Qt.LeftButton,
-            QtCore.Qt.NoModifier,
-            destination_pos,
-        )
-        QtTest.QTest.qWait(100)
+        QtTest.QTest.qWait(50)
 
         # drag_thread.wait()
         move_thread.wait()
@@ -483,6 +485,7 @@ class TestFileWidget(TestBase):
 
     def test_PushButton_SaveOfflineWindows(self):
         """
+
         Events:
             - Open 'FileWidget' with valid measurement.
             - Press PushButton: "Load offline windows"
@@ -571,7 +574,7 @@ class TestFileWidget(TestBase):
 
                     DragAndDrop(
                         source_widget=channels_tree,
-                        destination_widget=mdi_area.viewport(),
+                        destination_widget=mdi_area,
                         source_pos=drag_position,
                         destination_pos=drop_position,
                     )
