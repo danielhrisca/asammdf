@@ -1518,9 +1518,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         operator = self.op.currentText()
 
         if self.match_type == "Wildcard":
-            pattern = self.pattern_match.text().strip().replace("*", "_WILDCARD_")
+            wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
+            pattern = text.replace("*", wildcard)
             pattern = re.escape(pattern)
-            pattern = pattern.replace("_WILDCARD_", ".*")
+            pattern = pattern.replace(wildcard, ".*")
 
         if self.case_sensitivity.currentText() == "Case sensitive":
             pattern = re.compile(pattern)
@@ -1589,9 +1590,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         operator = self.op.currentText()
 
         if self.match_type == "Wildcard":
-            pattern = self.pattern_match.text().strip().replace("*", "_WILDCARD_")
+            wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
+            pattern = text.replace("*", wildcard)
             pattern = re.escape(pattern)
-            pattern = pattern.replace("_WILDCARD_", ".*")
+            pattern = pattern.replace(wildcard, ".*")
 
         if self.case_sensitivity.currentText() == "Case sensitive":
             pattern = re.compile(pattern)

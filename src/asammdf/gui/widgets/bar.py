@@ -246,9 +246,10 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
 
         operator = self.op.currentText()
 
-        pattern = self.pattern_match.text().strip().replace("*", "_WILDCARD_")
+        wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
+        pattern = text.replace("*", wildcard)
         pattern = re.escape(pattern)
-        pattern = pattern.replace("_WILDCARD_", ".*")
+        pattern = pattern.replace(wildcard, ".*")
 
         pattern = re.compile(f"(?i){pattern}")
         matches = [name for name in self.signals if pattern.search(name)]

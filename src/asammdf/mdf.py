@@ -10,7 +10,6 @@ from copy import deepcopy
 import csv
 from datetime import datetime, timezone
 from enum import Enum
-import fnmatch
 from functools import reduce
 import gzip
 from io import BytesIO
@@ -5784,19 +5783,19 @@ class MDF:
                 name for name in self.channels_db if compiled_pattern.search(name)
             ]
         elif search_mode is SearchMode.wildcard:
-            if case_insensitive:
-                pattern = pattern.casefold()
-                channels = [
-                    name
-                    for name in self.channels_db
-                    if fnmatch.fnmatch(name.casefold(), pattern)
-                ]
-            else:
-                channels = [
-                    name
-                    for name in self.channels_db
-                    if fnmatch.fnmatchcase(name, pattern)
-                ]
+            wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
+            pattern = pattern.replace("*", wildcard)
+            pattern = re.escape(pattern)
+            pattern = pattern.replace(wildcard, ".*")
+
+            flags = re.IGNORECASE if case_insensitive else 0
+
+            compiled_pattern = re.compile(pattern, flags=flags)
+
+            channels = [
+                name for name in self.channels_db if compiled_pattern.search(name)
+            ]
+
         else:
             raise ValueError(f"unsupported mode {search_mode}")
 
