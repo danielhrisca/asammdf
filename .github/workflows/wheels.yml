@@ -24,7 +24,7 @@ jobs:
 
       - name: Build wheels
         env:
-          CIBW_TEST_COMMAND: "pytest {project}/test -k \"not gui\""
+          CIBW_TEST_COMMAND: "pytest {project}/test --ignore=test/asammdf/gui/*"
         run: |
           python -m cibuildwheel --output-dir wheelhouse
 
