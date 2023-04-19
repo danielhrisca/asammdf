@@ -31,6 +31,7 @@ jobs:
             
       # see: https://github.com/ymyzk/tox-gh-actions
       - name: Run tests
+        shell: bash
         run: |
             if [ "$RUNNER_OS" == "Linux" ]; then
               export QT_QPA_PLATFORM=xcb
