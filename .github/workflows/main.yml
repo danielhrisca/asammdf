@@ -31,8 +31,8 @@ jobs:
                sudo apt-get install libxcb-xinerama0
                sudo apt-get install libxkbcommon-x11-0
                sudo apt-get install x11-xserver-utils
-               xhost +local:*
                startx
+               xhost +local:*
             fi
             
       # see: https://github.com/ymyzk/tox-gh-actions
