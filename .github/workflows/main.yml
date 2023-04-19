@@ -25,12 +25,12 @@ jobs:
         run: |
             pip install tox tox-gh-actions
             if [ "$RUNNER_OS" == "Linux" ]; then
-               echo $SSH_TTY
                sudo apt update
                sudo apt-get install libegl1 libopengl0
                sudo apt-get install '^libxcb.*-dev' libx11-xcb-dev libglu1-mesa-dev libxrender-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev
                sudo apt-get install libxcb-xinerama0
                sudo apt-get install libxkbcommon-x11-0
+               sudo apt-get install xorg
             fi
             
       # see: https://github.com/ymyzk/tox-gh-actions
