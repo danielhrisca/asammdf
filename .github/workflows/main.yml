@@ -34,12 +34,11 @@ jobs:
             fi
 
       - name: Start Xvfb
+        if: matrix.os == 'ubuntu-22.04'
         run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
             Xvfb :0 -screen 0 1024x768x24 > /dev/null 2>&1 &
             export DISPLAY=:0
             export QT_QPA_PLATFORM=xcb
-          fi
             
       # see: https://github.com/ymyzk/tox-gh-actions
       - name: Run tests
@@ -47,8 +46,6 @@ jobs:
             tox
 
       - name: Stop Xvfb
-        run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            killall Xvfb
-          fi
+        if: matrix.os == 'ubuntu-22.04'
+        run: killall Xvfb
         
