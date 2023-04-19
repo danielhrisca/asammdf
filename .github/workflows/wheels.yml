@@ -25,6 +25,7 @@ jobs:
       - name: Build wheels
         env:
           CIBW_TEST_COMMAND: "pytest {project}/test --ignore=test/asammdf/gui/*"
+          CIBW_TEST_REQUIRES: "pytest PySide6"
         run: |
           python -m cibuildwheel --output-dir wheelhouse
 
