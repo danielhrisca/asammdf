@@ -42,8 +42,7 @@ jobs:
             
       # see: https://github.com/ymyzk/tox-gh-actions
       - name: Run tests
-        run: |
-            tox
+        run: tox
 
       - name: Stop Xvfb
         if: matrix.os == 'ubuntu-22.04'

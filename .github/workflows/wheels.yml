@@ -26,7 +26,6 @@ jobs:
         shell: bash
         env:
           CIBW_TEST_COMMAND: "pytest {project}/test --ignore={project}/test/asammdf/gui"
-          # Install packages only to pass over imports. GUI Tests must be skipped.
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
              sudo apt update
