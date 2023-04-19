@@ -30,7 +30,6 @@ jobs:
                sudo apt-get install '^libxcb.*-dev' libx11-xcb-dev libglu1-mesa-dev libxrender-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev
                sudo apt-get install libxcb-xinerama0
                sudo apt-get install libxkbcommon-x11-0
-               sudo apt-get install xorg
                sudo apt-get install -y xvfb
             fi
 
@@ -38,7 +37,7 @@ jobs:
         if: matrix.os == 'ubuntu-22.04'
         run: |
             Xvfb :0 -screen 0 1024x768x24 > /dev/null 2>&1 &
-            export DISPLAY=:0
+            export DISPLAY=:0 &
             export QT_QPA_PLATFORM=xcb
             
       # see: https://github.com/ymyzk/tox-gh-actions
