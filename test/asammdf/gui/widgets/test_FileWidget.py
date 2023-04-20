@@ -60,6 +60,7 @@ class DragAndDrop:
 
         # drag_thread.wait()
         move_thread.wait()
+        move_thread.quit()
 
 
 @unittest.skipIf(
