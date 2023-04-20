@@ -79,7 +79,7 @@ class TestFileWidget(TestBase):
             self.widget.deleteLater()
         super().tearDown()
 
-    def test_PushButton_LoadOfflineWindows_DSP(self):
+    def test_Tab_Channels_PushButton_LoadOfflineWindows_DSP(self):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -127,7 +127,7 @@ class TestFileWidget(TestBase):
         "Test is failing due to Segmentation Fault on Linux platform.",
     )
     @mock.patch("asammdf.gui.widgets.file.ErrorDialog")
-    def test_PushButton_LoadOfflineWindows_DSPF(self, mc_file_ErrorDialog):
+    def test_Tab_Channels_PushButton_LoadOfflineWindows_DSPF(self, mc_file_ErrorDialog):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -351,10 +351,11 @@ class TestFileWidget(TestBase):
 
         mc_file_ErrorDialog.assert_not_called()
 
-    def test_PushButton_LoadOfflineWindows_LAB(self):
+    def test_Tab_Channels_PushButton_LoadOfflineWindows_LAB(self):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
+            - Ensure that Channels View is set to "Internal file structure"
             - Case 0:
                 - Press PushButton: "Load offline windows"
                     - Simulate that "lab" file with empty section was selected
@@ -393,6 +394,8 @@ class TestFileWidget(TestBase):
             None,  # hide_missing_channels
             None,  # hide_disabled_channels
         )
+        # Switch ComboBox to "Internal file structure"
+        self.widget.channel_view.setCurrentText("Internal file structure")
         # Case 0:
         with self.subTest("test_PushButton_LoadOfflineWindows_LAB_0"):
             with mock.patch(
@@ -487,11 +490,12 @@ class TestFileWidget(TestBase):
                     set(checked_items),
                 )
 
-    def test_PushButton_SaveOfflineWindows(self):
+    def test_Tab_Channels_PushButton_SaveOfflineWindows(self):
         """
 
         Events:
             - Open 'FileWidget' with valid measurement.
+            - Ensure that Channels View is set to "Internal file structure"
             - Press PushButton: "Load offline windows"
                 - Simulate that valid "dspf" file was selected
             - Close all Numeric and Tabular windows
@@ -525,6 +529,8 @@ class TestFileWidget(TestBase):
         )
         self.widget.showNormal()
         self.widget.activateWindow()
+        # Switch ComboBox to "Internal file structure"
+        self.widget.channel_view.setCurrentText("Internal file structure")
 
         with mock.patch.object(
             self.widget, "load_window", wraps=self.widget.load_window
@@ -616,3 +622,161 @@ class TestFileWidget(TestBase):
                 )
             )
             self.assertSetEqual({"Plot"}, widget_types)
+
+    def test_Tab_Channels_PushButton_SelectAll(self):
+        """
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Switch ComboBox to "Natural sort"
+            - Press PushButton: "Select all the channels"
+            - Clear selection
+            - Switch ComboBox to "Internal file structure"
+            - Press PushButton: "Select all the channels"
+            - Switch ComboBox to "Selected channels only"
+        Evaluate:
+            - Evaluate that all channels from "channels_tree" are checked.
+        """
+        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
+
+        # Event
+        self.widget = FileWidget(
+            measurement_file,
+            True,  # with_dots
+            True,  # subplots
+            True,  # subplots_link
+            False,  # ignore_value2text_conversions
+            False,  # display_cg_name
+            "line",  # line_interconnect
+            1,  # password
+            None,  # hide_missing_channels
+            None,  # hide_disabled_channels
+        )
+        self.widget.showNormal()
+
+        # Switch ComboBox to "Natural sort"
+        self.widget.channel_view.setCurrentText("Natural Sort")
+        # Press PushButton: "Select all the channels"
+        QtTest.QTest.mouseClick(
+            self.widget.select_all_btn, QtCore.Qt.MouseButton.LeftButton
+        )
+
+        # Evaluate
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
+        while iterator.value():
+            item = iterator.value()
+            self.assertTrue(item.checkState(0))
+            iterator += 1
+
+        # Clear all
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
+        while iterator.value():
+            item = iterator.value()
+            item.setCheckState(0, QtCore.Qt.Unchecked)
+            self.assertFalse(item.checkState(0))
+            iterator += 1
+
+        # Switch ComboBox to "Internal file structure"
+        self.widget.channel_view.setCurrentText("Internal file structure")
+        # Press PushButton: "Select all the channels"
+        QtTest.QTest.mouseClick(
+            self.widget.select_all_btn, QtCore.Qt.MouseButton.LeftButton
+        )
+
+        # Evaluate
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
+        while iterator.value():
+            item = iterator.value()
+            self.assertTrue(item.checkState(0))
+            iterator += 1
+
+        # Switch ComboBox to "Selected channels only"
+        self.widget.channel_view.setCurrentText("Selected channels only")
+
+        # Evaluate
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
+        while iterator.value():
+            item = iterator.value()
+            self.assertTrue(item.checkState(0))
+            iterator += 1
+
+    def test_Tab_Channels_PushButton_ClearAll(self):
+        """
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Switch ComboBox to "Natural sort"
+            - Select all channels
+            - Press PushButton: "Clear all selected channels"
+            - Switch ComboBox to "Internal file structure"
+            - Select all channels
+            - Press PushButton: "Clear all selected channels"
+            - Switch ComboBox to "Selected channels only"
+        Evaluate:
+            - Evaluate that all channels from "channels_tree" are unchecked.
+        """
+        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
+
+        # Event
+        self.widget = FileWidget(
+            measurement_file,
+            True,  # with_dots
+            True,  # subplots
+            True,  # subplots_link
+            False,  # ignore_value2text_conversions
+            False,  # display_cg_name
+            "line",  # line_interconnect
+            1,  # password
+            None,  # hide_missing_channels
+            None,  # hide_disabled_channels
+        )
+        self.widget.showNormal()
+
+        # Switch ComboBox to "Natural sort"
+        self.widget.channel_view.setCurrentText("Natural Sort")
+        # Select all
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
+        while iterator.value():
+            item = iterator.value()
+            item.setCheckState(0, QtCore.Qt.Checked)
+            self.assertTrue(item.checkState(0))
+            iterator += 1
+        # Press PushButton: "Clear all selected channels"
+        QtTest.QTest.mouseClick(
+            self.widget.clear_channels_btn, QtCore.Qt.MouseButton.LeftButton
+        )
+
+        # Evaluate
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
+        while iterator.value():
+            item = iterator.value()
+            self.assertFalse(item.checkState(0))
+            iterator += 1
+
+        # Switch ComboBox to "Internal file structure"
+        self.widget.channel_view.setCurrentText("Internal file structure")
+        while iterator.value():
+            item = iterator.value()
+            item.setCheckState(0, QtCore.Qt.Checked)
+            self.assertTrue(item.checkState(0))
+            iterator += 1
+        # Press PushButton: "Clear all selected channels"
+        QtTest.QTest.mouseClick(
+            self.widget.clear_channels_btn, QtCore.Qt.MouseButton.LeftButton
+        )
+
+        # Evaluate
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
+        while iterator.value():
+            item = iterator.value()
+            self.assertFalse(item.checkState(0))
+            iterator += 1
+
+        # Switch ComboBox to "Selected channels only"
+        self.widget.channel_view.setCurrentText("Selected channels only")
+
+        # Evaluate
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
+        while iterator.value():
+            item = iterator.value()
+            self.assertFalse(item.checkState(0))
+            iterator += 1
+
