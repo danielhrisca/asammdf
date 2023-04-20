@@ -779,4 +779,3 @@ class TestFileWidget(TestBase):
             item = iterator.value()
             self.assertFalse(item.checkState(0))
             iterator += 1
-
