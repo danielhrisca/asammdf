@@ -303,7 +303,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
 
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)
-        drag.exec_(QtCore.Qt.MoveAction)
+        drag.exec(QtCore.Qt.MoveAction)
 
 
 class FileTreeItem(QtWidgets.QTreeWidgetItem):
