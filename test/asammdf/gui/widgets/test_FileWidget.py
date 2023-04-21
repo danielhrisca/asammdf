@@ -77,6 +77,7 @@ class TestFileWidget(TestBase):
         if self.widget:
             self.widget.close()
             self.widget.deleteLater()
+        self.mc_ErrorDialog.reset_mock()
         super().tearDown()
 
     def test_Tab_Channels_PushButton_LoadOfflineWindows_DSP(self):
@@ -779,3 +780,141 @@ class TestFileWidget(TestBase):
             item = iterator.value()
             self.assertFalse(item.checkState(0))
             iterator += 1
+
+    def test_Tab_Channels_PushButton_Search(self):
+        """
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Case 0:
+                - Press PushButton: "Search and select channels"
+                    - Simulate that "AdvancedSearch" was closed/cancelled (no signal was selected)
+            - Case 1:
+                - Press PushButton: "Search and select channels"
+                    - Simulate that 2 channels were selected and PushButton "Check channels" was pressed.
+            - Case 2:
+                - Clear 'channel_tree' selection
+                - Press PushButton: "Search and select channels"
+                    - Simulate that 2 channels were selected and PushButton "Add Window" was pressed.
+        Evaluate:
+            - Case 0:
+                - Evaluate that no channel is selected in "channel_tree"
+            - Case 1:
+                - Evaluate that 2 channels are selected in "channel_tree"
+            - Case 2:
+                - Evaluate that 2 channels are selected in "channel_tree"
+                - Plot Window is added.
+        """
+        # Setup
+        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
+        # Event
+        self.widget = FileWidget(
+            measurement_file,
+            True,  # with_dots
+            True,  # subplots
+            True,  # subplots_link
+            False,  # ignore_value2text_conversions
+            False,  # display_cg_name
+            "line",  # line_interconnect
+            1,  # password
+            None,  # hide_missing_channels
+            None,  # hide_disabled_channels
+        )
+        self.widget.showNormal()
+        # Case 0:
+        with self.subTest("test_Tab_Channels_PushButton_Search_0"):
+            with mock.patch(
+                "asammdf.gui.widgets.file.AdvancedSearch"
+            ) as mc_AdvancedSearch:
+                mc_AdvancedSearch.return_value.result = {}
+                mc_AdvancedSearch.return_value.pattern_window = False
+                mc_AdvancedSearch.return_value.add_window_request = False
+
+                # - Press PushButton: "Search and select channels"
+                QtTest.QTest.mouseClick(
+                    self.widget.advanced_search_btn, QtCore.Qt.LeftButton
+                )
+                # Evaluate
+                iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
+                while iterator.value():
+                    item = iterator.value()
+                    self.assertFalse(item.checkState(0))
+                    iterator += 1
+
+        # Case 1:
+        with self.subTest("test_Tab_Channels_PushButton_Search_1"):
+            with mock.patch(
+                "asammdf.gui.widgets.file.AdvancedSearch"
+            ) as mc_AdvancedSearch:
+                mc_AdvancedSearch.return_value.result = {
+                    (4, 3): "ASAM.M.SCALAR.FLOAT64.IDENTICAL",
+                    (2, 10): "ASAM.M.SCALAR.FLOAT32.IDENTICAL",
+                }
+                mc_AdvancedSearch.return_value.pattern_window = False
+                mc_AdvancedSearch.return_value.add_window_request = False
+
+                # - Press PushButton: "Search and select channels"
+                QtTest.QTest.mouseClick(
+                    self.widget.advanced_search_btn, QtCore.Qt.LeftButton
+                )
+                # Evaluate
+                checked_channels = 0
+                iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
+                while iterator.value():
+                    item = iterator.value()
+                    if item.checkState(0) == QtCore.Qt.Checked:
+                        checked_channels += 1
+                    iterator += 1
+                self.assertEqual(2, checked_channels)
+                self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
+
+        # Case 2:
+        with self.subTest("test_Tab_Channels_PushButton_Search_2"):
+            # - Clear 'channel_tree' selection
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
+            while iterator.value():
+                item = iterator.value()
+                item.setCheckState(0, QtCore.Qt.Unchecked)
+                iterator += 1
+            with (
+                mock.patch(
+                    "asammdf.gui.widgets.file.AdvancedSearch"
+                ) as mc_AdvancedSearch,
+                mock.patch(
+                    "asammdf.gui.widgets.file.WindowSelectionDialog"
+                ) as mc_WindowSelectionDialog,
+            ):
+                mc_AdvancedSearch.return_value.result = {
+                    (4, 3): "ASAM.M.SCALAR.FLOAT64.IDENTICAL",
+                    (2, 10): "ASAM.M.SCALAR.FLOAT32.IDENTICAL",
+                }
+                mc_AdvancedSearch.return_value.pattern_window = False
+                mc_AdvancedSearch.return_value.add_window_request = True
+                mc_WindowSelectionDialog.return_value.result.return_value = True
+                mc_WindowSelectionDialog.return_value.selected_type.return_value = (
+                    "New plot window"
+                )
+                mc_WindowSelectionDialog.return_value.disable_new_channels.return_value = (
+                    False
+                )
+
+                # - Press PushButton: "Search and select channels"
+                QtTest.QTest.mouseClick(
+                    self.widget.advanced_search_btn, QtCore.Qt.LeftButton
+                )
+                # Evaluate
+                checked_channels = 0
+                iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
+                while iterator.value():
+                    item = iterator.value()
+                    if item.checkState(0) == QtCore.Qt.Checked:
+                        checked_channels += 1
+                    iterator += 1
+                self.assertEqual(2, checked_channels)
+                self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+                widget_types = sorted(
+                    map(
+                        lambda w: w.widget().__class__.__name__,
+                        self.widget.mdi_area.subWindowList(),
+                    )
+                )
+                self.assertIn("Plot", widget_types)
