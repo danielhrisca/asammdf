@@ -875,14 +875,11 @@ class TestFileWidget(TestBase):
                 item = iterator.value()
                 item.setCheckState(0, QtCore.Qt.Unchecked)
                 iterator += 1
-            with (
-                mock.patch(
-                    "asammdf.gui.widgets.file.AdvancedSearch"
-                ) as mc_AdvancedSearch,
-                mock.patch(
-                    "asammdf.gui.widgets.file.WindowSelectionDialog"
-                ) as mc_WindowSelectionDialog,
-            ):
+            with mock.patch(
+                "asammdf.gui.widgets.file.AdvancedSearch"
+            ) as mc_AdvancedSearch, mock.patch(
+                "asammdf.gui.widgets.file.WindowSelectionDialog"
+            ) as mc_WindowSelectionDialog:
                 mc_AdvancedSearch.return_value.result = {
                     (4, 3): "ASAM.M.SCALAR.FLOAT64.IDENTICAL",
                     (2, 10): "ASAM.M.SCALAR.FLOAT32.IDENTICAL",
