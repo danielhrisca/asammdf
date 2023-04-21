@@ -2242,7 +2242,7 @@ class ChannnelGroupDialog(QtWidgets.QDialog):
                     "raw",
                 )
             ):
-                widget = QtWidgets.QLabel(str(pattern.get(key, "")))
+                widget = QtWidgets.QLabel(str(pattern.get(key, "False")))
 
                 if key == "raw":
                     key = "Use raw values"
