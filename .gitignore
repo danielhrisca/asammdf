@@ -126,6 +126,9 @@ pythonenv*
 # Rope project settings
 .ropeproject
 
+# PyCharm
+.idea/*
+
 # mkdocs documentation
 /site
 

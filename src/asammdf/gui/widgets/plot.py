@@ -3881,7 +3881,7 @@ class PlotGraphics(pg.PlotWidget):
 
         if x_axis == "time":
             fmt = self._settings.value("plot_xaxis")
-            if fmt == "seconds":
+            if fmt == "seconds" or not fmt:
                 fmt = "phys"
         else:
             fmt = "phys"
@@ -6177,12 +6177,13 @@ class CursorInfo(QtWidgets.QLabel):
                 QtCore.QSettings().setValue("plot_cursor_precision", precision)
 
     def update_value(self):
+        cursor_info_text = ""
         if not self.plot.region:
             if self.plot.cursor1 is not None:
                 position = self.plot.cursor1.value()
 
                 fmt = self.plot.x_axis.format
-                if fmt == "phys":
+                if fmt == "phys" or not fmt:
                     if self.precision == -1:
                         cursor_info_text = f"{self.name} = {position}{self.unit}"
                     else:
@@ -6195,7 +6196,9 @@ class CursorInfo(QtWidgets.QLabel):
                         seconds=position
                     )
                     cursor_info_text = f"{self.name} = {position_date}"
-                self.setText(cursor_info_text)
+
+                if cursor_info_text:
+                    self.setText(cursor_info_text)
             else:
                 self.setText("")
 

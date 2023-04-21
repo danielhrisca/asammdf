@@ -1039,19 +1039,19 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             elif extension == ".lab":
                 info = load_lab(file_name)
-                if info:
-                    section, ok = QtWidgets.QInputDialog.getItem(
-                        None,
-                        "Select section",
-                        "Available sections:",
-                        list(info),
-                        0,
-                        False,
-                    )
-                    if ok:
-                        channels = info[section]
-                    else:
-                        return
+                if not info:
+                    return
+                section, ok = QtWidgets.QInputDialog.getItem(
+                    None,
+                    "Select section",
+                    "Available sections:",
+                    list(info),
+                    0,
+                    False,
+                )
+                if not ok:
+                    return
+                channels = info[section]
 
             elif extension in (".cfg", ".txt", ".dspf"):
                 with open(file_name, "r") as infile:
