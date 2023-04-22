@@ -9,6 +9,8 @@ from unittest import mock
 
 from PySide6 import QtCore, QtWidgets
 
+from asammdf.gui.dialogs.channel_group_info import ChannelGroupInfoDialog
+from asammdf.gui.dialogs.channel_info import ChannelInfoDialog
 from asammdf.gui.widgets.file import FileWidget
 
 
@@ -76,6 +78,7 @@ class TestFileWidget(TestBase):
     def tearDown(self):
         if self.widget:
             self.widget.close()
+            self.widget.destroy()
             self.widget.deleteLater()
         self.mc_ErrorDialog.reset_mock()
         super().tearDown()
@@ -105,6 +108,7 @@ class TestFileWidget(TestBase):
             None,  # hide_missing_channels
             None,  # hide_disabled_channels
         )
+        self.widget.showNormal()
 
         with mock.patch(
             "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
@@ -395,6 +399,7 @@ class TestFileWidget(TestBase):
             None,  # hide_missing_channels
             None,  # hide_disabled_channels
         )
+        self.widget.showNormal()
         # Switch ComboBox to "Internal file structure"
         self.widget.channel_view.setCurrentText("Internal file structure")
         # Case 0:
@@ -915,3 +920,259 @@ class TestFileWidget(TestBase):
                     )
                 )
                 self.assertIn("Plot", widget_types)
+
+    def test_Tab_Channels_PushButton_CreateWindow(self):
+        """
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Switch ComboBox to "Natural sort"
+            - Case 0:
+                - Press PushButton "Create Window"
+                    - Simulate that "WindowSelectionDialog" is cancelled/closed.
+            - Case 1:
+                - Press PushButton "Create Window"
+                    - Simulate that Window Type is Plot.
+            - Case 2:
+                - Select one channel
+                - Press PushButton "Create Window"
+                    - Simulate that Window Type is Numeric.
+            - Case 3:
+                - Press PushButton "Create Window"
+                    - Simulate that Window Type is Tabular.
+            - Case 4:
+                - Press PushButton "Create Window"
+                    - Simulate that Window Type is Plot.
+        Evaluate:
+            - Evaluate that 4 sub-windows are created.
+            - Check if windows contain channel selected.
+        """
+        # Setup
+        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
+        # Event
+        self.widget = FileWidget(
+            measurement_file,
+            True,  # with_dots
+            True,  # subplots
+            True,  # subplots_link
+            False,  # ignore_value2text_conversions
+            False,  # display_cg_name
+            "line",  # line_interconnect
+            1,  # password
+            None,  # hide_missing_channels
+            None,  # hide_disabled_channels
+        )
+        self.widget.showNormal()
+        self.widget.channel_view.setCurrentText("Natural sort")
+
+        # Case 0:
+        with self.subTest("test_Tab_Channels_PushButton_CreateWindow_0"):
+            with mock.patch(
+                "asammdf.gui.widgets.file.WindowSelectionDialog"
+            ) as mc_WindowSelectionDialog:
+                mc_WindowSelectionDialog.return_value.result.return_value = False
+                # - Press PushButton "Create Window"
+                QtTest.QTest.mouseClick(
+                    self.widget.create_window_btn, QtCore.Qt.LeftButton
+                )
+            # Evaluate
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
+
+        # Case 1:
+        with self.subTest("test_Tab_Channels_PushButton_CreateWindow_1"):
+            with mock.patch(
+                "asammdf.gui.widgets.file.WindowSelectionDialog"
+            ) as mc_WindowSelectionDialog:
+                mc_WindowSelectionDialog.return_value.result.return_value = True
+                mc_WindowSelectionDialog.return_value.selected_type.return_value = (
+                    "Plot"
+                )
+                # - Press PushButton "Create Window"
+                QtTest.QTest.mouseClick(
+                    self.widget.create_window_btn, QtCore.Qt.LeftButton
+                )
+            # Evaluate
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+            widget_types = sorted(
+                map(
+                    lambda w: w.widget().__class__.__name__,
+                    self.widget.mdi_area.subWindowList(),
+                )
+            )
+            self.assertIn("Plot", widget_types)
+
+        # Case 2:
+        with self.subTest("test_Tab_Channels_PushButton_CreateWindow_2"):
+            with mock.patch(
+                "asammdf.gui.widgets.file.WindowSelectionDialog"
+            ) as mc_WindowSelectionDialog:
+                mc_WindowSelectionDialog.return_value.result.return_value = True
+                mc_WindowSelectionDialog.return_value.selected_type.return_value = (
+                    "Numeric"
+                )
+                # - Select one channel
+                channel = self.widget.channels_tree.topLevelItem(0).text(0)
+                self.widget.channels_tree.topLevelItem(0).setCheckState(
+                    0, QtCore.Qt.Checked
+                )
+                # - Press PushButton "Create Window"
+                QtTest.QTest.mouseClick(
+                    self.widget.create_window_btn, QtCore.Qt.LeftButton
+                )
+            # Evaluate
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
+            widget_types = sorted(
+                map(
+                    lambda w: w.widget().__class__.__name__,
+                    self.widget.mdi_area.subWindowList(),
+                )
+            )
+            self.assertIn("Numeric", widget_types)
+            numeric_data = (
+                self.widget.mdi_area.subWindowList()[1].widget().channels.dataView
+            )
+            numeric_channel = numeric_data.model().data(
+                numeric_data.model().index(0, 0)
+            )
+            self.assertEqual(channel, numeric_channel)
+
+        # Case 3:
+        with self.subTest("test_Tab_Channels_PushButton_CreateWindow_3"):
+            with mock.patch(
+                "asammdf.gui.widgets.file.WindowSelectionDialog"
+            ) as mc_WindowSelectionDialog:
+                mc_WindowSelectionDialog.return_value.result.return_value = True
+                mc_WindowSelectionDialog.return_value.selected_type.return_value = (
+                    "Tabular"
+                )
+                # - Press PushButton "Create Window"
+                QtTest.QTest.mouseClick(
+                    self.widget.create_window_btn, QtCore.Qt.LeftButton
+                )
+            # Evaluate
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 3)
+            widget_types = sorted(
+                map(
+                    lambda w: w.widget().__class__.__name__,
+                    self.widget.mdi_area.subWindowList(),
+                )
+            )
+            self.assertIn("Tabular", widget_types)
+
+        # Case 4:
+        with self.subTest("test_Tab_Channels_PushButton_CreateWindow_4"):
+            with mock.patch(
+                "asammdf.gui.widgets.file.WindowSelectionDialog"
+            ) as mc_WindowSelectionDialog:
+                mc_WindowSelectionDialog.return_value.result.return_value = True
+                mc_WindowSelectionDialog.return_value.selected_type.return_value = (
+                    "Plot"
+                )
+                # - Press PushButton "Create Window"
+                QtTest.QTest.mouseClick(
+                    self.widget.create_window_btn, QtCore.Qt.LeftButton
+                )
+            # Evaluate
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 4)
+            widget_types = sorted(
+                map(
+                    lambda w: w.widget().__class__.__name__,
+                    self.widget.mdi_area.subWindowList(),
+                )
+            )
+            self.assertIn("Plot", widget_types)
+            plot_widget = self.widget.mdi_area.subWindowList()[3].widget()
+            plot_channel = plot_widget.channel_selection.topLevelItem(0).text(0)
+            self.assertEqual(channel, plot_channel)
+
+    def test_Tab_Channels_DoubleClick_Channel(self):
+        """
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Ensure that "channel_view" is set to "Internal file structure"
+            - Case 0:
+                - DoubleClick on Channel Group
+            - Case 1:
+                - DoubleClick on Channel
+        Evaluate:
+            - Evaluate that new dialog is visible and display channel meta-data.
+        """
+        # Setup
+        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
+        # Event
+        self.widget = FileWidget(
+            measurement_file,
+            True,  # with_dots
+            True,  # subplots
+            True,  # subplots_link
+            False,  # ignore_value2text_conversions
+            False,  # display_cg_name
+            "line",  # line_interconnect
+            1,  # password
+            None,  # hide_missing_channels
+            None,  # hide_disabled_channels
+        )
+        self.widget.showNormal()
+        self.widget.channel_view.setCurrentText("Internal file structure")
+
+        first_item = self.widget.channels_tree.topLevelItem(0)
+        first_item_center = self.widget.channels_tree.visualItemRect(
+            first_item
+        ).center()
+        QtTest.QTest.mouseClick(
+            self.widget.channels_tree.viewport(),
+            QtCore.Qt.MouseButton.LeftButton,
+            QtCore.Qt.KeyboardModifiers(),
+            first_item_center,
+        )
+        # Case 0:
+        with mock.patch(
+            "asammdf.gui.widgets.file.ChannelGroupInfoDialog",
+            wraps=ChannelGroupInfoDialog,
+        ) as mc_ChannelGroupInfoDialog:
+            QtTest.QTest.mouseDClick(
+                self.widget.channels_tree.viewport(),
+                QtCore.Qt.MouseButton.LeftButton,
+                QtCore.Qt.KeyboardModifiers(),
+                first_item_center,
+            )
+            # Evaluate
+            mc_ChannelGroupInfoDialog.assert_called()
+            # Identify child: ChannelGroupInfoDialog
+            for child in self.widget.children():
+                if child.__class__.__name__ == "ChannelGroupInfoDialog":
+                    break
+            if hasattr(child, "isVisible") and hasattr(child, "close"):
+                self.assertTrue(child.isVisible())
+                child.close()
+                self.assertFalse(child.isVisible())
+
+        # Case 1:
+        child_item = first_item.child(0)
+        child_item_center = self.widget.channels_tree.visualItemRect(
+            child_item
+        ).center()
+        QtTest.QTest.mouseClick(
+            self.widget.channels_tree.viewport(),
+            QtCore.Qt.MouseButton.LeftButton,
+            QtCore.Qt.KeyboardModifiers(),
+            child_item_center,
+        )
+        with mock.patch(
+            "asammdf.gui.widgets.file.ChannelInfoDialog", wraps=ChannelInfoDialog
+        ) as mc_ChannelGroupInfoDialog:
+            QtTest.QTest.mouseDClick(
+                self.widget.channels_tree.viewport(),
+                QtCore.Qt.MouseButton.LeftButton,
+                QtCore.Qt.KeyboardModifiers(),
+                child_item_center,
+            )
+            # Evaluate
+            mc_ChannelGroupInfoDialog.assert_called()
+            # Identify child: ChannelInfoDialog
+            for child in self.widget.children():
+                if child.__class__.__name__ == "ChannelInfoDialog":
+                    break
+            if hasattr(child, "isVisible") and hasattr(child, "close"):
+                self.assertTrue(child.isVisible())
+                child.close()
+                self.assertFalse(child.isVisible())
