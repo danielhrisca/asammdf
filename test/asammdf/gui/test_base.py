@@ -2,7 +2,7 @@
 import os
 import shutil
 import sys
-from test.asammdf.gui import QtCore, QtTest, QtWidgets
+from test.asammdf.gui import QtCore, QtTest
 import time
 import unittest
 from unittest import mock
@@ -26,6 +26,9 @@ app.setOrganizationDomain("py-asammdf")
 app.setApplicationName("py-asammdf")
 
 
+@unittest.skipIf(
+    sys.platform == "darwin", "Test Development on MacOS was not done yet."
+)
 class TestBase(unittest.TestCase):
     longMessage = False
 
@@ -107,7 +110,7 @@ class DragAndDrop:
 
     def __init__(self, source_widget, destination_widget, source_pos, destination_pos):
         QtCore.QCoreApplication.processEvents()
-        if hasattr(source_widget, "viewport") and sys.platform == 'win32':
+        if hasattr(source_widget, "viewport") and sys.platform == "win32":
             source_viewport = source_widget.viewport()
         else:
             source_viewport = source_widget
@@ -119,7 +122,7 @@ class DragAndDrop:
         # drag_thread = DragAndDrop.MoveThread(widget=source_widget, position=source_pos, step=50)
         # drag_thread.start()
         # Move to Destination Widget
-        if hasattr(destination_widget, "viewport") and sys.platform == 'win32':
+        if hasattr(destination_widget, "viewport") and sys.platform == "win32":
             destination_viewport = destination_widget.viewport()
         else:
             destination_viewport = destination_widget

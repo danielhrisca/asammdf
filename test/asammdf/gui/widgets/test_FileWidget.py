@@ -15,9 +15,6 @@ from asammdf.gui.dialogs.channel_info import ChannelInfoDialog
 from asammdf.gui.widgets.file import FileWidget
 
 
-@unittest.skipIf(
-    sys.platform == "darwin", "Test Development on MacOS was not done yet."
-)
 class TestFileWidget(TestBase):
     # Note: If it's possible and make sense use self.subTests
     # to avoid initialize widgets multiple times and consume time.
