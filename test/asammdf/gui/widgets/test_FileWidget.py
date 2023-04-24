@@ -1256,6 +1256,7 @@ class TestFileWidget(TestBase):
             ) as mo_setup_progress:
                 mc_getSaveFileName.return_value = None, None
                 QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.LeftButton)
+                self.processEvents()
             # Evaluate
             # Progress is not created
             mo_setup_progress.assert_not_called()
@@ -1269,6 +1270,7 @@ class TestFileWidget(TestBase):
             ) as mc_getSaveFileName:
                 mc_getSaveFileName.return_value = str(saved_file), None
                 QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.LeftButton)
+                self.processEvents()
         # Wait for thread to finish
         self.processEvents(0.1)
 

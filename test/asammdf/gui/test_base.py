@@ -107,7 +107,7 @@ class DragAndDrop:
 
     def __init__(self, source_widget, destination_widget, source_pos, destination_pos):
         QtCore.QCoreApplication.processEvents()
-        if hasattr(source_widget, "viewport"):
+        if hasattr(source_widget, "viewport") and sys.platform == 'win32':
             source_viewport = source_widget.viewport()
         else:
             source_viewport = source_widget
@@ -119,7 +119,7 @@ class DragAndDrop:
         # drag_thread = DragAndDrop.MoveThread(widget=source_widget, position=source_pos, step=50)
         # drag_thread.start()
         # Move to Destination Widget
-        if hasattr(destination_widget, "viewport"):
+        if hasattr(destination_widget, "viewport") and sys.platform == 'win32':
             destination_viewport = destination_widget.viewport()
         else:
             destination_viewport = destination_widget
