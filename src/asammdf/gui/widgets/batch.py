@@ -1770,12 +1770,22 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         start_times = []
 
         for file_name in source_files:
-            with open(file_name, "rb") as f:
-                f.seek(64)
-                blk_id = f.read(2)
-                block_type = HeaderBlockV4 if blk_id == b"##" else HeaderBlockV3
-                header = block_type(stream=f, address=64)
+            if Path(file_name).suffix.lower() in ('.mdf', '.dat', '.mf4'):
+
+                with open(file_name, "rb") as f:
+                    f.seek(64)
+                    blk_id = f.read(2)
+                    block_type = HeaderBlockV4 if blk_id == b"##" else HeaderBlockV3
+                    header = block_type(stream=f, address=64)
+                    start_times.append((header.start_time, file_name))
+
+            else:
+
+                mdf = self._as_mdf(file_name)
+                header = mdf.header
                 start_times.append((header.start_time, file_name))
+
+                mdf.close()
 
         try:
             start_times = sorted(start_times)
