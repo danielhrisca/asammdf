@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import pathlib
+import shutil
 import sys
 from test.asammdf.gui import QtCore, QtTest, QtWidgets
 from test.asammdf.gui.test_base import TestBase
@@ -1176,3 +1177,175 @@ class TestFileWidget(TestBase):
                 self.assertTrue(child.isVisible())
                 child.close()
                 self.assertFalse(child.isVisible())
+
+    def test_Tab_ModifyAndExport_PushButton_ScrambleTexts(self):
+        """
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Go to Tab: "Modify & Export": Index 1
+            - Press PushButton "Scramble texts"
+        Evaluate:
+            - New file is created
+            - No channel from first file is found in 2nd file (scrambled file)
+        """
+        # Setup
+        measurement_file = str(pathlib.Path(self.test_workspace, "ASAP2_Demo_V171.mf4"))
+        shutil.copy(
+            pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"), measurement_file
+        )
+        # Event
+        self.widget = FileWidget(
+            measurement_file,
+            True,  # with_dots
+            True,  # subplots
+            True,  # subplots_link
+            False,  # ignore_value2text_conversions
+            False,  # display_cg_name
+            "line",  # line_interconnect
+            1,  # password
+            None,  # hide_missing_channels
+            None,  # hide_disabled_channels
+        )
+        self.widget.showNormal()
+        # Go to Tab: "Modify & Export": Index 1
+        self.widget.aspects.setCurrentIndex(1)
+        # Press PushButton ScrambleTexts
+        QtTest.QTest.mouseClick(self.widget.scramble_btn, QtCore.Qt.LeftButton)
+
+        channels = self.widget.channels_db_items
+
+        # Evaluate
+        scrambled_filepath = pathlib.Path(
+            self.test_workspace, "ASAP2_Demo_V171.scrambled.mf4"
+        )
+        # Wait for Thread to finish
+        time.sleep(0.1)
+        # TearDown Current Widget.
+        self.widget.close()
+        self.widget.destroy()
+        self.widget.deleteLater()
+
+        self.widget = FileWidget(
+            scrambled_filepath,
+            True,  # with_dots
+            True,  # subplots
+            True,  # subplots_link
+            False,  # ignore_value2text_conversions
+            False,  # display_cg_name
+            "line",  # line_interconnect
+            1,  # password
+            None,  # hide_missing_channels
+            None,  # hide_disabled_channels
+        )
+        scrambled_channels = self.widget.channels_db_items
+        result = filter(lambda c: c in scrambled_channels, channels)
+        self.assertFalse(any(result))
+
+    def test_Tab_ModifyAndExport_ExportMDF(self):
+        """
+        When QThreads are running, event-loops needs to be processed.
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Go to Tab: "Modify & Export": Index 1
+            - Set "channel_view" to "Natural sort"
+            - Select two channels
+            - Ensure that output format is MDF
+            - Case 0:
+                - Press PushButton Apply.
+                    - Simulate that no valid path is provided.
+            - Case 1:
+                - Press PushButton Apply.
+                    - Simulate that no valid path is provided.
+        Evaluate:
+            - Evaluate that file was created.
+            - Open File and check that there are only two channels.
+        """
+        # Setup
+        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
+        # Event
+        self.widget = FileWidget(
+            measurement_file,
+            True,  # with_dots
+            True,  # subplots
+            True,  # subplots_link
+            False,  # ignore_value2text_conversions
+            False,  # display_cg_name
+            "line",  # line_interconnect
+            1,  # password
+            None,  # hide_missing_channels
+            None,  # hide_disabled_channels
+        )
+        self.widget.showNormal()
+        # Go to Tab: "Modify & Export": Index 1
+        self.widget.aspects.setCurrentIndex(1)
+        self.widget.channel_view.setCurrentText("Natural sort")
+
+        count = 2
+        selected_channels = []
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.filter_tree)
+        while iterator.value() and count:
+            item = iterator.value()
+            item.setCheckState(0, QtCore.Qt.Checked)
+            self.assertTrue(item.checkState(0))
+            selected_channels.append(item.text(0))
+            iterator += 1
+            count -= 1
+        # Evaluate that channels were added to "selected_filter_channels"
+        for index in range(self.widget.selected_filter_channels.count()):
+            item = self.widget.selected_filter_channels.item(index)
+            self.assertIn(item.text(), selected_channels)
+
+        self.widget.output_format.setCurrentText("MDF")
+
+        # Case 0:
+        self.processEvents()
+        with self.subTest("test_Tab_ModifyAndExport_ExportMDF_0"):
+            with mock.patch(
+                "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName"
+            ) as mc_getSaveFileName, mock.patch(
+                "asammdf.gui.widgets.file.setup_progress"
+            ) as mo_setup_progress:
+                mc_getSaveFileName.return_value = None, None
+                QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.LeftButton)
+            # Evaluate
+            # Progress is not created
+            mo_setup_progress.assert_not_called()
+
+        # Case 1:
+        self.processEvents()
+        with self.subTest("test_Tab_ModifyAndExport_ExportMDF_1"):
+            saved_file = pathlib.Path(self.test_workspace, f"{self.id()}.mf4")
+            with mock.patch(
+                "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName"
+            ) as mc_getSaveFileName:
+                mc_getSaveFileName.return_value = str(saved_file), None
+                QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.LeftButton)
+        # Wait for thread to finish
+        self.processEvents()
+
+        # Evaluate
+        self.assertTrue(saved_file.exists())
+
+        # TearDown Widget
+        self.widget.close()
+        self.widget.destroy()
+        self.widget.deleteLater()
+        self.processEvents()
+
+        self.widget = FileWidget(
+            saved_file,
+            True,  # with_dots
+            True,  # subplots
+            True,  # subplots_link
+            False,  # ignore_value2text_conversions
+            False,  # display_cg_name
+            "line",  # line_interconnect
+            1,  # password
+            None,  # hide_missing_channels
+            None,  # hide_disabled_channels
+        )
+        self.widget.showNormal()
+
+        channels = self.widget.channels_db_items
+        selected_channels.append("time")
+        self.assertListEqual(selected_channels, list(channels))
