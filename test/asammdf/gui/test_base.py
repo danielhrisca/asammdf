@@ -122,7 +122,7 @@ class DragAndDrop:
         # drag_thread = DragAndDrop.MoveThread(widget=source_widget, position=source_pos, step=50)
         # drag_thread.start()
         # Move to Destination Widget
-        if hasattr(destination_widget, "viewport"):
+        if hasattr(destination_widget, "viewport") and sys.platform == "win32":
             destination_viewport = destination_widget.viewport()
         else:
             destination_viewport = destination_widget
