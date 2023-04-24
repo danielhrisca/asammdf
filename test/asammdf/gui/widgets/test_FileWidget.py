@@ -1278,7 +1278,7 @@ class TestFileWidget(TestBase):
         self.widget.showNormal()
         # Go to Tab: "Modify & Export": Index 1
         self.widget.aspects.setCurrentIndex(1)
-        self.widget.channel_view.setCurrentText("Natural sort")
+        self.widget.filter_view.setCurrentText("Natural sort")
 
         count = 2
         selected_channels = []
@@ -1321,7 +1321,7 @@ class TestFileWidget(TestBase):
                 mc_getSaveFileName.return_value = str(saved_file), None
                 QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.LeftButton)
         # Wait for thread to finish
-        self.processEvents()
+        self.processEvents(0.1)
 
         # Evaluate
         self.assertTrue(saved_file.exists())
