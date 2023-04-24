@@ -273,12 +273,10 @@ class ViewBoxWithCursor(pg.ViewBox):
             else:
                 mask = self.state["mouseEnabled"][:]
 
-        if all(
-            (
-                self._settings.value("zoom_x_center_on_cursor", True, type=bool),
-                self.cursor is not None,
-                self.cursor.isVisible(),
-            )
+        if (
+            self._settings.value("zoom_x_center_on_cursor", True, type=bool)
+            and self.cursor is not None
+            and self.cursor.isVisible()
         ):
             x_range, _ = self.viewRange()
             delta = x_range[1] - x_range[0]

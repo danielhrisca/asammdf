@@ -978,16 +978,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             file_name = Path(file_name)
             file_name.write_text(json.dumps(self.to_config(), indent=2))
 
-            loaded_display_file, hash_sum = self.loaded_display_file
-            loaded_display_file = Path(loaded_display_file)
-            if (
-                loaded_display_file.exists()
-                and file_name.samefile(loaded_display_file)
-                and file_name.suffix.lower() == ".dspf"
-            ):
-                worker = sha1()
-                worker.update(loaded_display_file.read_bytes())
-                self.loaded_display_file = loaded_display_file, worker.hexdigest()
+            worker = sha1()
+            worker.update(file_name.read_bytes())
+            self.loaded_display_file = file_name, worker.hexdigest()
+
+            self.display_file_modified.emit(Path(self.loaded_display_file[0]).name)
 
     def load_channel_list(self, event=None, file_name=None):
         if file_name is None:

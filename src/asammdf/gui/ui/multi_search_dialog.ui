@@ -29,14 +29,82 @@
    <property name="bottomMargin">
     <number>9</number>
    </property>
-   <item row="9" column="0">
+   <item row="0" column="0">
+    <widget class="QComboBox" name="match_kind">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <item>
+      <property name="text">
+       <string>Wildcard</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Regex</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item row="10" column="0">
     <widget class="QLabel" name="status">
      <property name="text">
       <string/>
      </property>
     </widget>
    </item>
-   <item row="8" column="0" colspan="6">
+   <item row="6" column="0" rowspan="2">
+    <widget class="QListWidget" name="matches"/>
+   </item>
+   <item row="7" column="1">
+    <spacer name="verticalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="6" column="2" rowspan="3" colspan="4">
+    <widget class="MinimalListWidget" name="selection">
+     <property name="minimumSize">
+      <size>
+       <width>500</width>
+       <height>0</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="2">
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Final selection</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLineEdit" name="search_box">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="2" colspan="2">
+    <widget class="QPushButton" name="show_measurement_list_btn">
+     <property name="text">
+      <string>Show measurement list</string>
+     </property>
+     <property name="icon">
+      <iconset resource="resource.qrc">
+       <normaloff>:/info.png</normaloff>:/info.png</iconset>
+     </property>
+    </widget>
+   </item>
+   <item row="9" column="0" colspan="6">
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0">
      <item>
       <widget class="QPushButton" name="cancel_btn">
@@ -67,47 +135,7 @@
      </item>
     </layout>
    </item>
-   <item row="0" column="0">
-    <widget class="QComboBox" name="match_kind">
-     <property name="currentIndex">
-      <number>0</number>
-     </property>
-     <item>
-      <property name="text">
-       <string>Wildcard</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>Regex</string>
-      </property>
-     </item>
-    </widget>
-   </item>
    <item row="6" column="1">
-    <spacer name="verticalSpacer_2">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="5" column="2" rowspan="3" colspan="4">
-    <widget class="MinimalListWidget" name="selection">
-     <property name="minimumSize">
-      <size>
-       <width>500</width>
-       <height>0</height>
-      </size>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="1">
     <widget class="QPushButton" name="add_btn">
      <property name="focusPolicy">
       <enum>Qt::TabFocus</enum>
@@ -121,33 +149,19 @@
      </property>
     </widget>
    </item>
-   <item row="1" column="2">
-    <widget class="QLabel" name="label">
-     <property name="text">
-      <string>Final selection</string>
-     </property>
-    </widget>
-   </item>
    <item row="1" column="0">
-    <widget class="QLineEdit" name="search_box">
-     <property name="text">
-      <string/>
-     </property>
+    <widget class="QComboBox" name="case_sensitivity">
+     <item>
+      <property name="text">
+       <string>Case insensitive</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Case sensitive</string>
+      </property>
+     </item>
     </widget>
-   </item>
-   <item row="0" column="2" colspan="2">
-    <widget class="QPushButton" name="show_measurement_list_btn">
-     <property name="text">
-      <string>Show measurement list</string>
-     </property>
-     <property name="icon">
-      <iconset resource="resource.qrc">
-       <normaloff>:/info.png</normaloff>:/info.png</iconset>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="0" rowspan="2">
-    <widget class="QListWidget" name="matches"/>
    </item>
   </layout>
  </widget>

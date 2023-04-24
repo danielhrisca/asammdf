@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from functools import partial
+import os
 import re
 import sys
 from traceback import format_exc
@@ -79,14 +80,18 @@ class SimpleSearch(Ui_SimpleSearchDialog, QtWidgets.QDialog):
         text = self.search_box.text().strip()
         if len(text) >= 2:
             if self.match_kind.currentText() == "Wildcard":
-                pattern = text.replace("*", "_WILDCARD_")
+                wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
+                pattern = text.replace("*", wildcard)
                 pattern = re.escape(pattern)
-                pattern = pattern.replace("_WILDCARD_", ".*")
+                pattern = pattern.replace(wildcard, ".*")
             else:
                 pattern = text
 
             try:
-                pattern = re.compile(f"(?i){pattern}")
+                if self.case_sensitivity.currentText() == "Case insensitive":
+                    pattern = re.compile(f"(?i){pattern}")
+                else:
+                    pattern = re.compile(pattern)
 
                 matches = []
                 for name in self.channels_db:
