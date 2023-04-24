@@ -10,7 +10,6 @@ from copy import deepcopy
 import csv
 from datetime import datetime, timezone
 from enum import Enum
-import fnmatch
 from functools import reduce
 import gzip
 from io import BytesIO
@@ -5784,19 +5783,19 @@ class MDF:
                 name for name in self.channels_db if compiled_pattern.search(name)
             ]
         elif search_mode is SearchMode.wildcard:
-            if case_insensitive:
-                pattern = pattern.casefold()
-                channels = [
-                    name
-                    for name in self.channels_db
-                    if fnmatch.fnmatch(name.casefold(), pattern)
-                ]
-            else:
-                channels = [
-                    name
-                    for name in self.channels_db
-                    if fnmatch.fnmatchcase(name, pattern)
-                ]
+            wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
+            pattern = pattern.replace("*", wildcard)
+            pattern = re.escape(pattern)
+            pattern = pattern.replace(wildcard, ".*")
+
+            flags = re.IGNORECASE if case_insensitive else 0
+
+            compiled_pattern = re.compile(pattern, flags=flags)
+
+            channels = [
+                name for name in self.channels_db if compiled_pattern.search(name)
+            ]
+
         else:
             raise ValueError(f"unsupported mode {search_mode}")
 
@@ -5909,6 +5908,9 @@ class MDF:
                         if "CAN_DataFrame.BRS" in names:
                             columns["BRS"] = data["CAN_DataFrame.BRS"].astype("u1")
 
+                        if "CAN_DataFrame.IDE" in names:
+                            columns["IDE"] = data["CAN_DataFrame.IDE"].astype("u1")
+
                     elif data.name == "CAN_RemoteFrame":
                         columns["Bus"] = data["CAN_RemoteFrame.BusChannel"].astype("u1")
 
@@ -5938,6 +5940,9 @@ class MDF:
                                     .astype("u1")
                                     .tolist()
                                 ]
+
+                        if "CAN_RemoteFrame.IDE" in names:
+                            columns["IDE"] = data["CAN_RemoteFrame.IDE"].astype("u1")
 
                     elif data.name == "CAN_ErrorFrame":
                         names = set(data.samples.dtype.names)

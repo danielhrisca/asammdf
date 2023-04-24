@@ -188,20 +188,26 @@ def build_mime_from_config(
 def extract_signals_using_pattern(
     mdf, pattern_info, ignore_value2text_conversions, uuid
 ):
+    print("EXTRACT", pattern_info)
     pattern = pattern_info["pattern"]
     match_type = pattern_info["match_type"]
+    case_sensitive = pattern_info.get("case_sensitive", False)
     filter_value = pattern_info["filter_value"]
     filter_type = pattern_info["filter_type"]
     raw = pattern_info["raw"]
     integer_format = pattern_info.get("integer_format", "phys")
 
     if match_type == "Wildcard":
-        pattern = pattern.replace("*", "_WILDCARD_")
+        wild = f"__{os.urandom(3).hex()}WILDCARD{os.urandom(3).hex()}__"
+        pattern = pattern.replace("*", wild)
         pattern = re.escape(pattern)
-        pattern = pattern.replace("_WILDCARD_", ".*")
+        pattern = pattern.replace(wild, ".*")
 
     try:
-        pattern = re.compile(f"(?i){pattern}")
+        if case_sensitive:
+            pattern = re.compile(pattern)
+        else:
+            pattern = re.compile(f"(?i){pattern}")
 
         matches = {}
 
