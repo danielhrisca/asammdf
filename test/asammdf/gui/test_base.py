@@ -2,6 +2,7 @@
 import os
 import shutil
 import sys
+from test.asammdf.gui import QtCore, QtTest, QtWidgets
 import time
 import unittest
 from unittest import mock
@@ -47,7 +48,7 @@ class TestBase(unittest.TestCase):
 
     @staticmethod
     def processEvents(timeout=0.001):
-        app.processEvents()
+        QtCore.QCoreApplication.processEvents()
         if timeout:
             time.sleep(timeout)
 
@@ -55,7 +56,7 @@ class TestBase(unittest.TestCase):
         if os.path.exists(self.test_workspace):
             shutil.rmtree(self.test_workspace)
         os.makedirs(self.test_workspace)
-        app.processEvents()
+        self.processEvents()
 
     @classmethod
     def setUpClass(cls):
@@ -73,3 +74,63 @@ class TestBase(unittest.TestCase):
     def tearDown(self):
         self.processEvents()
         shutil.rmtree(self.test_workspace)
+
+
+class DragAndDrop:
+    class MoveThread(QtCore.QThread):
+        def __init__(self, widget, position=None, step=None, drop=False):
+            super().__init__()
+            self.widget = widget
+            self.position = position
+            self.step = step
+            self.drop = drop
+
+        def run(self):
+            time.sleep(0.1)
+            if not self.step:
+                QtTest.QTest.mouseMove(self.widget, self.position)
+            else:
+                for step in range(self.step):
+                    QtTest.QTest.mouseMove(
+                        self.widget, self.position + QtCore.QPoint(step, step)
+                    )
+                    QtTest.QTest.qWait(2)
+            QtTest.QTest.qWait(50)
+            if self.drop:
+                QtTest.QTest.mouseRelease(
+                    self.widget,
+                    QtCore.Qt.LeftButton,
+                    QtCore.Qt.NoModifier,
+                    self.position,
+                )
+                QtTest.QTest.qWait(10)
+
+    def __init__(self, source_widget, destination_widget, source_pos, destination_pos):
+        QtCore.QCoreApplication.processEvents()
+        if hasattr(source_widget, "viewport"):
+            source_viewport = source_widget.viewport()
+        else:
+            source_viewport = source_widget
+        # Press on Source Widget
+        QtTest.QTest.mousePress(
+            source_viewport, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier, source_pos
+        )
+        # Drag few pixels in order to detect startDrag event
+        # drag_thread = DragAndDrop.MoveThread(widget=source_widget, position=source_pos, step=50)
+        # drag_thread.start()
+        # Move to Destination Widget
+        if hasattr(destination_widget, "viewport"):
+            destination_viewport = destination_widget.viewport()
+        else:
+            destination_viewport = destination_widget
+        move_thread = DragAndDrop.MoveThread(
+            widget=destination_viewport, position=destination_pos, drop=True
+        )
+        move_thread.start()
+
+        source_widget.startDrag(QtCore.Qt.MoveAction)
+        QtTest.QTest.qWait(50)
+
+        # drag_thread.wait()
+        move_thread.wait()
+        move_thread.quit()

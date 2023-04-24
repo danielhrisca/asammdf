@@ -276,6 +276,8 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.error = None
         self.result = None
         self.thread_finished = True
+        # Connect signal to "processEvents": Give the chance to "destroy" function to make his job
+        self.qfinished.connect(lambda: QtCore.QCoreApplication.processEvents())
 
     def run_thread_with_progress(self, target, args, kwargs):
         self.show()

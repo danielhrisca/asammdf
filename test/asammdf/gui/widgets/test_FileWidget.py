@@ -3,7 +3,7 @@ import pathlib
 import shutil
 import sys
 from test.asammdf.gui import QtCore, QtTest, QtWidgets
-from test.asammdf.gui.test_base import TestBase
+from test.asammdf.gui.test_base import DragAndDrop, TestBase
 import time
 import unittest
 from unittest import mock
@@ -13,57 +13,6 @@ from PySide6 import QtCore, QtWidgets
 from asammdf.gui.dialogs.channel_group_info import ChannelGroupInfoDialog
 from asammdf.gui.dialogs.channel_info import ChannelInfoDialog
 from asammdf.gui.widgets.file import FileWidget
-
-
-class DragAndDrop:
-    class MoveThread(QtCore.QThread):
-        def __init__(self, widget, position=None, step=None, drop=False):
-            super().__init__()
-            self.widget = widget
-            self.position = position
-            self.step = step
-            self.drop = drop
-
-        def run(self):
-            time.sleep(0.1)
-            if not self.step:
-                QtTest.QTest.mouseMove(self.widget, self.position)
-            else:
-                for step in range(self.step):
-                    QtTest.QTest.mouseMove(
-                        self.widget, self.position + QtCore.QPoint(step, step)
-                    )
-                    QtTest.QTest.qWait(2)
-            QtTest.QTest.qWait(50)
-            if self.drop:
-                QtTest.QTest.mouseRelease(
-                    self.widget,
-                    QtCore.Qt.LeftButton,
-                    QtCore.Qt.NoModifier,
-                    self.position,
-                )
-                QtTest.QTest.qWait(10)
-
-    def __init__(self, source_widget, destination_widget, source_pos, destination_pos):
-        # Press on Source Widget
-        QtTest.QTest.mousePress(
-            source_widget, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier, source_pos
-        )
-        # Drag few pixels in order to detect startDrag event
-        # drag_thread = DragAndDrop.MoveThread(widget=source_widget, position=source_pos, step=50)
-        # drag_thread.start()
-        # Move to Destination Widget
-        move_thread = DragAndDrop.MoveThread(
-            widget=destination_widget, position=destination_pos, drop=True
-        )
-        move_thread.start()
-
-        source_widget.startDrag(QtCore.Qt.MoveAction)
-        QtTest.QTest.qWait(50)
-
-        # drag_thread.wait()
-        move_thread.wait()
-        move_thread.quit()
 
 
 @unittest.skipIf(
