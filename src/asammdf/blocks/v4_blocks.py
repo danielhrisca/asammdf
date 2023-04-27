@@ -5707,13 +5707,17 @@ class HeaderBlock:
         """
 
         timestamp = self.abs_time / 10**9
+        tz_local = False
         if self.time_flags & v4c.FLAG_HD_LOCAL_TIME:
-            tz = dateutil.tz.tzlocal()
+            tz = timezone.utc
+            tz_local = True
         else:
             tz = timezone(timedelta(minutes=self.tz_offset + self.daylight_save_time))
 
         try:
             timestamp = datetime.fromtimestamp(timestamp, tz)
+            if tz_local:
+                timestamp = timestamp.replace(tzinfo=None)
 
         except OverflowError:
             timestamp = datetime.fromtimestamp(0, tz) + timedelta(seconds=timestamp)
@@ -5724,7 +5728,7 @@ class HeaderBlock:
     def start_time(self, timestamp: datetime) -> None:
         if timestamp.tzinfo is None:
             self.time_flags = v4c.FLAG_HD_LOCAL_TIME
-            self.abs_time = int(timestamp.timestamp() * 10**9)
+            self.abs_time = int(timestamp.replace(tzinfo=timezone.utc).timestamp() * 10**9)
             self.tz_offset = 0
             self.daylight_save_time = 0
 
