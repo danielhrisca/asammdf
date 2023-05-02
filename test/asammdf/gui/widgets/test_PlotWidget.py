@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 import pathlib
 import sys
-import unittest
-
 from test.asammdf.gui import QtCore, QtGui, QtTest, QtWidgets
 from test.asammdf.gui.test_base import DragAndDrop, TestBase
 import time
+import unittest
 from unittest import mock
 
 from PySide6 import QtCore
@@ -68,7 +67,7 @@ class TestPlotWidget(TestBase):
         self.widget.channel_view.setCurrentText("Natural sort")
 
         with mock.patch(
-                "asammdf.gui.widgets.file.WindowSelectionDialog"
+            "asammdf.gui.widgets.file.WindowSelectionDialog"
         ) as mc_WindowSelectionDialog:
             mc_WindowSelectionDialog.return_value.result.return_value = True
             mc_WindowSelectionDialog.return_value.selected_type.return_value = "Plot"
@@ -150,7 +149,7 @@ class TestPlotWidget(TestBase):
         self.widget.channel_view.setCurrentText("Natural sort")
 
         with mock.patch(
-                "asammdf.gui.widgets.file.WindowSelectionDialog"
+            "asammdf.gui.widgets.file.WindowSelectionDialog"
         ) as mc_WindowSelectionDialog:
             mc_WindowSelectionDialog.return_value.result.return_value = True
             mc_WindowSelectionDialog.return_value.selected_type.return_value = "Plot"
@@ -206,7 +205,9 @@ class TestPlotWidget(TestBase):
             iterator += 1
         self.assertListEqual(selected_channels, plot_channels)
 
-    @unittest.skipIf(sys.platform != "win32", "Test is currently applicable just for Windows.")
+    @unittest.skipIf(
+        sys.platform != "win32", "Test is currently applicable just for Windows."
+    )
     def test_Plot_ChannelSelection_DragAndDrop_fromPlot_toPlot(self):
         """
         Test Scope:
@@ -276,7 +277,7 @@ class TestPlotWidget(TestBase):
         self.widget.channel_view.setCurrentText("Natural sort")
 
         with mock.patch(
-                "asammdf.gui.widgets.file.WindowSelectionDialog"
+            "asammdf.gui.widgets.file.WindowSelectionDialog"
         ) as mc_WindowSelectionDialog:
             mc_WindowSelectionDialog.return_value.result.return_value = True
             mc_WindowSelectionDialog.return_value.selected_type.return_value = "Plot"
@@ -348,8 +349,12 @@ class TestPlotWidget(TestBase):
             first_channel = plot.channel_selection.topLevelItem(0)
             third_channel = plot.channel_selection.topLevelItem(2)
             # Get Positions
-            drag_position = plot.channel_selection.visualItemRect(first_channel).center()
-            drop_position = plot.channel_selection.visualItemRect(third_channel).center()
+            drag_position = plot.channel_selection.visualItemRect(
+                first_channel
+            ).center()
+            drop_position = plot.channel_selection.visualItemRect(
+                third_channel
+            ).center()
             # Get Names
             first_channel = first_channel.text(0)
             third_channel = third_channel.text(0)
@@ -376,7 +381,9 @@ class TestPlotWidget(TestBase):
             third_channel = plot.channel_selection.topLevelItem(2)
             last_channel = plot.channel_selection.topLevelItem(5)
             # Get Positions
-            drag_position = plot.channel_selection.visualItemRect(third_channel).center()
+            drag_position = plot.channel_selection.visualItemRect(
+                third_channel
+            ).center()
             drop_position = plot.channel_selection.visualItemRect(last_channel).center()
             # Select
             second_channel.setSelected(True)
@@ -403,10 +410,14 @@ class TestPlotWidget(TestBase):
         # Case 2:
         with self.subTest("test_Plot_ChannelSelection_DragAndDrop_fromPlot_toPlot_2"):
             # Create Channel Group. Drag channels inside the group one by one
-            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mc_getText:
+            with mock.patch(
+                "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
+            ) as mc_getText:
                 # Create Channel Group
                 mc_getText.return_value = "FirstGroup", True
-                QtTest.QTest.keySequence(plot.channel_selection, QtGui.QKeySequence("Shift+Insert"))
+                QtTest.QTest.keySequence(
+                    plot.channel_selection, QtGui.QKeySequence("Shift+Insert")
+                )
                 # PreEvaluation: Check if there is one extra-item
                 self.assertEqual(7, plot.channel_selection.topLevelItemCount())
                 # Get Group Position
@@ -424,8 +435,12 @@ class TestPlotWidget(TestBase):
                 if first_channel.text(0) == duplicated_channel:
                     first_channel = plot.channel_selection.topLevelItem(2)
 
-                drag_position = plot.channel_selection.visualItemRect(first_channel).center()
-                drop_position = plot.channel_selection.visualItemRect(first_group).center()
+                drag_position = plot.channel_selection.visualItemRect(
+                    first_channel
+                ).center()
+                drop_position = plot.channel_selection.visualItemRect(
+                    first_group
+                ).center()
                 # Get Name of first channel
                 first_channel = first_channel.text(0)
                 # PreEvaluation: Ensure that group has no child
@@ -449,9 +464,13 @@ class TestPlotWidget(TestBase):
                         break
                 else:
                     self.fail("Duplicate Channel is not found anymore.")
-                drag_position = plot.channel_selection.visualItemRect(second_channel).center()
+                drag_position = plot.channel_selection.visualItemRect(
+                    second_channel
+                ).center()
                 # Now drop over the first item from group.
-                drop_position = plot.channel_selection.visualItemRect(first_group.child(0)).center()
+                drop_position = plot.channel_selection.visualItemRect(
+                    first_group.child(0)
+                ).center()
                 DragAndDrop(
                     source_widget=plot.channel_selection,
                     destination_widget=plot.channel_selection.viewport(),
@@ -466,10 +485,14 @@ class TestPlotWidget(TestBase):
         # Case 3:
         with self.subTest("test_Plot_ChannelSelection_DragAndDrop_fromPlot_toPlot_3"):
             # Create Channel Group. Drag multiple channels inside the group
-            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mc_getText:
+            with mock.patch(
+                "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
+            ) as mc_getText:
                 # Create Channel Group
                 mc_getText.return_value = "SecondGroup", True
-                QtTest.QTest.keySequence(plot.channel_selection, QtGui.QKeySequence("Shift+Insert"))
+                QtTest.QTest.keySequence(
+                    plot.channel_selection, QtGui.QKeySequence("Shift+Insert")
+                )
                 # PreEvaluation: Check if there is one extra-item
                 self.assertEqual(6, plot.channel_selection.topLevelItemCount())
                 # Get Group Position
@@ -491,8 +514,12 @@ class TestPlotWidget(TestBase):
                 )
                 last_channel_0.setSelected(True)
                 last_channel_1.setSelected(True)
-                drag_position = plot.channel_selection.visualItemRect(last_channel_1).center()
-                drop_position = plot.channel_selection.visualItemRect(second_group).center()
+                drag_position = plot.channel_selection.visualItemRect(
+                    last_channel_1
+                ).center()
+                drop_position = plot.channel_selection.visualItemRect(
+                    second_group
+                ).center()
                 DragAndDrop(
                     source_widget=plot.channel_selection,
                     destination_widget=plot.channel_selection.viewport(),

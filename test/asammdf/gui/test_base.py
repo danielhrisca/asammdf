@@ -104,7 +104,9 @@ class DragAndDrop:
     def __init__(self, source_widget, destination_widget, source_pos, destination_pos):
         # Ensure that previous drop was not in the same place because mouse needs to be moved.
         if self._previous_position and self._previous_position == destination_pos:
-            move_thread = DragAndDrop.MoveThread(widget=source_widget, position=QtCore.QPoint(101, 101))
+            move_thread = DragAndDrop.MoveThread(
+                widget=source_widget, position=QtCore.QPoint(101, 101)
+            )
             move_thread.start()
             move_thread.wait()
             move_thread.quit()
