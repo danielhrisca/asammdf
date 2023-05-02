@@ -99,7 +99,15 @@ class DragAndDrop:
                         self.widget, self.position + QtCore.QPoint(step, step)
                     )
                     QtTest.QTest.qWait(2)
-            QtTest.QTest.qWait(50)
+            QtTest.QTest.qWait(10)
+            # Release
+            QtTest.QTest.mouseRelease(
+                self.widget,
+                QtCore.Qt.LeftButton,
+                QtCore.Qt.NoModifier,
+                self.position,
+            )
+            QtTest.QTest.qWait(10)
 
     def __init__(self, source_widget, destination_widget, source_pos, destination_pos):
         # Ensure that previous drop was not in the same place because mouse needs to be moved.
@@ -140,12 +148,3 @@ class DragAndDrop:
         # drag_thread.wait()
         move_thread.wait()
         move_thread.quit()
-
-        # Release
-        QtTest.QTest.mouseRelease(
-            destination_viewport,
-            QtCore.Qt.LeftButton,
-            QtCore.Qt.NoModifier,
-            destination_pos,
-        )
-        QtTest.QTest.qWait(10)
