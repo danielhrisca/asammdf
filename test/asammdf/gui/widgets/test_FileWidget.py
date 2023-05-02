@@ -14,10 +14,11 @@ from asammdf.gui.dialogs.channel_group_info import ChannelGroupInfoDialog
 from asammdf.gui.dialogs.channel_info import ChannelInfoDialog
 from asammdf.gui.widgets.file import FileWidget
 
+# Note: If it's possible and make sense use self.subTests
+# to avoid initialize widgets multiple times and consume time.
 
-class TestFileWidget(TestBase):
-    # Note: If it's possible and make sense use self.subTests
-    # to avoid initialize widgets multiple times and consume time.
+
+class TestTabChannels(TestBase):
     def setUp(self):
         super().setUp()
         self.widget = None
@@ -30,7 +31,7 @@ class TestFileWidget(TestBase):
         self.mc_ErrorDialog.reset_mock()
         super().tearDown()
 
-    def test_Tab_Channels_PushButton_LoadOfflineWindows_DSP(self):
+    def test_PushButton_LoadOfflineWindows_DSP(self):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -79,7 +80,7 @@ class TestFileWidget(TestBase):
         "Test is failing due to Segmentation Fault on Linux platform.",
     )
     @mock.patch("asammdf.gui.widgets.file.ErrorDialog")
-    def test_Tab_Channels_PushButton_LoadOfflineWindows_DSPF(self, mc_file_ErrorDialog):
+    def test_PushButton_LoadOfflineWindows_DSPF(self, mc_file_ErrorDialog):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -303,7 +304,7 @@ class TestFileWidget(TestBase):
 
         mc_file_ErrorDialog.assert_not_called()
 
-    def test_Tab_Channels_PushButton_LoadOfflineWindows_LAB(self):
+    def test_PushButton_LoadOfflineWindows_LAB(self):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -443,7 +444,7 @@ class TestFileWidget(TestBase):
                     set(checked_items),
                 )
 
-    def test_Tab_Channels_PushButton_SaveOfflineWindows(self):
+    def test_PushButton_SaveOfflineWindows(self):
         """
 
         Events:
@@ -576,7 +577,7 @@ class TestFileWidget(TestBase):
             )
             self.assertSetEqual({"Plot"}, widget_types)
 
-    def test_Tab_Channels_PushButton_SelectAll(self):
+    def test_PushButton_SelectAll(self):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -652,7 +653,7 @@ class TestFileWidget(TestBase):
             self.assertTrue(item.checkState(0))
             iterator += 1
 
-    def test_Tab_Channels_PushButton_ClearAll(self):
+    def test_PushButton_ClearAll(self):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -733,7 +734,7 @@ class TestFileWidget(TestBase):
             self.assertFalse(item.checkState(0))
             iterator += 1
 
-    def test_Tab_Channels_PushButton_Search(self):
+    def test_PushButton_Search(self):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -773,7 +774,7 @@ class TestFileWidget(TestBase):
         )
         self.widget.showNormal()
         # Case 0:
-        with self.subTest("test_Tab_Channels_PushButton_Search_0"):
+        with self.subTest("test_PushButton_Search_0"):
             with mock.patch(
                 "asammdf.gui.widgets.file.AdvancedSearch"
             ) as mc_AdvancedSearch:
@@ -793,7 +794,7 @@ class TestFileWidget(TestBase):
                     iterator += 1
 
         # Case 1:
-        with self.subTest("test_Tab_Channels_PushButton_Search_1"):
+        with self.subTest("test_PushButton_Search_1"):
             with mock.patch(
                 "asammdf.gui.widgets.file.AdvancedSearch"
             ) as mc_AdvancedSearch:
@@ -820,7 +821,7 @@ class TestFileWidget(TestBase):
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
 
         # Case 2:
-        with self.subTest("test_Tab_Channels_PushButton_Search_2"):
+        with self.subTest("test_PushButton_Search_2"):
             # - Clear 'channel_tree' selection
             iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
             while iterator.value():
@@ -868,7 +869,7 @@ class TestFileWidget(TestBase):
                 )
                 self.assertIn("Plot", widget_types)
 
-    def test_Tab_Channels_PushButton_CreateWindow(self):
+    def test_PushButton_CreateWindow(self):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -912,7 +913,7 @@ class TestFileWidget(TestBase):
         self.widget.channel_view.setCurrentText("Natural sort")
 
         # Case 0:
-        with self.subTest("test_Tab_Channels_PushButton_CreateWindow_0"):
+        with self.subTest("test_PushButton_CreateWindow_0"):
             with mock.patch(
                 "asammdf.gui.widgets.file.WindowSelectionDialog"
             ) as mc_WindowSelectionDialog:
@@ -925,7 +926,7 @@ class TestFileWidget(TestBase):
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
 
         # Case 1:
-        with self.subTest("test_Tab_Channels_PushButton_CreateWindow_1"):
+        with self.subTest("test_PushButton_CreateWindow_1"):
             with mock.patch(
                 "asammdf.gui.widgets.file.WindowSelectionDialog"
             ) as mc_WindowSelectionDialog:
@@ -948,7 +949,7 @@ class TestFileWidget(TestBase):
             self.assertIn("Plot", widget_types)
 
         # Case 2:
-        with self.subTest("test_Tab_Channels_PushButton_CreateWindow_2"):
+        with self.subTest("test_PushButton_CreateWindow_2"):
             with mock.patch(
                 "asammdf.gui.widgets.file.WindowSelectionDialog"
             ) as mc_WindowSelectionDialog:
@@ -983,7 +984,7 @@ class TestFileWidget(TestBase):
             self.assertEqual(channel, numeric_channel)
 
         # Case 3:
-        with self.subTest("test_Tab_Channels_PushButton_CreateWindow_3"):
+        with self.subTest("test_PushButton_CreateWindow_3"):
             with mock.patch(
                 "asammdf.gui.widgets.file.WindowSelectionDialog"
             ) as mc_WindowSelectionDialog:
@@ -1006,7 +1007,7 @@ class TestFileWidget(TestBase):
             self.assertIn("Tabular", widget_types)
 
         # Case 4:
-        with self.subTest("test_Tab_Channels_PushButton_CreateWindow_4"):
+        with self.subTest("test_PushButton_CreateWindow_4"):
             with mock.patch(
                 "asammdf.gui.widgets.file.WindowSelectionDialog"
             ) as mc_WindowSelectionDialog:
@@ -1031,7 +1032,7 @@ class TestFileWidget(TestBase):
             plot_channel = plot_widget.channel_selection.topLevelItem(0).text(0)
             self.assertEqual(channel, plot_channel)
 
-    def test_Tab_Channels_DoubleClick_Channel(self):
+    def test_DoubleClick_Channel(self):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -1124,7 +1125,21 @@ class TestFileWidget(TestBase):
                 child.close()
                 self.assertFalse(child.isVisible())
 
-    def test_Tab_ModifyAndExport_PushButton_ScrambleTexts(self):
+
+class TestTabModifyAndExport(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.widget = None
+
+    def tearDown(self):
+        if self.widget:
+            self.widget.close()
+            self.widget.destroy()
+            self.widget.deleteLater()
+        self.mc_ErrorDialog.reset_mock()
+        super().tearDown()
+
+    def test_PushButton_ScrambleTexts(self):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -1187,7 +1202,7 @@ class TestFileWidget(TestBase):
         result = filter(lambda c: c in scrambled_channels, channels)
         self.assertFalse(any(result))
 
-    def test_Tab_ModifyAndExport_ExportMDF(self):
+    def test_ExportMDF(self):
         """
         When QThreads are running, event-loops needs to be processed.
         Events:
@@ -1245,7 +1260,7 @@ class TestFileWidget(TestBase):
 
         # Case 0:
         self.processEvents()
-        with self.subTest("test_Tab_ModifyAndExport_ExportMDF_0"):
+        with self.subTest("test_ExportMDF_0"):
             with mock.patch(
                 "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName"
             ) as mc_getSaveFileName, mock.patch(
@@ -1260,7 +1275,7 @@ class TestFileWidget(TestBase):
 
         # Case 1:
         self.processEvents()
-        with self.subTest("test_Tab_ModifyAndExport_ExportMDF_1"):
+        with self.subTest("test_ExportMDF_1"):
             saved_file = pathlib.Path(self.test_workspace, f"{self.id()}.mf4")
             with mock.patch(
                 "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName"

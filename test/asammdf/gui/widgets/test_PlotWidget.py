@@ -3,7 +3,6 @@ import pathlib
 import sys
 from test.asammdf.gui import QtCore, QtGui, QtTest, QtWidgets
 from test.asammdf.gui.test_base import DragAndDrop, TestBase
-import time
 import unittest
 from unittest import mock
 
@@ -12,7 +11,7 @@ from PySide6 import QtCore
 from asammdf.gui.widgets.file import FileWidget
 
 
-class TestPlotWidget(TestBase):
+class TestDragAndDrop(TestBase):
     # Note: Test Plot Widget through FileWidget.
 
     @classmethod
@@ -212,7 +211,7 @@ class TestPlotWidget(TestBase):
     # It may happen that drag operation or drop operation to lead on starting/stopping internal QTimers.
     # On Linux closing any QTimer/QThread in other one thread than parent leads to Segmentation Fault.
     # Windows behaves differently on startDrag operation.
-    def test_Plot_ChannelSelection_DragAndDrop_fromPlot_toPlot(self):
+    def test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot(self):
         """
         Test Scope:
             - Test DragAndDrop Action from Plot.channel_selection to Plot.channel_selection
@@ -348,7 +347,9 @@ class TestPlotWidget(TestBase):
         self.assertEqual(6, plot.channel_selection.topLevelItemCount())
 
         # Case 0:
-        with self.subTest("test_Plot_ChannelSelection_DragAndDrop_fromPlot_toPlot_0"):
+        with self.subTest(
+            "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_0"
+        ):
             # DragAndDrop first channel to 3rd position.
             first_channel = plot.channel_selection.topLevelItem(0)
             third_channel = plot.channel_selection.topLevelItem(2)
@@ -379,7 +380,9 @@ class TestPlotWidget(TestBase):
             self.assertEqual(third_channel, new_fourth_channel)
 
         # Case 1:
-        with self.subTest("test_Plot_ChannelSelection_DragAndDrop_fromPlot_toPlot_1"):
+        with self.subTest(
+            "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_1"
+        ):
             # DragAndDrop 2nd and 3rd channels on last position.
             second_channel = plot.channel_selection.topLevelItem(1)
             third_channel = plot.channel_selection.topLevelItem(2)
@@ -412,7 +415,9 @@ class TestPlotWidget(TestBase):
             self.assertEqual(third_channel, new_sixth_channel)
 
         # Case 2:
-        with self.subTest("test_Plot_ChannelSelection_DragAndDrop_fromPlot_toPlot_2"):
+        with self.subTest(
+            "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_2"
+        ):
             # Create Channel Group. Drag channels inside the group one by one
             with mock.patch(
                 "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
@@ -487,7 +492,9 @@ class TestPlotWidget(TestBase):
                 self.assertEqual(5, plot.channel_selection.topLevelItemCount())
 
         # Case 3:
-        with self.subTest("test_Plot_ChannelSelection_DragAndDrop_fromPlot_toPlot_3"):
+        with self.subTest(
+            "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_3"
+        ):
             # Create Channel Group. Drag multiple channels inside the group
             with mock.patch(
                 "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
@@ -535,7 +542,9 @@ class TestPlotWidget(TestBase):
                 self.assertEqual(4, plot.channel_selection.topLevelItemCount())
 
         # Case 4:
-        with self.subTest("test_Plot_ChannelSelection_DragAndDrop_fromPlot_toPlot_4"):
+        with self.subTest(
+            "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_4"
+        ):
             # Drag Group inside the Group
             # Get Group Positions
             first_group, second_group = None, None
@@ -562,7 +571,9 @@ class TestPlotWidget(TestBase):
             self.assertEqual(3, plot.channel_selection.topLevelItemCount())
 
         # Case 5:
-        with self.subTest("test_Plot_ChannelSelection_DragAndDrop_fromPlot_toPlot_5"):
+        with self.subTest(
+            "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_5"
+        ):
             # Drag Group outside the Group
             # Get Group Positions
             first_group, second_group = None, None
@@ -591,3 +602,313 @@ class TestPlotWidget(TestBase):
             # Evaluate
             self.assertEqual(2, first_group.childCount())
             self.assertEqual(4, plot.channel_selection.topLevelItemCount())
+
+    def test_Plot_ChannelSelection_DragAndDrop_fromPlot_toPlot(self):
+        """
+        Test Scope: Validate that channels can be dragged and dropped between Plot windows. (Ex: from Plot 0 to Plot 1)
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Switch ComboBox to "Natural sort"
+            - Press PushButton "Create Window"
+                - Simulate that Plot window is selected as window type.
+            - Select one channel and drag it to the 'Plot 0'
+            - Press PushButton "Create Window"
+                - Simulate that Plot window is selected as window type.
+            - Select one channel and drag it to the 'Plot 1'
+            - Select channel from 'Plot 0' and drag it to the 'Plot 1'
+        Evaluate:
+            - Validate that channel from 'Plot 0' is added to 'Plot 1'
+        """
+        # Event
+        self.widget = FileWidget(
+            self.measurement_file,
+            True,  # with_dots
+            True,  # subplots
+            True,  # subplots_link
+            False,  # ignore_value2text_conversions
+            False,  # display_cg_name
+            "line",  # line_interconnect
+            1,  # password
+            None,  # hide_missing_channels
+            None,  # hide_disabled_channels
+        )
+        self.widget.showNormal()
+        self.widget.activateWindow()
+        # Switch ComboBox to "Natural sort"
+        self.widget.channel_view.setCurrentText("Natural sort")
+
+        # Create New Plot Window
+        with mock.patch(
+            "asammdf.gui.widgets.file.WindowSelectionDialog"
+        ) as mc_WindowSelectionDialog:
+            mc_WindowSelectionDialog.return_value.result.return_value = True
+            mc_WindowSelectionDialog.return_value.selected_type.return_value = "Plot"
+            # - Press PushButton "Create Window"
+            QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
+            # Evaluate
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+            widget_types = sorted(
+                map(
+                    lambda w: w.widget().__class__.__name__,
+                    self.widget.mdi_area.subWindowList(),
+                )
+            )
+            self.assertIn("Plot", widget_types)
+
+        channel_tree = self.widget.channels_tree
+        plot_0 = self.widget.mdi_area.subWindowList()[0].widget()
+        # Random Channels
+        channel_0 = channel_tree.topLevelItem(8)
+        channel_1 = channel_tree.topLevelItem(13)
+
+        # Drag one Channel from FileWidget channel_tree to Plot_0
+        drag_position = channel_tree.visualItemRect(channel_0).center()
+        drop_position = plot_0.channel_selection.viewport().rect().center()
+
+        # PreEvaluation
+        self.assertEqual(0, plot_0.channel_selection.topLevelItemCount())
+        DragAndDrop(
+            source_widget=channel_tree,
+            destination_widget=plot_0,
+            source_pos=drag_position,
+            destination_pos=drop_position,
+        )
+        self.assertEqual(1, plot_0.channel_selection.topLevelItemCount())
+
+        # Create New Plot Window
+        with mock.patch(
+            "asammdf.gui.widgets.file.WindowSelectionDialog"
+        ) as mc_WindowSelectionDialog:
+            mc_WindowSelectionDialog.return_value.result.return_value = True
+            mc_WindowSelectionDialog.return_value.selected_type.return_value = "Plot"
+            # - Press PushButton "Create Window"
+            QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
+            # Evaluate
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
+
+        plot_1 = self.widget.mdi_area.subWindowList()[1].widget()
+
+        # Drag one Channel from FileWidget channel_tree to Plot_0
+        drag_position = channel_tree.visualItemRect(channel_1).center()
+        drop_position = plot_1.channel_selection.viewport().rect().center()
+
+        # PreEvaluation
+        self.assertEqual(0, plot_1.channel_selection.topLevelItemCount())
+        DragAndDrop(
+            source_widget=channel_tree,
+            destination_widget=plot_1,
+            source_pos=drag_position,
+            destination_pos=drop_position,
+        )
+        self.assertEqual(1, plot_1.channel_selection.topLevelItemCount())
+
+        # Select channel from 'Plot 0' and drag it to the 'Plot 1'
+        # Drag one Channel from FileWidget channel_tree to Plot_0
+        plot_0_channel = plot_0.channel_selection.topLevelItem(0)
+        plot_0_channel_name = plot_0_channel.text(0)
+        drag_position = plot_0.channel_selection.visualItemRect(plot_0_channel).center()
+        drop_position = plot_1.channel_selection.viewport().rect().center()
+
+        # PreEvaluation
+        self.assertEqual(1, plot_1.channel_selection.topLevelItemCount())
+        DragAndDrop(
+            source_widget=plot_0.channel_selection,
+            destination_widget=plot_1,
+            source_pos=drag_position,
+            destination_pos=drop_position,
+        )
+        # Evaluate
+        plot_1_new_channel = plot_1.channel_selection.topLevelItem(1)
+        plot_1_new_channel_name = plot_1_new_channel.text(0)
+        self.assertEqual(2, plot_1.channel_selection.topLevelItemCount())
+        self.assertEqual(plot_0_channel_name, plot_1_new_channel_name)
+
+    def test_Plot_ChannelSelection_DragAndDrop_fromNumeric_toPlot(self):
+        pass
+
+    def test_Plot_ChannelSelection_DragAndDrop_fromTabular_toPlot(self):
+        pass
+
+
+class TestShortcuts(TestBase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.measurement_file = str(pathlib.Path(cls.resource, "ASAP2_Demo_V171.mf4"))
+
+    def setUp(self):
+        super().setUp()
+        self.widget = None
+
+    def tearDown(self):
+        if self.widget:
+            self.widget.close()
+            self.widget.destroy()
+            self.widget.deleteLater()
+        self.mc_ErrorDialog.reset_mock()
+        super().tearDown()
+
+    def test_Plot_Plot_Shortcut_Key_LeftRight(self):
+        """
+        Test Scope:
+            Check that Arrow Keys: Left & Right ensure navigation on channels evolution.
+            Ensure that navigation is working.
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Switch ComboBox to "Natural sort"
+            - Press PushButton "Create Window"
+            - Drag and Drop channels from FileWidget.channels_tree to Plot.channels_selection:
+                # First
+                - ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL
+                # Second
+                - ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL
+            - Send KeyClick Right 5 times
+            - Send KeyClick Left 4 times
+        Evaluate:
+            - Evaluate values from `Value` column on Plot.channels_selection
+            - Evaluate timestamp label
+        """
+        # Event
+        self.widget = FileWidget(
+            self.measurement_file,
+            True,  # with_dots
+            True,  # subplots
+            True,  # subplots_link
+            False,  # ignore_value2text_conversions
+            False,  # display_cg_name
+            "line",  # line_interconnect
+            1,  # password
+            None,  # hide_missing_channels
+            None,  # hide_disabled_channels
+        )
+        self.widget.showNormal()
+        # Switch ComboBox to "Natural sort"
+        self.widget.channel_view.setCurrentText("Natural sort")
+
+        with mock.patch(
+            "asammdf.gui.widgets.file.WindowSelectionDialog"
+        ) as mc_WindowSelectionDialog:
+            mc_WindowSelectionDialog.return_value.result.return_value = True
+            mc_WindowSelectionDialog.return_value.selected_type.return_value = "Plot"
+            # - Press PushButton "Create Window"
+            QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
+            # Evaluate
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+            widget_types = sorted(
+                map(
+                    lambda w: w.widget().__class__.__name__,
+                    self.widget.mdi_area.subWindowList(),
+                )
+            )
+            self.assertIn("Plot", widget_types)
+
+        channels_tree = self.widget.channels_tree
+        plot = self.widget.mdi_area.subWindowList()[0].widget()
+        channel_selection = plot.channel_selection
+
+        # Select 5 from channels but not from beginning
+        # Avoid $ChannelLog because it's empty channel
+        iterator = QtWidgets.QTreeWidgetItemIterator(channels_tree)
+        item = None
+        while iterator.value():
+            item = iterator.value()
+            if item and item.text(0) in (
+                "ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL",
+                "ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL",
+            ):
+                item.setCheckState(0, QtCore.Qt.Checked)
+                item.setSelected(True)
+            iterator += 1
+
+        drag_position = channels_tree.visualItemRect(item).center()
+        drop_position = plot.channel_selection.viewport().rect().center()
+
+        # PreEvaluation
+        self.assertEqual(0, plot.channel_selection.topLevelItemCount())
+        DragAndDrop(
+            source_widget=channels_tree,
+            destination_widget=plot,
+            source_pos=drag_position,
+            destination_pos=drop_position,
+        )
+        self.assertEqual(2, plot.channel_selection.topLevelItemCount())
+
+        # Identify channels
+        # First sample = 244 for ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL
+        # First sample = 23 for ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL
+        channel_14, channel_15 = None, None
+        for _ in range(channel_selection.topLevelItemCount()):
+            item = channel_selection.topLevelItem(_)
+            if item.text(0) == "ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL":
+                channel_14 = item
+            else:
+                channel_15 = item
+
+        # Case 0:
+        with self.subTest("test_Plot_Plot_Shortcut_Key_LeftRight_0"):
+            # Select channel: ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL
+            QtTest.QTest.mouseClick(
+                channel_selection.viewport(),
+                QtCore.Qt.LeftButton,
+                QtCore.Qt.KeyboardModifiers(),
+                channel_selection.visualItemRect(channel_15).center(),
+            )
+            self.processEvents(0.1)
+
+            self.assertEqual("25", channel_14.text(1))
+            self.assertEqual("244", channel_15.text(1))
+
+            # Send Key strokes
+            for count in range(6):
+                QtTest.QTest.keyClick(channel_selection, QtCore.Qt.Key_Right)
+                self.processEvents()
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertEqual("10", channel_14.text(1))
+            self.assertEqual("3", channel_15.text(1))
+            self.assertEqual("t = 0.072657s", plot.cursor_info.text())
+
+            # Send Key strokes
+            for count in range(5):
+                QtTest.QTest.keyClick(channel_selection, QtCore.Qt.Key_Left)
+                self.processEvents()
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertEqual("21", channel_14.text(1))
+            self.assertEqual("247", channel_15.text(1))
+            self.assertEqual("t = 0.032657s", plot.cursor_info.text())
+
+        # Case 1:
+        with self.subTest("test_Plot_Plot_Shortcut_Key_LeftRight_1"):
+            # Select channel: ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL
+            QtTest.QTest.mouseClick(
+                channel_selection.viewport(),
+                QtCore.Qt.LeftButton,
+                QtCore.Qt.KeyboardModifiers(),
+                channel_selection.visualItemRect(channel_15).center(),
+            )
+            self.processEvents(0.1)
+
+            # Send Key strokes
+            for count in range(6):
+                QtTest.QTest.keyClick(channel_selection, QtCore.Qt.Key_Right)
+                self.processEvents()
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertEqual("8", channel_14.text(1))
+            self.assertEqual("6", channel_15.text(1))
+            self.assertEqual("t = 0.082657s", plot.cursor_info.text())
+
+            # Send Key strokes
+            for count in range(5):
+                QtTest.QTest.keyClick(channel_selection, QtCore.Qt.Key_Left)
+                self.processEvents()
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertEqual("18", channel_14.text(1))
+            self.assertEqual("250", channel_15.text(1))
+            self.assertEqual("t = 0.042657s", plot.cursor_info.text())
