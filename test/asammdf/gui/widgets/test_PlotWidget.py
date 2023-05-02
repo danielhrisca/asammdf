@@ -724,7 +724,129 @@ class TestDragAndDrop(TestBase):
         self.assertEqual(plot_0_channel_name, plot_1_new_channel_name)
 
     def test_Plot_ChannelSelection_DragAndDrop_fromNumeric_toPlot(self):
-        pass
+        """
+        Test Scope: Validate that channels can be dragged and dropped between Plot window and Numeric.
+        Ex: from 'Numeric 0' to 'Plot 0'
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Switch ComboBox to "Natural sort"
+            - Press PushButton "Create Window"
+                - Simulate that Plot window is selected as window type.
+            - Select one channel and drag it to the 'Plot 0'
+            - Press PushButton "Create Window"
+                - Simulate that Numeric window is selected as window type.
+            - Select one channel and drag it to the 'Numeric 0'
+            - Select channel from 'Numeric 0' and drag it to the 'Plot 0'
+        Evaluate:
+            - Validate that channel from 'Numeric 0' is added to 'Plot 0'
+        """
+        # Event
+        self.widget = FileWidget(
+            self.measurement_file,
+            True,  # with_dots
+            True,  # subplots
+            True,  # subplots_link
+            False,  # ignore_value2text_conversions
+            False,  # display_cg_name
+            "line",  # line_interconnect
+            1,  # password
+            None,  # hide_missing_channels
+            None,  # hide_disabled_channels
+        )
+        self.widget.showNormal()
+        self.widget.activateWindow()
+        # Switch ComboBox to "Natural sort"
+        self.widget.channel_view.setCurrentText("Natural sort")
+
+        # Create New Plot Window
+        with mock.patch(
+            "asammdf.gui.widgets.file.WindowSelectionDialog"
+        ) as mc_WindowSelectionDialog:
+            mc_WindowSelectionDialog.return_value.result.return_value = True
+            mc_WindowSelectionDialog.return_value.selected_type.return_value = "Plot"
+            # - Press PushButton "Create Window"
+            QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
+            # Evaluate
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+            widget_types = sorted(
+                map(
+                    lambda w: w.widget().__class__.__name__,
+                    self.widget.mdi_area.subWindowList(),
+                )
+            )
+            self.assertIn("Plot", widget_types)
+
+        channel_tree = self.widget.channels_tree
+        plot_0 = self.widget.mdi_area.subWindowList()[0].widget()
+        # Random Channels
+        channel_0 = channel_tree.topLevelItem(8)
+        channel_1 = channel_tree.topLevelItem(13)
+
+        # Drag one Channel from FileWidget channel_tree to Plot_0
+        drag_position = channel_tree.visualItemRect(channel_0).center()
+        drop_position = plot_0.channel_selection.viewport().rect().center()
+
+        # PreEvaluation
+        self.assertEqual(0, plot_0.channel_selection.topLevelItemCount())
+        DragAndDrop(
+            source_widget=channel_tree,
+            destination_widget=plot_0,
+            source_pos=drag_position,
+            destination_pos=drop_position,
+        )
+        self.assertEqual(1, plot_0.channel_selection.topLevelItemCount())
+
+        # Create New Numeric Window
+        with mock.patch(
+            "asammdf.gui.widgets.file.WindowSelectionDialog"
+        ) as mc_WindowSelectionDialog:
+            mc_WindowSelectionDialog.return_value.result.return_value = True
+            mc_WindowSelectionDialog.return_value.selected_type.return_value = "Numeric"
+            # - Press PushButton "Create Window"
+            QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
+            # Evaluate
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
+            widget_types = sorted(
+                map(
+                    lambda w: w.widget().__class__.__name__,
+                    self.widget.mdi_area.subWindowList(),
+                )
+            )
+            self.assertIn("Numeric", widget_types)
+
+        numeric = self.widget.mdi_area.subWindowList()[1].widget()
+
+        # Drag one Channel from FileWidget channel_tree to Numeric_0
+        drag_position = channel_tree.visualItemRect(channel_1).center()
+        drop_position = numeric.channels.dataView.viewport().rect().center()
+
+        DragAndDrop(
+            source_widget=channel_tree,
+            destination_widget=numeric.channels.dataView,
+            source_pos=drag_position,
+            destination_pos=drop_position,
+        )
+        # Evaluate
+        numeric_data = numeric.channels.dataView
+        numeric_channel = numeric_data.model().data(numeric_data.model().index(0, 0))
+        self.assertEqual(channel_1.text(0), numeric_channel)
+
+        # Drag one Channel from Numeric_0 to Plot_0
+        index = numeric_data.model().index(0, 0)
+        drag_position = numeric_data.visualRect(index).center()
+        drop_position = plot_0.channel_selection.viewport().rect().center()
+
+        DragAndDrop(
+            source_widget=numeric_data,
+            destination_widget=plot_0.channel_selection,
+            source_pos=drag_position,
+            destination_pos=drop_position,
+        )
+        # Evaluate
+        plot_0_new_channel = plot_0.channel_selection.topLevelItem(1)
+        plot_0_new_channel_name = plot_0_new_channel.text(0)
+        self.assertEqual(2, plot_0.channel_selection.topLevelItemCount())
+        self.assertEqual(numeric_channel, plot_0_new_channel_name)
 
     def test_Plot_ChannelSelection_DragAndDrop_fromTabular_toPlot(self):
         pass
