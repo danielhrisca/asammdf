@@ -3,6 +3,7 @@ from copy import deepcopy
 from functools import partial
 import inspect
 import itertools
+import json
 import math
 import os
 from pathlib import Path
@@ -487,6 +488,40 @@ def parse_matrix_component(name):
     return name, tuple(indexes)
 
 
+def load_comparison_display_file(file_name, uuids):
+    with open(file_name, "r") as infile:
+        info = json.load(infile)
+    windows = info.get("windows", [])
+    plot_windows = []
+    for window in windows:
+        if window["type"] != "Plot":
+            continue
+
+        window["configuration"]["channels"] = get_comparison_mime(
+            window["configuration"]["channels"], uuids
+        )
+
+        plot_windows.append(window)
+
+
+def get_comparison_mime(data, uuids):
+    entries = []
+
+    for item in data:
+        if item.get("type", "channel") == "channel":
+            for uuid in uuids:
+                new_item = dict(item)
+                new_item["origin_uuid"] = uuid
+                entries.append(new_item)
+
+        else:
+            new_item = dict(item)
+            new_item["channels"] = get_comparison_mime(item["channels"], uuids)
+            entries.append(new_item)
+
+    return entries
+
+
 class MdiSubWindow(QtWidgets.QMdiSubWindow):
     sigClosed = QtCore.Signal(object)
     titleModified = QtCore.Signal()
@@ -901,7 +936,7 @@ class WithMDIArea:
                     measured_signals = {sig.name: sig for sig in sigs.values()}
 
                     required_channels = [
-                        (None, *file.mdf.whereis(channel)[0])
+                        (channel, *file.mdf.whereis(channel)[0])
                         for channel in required_channels
                         if channel not in measured_signals and channel in file.mdf
                     ]
@@ -2348,7 +2383,7 @@ class WithMDIArea:
 
             required_channels = set(required_channels)
             required_channels_list = [
-                (None, *self.mdf.whereis(channel)[0])
+                (channel, *self.mdf.whereis(channel)[0])
                 for channel in required_channels
                 if channel in self.mdf
             ]
@@ -2768,7 +2803,7 @@ class WithMDIArea:
         required_channels = set(get_required_from_computed(channel))
 
         required_channels = [
-            (None, *self.mdf.whereis(channel)[0])
+            (channel, *self.mdf.whereis(channel)[0])
             for channel in required_channels
             if channel in self.mdf
         ]
@@ -3277,7 +3312,7 @@ class WithMDIArea:
             required_channels = set(required_channels)
 
             required_channels = [
-                (None, *self.mdf.whereis(channel)[0])
+                (channel, *self.mdf.whereis(channel)[0])
                 for channel in required_channels
                 if channel not in list(measured_signals) and channel in self.mdf
             ]
