@@ -853,6 +853,7 @@ class TestShortcuts(TestBase):
                 QtCore.Qt.KeyboardModifiers(),
                 channel_selection.visualItemRect(channel_15).center(),
             )
+            plot.plot.setFocus()
             self.processEvents(0.1)
 
             self.assertEqual("25", channel_14.text(1))
@@ -860,19 +861,19 @@ class TestShortcuts(TestBase):
 
             # Send Key strokes
             for count in range(6):
-                QtTest.QTest.keyClick(channel_selection, QtCore.Qt.Key_Right)
-                self.processEvents()
+                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Right)
+                self.processEvents(0.1)
             self.processEvents(0.1)
 
             # Evaluate
-            self.assertEqual("10", channel_14.text(1))
-            self.assertEqual("3", channel_15.text(1))
-            self.assertEqual("t = 0.072657s", plot.cursor_info.text())
+            self.assertEqual("8", channel_14.text(1))
+            self.assertEqual("6", channel_15.text(1))
+            self.assertEqual("t = 0.082657s", plot.cursor_info.text())
 
             # Send Key strokes
             for count in range(5):
-                QtTest.QTest.keyClick(channel_selection, QtCore.Qt.Key_Left)
-                self.processEvents()
+                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Left)
+                self.processEvents(0.1)
             self.processEvents(0.1)
 
             # Evaluate
@@ -889,23 +890,24 @@ class TestShortcuts(TestBase):
                 QtCore.Qt.KeyboardModifiers(),
                 channel_selection.visualItemRect(channel_15).center(),
             )
+            plot.plot.setFocus()
             self.processEvents(0.1)
 
             # Send Key strokes
             for count in range(6):
-                QtTest.QTest.keyClick(channel_selection, QtCore.Qt.Key_Right)
-                self.processEvents()
+                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Right)
+                self.processEvents(0.1)
             self.processEvents(0.1)
 
             # Evaluate
-            self.assertEqual("8", channel_14.text(1))
-            self.assertEqual("6", channel_15.text(1))
-            self.assertEqual("t = 0.082657s", plot.cursor_info.text())
+            self.assertEqual("5", channel_14.text(1))
+            self.assertEqual("9", channel_15.text(1))
+            self.assertEqual("t = 0.092657s", plot.cursor_info.text())
 
             # Send Key strokes
             for count in range(5):
-                QtTest.QTest.keyClick(channel_selection, QtCore.Qt.Key_Left)
-                self.processEvents()
+                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Left)
+                self.processEvents(0.1)
             self.processEvents(0.1)
 
             # Evaluate
