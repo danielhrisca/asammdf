@@ -13,9 +13,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 import numpy as np
 import pyqtgraph as pg
-
 import pyqtgraph.functions as fn
-
 from PySide6 import QtCore, QtGui, QtWidgets
 
 PLOT_BUFFER_SIZE = 4000
