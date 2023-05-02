@@ -5693,7 +5693,7 @@ class PlotGraphics(pg.PlotWidget):
     def scale_curve_to_pixmap(self, x, y, y_range, x_start, delta):
         if self.py:
             y_low, y_high = y_range
-            y_scale = (y_high - y_low) / self.py
+            y_scale = (np.float64(y_high) - np.float64(y_low)) / np.float64(self.py)
             x_scale = self.px
 
             if y_scale * x_scale:

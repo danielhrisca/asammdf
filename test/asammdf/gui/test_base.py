@@ -80,13 +80,14 @@ class TestBase(unittest.TestCase):
 
 
 class DragAndDrop:
+    _previous_position = None
+
     class MoveThread(QtCore.QThread):
-        def __init__(self, widget, position=None, step=None, drop=False):
+        def __init__(self, widget, position=None, step=None):
             super().__init__()
             self.widget = widget
             self.position = position
             self.step = step
-            self.drop = drop
 
         def run(self):
             time.sleep(0.1)
@@ -99,16 +100,16 @@ class DragAndDrop:
                     )
                     QtTest.QTest.qWait(2)
             QtTest.QTest.qWait(50)
-            if self.drop:
-                QtTest.QTest.mouseRelease(
-                    self.widget,
-                    QtCore.Qt.LeftButton,
-                    QtCore.Qt.NoModifier,
-                    self.position,
-                )
-                QtTest.QTest.qWait(10)
 
     def __init__(self, source_widget, destination_widget, source_pos, destination_pos):
+        # Ensure that previous drop was not in the same place because mouse needs to be moved.
+        if self._previous_position and self._previous_position == destination_pos:
+            move_thread = DragAndDrop.MoveThread(widget=source_widget, position=QtCore.QPoint(101, 101))
+            move_thread.start()
+            move_thread.wait()
+            move_thread.quit()
+        DragAndDrop._previous_position = destination_pos
+
         QtCore.QCoreApplication.processEvents()
         if hasattr(source_widget, "viewport"):
             source_viewport = source_widget.viewport()
@@ -127,7 +128,7 @@ class DragAndDrop:
         else:
             destination_viewport = destination_widget
         move_thread = DragAndDrop.MoveThread(
-            widget=destination_viewport, position=destination_pos, drop=True
+            widget=destination_viewport, position=destination_pos
         )
         move_thread.start()
 
@@ -137,3 +138,12 @@ class DragAndDrop:
         # drag_thread.wait()
         move_thread.wait()
         move_thread.quit()
+
+        # Release
+        QtTest.QTest.mouseRelease(
+            destination_viewport,
+            QtCore.Qt.LeftButton,
+            QtCore.Qt.NoModifier,
+            destination_pos,
+        )
+        QtTest.QTest.qWait(10)

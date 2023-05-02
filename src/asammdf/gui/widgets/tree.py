@@ -521,7 +521,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)
-        drag.exec_(QtCore.Qt.MoveAction)
+        drag.exec(QtCore.Qt.MoveAction)
 
     def dragEnterEvent(self, e):
         self.autoscroll_timer.start()
