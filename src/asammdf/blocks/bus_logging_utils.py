@@ -300,7 +300,6 @@ def extract_pdu(
         pairs = {}
         for signal in pdu.signals:
             # signal_mdf = MDF(None, version='4.10', pdu.signals)
-            setattr(signal, 'pdu_name', pdu.name)
             setattr(signal, 'pdu_id', pdu.id)
             try:
                 entry = signal.mux_val_min, signal.mux_val_max
@@ -345,7 +344,6 @@ def extract_pdu(
                         if raw
                             else apply_conversion(samples, sig, ignore_value2text_conversion),
                         "t": t_,
-                        "pdu_name": chgroup_name,
                         "invalidation_bits": None,
                     }
                 except:
@@ -355,10 +353,6 @@ def extract_pdu(
                     raise
         extracted_pdu_signals.append(extracted_signals)
     return extracted_pdu_signals
-
-
-
-
 
 def extract_mux(
     payload: NDArray[Any],
@@ -437,18 +431,6 @@ def extract_mux(
                 entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0, 0)
             pair_signals = pairs.setdefault(entry, [])
             pair_signals.append(signal)
-
-    # if message.is_pdu_container:
-    #     for pdu in message.pdus:
-    #         for signal in pdu.signals:
-    #             #signal_mdf = MDF(None, version='4.10', pdu.signals)
-    #             setattr(signal, 'pdu_id', pdu.id)
-    #             try:
-    #                 entry = signal.mux_val_min, signal.mux_val_max
-    #             except:
-    #                 entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0, 0)
-    #             pair_signals = pairs.setdefault(entry, [])
-    #             pair_signals.append(signal)
 
     for pair, pair_signals in pairs.items():
         entry = bus, message_id, original_message_id, muxer, *pair #(18,172,None, none, none)

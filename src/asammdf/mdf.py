@@ -5235,7 +5235,7 @@ class MDF:
             original_message_id: int | None = None
         ):
 
-        ch_gp_name = ''
+        #ch_gp_name = ''
 
         if entry not in msg_map:
             sigs = []
@@ -5244,7 +5244,7 @@ class MDF:
 
             for _name, signal in signals.items():
                 signal_name = f"{prefix}{signal['name']}"
-                ch_gp_name = signal['pdu_name']
+                #ch_gp_name = signal['pdu_name']
                 sig = Signal(
                     samples=signal["samples"],
                     timestamps=signal["t"],
@@ -5285,7 +5285,7 @@ class MDF:
                     acq_name = (
                             f"CAN{bus} message ID=0x{msg_id:X}"
                     )
-                    comment = f"CAN{bus} - message {ch_gp_name} 0x{msg_id:X}"
+                    comment = f"CAN{bus} - message {message} 0x{msg_id:X}"
 
             acq_source = Source(
                 name=acq_name,
@@ -5349,7 +5349,6 @@ class MDF:
             sigs.insert(0, (t, None))
 
             out.extend(index, sigs)
-        #return out
 
     def _extract_lin_logging(
         self,
