@@ -780,7 +780,7 @@ class TestDragAndDrop(TestBase):
         plot_0 = self.widget.mdi_area.subWindowList()[0].widget()
         # Random Channels
         channel_0 = channel_tree.topLevelItem(8)
-        channel_1 = channel_tree.topLevelItem(13)
+        channel_1 = channel_tree.topLevelItem(0)
 
         # Drag one Channel from FileWidget channel_tree to Plot_0
         drag_position = channel_tree.visualItemRect(channel_0).center()
