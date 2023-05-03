@@ -11,6 +11,121 @@ from PySide6 import QtCore
 from asammdf.gui.widgets.file import FileWidget
 
 
+class TestDoubleClick(TestBase):
+    # Note: Test Plot Widget through FileWidget.
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.measurement_file = str(pathlib.Path(cls.resource, "ASAP2_Demo_V171.mf4"))
+
+    def setUp(self):
+        super().setUp()
+        self.widget = None
+
+    def tearDown(self):
+        if self.widget:
+            self.widget.close()
+            self.widget.destroy()
+            self.widget.deleteLater()
+        self.mc_ErrorDialog.reset_mock()
+        super().tearDown()
+
+    def test_DoubleClick_ChannelSelection(self):
+        """
+        Test Scope: Validate that doubleClick operation will activate de-activate channels.
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Switch ComboBox to "Natural sort"
+            - Press PushButton "Create Window"
+                - Simulate that Plot window is selected as window type.
+            - Drag and Drop channel from FileWidget.channel_tree to Plot
+            - Press mouse double click on added channel
+            - Press mouse double click on added channel
+        Evaluate:
+            - Evaluate that channel checkbox is unchecked.
+            - Evaluate that channel checkbox is checked.
+        """
+        # Event
+        self.widget = FileWidget(
+            self.measurement_file,
+            True,  # with_dots
+            True,  # subplots
+            True,  # subplots_link
+            False,  # ignore_value2text_conversions
+            False,  # display_cg_name
+            "line",  # line_interconnect
+            1,  # password
+            None,  # hide_missing_channels
+            None,  # hide_disabled_channels
+        )
+        self.widget.showNormal()
+        # Switch ComboBox to "Natural sort"
+        self.widget.channel_view.setCurrentText("Natural sort")
+
+        with mock.patch(
+            "asammdf.gui.widgets.file.WindowSelectionDialog"
+        ) as mc_WindowSelectionDialog:
+            mc_WindowSelectionDialog.return_value.result.return_value = True
+            mc_WindowSelectionDialog.return_value.selected_type.return_value = "Plot"
+            # - Press PushButton "Create Window"
+            QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
+            # Evaluate
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+            widget_types = sorted(
+                map(
+                    lambda w: w.widget().__class__.__name__,
+                    self.widget.mdi_area.subWindowList(),
+                )
+            )
+            self.assertIn("Plot", widget_types)
+
+        # Select channel
+        channel_tree = self.widget.channels_tree
+        plot = self.widget.mdi_area.subWindowList()[0].widget()
+        item = channel_tree.topLevelItem(0)
+        channel_name = item.text(0)
+        drag_position = channel_tree.visualItemRect(item).center()
+        drop_position = plot.channel_selection.viewport().rect().center()
+
+        # PreEvaluation
+        self.assertEqual(0, plot.channel_selection.topLevelItemCount())
+        DragAndDrop(
+            source_widget=channel_tree,
+            destination_widget=plot.channel_selection,
+            source_pos=drag_position,
+            destination_pos=drop_position,
+        )
+        # Evaluate
+        plot_channel = plot.channel_selection.topLevelItem(0)
+        plot_channel_name = plot_channel.text(0)
+        self.assertEqual(1, plot.channel_selection.topLevelItemCount())
+        self.assertEqual(channel_name, plot_channel_name)
+
+        # Pre-evaluation
+        self.assertEqual(QtCore.Qt.Checked, plot_channel.checkState(0))
+
+        # Press mouse double click on channel
+        QtTest.QTest.mouseDClick(
+            plot.channel_selection.viewport(),
+            QtCore.Qt.LeftButton,
+            QtCore.Qt.KeyboardModifiers(),
+            plot.channel_selection.visualItemRect(plot_channel).center(),
+        )
+        self.processEvents(0.5)
+
+        # Evaluate
+        self.assertEqual(QtCore.Qt.Unchecked, plot_channel.checkState(0))
+
+        # Press mouse double click on channel
+        QtTest.QTest.mouseDClick(
+            plot.channel_selection.viewport(),
+            QtCore.Qt.LeftButton,
+            QtCore.Qt.KeyboardModifiers(),
+            plot.channel_selection.visualItemRect(plot_channel).center(),
+        )
+        self.assertEqual(QtCore.Qt.Checked, plot_channel.checkState(0))
+
+
 class TestDragAndDrop(TestBase):
     # Note: Test Plot Widget through FileWidget.
 
@@ -847,9 +962,6 @@ class TestDragAndDrop(TestBase):
         plot_0_new_channel_name = plot_0_new_channel.text(0)
         self.assertEqual(2, plot_0.channel_selection.topLevelItemCount())
         self.assertEqual(numeric_channel, plot_0_new_channel_name)
-
-    def test_Plot_ChannelSelection_DragAndDrop_fromTabular_toPlot(self):
-        pass
 
 
 class TestShortcuts(TestBase):
