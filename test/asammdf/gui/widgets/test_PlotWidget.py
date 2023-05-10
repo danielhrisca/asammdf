@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 import sys
+from test.asammdf.gui.test_base import DragAndDrop
+from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 import unittest
 from unittest import mock
 
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
-
-from test.asammdf.gui.test_base import DragAndDrop
-from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestDoubleClick(TestPlotWidget):
@@ -303,7 +302,7 @@ class TestDragAndDrop(TestPlotWidget):
 
         # Case 0:
         with self.subTest(
-                "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_0"
+            "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_0"
         ):
             # DragAndDrop first channel to 3rd position.
             first_channel = plot.channel_selection.topLevelItem(0)
@@ -336,7 +335,7 @@ class TestDragAndDrop(TestPlotWidget):
 
         # Case 1:
         with self.subTest(
-                "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_1"
+            "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_1"
         ):
             # DragAndDrop 2nd and 3rd channels on last position.
             second_channel = plot.channel_selection.topLevelItem(1)
@@ -371,11 +370,11 @@ class TestDragAndDrop(TestPlotWidget):
 
         # Case 2:
         with self.subTest(
-                "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_2"
+            "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_2"
         ):
             # Create Channel Group. Drag channels inside the group one by one
             with mock.patch(
-                    "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
+                "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
             ) as mc_getText:
                 # Create Channel Group
                 mc_getText.return_value = "FirstGroup", True
@@ -448,11 +447,11 @@ class TestDragAndDrop(TestPlotWidget):
 
         # Case 3:
         with self.subTest(
-                "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_3"
+            "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_3"
         ):
             # Create Channel Group. Drag multiple channels inside the group
             with mock.patch(
-                    "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
+                "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
             ) as mc_getText:
                 # Create Channel Group
                 mc_getText.return_value = "SecondGroup", True
@@ -498,7 +497,7 @@ class TestDragAndDrop(TestPlotWidget):
 
         # Case 4:
         with self.subTest(
-                "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_4"
+            "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_4"
         ):
             # Drag Group inside the Group
             # Get Group Positions
@@ -527,7 +526,7 @@ class TestDragAndDrop(TestPlotWidget):
 
         # Case 5:
         with self.subTest(
-                "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_5"
+            "test_test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot_5"
         ):
             # Drag Group outside the Group
             # Get Group Positions
@@ -730,7 +729,6 @@ class TestDragAndDrop(TestPlotWidget):
 
 
 class TestPushButtons(TestPlotWidget):
-
     def test_Plot_ChannelSelection_PushButton_ValuePanel(self):
         """
         Test Scope:
@@ -763,13 +761,19 @@ class TestPushButtons(TestPlotWidget):
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
         # Add Channels to Plot
         plot = self.widget.mdi_area.subWindowList()[0].widget()
-        plot_channel_0 = self.add_channel_to_plot(plot=plot, channel_name="ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL")
+        plot_channel_0 = self.add_channel_to_plot(
+            plot=plot, channel_name="ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
+        )
         self.assertEqual(1, plot.channel_selection.topLevelItemCount())
-        plot_channel_1 = self.add_channel_to_plot(plot=plot, channel_name="ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL")
+        plot_channel_1 = self.add_channel_to_plot(
+            plot=plot, channel_name="ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
+        )
         self.assertEqual(2, plot.channel_selection.topLevelItemCount())
         if plot.selected_channel_value.isVisible():
             # Press PushButton "Hide selected channel value panel"
-            QtTest.QTest.mouseClick(plot.selected_channel_value_btn, QtCore.Qt.LeftButton)
+            QtTest.QTest.mouseClick(
+                plot.selected_channel_value_btn, QtCore.Qt.LeftButton
+            )
         # Press PushButton "Show selected channel value panel"
         QtTest.QTest.mouseClick(plot.selected_channel_value_btn, QtCore.Qt.LeftButton)
         self.assertTrue(plot.selected_channel_value.isVisible())
@@ -786,13 +790,16 @@ class TestPushButtons(TestPlotWidget):
             plot.channel_selection.viewport(),
             QtCore.Qt.LeftButton,
             QtCore.Qt.KeyboardModifiers(),
-            plot.channel_selection.visualItemRect(plot_channel_0).center()
+            plot.channel_selection.visualItemRect(plot_channel_0).center(),
         )
 
         # Evaluate
         plot_channel_0_value = plot_channel_0.text(1)
         plot_channel_0_unit = plot_channel_0.text(2)
-        self.assertEqual(f"{plot_channel_0_value} {plot_channel_0_unit}", plot.selected_channel_value.text())
+        self.assertEqual(
+            f"{plot_channel_0_value} {plot_channel_0_unit}",
+            plot.selected_channel_value.text(),
+        )
 
         # Event
         plot.plot.setFocus()
@@ -806,20 +813,26 @@ class TestPushButtons(TestPlotWidget):
         # Evaluate
         plot_channel_0_value = plot_channel_0.text(1)
         plot_channel_0_unit = plot_channel_0.text(2)
-        self.assertEqual(f"{plot_channel_0_value} {plot_channel_0_unit}", plot.selected_channel_value.text())
+        self.assertEqual(
+            f"{plot_channel_0_value} {plot_channel_0_unit}",
+            plot.selected_channel_value.text(),
+        )
 
         # Select 2nd Channel
         QtTest.QTest.mouseClick(
             plot.channel_selection.viewport(),
             QtCore.Qt.LeftButton,
             QtCore.Qt.KeyboardModifiers(),
-            plot.channel_selection.visualItemRect(plot_channel_1).center()
+            plot.channel_selection.visualItemRect(plot_channel_1).center(),
         )
 
         # Evaluate
         plot_channel_1_value = plot_channel_1.text(1)
         plot_channel_1_unit = plot_channel_1.text(2)
-        self.assertEqual(f"{plot_channel_1_value} {plot_channel_1_unit}", plot.selected_channel_value.text())
+        self.assertEqual(
+            f"{plot_channel_1_value} {plot_channel_1_unit}",
+            plot.selected_channel_value.text(),
+        )
 
         # Event
         plot.plot.setFocus()
@@ -833,7 +846,10 @@ class TestPushButtons(TestPlotWidget):
         # Evaluate
         plot_channel_1_value = plot_channel_1.text(1)
         plot_channel_1_unit = plot_channel_1.text(2)
-        self.assertEqual(f"{plot_channel_1_value} {plot_channel_1_unit}", plot.selected_channel_value.text())
+        self.assertEqual(
+            f"{plot_channel_1_value} {plot_channel_1_unit}",
+            plot.selected_channel_value.text(),
+        )
 
 
 class TestShortcuts(TestPlotWidget):
@@ -867,8 +883,12 @@ class TestShortcuts(TestPlotWidget):
 
         plot = self.widget.mdi_area.subWindowList()[0].widget()
         channel_selection = plot.channel_selection
-        channel_14 = self.add_channel_to_plot(plot=plot, channel_name="ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL")
-        channel_15 = self.add_channel_to_plot(plot=plot, channel_name="ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL")
+        channel_14 = self.add_channel_to_plot(
+            plot=plot, channel_name="ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
+        )
+        channel_15 = self.add_channel_to_plot(
+            plot=plot, channel_name="ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
+        )
         self.assertEqual(2, plot.channel_selection.topLevelItemCount())
 
         # Case 0:
