@@ -1605,7 +1605,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     def scramble(self, event):
         self._progress = setup_progress(parent=self)
-        self._progress.finished.connect(self.scramble_finished)
+        self._progress.qfinished.connect(self.scramble_finished)
 
         self._progress.run_thread_with_progress(
             target=self.scramble_thread,
@@ -1673,7 +1673,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             return
 
         self._progress = setup_progress(parent=self)
-        self._progress.finished.connect(self.extract_bus_logging_finished)
+        self._progress.qfinished.connect(self.extract_bus_logging_finished)
 
         self._progress.run_thread_with_progress(
             target=self.extract_bus_logging_thread,
@@ -1840,7 +1840,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             return
 
         self._progress = setup_progress(parent=self)
-        self._progress.finished.connect(self.extract_bus_csv_logging_finished)
+        self._progress.qfinished.connect(self.extract_bus_csv_logging_finished)
 
         self._progress.run_thread_with_progress(
             target=self.extract_bus_csv_logging_thread,
@@ -2664,7 +2664,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             return
 
         self._progress = setup_progress(parent=self)
-        self._progress.finished.connect(self.apply_processing_finished)
+        self._progress.qfinished.connect(self.apply_processing_finished)
 
         self._progress.run_thread_with_progress(
             target=self.apply_processing_thread,

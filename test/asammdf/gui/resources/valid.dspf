@@ -42,7 +42,7 @@
               -27.75,
               1026.75
             ],
-            "origin_uuid": "95f656e7a338"
+            "origin_uuid": "117366e58983"
           },
           {
             "type": "group",
@@ -84,7 +84,7 @@
                       -27.75,
                       1026.75
                     ],
-                    "origin_uuid": "95f656e7a338"
+                    "origin_uuid": "117366e58983"
                   }
                 ]
               },
@@ -108,7 +108,7 @@
                   -135.08336345098002,
                   134.08336654901996
                 ],
-                "origin_uuid": "95f656e7a338"
+                "origin_uuid": "117366e58983"
               }
             ]
           },
@@ -131,7 +131,42 @@
               -128.0,
               124.0
             ],
-            "origin_uuid": "95f656e7a338"
+            "origin_uuid": "117366e58983"
+          },
+          {
+            "type": "channel",
+            "name": "_C_PositiveValues",
+            "unit": "",
+            "flags": 32,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#b8f11b",
+            "computed": true,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{}",
+            "format": "phys",
+            "mode": "phys",
+            "computation": {
+              "args": {
+                "a": []
+              },
+              "channel_comment": "",
+              "channel_name": "_C_PositiveValues",
+              "channel_unit": "",
+              "computation_mode": "sample_by_sample",
+              "definition": "",
+              "function": "PositiveValues",
+              "triggering": "triggering_on_channel",
+              "triggering_value": "ASAM.M.VIRTUAL.SCALAR.SWORD.PHYSICAL",
+              "type": "python_function"
+            },
+            "y_range": [
+              0.0,
+              0.0
+            ],
+            "origin_uuid": "117366e58983"
           }
         ],
         "pattern": {},
@@ -245,5 +280,7 @@
       "type": "Tabular"
     }
   ],
-  "functions": {}
+  "functions": {
+    "PositiveValues": "def PositiveValues (a=0, t=0):\n\tif a > 0:\n\t\treturn a\n\telse:\n    \treturn 0"
+  }
 }
