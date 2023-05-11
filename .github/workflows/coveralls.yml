@@ -8,7 +8,7 @@ on:
 
 jobs:
   coveralls:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v3
@@ -33,6 +33,7 @@ jobs:
           fi
 
       - name: Start Xvfb
+        if: matrix.os == 'ubuntu-latest'
         run: |
           Xvfb :0 -screen 0 1024x768x24 > /dev/null 2>&1 &
           export DISPLAY=:0
@@ -41,6 +42,7 @@ jobs:
         run: tox -e py38
 
       - name: Stop Xvfb
+        if: matrix.os == 'ubuntu-latest'
         run: killall Xvfb
 
       # see: https://coveralls-python.readthedocs.io/en/latest/usage/configuration.html#github-actions-support
