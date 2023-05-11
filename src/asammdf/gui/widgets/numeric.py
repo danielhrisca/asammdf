@@ -1326,7 +1326,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     sig.computation = None
                     ranges = sig.ranges
                     exists = getattr(sig, "exists", True)
-                    sig = PlotSignal(sig)
+                    sig = PlotSignal(sig, allow_trim=False)
                     if sig.conversion:
                         sig.phys_samples = sig.conversion.convert(
                             sig.raw_samples, as_object=True

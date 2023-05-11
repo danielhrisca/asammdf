@@ -179,7 +179,7 @@ def get_descriptions_by_uuid(mime):
 
 
 class PlotSignal(Signal):
-    def __init__(self, signal, index=0, trim_info=None, duplication=1):
+    def __init__(self, signal, index=0, trim_info=None, duplication=1, allow_trim=True):
         super().__init__(
             signal.samples,
             signal.timestamps,
@@ -299,7 +299,8 @@ class PlotSignal(Signal):
         self._compute_basic_stats()
 
         self.mode = getattr(signal, "mode", "phys")
-        self.trim(*(trim_info or (None, None, 1900)))
+        if allow_trim:
+            self.trim(*(trim_info or (None, None, 1900)))
 
     @property
     def avg(self):
