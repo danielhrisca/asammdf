@@ -118,12 +118,13 @@ class Ui_SimpleSearchDialog(object):
 
         self.gridLayout.addWidget(self.case_sensitivity, 1, 0, 1, 1)
 
+        QWidget.setTabOrder(self.match_kind, self.case_sensitivity)
+        QWidget.setTabOrder(self.case_sensitivity, self.search_box)
         QWidget.setTabOrder(self.search_box, self.matches)
-        QWidget.setTabOrder(self.matches, self.match_kind)
-        QWidget.setTabOrder(self.match_kind, self.add_btn)
+        QWidget.setTabOrder(self.matches, self.add_btn)
         QWidget.setTabOrder(self.add_btn, self.selection)
-        QWidget.setTabOrder(self.selection, self.cancel_btn)
-        QWidget.setTabOrder(self.cancel_btn, self.apply_btn)
+        QWidget.setTabOrder(self.selection, self.apply_btn)
+        QWidget.setTabOrder(self.apply_btn, self.cancel_btn)
 
         self.retranslateUi(SimpleSearchDialog)
 

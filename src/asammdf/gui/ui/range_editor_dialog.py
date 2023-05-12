@@ -67,7 +67,9 @@ class Ui_RangeDialog(object):
 
         self.gridLayout.setRowStretch(4, 1)
         self.gridLayout.setColumnStretch(0, 1)
-        QWidget.setTabOrder(self.ranges, self.apply_btn)
+        QWidget.setTabOrder(self.ranges, self.insert_btn)
+        QWidget.setTabOrder(self.insert_btn, self.reset_btn)
+        QWidget.setTabOrder(self.reset_btn, self.apply_btn)
         QWidget.setTabOrder(self.apply_btn, self.cancel_btn)
 
         self.retranslateUi(RangeDialog)

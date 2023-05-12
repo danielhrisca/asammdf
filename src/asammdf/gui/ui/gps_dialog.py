@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'gps_dialog.ui'
+## Form generated from reading UI file 'gps_dialog.UI'
 ##
-## Created by: Qt User Interface Compiler version 6.2.3
+## Created by: Qt User Interface Compiler version 6.3.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -104,10 +104,10 @@ class Ui_GPSDialog(object):
 
         self.gridLayout.setRowStretch(4, 1)
         QWidget.setTabOrder(self.latitude, self.longitude)
-        QWidget.setTabOrder(self.longitude, self.apply_btn)
-        QWidget.setTabOrder(self.apply_btn, self.search_latitude_btn)
+        QWidget.setTabOrder(self.longitude, self.search_latitude_btn)
         QWidget.setTabOrder(self.search_latitude_btn, self.search_longitude_btn)
-        QWidget.setTabOrder(self.search_longitude_btn, self.cancel_btn)
+        QWidget.setTabOrder(self.search_longitude_btn, self.apply_btn)
+        QWidget.setTabOrder(self.apply_btn, self.cancel_btn)
 
         self.retranslateUi(GPSDialog)
 

@@ -9,6 +9,7 @@ import os
 import random
 import re
 import sys
+import types
 from textwrap import indent
 from threading import Thread
 from time import perf_counter, sleep
@@ -415,6 +416,13 @@ def compute_signal(
 
                 if function_name == description["function"]:
                     func, trace = _func, _trace
+
+            from copy import deepcopy
+            original_globals = deepcopy({
+                e:v for e,v in _globals.items() if not e.startswith('__') and not isinstance(v, (types.MethodType, types.FunctionType, types.ModuleType))
+            })
+
+            print(f'{original_globals=}')
 
             if func is None:
                 raise Exception(trace)

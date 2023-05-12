@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'tabular.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.3
+## Created by: Qt User Interface Compiler version 6.3.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -154,6 +154,15 @@ class Ui_TabularDisplay(object):
         self.verticalLayout.addWidget(self.filters_group)
 
         self.verticalLayout.setStretch(0, 1)
+        QWidget.setTabOrder(self.format_selection, self.float_precision)
+        QWidget.setTabOrder(self.float_precision, self.time_as_date)
+        QWidget.setTabOrder(self.time_as_date, self.remove_prefix)
+        QWidget.setTabOrder(self.remove_prefix, self.prefix)
+        QWidget.setTabOrder(self.prefix, self.toggle_filters_btn)
+        QWidget.setTabOrder(self.toggle_filters_btn, self.add_filter_btn)
+        QWidget.setTabOrder(self.add_filter_btn, self.apply_filters_btn)
+        QWidget.setTabOrder(self.apply_filters_btn, self.filters)
+        QWidget.setTabOrder(self.filters, self.query)
 
         self.retranslateUi(TabularDisplay)
 
