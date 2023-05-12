@@ -1441,8 +1441,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     self.refresh()
             else:
                 text, ok = QtWidgets.QInputDialog.getText(
-                    self, "Edit channel group name", "New channel group name:",
-                    QtWidgets.QLineEdit.Normal, item.name
+                    self,
+                    "Edit channel group name",
+                    "New channel group name:",
+                    QtWidgets.QLineEdit.Normal,
+                    item.name,
                 )
                 if ok:
                     item.name = text
