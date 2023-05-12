@@ -19,7 +19,7 @@ import os
 from pathlib import Path
 import shutil
 import sys
-from tempfile import gettempdir, TemporaryFile
+from tempfile import gettempdir, NamedTemporaryFile
 from time import sleep
 from traceback import format_exc
 from typing import Any, overload
@@ -315,7 +315,7 @@ class MDF4(MDF_Common):
             self.load_filter = set(channels)
             self.use_load_filter = True
 
-        self._tempfile = TemporaryFile(dir=self.temporary_folder)
+        self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
         self._file = None
 
         self._read_fragment_size = get_global_option("read_fragment_size")
@@ -10052,7 +10052,7 @@ class MDF4(MDF_Common):
 
             self._ch_map.clear()
 
-            self._tempfile = TemporaryFile(dir=self.temporary_folder)
+            self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
             self._file = open(self.name, "rb")
             self._read()
 

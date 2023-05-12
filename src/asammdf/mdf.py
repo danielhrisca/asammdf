@@ -4730,7 +4730,8 @@ class MDF:
                     channel_name = used_names.get_unique_name(channel_name)
 
                     if reduce_memory_usage and sig.samples.dtype.kind not in "SU":
-                        sig.samples = downcast(sig.samples)
+                        if sig.samples.size > 0:
+                            sig.samples = downcast(sig.samples)
 
                     if sig.samples.dtype.byteorder not in target_byte_order:
                         sig.samples = sig.samples.byteswap().newbyteorder()

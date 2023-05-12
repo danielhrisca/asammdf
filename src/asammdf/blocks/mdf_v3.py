@@ -16,7 +16,7 @@ import mmap
 import os
 from pathlib import Path
 import sys
-from tempfile import TemporaryFile
+from tempfile import NamedTemporaryFile
 import time
 from traceback import format_exc
 from typing import Any, overload
@@ -203,7 +203,7 @@ class MDF3(MDF_Common):
         self._master_channel_metadata = {}
         self._closed = False
 
-        self._tempfile = TemporaryFile(dir=self.temporary_folder)
+        self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
         self._tempfile.write(b"\0")
         self._file = None
 
@@ -3736,7 +3736,7 @@ class MDF3(MDF_Common):
             self.channels_db.clear()
             self.masters_db.clear()
 
-            self._tempfile = TemporaryFile(dir=self.temporary_folder)
+            self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
             self._file = open(self.name, "rb")
             self._read()
 
