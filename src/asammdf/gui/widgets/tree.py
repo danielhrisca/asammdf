@@ -917,8 +917,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         if item and item.type() == ChannelsTreeItem.Channel:
             menu.addAction(self.tr("Rename channel"))
-        elif item and item.type() == ChannelsTreeItem.Group and not item.pattern:
-            menu.addAction(self.tr("Rename group"))
         menu.addSeparator()
 
         submenu = QtWidgets.QMenu("Enable/disable")
@@ -1379,17 +1377,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.keyPressEvent(event)
 
-        elif action.text() == "Rename group":
-            text, ok = QtWidgets.QInputDialog.getText(
-                self,
-                "Rename group",
-                "New channel group name:",
-                text=item.text(item.NameColumn),
-            )
-            if ok and text.strip():
-                text = text.strip()
-                item.name = text
-
         elif action.text() == "Rename channel":
             text, ok = QtWidgets.QInputDialog.getText(
                 self,
@@ -1448,7 +1435,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     item.name,
                 )
                 if ok:
-                    item.name = text
+                    item.name = text.strip()
 
         self.update_channel_groups_count()
 
