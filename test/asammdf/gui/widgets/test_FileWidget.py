@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 import pathlib
 import shutil
-import sys
 from test.asammdf.gui.test_base import DragAndDrop
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 import time
-import unittest
 from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets
@@ -45,10 +43,6 @@ class TestTabChannels(TestFileWidget):
             widget_types = self.get_subwindows()
             self.assertIn("Plot", widget_types)
 
-    @unittest.skipIf(
-        sys.platform in ("darwin", "linux"),
-        "Test is failing due to Segmentation Fault on Linux platform.",
-    )
     @mock.patch("asammdf.gui.widgets.file.ErrorDialog")
     def test_PushButton_LoadOfflineWindows_DSPF(self, mc_file_ErrorDialog):
         """

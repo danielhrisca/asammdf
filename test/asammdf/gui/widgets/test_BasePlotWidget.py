@@ -9,19 +9,6 @@ from PySide6 import QtCore, QtTest, QtWidgets
 class TestPlotWidget(TestFileWidget):
     measurement_file = str(pathlib.Path(TestFileWidget.resource, "ASAP2_Demo_V171.mf4"))
 
-    def create_window(self, window_type):
-        with mock.patch(
-            "asammdf.gui.widgets.file.WindowSelectionDialog"
-        ) as mc_WindowSelectionDialog:
-            mc_WindowSelectionDialog.return_value.result.return_value = True
-            mc_WindowSelectionDialog.return_value.selected_type.return_value = (
-                window_type
-            )
-            # - Press PushButton "Create Window"
-            QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
-            widget_types = self.get_subwindows()
-            self.assertIn(window_type, widget_types)
-
     def add_channel_to_plot(self, plot, channel_name=None, channel_index=None):
         # Select channel
         selected_channel = None
@@ -62,3 +49,16 @@ class TestPlotWidget(TestFileWidget):
             iterator += 1
 
         return plot_channel
+
+    def create_window(self, window_type):
+        with mock.patch(
+            "asammdf.gui.widgets.file.WindowSelectionDialog"
+        ) as mc_WindowSelectionDialog:
+            mc_WindowSelectionDialog.return_value.result.return_value = True
+            mc_WindowSelectionDialog.return_value.selected_type.return_value = (
+                window_type
+            )
+            # - Press PushButton "Create Window"
+            QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
+            widget_types = self.get_subwindows()
+            self.assertIn(window_type, widget_types)
