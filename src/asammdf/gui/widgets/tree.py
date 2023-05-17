@@ -1508,11 +1508,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if item is None:
                 break
 
-            if item.type() == item.Channel:
-                rect = self.visualItemRect(item)
-                item._is_visible = rect.intersects(tree_rect)
-            else:
-                item._is_visible = False
+            try:
+                if item.type() == item.Channel:
+                    rect = self.visualItemRect(item)
+                    item._is_visible = rect.intersects(tree_rect)
+                else:
+                    item._is_visible = False
+            except:
+                print(item)
 
             iterator += 1
 

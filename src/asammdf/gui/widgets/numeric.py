@@ -884,6 +884,8 @@ class HeaderModel(QtCore.QAbstractTableModel):
 
 
 class HeaderView(QtWidgets.QTableView):
+    sorting_changed = QtCore.Signal(int)
+
     def __init__(self, parent):
         super().__init__(parent)
         self.numeric_viewer = parent
@@ -936,6 +938,7 @@ class HeaderView(QtWidgets.QTableView):
         col = ix.column()
         if event.button() == QtCore.Qt.LeftButton:
             self.backend.sort_column(col)
+            self.sorting_changed.emit(col)
         else:
             super().mouseDoubleClickEvent(event)
 
@@ -1266,6 +1269,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             self.add_new_channels(channels)
 
         self.channels.dataView.add_channels_request.connect(self.add_channels_request)
+        self.channels.dataView.verticalScrollBar().valueChanged.connect(
+            self.reset_visible_entries
+        )
+        self.channels.columnHeader.sorting_changed.connect(self.reset_visible_entries)
 
         self.channels.auto_size_header()
         self.double_clicked_enabled = True
@@ -1418,6 +1425,13 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
     def does_not_exist(self, entry, exists=False):
         self.channels.backend.does_not_exist(entry, exists)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.visible_entries_modified = True
+
+    def reset_visible_entries(self, arg):
+        self.visible_entries_modified = True
 
     def set_format(self, fmt):
         fmt = fmt.lower()
