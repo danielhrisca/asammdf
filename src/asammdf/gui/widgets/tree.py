@@ -544,10 +544,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         if e.source() is self:
             item = self.itemAt(6, 6)
+            self.blockSignals(True)
             super().dropEvent(e)
+            self.blockSignals(False)
             self.scrollToItem(item)
 
         else:
+            
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
