@@ -550,7 +550,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.scrollToItem(item)
 
         else:
-            
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
