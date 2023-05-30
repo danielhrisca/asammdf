@@ -538,16 +538,11 @@
   <customwidget>
    <class>MinimalListWidget</class>
    <extends>QListWidget</extends>
-   <header>asammdf/gui/widgets/list.h</header>
+   <header>asammdf.gui.widgets.list.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>
   <tabstop>tabs</tabstop>
-  <tabstop>name</tabstop>
-  <tabstop>comment</tabstop>
-  <tabstop>unit</tabstop>
-  <tabstop>cancel_btn</tabstop>
-  <tabstop>apply_btn</tabstop>
   <tabstop>a</tabstop>
   <tabstop>b</tabstop>
   <tabstop>p1</tabstop>
@@ -559,9 +554,20 @@
   <tabstop>vtt_list</tabstop>
   <tabstop>insert_btn</tabstop>
   <tabstop>reset_btn</tabstop>
+  <tabstop>vtt_default_mode</tabstop>
+  <tabstop>vtt_default</tabstop>
   <tabstop>vrtt_list</tabstop>
   <tabstop>insert_vrtt_btn</tabstop>
   <tabstop>reset_vrtt_btn</tabstop>
+  <tabstop>vrtt_default_mode</tabstop>
+  <tabstop>vrtt_default</tabstop>
+  <tabstop>name</tabstop>
+  <tabstop>comment</tabstop>
+  <tabstop>unit</tabstop>
+  <tabstop>apply_btn</tabstop>
+  <tabstop>cancel_btn</tabstop>
+  <tabstop>vrtt_default_btn</tabstop>
+  <tabstop>vtt_default_btn</tabstop>
  </tabstops>
  <resources>
   <include location="resource.qrc"/>

@@ -3103,7 +3103,7 @@ class MDF3(MDF_Common):
                             )
                             channel_dtype = dtype(dtype_fmt.split(")")[-1])
 
-                            if channel_dtype.byteorder == "|" and data_type in (
+                            if channel_dtype.byteorder == "=" and data_type in (
                                 v23c.DATA_TYPE_SIGNED_MOTOROLA,
                                 v23c.DATA_TYPE_UNSIGNED_MOTOROLA,
                             ):
@@ -3342,7 +3342,7 @@ class MDF3(MDF_Common):
                     )
                     channel_dtype = dtype(dtype_fmt.split(")")[-1])
 
-                    if channel_dtype.byteorder == "|" and time_ch.data_type in (
+                    if channel_dtype.byteorder == "=" and time_ch.data_type in (
                         v23c.DATA_TYPE_SIGNED_MOTOROLA,
                         v23c.DATA_TYPE_UNSIGNED_MOTOROLA,
                     ):
