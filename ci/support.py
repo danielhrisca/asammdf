@@ -82,7 +82,7 @@ class ReportTests:
             md = f"{self._header}\n{md}"
         return md
 
-    def run_parse(self, dirpath):
+    def _parse(self, dirpath):
         # Parse Directory
         for root, _, files in os.walk(dirpath):
             # Filter only xml files
