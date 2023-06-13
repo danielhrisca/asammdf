@@ -47,4 +47,15 @@ jobs:
       - name: Stop Xvfb
         if: matrix.os == 'ubuntu-22.04'
         run: killall Xvfb
+
+      - name: Publish Style Summary
+        if: ${{ failure() || success() }}
+        run: |
+          python -c "from ci import report_style; report_style()"
+
+      - name: Publish Tests Summary
+        if: ${{ failure() || success() }}
+        run: |
+          pip install junitparser
+          python -c "from ci import report_tests; report_tests(header='## Unit-tests Report:')"
         
