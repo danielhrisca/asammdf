@@ -7496,7 +7496,6 @@ class MDF4(MDF_Common):
                 info = grp.record[ch_nr]
 
                 if info is not None:
-
                     dtype_, byte_size, byte_offset, bit_offset = info
                     if (
                         ch_nr == 0

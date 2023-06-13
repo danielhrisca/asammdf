@@ -1100,4 +1100,3 @@ class TestTabModifyAndExport(TestFileWidget):
         channels = self.widget.channels_db_items
         selected_channels.append("time")
         self.assertListEqual(selected_channels, list(channels))
-

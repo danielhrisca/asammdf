@@ -1,10 +1,9 @@
 import pathlib
+from test.asammdf.gui.test_base import DragAndDrop
+from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 from unittest import mock
 
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
-
-from test.asammdf.gui.test_base import DragAndDrop
-from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 
 class TestPlotWidget(TestFileWidget):
@@ -52,9 +51,13 @@ class TestPlotWidget(TestFileWidget):
         return plot_channel
 
     def create_window(self, window_type):
-        with mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mc_WindowSelectionDialog:
+        with mock.patch(
+            "asammdf.gui.widgets.file.WindowSelectionDialog"
+        ) as mc_WindowSelectionDialog:
             mc_WindowSelectionDialog.return_value.result.return_value = True
-            mc_WindowSelectionDialog.return_value.selected_type.return_value = window_type
+            mc_WindowSelectionDialog.return_value.selected_type.return_value = (
+                window_type
+            )
             # - Press PushButton "Create Window"
             QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
             widget_types = self.get_subwindows()
