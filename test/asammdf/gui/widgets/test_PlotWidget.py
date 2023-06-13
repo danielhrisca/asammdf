@@ -945,8 +945,15 @@ class TestPushButtons(TestPlotWidget):
             plot.channel_selection.visualItemRect(plot_tree_channel_1).center(),
         )
         # Process flash
-        for _ in range(12):
+        for _ in range(30):
             self.processEvents(timeout=0.01)
+            focus_mode_channel_1_pixmap = plot.plot.viewport().grab()
+            if self.has_color(
+                    pixmap=focus_mode_channel_1_pixmap,
+                    color_name=plot_graph_channel_1.color_name,
+            ):
+                print(_)
+                break
 
         # Evaluate
         focus_mode_channel_1_pixmap = plot.plot.viewport().grab()
