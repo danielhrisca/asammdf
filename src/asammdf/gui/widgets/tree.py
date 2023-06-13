@@ -544,7 +544,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         if e.source() is self:
             item = self.itemAt(6, 6)
+            self.blockSignals(True)
             super().dropEvent(e)
+            self.blockSignals(False)
             self.scrollToItem(item)
 
         else:
@@ -917,8 +919,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         if item and item.type() == ChannelsTreeItem.Channel:
             menu.addAction(self.tr("Rename channel"))
-        elif item and item.type() == ChannelsTreeItem.Group and not item.pattern:
-            menu.addAction(self.tr("Rename group"))
         menu.addSeparator()
 
         submenu = QtWidgets.QMenu("Enable/disable")
@@ -1379,17 +1379,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.keyPressEvent(event)
 
-        elif action.text() == "Rename group":
-            text, ok = QtWidgets.QInputDialog.getText(
-                self,
-                "Rename group",
-                "New channel group name:",
-                text=item.text(item.NameColumn),
-            )
-            if ok and text.strip():
-                text = text.strip()
-                item.name = text
-
         elif action.text() == "Rename channel":
             text, ok = QtWidgets.QInputDialog.getText(
                 self,
@@ -1441,10 +1430,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     self.refresh()
             else:
                 text, ok = QtWidgets.QInputDialog.getText(
-                    self, "Edit channel group name", "New channel group name:"
+                    self,
+                    "Edit channel group name",
+                    "New channel group name:",
+                    QtWidgets.QLineEdit.Normal,
+                    item.name,
                 )
                 if ok:
-                    item.name = text
+                    item.name = text.strip()
 
         self.update_channel_groups_count()
 
@@ -1517,11 +1510,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if item is None:
                 break
 
-            if item.type() == item.Channel:
-                rect = self.visualItemRect(item)
-                item._is_visible = rect.intersects(tree_rect)
-            else:
-                item._is_visible = False
+            try:
+                if item.type() == item.Channel:
+                    rect = self.visualItemRect(item)
+                    item._is_visible = rect.intersects(tree_rect)
+                else:
+                    item._is_visible = False
+            except:
+                print(item)
 
             iterator += 1
 

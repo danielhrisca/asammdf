@@ -169,18 +169,19 @@
   <customwidget>
    <class>MinimalListWidget</class>
    <extends>QListWidget</extends>
-   <header>asammdf/gui/widgets/list.h</header>
+   <header>asammdf.gui.widgets.list.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>
-  <tabstop>search_box</tabstop>
   <tabstop>match_kind</tabstop>
+  <tabstop>case_sensitivity</tabstop>
+  <tabstop>search_box</tabstop>
   <tabstop>matches</tabstop>
   <tabstop>add_btn</tabstop>
   <tabstop>selection</tabstop>
-  <tabstop>show_measurement_list_btn</tabstop>
   <tabstop>apply_btn</tabstop>
   <tabstop>cancel_btn</tabstop>
+  <tabstop>show_measurement_list_btn</tabstop>
  </tabstops>
  <resources>
   <include location="resource.qrc"/>

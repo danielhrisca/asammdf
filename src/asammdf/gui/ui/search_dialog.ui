@@ -549,23 +549,27 @@
  </widget>
  <tabstops>
   <tabstop>search_box</tabstop>
+  <tabstop>match_kind</tabstop>
+  <tabstop>case_sensitivity</tabstop>
+  <tabstop>extended_search</tabstop>
   <tabstop>matches</tabstop>
   <tabstop>add_btn</tabstop>
   <tabstop>selection</tabstop>
-  <tabstop>cancel_btn</tabstop>
-  <tabstop>apply_btn</tabstop>
   <tabstop>add_window_btn</tabstop>
-  <tabstop>match_kind</tabstop>
+  <tabstop>apply_btn</tabstop>
+  <tabstop>cancel_btn</tabstop>
   <tabstop>tabs</tabstop>
-  <tabstop>raw</tabstop>
-  <tabstop>filter_value</tabstop>
-  <tabstop>filter_type</tabstop>
-  <tabstop>define_ranges_btn</tabstop>
-  <tabstop>apply_pattern_btn</tabstop>
-  <tabstop>cancel_pattern_btn</tabstop>
+  <tabstop>name</tabstop>
   <tabstop>pattern</tabstop>
   <tabstop>pattern_match_type</tabstop>
-  <tabstop>name</tabstop>
+  <tabstop>case_sensitivity_pattern</tabstop>
+  <tabstop>filter_type</tabstop>
+  <tabstop>filter_value</tabstop>
+  <tabstop>raw</tabstop>
+  <tabstop>define_ranges_btn</tabstop>
+  <tabstop>integer_format</tabstop>
+  <tabstop>apply_pattern_btn</tabstop>
+  <tabstop>cancel_pattern_btn</tabstop>
  </tabstops>
  <resources>
   <include location="resource.qrc"/>

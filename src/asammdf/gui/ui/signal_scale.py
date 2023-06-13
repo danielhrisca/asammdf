@@ -25,7 +25,7 @@ class Ui_ScaleDialog(object):
     def setupUi(self, ScaleDialog):
         if not ScaleDialog.objectName():
             ScaleDialog.setObjectName(u"ScaleDialog")
-        ScaleDialog.resize(1091, 676)
+        ScaleDialog.resize(1091, 678)
         self.gridLayout_3 = QGridLayout(ScaleDialog)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.horizontalLayout = QHBoxLayout()
@@ -241,6 +241,19 @@ class Ui_ScaleDialog(object):
 
         self.gridLayout_3.addWidget(self.signal, 0, 0, 1, 2)
 
+        QWidget.setTabOrder(self.signal, self.target_max)
+        QWidget.setTabOrder(self.target_max, self.target_min)
+        QWidget.setTabOrder(self.target_min, self.zoom_in_btn)
+        QWidget.setTabOrder(self.zoom_in_btn, self.zoom_out_btn)
+        QWidget.setTabOrder(self.zoom_out_btn, self.fit_btn)
+        QWidget.setTabOrder(self.fit_btn, self.shift_up_btn)
+        QWidget.setTabOrder(self.shift_up_btn, self.shift_down_btn)
+        QWidget.setTabOrder(self.shift_down_btn, self.fast_shift_up_btn)
+        QWidget.setTabOrder(self.fast_shift_up_btn, self.fast_shift_down_btn)
+        QWidget.setTabOrder(self.fast_shift_down_btn, self.scaling)
+        QWidget.setTabOrder(self.scaling, self.offset)
+        QWidget.setTabOrder(self.offset, self.apply_btn)
+        QWidget.setTabOrder(self.apply_btn, self.cancel_btn)
 
         self.retranslateUi(ScaleDialog)
 

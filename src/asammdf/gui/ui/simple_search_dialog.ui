@@ -181,13 +181,14 @@
   </layout>
  </widget>
  <tabstops>
+  <tabstop>match_kind</tabstop>
+  <tabstop>case_sensitivity</tabstop>
   <tabstop>search_box</tabstop>
   <tabstop>matches</tabstop>
-  <tabstop>match_kind</tabstop>
   <tabstop>add_btn</tabstop>
   <tabstop>selection</tabstop>
-  <tabstop>cancel_btn</tabstop>
   <tabstop>apply_btn</tabstop>
+  <tabstop>cancel_btn</tabstop>
  </tabstops>
  <resources>
   <include location="resource.qrc"/>

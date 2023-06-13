@@ -7496,6 +7496,7 @@ class MDF4(MDF_Common):
                 info = grp.record[ch_nr]
 
                 if info is not None:
+
                     dtype_, byte_size, byte_offset, bit_offset = info
                     if (
                         ch_nr == 0
@@ -7516,15 +7517,15 @@ class MDF4(MDF_Common):
                     if not channel.standard_C_size:
                         size = byte_size
 
-                        if channel_dtype.byteorder == "|" and data_type in (
+                        if channel_dtype.byteorder == "=" and data_type in (
                             v4c.DATA_TYPE_SIGNED_MOTOROLA,
                             v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
                         ):
-                            view = f">u{vals.itemsize}"
+                            view = dtype(f">u{vals.itemsize}")
                         else:
-                            view = f"{channel_dtype.byteorder}u{vals.itemsize}"
+                            view = dtype(f"{channel_dtype.byteorder}u{vals.itemsize}")
 
-                        if dtype(view) != vals.dtype:
+                        if view != vals.dtype:
                             vals = vals.view(view)
 
                         if bit_offset:
@@ -7637,7 +7638,7 @@ class MDF4(MDF_Common):
                     if not channel.standard_C_size:
                         size = dtype_.itemsize
 
-                        if channel_dtype.byteorder == "|" and data_type in (
+                        if channel_dtype.byteorder == "=" and data_type in (
                             v4c.DATA_TYPE_SIGNED_MOTOROLA,
                             v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
                         ):
@@ -8530,7 +8531,7 @@ class MDF4(MDF_Common):
 
                         size = byte_size
 
-                        if channel_dtype.byteorder == "|" and time_ch.data_type in (
+                        if channel_dtype.byteorder == "=" and time_ch.data_type in (
                             v4c.DATA_TYPE_SIGNED_MOTOROLA,
                             v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
                         ):

@@ -1113,7 +1113,7 @@ class PlotSignal(Signal):
 
                         self._dtype = samples.dtype
 
-                    if all(arr.flags.c_contiguous for arr in (samples, timestamps)):
+                    if samples.flags.c_contiguous and timestamps.flags.c_contiguous:
                         positions(
                             samples,
                             timestamps,

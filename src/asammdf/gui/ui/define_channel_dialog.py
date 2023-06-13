@@ -226,6 +226,21 @@ class Ui_ComputedChannel(object):
         self.gridLayout.addWidget(self.groupBox_2, 1, 0, 1, 5)
 
         self.gridLayout.setRowStretch(2, 1)
+        QWidget.setTabOrder(self.triggering_on_all, self.triggering_on_interval)
+        QWidget.setTabOrder(self.triggering_on_interval, self.trigger_interval)
+        QWidget.setTabOrder(self.trigger_interval, self.triggering_on_channel)
+        QWidget.setTabOrder(self.triggering_on_channel, self.trigger_channel)
+        QWidget.setTabOrder(self.trigger_channel, self.trigger_search_btn)
+        QWidget.setTabOrder(self.trigger_search_btn, self.sample_by_sample)
+        QWidget.setTabOrder(self.sample_by_sample, self.complete_signal)
+        QWidget.setTabOrder(self.complete_signal, self.scrollArea)
+        QWidget.setTabOrder(self.scrollArea, self.functions)
+        QWidget.setTabOrder(self.functions, self.show_definition_btn)
+        QWidget.setTabOrder(self.show_definition_btn, self.name)
+        QWidget.setTabOrder(self.name, self.comment)
+        QWidget.setTabOrder(self.comment, self.unit)
+        QWidget.setTabOrder(self.unit, self.apply_btn)
+        QWidget.setTabOrder(self.apply_btn, self.cancel_btn)
 
         self.retranslateUi(ComputedChannel)
 
