@@ -6,7 +6,7 @@ from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 import time
 from unittest import mock
 
-from PySide6 import QtCore, QtTest, QtWidgets
+from PySide6 import QtCore, QtGui, QtTest, QtWidgets
 
 from asammdf.gui.dialogs.channel_group_info import ChannelGroupInfoDialog
 from asammdf.gui.dialogs.channel_info import ChannelInfoDialog
@@ -36,7 +36,8 @@ class TestTabChannels(TestFileWidget):
         ) as mo_getOpenFileName:
             mo_getOpenFileName.return_value = valid_dsp, None
             QtTest.QTest.mouseClick(
-                self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                self.widget.load_channel_list_btn,
+                QtCore.Qt.MouseButton.LeftButton,
             )
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
@@ -118,7 +119,8 @@ class TestTabChannels(TestFileWidget):
             ) as mo_getOpenFileName:
                 mo_getOpenFileName.return_value = None, None
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 mo_load_window.assert_not_called()
@@ -133,7 +135,8 @@ class TestTabChannels(TestFileWidget):
             ) as mo_getOpenFileName:
                 mo_getOpenFileName.return_value = valid_dspf[:-2], None
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 mo_load_window.assert_not_called()
@@ -146,9 +149,13 @@ class TestTabChannels(TestFileWidget):
             ) as mo_load_window, mock.patch(
                 "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
             ) as mo_getOpenFileName:
-                mo_getOpenFileName.return_value = invalid_json_decode_error_dspf, None
+                mo_getOpenFileName.return_value = (
+                    invalid_json_decode_error_dspf,
+                    None,
+                )
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 mo_load_window.assert_not_called()
@@ -168,7 +175,8 @@ class TestTabChannels(TestFileWidget):
                     None,
                 )
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
@@ -189,7 +197,8 @@ class TestTabChannels(TestFileWidget):
                     None,
                 )
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
@@ -210,7 +219,8 @@ class TestTabChannels(TestFileWidget):
                     None,
                 )
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
@@ -228,7 +238,8 @@ class TestTabChannels(TestFileWidget):
             ) as mo_getOpenFileName:
                 mo_getOpenFileName.return_value = valid_dspf, None
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 mo_load_window.assert_called()
@@ -277,9 +288,13 @@ class TestTabChannels(TestFileWidget):
             with mock.patch(
                 "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
             ) as mo_getOpenFileName:
-                mo_getOpenFileName.return_value = invalid_empty_section_lab, None
+                mo_getOpenFileName.return_value = (
+                    invalid_empty_section_lab,
+                    None,
+                )
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
@@ -305,9 +320,13 @@ class TestTabChannels(TestFileWidget):
             with mock.patch(
                 "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
             ) as mo_getOpenFileName:
-                mo_getOpenFileName.return_value = invalid_missing_section_lab, None
+                mo_getOpenFileName.return_value = (
+                    invalid_missing_section_lab,
+                    None,
+                )
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
@@ -338,7 +357,8 @@ class TestTabChannels(TestFileWidget):
                 mo_getOpenFileName.return_value = valid_lab, None
                 mo_getItem.return_value = "lab", True
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
@@ -401,7 +421,8 @@ class TestTabChannels(TestFileWidget):
         ) as mo_getOpenFileName:
             mo_getOpenFileName.return_value = valid_dspf, None
             QtTest.QTest.mouseClick(
-                self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                self.widget.load_channel_list_btn,
+                QtCore.Qt.MouseButton.LeftButton,
             )
             # Pre-Evaluate
             mo_load_window.assert_called()
@@ -459,7 +480,8 @@ class TestTabChannels(TestFileWidget):
         ) as mo_getSaveFileName:
             mo_getSaveFileName.return_value = str(saved_dspf), None
             QtTest.QTest.mouseClick(
-                self.widget.save_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                self.widget.save_channel_list_btn,
+                QtCore.Qt.MouseButton.LeftButton,
             )
         # Evaluate
         self.assertTrue(saved_dspf.exists())
@@ -472,7 +494,8 @@ class TestTabChannels(TestFileWidget):
         ) as mo_getOpenFileName:
             mo_getOpenFileName.return_value = saved_dspf, None
             QtTest.QTest.mouseClick(
-                self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                self.widget.load_channel_list_btn,
+                QtCore.Qt.MouseButton.LeftButton,
             )
             # Pre-Evaluate
             mo_load_window.assert_called()
@@ -929,7 +952,8 @@ class TestTabChannels(TestFileWidget):
             child_item_center,
         )
         with mock.patch(
-            "asammdf.gui.widgets.file.ChannelInfoDialog", wraps=ChannelInfoDialog
+            "asammdf.gui.widgets.file.ChannelInfoDialog",
+            wraps=ChannelInfoDialog,
         ) as mc_ChannelGroupInfoDialog:
             QtTest.QTest.mouseDClick(
                 self.widget.channels_tree.viewport(),
@@ -1076,3 +1100,4 @@ class TestTabModifyAndExport(TestFileWidget):
         channels = self.widget.channels_db_items
         selected_channels.append("time")
         self.assertListEqual(selected_channels, list(channels))
+

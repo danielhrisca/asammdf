@@ -148,7 +148,10 @@ class DragAndDrop:
             source_viewport = source_widget
         # Press on Source Widget
         QtTest.QTest.mousePress(
-            source_viewport, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier, source_pos
+            source_viewport,
+            QtCore.Qt.LeftButton,
+            QtCore.Qt.NoModifier,
+            source_pos,
         )
         # Drag few pixels in order to detect startDrag event
         # drag_thread = DragAndDrop.MoveThread(widget=source_widget, position=source_pos, step=50)

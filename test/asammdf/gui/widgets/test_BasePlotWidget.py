@@ -1,9 +1,10 @@
 import pathlib
-from test.asammdf.gui.test_base import DragAndDrop
-from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 from unittest import mock
 
-from PySide6 import QtCore, QtTest, QtWidgets
+from PySide6 import QtCore, QtGui, QtTest, QtWidgets
+
+from test.asammdf.gui.test_base import DragAndDrop
+from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 
 class TestPlotWidget(TestFileWidget):
@@ -51,14 +52,56 @@ class TestPlotWidget(TestFileWidget):
         return plot_channel
 
     def create_window(self, window_type):
-        with mock.patch(
-            "asammdf.gui.widgets.file.WindowSelectionDialog"
-        ) as mc_WindowSelectionDialog:
+        with mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mc_WindowSelectionDialog:
             mc_WindowSelectionDialog.return_value.result.return_value = True
-            mc_WindowSelectionDialog.return_value.selected_type.return_value = (
-                window_type
-            )
+            mc_WindowSelectionDialog.return_value.selected_type.return_value = window_type
             # - Press PushButton "Create Window"
             QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
             widget_types = self.get_subwindows()
             self.assertIn(window_type, widget_types)
+
+    @staticmethod
+    def is_black(pixmap):
+        """
+        Excepting cursor
+        """
+        cursor_y = None
+        cursor_color = None
+        image = pixmap.toImage()
+
+        for y in range(image.height()):
+            for x in range(image.width()):
+                color = QtGui.QColor(image.pixel(x, y))
+                if color.name() != "#000000":
+                    if not cursor_y and not cursor_color:
+                        cursor_y = y + 1
+                        cursor_color = color
+                        continue
+                    elif cursor_y == y and cursor_color == color:
+                        cursor_y += 1
+                        continue
+                    else:
+                        return False
+        return True
+
+    @staticmethod
+    def has_color(pixmap, color_name):
+        image = pixmap.toImage()
+
+        for y in range(image.height()):
+            for x in range(image.width()):
+                color = QtGui.QColor(image.pixel(x, y))
+                if color.name() == color_name:
+                    return True
+        return False
+
+    @staticmethod
+    def color_names(pixmap):
+        color_names = set()
+
+        image = pixmap.toImage()
+        for y in range(image.height()):
+            for x in range(image.width()):
+                color = QtGui.QColor(image.pixel(x, y))
+                color_names.add(color.name())
+        return color_names

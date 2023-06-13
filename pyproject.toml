@@ -3,7 +3,6 @@ requires = ["numpy", "setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.black]
-line-lenght = 120
 target-version = ['py38']
 extend-exclude = '''
 ^/src/asammdf/gui/ui
