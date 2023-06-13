@@ -156,9 +156,10 @@ def report_tests(header=""):
 def report_style():
     header = "## Style Report:\n"
     md = []
-    for root, _, files in os.walk(os.path.join(ROOT, ".tox", "style")):
+    for root, _, files in os.walk(os.path.join(ROOT, ".tox", "style", "log")):
         for file in files:
             filepath = os.path.join(root, file)
+            print(f"Checking File: {file}")
             with open(filepath, "r", encoding="cp1252", errors="ignore") as fpr:
                 content = fpr.read()
             # Extract Summary
