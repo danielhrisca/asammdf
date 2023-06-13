@@ -8,7 +8,7 @@ try:
 except ModuleNotFoundError:
     warnings.warn("JunitParser is not installed.")
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+ROOT = os.path.normpath(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
 class ReportTests:
@@ -156,7 +156,9 @@ def report_tests(header=""):
 def report_style():
     header = "## Style Report:\n"
     md = []
+    print(ROOT)
     for root, _, files in os.walk(os.path.join(ROOT, ".tox", "style", "log")):
+        print(files)
         for file in files:
             filepath = os.path.join(root, file)
             print(f"Checking File: {file}")
