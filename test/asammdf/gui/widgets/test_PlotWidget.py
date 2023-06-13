@@ -945,7 +945,7 @@ class TestPushButtons(TestPlotWidget):
             plot.channel_selection.visualItemRect(plot_tree_channel_1).center(),
         )
         # Process flash
-        for _ in range(10):
+        for _ in range(12):
             self.processEvents(timeout=0.01)
 
         # Evaluate
