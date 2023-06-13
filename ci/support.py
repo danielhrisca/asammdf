@@ -158,6 +158,9 @@ def report_style():
     md = []
     print(ROOT)
     print(os.listdir())
+    print(os.listdir(os.path.join(ROOT, ".tox")))
+    print(os.listdir(os.path.join(ROOT, ".tox", "style")))
+    print(os.listdir(os.path.join(ROOT, ".tox", "style", "log")))
     for root, _, files in os.walk(os.path.join(ROOT, ".tox", "style", "log")):
         print(files)
         for file in files:
