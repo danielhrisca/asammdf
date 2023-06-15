@@ -7,7 +7,9 @@ from PySide6 import QtCore, QtGui, QtTest, QtWidgets
 
 
 class Pixmap:
-    COLOR_BLACK = "#000000"
+    COLOR_BACKGROUND = "#000000"
+    COLOR_RANGE = "#000032"
+    COLOR_CURSOR = "#e69138"
 
     @staticmethod
     def is_black(pixmap):
@@ -22,7 +24,7 @@ class Pixmap:
         for y in range(image.height()):
             for x in range(image.width()):
                 color = QtGui.QColor(image.pixel(x, y))
-                if color.name() != Pixmap.COLOR_BLACK:
+                if color.name() != Pixmap.COLOR_BACKGROUND:
                     if not cursor_x and not cursor_y and not cursor_color:
                         cursor_x = x
                         cursor_y = y + 1
@@ -36,6 +38,32 @@ class Pixmap:
         return True
 
     @staticmethod
+    def is_colored(pixmap, color_name, x, y, width=None, height=None):
+        image = pixmap.toImage()
+
+        offset = 1
+        y = y + offset
+
+        if not width:
+            width = image.width()
+        if not height:
+            height = image.height()
+
+        for _y in range(offset, image.height()):
+            for _x in range(image.width()):
+                color = QtGui.QColor(image.pixel(_x, _y))
+                if _x < x or _y < y:
+                    continue
+                # De unde 2?
+                elif (_x > width - x) or (_y > height - y - 2):
+                    break
+                if color.name() != color_name:
+                    print(x, y, width, height)
+                    print(_x, _y, color.name())
+                    return False
+        return True
+
+    @staticmethod
     def has_color(pixmap, color_name):
         image = pixmap.toImage()
 
@@ -45,10 +73,6 @@ class Pixmap:
                 if color.name() == color_name:
                     return True
         return False
-
-    @staticmethod
-    def has_rectangle(pixmap, color_name):
-        pass
 
     @staticmethod
     def color_names(pixmap):
@@ -73,7 +97,7 @@ class Pixmap:
             for y in range(image.height()):
                 color = QtGui.QColor(image.pixel(x, y))
                 # Skip Black
-                if color.name() == Pixmap.COLOR_BLACK:
+                if color.name() == Pixmap.COLOR_BACKGROUND:
                     continue
                 if not possible_cursor:
                     possible_cursor = color.name()
