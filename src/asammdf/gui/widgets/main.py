@@ -1344,14 +1344,18 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
             )
 
+            self.batch._ignore = True
+
             for root, dirs, files in os.walk(folder):
                 for file in natsorted(files):
                     if file.lower().endswith(
                         (".csv", ".erg", ".dl3", ".dat", ".mdf", ".mf4", ".mf4z")
                     ):
-                        row = self.batch.files_list.count()
-                        self.batch.files_list.addItem(os.path.join(root, file))
-                        self.batch.files_list.item(row).setIcon(icon)
+                        item = QtWidgets.QListWidgetItem(icon, os.path.join(root, file))
+                        self.batch.files_list.addItem(item)
+
+            self.batch._ignore = False
+            self.batch.update_channel_tree()
 
     def close_file(self, index):
         widget = self.files.widget(index)

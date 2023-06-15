@@ -22,7 +22,7 @@ from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..dialogs.advanced_search import AdvancedSearch
 from ..ui import resource_rc
 from ..ui.batch_widget import Ui_batch_widget
-from ..utils import HelperChannel, setup_progress, TERMINATED
+from ..utils import HelperChannel, setup_progress, TERMINATED, timeit
 from .database_item import DatabaseItem
 from .list import MinimalListWidget
 from .tree import add_children
@@ -40,6 +40,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
     ):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+
+        self._ignore = False
 
         self._settings = QtCore.QSettings()
 
@@ -678,7 +680,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
     def concatenate_finished(self):
         self._progress = None
 
-    def concatenate(self, event):
+    @timeit
+    def concatenate(self, event=None):
         count = self.files_list.count()
 
         if not count:
@@ -738,6 +741,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             kwargs={},
         )
 
+    @timeit
     def concatenate_thread(
         self,
         output_file_name,
@@ -750,12 +754,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         progress,
     ):
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/stack.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/plus.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         progress.signals.setWindowIcon.emit(icon)
         progress.signals.setWindowTitle.emit(
-            f"Stacking files and saving to {version} format"
+            f"Concatenating files and saving to {version} format"
         )
 
         output_file_name = Path(output_file_name)
@@ -925,7 +927,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             mdf = cls(file_name).export_mdf()
 
         elif suffix in (".mdf", ".mf4", ".mf4z"):
-            mdf = MDF(file_name)
+            mdf = file_name
 
         return mdf
 
@@ -937,14 +939,11 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         progress.signals.setMaximum.emit(count)
         progress.signals.setValue.emit(0)
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/list.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        progress.signals.setWindowIcon.emit(icon)
         progress.signals.setWindowTitle.emit("Preparing measurements")
 
         for i, file_name in enumerate(files):
             progress.signals.setLabelText.emit(
-                f"Preparing the file {i+1} of {count} from {file_name.suffix.lower()} to .mf4\n{file_name}"
+                f"Preparing the file {i+1} of {count}\n{file_name}"
             )
             files[i] = self._as_mdf(file_name)
             progress.signals.setValue.emit(i + 1)
@@ -1122,7 +1121,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             mdf.close()
 
     def update_channel_tree(self, *args):
-        if self.filter_view.currentIndex() == -1:
+        if self.filter_view.currentIndex() == -1 or self._ignore:
             return
 
         count = self.files_list.count()
@@ -1140,6 +1139,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 file_name = source_files[0]
 
             mdf = self._as_mdf(file_name)
+            if not isinstance(mdf, MDF):
+                mdf = MDF(mdf)
+
             try:
                 widget = self.filter_tree
                 view = self.filter_view

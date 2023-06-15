@@ -77,6 +77,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
     # Supported python versions
     python_requires=">=3.8",
@@ -111,7 +112,7 @@ setup(
             "lxml",
             "natsort",
             "psutil",
-            "PySide6",
+            "PySide6<=6.3.1",
             "pyqtgraph>=0.12.4",
             "pyqtlet2>=0.8.0",
             "packaging",
