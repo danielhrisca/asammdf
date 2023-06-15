@@ -34,9 +34,9 @@ from numpy.typing import NDArray
 import pandas as pd
 from typing_extensions import Literal
 
+from .blocks import bus_logging_utils
 from .blocks import v2_v3_constants as v23c
 from .blocks import v4_constants as v4c
-from .blocks.bus_logging_utils import extract_mux
 from .blocks.conversion_utils import from_dict
 from .blocks.mdf_v2 import MDF2
 from .blocks.mdf_v3 import MDF3
@@ -5096,7 +5096,7 @@ class MDF:
                             payload = bus_data_bytes[idx]
                             t = bus_t[idx]
 
-                            extracted_signals = extract_mux(
+                            extracted_signals = bus_logging_utils.extract_mux(
                                 payload,
                                 message,
                                 msg_id,
@@ -5411,7 +5411,7 @@ class MDF:
                             payload = bus_data_bytes[idx]
                             t = bus_t[idx]
 
-                            extracted_signals = extract_mux(
+                            extracted_signals = bus_logging_utils.extract_mux(
                                 payload,
                                 message,
                                 msg_id,
