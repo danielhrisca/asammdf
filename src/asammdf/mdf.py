@@ -2495,39 +2495,40 @@ class MDF:
                     for _gp_idx, _gp in enumerate(w_mdf.groups):
                         for _ch_idx, _ch in enumerate(_gp.channels):
                             if _ch.channel_type == v4c.CHANNEL_TYPE_VLSD:
-                                vlds_channels.append(_ch.name, _gp_idx, _ch_idx)
+                                vlds_channels.append((_ch.name, _gp_idx, _ch_idx))
 
                                 vlsd_max_length[(_ch.name, _gp_idx)] = 0
 
-                    for i, _file in enumerate(files):
-                        if not isinstance(_file, MDF):
-                            _close = True
-                            _file = MDF(_file)
-                        else:
-                            _close = False
-
-                        _file.determine_max_vlsd_sample_size.cache_clear()
-
-                        for _ch_name, _gp_idx, _ch_idx in vlds_channels:
-                            key = (_ch.name, _gp_idx)
-                            for _second_gp_idx, _second_ch_idx in w_mdf.whereis(
-                                _ch_name
-                            ):
-                                if _second_gp_idx == _gp_idx:
-                                    vlsd_max_length[key] = max(
-                                        vlsd_max_length[key],
-                                        _file.determine_max_vlsd_sample_size(
-                                            _second_gp_idx, _second_ch_idx
-                                        ),
-                                    )
-                                    break
+                    if vlsd_max_length:
+                        for i, _file in enumerate(files):
+                            if not isinstance(_file, MDF):
+                                _close = True
+                                _file = MDF(_file)
                             else:
-                                raise MdfException(
-                                    f"internal structure of file {i} is different; different channels"
-                                )
+                                _close = False
 
-                        if _close:
-                            _file.close()
+                            _file.determine_max_vlsd_sample_size.cache_clear()
+
+                            for _ch_name, _gp_idx, _ch_idx in vlds_channels:
+                                key = (_ch_name, _gp_idx)
+                                for _second_gp_idx, _second_ch_idx in w_mdf.whereis(
+                                    _ch_name
+                                ):
+                                    if _second_gp_idx == _gp_idx:
+                                        vlsd_max_length[key] = max(
+                                            vlsd_max_length[key],
+                                            _file.determine_max_vlsd_sample_size(
+                                                _second_gp_idx, _second_ch_idx
+                                            ),
+                                        )
+                                        break
+                                else:
+                                    raise MdfException(
+                                        f"internal structure of file {i} is different; different channels"
+                                    )
+
+                            if _close:
+                                _file.close()
 
             else:
                 if len(mdf.virtual_groups) != groups_nr:
