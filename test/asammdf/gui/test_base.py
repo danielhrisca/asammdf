@@ -75,6 +75,7 @@ class TestBase(unittest.TestCase):
         QtCore.QCoreApplication.processEvents()
         if timeout:
             time.sleep(timeout)
+            QtCore.QCoreApplication.processEvents()
 
     def setUp(self) -> None:
         if os.path.exists(self.test_workspace):

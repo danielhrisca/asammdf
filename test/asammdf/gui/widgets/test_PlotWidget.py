@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
 from test.asammdf.gui.test_base import DragAndDrop
-from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
+from test.asammdf.gui.widgets.test_BasePlotWidget import Pixmap, TestPlotWidget
 import unittest
 from unittest import mock
 
@@ -94,7 +94,7 @@ class TestDragAndDrop(TestPlotWidget):
         channel_tree = self.widget.channels_tree
         plot = self.widget.mdi_area.subWindowList()[0].widget()
         item = channel_tree.topLevelItem(0)
-        channel_name = item.text(0)
+        channel_name = item.text(self.Column.NAME)
         drag_position = channel_tree.visualItemRect(item).center()
         drop_position = plot.channel_selection.viewport().rect().center()
 
@@ -108,7 +108,7 @@ class TestDragAndDrop(TestPlotWidget):
         )
         # Evaluate
         plot_channel = plot.channel_selection.topLevelItem(0)
-        plot_channel_name = plot_channel.text(0)
+        plot_channel_name = plot_channel.text(self.Column.NAME)
         self.assertEqual(1, plot.channel_selection.topLevelItemCount())
         self.assertEqual(channel_name, plot_channel_name)
 
@@ -181,7 +181,7 @@ class TestDragAndDrop(TestPlotWidget):
         plot_channels = []
         while iterator.value():
             item = iterator.value()
-            plot_channels.append(item.text(0))
+            plot_channels.append(item.text(self.Column.NAME))
             iterator += 1
         self.assertListEqual(selected_channels, plot_channels)
 
@@ -315,8 +315,8 @@ class TestDragAndDrop(TestPlotWidget):
                 third_channel
             ).center()
             # Get Names
-            first_channel = first_channel.text(0)
-            third_channel = third_channel.text(0)
+            first_channel = first_channel.text(self.Column.NAME)
+            third_channel = third_channel.text(self.Column.NAME)
             DragAndDrop(
                 source_widget=plot.channel_selection,
                 destination_widget=plot.channel_selection.viewport(),
@@ -325,11 +325,17 @@ class TestDragAndDrop(TestPlotWidget):
             )
             # Evaluate
             # First channel position was changed.
-            new_first_channel = plot.channel_selection.topLevelItem(0).text(0)
+            new_first_channel = plot.channel_selection.topLevelItem(0).text(
+                self.Column.NAME
+            )
             self.assertNotEqual(first_channel, new_first_channel)
             # Evaluate that first channel was moved to third channel position.
-            new_third_channel = plot.channel_selection.topLevelItem(2).text(0)
-            new_fourth_channel = plot.channel_selection.topLevelItem(1).text(0)
+            new_third_channel = plot.channel_selection.topLevelItem(2).text(
+                self.Column.NAME
+            )
+            new_fourth_channel = plot.channel_selection.topLevelItem(1).text(
+                self.Column.NAME
+            )
             self.assertEqual(first_channel, new_third_channel)
             self.assertEqual(third_channel, new_fourth_channel)
 
@@ -350,8 +356,8 @@ class TestDragAndDrop(TestPlotWidget):
             second_channel.setSelected(True)
             third_channel.setSelected(True)
             # Get Names
-            second_channel = second_channel.text(0)
-            third_channel = third_channel.text(0)
+            second_channel = second_channel.text(self.Column.NAME)
+            third_channel = third_channel.text(self.Column.NAME)
             DragAndDrop(
                 source_widget=plot.channel_selection,
                 destination_widget=plot.channel_selection.viewport(),
@@ -359,12 +365,20 @@ class TestDragAndDrop(TestPlotWidget):
                 destination_pos=drop_position,
             )
             # Evaluate
-            new_second_channel = plot.channel_selection.topLevelItem(1).text(0)
-            new_third_channel = plot.channel_selection.topLevelItem(2).text(0)
+            new_second_channel = plot.channel_selection.topLevelItem(1).text(
+                self.Column.NAME
+            )
+            new_third_channel = plot.channel_selection.topLevelItem(2).text(
+                self.Column.NAME
+            )
             self.assertNotEqual(second_channel, new_second_channel)
             self.assertNotEqual(third_channel, new_third_channel)
-            new_fifth_channel = plot.channel_selection.topLevelItem(4).text(0)
-            new_sixth_channel = plot.channel_selection.topLevelItem(5).text(0)
+            new_fifth_channel = plot.channel_selection.topLevelItem(4).text(
+                self.Column.NAME
+            )
+            new_sixth_channel = plot.channel_selection.topLevelItem(5).text(
+                self.Column.NAME
+            )
             self.assertEqual(second_channel, new_fifth_channel)
             self.assertEqual(third_channel, new_sixth_channel)
 
@@ -387,7 +401,7 @@ class TestDragAndDrop(TestPlotWidget):
                 first_group = None
                 for index in range(plot.channel_selection.topLevelItemCount()):
                     item = plot.channel_selection.topLevelItem(index)
-                    if item.text(0) == "FirstGroup":
+                    if item.text(self.Column.NAME) == "FirstGroup":
                         first_group = item
                         break
                 else:
@@ -395,7 +409,7 @@ class TestDragAndDrop(TestPlotWidget):
                 first_group.setExpanded(True)
                 # Get First Item that will be moved
                 first_channel = plot.channel_selection.topLevelItem(1)
-                if first_channel.text(0) == duplicated_channel:
+                if first_channel.text(self.Column.NAME) == duplicated_channel:
                     first_channel = plot.channel_selection.topLevelItem(2)
 
                 drag_position = plot.channel_selection.visualItemRect(
@@ -405,7 +419,7 @@ class TestDragAndDrop(TestPlotWidget):
                     first_group
                 ).center()
                 # Get Name of first channel
-                first_channel = first_channel.text(0)
+                first_channel = first_channel.text(self.Column.NAME)
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, first_group.childCount())
                 DragAndDrop(
@@ -416,13 +430,15 @@ class TestDragAndDrop(TestPlotWidget):
                 )
                 # Evaluate
                 self.assertEqual(1, first_group.childCount())
-                self.assertEqual(first_channel, first_group.child(0).text(0))
+                self.assertEqual(
+                    first_channel, first_group.child(0).text(self.Column.NAME)
+                )
                 self.assertEqual(6, plot.channel_selection.topLevelItemCount())
 
                 second_channel = None
                 for index in range(plot.channel_selection.topLevelItemCount()):
                     item = plot.channel_selection.topLevelItem(index)
-                    if item.text(0) == duplicated_channel:
+                    if item.text(self.Column.NAME) == duplicated_channel:
                         second_channel = item
                         break
                 else:
@@ -442,7 +458,9 @@ class TestDragAndDrop(TestPlotWidget):
                 )
                 # Evaluate
                 self.assertEqual(2, first_group.childCount())
-                self.assertEqual(duplicated_channel, first_group.child(1).text(0))
+                self.assertEqual(
+                    duplicated_channel, first_group.child(1).text(self.Column.NAME)
+                )
                 self.assertEqual(5, plot.channel_selection.topLevelItemCount())
 
         # Case 3:
@@ -464,7 +482,7 @@ class TestDragAndDrop(TestPlotWidget):
                 second_group = None
                 for index in range(plot.channel_selection.topLevelItemCount()):
                     item = plot.channel_selection.topLevelItem(index)
-                    if item.text(0) == "SecondGroup":
+                    if item.text(self.Column.NAME) == "SecondGroup":
                         second_group = item
                         break
                 else:
@@ -504,9 +522,9 @@ class TestDragAndDrop(TestPlotWidget):
             first_group, second_group = None, None
             for index in range(plot.channel_selection.topLevelItemCount()):
                 item = plot.channel_selection.topLevelItem(index)
-                if item.text(0) == "FirstGroup":
+                if item.text(self.Column.NAME) == "FirstGroup":
                     first_group = item
-                elif item.text(0) == "SecondGroup":
+                elif item.text(self.Column.NAME) == "SecondGroup":
                     second_group = item
                 if first_group and second_group:
                     break
@@ -533,14 +551,14 @@ class TestDragAndDrop(TestPlotWidget):
             first_group, second_group = None, None
             for index in range(plot.channel_selection.topLevelItemCount()):
                 item = plot.channel_selection.topLevelItem(index)
-                if item.text(0) == "FirstGroup":
+                if item.text(self.Column.NAME) == "FirstGroup":
                     first_group = item
                     break
             else:
                 self.fail("FirstGroup is not present on Plot Channel Selection.")
             for index in range(first_group.childCount()):
                 item = first_group.child(index)
-                if item.text(0) == "SecondGroup":
+                if item.text(self.Column.NAME) == "SecondGroup":
                     second_group = item
                     break
             else:
@@ -625,7 +643,7 @@ class TestDragAndDrop(TestPlotWidget):
         # Select channel from 'Plot 0' and drag it to the 'Plot 1'
         # Drag one Channel from FileWidget channel_tree to Plot_0
         plot_0_channel = plot_0.channel_selection.topLevelItem(0)
-        plot_0_channel_name = plot_0_channel.text(0)
+        plot_0_channel_name = plot_0_channel.text(self.Column.NAME)
         drag_position = plot_0.channel_selection.visualItemRect(plot_0_channel).center()
         drop_position = plot_1.channel_selection.viewport().rect().center()
 
@@ -639,7 +657,7 @@ class TestDragAndDrop(TestPlotWidget):
         )
         # Evaluate
         plot_1_new_channel = plot_1.channel_selection.topLevelItem(1)
-        plot_1_new_channel_name = plot_1_new_channel.text(0)
+        plot_1_new_channel_name = plot_1_new_channel.text(self.Column.NAME)
         self.assertEqual(2, plot_1.channel_selection.topLevelItemCount())
         self.assertEqual(plot_0_channel_name, plot_1_new_channel_name)
 
@@ -708,7 +726,7 @@ class TestDragAndDrop(TestPlotWidget):
         # Evaluate
         numeric_data = numeric.channels.dataView
         numeric_channel = numeric_data.model().data(numeric_data.model().index(0, 0))
-        self.assertEqual(channel_1.text(0), numeric_channel)
+        self.assertEqual(channel_1.text(self.Column.NAME), numeric_channel)
 
         # Drag one Channel from Numeric_0 to Plot_0
         index = numeric_data.model().index(0, 0)
@@ -723,7 +741,7 @@ class TestDragAndDrop(TestPlotWidget):
         )
         # Evaluate
         plot_0_new_channel = plot_0.channel_selection.topLevelItem(1)
-        plot_0_new_channel_name = plot_0_new_channel.text(0)
+        plot_0_new_channel_name = plot_0_new_channel.text(self.Column.NAME)
         self.assertEqual(2, plot_0.channel_selection.topLevelItemCount())
         self.assertEqual(numeric_channel, plot_0_new_channel_name)
 
@@ -794,8 +812,8 @@ class TestPushButtons(TestPlotWidget):
         )
 
         # Evaluate
-        plot_channel_0_value = plot_channel_0.text(1)
-        plot_channel_0_unit = plot_channel_0.text(2)
+        plot_channel_0_value = plot_channel_0.text(self.Column.VALUE)
+        plot_channel_0_unit = plot_channel_0.text(self.Column.UNIT)
         self.assertEqual(
             f"{plot_channel_0_value} {plot_channel_0_unit}",
             plot.selected_channel_value.text(),
@@ -811,8 +829,8 @@ class TestPushButtons(TestPlotWidget):
         self.processEvents(0.1)
 
         # Evaluate
-        plot_channel_0_value = plot_channel_0.text(1)
-        plot_channel_0_unit = plot_channel_0.text(2)
+        plot_channel_0_value = plot_channel_0.text(self.Column.VALUE)
+        plot_channel_0_unit = plot_channel_0.text(self.Column.UNIT)
         self.assertEqual(
             f"{plot_channel_0_value} {plot_channel_0_unit}",
             plot.selected_channel_value.text(),
@@ -827,8 +845,8 @@ class TestPushButtons(TestPlotWidget):
         )
 
         # Evaluate
-        plot_channel_1_value = plot_channel_1.text(1)
-        plot_channel_1_unit = plot_channel_1.text(2)
+        plot_channel_1_value = plot_channel_1.text(self.Column.VALUE)
+        plot_channel_1_unit = plot_channel_1.text(self.Column.UNIT)
         self.assertEqual(
             f"{plot_channel_1_value} {plot_channel_1_unit}",
             plot.selected_channel_value.text(),
@@ -844,8 +862,8 @@ class TestPushButtons(TestPlotWidget):
         self.processEvents(0.1)
 
         # Evaluate
-        plot_channel_1_value = plot_channel_1.text(1)
-        plot_channel_1_unit = plot_channel_1.text(2)
+        plot_channel_1_value = plot_channel_1.text(self.Column.VALUE)
+        plot_channel_1_unit = plot_channel_1.text(self.Column.UNIT)
         self.assertEqual(
             f"{plot_channel_1_value} {plot_channel_1_unit}",
             plot.selected_channel_value.text(),
@@ -891,7 +909,7 @@ class TestPushButtons(TestPlotWidget):
 
         # Save PixMap of clear plot
         clear_pixmap = plot.plot.viewport().grab()
-        self.assertTrue(self.is_black(clear_pixmap))
+        self.assertTrue(Pixmap.is_black(clear_pixmap))
 
         # Add Channels to Plot
         plot_tree_channel_0 = self.add_channel_to_plot(
@@ -915,15 +933,15 @@ class TestPushButtons(TestPlotWidget):
             QtTest.QTest.mouseClick(plot.focused_mode_btn, QtCore.Qt.LeftButton)
 
         channels_present_pixmap = plot.plot.viewport().grab()
-        self.assertFalse(self.is_black(pixmap=channels_present_pixmap))
+        self.assertFalse(Pixmap.is_black(pixmap=channels_present_pixmap))
         self.assertTrue(
-            self.has_color(
+            Pixmap.has_color(
                 pixmap=channels_present_pixmap,
                 color_name=plot_graph_channel_0.color_name,
             )
         )
         self.assertTrue(
-            self.has_color(
+            Pixmap.has_color(
                 pixmap=channels_present_pixmap,
                 color_name=plot_graph_channel_1.color_name,
             )
@@ -935,7 +953,7 @@ class TestPushButtons(TestPlotWidget):
         # Evaluate
         focus_mode_clear_pixmap = plot.plot.viewport().grab()
         # No Channel is selected
-        self.assertTrue(self.is_black(pixmap=focus_mode_clear_pixmap))
+        self.assertTrue(Pixmap.is_black(pixmap=focus_mode_clear_pixmap))
 
         # Select 2nd Channel
         QtTest.QTest.mouseClick(
@@ -948,7 +966,7 @@ class TestPushButtons(TestPlotWidget):
         for _ in range(10):
             self.processEvents(timeout=0.01)
             focus_mode_channel_1_pixmap = plot.plot.viewport().grab()
-            if self.has_color(
+            if Pixmap.has_color(
                 pixmap=focus_mode_channel_1_pixmap,
                 color_name=plot_graph_channel_1.color_name,
             ):
@@ -956,19 +974,138 @@ class TestPushButtons(TestPlotWidget):
 
         # Evaluate
         focus_mode_channel_1_pixmap = plot.plot.viewport().grab()
-        self.assertFalse(self.is_black(pixmap=focus_mode_channel_1_pixmap))
+        self.assertFalse(Pixmap.is_black(pixmap=focus_mode_channel_1_pixmap))
         self.assertFalse(
-            self.has_color(
+            Pixmap.has_color(
                 pixmap=focus_mode_channel_1_pixmap,
                 color_name=plot_graph_channel_0.color_name,
             )
         )
         self.assertTrue(
-            self.has_color(
+            Pixmap.has_color(
                 pixmap=focus_mode_channel_1_pixmap,
                 color_name=plot_graph_channel_1.color_name,
             )
         )
+
+    def test_Plot_ChannelSelection_PushButton_RegionDelta(self):
+        """
+        Test Scope:
+            Check if computation is done when Region is selected.
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Switch ComboBox to "Natural sort"
+            - Press PushButton "Create Window"
+            - Press PushButton HideAxis (easy for evaluation)
+            - Drag and Drop channels from FileWidget.channels_tree to Plot.channels_selection:
+                # First
+                - ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL
+                # Second
+                - ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL
+            - Press PushButton Delta (range is not active)
+            - Press Key 'R' for range selection
+            - Press PushButton Delta (range is active)
+            - Move cursors
+            - Press Key 'R' for range selection
+            - Press PushButton Delta (range is not active)
+        Evaluate:
+            - Evaluate that 'delta' char is present on channel values when range selection is active
+            - Evaluate that 'delta' is correctly computed and result is updated on channel value
+        """
+        channel_0 = "ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
+        channel_1 = "ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
+
+        # Event
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
+        # Switch ComboBox to "Natural sort"
+        self.widget.channel_view.setCurrentText("Natural sort")
+        # Press PushButton "Create Window"
+        self.create_window(window_type="Plot")
+        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+        plot = self.widget.mdi_area.subWindowList()[0].widget()
+
+        # Press PushButton "Hide axis"
+        if not plot.hide_axes_btn.isFlat():
+            QtTest.QTest.mouseClick(plot.hide_axes_btn, QtCore.Qt.LeftButton)
+
+        # Add Channels to Plot
+        plot_tree_channel_0 = self.add_channel_to_plot(
+            plot=plot, channel_name=channel_0
+        )
+        self.assertEqual(1, plot.channel_selection.topLevelItemCount())
+        plot_tree_channel_1 = self.add_channel_to_plot(
+            plot=plot, channel_name=channel_1
+        )
+        self.assertEqual(2, plot.channel_selection.topLevelItemCount())
+
+        if not plot.delta_btn.isFlat():
+            QtTest.QTest.mouseClick(plot.delta_btn, QtCore.Qt.LeftButton)
+            self.processEvents()
+
+        # Ensure that delta char is not present on channel values
+        self.assertNotIn("Δ", plot_tree_channel_0.text(self.Column.VALUE))
+        self.assertNotIn("Δ", plot_tree_channel_1.text(self.Column.VALUE))
+
+        # Press PushButton Delta (range is not active)
+        QtTest.QTest.mouseClick(plot.delta_btn, QtCore.Qt.LeftButton)
+        self.processEvents()
+
+        # Ensure that delta char is not present on channel values even if button is pressed
+        self.assertNotIn("Δ", plot_tree_channel_0.text(self.Column.VALUE))
+        self.assertNotIn("Δ", plot_tree_channel_1.text(self.Column.VALUE))
+
+        # Press Key 'R' for range selection
+        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_R)
+        self.processEvents(timeout=0.01)
+
+        # Ensure that delta char is present on channel values even if button is pressed
+        self.assertIn("Δ", plot_tree_channel_0.text(self.Column.VALUE))
+        self.assertIn("Δ", plot_tree_channel_1.text(self.Column.VALUE))
+
+        # Move cursor
+        # Select channel_1
+        QtTest.QTest.mouseClick(
+            plot.channel_selection.viewport(),
+            QtCore.Qt.LeftButton,
+            QtCore.Qt.KeyboardModifiers(),
+            plot.channel_selection.visualItemRect(plot_tree_channel_1).center(),
+        )
+        plot.plot.setFocus()
+        self.processEvents(0.1)
+        # Move a little bit in center of measurement
+        for _ in range(15):
+            QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Right)
+            self.processEvents(timeout=0.1)
+
+        # Get current value: Ex: 'Δ = 8'. Get last number
+        old_channel_0_value = int(
+            plot_tree_channel_0.text(self.Column.VALUE).split(" ")[-1]
+        )
+        old_channel_1_value = int(
+            plot_tree_channel_1.text(self.Column.VALUE).split(" ")[-1]
+        )
+        for count in range(5):
+            QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Right)
+            self.processEvents(timeout=0.1)
+            # Evaluate
+            channel_0_value = int(
+                plot_tree_channel_0.text(self.Column.VALUE).split(" ")[-1]
+            )
+            channel_1_value = int(
+                plot_tree_channel_1.text(self.Column.VALUE).split(" ")[-1]
+            )
+            self.assertLess(old_channel_0_value, channel_0_value)
+            self.assertGreater(old_channel_1_value, channel_1_value)
+            old_channel_0_value = channel_0_value
+            old_channel_1_value = channel_1_value
+
+        # Press Key 'R' for range selection
+        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_R)
+        self.processEvents(timeout=0.01)
+
+        # Ensure that delta char is not present on channel values even if button is pressed
+        self.assertNotIn("Δ", plot_tree_channel_0.text(self.Column.VALUE))
+        self.assertNotIn("Δ", plot_tree_channel_1.text(self.Column.VALUE))
 
 
 class TestShortcuts(TestPlotWidget):
@@ -1022,8 +1159,8 @@ class TestShortcuts(TestPlotWidget):
             plot.plot.setFocus()
             self.processEvents(0.1)
 
-            self.assertEqual("25", channel_14.text(1))
-            self.assertEqual("244", channel_15.text(1))
+            self.assertEqual("25", channel_14.text(self.Column.VALUE))
+            self.assertEqual("244", channel_15.text(self.Column.VALUE))
 
             # Send Key strokes
             for _ in range(6):
@@ -1032,8 +1169,8 @@ class TestShortcuts(TestPlotWidget):
             self.processEvents(0.1)
 
             # Evaluate
-            self.assertEqual("8", channel_14.text(1))
-            self.assertEqual("6", channel_15.text(1))
+            self.assertEqual("8", channel_14.text(self.Column.VALUE))
+            self.assertEqual("6", channel_15.text(self.Column.VALUE))
             self.assertEqual("t = 0.082657s", plot.cursor_info.text())
 
             # Send Key strokes
@@ -1043,8 +1180,8 @@ class TestShortcuts(TestPlotWidget):
             self.processEvents(0.1)
 
             # Evaluate
-            self.assertEqual("21", channel_14.text(1))
-            self.assertEqual("247", channel_15.text(1))
+            self.assertEqual("21", channel_14.text(self.Column.VALUE))
+            self.assertEqual("247", channel_15.text(self.Column.VALUE))
             self.assertEqual("t = 0.032657s", plot.cursor_info.text())
 
         # Case 1:
@@ -1066,8 +1203,8 @@ class TestShortcuts(TestPlotWidget):
             self.processEvents(0.1)
 
             # Evaluate
-            self.assertEqual("5", channel_14.text(1))
-            self.assertEqual("9", channel_15.text(1))
+            self.assertEqual("5", channel_14.text(self.Column.VALUE))
+            self.assertEqual("9", channel_15.text(self.Column.VALUE))
             self.assertEqual("t = 0.092657s", plot.cursor_info.text())
 
             # Send Key strokes
@@ -1077,6 +1214,78 @@ class TestShortcuts(TestPlotWidget):
             self.processEvents(0.1)
 
             # Evaluate
-            self.assertEqual("18", channel_14.text(1))
-            self.assertEqual("250", channel_15.text(1))
+            self.assertEqual("18", channel_14.text(self.Column.VALUE))
+            self.assertEqual("250", channel_15.text(self.Column.VALUE))
             self.assertEqual("t = 0.042657s", plot.cursor_info.text())
+
+    @unittest.skip("Dev in progress.")
+    def test_Plot_Plot_Shortcut_Key_R(self):
+        """
+        Test Scope:
+            Check if Range Selection rectangle is painted over the plot.
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Press PushButton "Create Window"
+            - Press PushButton HideAxis (easy for evaluation)
+            - Press Key R for range selection
+            - Move Cursors
+            - Press Key R for range selection
+        Evaluate:
+            - Evaluate that two cursors are available
+            - Evaluate that new rectangle with different color is present
+            - Evaluate that sum of rectangle areas is same with the one when plot is full black.
+            - Evaluate that range selection disappear.
+        """
+        # Event
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
+        # Press PushButton "Create Window"
+        self.create_window(window_type="Plot")
+        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+        plot = self.widget.mdi_area.subWindowList()[0].widget()
+
+        # Press PushButton "Hide axis"
+        if not plot.hide_axes_btn.isFlat():
+            QtTest.QTest.mouseClick(plot.hide_axes_btn, QtCore.Qt.LeftButton)
+
+        # Save PixMap of clear plot
+        clear_pixmap = plot.plot.viewport().grab()
+        self.assertTrue(Pixmap.is_black(clear_pixmap))
+
+        # Get X position of Cursor
+        cursors = Pixmap.cursors_x(clear_pixmap)
+        # Evaluate that there is only one cursor
+        self.assertEqual(1, len(cursors))
+
+        # Press Key 'R' for range selection
+        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_R)
+        self.processEvents(timeout=0.01)
+
+        # Save PixMap of Range plot
+        range_pixmap = plot.plot.viewport().grab()
+        self.assertFalse(Pixmap.is_black(range_pixmap))
+
+        # Get X position of Cursors
+        cursors = Pixmap.cursors_x(range_pixmap)
+        # Evaluate that two cursors are available
+        self.assertEqual(2, len(cursors))
+
+        # Evaluate that new rectangle with different color is present
+        self.assertTrue(
+            Pixmap.has_rectangle(pixmap=range_pixmap, color_name=Pixmap.COLOR_BLACK)
+        )
+        self.assertTrue(Pixmap.has_rectangle(pixmap=range_pixmap, color_name="????"))
+        self.assertTrue(
+            Pixmap.has_rectangle(pixmap=range_pixmap, color_name=Pixmap.COLOR_BLACK)
+        )
+
+        # Evaluate that sum of rectangle areas is same with the one when plot is full black.
+
+        # Move Cursors
+
+        # Press Key 'R' for range selection
+        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_R)
+        self.processEvents(timeout=0.01)
+
+        # Save PixMap of clear plot
+        clear_pixmap = plot.plot.viewport().grab()
+        self.assertTrue(self.pixmap_is_black(clear_pixmap))
