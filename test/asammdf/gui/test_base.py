@@ -1,13 +1,26 @@
 #!/usr/bin/env python
+"""
+Base Module for Testing GUI
+ - responsible to set up Qt in order to run on multiple platforms
+ - responsible to set up Application
+class TestBase
+    - responsible to set up and tearDown test workspace
+    - responsible to create easy access to 'resource' directory
+    - responsible to set up ErrorDialog for easy evaluation of raised exceptions
+    - provide method `manual_use` created to help test development process
+class DragAndDrop
+    - responsible to perform Drag and Drop operations
+     from source widget - specific point, to destination widget - specific point
+"""
 import os
 import shutil
 import sys
-from test.asammdf.gui import QtCore, QtTest
 import time
 import unittest
 from unittest import mock
 
 import pyqtgraph
+from PySide6 import QtCore, QtTest
 
 from asammdf.gui.utils import excepthook
 
@@ -30,6 +43,12 @@ app.setApplicationName("py-asammdf")
     sys.platform == "darwin", "Test Development on MacOS was not done yet."
 )
 class TestBase(unittest.TestCase):
+    """
+    - setUp and tearDown test workspace
+    - provide method to execute widget
+    - setUp ErrorDialog for evaluation raised exceptions
+    """
+
     longMessage = False
 
     resource = os.path.normpath(os.path.join(os.path.dirname(__file__), "resources"))
@@ -44,9 +63,11 @@ class TestBase(unittest.TestCase):
         return self._testMethodDoc
 
     @staticmethod
-    def manual_use(w):
-        # Execute Widget for debug/development purpose.
-        w.showNormal()
+    def manual_use(widget):
+        """
+        Execute Widget for debug/development purpose.
+        """
+        widget.showNormal()
         app.exec()
 
     @staticmethod
@@ -54,6 +75,7 @@ class TestBase(unittest.TestCase):
         QtCore.QCoreApplication.processEvents()
         if timeout:
             time.sleep(timeout)
+            QtCore.QCoreApplication.processEvents()
 
     def setUp(self) -> None:
         if os.path.exists(self.test_workspace):
@@ -127,7 +149,10 @@ class DragAndDrop:
             source_viewport = source_widget
         # Press on Source Widget
         QtTest.QTest.mousePress(
-            source_viewport, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier, source_pos
+            source_viewport,
+            QtCore.Qt.LeftButton,
+            QtCore.Qt.NoModifier,
+            source_pos,
         )
         # Drag few pixels in order to detect startDrag event
         # drag_thread = DragAndDrop.MoveThread(widget=source_widget, position=source_pos, step=50)
