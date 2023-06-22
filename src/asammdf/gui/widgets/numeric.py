@@ -1739,6 +1739,18 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         ):
             self.increase_font()
 
+        elif key == QtCore.Qt.Key_G and modifiers == QtCore.Qt.ShiftModifier:
+            value, ok = QtWidgets.QInputDialog.getDouble(
+                self,
+                "Go to time stamp",
+                "Time stamp",
+                value=self.timestamp_slider.value(),
+                decimals=9,
+            )
+
+            if ok:
+                self.set_timestamp(value)
+
         else:
             self.channels.dataView.keyPressEvent(event)
 

@@ -1838,6 +1838,17 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         ):
             self.increase_font()
 
+        elif key == QtCore.Qt.Key_G and modifiers == QtCore.Qt.ShiftModifier:
+            value, ok = QtWidgets.QInputDialog.getDouble(
+                self,
+                "Go to time stamp",
+                "Time stamp",
+                decimals=9,
+            )
+
+            if ok:
+                self.set_timestamp(value)
+
         else:
             self.tree.dataView.keyPressEvent(event)
 

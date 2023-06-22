@@ -3988,6 +3988,10 @@ class PlotGraphics(pg.PlotWidget):
                     QtCore.Qt.Key_G,
                 ).toCombined(),
                 QtCore.QKeyCombination(
+                    QtCore.Qt.ShiftModifier,
+                    QtCore.Qt.Key_G,
+                ).toCombined(),
+                QtCore.QKeyCombination(
                     QtCore.Qt.NoModifier,
                     QtCore.Qt.Key_I,
                 ).toCombined(),
@@ -4732,18 +4736,32 @@ class PlotGraphics(pg.PlotWidget):
                 self.zoom_changed.emit(False)
                 self.update()
 
-            elif key == QtCore.Qt.Key_G and modifier == QtCore.Qt.NoModifier:
-                y = self.plotItem.ctrl.yGridCheck.isChecked()
-                x = self.plotItem.ctrl.xGridCheck.isChecked()
+            elif key == QtCore.Qt.Key_G:
+                if modifier == QtCore.Qt.NoModifier:
+                    y = self.plotItem.ctrl.yGridCheck.isChecked()
+                    x = self.plotItem.ctrl.xGridCheck.isChecked()
 
-                if x and y:
-                    self.plotItem.showGrid(x=False, y=False)
-                elif x:
-                    self.plotItem.showGrid(x=True, y=True)
-                else:
-                    self.plotItem.showGrid(x=True, y=False)
+                    if x and y:
+                        self.plotItem.showGrid(x=False, y=False)
+                    elif x:
+                        self.plotItem.showGrid(x=True, y=True)
+                    else:
+                        self.plotItem.showGrid(x=True, y=False)
 
-                self.update()
+                    self.update()
+
+                elif modifier == QtCore.Qt.ShiftModifier:
+                    value, ok = QtWidgets.QInputDialog.getDouble(
+                        self,
+                        "Go to time stamp",
+                        "Time stamp",
+                        value=self.cursor1.value(),
+                        decimals=9,
+                    )
+
+                    if ok:
+                        self.cursor1.setPos(value)
+                        self.cursor_move_finished.emit(self.cursor1)
 
             elif (
                 key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O)
