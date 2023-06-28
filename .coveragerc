@@ -2,4 +2,4 @@
 source =
     asammdf
 omit =
-    */asammdf/gui/*
+    */asammdf/gui/ui/*

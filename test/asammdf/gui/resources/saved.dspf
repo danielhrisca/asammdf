@@ -1,0 +1,162 @@
+{
+  "selected_channels": [],
+  "windows": [
+    {
+      "title": "Display channels",
+      "configuration": {
+        "channels": [
+          {
+            "type": "channel",
+            "name": "ASAM.M.SCALAR.FLOAT32.IDENTICAL",
+            "unit": "hours",
+            "flags": 1,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#ff0000",
+            "computed": false,
+            "ranges": [
+              {
+                "background_color": "#ffffff",
+                "font_color": "#00ff00",
+                "op1": "<=",
+                "op2": "<=",
+                "value1": 0.0,
+                "value2": 100.0
+              },
+              {
+                "background_color": "#ffffff",
+                "font_color": "#ff0000",
+                "op1": "<=",
+                "op2": "<=",
+                "value1": 100.0,
+                "value2": 200.0
+              }
+            ],
+            "precision": 3,
+            "fmt": "{:.3f}",
+            "format": "phys",
+            "mode": "phys",
+            "comment": "",
+            "y_range": [
+              -27.75,
+              1026.75
+            ],
+            "origin_uuid": "95f656e7a338"
+          },
+          {
+            "type": "group",
+            "name": "Group01",
+            "enabled": true,
+            "pattern": null,
+            "ranges": [],
+            "origin_uuid": "000000000000",
+            "expanded": false,
+            "disabled": false,
+            "channels": [
+              {
+                "type": "group",
+                "name": "Group0101",
+                "enabled": true,
+                "pattern": null,
+                "ranges": [],
+                "origin_uuid": "000000000000",
+                "expanded": false,
+                "disabled": false,
+                "channels": [
+                  {
+                    "type": "channel",
+                    "name": "ASAM.M.SCALAR.SLONG.IDENTICAL",
+                    "unit": "hours",
+                    "flags": 1,
+                    "enabled": true,
+                    "individual_axis": false,
+                    "common_axis": false,
+                    "color": "#a0a0a4",
+                    "computed": false,
+                    "ranges": [],
+                    "precision": 3,
+                    "fmt": "{}",
+                    "format": "phys",
+                    "mode": "phys",
+                    "comment": "",
+                    "y_range": [
+                      -27.75,
+                      1026.75
+                    ],
+                    "origin_uuid": "95f656e7a338"
+                  }
+                ]
+              },
+              {
+                "type": "channel",
+                "name": "ASAM.M.SCALAR.SBYTE.IDENTICAL",
+                "unit": "hours",
+                "flags": 1,
+                "enabled": true,
+                "individual_axis": false,
+                "common_axis": false,
+                "color": "#a0a0a4",
+                "computed": false,
+                "ranges": [],
+                "precision": 3,
+                "fmt": "{}",
+                "format": "phys",
+                "mode": "phys",
+                "comment": "",
+                "y_range": [
+                  -135.08336345098002,
+                  134.08336654901996
+                ],
+                "origin_uuid": "95f656e7a338"
+              }
+            ]
+          }
+        ],
+        "pattern": {},
+        "splitter": [
+          394,
+          122,
+          0
+        ],
+        "y_axis_width": 48.0,
+        "grid": [
+          false,
+          false
+        ],
+        "cursor_precision": 6,
+        "font_size": 9,
+        "locked": true,
+        "common_axis_y_range": [
+          0.0,
+          1.0
+        ],
+        "channels_header": [
+          394,
+          [
+            254,
+            83,
+            42,
+            0,
+            35
+          ]
+        ],
+        "hide_axes": false,
+        "hide_selected_channel_value_panel": true,
+        "focused_mode": false,
+        "delta_mode": "value",
+        "hide_bookmarks": false
+      },
+      "geometry": [
+        0,
+        0,
+        526,
+        646
+      ],
+      "maximized": true,
+      "minimized": false,
+      "type": "Plot"
+    }
+  ],
+  "functions": {}
+}

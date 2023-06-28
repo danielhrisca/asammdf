@@ -2450,7 +2450,8 @@ def load_lab(file):
                 sections[section_name] = s
 
             else:
-                s.append(line)
+                if "s" in locals():
+                    s.append(line)
 
     return {name: channels for name, channels in sections.items() if channels}
 
