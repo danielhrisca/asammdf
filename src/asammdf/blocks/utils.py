@@ -803,6 +803,8 @@ def fmt_to_datatype_v4(
                 data_type = v4c.DATA_TYPE_COMPLEX_INTEL
             else:
                 data_type = v4c.DATA_TYPE_COMPLEX_MOTOROLA
+        elif kind == "O":
+            data_type = v4c.DATA_TYPE_BYTEARRAY
         else:
             message = f"Unknown type: dtype={fmt}, shape={shape}"
             logger.exception(message)

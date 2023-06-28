@@ -3,7 +3,8 @@ from __future__ import annotations
 from traceback import format_exc
 from typing import Any
 
-from canmatrix import Frame, Signal
+import canmatrix
+from canmatrix import Frame, Pdu, Signal
 import numpy as np
 from numpy.typing import NDArray
 from typing_extensions import TypedDict
@@ -435,7 +436,13 @@ def extract_mux(
             pair_signals.append(signal)
 
     for pair, pair_signals in pairs.items():
-        entry = bus, message_id, original_message_id, muxer, *pair
+        entry = (
+            bus,
+            message_id,
+            original_message_id,
+            muxer,
+            *pair,
+        )  # (18,172,None, none, none)
 
         extracted_signals[entry] = signals = {}
 
