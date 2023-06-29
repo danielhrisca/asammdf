@@ -2515,12 +2515,15 @@ class MDF:
                                     _ch_name
                                 ):
                                     if _second_gp_idx == _gp_idx:
-                                        vlsd_max_length[key] = max(
-                                            vlsd_max_length[key],
-                                            _file.determine_max_vlsd_sample_size(
-                                                _second_gp_idx, _second_ch_idx
-                                            ),
-                                        )
+                                        try:
+                                            vlsd_max_length[key] = max(
+                                                vlsd_max_length[key],
+                                                _file.determine_max_vlsd_sample_size(
+                                                    _second_gp_idx, _second_ch_idx
+                                                ),
+                                            )
+                                        except TypeError:
+                                            pass
                                         break
                                 else:
                                     raise MdfException(
