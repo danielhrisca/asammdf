@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ..dialogs.messagebox import MessageBox
 from ..ui.functions_manager import Ui_FunctionsManager
 from ..utils import (
     check_generated_function,
@@ -244,7 +245,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
             name = func.__name__
 
             if name != item.text() and name in self.definitions:
-                QtWidgets.QMessageBox.information(
+                MessageBox.information(
                     self,
                     "Invalid function name",
                     f'The name "{name}" is already given to another function.\n'

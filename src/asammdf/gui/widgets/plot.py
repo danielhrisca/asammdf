@@ -20,6 +20,7 @@ PLOT_BUFFER_SIZE = 4000
 
 from ...blocks.conversion_utils import from_dict, to_dict
 from ...blocks.utils import target_byte_order
+from ..dialogs.messagebox import MessageBox
 from ..utils import BLUE, FONT_SIZE, GREEN, timeit, value_as_str
 from .viewbox import ViewBoxWithCursor
 
@@ -2037,7 +2038,7 @@ class Plot(QtWidgets.QWidget):
             except:
                 title = "plot window"
 
-            QtWidgets.QMessageBox.warning(
+            MessageBox.warning(
                 self,
                 f"Channels with corrupted time stamps added to {title}",
                 f"The following channels do not have monotonous increasing time stamps:\n{errors}",
@@ -2063,7 +2064,7 @@ class Plot(QtWidgets.QWidget):
                 valid[uuid] = channel
 
         if invalid:
-            QtWidgets.QMessageBox.warning(
+            MessageBox.warning(
                 self,
                 "All NaN channels will not be plotted:",
                 f"The following channels have all NaN samples and will not be plotted:\n{', '.join(invalid)}",
@@ -4574,7 +4575,7 @@ class PlotGraphics(pg.PlotWidget):
     def insert_computation(self, name=""):
         functions = self.plot_parent.owner.functions
         if not functions:
-            QtWidgets.QMessageBox.warning(
+            MessageBox.warning(
                 self,
                 f"Cannot add computed channel",
                 f"There is no user defined function. Create new function using the Functions Manger (F6)",
@@ -4660,6 +4661,8 @@ class PlotGraphics(pg.PlotWidget):
                                 if len(self.signal_by_uuid(uuid)[0].plot_samples)
                             ]
                         )
+                    else:
+                        common_min, common_max = 0, 1
 
                 for i, signal in enumerate(self.signals):
                     if len(signal.plot_samples):

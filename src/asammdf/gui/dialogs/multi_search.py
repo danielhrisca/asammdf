@@ -9,6 +9,7 @@ from PySide6 import QtCore, QtWidgets
 
 from ..ui import resource_rc
 from ..ui.multi_search_dialog import Ui_MultiSearchDialog
+from .messagebox import MessageBox
 
 
 class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
@@ -122,6 +123,6 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
         for i, name in enumerate(self.measurements, 1):
             info.extend(wrap(f"{i:> 2}: {name}", 120))
 
-        QtWidgets.QMessageBox.information(
+        MessageBox.information(
             self, "Measurement files used for comparison", "\n".join(info)
         )

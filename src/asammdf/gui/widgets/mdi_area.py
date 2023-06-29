@@ -32,6 +32,7 @@ from ...blocks.v4_blocks import EventBlock, HeaderBlock
 from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
+from ..dialogs.messagebox import MessageBox
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..utils import (
     computation_to_python_function,
@@ -189,7 +190,6 @@ def build_mime_from_config(
 def extract_signals_using_pattern(
     mdf, pattern_info, ignore_value2text_conversions, uuid
 ):
-    print("EXTRACT", pattern_info)
     pattern = pattern_info["pattern"]
     match_type = pattern_info["match_type"]
     case_sensitive = pattern_info.get("case_sensitive", False)
@@ -4147,7 +4147,7 @@ class WithMDIArea:
                 msg = ChannelInfoDialog(channel, self)
                 msg.show()
             except MdfException:
-                QtWidgets.QMessageBox.warning(
+                MessageBox.warning(
                     self,
                     "Missing channel",
                     f"The channel {sig.name} does not exit in the current measurement file.",
@@ -4175,7 +4175,7 @@ class WithMDIArea:
         else:
             return
 
-        result = QtWidgets.QMessageBox.question(
+        result = MessageBox.question(
             self,
             "Save measurement bookmarks?",
             "You have modified bookmarks.\n\n"
@@ -4183,7 +4183,7 @@ class WithMDIArea:
             "",
         )
 
-        if result == QtWidgets.QMessageBox.No:
+        if result == MessageBox.No:
             return
 
         _password = self.mdf._password

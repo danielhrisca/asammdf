@@ -24,6 +24,7 @@ from PySide6.QtCore import QThreadPool, Signal
 from ..blocks.options import FloatInterpolation, IntegerInterpolation
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
+from .dialogs.messagebox import MessageBox
 
 ERROR_ICON = None
 RANGE_INDICATOR_ICON = None
@@ -1198,7 +1199,7 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
 
     elif not sample_by_sample:
         if not silent:
-            QtWidgets.QMessageBox.information(
+            MessageBox.information(
                 parent,
                 "Function definition check",
                 "The function definition appears to be correct only for complete signal mode.",
@@ -1208,7 +1209,7 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
 
     elif not complete_signal:
         if not silent:
-            QtWidgets.QMessageBox.information(
+            MessageBox.information(
                 parent,
                 "Function definition check",
                 "The function definition appears to be correct only for sample by sample mode.",
@@ -1217,7 +1218,7 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
         return True, func
     else:
         if not silent:
-            QtWidgets.QMessageBox.information(
+            MessageBox.information(
                 parent,
                 "Function definition check",
                 "The function definition appears to be correct for both sample by sample and complete signal modes.",

@@ -8,6 +8,7 @@ from asammdf.blocks.conversion_utils import from_dict
 
 from ..ui import resource_rc
 from ..ui.define_conversion_dialog import Ui_ConversionDialog
+from .messagebox import MessageBox
 
 
 # from https://stackoverflow.com/a/53936965/11009349
@@ -185,7 +186,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
     def apply(self, event):
         if self.tabs.currentIndex() == 1:
             if (self.p4.value(), self.p5.value(), self.p6.value()) == (0, 0, 0):
-                QtWidgets.QMessageBox.warning(
+                MessageBox.warning(
                     self,
                     "Invalid conversion parameters",
                     "The rational conversion parameters P4, P5 and P6 cannot all be 0.",
@@ -205,7 +206,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                 value = int(widget.value.value())
 
                 if value in mapping:
-                    QtWidgets.QMessageBox.warning(
+                    MessageBox.warning(
                         self,
                         "Invalid conversion parameters",
                         f"The value-to-text conversion raw value {value} is defined multiple times.",
@@ -228,7 +229,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                 upper = int(widget.upper.value())
 
                 if upper < lower:
-                    QtWidgets.QMessageBox.warning(
+                    MessageBox.warning(
                         self,
                         "Invalid conversion parameters",
                         f"The upper value must be greater or higher than the lower value. ({upper=} and {lower=}",
@@ -239,7 +240,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                     y = range(lower, upper)
                     for x in mapping:
                         if range_overlapping(x, y):
-                            QtWidgets.QMessageBox.warning(
+                            MessageBox.warning(
                                 self,
                                 "Invalid conversion parameters",
                                 f"The ranges cannot overlap; {x} overlaps with {y}",

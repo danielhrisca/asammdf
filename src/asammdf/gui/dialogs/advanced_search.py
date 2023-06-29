@@ -9,6 +9,7 @@ from PySide6 import QtCore, QtWidgets
 from ...blocks.utils import extract_xml_comment
 from ..ui import resource_rc
 from ..ui.search_dialog import Ui_SearchDialog
+from .messagebox import MessageBox
 from .range_editor import RangeEditor
 
 
@@ -389,15 +390,13 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         }
 
         if not self.result["pattern"]:
-            QtWidgets.QMessageBox.warning(
+            MessageBox.warning(
                 self, "Cannot apply pattern", "The pattern cannot be empty"
             )
             return
 
         if not self.result["name"]:
-            QtWidgets.QMessageBox.warning(
-                self, "Cannot apply pattern", "The name cannot be empty"
-            )
+            MessageBox.warning(self, "Cannot apply pattern", "The name cannot be empty")
             return
 
         self.pattern_window = True

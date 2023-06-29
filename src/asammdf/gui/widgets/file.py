@@ -38,6 +38,7 @@ from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.error_dialog import ErrorDialog
 from ..dialogs.gps_dialog import GPSDialog
+from ..dialogs.messagebox import MessageBox
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..ui import resource_rc
 from ..ui.file_widget import Ui_file_widget
@@ -1017,8 +1018,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     )
                     c_functions = info.get("c_functions", [])
 
-                    msg = QtWidgets.QMessageBox(
-                        QtWidgets.QMessageBox.Information,
+                    msg = MessageBox(
+                        MessageBox.Information,
                         "DSP loading warning",
                         message,
                         parent=self,
@@ -2578,7 +2579,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             try:
                 from h5py import File as HDF5
             except ImportError:
-                QtWidgets.QMessageBox.critical(
+                MessageBox.critical(
                     self,
                     "Export to HDF5 unavailale",
                     "h5py package not found; export to HDF5 is unavailable",
@@ -2590,7 +2591,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 try:
                     from hdf5storage import savemat
                 except ImportError:
-                    QtWidgets.QMessageBox.critical(
+                    MessageBox.critical(
                         self,
                         "Export to mat v7.3 unavailale",
                         "hdf5storage package not found; export to mat 7.3 is unavailable",
@@ -2600,7 +2601,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 try:
                     from scipy.io import savemat
                 except ImportError:
-                    QtWidgets.QMessageBox.critical(
+                    MessageBox.critical(
                         self,
                         "Export to mat v4 and v5 unavailale",
                         "scipy package not found; export to mat is unavailable",
@@ -2611,7 +2612,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             try:
                 from fastparquet import write as write_parquet
             except ImportError:
-                QtWidgets.QMessageBox.critical(
+                MessageBox.critical(
                     self,
                     "Export to parquet unavailale",
                     "fastparquet package not found; export to parquet is unavailable",

@@ -4,6 +4,7 @@ from enum import IntFlag
 from functools import lru_cache
 import json
 import os
+import re
 from traceback import format_exc
 
 import numpy as np
@@ -16,6 +17,7 @@ from ...blocks.utils import extract_mime_names
 from ...signal import Signal
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.conversion_editor import ConversionEditor
+from ..dialogs.messagebox import MessageBox
 from ..dialogs.range_editor import RangeEditor
 from ..utils import (
     copy_ranges,
@@ -903,6 +905,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.context_menu = menu = QtWidgets.QMenu()
         menu.addAction(self.tr(f"{count} items in the list, {enabled} enabled"))
         menu.addSeparator()
+        menu.addAction(QtGui.QIcon(":/search.png"), "Search item")
+        if item and item.type() in (ChannelsTreeItem.Channel, ChannelsTreeItem.Group):
+            menu.addAction(QtGui.QIcon(":/down.png"), f"Find next {item.name}")
+        menu.addSeparator()
 
         menu.addAction(self.tr(f"Add channel group [Shift+Insert]"))
         menu.addAction(self.tr(f"Add pattern based channel group [Ctrl+Insert]"))
@@ -999,13 +1005,15 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if action is None:
             return
 
-        if action.text() == "Copy names [Ctrl+N]":
+        action_text = action.text()
+
+        if action_text == "Copy names [Ctrl+N]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress, QtCore.Qt.Key_N, QtCore.Qt.ControlModifier
             )
             self.keyPressEvent(event)
 
-        elif action.text() == "Copy names and values":
+        elif action_text == "Copy names and values":
             texts = []
             t = self.plot.cursor_info.text()
 
@@ -1028,14 +1036,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             QtWidgets.QApplication.instance().clipboard().setText("\n".join(texts))
 
-        elif action.text() == "Activate group":
+        elif action_text == "Activate group":
             for item in self.selectedItems():
                 if item.type() == item.Group and item.isDisabled():
                     item.set_disabled(False)
                     item.setIcon(item.NameColumn, QtGui.QIcon(":/open.png"))
             self.group_activation_changed.emit()
 
-        elif action.text() == "Deactivate groups":
+        elif action_text == "Deactivate groups":
             for item in self.selectedItems():
                 if item.type() == item.Group and not item.isDisabled():
                     item.set_disabled(True)
@@ -1043,7 +1051,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             self.group_activation_changed.emit()
 
-        elif action.text() == "Set color [C]":
+        elif action_text == "Set color [C]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress,
                 QtCore.Qt.Key_C,
@@ -1051,7 +1059,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.keyPressEvent(event)
 
-        elif action.text() == "Set color ranges [Ctrl+R]":
+        elif action_text == "Set color ranges [Ctrl+R]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress,
                 QtCore.Qt.Key_R,
@@ -1059,7 +1067,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.keyPressEvent(event)
 
-        elif action.text() == "Set channel conversion":
+        elif action_text == "Set channel conversion":
             selected_items = self.selectedItems()
             if not selected_items:
                 return
@@ -1088,7 +1096,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     ):
                         item.set_conversion(conversion)
 
-        elif action.text() == "Set channel comment":
+        elif action_text == "Set channel comment":
             selected_items = self.selectedItems()
             if not selected_items:
                 return
@@ -1108,7 +1116,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 for item in selected_items:
                     item.comment = new_comment
 
-        elif action.text() == "Copy channel structure [Ctrl+C]":
+        elif action_text == "Copy channel structure [Ctrl+C]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress,
                 QtCore.Qt.Key_C,
@@ -1116,7 +1124,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.keyPressEvent(event)
 
-        elif action.text() == "Paste channel structure [Ctrl+V]":
+        elif action_text == "Paste channel structure [Ctrl+V]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress,
                 QtCore.Qt.Key_V,
@@ -1124,7 +1132,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.keyPressEvent(event)
 
-        elif action.text() == "Copy display properties [Ctrl+Shift+C]":
+        elif action_text == "Copy display properties [Ctrl+Shift+C]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress,
                 QtCore.Qt.Key_C,
@@ -1132,7 +1140,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.keyPressEvent(event)
 
-        elif action.text() == "Paste display properties [Ctrl+Shift+V]":
+        elif action_text == "Paste display properties [Ctrl+Shift+V]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress,
                 QtCore.Qt.Key_V,
@@ -1140,35 +1148,35 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.keyPressEvent(event)
 
-        elif action.text() == "Enable all":
+        elif action_text == "Enable all":
             count = self.topLevelItemCount()
             for i in range(count):
                 item = self.topLevelItem(i)
                 if item.type() != item.Info:
                     item.setCheckState(self.NameColumn, QtCore.Qt.Checked)
 
-        elif action.text() == "Disable all":
+        elif action_text == "Disable all":
             count = self.topLevelItemCount()
             for i in range(count):
                 item = self.topLevelItem(i)
                 if item.type() != item.Info:
                     item.setCheckState(self.NameColumn, QtCore.Qt.Unchecked)
 
-        elif action.text() == "Enable selected":
+        elif action_text == "Enable selected":
             selected_items = self.selectedItems()
 
             for item in selected_items:
                 if item.type() in (item.Channel, item.Group):
                     item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
 
-        elif action.text() == "Disable selected":
+        elif action_text == "Disable selected":
             selected_items = self.selectedItems()
 
             for item in selected_items:
                 if item.type() in (item.Channel, item.Group):
                     item.setCheckState(item.NameColumn, QtCore.Qt.Unchecked)
 
-        elif action.text() == "Disable all but this":
+        elif action_text == "Disable all but this":
             selected_items = self.selectedItems()
 
             count = self.topLevelItemCount()
@@ -1189,15 +1197,15 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     else:
                         item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
 
-        elif action.text() == show_disabled_channels:
+        elif action_text == show_disabled_channels:
             self.hide_disabled_channels = not self.hide_disabled_channels
             self.update_hidden_states()
 
-        elif action.text() == show_missing_channels:
+        elif action_text == show_missing_channels:
             self.hide_missing_channels = not self.hide_missing_channels
             self.update_hidden_states()
 
-        elif action.text() == "Add to common Y axis":
+        elif action_text == "Add to common Y axis":
             selected_items = self.selectedItems()
 
             if self.plot.locked:
@@ -1209,7 +1217,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     if item.type() == ChannelsTreeItem.Channel:
                         item.setCheckState(self.CommonAxisColumn, QtCore.Qt.Checked)
 
-        elif action.text() == "Edit Y axis scaling [Ctrl+G]":
+        elif action_text == "Edit Y axis scaling [Ctrl+G]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress,
                 QtCore.Qt.Key_G,
@@ -1217,7 +1225,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.plot.keyPressEvent(event)
 
-        elif action.text() == "Remove from common Y axis":
+        elif action_text == "Remove from common Y axis":
             selected_items = self.selectedItems()
 
             if self.plot.locked:
@@ -1229,7 +1237,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     if item.type() == ChannelsTreeItem.Channel and item.signal.y_link:
                         item.setCheckState(self.CommonAxisColumn, QtCore.Qt.Unchecked)
 
-        elif action.text() == "Set unit":
+        elif action_text == "Set unit":
             selected_items = self.selectedItems()
 
             unit, ok = QtWidgets.QInputDialog.getText(None, "Set new unit", "Unit:")
@@ -1239,7 +1247,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     if item.type() == ChannelsTreeItem.Channel:
                         item.unit = unit
 
-        elif action.text() == "Set precision":
+        elif action_text == "Set precision":
             selected_items = self.selectedItems()
 
             if not selected_items:
@@ -1276,13 +1284,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 else:
                     self.plot.cursor_moved(plot.cursor1)
 
-        elif action.text() in (
+        elif action_text in (
             "Relative time base shift",
             "Set time base start offset",
         ):
             selected_items = self.selectedItems()
             if selected_items:
-                if action.text() == "Relative time base shift":
+                if action_text == "Relative time base shift":
                     offset, ok = QtWidgets.QInputDialog.getDouble(
                         self, "Relative offset [s]", "Offset [s]:", decimals=6
                     )
@@ -1304,13 +1312,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                     self.set_time_offset.emit([absolute, offset] + uuids)
 
-        elif action.text() == "Delete [Del]":
+        elif action_text == "Delete [Del]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier
             )
             self.keyPressEvent(event)
 
-        elif action.text() == "Toggle details":
+        elif action_text == "Toggle details":
             self.details_enabled = not self.details_enabled
 
             if self.details_enabled:
@@ -1348,7 +1356,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                     iterator += 1
 
-        elif action.text() in ("File/Computation properties", "Group properties"):
+        elif action_text in ("File/Computation properties", "Group properties"):
             selected_items = self.selectedItems()
             if len(selected_items) == 1:
                 item = selected_items[0]
@@ -1357,29 +1365,29 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 elif item.type() == ChannelsTreeItem.Group:
                     item.show_info()
 
-        elif action.text() == "Edit this computed channel":
+        elif action_text == "Edit this computed channel":
             self.edit_computation.emit(item)
 
-        elif action.text() == "Compute FFT":
+        elif action_text == "Compute FFT":
             selected_items = self.selectedItems()
             if len(selected_items) == 1:
                 item = selected_items[0]
                 if item.type() == ChannelsTreeItem.Channel:
                     self.compute_fft_request.emit(item.uuid)
 
-        elif action.text() == "Add channel group [Shift+Insert]":
+        elif action_text == "Add channel group [Shift+Insert]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress, QtCore.Qt.Key_Insert, QtCore.Qt.ShiftModifier
             )
             self.keyPressEvent(event)
 
-        elif action.text() == "Add pattern based channel group [Ctrl+Insert]":
+        elif action_text == "Add pattern based channel group [Ctrl+Insert]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress, QtCore.Qt.Key_Insert, QtCore.Qt.ControlModifier
             )
             self.keyPressEvent(event)
 
-        elif action.text() == "Rename channel":
+        elif action_text == "Rename channel":
             text, ok = QtWidgets.QInputDialog.getText(
                 self,
                 "Rename channel",
@@ -1390,7 +1398,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 text = text.strip()
                 item.name = text
 
-        elif action.text() == "Edit group":
+        elif action_text == "Edit group":
             if item.pattern:
                 pattern = dict(item.pattern)
                 pattern["ranges"] = copy_ranges(item.ranges)
@@ -1438,6 +1446,114 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 )
                 if ok:
                     item.name = text.strip()
+
+        elif action_text == "Search item":
+            pattern, ok = QtWidgets.QInputDialog.getText(
+                self, "Search item", "Item name:"
+            )
+            if ok and pattern:
+                original_pattern = pattern
+                wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
+                pattern = pattern.replace("*", wildcard)
+                pattern = re.escape(pattern)
+                pattern = pattern.replace(wildcard, ".*")
+
+                compiled_pattern = re.compile(pattern, flags=re.IGNORECASE)
+
+                start_item = item or self
+                iterator = QtWidgets.QTreeWidgetItemIterator(start_item)
+
+                while True:
+                    item = iterator.value()
+                    if item is None:
+                        break
+
+                    if (
+                        item is not start_item
+                        and item.type()
+                        in (ChannelsTreeItem.Channel, ChannelsTreeItem.Group)
+                        and compiled_pattern.search(item.name)
+                    ):
+                        self.scrollToItem(item)
+                        self.setCurrentItem(item)
+                        return
+
+                    iterator += 1
+
+                if start_item is self:
+                    MessageBox.warning(
+                        self,
+                        "No matches found",
+                        f"No item matches the pattern\n{original_pattern}",
+                    )
+                else:
+                    iterator = QtWidgets.QTreeWidgetItemIterator(self)
+
+                    while True:
+                        item = iterator.value()
+                        if item is None or item is start_item:
+                            break
+
+                        if item.type() in (
+                            ChannelsTreeItem.Channel,
+                            ChannelsTreeItem.Group,
+                        ) and compiled_pattern.search(item.name):
+                            self.scrollToItem(item)
+                            self.setCurrentItem(item)
+                            return
+
+                        iterator += 1
+
+                    MessageBox.warning(
+                        self,
+                        "No matches found",
+                        f"No item matches the pattern\n{original_pattern}",
+                    )
+
+        elif action_text == f"Next {item.name}":
+            start_item = item
+            wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
+            pattern = start_item.name.replace("*", wildcard)
+            pattern = re.escape(pattern)
+            pattern = pattern.replace(wildcard, ".*")
+
+            compiled_pattern = re.compile(pattern, flags=re.IGNORECASE)
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(start_item)
+
+            iterator += 1
+
+            while True:
+                item = iterator.value()
+                if item is None:
+                    break
+
+                if item.type() in (
+                    ChannelsTreeItem.Channel,
+                    ChannelsTreeItem.Group,
+                ) and compiled_pattern.fullmatch(item.name):
+                    self.scrollToItem(item)
+                    self.setCurrentItem(item)
+                    return
+
+                iterator += 1
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(self)
+
+            while True:
+                item = iterator.value()
+                if item is None or item is start_item:
+                    break
+
+                if item.type() in (
+                    ChannelsTreeItem.Channel,
+                    ChannelsTreeItem.Group,
+                ) and compiled_pattern.search(item.name):
+                    self.scrollToItem(item)
+                    self.setCurrentItem(item)
+                    return
+
+                iterator += 1
 
         self.update_channel_groups_count()
 

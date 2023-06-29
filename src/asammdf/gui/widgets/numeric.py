@@ -1739,7 +1739,11 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         ):
             self.increase_font()
 
-        elif key == QtCore.Qt.Key_G and modifiers == QtCore.Qt.ShiftModifier:
+        elif (
+            key == QtCore.Qt.Key_G
+            and modifiers == QtCore.Qt.ShiftModifier
+            and self.mode == "offline"
+        ):
             value, ok = QtWidgets.QInputDialog.getDouble(
                 self,
                 "Go to time stamp",

@@ -20,6 +20,7 @@ from ...blocks.v2_v3_blocks import HeaderBlock as HeaderBlockV3
 from ...blocks.v4_blocks import HeaderBlock as HeaderBlockV4
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..dialogs.advanced_search import AdvancedSearch
+from ..dialogs.messagebox import MessageBox
 from ..ui import resource_rc
 from ..ui.batch_widget import Ui_batch_widget
 from ..utils import HelperChannel, setup_progress, TERMINATED, timeit
@@ -1352,7 +1353,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             try:
                 from h5py import File as HDF5
             except ImportError:
-                QtWidgets.QMessageBox.critical(
+                MessageBox.critical(
                     self,
                     "Export to HDF5 unavailale",
                     "h5py package not found; export to HDF5 is unavailable",
@@ -1364,7 +1365,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 try:
                     from hdf5storage import savemat
                 except ImportError:
-                    QtWidgets.QMessageBox.critical(
+                    MessageBox.critical(
                         self,
                         "Export to mat v7.3 unavailale",
                         "hdf5storage package not found; export to mat 7.3 is unavailable",
@@ -1374,7 +1375,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 try:
                     from scipy.io import savemat
                 except ImportError:
-                    QtWidgets.QMessageBox.critical(
+                    MessageBox.critical(
                         self,
                         "Export to mat v4 and v5 unavailale",
                         "scipy package not found; export to mat is unavailable",
@@ -1385,7 +1386,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             try:
                 from fastparquet import write as write_parquet
             except ImportError:
-                QtWidgets.QMessageBox.critical(
+                MessageBox.critical(
                     self,
                     "Export to parquet unavailale",
                     "fastparquet package not found; export to parquet is unavailable",

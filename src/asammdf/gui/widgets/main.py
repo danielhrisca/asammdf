@@ -16,6 +16,7 @@ from ...version import __version__ as libversion
 from ..dialogs.bus_database_manager import BusDatabaseManagerDialog
 from ..dialogs.dependencies_dlg import DependenciesDlg
 from ..dialogs.functions_manager import FunctionsManagerDialog
+from ..dialogs.messagebox import MessageBox
 from ..dialogs.multi_search import MultiSearch
 from ..ui.main_window import Ui_PyMDFMainWindow
 from ..utils import draw_color_icon
@@ -1514,7 +1515,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         for i, name in enumerate(measurements, 1):
             info.extend(wrap(f"{i:> 2}: {name}", 120))
 
-        QtWidgets.QMessageBox.information(
+        MessageBox.information(
             self, "Measurement files used for comparison", "\n".join(info)
         )
 
@@ -1609,7 +1610,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         cpython = ".".join(str(e) for e in sys.version_info[:3])
         cpython = f"{cpython} {bits}"
 
-        QtWidgets.QMessageBox.about(
+        MessageBox.about(
             self,
             "About asammdf-gui",
             f"""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
