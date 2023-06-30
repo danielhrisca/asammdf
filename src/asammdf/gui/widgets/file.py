@@ -9,6 +9,7 @@ import re
 from tempfile import gettempdir
 from time import sleep
 from traceback import format_exc
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from natsort import natsorted
 import pandas as pd
@@ -23,6 +24,7 @@ from ...blocks.utils import (
     load_lab,
     TERMINATED,
 )
+from ...blocks.v4_blocks import TextBlock as TextV4
 from ...blocks.v4_constants import (
     BUS_TYPE_CAN,
     BUS_TYPE_ETHERNET,
@@ -88,6 +90,7 @@ FRIENDLY_ATRRIBUTES = {
     "pr_transm_mode": "Transmission Mode",
     "pr_specification": "Specification",
     "pr_test_report": "Test report",
+    "pr_display_file": "Default display file",
 }
 
 
@@ -111,9 +114,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         *args,
         **kwargs,
     ):
-        self.default_folder = kwargs.get("default_folder", "")
-        if "default_folder" in kwargs:
-            kwargs.pop("default_folder")
+        self.default_folder = kwargs.pop("default_folder", "")
+        display_file = kwargs.pop("display_file", "")
 
         self._progress = None
 
@@ -485,6 +487,24 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             item.setSizeHint(widget.sizeHint())
 
         self._splitter_sizes = None
+
+        if display_file:
+            self.load_channel_list(file_name=display_file)
+        else:
+            default_display_file = self.mdf.header._common_properties.get(
+                "pr_display_file", ""
+            )
+
+            if default_display_file:
+                default_display_file = Path(default_display_file)
+                if default_display_file.exists():
+                    self.load_channel_list()
+                else:
+                    default_display_file = (
+                        Path(self.mdf.original_name).parent / default_display_file.name
+                    )
+                    if default_display_file.exists():
+                        self.load_channel_list(file_name=default_display_file)
 
     def sizeHint(self):
         return QtCore.QSize(1, 1)
@@ -1023,6 +1043,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         "DSP loading warning",
                         message,
                         parent=self,
+                        defaultButton=MessageBox.Ok,
                     )
                     if c_functions:
                         msg.setInformativeText(
@@ -1049,10 +1070,114 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     return
                 channels = info[section]
 
-            elif extension in (".cfg", ".txt", ".dspf"):
+            elif extension in (".cfg", ".txt"):
                 with open(file_name, "r") as infile:
                     info = json.load(infile)
                 channels = info.get("selected_channels", [])
+
+            elif extension == ".dspf":
+                with open(file_name, "r") as infile:
+                    info = json.load(infile)
+                channels = info.get("selected_channels", [])
+
+                original_file_name = Path(self.mdf.original_name)
+
+                if original_file_name.suffix.lower() in (
+                    ".mf4",
+                    ".mf4z",
+                ) and not self.mdf.header._common_properties.get("pr_display_file", ""):
+                    result = MessageBox.question(
+                        self,
+                        "Set default display file?",
+                        "Would you like to use this display file as the default display file for this measurement file?",
+                    )
+
+                    if result == MessageBox.Yes:
+                        display_file_name = str(Path(file_name).resolve())
+
+                        _password = self.mdf._password
+
+                        uuid = self.mdf.uuid
+
+                        header = self.mdf.header
+
+                        self.mdf.close()
+
+                        windows = list(self.mdi_area.subWindowList())
+                        for window in windows:
+                            widget = window.widget()
+
+                            self.mdi_area.removeSubWindow(window)
+                            widget.setParent(None)
+                            widget.close()
+                            window.close()
+
+                        suffix = original_file_name.suffix.lower()
+                        if suffix == ".mf4z":
+                            with ZipFile(
+                                original_file_name, allowZip64=True
+                            ) as archive:
+                                files = archive.namelist()
+                                if len(files) != 1:
+                                    return
+                                fname = files[0]
+                                if Path(fname).suffix.lower() != ".mf4":
+                                    return
+
+                                tmpdir = gettempdir()
+                                file_name = archive.extract(fname, tmpdir)
+                                file_name = Path(tmpdir) / file_name
+                        else:
+                            file_name = original_file_name
+
+                        with open(file_name, "r+b") as mdf:
+                            try:
+                                header._common_properties[
+                                    "pr_display_file"
+                                ] = display_file_name
+                                comment = TextV4(meta=True, text=header.comment)
+
+                                mdf.seek(0, 2)
+                                address = mdf.tell()
+                                align = address % 8
+                                if align:
+                                    mdf.write(b"\0" * (8 - align))
+                                    address += 8 - align
+
+                                mdf.write(bytes(comment))
+
+                                header.comment_addr = address
+
+                                mdf.seek(header.address)
+
+                                mdf.write(bytes(header))
+
+                            except:
+                                print(format_exc())
+                                return
+
+                        if suffix == ".mf4z":
+                            zipped_mf4 = ZipFile(
+                                original_file_name, "w", compression=ZIP_DEFLATED
+                            )
+                            zipped_mf4.write(
+                                str(file_name),
+                                original_file_name.with_suffix(".mf4").name,
+                                compresslevel=1,
+                            )
+                            zipped_mf4.close()
+                            file_name.unlink()
+
+                        self.mdf = MDF(
+                            name=original_file_name,
+                            callback=self.update_progress,
+                            password=_password,
+                            use_display_names=True,
+                        )
+
+                        self.mdf.original_name = file_name
+                        self.mdf.uuid = uuid
+
             else:
                 return
 

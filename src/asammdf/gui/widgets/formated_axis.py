@@ -379,6 +379,8 @@ class FormatedAxis(pg.AxisItem):
         self.label.setFont(font)
 
     def setRange(self, mn, mx):
+        if mn > mx:
+            mn, mx = mx, mn
         super().setRange(mn, mx)
         self.rangeChanged.emit(self.uuid, (mn, mx))
 

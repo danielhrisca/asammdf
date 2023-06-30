@@ -4173,13 +4173,18 @@ class PlotGraphics(pg.PlotWidget):
                 sig.enable = description.get("enabled", True)
                 sig.format = description.get("format", "phys")
 
-            if not sig.empty:
-                if description.get("y_range", None):
-                    sig.y_range = tuple(description["y_range"])
+            y_range = description.get("y_range", None)
+            if y_range:
+                mn, mx = y_range
+                if mn > mx:
+                    y_range = mx, mn
                 else:
-                    sig.y_range = sig.min, sig.max
-            elif description.get("y_range", None):
-                sig.y_range = tuple(description["y_range"])
+                    y_range = tuple(y_range)
+
+                sig.y_range = y_range
+
+            elif not sig.empty:
+                sig.y_range = sig.min, sig.max
 
             self.axes.append(self._axes_layout_pos)
             self._axes_layout_pos += 1

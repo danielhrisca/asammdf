@@ -1510,7 +1510,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         f"No item matches the pattern\n{original_pattern}",
                     )
 
-        elif action_text == f"Next {item.name}":
+        elif action_text == f"Find next {item.name}":
             start_item = item
             wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
             pattern = start_item.name.replace("*", wildcard)
