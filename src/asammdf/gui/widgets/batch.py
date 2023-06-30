@@ -681,7 +681,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
     def concatenate_finished(self):
         self._progress = None
 
-    @timeit
     def concatenate(self, event=None):
         count = self.files_list.count()
 
@@ -742,7 +741,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             kwargs={},
         )
 
-    @timeit
     def concatenate_thread(
         self,
         output_file_name,
