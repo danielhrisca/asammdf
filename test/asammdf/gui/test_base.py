@@ -40,7 +40,9 @@ app.setOrganizationDomain("py-asammdf")
 app.setApplicationName("py-asammdf")
 
 
-@unittest.skipIf(sys.platform == "darwin", "Test Development on MacOS was not done yet.")
+@unittest.skipIf(
+    sys.platform == "darwin", "Test Development on MacOS was not done yet."
+)
 class TestBase(unittest.TestCase):
     """
     - setUp and tearDown test workspace
@@ -51,7 +53,9 @@ class TestBase(unittest.TestCase):
     longMessage = False
 
     resource = os.path.normpath(os.path.join(os.path.dirname(__file__), "resources"))
-    test_workspace = os.path.join(os.path.join(os.path.dirname(__file__), "test_workspace"))
+    test_workspace = os.path.join(
+        os.path.join(os.path.dirname(__file__), "test_workspace")
+    )
     patchers = []
     # MockClass ErrorDialog
     mc_ErrorDialog = None
@@ -136,7 +140,9 @@ class DragAndDrop:
                 QtTest.QTest.mouseMove(self.widget, self.position)
             else:
                 for step in range(self.step):
-                    QtTest.QTest.mouseMove(self.widget, self.position + QtCore.QPoint(step, step))
+                    QtTest.QTest.mouseMove(
+                        self.widget, self.position + QtCore.QPoint(step, step)
+                    )
                     QtTest.QTest.qWait(2)
             QtTest.QTest.qWait(10)
             # Release
@@ -151,7 +157,9 @@ class DragAndDrop:
     def __init__(self, source_widget, destination_widget, source_pos, destination_pos):
         # Ensure that previous drop was not in the same place because mouse needs to be moved.
         if self._previous_position and self._previous_position == destination_pos:
-            move_thread = DragAndDrop.MoveThread(widget=source_widget, position=QtCore.QPoint(101, 101))
+            move_thread = DragAndDrop.MoveThread(
+                widget=source_widget, position=QtCore.QPoint(101, 101)
+            )
             move_thread.start()
             move_thread.wait()
             move_thread.quit()
@@ -177,7 +185,9 @@ class DragAndDrop:
             destination_viewport = destination_widget.viewport()
         else:
             destination_viewport = destination_widget
-        move_thread = DragAndDrop.MoveThread(widget=destination_viewport, position=destination_pos)
+        move_thread = DragAndDrop.MoveThread(
+            widget=destination_viewport, position=destination_pos
+        )
         move_thread.start()
 
         source_widget.startDrag(QtCore.Qt.MoveAction)

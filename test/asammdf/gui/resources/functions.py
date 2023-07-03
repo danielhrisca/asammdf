@@ -40,6 +40,7 @@ def UnresolvedVariable(t=0):
         c = 0
     return c
 
+
 def WrongDefinition():
     return 1
 

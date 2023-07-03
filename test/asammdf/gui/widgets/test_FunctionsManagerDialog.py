@@ -1,21 +1,21 @@
 import inspect
 import json
 import pathlib
-from unittest import mock
-
-from PySide6 import QtTest, QtCore
-
-from asammdf.gui.dialogs.functions_manager import FunctionsManagerDialog
 from test.asammdf.gui.resources.functions import (
     Function1,
-    maximum,
-    gray2dec,
-    rpm_to_rad_per_second,
     Function2,
+    gray2dec,
+    maximum,
+    rpm_to_rad_per_second,
     UnresolvedVariable,
     WrongDefinition,
 )
 from test.asammdf.gui.test_base import TestBase
+from unittest import mock
+
+from PySide6 import QtCore, QtTest
+
+from asammdf.gui.dialogs.functions_manager import FunctionsManagerDialog
 
 
 class TestPushButtons(TestBase):
@@ -36,13 +36,19 @@ class TestPushButtons(TestBase):
             - Ensure that two items will be added in functions list
         """
         # Events:
-        QtTest.QTest.mouseClick(self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton)
-        QtTest.QTest.mouseClick(self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton)
+        QtTest.QTest.mouseClick(
+            self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton
+        )
+        QtTest.QTest.mouseClick(
+            self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton
+        )
 
         # Evaluate
         self.assertEqual(2, self.fm.widget.functions_list.count())
         for index in range(3, 1):
-            self.assertEqual(f"Function{index}", self.fm.widget.functions_list.item(index - 1))
+            self.assertEqual(
+                f"Function{index}", self.fm.widget.functions_list.item(index - 1)
+            )
 
     def test_PushButton_DeleteAll(self):
         """
@@ -58,14 +64,22 @@ class TestPushButtons(TestBase):
             - Evaluate that items are deleted from functions list.
         """
         # Events:
-        QtTest.QTest.mouseClick(self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton)
-        QtTest.QTest.mouseClick(self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton)
+        QtTest.QTest.mouseClick(
+            self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton
+        )
+        QtTest.QTest.mouseClick(
+            self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton
+        )
 
         self.assertEqual(2, self.fm.widget.functions_list.count())
         for index in range(3, 1):
-            self.assertEqual(f"Function{index}", self.fm.widget.functions_list.item(index - 1))
+            self.assertEqual(
+                f"Function{index}", self.fm.widget.functions_list.item(index - 1)
+            )
 
-        QtTest.QTest.mouseClick(self.fm.widget.erase_btn, QtCore.Qt.MouseButton.LeftButton)
+        QtTest.QTest.mouseClick(
+            self.fm.widget.erase_btn, QtCore.Qt.MouseButton.LeftButton
+        )
 
         # Evaluate
         self.assertEqual(0, self.fm.widget.functions_list.count())
@@ -87,14 +101,18 @@ class TestPushButtons(TestBase):
             "asammdf.gui.widgets.functions_manager.QtWidgets.QFileDialog.getOpenFileName"
         ) as mc_getOpenFileName:
             mc_getOpenFileName.return_value = definition_file, None
-            QtTest.QTest.mouseClick(self.fm.widget.import_btn, QtCore.Qt.MouseButton.LeftButton)
+            QtTest.QTest.mouseClick(
+                self.fm.widget.import_btn, QtCore.Qt.MouseButton.LeftButton
+            )
 
         # Evaluate
         self.assertEqual(4, self.fm.widget.functions_list.count())
         self.assertEqual("Function1", self.fm.widget.functions_list.item(0).text())
         self.assertEqual("gray2dec", self.fm.widget.functions_list.item(1).text())
         self.assertEqual("maximum", self.fm.widget.functions_list.item(2).text())
-        self.assertEqual("rpm_to_rad_per_second", self.fm.widget.functions_list.item(3).text())
+        self.assertEqual(
+            "rpm_to_rad_per_second", self.fm.widget.functions_list.item(3).text()
+        )
 
     def test_PushButton_LoadDefinitions_1(self):
         """
@@ -113,7 +131,9 @@ class TestPushButtons(TestBase):
             "asammdf.gui.widgets.functions_manager.QtWidgets.QFileDialog.getOpenFileName"
         ) as mc_getOpenFileName:
             mc_getOpenFileName.return_value = definition_file, None
-            QtTest.QTest.mouseClick(self.fm.widget.import_btn, QtCore.Qt.MouseButton.LeftButton)
+            QtTest.QTest.mouseClick(
+                self.fm.widget.import_btn, QtCore.Qt.MouseButton.LeftButton
+            )
 
         # Evaluate
         self.assertEqual(0, self.fm.widget.functions_list.count())
@@ -134,7 +154,9 @@ class TestPushButtons(TestBase):
             "asammdf.gui.widgets.functions_manager.QtWidgets.QFileDialog.getOpenFileName"
         ) as mc_getOpenFileName:
             mc_getOpenFileName.return_value = None, None
-            QtTest.QTest.mouseClick(self.fm.widget.import_btn, QtCore.Qt.MouseButton.LeftButton)
+            QtTest.QTest.mouseClick(
+                self.fm.widget.import_btn, QtCore.Qt.MouseButton.LeftButton
+            )
 
         # Evaluate
         self.assertEqual(0, self.fm.widget.functions_list.count())
@@ -159,7 +181,9 @@ class TestPushButtons(TestBase):
             "asammdf.gui.widgets.functions_manager.QtWidgets.QFileDialog.getOpenFileName"
         ) as mc_getOpenFileName:
             mc_getOpenFileName.return_value = definition_file, None
-            QtTest.QTest.mouseClick(self.fm.widget.import_btn, QtCore.Qt.MouseButton.LeftButton)
+            QtTest.QTest.mouseClick(
+                self.fm.widget.import_btn, QtCore.Qt.MouseButton.LeftButton
+            )
 
         # Evaluate
         self.assertEqual(0, self.fm.widget.functions_list.count())
@@ -179,13 +203,20 @@ class TestPushButtons(TestBase):
         """
         definition_file = pathlib.Path(self.test_workspace, "wrong_extension.deff")
         with open(definition_file, "w+") as fpw:
-            json.dump({"Function1": "def Function1(t=0):\n    return 0"}, fpw, sort_keys=True, indent=2)
+            json.dump(
+                {"Function1": "def Function1(t=0):\n    return 0"},
+                fpw,
+                sort_keys=True,
+                indent=2,
+            )
 
         with mock.patch(
             "asammdf.gui.widgets.functions_manager.QtWidgets.QFileDialog.getOpenFileName"
         ) as mc_getOpenFileName:
             mc_getOpenFileName.return_value = definition_file, None
-            QtTest.QTest.mouseClick(self.fm.widget.import_btn, QtCore.Qt.MouseButton.LeftButton)
+            QtTest.QTest.mouseClick(
+                self.fm.widget.import_btn, QtCore.Qt.MouseButton.LeftButton
+            )
 
         # Evaluate
         self.assertEqual(0, self.fm.widget.functions_list.count())
@@ -204,19 +235,25 @@ class TestPushButtons(TestBase):
             - Evaluate that new function is present in saved file.
         """
         # Event
-        QtTest.QTest.mouseClick(self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton)
-        saved_file = pathlib.Path(self.test_workspace, "saved_file.def")
+        QtTest.QTest.mouseClick(
+            self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton
+        )
+        saved_file = pathlib.Path(self.test_workspace, f"{self.id()}.def")
         with mock.patch(
             "asammdf.gui.widgets.functions_manager.QtWidgets.QFileDialog.getSaveFileName"
         ) as mc_getSaveFileName:
             mc_getSaveFileName.return_value = str(saved_file), None
-            QtTest.QTest.mouseClick(self.fm.widget.export_btn, QtCore.Qt.MouseButton.LeftButton)
+            QtTest.QTest.mouseClick(
+                self.fm.widget.export_btn, QtCore.Qt.MouseButton.LeftButton
+            )
 
         # Evaluate
         self.assertTrue(saved_file.exists())
         with open(saved_file, "r") as fpr:
             content = json.load(fpr)
-            self.assertDictEqual(content, {"Function1": "def Function1(t=0):\n    return 0"})
+            self.assertDictEqual(
+                content, {"Function1": "def Function1(t=0):\n    return 0"}
+            )
 
     def test_PushButton_CheckSyntax_0(self):
         """
@@ -230,7 +267,9 @@ class TestPushButtons(TestBase):
             - Evaluate that python function is evaluated as valid.
         """
         # Event
-        QtTest.QTest.mouseClick(self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton)
+        QtTest.QTest.mouseClick(
+            self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton
+        )
 
         for f in (
             Function1,
@@ -245,8 +284,13 @@ class TestPushButtons(TestBase):
                 self.fm.widget.function_definition.clear()
                 self.fm.widget.function_definition.setPlainText(source)
 
-                with mock.patch("asammdf.gui.utils.QtWidgets.QMessageBox.information") as mc_information:
-                    QtTest.QTest.mouseClick(self.fm.widget.check_syntax_btn, QtCore.Qt.MouseButton.LeftButton)
+                with mock.patch(
+                    "asammdf.gui.utils.QtWidgets.QMessageBox.information"
+                ) as mc_information:
+                    QtTest.QTest.mouseClick(
+                        self.fm.widget.check_syntax_btn,
+                        QtCore.Qt.MouseButton.LeftButton,
+                    )
 
                     # Evaluate
                     self.mc_ErrorDialog.assert_not_called()
@@ -264,7 +308,9 @@ class TestPushButtons(TestBase):
             - Evaluate that python function is evaluated as valid.
         """
         # Event
-        QtTest.QTest.mouseClick(self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton)
+        QtTest.QTest.mouseClick(
+            self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton
+        )
 
         for f in (
             Function2,
@@ -278,12 +324,56 @@ class TestPushButtons(TestBase):
                 self.fm.widget.function_definition.clear()
                 self.fm.widget.function_definition.setPlainText(source)
 
-                with mock.patch("asammdf.gui.utils.QtWidgets.QMessageBox.information") as mc_information:
-                    QtTest.QTest.mouseClick(self.fm.widget.check_syntax_btn, QtCore.Qt.MouseButton.LeftButton)
+                with mock.patch(
+                    "asammdf.gui.utils.QtWidgets.QMessageBox.information"
+                ) as mc_information:
+                    QtTest.QTest.mouseClick(
+                        self.fm.widget.check_syntax_btn,
+                        QtCore.Qt.MouseButton.LeftButton,
+                    )
 
                     # Evaluate
                     mc_information.assert_not_called()
                     self.mc_ErrorDialog.assert_called()
 
     def test_PushButton_StoreFunctionChanges(self):
-        pass
+        """
+        Test Scope:
+            - Ensure that function changes are saved.
+        Events:
+            - Press PushButton Add
+            - Edit Function content
+            - Press PushButton Store Function Changes
+            - Press PushButton Save Definitions
+        Evaluate:
+            - Evaluate that name of the Function was changed.
+            - Evaluate that content of the function was changed.
+        """
+        # Events:
+        QtTest.QTest.mouseClick(
+            self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton
+        )
+
+        source = inspect.getsource(maximum)
+        self.fm.widget.function_definition.clear()
+        self.fm.widget.function_definition.setPlainText(source)
+
+        QtTest.QTest.mouseClick(
+            self.fm.widget.store_btn, QtCore.Qt.MouseButton.LeftButton
+        )
+
+        saved_file = pathlib.Path(self.test_workspace, f"{self.id()}.def")
+        with mock.patch(
+            "asammdf.gui.widgets.functions_manager.QtWidgets.QFileDialog.getSaveFileName"
+        ) as mc_getSaveFileName:
+            mc_getSaveFileName.return_value = str(saved_file), None
+            QtTest.QTest.mouseClick(
+                self.fm.widget.export_btn, QtCore.Qt.MouseButton.LeftButton
+            )
+
+        # Evaluate
+        self.assertTrue(saved_file.exists())
+        with open(saved_file, "r") as fpr:
+            content = json.load(fpr)
+            self.assertIn(maximum.__name__, content)
+            self.assertIn(content["maximum"], source)
