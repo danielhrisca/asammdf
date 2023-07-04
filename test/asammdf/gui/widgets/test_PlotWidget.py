@@ -258,7 +258,7 @@ class TestDragAndDrop(TestPlotWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(channel_tree)
         count = -1
         selected_channels = []
-        item = None
+        drag_item = None
         while iterator.value():
             count += 1
             # Skip over first 3
@@ -267,12 +267,13 @@ class TestDragAndDrop(TestPlotWidget):
                 continue
             item = iterator.value()
             if item and count < 7:
+                drag_item = item
                 item.setSelected(True)
                 item.setCheckState(0, QtCore.Qt.Checked)
                 selected_channels.append(item.text(0))
             iterator += 1
 
-        drag_position = channel_tree.visualItemRect(item).center()
+        drag_position = channel_tree.visualItemRect(drag_item).center()
         drop_position = plot.channel_selection.viewport().rect().center()
 
         # PreEvaluation
@@ -713,6 +714,9 @@ class TestDragAndDrop(TestPlotWidget):
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
 
         numeric = self.widget.mdi_area.subWindowList()[1].widget()
+
+        # Tile Horizontally
+        QtTest.QTest.keySequence(plot_0.plot, "Shift+H")
 
         # Drag one Channel from FileWidget channel_tree to Numeric_0
         drag_position = channel_tree.visualItemRect(channel_1).center()
