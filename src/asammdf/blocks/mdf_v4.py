@@ -8020,7 +8020,7 @@ class MDF4(MDF_Common):
         ch = group.channels[index]
 
         if ch.channel_type != v4c.CHANNEL_TYPE_VLSD:
-            return None
+            return 0
 
         if (group_index, ch.name) in self.vlsd_max_length:
             return self.vlsd_max_length[(group_index, ch.name)]
