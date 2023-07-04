@@ -14,6 +14,7 @@ from threading import Thread
 from time import perf_counter, sleep
 import traceback
 from traceback import format_exc
+from typing import Dict, Union
 
 import numpy as np
 import pandas as pd
@@ -1082,9 +1083,18 @@ def draw_color_icon(color):
     return QtGui.QIcon(pix)
 
 
-def generate_python_function(definition, in_globals=None):
+def generate_python_function(
+    definition: str, in_globals: Union[Dict, None] = None
+) -> tuple:
     trace = None
     func = None
+
+    if not isinstance(definition, str):
+        trace = "The function definition must be a string"
+        return func, trace
+    if in_globals and not isinstance(in_globals, dict):
+        trace = "'in_globals' must be a dict"
+        return func, trace
 
     definition = definition.replace("\t", "    ")
 
