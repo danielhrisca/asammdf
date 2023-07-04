@@ -77,6 +77,7 @@ from pandas import DataFrame
 
 from . import bus_logging_utils
 from . import v4_constants as v4c
+from .. import tool
 from ..signal import Signal
 from ..types import (
     BusType,
@@ -6223,12 +6224,15 @@ class MDF4(MDF_Common):
         creator_index = len(self.file_history)
         fh = FileHistory()
         fh.comment = """<FHcomment>
-<TX>Added new embedded attachment from {}</TX>
-<tool_id>asammdf</tool_id>
-<tool_vendor>asammdf</tool_vendor>
-<tool_version>{}</tool_version>
+<TX>Added new embedded attachment from {file_name}</TX>
+<tool_id>{tool}</tool_id>
+<tool_vendor>{vendor}</tool_vendor>
+<tool_version>{version}</tool_version>
 </FHcomment>""".format(
-            file_name if file_name else "bin.bin", __version__
+            file_name=file_name if file_name else "bin.bin",
+            version=tool.__version__,
+            tool=tool.__tool__,
+            vendor=tool.__vendor__,
         )
 
         self.file_history.append(fh)
@@ -9241,9 +9245,9 @@ class MDF4(MDF_Common):
             fh = FileHistory()
             fh.comment = f"""<FHcomment>
 <TX>{comment}</TX>
-<tool_id>asammdf</tool_id>
-<tool_vendor>asammdf</tool_vendor>
-<tool_version>{__version__}</tool_version>
+<tool_id>{tool.__tool__}</tool_id>
+<tool_vendor>{tool.__vendor__}</tool_vendor>
+<tool_version>{tool.__version__}</tool_version>
 </FHcomment>"""
 
             self.file_history.append(fh)

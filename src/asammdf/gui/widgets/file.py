@@ -17,13 +17,16 @@ import psutil
 import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ... import tool
 from ...blocks.utils import (
+    extract_encryption_information,
     extract_xml_comment,
     load_channel_names_from_file,
     load_dsp,
     load_lab,
     TERMINATED,
 )
+from ...blocks.v4_blocks import AttachmentBlock, FileHistory, HeaderBlock
 from ...blocks.v4_blocks import TextBlock as TextV4
 from ...blocks.v4_constants import (
     BUS_TYPE_CAN,
@@ -376,8 +379,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.apply_btn.clicked.connect(self.apply_processing)
 
+        hide_embedded_btn = True
+
         if self.mdf.version >= "4.00" and self.mdf.attachments:
             for i, attachment in enumerate(self.mdf.attachments, 1):
+                if (
+                    attachment.file_name == "user_embedded_display.dspf"
+                    and attachment.mime == r"application/x-dspf"
+                ):
+                    hide_embedded_btn = False
+
                 att = Attachment(i - 1, self.mdf)
                 att.number.setText(f"{i}.")
 
@@ -443,16 +454,30 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 self.attachments.addItem(item)
                 self.attachments.setItemWidget(item, att)
         else:
-            self.aspects.removeTab(4)
+            self.aspects.setTabVisible(4, False)
+
+        if hide_embedded_btn:
+            self.load_embedded_channel_list_btn.setDisabled(True)
+        self.load_embedded_channel_list_btn.clicked.connect(
+            self.load_embedded_display_file
+        )
+        self.save_embedded_channel_list_btn.clicked.connect(self.embed_display_file)
+
+        if self.mdf.version >= "4.00":
+            if self.mdf.original_name.suffix.lower() not in (".mf4", ".mf4z"):
+                self.save_embedded_channel_list_btn.setEnabled(False)
+        else:
+            self.load_embedded_channel_list_btn.setEnabled(False)
+            self.save_embedded_channel_list_btn.setEnabled(False)
 
         if self.mdf.version >= "4.00":
             if not any(
                 group.channel_group.flags & FLAG_CG_BUS_EVENT
                 for group in self.mdf.groups
             ):
-                self.aspects.removeTab(2)
+                self.aspects.setTabVisible(2, False)
         else:
-            self.aspects.removeTab(2)
+            self.aspects.setTabVisible(2, False)
 
         databases = {}
 
@@ -498,7 +523,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             if default_display_file:
                 default_display_file = Path(default_display_file)
                 if default_display_file.exists():
-                    self.load_channel_list()
+                    self.load_channel_list(file_name=default_display_file)
                 else:
                     default_display_file = (
                         Path(self.mdf.original_name).parent / default_display_file.name
@@ -3108,3 +3133,315 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     def update_selected_filter_channels(self):
         self.selected_filter_channels.clear()
         self.selected_filter_channels.addItems(sorted(self._selected_filter))
+
+    def embed_display_file(self, event=None):
+        if (
+            not self.save_embedded_channel_list_btn.isVisible()
+            or not self.save_embedded_channel_list_btn.isEnabled()
+        ):
+            return
+
+        original_file_name = Path(self.mdf.original_name)
+
+        if original_file_name.suffix.lower() not in (".mf4", ".mf4z"):
+            return MessageBox.warning(
+                self,
+                "Wrong file type",
+                "The display file can only be embedded in .mf4 or .mf4z files"
+                f"\n{original_file_name}",
+            )
+
+        _password = self.mdf._password
+
+        uuid = self.mdf.uuid
+
+        creator_index = len(self.mdf.file_history)
+        current_display = self.to_config()
+        data = json.dumps(current_display, indent=2).encode("utf-8", errors="replace")
+
+        self.mdf.close()
+
+        windows = list(self.mdi_area.subWindowList())
+        for window in windows:
+            widget = window.widget()
+
+            self.mdi_area.removeSubWindow(window)
+            widget.setParent(None)
+            widget.close()
+            window.close()
+
+        suffix = original_file_name.suffix.lower()
+        if suffix == ".mf4z":
+            with ZipFile(original_file_name, allowZip64=True) as archive:
+                files = archive.namelist()
+                if len(files) != 1:
+                    return
+                fname = files[0]
+                if Path(fname).suffix.lower() != ".mf4":
+                    return
+
+                tmpdir = gettempdir()
+                file_name = archive.extract(fname, tmpdir)
+                file_name = Path(tmpdir) / file_name
+        else:
+            file_name = original_file_name
+
+        with open(file_name, "r+b") as mdf:
+            try:
+                embedded_file_name = "user_embedded_display.dspf"
+                mime = r"application/x-dspf"
+
+                header = HeaderBlock(stream=mdf, address=64)
+
+                at_addr = header.first_attachment_addr
+                parent = header
+                while at_addr:
+                    at_block = AttachmentBlock(stream=mdf, address=at_addr)
+
+                    if (
+                        at_block.file_name == embedded_file_name
+                        and at_block.mime == mime
+                    ):
+                        new_at_block = AttachmentBlock(
+                            data=data,
+                            file_name=embedded_file_name,
+                            comment="user embedded display file",
+                            compression=True,
+                            mime=mime,
+                            embedded=True,
+                            password=_password,
+                            creator_index=at_block.creator_index,
+                        )
+                        new_at_block.next_at_addr = at_block.next_at_addr
+
+                        blocks = []
+
+                        mdf.seek(0, 2)
+                        address = mdf.tell()
+                        align = address % 8
+                        if align:
+                            mdf.write(b"\0" * (8 - align))
+                            address += 8 - align
+
+                        address = new_at_block.to_blocks(address, blocks, {})
+                        for block in blocks:
+                            mdf.write(bytes(block))
+
+                        if parent is header:
+                            header.first_attachment_addr = new_at_block.address
+                        else:
+                            parent.next_at_addr = new_at_block.address
+
+                        mdf.seek(parent.address)
+                        mdf.write(bytes(parent))
+
+                        break
+
+                    at_addr = at_block.next_at_addr
+                    parent = at_block
+
+                else:
+                    at_block = AttachmentBlock(
+                        data=data,
+                        file_name=embedded_file_name,
+                        comment="user embedded display file",
+                        compression=True,
+                        mime=mime,
+                        embedded=True,
+                        password=_password,
+                    )
+
+                    fh_block = FileHistory()
+                    fh_block.comment = """<FHcomment>
+    <TX>Added new embedded attachment from {file_name}</TX>
+    <tool_id>{tool}</tool_id>
+    <tool_vendor>{vendor}</tool_vendor>
+    <tool_version>{version}</tool_version>
+</FHcomment>""".format(
+                        tool=tool.__tool__,
+                        vendor=tool.__vendor__,
+                        version=tool.__version__,
+                        file_name=file_name,
+                    )
+
+                    at_block["creator_index"] = creator_index
+
+                    blocks = []
+
+                    mdf.seek(0, 2)
+                    address = mdf.tell()
+                    align = address % 8
+                    if align:
+                        mdf.write(b"\0" * (8 - align))
+                        address += 8 - align
+
+                    address = at_block.to_blocks(address, blocks, {})
+                    address = fh_block.to_blocks(address, blocks, {})
+
+                    for block in blocks:
+                        mdf.write(bytes(block))
+
+                    if header.first_attachment_addr:
+                        at_addr = header.first_attachment_addr
+                        while at_addr:
+                            last_at = AttachmentBlock(stream=mdf, address=at_addr)
+                            at_addr = last_at.next_at_addr
+
+                        last_at.next_at_addr = at_block.address
+                        mdf.seek(last_at.address)
+                        mdf.write(bytes(last_at))
+                    else:
+                        header.first_attachment_addr = at_block.address
+
+                    if header.file_history_addr:
+                        fh_addr = header.file_history_addr
+                        while fh_addr:
+                            last_fh = FileHistory(stream=mdf, address=fh_addr)
+                            fh_addr = last_fh.next_fh_addr
+
+                        last_fh.next_fh_addr = fh_block.address
+                        mdf.seek(last_fh.address)
+                        mdf.write(bytes(last_fh))
+                    else:
+                        header.file_history_addr = fh_block.address
+
+                    mdf.seek(header.address)
+
+                    mdf.write(bytes(header))
+
+            except:
+                print(format_exc())
+                return
+
+        if suffix == ".mf4z":
+            zipped_mf4 = ZipFile(original_file_name, "w", compression=ZIP_DEFLATED)
+            zipped_mf4.write(
+                str(file_name),
+                original_file_name.with_suffix(".mf4").name,
+                compresslevel=1,
+            )
+            zipped_mf4.close()
+            file_name.unlink()
+
+        self.mdf = MDF(
+            name=original_file_name,
+            callback=self.update_progress,
+            password=_password,
+            use_display_names=True,
+        )
+
+        self.mdf.original_name = original_file_name
+        self.mdf.uuid = uuid
+
+        self.attachments.clear()
+
+        self.save_embedded_channel_list_btn.setEnabled(True)
+        self.load_embedded_channel_list_btn.setEnabled(True)
+
+        current_display["display_file_name"] = self.loaded_display_file[0]
+        self.load_channel_list(file_name=current_display)
+
+        if self.mdf.attachments:
+            for i, attachment in enumerate(self.mdf.attachments, 1):
+                att = Attachment(i - 1, self.mdf)
+                att.number.setText(f"{i}.")
+
+                fields = []
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "ATBLOCK address")
+                field.setText(1, f"0x{attachment.address:X}")
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "File name")
+                field.setText(1, str(attachment.file_name))
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "MIME type")
+                field.setText(1, attachment.mime)
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "Comment")
+                field.setText(1, attachment.comment)
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "Flags")
+                if attachment.flags:
+                    flags = []
+                    for flag, string in FLAG_AT_TO_STRING.items():
+                        if attachment.flags & flag:
+                            flags.append(string)
+                    text = f'{attachment.flags} [0x{attachment.flags:X}= {", ".join(flags)}]'
+                else:
+                    text = "0"
+                field.setText(1, text)
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "MD5 sum")
+                field.setText(1, attachment.md5_sum.hex().upper())
+                fields.append(field)
+
+                size = attachment.original_size
+                if size <= 1 << 10:
+                    text = f"{size} B"
+                elif size <= 1 << 20:
+                    text = f"{size / 1024:.1f} KB"
+                elif size <= 1 << 30:
+                    text = f"{size / 1024 / 1024:.1f} MB"
+                else:
+                    text = f"{size / 1024 / 1024 / 1024:.1f} GB"
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "Size")
+                field.setText(1, text)
+                fields.append(field)
+
+                att.fields.addTopLevelItems(fields)
+
+                item = QtWidgets.QListWidgetItem()
+                item.setSizeHint(att.sizeHint())
+                self.attachments.addItem(item)
+                self.attachments.setItemWidget(item, att)
+
+            self.aspects.setTabVisible(4, True)
+
+    def load_embedded_display_file(self, event=None):
+        if (
+            not self.load_embedded_channel_list_btn.isVisible()
+            or not self.load_embedded_channel_list_btn.isEnabled()
+        ):
+            return
+
+        for index, attachment in enumerate(self.mdf.attachments):
+            if (
+                attachment.file_name == "user_embedded_display.dspf"
+                and attachment.mime == r"application/x-dspf"
+            ):
+                encryption_info = extract_encryption_information(attachment.comment)
+                password = None
+                if (
+                    encryption_info.get("encrypted", False)
+                    and self.mdf._password is None
+                ):
+                    text, ok = QtWidgets.QInputDialog.getText(
+                        self,
+                        "Attachment password",
+                        "The attachment is encrypted. Please provide the password:",
+                        QtWidgets.QLineEdit.Password,
+                    )
+                    if ok and text:
+                        password = text
+
+                data, file_path, md5_sum = self.mdf.extract_attachment(
+                    index, password=password
+                )
+
+                dsp = json.loads(data.decode("utf-8", errors="replace"))
+                dsp["display_file_name"] = "user_embedded_display.dspf"
+
+                self.load_channel_list(file_name=dsp)

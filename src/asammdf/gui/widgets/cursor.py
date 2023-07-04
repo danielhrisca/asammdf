@@ -3,13 +3,12 @@
 import pyqtgraph as pg
 from PySide6 import QtCore, QtGui
 
+from ... import tool as Tool
 from ...blocks.utils import escape_xml_string
 from ..utils import BLUE
 
 
 class Bookmark(pg.InfiniteLine):
-    tool = "asammdf"
-
     def __init__(self, message="", title="", color="#ffffff", tool="", **kwargs):
         self.title = title or "Bookmark"
 
@@ -33,7 +32,7 @@ class Bookmark(pg.InfiniteLine):
         self._message = ""
         self.message = message
 
-        if tool and tool == self.tool:
+        if tool and tool == Tool.__tool__:
             self.editable = True
         else:
             self.editable = False
@@ -215,7 +214,7 @@ class Bookmark(pg.InfiniteLine):
     def xml_comment(self):
         return f"""<EVcomment>
     <TX>{escape_xml_string(self.message)}</TX>
-    <tool>{Bookmark.tool}</tool>
+    <tool>{Tool.__tool__}</tool>
 </EVcomment>"""
 
 

@@ -4300,7 +4300,7 @@ class WithMDIArea:
             use_display_names=True,
         )
 
-        self.mdf.original_name = file_name
+        self.mdf.original_name = original_file_name
         self.mdf.uuid = uuid
 
         self.aspects.setCurrentIndex(0)

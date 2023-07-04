@@ -125,6 +125,26 @@ class Ui_file_widget(object):
 
         self.buttons_layout.addWidget(self.create_window_btn)
 
+        self.horizontalSpacer_6 = QSpacerItem(20, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
+
+        self.buttons_layout.addItem(self.horizontalSpacer_6)
+
+        self.load_embedded_channel_list_btn = QPushButton(self.verticalLayoutWidget)
+        self.load_embedded_channel_list_btn.setObjectName(u"load_embedded_channel_list_btn")
+        icon6 = QIcon()
+        icon6.addFile(u":/load_embed.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.load_embedded_channel_list_btn.setIcon(icon6)
+
+        self.buttons_layout.addWidget(self.load_embedded_channel_list_btn)
+
+        self.save_embedded_channel_list_btn = QPushButton(self.verticalLayoutWidget)
+        self.save_embedded_channel_list_btn.setObjectName(u"save_embedded_channel_list_btn")
+        icon7 = QIcon()
+        icon7.addFile(u":/attach.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.save_embedded_channel_list_btn.setIcon(icon7)
+
+        self.buttons_layout.addWidget(self.save_embedded_channel_list_btn)
+
         self.button_spacer2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         self.buttons_layout.addItem(self.button_spacer2)
@@ -380,9 +400,9 @@ class Ui_file_widget(object):
         self.gridLayout_20.setObjectName(u"gridLayout_20")
         self.scramble_btn = QPushButton(self.groupBox_9)
         self.scramble_btn.setObjectName(u"scramble_btn")
-        icon6 = QIcon()
-        icon6.addFile(u":/scramble.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.scramble_btn.setIcon(icon6)
+        icon8 = QIcon()
+        icon8.addFile(u":/scramble.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.scramble_btn.setIcon(icon8)
 
         self.gridLayout_20.addWidget(self.scramble_btn, 1, 0, 1, 1)
 
@@ -718,9 +738,9 @@ class Ui_file_widget(object):
 
         self.horizontalLayout.addWidget(self.scrollArea)
 
-        icon7 = QIcon()
-        icon7.addFile(u":/convert.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.aspects.addTab(self.modify, icon7, "")
+        icon9 = QIcon()
+        icon9.addFile(u":/convert.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.aspects.addTab(self.modify, icon9, "")
         self.extract_bus_tab = QWidget()
         self.extract_bus_tab.setObjectName(u"extract_bus_tab")
         self.verticalLayout_8 = QVBoxLayout(self.extract_bus_tab)
@@ -848,9 +868,9 @@ class Ui_file_widget(object):
 
         self.extract_bus_csv_btn = QPushButton(self.groupBox_3)
         self.extract_bus_csv_btn.setObjectName(u"extract_bus_csv_btn")
-        icon8 = QIcon()
-        icon8.addFile(u":/csv.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.extract_bus_csv_btn.setIcon(icon8)
+        icon10 = QIcon()
+        icon10.addFile(u":/csv.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.extract_bus_csv_btn.setIcon(icon10)
 
         self.gridLayout_6.addWidget(self.extract_bus_csv_btn, 14, 2, 1, 1)
 
@@ -910,9 +930,9 @@ class Ui_file_widget(object):
 
         self.extract_bus_btn = QPushButton(self.groupBox_2)
         self.extract_bus_btn.setObjectName(u"extract_bus_btn")
-        icon9 = QIcon()
-        icon9.addFile(u":/down.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.extract_bus_btn.setIcon(icon9)
+        icon11 = QIcon()
+        icon11.addFile(u":/down.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.extract_bus_btn.setIcon(icon11)
 
         self.gridLayout_5.addWidget(self.extract_bus_btn, 4, 1, 1, 2)
 
@@ -997,7 +1017,7 @@ class Ui_file_widget(object):
 
         self.verticalLayout_8.addWidget(self.scrollArea_2)
 
-        self.aspects.addTab(self.extract_bus_tab, icon9, "")
+        self.aspects.addTab(self.extract_bus_tab, icon11, "")
         self.info_tab = QWidget()
         self.info_tab.setObjectName(u"info_tab")
         self.gridLayout_9 = QGridLayout(self.info_tab)
@@ -1008,9 +1028,9 @@ class Ui_file_widget(object):
 
         self.gridLayout_9.addWidget(self.info, 0, 0, 1, 1)
 
-        icon10 = QIcon()
-        icon10.addFile(u":/info.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.aspects.addTab(self.info_tab, icon10, "")
+        icon12 = QIcon()
+        icon12.addFile(u":/info.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.aspects.addTab(self.info_tab, icon12, "")
         self.attachments_tab = QWidget()
         self.attachments_tab.setObjectName(u"attachments_tab")
         self.verticalLayout_10 = QVBoxLayout(self.attachments_tab)
@@ -1020,9 +1040,7 @@ class Ui_file_widget(object):
 
         self.verticalLayout_10.addWidget(self.attachments)
 
-        icon11 = QIcon()
-        icon11.addFile(u":/attach.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.aspects.addTab(self.attachments_tab, icon11, "")
+        self.aspects.addTab(self.attachments_tab, icon7, "")
 
         self.verticalLayout.addWidget(self.aspects)
 
@@ -1054,11 +1072,11 @@ class Ui_file_widget(object):
         self.channels_tree.setToolTip(QCoreApplication.translate("file_widget", u"Double click channel to see extended information", None))
 #endif // QT_CONFIG(tooltip)
 #if QT_CONFIG(tooltip)
-        self.load_channel_list_btn.setToolTip(QCoreApplication.translate("file_widget", u"Load offline windows", None))
+        self.load_channel_list_btn.setToolTip(QCoreApplication.translate("file_widget", u"Load display file", None))
 #endif // QT_CONFIG(tooltip)
         self.load_channel_list_btn.setText("")
 #if QT_CONFIG(tooltip)
-        self.save_channel_list_btn.setToolTip(QCoreApplication.translate("file_widget", u"Save offline windows", None))
+        self.save_channel_list_btn.setToolTip(QCoreApplication.translate("file_widget", u"Save display file", None))
 #endif // QT_CONFIG(tooltip)
         self.save_channel_list_btn.setText("")
 #if QT_CONFIG(tooltip)
@@ -1077,6 +1095,14 @@ class Ui_file_widget(object):
         self.create_window_btn.setToolTip(QCoreApplication.translate("file_widget", u"Create window", None))
 #endif // QT_CONFIG(tooltip)
         self.create_window_btn.setText("")
+#if QT_CONFIG(tooltip)
+        self.load_embedded_channel_list_btn.setToolTip(QCoreApplication.translate("file_widget", u"Load embedded display file", None))
+#endif // QT_CONFIG(tooltip)
+        self.load_embedded_channel_list_btn.setText("")
+#if QT_CONFIG(tooltip)
+        self.save_embedded_channel_list_btn.setToolTip(QCoreApplication.translate("file_widget", u"Embed display file", None))
+#endif // QT_CONFIG(tooltip)
+        self.save_embedded_channel_list_btn.setText("")
         self.aspects.setTabText(self.aspects.indexOf(self.channels_tab), QCoreApplication.translate("file_widget", u"Channels", None))
         self.filter_view.setItemText(0, QCoreApplication.translate("file_widget", u"Natural sort", None))
         self.filter_view.setItemText(1, QCoreApplication.translate("file_widget", u"Internal file structure", None))
