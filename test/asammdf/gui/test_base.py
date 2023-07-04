@@ -21,7 +21,7 @@ import unittest
 from unittest import mock
 
 import pyqtgraph
-from PySide6 import QtCore, QtTest
+from PySide6 import QtCore, QtTest, QtWidgets
 
 from asammdf.gui.utils import excepthook
 
@@ -103,23 +103,33 @@ class TestBase(unittest.TestCase):
         if self.test_workspace and pathlib.Path(self.test_workspace).exists():
             shutil.rmtree(self.test_workspace)
 
-    def mouseClick_QTreeWidgetItem(self, qitem):
-        treeWidget = qitem.treeWidget()
+    def mouseClick_WidgetItem(self, qitem):
+        if isinstance(qitem, QtWidgets.QTreeWidgetItem):
+            widget = qitem.treeWidget()
+        elif isinstance(qitem, QtWidgets.QListWidgetItem):
+            widget = qitem.listWidget()
+        else:
+            raise "Not Implemented"
         QtTest.QTest.mouseClick(
-            treeWidget.viewport(),
+            widget.viewport(),
             QtCore.Qt.LeftButton,
             QtCore.Qt.KeyboardModifiers(),
-            treeWidget.visualItemRect(qitem).center(),
+            widget.visualItemRect(qitem).center(),
         )
         self.processEvents(0.5)
 
-    def mouseDClick_QTreeWidgetItem(self, qitem):
-        treeWidget = qitem.treeWidget()
+    def mouseDClick_WidgetItem(self, qitem):
+        if isinstance(qitem, QtWidgets.QTreeWidgetItem):
+            widget = qitem.treeWidget()
+        elif isinstance(qitem, QtWidgets.QListWidgetItem):
+            widget = qitem.listWidget()
+        else:
+            raise "Not Implemented"
         QtTest.QTest.mouseDClick(
-            treeWidget.viewport(),
+            widget.viewport(),
             QtCore.Qt.LeftButton,
             QtCore.Qt.KeyboardModifiers(),
-            treeWidget.visualItemRect(qitem).center(),
+            widget.visualItemRect(qitem).center(),
         )
         self.processEvents(0.5)
 

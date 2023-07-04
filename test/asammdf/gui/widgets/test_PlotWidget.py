@@ -42,13 +42,13 @@ class TestDoubleClick(TestPlotWidget):
         self.assertEqual(QtCore.Qt.Checked, plot_channel.checkState(0))
 
         # Press mouse double click on channel
-        self.mouseDClick_QTreeWidgetItem(plot_channel)
+        self.mouseDClick_WidgetItem(plot_channel)
 
         # Evaluate
         self.assertEqual(QtCore.Qt.Unchecked, plot_channel.checkState(0))
 
         # Press mouse double click on channel
-        self.mouseDClick_QTreeWidgetItem(plot_channel)
+        self.mouseDClick_WidgetItem(plot_channel)
         self.assertEqual(QtCore.Qt.Checked, plot_channel.checkState(0))
 
 
@@ -803,7 +803,7 @@ class TestPushButtons(TestPlotWidget):
         self.assertTrue(self.plot.selected_channel_value.isVisible())
 
         # Select Channel
-        self.mouseClick_QTreeWidgetItem(self.plot_tree_channel_0)
+        self.mouseClick_WidgetItem(self.plot_tree_channel_0)
 
         # Evaluate
         plot_channel_0_value = self.plot_tree_channel_0.text(self.Column.VALUE)
@@ -831,7 +831,7 @@ class TestPushButtons(TestPlotWidget):
         )
 
         # Select 2nd Channel
-        self.mouseClick_QTreeWidgetItem(self.plot_tree_channel_1)
+        self.mouseClick_WidgetItem(self.plot_tree_channel_1)
 
         # Evaluate
         plot_channel_1_value = self.plot_tree_channel_1.text(self.Column.VALUE)
@@ -1085,7 +1085,7 @@ class TestShortcuts(TestPlotWidget):
         # Case 0:
         with self.subTest("test_Plot_Plot_Shortcut_Key_LeftRight_0"):
             # Select channel: ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL
-            self.mouseClick_QTreeWidgetItem(channel_15)
+            self.mouseClick_WidgetItem(channel_15)
             plot.plot.setFocus()
             self.processEvents(0.1)
 
@@ -1117,7 +1117,7 @@ class TestShortcuts(TestPlotWidget):
         # Case 1:
         with self.subTest("test_Plot_Plot_Shortcut_Key_LeftRight_1"):
             # Select channel: ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL
-            self.mouseClick_QTreeWidgetItem(channel_15)
+            self.mouseClick_WidgetItem(channel_15)
             plot.plot.setFocus()
             self.processEvents(0.1)
 

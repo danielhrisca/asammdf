@@ -377,3 +377,37 @@ class TestPushButtons(TestBase):
             content = json.load(fpr)
             self.assertIn(maximum.__name__, content)
             self.assertIn(content["maximum"], source)
+
+
+class TestTreeWidget(TestBase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.fm = FunctionsManagerDialog({})
+
+    def test_KeyPress_Delete(self):
+        """
+        Test Scope:
+            - Ensure that functions can be deleted from function list.
+        Events:
+            - Press PushButton Add
+            - Press PushButton Add
+            - Press PushButton Add
+            - Select "Function2"
+            - Press Key Delete
+        Evaluate:
+            - Evaluate that "Function2" is no longer part of function list.
+        """
+        # Events:
+        for _ in range(3):
+            QtTest.QTest.mouseClick(
+                self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton
+            )
+        self.assertEqual(3, self.fm.widget.functions_list.count())
+
+        self.mouseClick_WidgetItem(self.fm.widget.functions_list.item(2))
+        QtTest.QTest.keyClick(self.fm.widget.functions_list, QtCore.Qt.Key.Key_Delete)
+
+        # Evaluate
+        self.assertEqual(2, self.fm.widget.functions_list.count())
+        self.assertNotEqual("Function2", self.fm.widget.functions_list.item(0))
+        self.assertNotEqual("Function2", self.fm.widget.functions_list.item(1))
