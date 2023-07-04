@@ -336,7 +336,7 @@ class TestPushButtons(TestBase):
                     mc_information.assert_not_called()
                     self.mc_ErrorDialog.assert_called()
 
-    def test_PushButton_StoreFunctionChanges(self):
+    def test_PushButton_StoreFunctionChanges_0(self):
         """
         Test Scope:
             - Ensure that function changes are saved.
@@ -378,11 +378,49 @@ class TestPushButtons(TestBase):
             self.assertIn(maximum.__name__, content)
             self.assertIn(content["maximum"], source)
 
+    def test_PushButton_StoreFunctionChanges_1(self):
+        """
+        Test Scope:
+            - Ensure that function changes are saved.
+        Events:
+            - Press PushButton Add
+            - Press PushButton Add
+            - Edit 2nd Function and rename as 1st Function
+            - Press PushButton Store Function Changes
+        Evaluate:
+            - Evaluate that overwriting is not possible
+        """
+        # Events:
+        QtTest.QTest.mouseClick(
+            self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton
+        )
+        QtTest.QTest.mouseClick(
+            self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton
+        )
+
+        self.mouseClick_WidgetItem(self.fm.widget.functions_list.item(0))
+        function1 = self.fm.widget.function_definition.toPlainText()
+
+        self.mouseClick_WidgetItem(self.fm.widget.functions_list.item(1))
+        self.fm.widget.function_definition.clear()
+        self.fm.widget.function_definition.setPlainText(function1)
+
+        with mock.patch(
+            "asammdf.gui.widgets.functions_manager.MessageBox.information"
+        ) as mc_information:
+            QtTest.QTest.mouseClick(
+                self.fm.widget.store_btn, QtCore.Qt.MouseButton.LeftButton
+            )
+
+            mc_information.assert_called()
+
 
 class TestTreeWidget(TestBase):
     def setUp(self) -> None:
         super().setUp()
-        self.fm = FunctionsManagerDialog({})
+        self.fm = FunctionsManagerDialog(
+            {"Function10": "def Function10(t=0):\n    return 0"}
+        )
 
     def test_KeyPress_Delete(self):
         """
@@ -402,12 +440,38 @@ class TestTreeWidget(TestBase):
             QtTest.QTest.mouseClick(
                 self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton
             )
-        self.assertEqual(3, self.fm.widget.functions_list.count())
+        self.assertEqual(4, self.fm.widget.functions_list.count())
 
         self.mouseClick_WidgetItem(self.fm.widget.functions_list.item(2))
         QtTest.QTest.keyClick(self.fm.widget.functions_list, QtCore.Qt.Key.Key_Delete)
 
         # Evaluate
-        self.assertEqual(2, self.fm.widget.functions_list.count())
+        self.assertEqual(3, self.fm.widget.functions_list.count())
         self.assertNotEqual("Function2", self.fm.widget.functions_list.item(0))
         self.assertNotEqual("Function2", self.fm.widget.functions_list.item(1))
+
+    def test_FunctionDefinition_ContentUpdate(self):
+        """
+        Test Scope:
+            - Ensure that content is updated in Function Definition when Function is changed in FunctionList
+        Events:
+            - Press PushButton Add
+            - Select Function1
+            - Select Function10
+        Evaluate:
+            - Evaluate that content of function definition is changed.
+        """
+        # Evant
+        QtTest.QTest.mouseClick(
+            self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton
+        )
+        self.assertEqual(2, self.fm.widget.functions_list.count())
+
+        self.mouseClick_WidgetItem(self.fm.widget.functions_list.item(0))
+        function1 = self.fm.widget.function_definition.toPlainText()
+
+        self.mouseClick_WidgetItem(self.fm.widget.functions_list.item(1))
+        function2 = self.fm.widget.function_definition.toPlainText()
+
+        # Evaluate
+        self.assertNotEqual(function1, function2)
