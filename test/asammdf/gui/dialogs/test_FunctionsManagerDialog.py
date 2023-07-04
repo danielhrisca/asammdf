@@ -527,7 +527,7 @@ class TestTreeWidget(TestBase):
         Evaluate:
             - Evaluate that content of function definition is changed.
         """
-        # Evant
+        # Event
         QtTest.QTest.mouseClick(
             self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton
         )

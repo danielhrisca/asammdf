@@ -102,7 +102,7 @@ class TestUtils(unittest.TestCase):
             result[1],
         )
 
-    def test_GeneratePythonFunction_tArg(self):
+    def test_GeneratePythonFunction_Args(self):
         """
         Events:
             - Call function 'generate_python_function' without argument 't=0' in definition or on wrong position
@@ -140,6 +140,19 @@ class TestUtils(unittest.TestCase):
 
             # Event
             result = generate_python_function(f"def Function1(t=1):\n\treturn 0", None)
+
+            # Evaluate
+            self.assertIsInstance(result, tuple)
+            self.assertEqual(None, result[0])
+            self.assertIn(trace, result[1])
+
+        with self.subTest(f"{self.id()}_3"):
+            trace = 'All the arguments must have default values. The argument "channel" has no default value.'
+
+            # Event
+            result = generate_python_function(
+                f"def Function1(channel, t=0):\n\treturn 0", None
+            )
 
             # Evaluate
             self.assertIsInstance(result, tuple)
