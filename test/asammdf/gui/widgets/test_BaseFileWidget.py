@@ -36,8 +36,8 @@ class TestFileWidget(TestBase):
             )
         else:
             self.widget = FileWidget(measurement_file, *args)
-        self.widget.showNormal()
-
+        # self.widget.showNormal()
+        self.widget.showMaximized()
     def get_subwindows(self):
         widget_types = sorted(
             map(

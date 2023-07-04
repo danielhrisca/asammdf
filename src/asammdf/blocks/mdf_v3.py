@@ -45,6 +45,7 @@ from pandas import DataFrame
 from typing_extensions import Literal, TypedDict
 
 from . import v2_v3_constants as v23c
+from .. import tool
 from ..signal import Signal
 from ..types import ChannelsType, CompressionType, RasterType, StrPathType
 from ..version import __version__
@@ -3528,17 +3529,17 @@ class MDF3(MDF_Common):
                 dst = name
 
         if not self.header.comment:
-            self.header.comment = """<FHcomment>
+            self.header.comment = f"""<FHcomment>
 <TX>created</TX>
-<tool_id>asammdf</tool_id>
-<tool_vendor> </tool_vendor>
-<tool_version>{__version__}</tool_version>
+<tool_id>{tool.__tool__}</tool_id>
+<tool_vendor>{tool.__vendor__}</tool_vendor>
+<tool_version>{tool.__version__}</tool_version>
 </FHcomment>"""
         else:
             old_history = self.header.comment
             timestamp = time.asctime()
 
-            text = f"{old_history}\n{timestamp}: updated by asammdf {__version__}"
+            text = f"{old_history}\n{timestamp}: updated by {tool.__tool__} {tool.__version__}"
             self.header.comment = text
 
         defined_texts, cc_map, si_map = {}, {}, {}

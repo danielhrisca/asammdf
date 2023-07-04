@@ -103,6 +103,19 @@ class TestBase(unittest.TestCase):
         if self.test_workspace and pathlib.Path(self.test_workspace).exists():
             shutil.rmtree(self.test_workspace)
 
+    def mouseClick_RadioButton(self, qitem):
+        QtTest.QTest.mouseClick(
+            qitem,
+            QtCore.Qt.MouseButton.LeftButton,
+            QtCore.Qt.KeyboardModifiers(),
+            QtCore.QPoint(2, qitem.height() / 2),
+        )
+        self.processEvents()
+
+    def mouseClick_CheckboxButton(self, qitem):
+        # Same function
+        self.mouseClick_RadioButton(qitem)
+
     def mouseClick_WidgetItem(self, qitem):
         if isinstance(qitem, QtWidgets.QTreeWidgetItem):
             widget = qitem.treeWidget()

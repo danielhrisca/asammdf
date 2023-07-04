@@ -18,6 +18,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 PLOT_BUFFER_SIZE = 4000
 
+from ... import tool as Tool
 from ...blocks.conversion_utils import from_dict, to_dict
 from ...blocks.utils import target_byte_order
 from ..dialogs.messagebox import MessageBox
@@ -3008,7 +3009,7 @@ class Plot(QtWidgets.QWidget):
                         pos=position,
                         message=comment,
                         color="#FF0000",
-                        tool=Bookmark.tool,
+                        tool=Tool.__tool__,
                     )
                     bookmark.visible = visible
                     bookmark.edited = True

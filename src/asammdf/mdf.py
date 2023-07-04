@@ -34,6 +34,7 @@ from numpy.typing import NDArray
 import pandas as pd
 from typing_extensions import Literal
 
+from . import tool
 from .blocks import bus_logging_utils, utils
 from .blocks import v2_v3_constants as v23c
 from .blocks import v4_constants as v4c
@@ -608,9 +609,9 @@ class MDF:
             fh = FileHistory()
             fh.comment = f"""<FHcomment>
     <TX>{message}</TX>
-    <tool_id>asammdf</tool_id>
-    <tool_vendor>asammdf</tool_vendor>
-    <tool_version>{__version__}</tool_version>
+    <tool_id>{tool.__tool__}</tool_id>
+    <tool_vendor>{tool.__vendor__}</tool_vendor>
+    <tool_version>{tool.__version__}</tool_version>
 </FHcomment>"""
 
             self.file_history = [fh]

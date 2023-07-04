@@ -225,6 +225,9 @@ class AttachmentBlock:
         except KeyError:
             self.address = 0
 
+            self.comment = kwargs.get("comment", "")
+            self.mime = kwargs.get("mime", "")
+
             file_name = Path(kwargs.get("file_name", None) or "bin.bin")
 
             data = kwargs["data"]
@@ -259,7 +262,7 @@ class AttachmentBlock:
             self.mime_addr = 0
             self.comment_addr = 0
             self.flags = flags
-            self.creator_index = 0
+            self.creator_index = kwargs.get("creator_index", 0)
             self.reserved1 = 0
             self.md5_sum = md5_sum
             self.original_size = original_size
