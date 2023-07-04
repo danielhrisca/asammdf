@@ -681,6 +681,7 @@ class TestDragAndDrop(TestPlotWidget):
         # Event
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Switch ComboBox to "Natural sort"
+        # self.widget.showMaximized()
         self.widget.channel_view.setCurrentText("Natural sort")
 
         # Create New Plot Window
