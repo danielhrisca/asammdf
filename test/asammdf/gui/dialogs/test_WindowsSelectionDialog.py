@@ -5,7 +5,6 @@ from test.asammdf.gui.test_base import TestBase
 
 
 class TestWindowSelectionDialog(TestBase):
-
     def test_RadioButtons(self):
         """
         Test Scope:
