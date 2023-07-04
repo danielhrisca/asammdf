@@ -285,7 +285,7 @@ class TestPushButtons(TestBase):
                 self.fm.widget.function_definition.setPlainText(source)
 
                 with mock.patch(
-                    "asammdf.gui.utils.QtWidgets.QMessageBox.information"
+                    "asammdf.gui.utils.MessageBox.information"
                 ) as mc_information:
                     QtTest.QTest.mouseClick(
                         self.fm.widget.check_syntax_btn,
@@ -325,7 +325,7 @@ class TestPushButtons(TestBase):
                 self.fm.widget.function_definition.setPlainText(source)
 
                 with mock.patch(
-                    "asammdf.gui.utils.QtWidgets.QMessageBox.information"
+                    "asammdf.gui.utils.MessageBox.information"
                 ) as mc_information:
                     QtTest.QTest.mouseClick(
                         self.fm.widget.check_syntax_btn,
