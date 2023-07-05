@@ -13,6 +13,7 @@ class DragAndDrop
      from source widget - specific point, to destination widget - specific point
 """
 import os
+import pathlib
 import shutil
 import sys
 import time
@@ -20,7 +21,7 @@ import unittest
 from unittest import mock
 
 import pyqtgraph
-from PySide6 import QtCore, QtTest
+from PySide6 import QtCore, QtTest, QtWidgets
 
 from asammdf.gui.utils import excepthook
 
@@ -81,6 +82,7 @@ class TestBase(unittest.TestCase):
         if os.path.exists(self.test_workspace):
             shutil.rmtree(self.test_workspace)
         os.makedirs(self.test_workspace)
+        self.mc_ErrorDialog.reset_mock()
         self.processEvents()
 
     @classmethod
@@ -98,7 +100,51 @@ class TestBase(unittest.TestCase):
 
     def tearDown(self):
         self.processEvents()
-        shutil.rmtree(self.test_workspace)
+        if self.test_workspace and pathlib.Path(self.test_workspace).exists():
+            shutil.rmtree(self.test_workspace)
+
+    def mouseClick_RadioButton(self, qitem):
+        QtTest.QTest.mouseClick(
+            qitem,
+            QtCore.Qt.MouseButton.LeftButton,
+            QtCore.Qt.KeyboardModifiers(),
+            QtCore.QPoint(2, qitem.height() / 2),
+        )
+        self.processEvents()
+
+    def mouseClick_CheckboxButton(self, qitem):
+        # Same function
+        self.mouseClick_RadioButton(qitem)
+
+    def mouseClick_WidgetItem(self, qitem):
+        if isinstance(qitem, QtWidgets.QTreeWidgetItem):
+            widget = qitem.treeWidget()
+        elif isinstance(qitem, QtWidgets.QListWidgetItem):
+            widget = qitem.listWidget()
+        else:
+            raise "Not Implemented"
+        QtTest.QTest.mouseClick(
+            widget.viewport(),
+            QtCore.Qt.LeftButton,
+            QtCore.Qt.KeyboardModifiers(),
+            widget.visualItemRect(qitem).center(),
+        )
+        self.processEvents(0.5)
+
+    def mouseDClick_WidgetItem(self, qitem):
+        if isinstance(qitem, QtWidgets.QTreeWidgetItem):
+            widget = qitem.treeWidget()
+        elif isinstance(qitem, QtWidgets.QListWidgetItem):
+            widget = qitem.listWidget()
+        else:
+            raise "Not Implemented"
+        QtTest.QTest.mouseDClick(
+            widget.viewport(),
+            QtCore.Qt.LeftButton,
+            QtCore.Qt.KeyboardModifiers(),
+            widget.visualItemRect(qitem).center(),
+        )
+        self.processEvents(0.5)
 
 
 class DragAndDrop:
@@ -126,7 +172,7 @@ class DragAndDrop:
             QtTest.QTest.mouseRelease(
                 self.widget,
                 QtCore.Qt.LeftButton,
-                QtCore.Qt.NoModifier,
+                QtCore.Qt.KeyboardModifiers(),
                 self.position,
             )
             QtTest.QTest.qWait(10)
@@ -151,7 +197,7 @@ class DragAndDrop:
         QtTest.QTest.mousePress(
             source_viewport,
             QtCore.Qt.LeftButton,
-            QtCore.Qt.NoModifier,
+            QtCore.Qt.KeyboardModifiers(),
             source_pos,
         )
         # Drag few pixels in order to detect startDrag event

@@ -42,47 +42,22 @@ class TestDoubleClick(TestPlotWidget):
         self.assertEqual(QtCore.Qt.Checked, plot_channel.checkState(0))
 
         # Press mouse double click on channel
-        QtTest.QTest.mouseDClick(
-            plot.channel_selection.viewport(),
-            QtCore.Qt.LeftButton,
-            QtCore.Qt.KeyboardModifiers(),
-            plot.channel_selection.visualItemRect(plot_channel).center(),
-        )
-        self.processEvents(0.5)
+        self.mouseDClick_WidgetItem(plot_channel)
 
         # Evaluate
         self.assertEqual(QtCore.Qt.Unchecked, plot_channel.checkState(0))
 
         # Press mouse double click on channel
-        QtTest.QTest.mouseDClick(
-            plot.channel_selection.viewport(),
-            QtCore.Qt.LeftButton,
-            QtCore.Qt.KeyboardModifiers(),
-            plot.channel_selection.visualItemRect(plot_channel).center(),
-        )
+        self.mouseDClick_WidgetItem(plot_channel)
         self.assertEqual(QtCore.Qt.Checked, plot_channel.checkState(0))
 
 
 class TestDragAndDrop(TestPlotWidget):
     # Note: Test Plot Widget through FileWidget.
 
-    def test_Plot_ChannelSelection_DragAndDrop_fromFile_toPlot_0(self):
-        """
-        Test Scope:
-            - Test DragAndDrop Action from FileWidget.channel_tree to Plot.channel_selection and to Plot.plot.
-            - Channels are selection one by one.
-            - Ensure that Drag and Drop Action allow channels to be added to Plot.channel_selection
-        Events:
-            - Open 'FileWidget' with valid measurement.
-            - Switch ComboBox to "Natural sort"
-            - Press PushButton "Create Window"
-                - Simulate that Plot window is selected as window type.
-            - Drag and Drop channel from FileWidget.channel_tree to Plot
-            - Drag and Drop same channel from FileWidget.channel_tree to Plot
-        Evaluate:
-            - Evaluate that two channels are added to Plot "channel_selection"
-        """
-        # Event
+    def setUp(self):
+        super().setUp()
+
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Switch ComboBox to "Natural sort"
         self.widget.channel_view.setCurrentText("Natural sort")
@@ -90,6 +65,24 @@ class TestDragAndDrop(TestPlotWidget):
         self.create_window(window_type="Plot")
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
 
+    def test_Plot_ChannelSelection_DragAndDrop_fromFile_toPlot_0(self):
+        """
+        Test Scope:
+            - Test DragAndDrop Action from FileWidget.channel_tree to Plot.channel_selection and to Plot.plot.
+            - Channels are selection one by one.
+            - Ensure that Drag and Drop Action allow channels to be added to Plot.channel_selection
+        Precondition:
+            - Open 'FileWidget' with valid measurement.
+            - Switch ComboBox to "Natural sort"
+            - Press PushButton "Create Window"
+                - Simulate that Plot window is selected as window type.
+        Events:
+            - Drag and Drop channel from FileWidget.channel_tree to Plot
+            - Drag and Drop same channel from FileWidget.channel_tree to Plot
+        Evaluate:
+            - Evaluate that two channels are added to Plot "channel_selection"
+        """
+        # Event
         # Select channel
         channel_tree = self.widget.channels_tree
         plot = self.widget.mdi_area.subWindowList()[0].widget()
@@ -127,24 +120,18 @@ class TestDragAndDrop(TestPlotWidget):
             - Test DragAndDrop Action from FileWidget.channel_tree to Plot.channel_selection and to Plot.plot.
             - Multiple Channels are selected and dragged.
             - Ensure that Drag and Drop Action allow channels to be added to Plot.channel_selection
-        Events:
+        Precondition:
             - Open 'FileWidget' with valid measurement.
             - Switch ComboBox to "Natural sort"
             - Press PushButton "Create Window"
                 - Simulate that Plot window is selected as window type.
+        Events:
             - Select 3 channels from FileWidget.channel_tree
             - Drag and Drop channels from FileWidget.channel_tree to Plot
         Evaluate:
             - Evaluate that 3 channels are added to Plot "channel_selection"
         """
         # Event
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Switch ComboBox to "Natural sort"
-        self.widget.channel_view.setCurrentText("Natural sort")
-
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-
         channel_tree = self.widget.channels_tree
         plot = self.widget.mdi_area.subWindowList()[0].widget()
 
@@ -203,11 +190,12 @@ class TestDragAndDrop(TestPlotWidget):
             - Case 4: Drag Group inside the Group
             - Case 5: Drag Group outside the Group
             - Ensure that Drag and Drop Action allow channels to be sorted to Plot.channel_selection
-        Events:
+        Precondition:
             - Open 'FileWidget' with valid measurement.
             - Switch ComboBox to "Natural sort"
             - Press PushButton "Create Window"
                 - Simulate that Plot window is selected as window type.
+        Events:
             - Select 5 channels and DragAndDrop them to Plot.channel_selection.
                 - One channel should be duplicated.
             - Case 0:
@@ -243,13 +231,6 @@ class TestDragAndDrop(TestPlotWidget):
                 - Evaluate that group was moved outside the group.
         """
         # Event
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Switch ComboBox to "Natural sort"
-        self.widget.channel_view.setCurrentText("Natural sort")
-
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-
         channel_tree = self.widget.channels_tree
         plot = self.widget.mdi_area.subWindowList()[0].widget()
 
@@ -579,11 +560,12 @@ class TestDragAndDrop(TestPlotWidget):
     def test_Plot_ChannelSelection_DragAndDrop_fromPlot_toPlot(self):
         """
         Test Scope: Validate that channels can be dragged and dropped between Plot windows. (Ex: from Plot 0 to Plot 1)
-        Events:
+        Precondition:
             - Open 'FileWidget' with valid measurement.
             - Switch ComboBox to "Natural sort"
             - Press PushButton "Create Window"
                 - Simulate that Plot window is selected as window type.
+        Events:
             - Select one channel and drag it to the 'Plot 0'
             - Press PushButton "Create Window"
                 - Simulate that Plot window is selected as window type.
@@ -593,14 +575,6 @@ class TestDragAndDrop(TestPlotWidget):
             - Validate that channel from 'Plot 0' is added to 'Plot 1'
         """
         # Event
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Switch ComboBox to "Natural sort"
-        self.widget.channel_view.setCurrentText("Natural sort")
-
-        # Create New Plot Window
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-
         channel_tree = self.widget.channels_tree
         plot_0 = self.widget.mdi_area.subWindowList()[0].widget()
         # Random Channels
@@ -666,11 +640,12 @@ class TestDragAndDrop(TestPlotWidget):
         """
         Test Scope: Validate that channels can be dragged and dropped between Plot window and Numeric.
         Ex: from 'Numeric 0' to 'Plot 0'
-        Events:
+        Precondition:
             - Open 'FileWidget' with valid measurement.
             - Switch ComboBox to "Natural sort"
             - Press PushButton "Create Window"
                 - Simulate that Plot window is selected as window type.
+        Events:
             - Select one channel and drag it to the 'Plot 0'
             - Press PushButton "Create Window"
                 - Simulate that Numeric window is selected as window type.
@@ -680,15 +655,6 @@ class TestDragAndDrop(TestPlotWidget):
             - Validate that channel from 'Numeric 0' is added to 'Plot 0'
         """
         # Event
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Switch ComboBox to "Natural sort"
-        # self.widget.showMaximized()
-        self.widget.channel_view.setCurrentText("Natural sort")
-
-        # Create New Plot Window
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-
         channel_tree = self.widget.channels_tree
         plot_0 = self.widget.mdi_area.subWindowList()[0].widget()
         # Random Channels
@@ -752,16 +718,58 @@ class TestDragAndDrop(TestPlotWidget):
 
 
 class TestPushButtons(TestPlotWidget):
+    def setUp(self):
+        super().setUp()
+
+        self.channel_0_name = "ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
+        self.channel_1_name = "ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
+
+        # Event
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
+        # Switch ComboBox to "Natural sort"
+        self.widget.channel_view.setCurrentText("Natural sort")
+        # Press PushButton "Create Window"
+        self.create_window(window_type="Plot")
+        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+        self.plot = self.widget.mdi_area.subWindowList()[0].widget()
+
+        # Press PushButton "Hide axis"
+        if not self.plot.hide_axes_btn.isFlat():
+            QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.LeftButton)
+
+        # Save PixMap of clear plot
+        clear_pixmap = self.plot.plot.viewport().grab()
+        self.assertTrue(Pixmap.is_black(clear_pixmap))
+
+        # Add Channels to Plot
+        self.plot_tree_channel_0 = self.add_channel_to_plot(
+            plot=self.plot, channel_name=self.channel_0_name
+        )
+        self.assertEqual(1, self.plot.channel_selection.topLevelItemCount())
+        self.plot_tree_channel_1 = self.add_channel_to_plot(
+            plot=self.plot, channel_name=self.channel_1_name
+        )
+        self.assertEqual(2, self.plot.channel_selection.topLevelItemCount())
+
+        # Identify PlotSignal
+        self.plot_graph_channel_0, self.plot_graph_channel_1 = None, None
+        for channel in self.plot.plot.signals:
+            if channel.name == self.channel_0_name:
+                self.plot_graph_channel_0 = channel
+            elif channel.name == self.channel_1_name:
+                self.plot_graph_channel_1 = channel
+
     def test_Plot_ChannelSelection_PushButton_ValuePanel(self):
         """
         Test Scope:
             Check that Value Panel label is visible or hidden according to Push Button
             Check that Value Panel label is updated according signal samples
-        Events:
+        Precondition:
             - Open 'FileWidget' with valid measurement.
             - Switch ComboBox to "Natural sort"
             - Press PushButton "Create Window"
             - Drag and Drop 2 channels from FileWidget.channels_tree to Plot.channels_selection
+        Events:
             - Press PushButton "Show selected channel value panel"
             - Press PushButton "Hide selected channel value panel"
             - Press PushButton "Show selected channel value panel"
@@ -776,102 +784,82 @@ class TestPushButtons(TestPlotWidget):
             - Evaluate that value is updated according channel selected and current value
         """
         # Event
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Switch ComboBox to "Natural sort"
-        self.widget.channel_view.setCurrentText("Natural sort")
-        # Press PushButton "Create Window"
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-        # Add Channels to Plot
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
-        plot_channel_0 = self.add_channel_to_plot(
-            plot=plot, channel_name="ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
-        )
-        self.assertEqual(1, plot.channel_selection.topLevelItemCount())
-        plot_channel_1 = self.add_channel_to_plot(
-            plot=plot, channel_name="ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
-        )
-        self.assertEqual(2, plot.channel_selection.topLevelItemCount())
-        if plot.selected_channel_value.isVisible():
+        if self.plot.selected_channel_value.isVisible():
             # Press PushButton "Hide selected channel value panel"
             QtTest.QTest.mouseClick(
-                plot.selected_channel_value_btn, QtCore.Qt.LeftButton
+                self.plot.selected_channel_value_btn, QtCore.Qt.LeftButton
             )
         # Press PushButton "Show selected channel value panel"
-        QtTest.QTest.mouseClick(plot.selected_channel_value_btn, QtCore.Qt.LeftButton)
-        self.assertTrue(plot.selected_channel_value.isVisible())
+        QtTest.QTest.mouseClick(
+            self.plot.selected_channel_value_btn, QtCore.Qt.LeftButton
+        )
+        self.assertTrue(self.plot.selected_channel_value.isVisible())
 
         # Press PushButton "Hide selected channel value panel"
-        QtTest.QTest.mouseClick(plot.selected_channel_value_btn, QtCore.Qt.LeftButton)
-        self.assertFalse(plot.selected_channel_value.isVisible())
+        QtTest.QTest.mouseClick(
+            self.plot.selected_channel_value_btn, QtCore.Qt.LeftButton
+        )
+        self.assertFalse(self.plot.selected_channel_value.isVisible())
         # Press PushButton "Show selected channel value panel"
-        QtTest.QTest.mouseClick(plot.selected_channel_value_btn, QtCore.Qt.LeftButton)
-        self.assertTrue(plot.selected_channel_value.isVisible())
+        QtTest.QTest.mouseClick(
+            self.plot.selected_channel_value_btn, QtCore.Qt.LeftButton
+        )
+        self.assertTrue(self.plot.selected_channel_value.isVisible())
 
         # Select Channel
-        QtTest.QTest.mouseClick(
-            plot.channel_selection.viewport(),
-            QtCore.Qt.LeftButton,
-            QtCore.Qt.KeyboardModifiers(),
-            plot.channel_selection.visualItemRect(plot_channel_0).center(),
-        )
+        self.mouseClick_WidgetItem(self.plot_tree_channel_0)
 
         # Evaluate
-        plot_channel_0_value = plot_channel_0.text(self.Column.VALUE)
-        plot_channel_0_unit = plot_channel_0.text(self.Column.UNIT)
+        plot_channel_0_value = self.plot_tree_channel_0.text(self.Column.VALUE)
+        plot_channel_0_unit = self.plot_tree_channel_0.text(self.Column.UNIT)
         self.assertEqual(
             f"{plot_channel_0_value} {plot_channel_0_unit}",
-            plot.selected_channel_value.text(),
+            self.plot.selected_channel_value.text(),
         )
 
         # Event
-        plot.plot.setFocus()
+        self.plot.plot.setFocus()
         self.processEvents(0.1)
         # Send Key strokes
         for _ in range(6):
-            QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Right)
+            QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Right)
             self.processEvents(0.1)
         self.processEvents(0.1)
 
         # Evaluate
-        plot_channel_0_value = plot_channel_0.text(self.Column.VALUE)
-        plot_channel_0_unit = plot_channel_0.text(self.Column.UNIT)
+        plot_channel_0_value = self.plot_tree_channel_0.text(self.Column.VALUE)
+        plot_channel_0_unit = self.plot_tree_channel_0.text(self.Column.UNIT)
         self.assertEqual(
             f"{plot_channel_0_value} {plot_channel_0_unit}",
-            plot.selected_channel_value.text(),
+            self.plot.selected_channel_value.text(),
         )
 
         # Select 2nd Channel
-        QtTest.QTest.mouseClick(
-            plot.channel_selection.viewport(),
-            QtCore.Qt.LeftButton,
-            QtCore.Qt.KeyboardModifiers(),
-            plot.channel_selection.visualItemRect(plot_channel_1).center(),
-        )
+        self.mouseClick_WidgetItem(self.plot_tree_channel_1)
 
         # Evaluate
-        plot_channel_1_value = plot_channel_1.text(self.Column.VALUE)
-        plot_channel_1_unit = plot_channel_1.text(self.Column.UNIT)
+        plot_channel_1_value = self.plot_tree_channel_1.text(self.Column.VALUE)
+        plot_channel_1_unit = self.plot_tree_channel_1.text(self.Column.UNIT)
         self.assertEqual(
             f"{plot_channel_1_value} {plot_channel_1_unit}",
-            plot.selected_channel_value.text(),
+            self.plot.selected_channel_value.text(),
         )
 
         # Event
-        plot.plot.setFocus()
+        self.plot.plot.setFocus()
         self.processEvents(0.1)
         # Send Key strokes
         for _ in range(6):
-            QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Right)
+            QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Right)
             self.processEvents(0.1)
         self.processEvents(0.1)
 
         # Evaluate
-        plot_channel_1_value = plot_channel_1.text(self.Column.VALUE)
-        plot_channel_1_unit = plot_channel_1.text(self.Column.UNIT)
+        plot_channel_1_value = self.plot_tree_channel_1.text(self.Column.VALUE)
+        plot_channel_1_unit = self.plot_tree_channel_1.text(self.Column.UNIT)
         self.assertEqual(
             f"{plot_channel_1_value} {plot_channel_1_unit}",
-            plot.selected_channel_value.text(),
+            self.plot.selected_channel_value.text(),
         )
 
     def test_Plot_ChannelSelection_PushButton_FocusedMode(self):
@@ -880,7 +868,7 @@ class TestPushButtons(TestPlotWidget):
             Check if Plot is cleared when no channel is selected.
             Check if Plot is showing all channels when Focus Mode is disabled.
             Check if Plot is showing only one channel when Focus Mode is enabled.
-        Events:
+        Precondition:
             - Open 'FileWidget' with valid measurement.
             - Switch ComboBox to "Natural sort"
             - Press PushButton "Create Window"
@@ -890,106 +878,72 @@ class TestPushButtons(TestPlotWidget):
                 - ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL
                 # Second
                 - ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL
+        Events:
             - Press PushButton FocusMode
             - Press PushButton FocusMode
         Evaluate:
             - Evaluate that channels are displayed when FocusMode is disabled.
             - Evaluate that selected channels is displayed when FocusMode is enabled.
         """
-        channel_0 = "ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
-        channel_1 = "ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
+        # Events
+        if not self.plot.focused_mode_btn.isFlat():
+            QtTest.QTest.mouseClick(self.plot.focused_mode_btn, QtCore.Qt.LeftButton)
 
-        # Event
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Switch ComboBox to "Natural sort"
-        self.widget.channel_view.setCurrentText("Natural sort")
-        # Press PushButton "Create Window"
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
-
-        # Press PushButton "Hide axis"
-        if not plot.hide_axes_btn.isFlat():
-            QtTest.QTest.mouseClick(plot.hide_axes_btn, QtCore.Qt.LeftButton)
-
-        # Save PixMap of clear plot
-        clear_pixmap = plot.plot.viewport().grab()
-        self.assertTrue(Pixmap.is_black(clear_pixmap))
-
-        # Add Channels to Plot
-        plot_tree_channel_0 = self.add_channel_to_plot(
-            plot=plot, channel_name=channel_0
-        )
-        self.assertEqual(1, plot.channel_selection.topLevelItemCount())
-        plot_tree_channel_1 = self.add_channel_to_plot(
-            plot=plot, channel_name=channel_1
-        )
-        self.assertEqual(2, plot.channel_selection.topLevelItemCount())
-
-        # Identify PlotSignal
-        plot_graph_channel_0, plot_graph_channel_1 = None, None
-        for channel in plot.plot.signals:
-            if channel.name == channel_0:
-                plot_graph_channel_0 = channel
-            elif channel.name == channel_1:
-                plot_graph_channel_1 = channel
-
-        if not plot.focused_mode_btn.isFlat():
-            QtTest.QTest.mouseClick(plot.focused_mode_btn, QtCore.Qt.LeftButton)
-
-        channels_present_pixmap = plot.plot.viewport().grab()
+        channels_present_pixmap = self.plot.plot.viewport().grab()
         self.assertFalse(Pixmap.is_black(pixmap=channels_present_pixmap))
         self.assertTrue(
             Pixmap.has_color(
                 pixmap=channels_present_pixmap,
-                color_name=plot_graph_channel_0.color_name,
+                color_name=self.plot_graph_channel_0.color_name,
             )
         )
         self.assertTrue(
             Pixmap.has_color(
                 pixmap=channels_present_pixmap,
-                color_name=plot_graph_channel_1.color_name,
+                color_name=self.plot_graph_channel_1.color_name,
             )
         )
 
         # Press Button Focus Mode
-        QtTest.QTest.mouseClick(plot.focused_mode_btn, QtCore.Qt.LeftButton)
+        QtTest.QTest.mouseClick(self.plot.focused_mode_btn, QtCore.Qt.LeftButton)
 
         # Evaluate
-        focus_mode_clear_pixmap = plot.plot.viewport().grab()
+        focus_mode_clear_pixmap = self.plot.plot.viewport().grab()
         # No Channel is selected
         self.assertTrue(Pixmap.is_black(pixmap=focus_mode_clear_pixmap))
 
         # Select 2nd Channel
         QtTest.QTest.mouseClick(
-            plot.channel_selection.viewport(),
+            self.plot.channel_selection.viewport(),
             QtCore.Qt.LeftButton,
             QtCore.Qt.KeyboardModifiers(),
-            plot.channel_selection.visualItemRect(plot_tree_channel_1).center(),
+            self.plot.channel_selection.visualItemRect(
+                self.plot_tree_channel_1
+            ).center(),
         )
         # Process flash until signal is present on plot.
         for _ in range(10):
             self.processEvents(timeout=0.01)
-            focus_mode_channel_1_pixmap = plot.plot.viewport().grab()
+            focus_mode_channel_1_pixmap = self.plot.plot.viewport().grab()
             if Pixmap.has_color(
                 pixmap=focus_mode_channel_1_pixmap,
-                color_name=plot_graph_channel_1.color_name,
+                color_name=self.plot_graph_channel_1.color_name,
             ):
                 break
 
         # Evaluate
-        focus_mode_channel_1_pixmap = plot.plot.viewport().grab()
+        focus_mode_channel_1_pixmap = self.plot.plot.viewport().grab()
         self.assertFalse(Pixmap.is_black(pixmap=focus_mode_channel_1_pixmap))
         self.assertFalse(
             Pixmap.has_color(
                 pixmap=focus_mode_channel_1_pixmap,
-                color_name=plot_graph_channel_0.color_name,
+                color_name=self.plot_graph_channel_0.color_name,
             )
         )
         self.assertTrue(
             Pixmap.has_color(
                 pixmap=focus_mode_channel_1_pixmap,
-                color_name=plot_graph_channel_1.color_name,
+                color_name=self.plot_graph_channel_1.color_name,
             )
         )
 
@@ -1021,83 +975,63 @@ class TestPushButtons(TestPlotWidget):
         channel_1 = "ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
 
         # Event
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Switch ComboBox to "Natural sort"
-        self.widget.channel_view.setCurrentText("Natural sort")
-        # Press PushButton "Create Window"
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
-
-        # Press PushButton "Hide axis"
-        if not plot.hide_axes_btn.isFlat():
-            QtTest.QTest.mouseClick(plot.hide_axes_btn, QtCore.Qt.LeftButton)
-
-        # Add Channels to Plot
-        plot_tree_channel_0 = self.add_channel_to_plot(
-            plot=plot, channel_name=channel_0
-        )
-        self.assertEqual(1, plot.channel_selection.topLevelItemCount())
-        plot_tree_channel_1 = self.add_channel_to_plot(
-            plot=plot, channel_name=channel_1
-        )
-        self.assertEqual(2, plot.channel_selection.topLevelItemCount())
-
-        if not plot.delta_btn.isFlat():
-            QtTest.QTest.mouseClick(plot.delta_btn, QtCore.Qt.LeftButton)
+        if not self.plot.delta_btn.isFlat():
+            QtTest.QTest.mouseClick(self.plot.delta_btn, QtCore.Qt.LeftButton)
             self.processEvents()
 
         # Ensure that delta char is not present on channel values
-        self.assertNotIn("Δ", plot_tree_channel_0.text(self.Column.VALUE))
-        self.assertNotIn("Δ", plot_tree_channel_1.text(self.Column.VALUE))
+        self.assertNotIn("Δ", self.plot_tree_channel_0.text(self.Column.VALUE))
+        self.assertNotIn("Δ", self.plot_tree_channel_1.text(self.Column.VALUE))
 
         # Press PushButton Delta (range is not active)
-        QtTest.QTest.mouseClick(plot.delta_btn, QtCore.Qt.LeftButton)
+        QtTest.QTest.mouseClick(self.plot.delta_btn, QtCore.Qt.LeftButton)
         self.processEvents()
 
         # Ensure that delta char is not present on channel values even if button is pressed
-        self.assertNotIn("Δ", plot_tree_channel_0.text(self.Column.VALUE))
-        self.assertNotIn("Δ", plot_tree_channel_1.text(self.Column.VALUE))
+        self.assertNotIn("Δ", self.plot_tree_channel_0.text(self.Column.VALUE))
+        self.assertNotIn("Δ", self.plot_tree_channel_1.text(self.Column.VALUE))
 
         # Press Key 'R' for range selection
-        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_R)
+        QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_R)
         self.processEvents(timeout=0.01)
 
         # Ensure that delta char is present on channel values even if button is pressed
-        self.assertIn("Δ", plot_tree_channel_0.text(self.Column.VALUE))
-        self.assertIn("Δ", plot_tree_channel_1.text(self.Column.VALUE))
+        self.assertIn("Δ", self.plot_tree_channel_0.text(self.Column.VALUE))
+        self.assertIn("Δ", self.plot_tree_channel_1.text(self.Column.VALUE))
 
         # Move cursor
         # Select channel_1
         QtTest.QTest.mouseClick(
-            plot.channel_selection.viewport(),
+            self.plot.channel_selection.viewport(),
             QtCore.Qt.LeftButton,
             QtCore.Qt.KeyboardModifiers(),
-            plot.channel_selection.visualItemRect(plot_tree_channel_1).center(),
+            self.plot.channel_selection.visualItemRect(
+                self.plot_tree_channel_1
+            ).center(),
         )
-        plot.plot.setFocus()
+        self.plot.plot.setFocus()
         self.processEvents(0.1)
         # Move a little bit in center of measurement
         for _ in range(15):
-            QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Right)
+            QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Right)
             self.processEvents(timeout=0.1)
 
         # Get current value: Ex: 'Δ = 8'. Get last number
         old_channel_0_value = int(
-            plot_tree_channel_0.text(self.Column.VALUE).split(" ")[-1]
+            self.plot_tree_channel_0.text(self.Column.VALUE).split(" ")[-1]
         )
         old_channel_1_value = int(
-            plot_tree_channel_1.text(self.Column.VALUE).split(" ")[-1]
+            self.plot_tree_channel_1.text(self.Column.VALUE).split(" ")[-1]
         )
         for count in range(5):
-            QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Right)
+            QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Right)
             self.processEvents(timeout=0.1)
             # Evaluate
             channel_0_value = int(
-                plot_tree_channel_0.text(self.Column.VALUE).split(" ")[-1]
+                self.plot_tree_channel_0.text(self.Column.VALUE).split(" ")[-1]
             )
             channel_1_value = int(
-                plot_tree_channel_1.text(self.Column.VALUE).split(" ")[-1]
+                self.plot_tree_channel_1.text(self.Column.VALUE).split(" ")[-1]
             )
             self.assertLess(old_channel_0_value, channel_0_value)
             self.assertGreater(old_channel_1_value, channel_1_value)
@@ -1105,12 +1039,12 @@ class TestPushButtons(TestPlotWidget):
             old_channel_1_value = channel_1_value
 
         # Press Key 'R' for range selection
-        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_R)
+        QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_R)
         self.processEvents(timeout=0.01)
 
         # Ensure that delta char is not present on channel values even if button is pressed
-        self.assertNotIn("Δ", plot_tree_channel_0.text(self.Column.VALUE))
-        self.assertNotIn("Δ", plot_tree_channel_1.text(self.Column.VALUE))
+        self.assertNotIn("Δ", self.plot_tree_channel_0.text(self.Column.VALUE))
+        self.assertNotIn("Δ", self.plot_tree_channel_1.text(self.Column.VALUE))
 
 
 class TestShortcuts(TestPlotWidget):
@@ -1155,12 +1089,7 @@ class TestShortcuts(TestPlotWidget):
         # Case 0:
         with self.subTest("test_Plot_Plot_Shortcut_Key_LeftRight_0"):
             # Select channel: ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL
-            QtTest.QTest.mouseClick(
-                channel_selection.viewport(),
-                QtCore.Qt.LeftButton,
-                QtCore.Qt.KeyboardModifiers(),
-                channel_selection.visualItemRect(channel_15).center(),
-            )
+            self.mouseClick_WidgetItem(channel_15)
             plot.plot.setFocus()
             self.processEvents(0.1)
 
@@ -1192,12 +1121,7 @@ class TestShortcuts(TestPlotWidget):
         # Case 1:
         with self.subTest("test_Plot_Plot_Shortcut_Key_LeftRight_1"):
             # Select channel: ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL
-            QtTest.QTest.mouseClick(
-                channel_selection.viewport(),
-                QtCore.Qt.LeftButton,
-                QtCore.Qt.KeyboardModifiers(),
-                channel_selection.visualItemRect(channel_15).center(),
-            )
+            self.mouseClick_WidgetItem(channel_15)
             plot.plot.setFocus()
             self.processEvents(0.1)
 
