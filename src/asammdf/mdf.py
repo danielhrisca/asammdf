@@ -5234,13 +5234,13 @@ class MDF:
                                     ].channel_group.flags = v4c.FLAG_CG_BUS_EVENT
 
                                     if is_j1939:
-                                        max_flags.append([False])
+                                        max_flags.append([[False]])
                                         for ch_index, sig in enumerate(sigs, 1):
                                             max_flags[cg_nr].append(
-                                                np.all(sig.invalidation_bits)
+                                                [np.all(sig.invalidation_bits)]
                                             )
                                     else:
-                                        max_flags.append([False] * (len(sigs) + 1))
+                                        max_flags.append([[False]] * (len(sigs) + 1))
 
                                 else:
                                     index = msg_map[entry]
@@ -5259,9 +5259,9 @@ class MDF:
 
                                     if is_j1939:
                                         for ch_index, sig in enumerate(sigs, 1):
-                                            max_flags[index][ch_index] = max_flags[
-                                                index
-                                            ][ch_index] or np.all(sig[1])
+                                            max_flags[index][ch_index].append(
+                                                np.all(sig[1])
+                                            )
 
                                     sigs.insert(0, (t, None))
 
@@ -5299,7 +5299,7 @@ class MDF:
 
         for i, group in enumerate(out.groups):
             for j, channel in enumerate(group.channels[1:], 1):
-                if not max_flags[i][j]:
+                if not all(max_flags[i][j]):
                     to_keep.append((None, i, j))
                 all_channels.append((None, i, j))
 
@@ -6256,7 +6256,6 @@ class MDF:
                         )
 
                     elif row["Event Type"] == "FlexRay NullFrame":
-                        print(row)
                         frame_flags = f'{row["FrameFlags"]:x}'
                         controller_flags = f'{row["ControllerFlags"]:x}'
                         header_crc = f'{row["Header CRC"]:x}'
