@@ -109,7 +109,7 @@ setup(
         ],
         "export_matlab_v5": "scipy",
         "gui": [
-            "lxml",
+            "lxml<=4.9.2",
             "natsort",
             "psutil",
             "PySide6<=6.3.1",
