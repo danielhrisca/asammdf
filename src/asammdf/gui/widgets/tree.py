@@ -2068,7 +2068,9 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.signal.text_conversion = None
 
             if self.signal.conversion:
-                samples = self.signal.conversion.convert(self.signal.samples)
+                samples = self.signal.conversion.convert(
+                    self.signal.samples, as_bytes=True
+                )
                 if samples.dtype.kind not in "SUV":
                     nans = np.isnan(samples)
                     if np.any(nans):
@@ -2268,7 +2270,9 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 self.setText(self.ValueColumn, text)
             else:
                 if self.signal.text_conversion and self.mode == "phys":
-                    value = self.signal.text_conversion.convert([value])[0]
+                    value = self.signal.text_conversion.convert([value], as_bytes=True)[
+                        0
+                    ]
                     if isinstance(value, bytes):
                         try:
                             text = value.decode("utf-8", errors="replace")

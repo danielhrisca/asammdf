@@ -80,7 +80,7 @@ class SignalOnline:
     def update_values(self, values):
         self.raw = values[-1]
         if self.conversion:
-            self.scaled = self.conversion.convert(values[-1:])[0]
+            self.scaled = self.conversion.convert(values[-1:], as_bytes=True)[0]
         else:
             self.scaled = self.raw
 
@@ -1336,7 +1336,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     sig = PlotSignal(sig, allow_trim=False)
                     if sig.conversion:
                         sig.phys_samples = sig.conversion.convert(
-                            sig.raw_samples, as_object=True
+                            sig.raw_samples, as_bytes=True
                         )
                     sig.entry = sig.group_index, sig.channel_index
 

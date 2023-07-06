@@ -360,7 +360,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             progress.setValue(100)
             progress.deleteLater()
 
-        self.load_channel_list_btn.clicked.connect(self.load_channel_list)
+        self.load_channel_list_btn.clicked.connect(
+            partial(self.load_channel_list, manually=True)
+        )
         self.save_channel_list_btn.clicked.connect(self.save_channel_list)
         self.load_filter_list_btn.clicked.connect(self.load_filter_list)
         self.save_filter_list_btn.clicked.connect(self.save_filter_list)
@@ -1030,7 +1032,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.display_file_modified.emit(Path(self.loaded_display_file[0]).name)
 
-    def load_channel_list(self, event=None, file_name=None):
+    def load_channel_list(self, event=None, file_name=None, manually=False):
         if file_name is None:
             file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self,
@@ -1107,10 +1109,17 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 original_file_name = Path(self.mdf.original_name)
 
-                if original_file_name.suffix.lower() in (
-                    ".mf4",
-                    ".mf4z",
-                ) and not self.mdf.header._common_properties.get("pr_display_file", ""):
+                if (
+                    original_file_name.suffix.lower()
+                    in (
+                        ".mf4",
+                        ".mf4z",
+                    )
+                    and not self.mdf.header._common_properties.get(
+                        "pr_display_file", ""
+                    )
+                    and manually
+                ):
                     result = MessageBox.question(
                         self,
                         "Set default display file?",
@@ -1150,12 +1159,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                     return
 
                                 tmpdir = gettempdir()
-                                file_name = archive.extract(fname, tmpdir)
-                                file_name = Path(tmpdir) / file_name
+                                mdf_file_name = archive.extract(fname, tmpdir)
+                                mdf_file_name = Path(tmpdir) / mdf_file_name
                         else:
-                            file_name = original_file_name
+                            mdf_file_name = original_file_name
 
-                        with open(file_name, "r+b") as mdf:
+                        with open(mdf_file_name, "r+b") as mdf:
                             try:
                                 header._common_properties[
                                     "pr_display_file"
@@ -1186,12 +1195,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                 original_file_name, "w", compression=ZIP_DEFLATED
                             )
                             zipped_mf4.write(
-                                str(file_name),
+                                str(mdf_file_name),
                                 original_file_name.with_suffix(".mf4").name,
                                 compresslevel=1,
                             )
                             zipped_mf4.close()
-                            file_name.unlink()
+                            mdf_file_name.unlink()
 
                         self.mdf = MDF(
                             name=original_file_name,
@@ -1200,7 +1209,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             use_display_names=True,
                         )
 
-                        self.mdf.original_name = file_name
+                        self.mdf.original_name = original_file_name
                         self.mdf.uuid = uuid
 
             else:
@@ -1208,13 +1217,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             worker = sha1()
             worker.update(file_name.read_bytes())
-            self.loaded_display_file = file_name, worker.hexdigest()
+            self.loaded_file_name = file_name, worker.hexdigest()
 
         else:
             extension = None
             info = file_name
             channels = info.get("selected_channels", [])
-            self.loaded_display_file = Path(info.get("display_file_name", "")), b""
+            self.loaded_file_name = Path(info.get("display_file_name", "")), b""
 
             self.functions.update(info.get("functions", {}))
 
@@ -1318,7 +1327,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             progress.cancel()
 
-        self.display_file_modified.emit(Path(self.loaded_display_file[0]).name)
+        self.display_file_modified.emit(Path(self.loaded_file_name[0]).name)
 
         if errors:
             ErrorDialog(

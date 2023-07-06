@@ -70,7 +70,7 @@ class FormatedAxis(pg.AxisItem):
         if self.text_conversion and self.mode == "phys":
             strns = []
             for val in values:
-                nv = self.text_conversion.convert(np.array([val]))[0]
+                nv = self.text_conversion.convert(np.array([val]), as_bytes=True)[0]
 
                 val = float(val)
 

@@ -250,7 +250,7 @@ class PlotSignal(Signal):
         self.text_conversion = None
 
         if self.conversion:
-            samples = self.conversion.convert(self.samples)
+            samples = self.conversion.convert(self.samples, as_bytes=True)
             if samples.dtype.kind not in "SUV":
                 nans = np.isnan(samples)
                 if np.any(nans):
@@ -264,6 +264,7 @@ class PlotSignal(Signal):
             else:
                 self.text_conversion = self.conversion
                 self.phys_samples = self.raw_samples = self.samples
+
         else:
             self.phys_samples = self.raw_samples = self.samples
 
