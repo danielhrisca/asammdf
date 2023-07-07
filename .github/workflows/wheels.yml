@@ -23,7 +23,15 @@ jobs:
         run: python -m pip install cibuildwheel
 
       - name: Build wheels
-        run: python -m cibuildwheel --output-dir wheelhouse
+        shell: bash
+        env:
+          CIBW_TEST_COMMAND: "pytest {project}/test --ignore={project}/test/asammdf/gui"
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+             sudo apt update
+             sudo apt-get install libegl1 libopengl0
+          fi
+          python -m cibuildwheel --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v3
         with:

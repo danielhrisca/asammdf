@@ -4,7 +4,9 @@ from traceback import format_exc
 from typing import Any
 
 import canmatrix
+
 from canmatrix import Frame, Signal, Pdu
+
 import numpy as np
 from numpy.typing import NDArray
 from typing_extensions import TypedDict
@@ -274,23 +276,23 @@ class ExtractedSignal(TypedDict):
     t: NDArray[Any]
     invalidation_bits: NDArray[Any]
 
-
 def extract_pdu(
-        payload: NDArray[Any],
-        message: Frame,
-        message_id: int,
-        bus: int,
-        t: NDArray[Any],
-        muxer: str | None = None,
-        muxer_values: NDArray[Any] | None = None,
-        original_message_id: int | None = None,
-        raw: bool = False,
-        include_message_name: bool = False,
-        ignore_value2text_conversion: bool = True,
-        is_j1939: bool = False):
-
+    payload: NDArray[Any],
+    message: Frame,
+    message_id: int,
+    bus: int,
+    t: NDArray[Any],
+    muxer: str | None = None,
+    muxer_values: NDArray[Any] | None = None,
+    original_message_id: int | None = None,
+    raw: bool = False,
+    include_message_name: bool = False,
+    ignore_value2text_conversion: bool = True,
+    is_j1939: bool = False,
+):
     extracted_signals = {}
     extracted_pdu_signals = []
+
 
     if message.size > payload.shape[1] or message.size == 0:
         return extracted_signals
@@ -300,7 +302,9 @@ def extract_pdu(
         pairs = {}
         for signal in pdu.signals:
             # signal_mdf = MDF(None, version='4.10', pdu.signals)
+
             setattr(signal, 'pdu_id', pdu.id)
+
             try:
                 entry = signal.mux_val_min, signal.mux_val_max
             except:
@@ -314,6 +318,7 @@ def extract_pdu(
         for pair, pair_signals in pdu.items():
             chgroup_name = pair_signals[0].pdu_name
             entry = bus, message_id, original_message_id, pair_signals[0].pdu_id, muxer, *pair # (18,172,None, 367800, none, none)
+
 
             extracted_signals[entry] = signals = {}
 

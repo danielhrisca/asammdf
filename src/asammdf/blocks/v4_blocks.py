@@ -3326,7 +3326,7 @@ class ChannelConversion(_ChannelConversionBase):
             values = new_values
 
         elif conversion_type == v4c.CONVERSION_TYPE_TABX and values_count >= 150:
-            if self._cache is None:
+            if self._cache is None or self._cache["type"] != "big":
                 nr = self.val_param_nr
                 raw_vals = [self[f"val_{i}"] for i in range(nr)]
 
@@ -3336,7 +3336,7 @@ class ChannelConversion(_ChannelConversionBase):
                 raw_vals = np.array([e[0] for e in x], dtype="<i8")
                 phys = [e[1] for e in x]
 
-                self._cache = {"phys": phys, "raw_vals": raw_vals}
+                self._cache = {"phys": phys, "raw_vals": raw_vals, "type": "big"}
             else:
                 phys = self._cache["phys"]
                 raw_vals = self._cache["raw_vals"]
@@ -3480,7 +3480,7 @@ class ChannelConversion(_ChannelConversionBase):
                 values = ret
 
         elif conversion_type == v4c.CONVERSION_TYPE_TABX:
-            if self._cache is None:
+            if self._cache is None or self._cache["type"] != "small":
                 nr = self.val_param_nr
                 raw_vals = [self[f"val_{i}"] for i in range(nr)]
 
@@ -3490,7 +3490,7 @@ class ChannelConversion(_ChannelConversionBase):
                 raw_vals = [e[0] for e in x]
                 phys = [e[1] for e in x]
 
-                self._cache = {"phys": phys, "raw_vals": raw_vals}
+                self._cache = {"phys": phys, "raw_vals": raw_vals, "type": "small"}
             else:
                 phys = self._cache["phys"]
                 raw_vals = self._cache["raw_vals"]
@@ -3595,7 +3595,7 @@ class ChannelConversion(_ChannelConversionBase):
                 values = ret
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX and values_count >= 100:
-            if self._cache is None:
+            if self._cache is None or self._cache["type"] != "big":
                 nr = self.val_param_nr // 2
 
                 phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
@@ -3612,6 +3612,7 @@ class ChannelConversion(_ChannelConversionBase):
                     "phys": phys,
                     "lower": lower,
                     "upper": upper,
+                    "type": "big",
                 }
             else:
                 phys = self._cache["phys"]
@@ -3671,7 +3672,7 @@ class ChannelConversion(_ChannelConversionBase):
             values = ret
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
-            if self._cache is None:
+            if self._cache is None or self._cache["type"] != "small":
                 nr = self.val_param_nr // 2
 
                 phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
@@ -3688,6 +3689,7 @@ class ChannelConversion(_ChannelConversionBase):
                     "phys": phys,
                     "lower": lower,
                     "upper": upper,
+                    "type": "small",
                 }
             else:
                 phys = self._cache["phys"]

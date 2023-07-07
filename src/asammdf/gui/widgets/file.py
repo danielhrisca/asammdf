@@ -1039,19 +1039,19 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             elif extension == ".lab":
                 info = load_lab(file_name)
-                if info:
-                    section, ok = QtWidgets.QInputDialog.getItem(
-                        None,
-                        "Select section",
-                        "Available sections:",
-                        list(info),
-                        0,
-                        False,
-                    )
-                    if ok:
-                        channels = info[section]
-                    else:
-                        return
+                if not info:
+                    return
+                section, ok = QtWidgets.QInputDialog.getItem(
+                    None,
+                    "Select section",
+                    "Available sections:",
+                    list(info),
+                    0,
+                    False,
+                )
+                if not ok:
+                    return
+                channels = info[section]
 
             elif extension in (".cfg", ".txt", ".dspf"):
                 with open(file_name, "r") as infile:
@@ -1288,10 +1288,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
             if self.filter_view.currentText() == "Internal file structure":
-                while iterator.value():
+                while True:
                     item = iterator.value()
+                    if item is None:
+                        break
+                    iterator += 1
+
                     if item.parent() is None:
-                        iterator += 1
                         continue
 
                     channel_name = item.text(0)
@@ -1301,10 +1304,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     else:
                         item.setCheckState(0, QtCore.Qt.Unchecked)
 
-                    iterator += 1
             elif self.filter_view.currentText() == "Natural sort":
-                while iterator.value():
+                while True:
                     item = iterator.value()
+                    if item is None:
+                        break
 
                     channel_name = item.text(0)
                     if channel_name in channels:
@@ -1319,6 +1323,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 items = []
                 self.filter_tree.clear()
 
+                self._selected_filter = set(channels)
+
                 for i, gp in enumerate(self.mdf.groups):
                     for j, ch in enumerate(gp.channels):
                         if ch.name in channels:
@@ -1327,7 +1333,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             channel.setText(0, ch.name)
                             channel.setCheckState(0, QtCore.Qt.Checked)
                             items.append(channel)
-
                             channels.pop(channels.index(ch.name))
 
                 if len(items) < 30000:
@@ -1335,6 +1340,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 else:
                     items.sort(key=lambda x: x.name)
                 self.filter_tree.addTopLevelItems(items)
+
+                self.update_selected_filter_channels()
 
     def compute_cut_hints(self):
         t_min = []
@@ -2539,21 +2546,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
         channels = []
-        count = 0
-        total = 0
 
         if self.filter_view.currentText() == "Internal file structure":
             while iterator.value():
                 item = iterator.value()
 
                 group, index = item.entry
-                if index != 0xFFFFFFFFFFFFFFFF:
-                    total += 1
 
                 if item.checkState(0) == QtCore.Qt.Checked:
                     if index != 0xFFFFFFFFFFFFFFFF:
                         channels.append((None, group, index))
-                        count += 1
 
                 iterator += 1
         else:
@@ -2563,19 +2565,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 if item.checkState(0) == QtCore.Qt.Checked:
                     group, index = item.entry
                     channels.append((None, group, index))
-                    count += 1
-
-                total += 1
 
                 iterator += 1
 
-        if not channels:
-            return False, channels
-        else:
-            if total == count:
-                return False, channels
-            else:
-                return True, channels
+        needs_filter = self.selected_filter_channels.count() > 0
+
+        return needs_filter, channels
 
     def apply_processing(self, event):
         needs_filter, channels = self._get_filtered_channels()
@@ -2965,11 +2960,28 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     def filter_changed(self, item, column):
         name = item.text(0)
-        if item.checkState(0) == QtCore.Qt.Checked:
-            self._selected_filter.add(name)
+        if self.filter_view.currentText() == "Internal file structure":
+            if item.checkState(0) == QtCore.Qt.Checked and item.parent() is not None:
+                self._selected_filter.add(name)
+            else:
+                if name in self._selected_filter:
+                    self._selected_filter.remove(name)
+
+        elif self.filter_view.currentText() == "Natural sort":
+            if item.checkState(0) == QtCore.Qt.Checked:
+                self._selected_filter.add(name)
+            else:
+                if name in self._selected_filter:
+                    self._selected_filter.remove(name)
+
         else:
-            if name in self._selected_filter:
-                self._selected_filter.remove(name)
+            if item.checkState(0) == QtCore.Qt.Checked:
+                self._selected_filter.add(name)
+            else:
+                if name in self._selected_filter:
+                    self._selected_filter.remove(name)
+            self._update_channel_tree(widget=self.filter_tree)
+
         self._filter_timer.start(10)
 
     def update_selected_filter_channels(self):

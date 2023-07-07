@@ -5170,6 +5170,7 @@ class MDF:
                                                                 original_message_id=original_msg_id,
                                                                 )
 
+
                         self._set_temporary_master(None)
                 cntr += 1
                 if progress is not None:
@@ -5220,6 +5221,7 @@ class MDF:
         return out
 
     def _append_can_signal(
+
             self,
             signals,
             entry,
@@ -5235,7 +5237,6 @@ class MDF:
             original_message_id: int | None = None
         ):
 
-        #ch_gp_name = ''
 
         if entry not in msg_map:
             sigs = []
@@ -5244,7 +5245,7 @@ class MDF:
 
             for _name, signal in signals.items():
                 signal_name = f"{prefix}{signal['name']}"
-                #ch_gp_name = signal['pdu_name']
+
                 sig = Signal(
                     samples=signal["samples"],
                     timestamps=signal["t"],
@@ -5257,6 +5258,7 @@ class MDF:
                     display_names={
                         f"CAN{bus}.{message_name}.{signal_name}": "display"
                     },
+
                 )
                 sig.comment = f"""\
 <CNcomment>
@@ -5277,6 +5279,7 @@ class MDF:
                 acq_name = (
                     f"SourceAddress = 0x{source_adddress}"
                     )
+
             else:
                 if prefix:
                     acq_name = f"{prefix}: CAN{bus} message ID=0x{msg_id: X}"
@@ -5285,6 +5288,7 @@ class MDF:
                     acq_name = (
                             f"CAN{bus} message ID=0x{msg_id:X}"
                     )
+
                     comment = f"CAN{bus} - message {message} 0x{msg_id:X}"
 
             acq_source = Source(
@@ -5302,6 +5306,7 @@ class MDF:
 </SIcomment>"""
                 )
 
+
             for sig in sigs:
                 sig.source = acq_source
 
@@ -5317,12 +5322,14 @@ class MDF:
                 cg_nr
             ].channel_group.flags = v4c.FLAG_CG_BUS_EVENT
 
+
             if is_j1939:
                 max_flags.append([False])
                 for ch_index, sig in enumerate(sigs, 1):
                     max_flags[cg_nr].append(
                         np.all(sig.invalidation_bits)
                     )
+
             else:
                 max_flags.append([False] * (len(sigs) + 1))
 
@@ -5345,6 +5352,7 @@ class MDF:
                     max_flags[index][ch_index] = self.max_flags[
                                                      index
                                                  ][ch_index] or np.all(sig[1])
+
 
             sigs.insert(0, (t, None))
 
