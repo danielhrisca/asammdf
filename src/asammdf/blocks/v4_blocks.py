@@ -5616,17 +5616,25 @@ class HeaderBlock:
 
     @property
     def comment(self):
+        def common_properties_to_xml(root, common_properties):
+            for name, value in common_properties.items():
+                if isinstance(value, dict):
+                    list_element = ET.SubElement(root, "list", name=name)
+                    common_properties_to_xml(list_element, value)
+
+                else:
+                    if root.tag == "list":
+                        li = ET.SubElement(root, "li")
+                        ET.SubElement(li, "e", name=name).text = value
+                    else:
+                        ET.SubElement(root, "e", name=name).text = value
+
         root = ET.Element("HDcomment")
         text = ET.SubElement(root, "TX")
         text.text = self.description
         common = ET.SubElement(root, "common_properties")
-        for name, value in self._common_properties.items():
-            if isinstance(value, dict):
-                tree = ET.SubElement(common, "tree", name=name)
-                for subname, subvalue in value.items():
-                    ET.SubElement(tree, "e", name=subname).text = subvalue
-            else:
-                ET.SubElement(common, "e", name=name).text = value
+
+        common_properties_to_xml(common, self._common_properties)
 
         return (
             ET.tostring(root, encoding="utf8", method="xml")
@@ -5637,6 +5645,27 @@ class HeaderBlock:
     @comment.setter
     def comment(self, string):
         self._common_properties.clear()
+
+        def parse_common_properties(root):
+            info = {}
+            if root.tag == "list":
+                info[root.get("name")] = {}
+            try:
+                for element in root:
+                    name = element.get("name")
+
+                    if element.tag == "e":
+                        info[name] = element.text or ""
+
+                    elif element.tag == "list":
+                        info.update(parse_common_properties(element))
+
+                    elif element.tag == "li":
+                        info[root.get("name")].update(parse_common_properties(element))
+            except:
+                print(format_exc())
+
+            return info
 
         if string.startswith("<HDcomment"):
             comment = string
@@ -5658,19 +5687,8 @@ class HeaderBlock:
 
                 common_properties = comment_xml.find(".//common_properties")
                 if common_properties is not None:
-                    for e in common_properties:
-                        if e.tag == "e":
-                            name = e.get("name")
-                            self._common_properties[name] = e.text or ""
-                        else:
-                            name = e.get("name")
-                            subattibutes = {}
-                            tree = e
-                            self._common_properties[name] = subattibutes
+                    self._common_properties = parse_common_properties(common_properties)
 
-                            for e in tree:
-                                name = e.get("name")
-                                subattibutes[name] = e.text or ""
         else:
             self.description = string
 
