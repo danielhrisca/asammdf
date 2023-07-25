@@ -1217,13 +1217,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             worker = sha1()
             worker.update(file_name.read_bytes())
-            self.loaded_file_name = file_name, worker.hexdigest()
+            self.loaded_display_file = file_name, worker.hexdigest()
 
         else:
             extension = None
             info = file_name
             channels = info.get("selected_channels", [])
-            self.loaded_file_name = Path(info.get("display_file_name", "")), b""
+            self.loaded_display_file = Path(info.get("display_file_name", "")), b""
 
             self.functions.update(info.get("functions", {}))
 
@@ -1327,7 +1327,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             progress.cancel()
 
-        self.display_file_modified.emit(Path(self.loaded_file_name[0]).name)
+        self.display_file_modified.emit(Path(self.loaded_display_file[0]).name)
 
         if errors:
             ErrorDialog(
