@@ -5619,15 +5619,11 @@ class HeaderBlock:
         def common_properties_to_xml(root, common_properties):
             for name, value in common_properties.items():
                 if isinstance(value, dict):
-                    list_element = ET.SubElement(root, "list", name=name)
+                    list_element = ET.SubElement(root, "tree", name=name)
                     common_properties_to_xml(list_element, value)
 
                 else:
-                    if root.tag == "list":
-                        li = ET.SubElement(root, "li")
-                        ET.SubElement(li, "e", name=name).text = value
-                    else:
-                        ET.SubElement(root, "e", name=name).text = value
+                    ET.SubElement(root, "e", name=name).text = value
 
         root = ET.Element("HDcomment")
         text = ET.SubElement(root, "TX")
