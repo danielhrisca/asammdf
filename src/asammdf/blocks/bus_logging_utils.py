@@ -4,7 +4,9 @@ from traceback import format_exc
 from typing import Any
 
 import canmatrix
-from canmatrix import Frame, Pdu, Signal
+
+from canmatrix import Frame, Signal, Pdu
+
 import numpy as np
 from numpy.typing import NDArray
 from typing_extensions import TypedDict
@@ -291,6 +293,7 @@ def extract_pdu(
     extracted_signals = {}
     extracted_pdu_signals = []
 
+
     if message.size > payload.shape[1] or message.size == 0:
         return extracted_signals
     pdus = []
@@ -299,7 +302,9 @@ def extract_pdu(
         pairs = {}
         for signal in pdu.signals:
             # signal_mdf = MDF(None, version='4.10', pdu.signals)
-            setattr(signal, "pdu_id", pdu.id)
+
+            setattr(signal, 'pdu_id', pdu.id)
+
             try:
                 entry = signal.mux_val_min, signal.mux_val_max
             except:
@@ -311,14 +316,9 @@ def extract_pdu(
     for pdu in pdus:
         extracted_signals = {}
         for pair, pair_signals in pdu.items():
-            entry = (
-                bus,
-                message_id,
-                original_message_id,
-                pair_signals[0].pdu_id,
-                muxer,
-                *pair,
-            )  # (18,172,None, 367800, none, none)
+            chgroup_name = pair_signals[0].pdu_name
+            entry = bus, message_id, original_message_id, pair_signals[0].pdu_id, muxer, *pair # (18,172,None, 367800, none, none)
+
 
             extracted_signals[entry] = signals = {}
 
@@ -332,6 +332,7 @@ def extract_pdu(
                     ignore_value2text_conversion=ignore_value2text_conversion,
                     raw=True,
                 )
+
                 if len(samples) == 0 and len(t_):
                     continue
                 if include_message_name:
@@ -357,6 +358,7 @@ def extract_pdu(
                     raise
         extracted_pdu_signals.append(extracted_signals)
     return extracted_pdu_signals
+
 def extract_mux(
     payload: NDArray[Any],
     message: Frame,
@@ -436,13 +438,7 @@ def extract_mux(
             pair_signals.append(signal)
 
     for pair, pair_signals in pairs.items():
-        entry = (
-            bus,
-            message_id,
-            original_message_id,
-            muxer,
-            *pair,
-        )  # (18,172,None, none, none)
+        entry = bus, message_id, original_message_id, muxer, *pair #(18,172,None, none, none)
 
         extracted_signals[entry] = signals = {}
 

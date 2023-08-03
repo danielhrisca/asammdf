@@ -5003,7 +5003,12 @@ class MDF:
                         data=fragment,
                         samples_only=True,
                     )[0].astype("<u1")
-
+                    bus = self.get(
+                        "CAN_DataFrame.BusChannel",
+                        group=i,
+                        data=fragment,
+                        samples_only=True,
+                    )
                     msg_ids = (
                         self.get("CAN_DataFrame.ID", group=i, data=fragment).astype(
                             "<u4"
@@ -5114,63 +5119,57 @@ class MDF:
                                                     )
 
                                 for entry, signals in extracted_signals.items():
-                                    if (
-                                        len(next(iter(signals.values()))["samples"])
-                                        == 0
-                                    ):
+
+                                    if len(next(iter(signals.values()))["samples"]) == 0:
                                         continue
 
-                                    self._append_can_signal(
-                                        signals,
-                                        entry,
-                                        msg_map,
-                                        out,
-                                        message,
-                                        msg_id,
-                                        bus,
-                                        max_flags,
-                                        prefix,
-                                        message.name,
-                                        is_j1939=is_j1939,
-                                        original_message_id=original_msg_id,
-                                    )
+                                    self._append_can_signal(signals,
+                                                            entry,
+                                                            msg_map,
+                                                            out,
+                                                            message,
+                                                            msg_id,
+                                                            bus,
+                                                            max_flags,
+                                                            prefix,
+                                                            message.name,
+                                                            is_j1939=is_j1939,
+                                                            original_message_id=original_msg_id,
+                                                            )
                             else:
+
                                 # extract signals from PDU frames
                                 extracted_signals = extract_pdu(
-                                    payload,
-                                    message,
-                                    msg_id,
-                                    bus,
-                                    t,
-                                    original_message_id=original_msg_id
-                                    if is_j1939
-                                    else None,
-                                    ignore_value2text_conversion=ignore_value2text_conversion,
-                                    is_j1939=is_j1939,
-                                )
+                                                                payload,
+                                                                message,
+                                                                msg_id,
+                                                                bus,
+                                                                t,
+                                                                original_message_id=original_msg_id
+                                                                if is_j1939
+                                                                else None,
+                                                                is_j1939=is_j1939,
+                                                                )
 
                                 for pdu_group in extracted_signals:
                                     for entry, signals in pdu_group.items():
-                                        if (
-                                            len(next(iter(signals.values()))["samples"])
-                                            == 0
-                                        ):
+                                        if len(next(iter(signals.values()))["samples"]) == 0:
                                             continue
 
-                                        self._append_can_signal(
-                                            signals,
-                                            entry,
-                                            msg_map,
-                                            out,
-                                            message,
-                                            msg_id,
-                                            bus,
-                                            max_flags,
-                                            prefix,
-                                            message.name,
-                                            is_j1939=is_j1939,
-                                            original_message_id=original_msg_id,
-                                        )
+                                        self._append_can_signal(signals,
+                                                                entry,
+                                                                msg_map,
+                                                                out,
+                                                                message,
+                                                                msg_id,
+                                                                bus,
+                                                                max_flags,
+                                                                prefix,
+                                                                message.name,
+                                                                is_j1939=is_j1939,
+                                                                original_message_id=original_msg_id,
+                                                                )
+
 
                         self._set_temporary_master(None)
                 cntr += 1
@@ -5222,21 +5221,22 @@ class MDF:
         return out
 
     def _append_can_signal(
-        self,
-        signals,
-        entry,
-        msg_map,
-        out: MDF,
-        message: Frame,
-        msg_id: int,
-        bus: int,
-        max_flags,
-        prefix: str = "",
-        message_name: str = "",
-        is_j1939: bool = False,
-        original_message_id: int | None = None,
-    ):
-        # ch_gp_name = ''
+
+            self,
+            signals,
+            entry,
+            msg_map,
+            out: MDF,
+            message: Frame,
+            msg_id: int,
+            bus: int,
+            max_flags,
+            prefix: str = '',
+            message_name: str = '',
+            is_j1939: bool = False,
+            original_message_id: int | None = None
+        ):
+
 
         if entry not in msg_map:
             sigs = []
@@ -5245,15 +5245,20 @@ class MDF:
 
             for _name, signal in signals.items():
                 signal_name = f"{prefix}{signal['name']}"
-                # ch_gp_name = signal['pdu_name']
+
                 sig = Signal(
                     samples=signal["samples"],
                     timestamps=signal["t"],
                     name=signal_name,
                     comment=signal["comment"],
                     unit=signal["unit"],
-                    invalidation_bits=signal["invalidation_bits"],
-                    display_names={f"CAN{bus}.{message_name}.{signal_name}": "display"},
+                    invalidation_bits=signal[
+                        "invalidation_bits"
+                    ],
+                    display_names={
+                        f"CAN{bus}.{message_name}.{signal_name}": "display"
+                    },
+
                 )
                 sig.comment = f"""\
 <CNcomment>
@@ -5271,13 +5276,19 @@ class MDF:
                     comment = f"{prefix}: CAN{bus} PGN=0x{msg_id:X} {message} PGN=0x{msg_id:X} SA=0x{source_adddress:X}"
                 else:
                     comment = f"CAN{bus} PGN=0x{msg_id:X} {message} PGN=0x{msg_id:X} SA=0x{source_adddress:X}"
-                acq_name = f"SourceAddress = 0x{source_adddress}"
+                acq_name = (
+                    f"SourceAddress = 0x{source_adddress}"
+                    )
+
             else:
                 if prefix:
                     acq_name = f"{prefix}: CAN{bus} message ID=0x{msg_id: X}"
                     comment = f'{prefix}: CAN{bus} - message "{message}" 0x{msg_id:X}'
                 else:
-                    acq_name = f"CAN{bus} message ID=0x{msg_id:X}"
+                    acq_name = (
+                            f"CAN{bus} message ID=0x{msg_id:X}"
+                    )
+
                     comment = f"CAN{bus} - message {message} 0x{msg_id:X}"
 
             acq_source = Source(
@@ -5292,8 +5303,9 @@ class MDF:
     <common_properties>
         <e name="ChannelNo" type="integer">{int(bus)}</e>
     </common_properties>
-</SIcomment>""",
-            )
+</SIcomment>"""
+                )
+
 
             for sig in sigs:
                 sig.source = acq_source
@@ -5306,12 +5318,18 @@ class MDF:
                 common_timebase=True,
             )
 
-            out.groups[cg_nr].channel_group.flags = v4c.FLAG_CG_BUS_EVENT
+            out.groups[
+                cg_nr
+            ].channel_group.flags = v4c.FLAG_CG_BUS_EVENT
+
 
             if is_j1939:
                 max_flags.append([False])
                 for ch_index, sig in enumerate(sigs, 1):
-                    max_flags[cg_nr].append(np.all(sig.invalidation_bits))
+                    max_flags[cg_nr].append(
+                        np.all(sig.invalidation_bits)
+                    )
+
             else:
                 max_flags.append([False] * (len(sigs) + 1))
 
@@ -5331,9 +5349,10 @@ class MDF:
                 t = signal["t"]
             if is_j1939:
                 for ch_index, sig in enumerate(sigs, 1):
-                    max_flags[index][ch_index] = self.max_flags[index][
-                        ch_index
-                    ] or np.all(sig[1])
+                    max_flags[index][ch_index] = self.max_flags[
+                                                     index
+                                                 ][ch_index] or np.all(sig[1])
+
 
             sigs.insert(0, (t, None))
 
