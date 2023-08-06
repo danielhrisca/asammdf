@@ -225,6 +225,9 @@ class AttachmentBlock:
         except KeyError:
             self.address = 0
 
+            self.comment = kwargs.get("comment", "")
+            self.mime = kwargs.get("mime", "")
+
             file_name = Path(kwargs.get("file_name", None) or "bin.bin")
 
             data = kwargs["data"]
@@ -259,7 +262,7 @@ class AttachmentBlock:
             self.mime_addr = 0
             self.comment_addr = 0
             self.flags = flags
-            self.creator_index = 0
+            self.creator_index = kwargs.get("creator_index", 0)
             self.reserved1 = 0
             self.md5_sum = md5_sum
             self.original_size = original_size
@@ -3173,7 +3176,7 @@ class ChannelConversion(_ChannelConversionBase):
 
         return address
 
-    def convert(self, values, as_object=False):
+    def convert(self, values, as_object=False, as_bytes=False):
         if not isinstance(values, np.ndarray):
             values = np.array(values)
 
@@ -3361,7 +3364,6 @@ class ChannelConversion(_ChannelConversionBase):
                 if isinstance(default, bytes):
                     ret[idx] = default
                 else:
-                    m = default.convert(vals[idx])
                     ret[idx] = default.convert(vals[idx])
 
                 idx = np.argwhere(idx1 == idx2).ravel()
@@ -3386,7 +3388,9 @@ class ChannelConversion(_ChannelConversionBase):
                     try:
                         ret = ret.astype("f8")
                     except:
-                        if not as_object:
+                        if as_bytes:
+                            ret = ret.astype(bytes)
+                        elif not as_object:
                             ret = np.array(
                                 [
                                     np.nan if isinstance(v, bytes) else v
@@ -3421,7 +3425,6 @@ class ChannelConversion(_ChannelConversionBase):
                     if isinstance(default, bytes):
                         ret[idx] = default
                     else:
-                        m = default.convert(values[idx])
                         ret[idx] = default.convert(values[idx])
 
                     idx = np.argwhere(idx1 == idx2).ravel()
@@ -3467,7 +3470,9 @@ class ChannelConversion(_ChannelConversionBase):
                     try:
                         ret = ret.astype("f8")
                     except:
-                        if not as_object:
+                        if as_bytes:
+                            ret = ret.astype(bytes)
+                        elif not as_object:
                             ret = np.array(
                                 [
                                     np.nan if isinstance(v, bytes) else v
@@ -3535,7 +3540,9 @@ class ChannelConversion(_ChannelConversionBase):
                         ret = np.array(ret, dtype="<f8")
                     except:
                         ret = np.array(ret)
-                        if not as_object:
+                        if as_bytes:
+                            ret = ret.astype(bytes)
+                        elif not as_object:
                             ret = np.array(
                                 [np.nan if isinstance(v, bytes) else v for v in ret]
                             )
@@ -3582,12 +3589,16 @@ class ChannelConversion(_ChannelConversionBase):
                     try:
                         ret = np.array(ret, dtype="<f8")
                     except:
-                        if not as_object:
+                        ret = np.array(ret)
+                        if as_bytes:
+                            ret = ret.astype(bytes)
+                        elif not as_object:
                             ret = np.array(
-                                [np.nan if isinstance(v, bytes) else v for v in ret]
+                                [
+                                    np.nan if isinstance(v, bytes) else v
+                                    for v in ret.tolist()
+                                ]
                             )
-                        else:
-                            ret = np.array(ret)
 
                 else:
                     ret = np.array(ret, dtype=bytes)
@@ -3659,7 +3670,9 @@ class ChannelConversion(_ChannelConversionBase):
                 try:
                     ret = ret.astype("f8")
                 except:
-                    if not as_object:
+                    if as_bytes:
+                        ret = ret.astype(bytes)
+                    elif not as_object:
                         ret = np.array(
                             [
                                 np.nan if isinstance(v, bytes) else v
@@ -3751,12 +3764,16 @@ class ChannelConversion(_ChannelConversionBase):
                 try:
                     ret = np.array(ret, dtype="f8")
                 except:
-                    if not as_object:
+                    ret = np.array(ret)
+                    if as_bytes:
+                        ret = ret.astype(bytes)
+                    elif not as_object:
                         ret = np.array(
-                            [np.nan if isinstance(v, bytes) else v for v in ret]
+                            [
+                                np.nan if isinstance(v, bytes) else v
+                                for v in ret.tolist()
+                            ]
                         )
-                    else:
-                        ret = np.array(ret)
             else:
                 ret = np.array(ret, dtype=bytes)
 
@@ -5599,17 +5616,21 @@ class HeaderBlock:
 
     @property
     def comment(self):
+        def common_properties_to_xml(root, common_properties):
+            for name, value in common_properties.items():
+                if isinstance(value, dict):
+                    list_element = ET.SubElement(root, "tree", name=name)
+                    common_properties_to_xml(list_element, value)
+
+                else:
+                    ET.SubElement(root, "e", name=name).text = value
+
         root = ET.Element("HDcomment")
         text = ET.SubElement(root, "TX")
         text.text = self.description
         common = ET.SubElement(root, "common_properties")
-        for name, value in self._common_properties.items():
-            if isinstance(value, dict):
-                tree = ET.SubElement(common, "tree", name=name)
-                for subname, subvalue in value.items():
-                    ET.SubElement(tree, "e", name=subname).text = subvalue
-            else:
-                ET.SubElement(common, "e", name=name).text = value
+
+        common_properties_to_xml(common, self._common_properties)
 
         return (
             ET.tostring(root, encoding="utf8", method="xml")
@@ -5620,6 +5641,30 @@ class HeaderBlock:
     @comment.setter
     def comment(self, string):
         self._common_properties.clear()
+
+        def parse_common_properties(root):
+            info = {}
+            if root.tag in ("list", "tree"):
+                info[root.get("name")] = {}
+            try:
+                for element in root:
+                    name = element.get("name")
+
+                    if element.tag == "e":
+                        if root.tag == "tree":
+                            info[root.get("name")][name] = element.text or ""
+                        else:
+                            info[name] = element.text or ""
+
+                    elif element.tag in ("list", "tree"):
+                        info.update(parse_common_properties(element))
+
+                    elif element.tag == "li":
+                        info[root.get("name")].update(parse_common_properties(element))
+            except:
+                print(format_exc())
+
+            return info
 
         if string.startswith("<HDcomment"):
             comment = string
@@ -5641,19 +5686,8 @@ class HeaderBlock:
 
                 common_properties = comment_xml.find(".//common_properties")
                 if common_properties is not None:
-                    for e in common_properties:
-                        if e.tag == "e":
-                            name = e.get("name")
-                            self._common_properties[name] = e.text or ""
-                        else:
-                            name = e.get("name")
-                            subattibutes = {}
-                            tree = e
-                            self._common_properties[name] = subattibutes
+                    self._common_properties = parse_common_properties(common_properties)
 
-                            for e in tree:
-                                name = e.get("name")
-                                subattibutes[name] = e.text or ""
         else:
             self.description = string
 

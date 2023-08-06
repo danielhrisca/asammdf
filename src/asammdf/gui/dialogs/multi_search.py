@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import re
 from textwrap import wrap
 from traceback import format_exc
@@ -8,6 +9,7 @@ from PySide6 import QtCore, QtWidgets
 
 from ..ui import resource_rc
 from ..ui.multi_search_dialog import Ui_MultiSearchDialog
+from .messagebox import MessageBox
 
 
 class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
@@ -48,11 +50,13 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
 
     def search_text_changed(self):
         text = self.search_box.text().strip()
+        case_sensitive = self.case_sensitivity.currentText() == "Case sensitive"
         if len(text) >= 2:
             if self.match_kind.currentText() == "Wildcard":
-                pattern = text.replace("*", "_WILDCARD_")
+                wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
+                pattern = text.replace("*", wildcard)
                 pattern = re.escape(pattern)
-                pattern = pattern.replace("_WILDCARD_", ".*")
+                pattern = pattern.replace(wildcard, ".*")
             else:
                 pattern = text
 
@@ -60,7 +64,10 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
             results = []
 
             try:
-                pattern = re.compile(f"(?i){pattern}")
+                if case_sensitive:
+                    pattern = re.compile(pattern)
+                else:
+                    pattern = re.compile(f"(?i){pattern}")
                 for i, channels_db in enumerate(self.channels_dbs, 1):
                     match_results = [
                         f"{i:> 2}: {name}"
@@ -116,6 +123,6 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
         for i, name in enumerate(self.measurements, 1):
             info.extend(wrap(f"{i:> 2}: {name}", 120))
 
-        QtWidgets.QMessageBox.information(
+        MessageBox.information(
             self, "Measurement files used for comparison", "\n".join(info)
         )

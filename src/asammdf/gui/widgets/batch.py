@@ -20,9 +20,10 @@ from ...blocks.v2_v3_blocks import HeaderBlock as HeaderBlockV3
 from ...blocks.v4_blocks import HeaderBlock as HeaderBlockV4
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..dialogs.advanced_search import AdvancedSearch
+from ..dialogs.messagebox import MessageBox
 from ..ui import resource_rc
 from ..ui.batch_widget import Ui_batch_widget
-from ..utils import HelperChannel, setup_progress, TERMINATED
+from ..utils import HelperChannel, setup_progress, TERMINATED, timeit
 from .database_item import DatabaseItem
 from .list import MinimalListWidget
 from .tree import add_children
@@ -40,6 +41,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
     ):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+
+        self._ignore = False
 
         self._settings = QtCore.QSettings()
 
@@ -234,7 +237,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             return
 
         self._progress = setup_progress(parent=self, autoclose=False)
-        self._progress.finished.connect(self.scramble_finished)
+        self._progress.qfinished.connect(self.scramble_finished)
 
         self._progress.run_thread_with_progress(
             target=self.scramble_thread,
@@ -287,7 +290,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
 
         self._progress = setup_progress(parent=self)
-        self._progress.finished.connect(self.extract_bus_logging_finished)
+        self._progress.qfinished.connect(self.extract_bus_logging_finished)
 
         self._progress.run_thread_with_progress(
             target=self.extract_bus_logging_thread,
@@ -469,7 +472,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
 
         self._progress = setup_progress(parent=self)
-        self._progress.finished.connect(self.extract_bus_csv_logging_finished)
+        self._progress.qfinished.connect(self.extract_bus_csv_logging_finished)
 
         self._progress.run_thread_with_progress(
             target=self.extract_bus_csv_logging_thread,
@@ -678,7 +681,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
     def concatenate_finished(self):
         self._progress = None
 
-    def concatenate(self, event):
+    def concatenate(self, event=None):
         count = self.files_list.count()
 
         if not count:
@@ -722,7 +725,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
 
         self._progress = setup_progress(parent=self, autoclose=False)
-        self._progress.finished.connect(self.concatenate_finished)
+        self._progress.qfinished.connect(self.concatenate_finished)
 
         self._progress.run_thread_with_progress(
             target=self.concatenate_thread,
@@ -750,12 +753,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         progress,
     ):
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/stack.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/plus.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         progress.signals.setWindowIcon.emit(icon)
         progress.signals.setWindowTitle.emit(
-            f"Stacking files and saving to {version} format"
+            f"Concatenating files and saving to {version} format"
         )
 
         output_file_name = Path(output_file_name)
@@ -889,7 +890,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
 
         self._progress = setup_progress(parent=self, autoclose=False)
-        self._progress.finished.connect(self.stack_finished)
+        self._progress.qfinished.connect(self.stack_finished)
 
         self._progress.run_thread_with_progress(
             target=self.stack_thread,
@@ -925,7 +926,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             mdf = cls(file_name).export_mdf()
 
         elif suffix in (".mdf", ".mf4", ".mf4z"):
-            mdf = MDF(file_name)
+            mdf = file_name
 
         return mdf
 
@@ -937,14 +938,11 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         progress.signals.setMaximum.emit(count)
         progress.signals.setValue.emit(0)
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/list.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        progress.signals.setWindowIcon.emit(icon)
         progress.signals.setWindowTitle.emit("Preparing measurements")
 
         for i, file_name in enumerate(files):
             progress.signals.setLabelText.emit(
-                f"Preparing the file {i+1} of {count} from {file_name.suffix.lower()} to .mf4\n{file_name}"
+                f"Preparing the file {i+1} of {count}\n{file_name}"
             )
             files[i] = self._as_mdf(file_name)
             progress.signals.setValue.emit(i + 1)
@@ -1122,7 +1120,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             mdf.close()
 
     def update_channel_tree(self, *args):
-        if self.filter_view.currentIndex() == -1:
+        if self.filter_view.currentIndex() == -1 or self._ignore:
             return
 
         count = self.files_list.count()
@@ -1140,6 +1138,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 file_name = source_files[0]
 
             mdf = self._as_mdf(file_name)
+            if not isinstance(mdf, MDF):
+                mdf = MDF(mdf)
+
             try:
                 widget = self.filter_tree
                 view = self.filter_view
@@ -1350,7 +1351,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             try:
                 from h5py import File as HDF5
             except ImportError:
-                QtWidgets.QMessageBox.critical(
+                MessageBox.critical(
                     self,
                     "Export to HDF5 unavailale",
                     "h5py package not found; export to HDF5 is unavailable",
@@ -1362,7 +1363,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 try:
                     from hdf5storage import savemat
                 except ImportError:
-                    QtWidgets.QMessageBox.critical(
+                    MessageBox.critical(
                         self,
                         "Export to mat v7.3 unavailale",
                         "hdf5storage package not found; export to mat 7.3 is unavailable",
@@ -1372,7 +1373,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 try:
                     from scipy.io import savemat
                 except ImportError:
-                    QtWidgets.QMessageBox.critical(
+                    MessageBox.critical(
                         self,
                         "Export to mat v4 and v5 unavailale",
                         "scipy package not found; export to mat is unavailable",
@@ -1383,7 +1384,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             try:
                 from fastparquet import write as write_parquet
             except ImportError:
-                QtWidgets.QMessageBox.critical(
+                MessageBox.critical(
                     self,
                     "Export to parquet unavailale",
                     "fastparquet package not found; export to parquet is unavailable",
@@ -1391,7 +1392,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 return
 
         self._progress = setup_progress(parent=self, autoclose=False)
-        self._progress.finished.connect(self.apply_processing_finished)
+        self._progress.qfinished.connect(self.apply_processing_finished)
 
         self._progress.run_thread_with_progress(
             target=self.apply_processing_thread,
@@ -1770,12 +1771,20 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         start_times = []
 
         for file_name in source_files:
-            with open(file_name, "rb") as f:
-                f.seek(64)
-                blk_id = f.read(2)
-                block_type = HeaderBlockV4 if blk_id == b"##" else HeaderBlockV3
-                header = block_type(stream=f, address=64)
+            if Path(file_name).suffix.lower() in (".mdf", ".dat", ".mf4"):
+                with open(file_name, "rb") as f:
+                    f.seek(64)
+                    blk_id = f.read(2)
+                    block_type = HeaderBlockV4 if blk_id == b"##" else HeaderBlockV3
+                    header = block_type(stream=f, address=64)
+                    start_times.append((header.start_time, file_name))
+
+            else:
+                mdf = self._as_mdf(file_name)
+                header = mdf.header
                 start_times.append((header.start_time, file_name))
+
+                mdf.close()
 
         try:
             start_times = sorted(start_times)

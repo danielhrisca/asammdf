@@ -17,6 +17,50 @@
    <bool>true</bool>
   </property>
   <layout class="QGridLayout" name="gridLayout">
+   <item row="3" column="0" rowspan="2">
+    <widget class="QTreeWidget" name="matches">
+     <property name="focusPolicy">
+      <enum>Qt::TabFocus</enum>
+     </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::ExtendedSelection</enum>
+     </property>
+     <property name="sortingEnabled">
+      <bool>true</bool>
+     </property>
+     <column>
+      <property name="text">
+       <string>Channel</string>
+      </property>
+     </column>
+    </widget>
+   </item>
+   <item row="9" column="0">
+    <widget class="QLabel" name="status">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="2" rowspan="2">
+    <widget class="QTreeWidget" name="selection">
+     <property name="sortingEnabled">
+      <bool>true</bool>
+     </property>
+     <column>
+      <property name="text">
+       <string>Channel</string>
+      </property>
+     </column>
+    </widget>
+   </item>
+   <item row="2" column="2">
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Final selection</string>
+     </property>
+    </widget>
+   </item>
    <item row="0" column="2">
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
@@ -34,7 +78,55 @@
      </item>
     </layout>
    </item>
-   <item row="5" column="0" colspan="3">
+   <item row="3" column="1">
+    <widget class="QPushButton" name="add_btn">
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset resource="resource.qrc">
+       <normaloff>:/left.png</normaloff>:/left.png</iconset>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLineEdit" name="search_box">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0">
+    <widget class="QComboBox" name="match_kind">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <item>
+      <property name="text">
+       <string>Wildcard</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Regex</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <spacer name="verticalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="6" column="0" colspan="3">
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0">
      <item>
       <widget class="QPushButton" name="cancel_btn">
@@ -65,115 +157,38 @@
      </item>
     </layout>
    </item>
-   <item row="3" column="1">
-    <spacer name="verticalSpacer_2">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="2" column="1">
-    <widget class="QPushButton" name="add_btn">
-     <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset resource="resource.qrc">
-       <normaloff>:/left.png</normaloff>:/left.png</iconset>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="2">
-    <widget class="QLabel" name="label">
-     <property name="text">
-      <string>Final selection</string>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="0">
-    <widget class="QComboBox" name="match_kind">
-     <property name="currentIndex">
-      <number>0</number>
-     </property>
-     <item>
-      <property name="text">
-       <string>Wildcard</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>Regex</string>
-      </property>
-     </item>
-    </widget>
-   </item>
-   <item row="2" column="0" rowspan="2">
-    <widget class="QTreeWidget" name="matches">
-     <property name="focusPolicy">
-      <enum>Qt::TabFocus</enum>
-     </property>
-     <property name="selectionMode">
-      <enum>QAbstractItemView::ExtendedSelection</enum>
-     </property>
-     <property name="sortingEnabled">
-      <bool>true</bool>
-     </property>
-     <column>
-      <property name="text">
-       <string>Channel</string>
-      </property>
-     </column>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QLineEdit" name="search_box">
-     <property name="text">
-      <string/>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="2" rowspan="2">
-    <widget class="QTreeWidget" name="selection">
-     <property name="sortingEnabled">
-      <bool>true</bool>
-     </property>
-     <column>
-      <property name="text">
-       <string>Channel</string>
-      </property>
-     </column>
-    </widget>
-   </item>
-   <item row="8" column="0">
-    <widget class="QLabel" name="status">
-     <property name="text">
-      <string/>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="0" colspan="3">
+   <item row="5" column="0" colspan="3">
     <widget class="QLabel" name="comment">
      <property name="text">
       <string/>
      </property>
     </widget>
    </item>
+   <item row="1" column="0">
+    <widget class="QComboBox" name="case_sensitivity">
+     <item>
+      <property name="text">
+       <string>Case insensitive</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Case sensitive</string>
+      </property>
+     </item>
+    </widget>
+   </item>
   </layout>
  </widget>
  <tabstops>
+  <tabstop>match_kind</tabstop>
+  <tabstop>case_sensitivity</tabstop>
   <tabstop>search_box</tabstop>
   <tabstop>matches</tabstop>
-  <tabstop>match_kind</tabstop>
   <tabstop>add_btn</tabstop>
   <tabstop>selection</tabstop>
-  <tabstop>cancel_btn</tabstop>
   <tabstop>apply_btn</tabstop>
+  <tabstop>cancel_btn</tabstop>
  </tabstops>
  <resources>
   <include location="resource.qrc"/>

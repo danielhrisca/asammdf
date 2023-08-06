@@ -80,7 +80,7 @@ class SignalOnline:
     def update_values(self, values):
         self.raw = values[-1]
         if self.conversion:
-            self.scaled = self.conversion.convert(values[-1:])[0]
+            self.scaled = self.conversion.convert(values[-1:], as_bytes=True)[0]
         else:
             self.scaled = self.raw
 
@@ -884,6 +884,8 @@ class HeaderModel(QtCore.QAbstractTableModel):
 
 
 class HeaderView(QtWidgets.QTableView):
+    sorting_changed = QtCore.Signal(int)
+
     def __init__(self, parent):
         super().__init__(parent)
         self.numeric_viewer = parent
@@ -936,6 +938,7 @@ class HeaderView(QtWidgets.QTableView):
         col = ix.column()
         if event.button() == QtCore.Qt.LeftButton:
             self.backend.sort_column(col)
+            self.sorting_changed.emit(col)
         else:
             super().mouseDoubleClickEvent(event)
 
@@ -1266,6 +1269,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             self.add_new_channels(channels)
 
         self.channels.dataView.add_channels_request.connect(self.add_channels_request)
+        self.channels.dataView.verticalScrollBar().valueChanged.connect(
+            self.reset_visible_entries
+        )
+        self.channels.columnHeader.sorting_changed.connect(self.reset_visible_entries)
 
         self.channels.auto_size_header()
         self.double_clicked_enabled = True
@@ -1326,10 +1333,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     sig.computation = None
                     ranges = sig.ranges
                     exists = getattr(sig, "exists", True)
-                    sig = PlotSignal(sig)
+                    sig = PlotSignal(sig, allow_trim=False)
                     if sig.conversion:
                         sig.phys_samples = sig.conversion.convert(
-                            sig.raw_samples, as_object=True
+                            sig.raw_samples, as_bytes=True
                         )
                     sig.entry = sig.group_index, sig.channel_index
 
@@ -1418,6 +1425,13 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
     def does_not_exist(self, entry, exists=False):
         self.channels.backend.does_not_exist(entry, exists)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.visible_entries_modified = True
+
+    def reset_visible_entries(self, arg):
+        self.visible_entries_modified = True
 
     def set_format(self, fmt):
         fmt = fmt.lower()
@@ -1517,11 +1531,17 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         operator = self.op.currentText()
 
-        pattern = self.pattern_match.text().strip().replace("*", "_WILDCARD_")
-        pattern = re.escape(pattern)
-        pattern = pattern.replace("_WILDCARD_", ".*")
+        if self.match_type == "Wildcard":
+            wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
+            pattern = text.replace("*", wildcard)
+            pattern = re.escape(pattern)
+            pattern = pattern.replace(wildcard, ".*")
 
-        pattern = re.compile(f"(?i){pattern}")
+        if self.case_sensitivity.currentText() == "Case sensitive":
+            pattern = re.compile(pattern)
+        else:
+            pattern = re.compile(f"(?i){pattern}")
+
         matches = [
             sig for sig in self.channels.backend.signals if pattern.fullmatch(sig.name)
         ]
@@ -1583,11 +1603,17 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         operator = self.op.currentText()
 
-        pattern = self.pattern_match.text().strip().replace("*", "_WILDCARD_")
-        pattern = re.escape(pattern)
-        pattern = pattern.replace("_WILDCARD_", ".*")
+        if self.match_type == "Wildcard":
+            wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
+            pattern = text.replace("*", wildcard)
+            pattern = re.escape(pattern)
+            pattern = pattern.replace(wildcard, ".*")
 
-        pattern = re.compile(f"(?i){pattern}")
+        if self.case_sensitivity.currentText() == "Case sensitive":
+            pattern = re.compile(pattern)
+        else:
+            pattern = re.compile(f"(?i){pattern}")
+
         matches = [
             sig for sig in self.channels.backend.signals if pattern.fullmatch(sig.name)
         ]
@@ -1712,6 +1738,22 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             key == QtCore.Qt.Key_BracketRight and modifiers == QtCore.Qt.ControlModifier
         ):
             self.increase_font()
+
+        elif (
+            key == QtCore.Qt.Key_G
+            and modifiers == QtCore.Qt.ShiftModifier
+            and self.mode == "offline"
+        ):
+            value, ok = QtWidgets.QInputDialog.getDouble(
+                self,
+                "Go to time stamp",
+                "Time stamp",
+                value=self.timestamp_slider.value(),
+                decimals=9,
+            )
+
+            if ok:
+                self.set_timestamp(value)
 
         else:
             self.channels.dataView.keyPressEvent(event)

@@ -13,31 +13,15 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 import numpy as np
 import pyqtgraph as pg
-
-# imports for pyinstaller
 import pyqtgraph.functions as fn
-
-try:
-    import pyqtgraph.canvas.CanvasTemplate_pyside6
-    import pyqtgraph.canvas.TransformGuiTemplate_pyside6
-    import pyqtgraph.console.template_pyside6
-    import pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyside6
-    import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyside6
-    import pyqtgraph.GraphicsScene.exportDialogTemplate_pyside6
-    import pyqtgraph.imageview.ImageViewTemplate_pyside6
-except ImportError:
-    import pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_generic
-    import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_generic
-    import pyqtgraph.GraphicsScene.exportDialogTemplate_generic
-    import pyqtgraph.imageview.ImageViewTemplate_generic
-    import pyqtgraph.console.template_generic
-
 from PySide6 import QtCore, QtGui, QtWidgets
 
 PLOT_BUFFER_SIZE = 4000
 
+from ... import tool as Tool
 from ...blocks.conversion_utils import from_dict, to_dict
 from ...blocks.utils import target_byte_order
+from ..dialogs.messagebox import MessageBox
 from ..utils import BLUE, FONT_SIZE, GREEN, timeit, value_as_str
 from .viewbox import ViewBoxWithCursor
 
@@ -197,7 +181,7 @@ def get_descriptions_by_uuid(mime):
 
 
 class PlotSignal(Signal):
-    def __init__(self, signal, index=0, trim_info=None, duplication=1):
+    def __init__(self, signal, index=0, trim_info=None, duplication=1, allow_trim=True):
         super().__init__(
             signal.samples,
             signal.timestamps,
@@ -266,7 +250,7 @@ class PlotSignal(Signal):
         self.text_conversion = None
 
         if self.conversion:
-            samples = self.conversion.convert(self.samples)
+            samples = self.conversion.convert(self.samples, as_bytes=True)
             if samples.dtype.kind not in "SUV":
                 nans = np.isnan(samples)
                 if np.any(nans):
@@ -280,6 +264,7 @@ class PlotSignal(Signal):
             else:
                 self.text_conversion = self.conversion
                 self.phys_samples = self.raw_samples = self.samples
+
         else:
             self.phys_samples = self.raw_samples = self.samples
 
@@ -317,7 +302,8 @@ class PlotSignal(Signal):
         self._compute_basic_stats()
 
         self.mode = getattr(signal, "mode", "phys")
-        self.trim(*(trim_info or (None, None, 1900)))
+        if allow_trim:
+            self.trim(*(trim_info or (None, None, 1900)))
 
     @property
     def avg(self):
@@ -1130,7 +1116,7 @@ class PlotSignal(Signal):
 
                         self._dtype = samples.dtype
 
-                    if samples.flags.c_contiguous:
+                    if samples.flags.c_contiguous and timestamps.flags.c_contiguous:
                         positions(
                             samples,
                             timestamps,
@@ -2054,7 +2040,7 @@ class Plot(QtWidgets.QWidget):
             except:
                 title = "plot window"
 
-            QtWidgets.QMessageBox.warning(
+            MessageBox.warning(
                 self,
                 f"Channels with corrupted time stamps added to {title}",
                 f"The following channels do not have monotonous increasing time stamps:\n{errors}",
@@ -2080,7 +2066,7 @@ class Plot(QtWidgets.QWidget):
                 valid[uuid] = channel
 
         if invalid:
-            QtWidgets.QMessageBox.warning(
+            MessageBox.warning(
                 self,
                 "All NaN channels will not be plotted:",
                 f"The following channels have all NaN samples and will not be plotted:\n{', '.join(invalid)}",
@@ -3024,7 +3010,7 @@ class Plot(QtWidgets.QWidget):
                         pos=position,
                         message=comment,
                         color="#FF0000",
-                        tool=Bookmark.tool,
+                        tool=Tool.__tool__,
                     )
                     bookmark.visible = visible
                     bookmark.edited = True
@@ -4005,6 +3991,10 @@ class PlotGraphics(pg.PlotWidget):
                     QtCore.Qt.Key_G,
                 ).toCombined(),
                 QtCore.QKeyCombination(
+                    QtCore.Qt.ShiftModifier,
+                    QtCore.Qt.Key_G,
+                ).toCombined(),
+                QtCore.QKeyCombination(
                     QtCore.Qt.NoModifier,
                     QtCore.Qt.Key_I,
                 ).toCombined(),
@@ -4185,13 +4175,18 @@ class PlotGraphics(pg.PlotWidget):
                 sig.enable = description.get("enabled", True)
                 sig.format = description.get("format", "phys")
 
-            if not sig.empty:
-                if description.get("y_range", None):
-                    sig.y_range = tuple(description["y_range"])
+            y_range = description.get("y_range", None)
+            if y_range:
+                mn, mx = y_range
+                if mn > mx:
+                    y_range = mx, mn
                 else:
-                    sig.y_range = sig.min, sig.max
-            elif description.get("y_range", None):
-                sig.y_range = tuple(description["y_range"])
+                    y_range = tuple(y_range)
+
+                sig.y_range = y_range
+
+            elif not sig.empty:
+                sig.y_range = sig.min, sig.max
 
             self.axes.append(self._axes_layout_pos)
             self._axes_layout_pos += 1
@@ -4587,7 +4582,7 @@ class PlotGraphics(pg.PlotWidget):
     def insert_computation(self, name=""):
         functions = self.plot_parent.owner.functions
         if not functions:
-            QtWidgets.QMessageBox.warning(
+            MessageBox.warning(
                 self,
                 f"Cannot add computed channel",
                 f"There is no user defined function. Create new function using the Functions Manger (F6)",
@@ -4673,6 +4668,8 @@ class PlotGraphics(pg.PlotWidget):
                                 if len(self.signal_by_uuid(uuid)[0].plot_samples)
                             ]
                         )
+                    else:
+                        common_min, common_max = 0, 1
 
                 for i, signal in enumerate(self.signals):
                     if len(signal.plot_samples):
@@ -4749,18 +4746,32 @@ class PlotGraphics(pg.PlotWidget):
                 self.zoom_changed.emit(False)
                 self.update()
 
-            elif key == QtCore.Qt.Key_G and modifier == QtCore.Qt.NoModifier:
-                y = self.plotItem.ctrl.yGridCheck.isChecked()
-                x = self.plotItem.ctrl.xGridCheck.isChecked()
+            elif key == QtCore.Qt.Key_G:
+                if modifier == QtCore.Qt.NoModifier:
+                    y = self.plotItem.ctrl.yGridCheck.isChecked()
+                    x = self.plotItem.ctrl.xGridCheck.isChecked()
 
-                if x and y:
-                    self.plotItem.showGrid(x=False, y=False)
-                elif x:
-                    self.plotItem.showGrid(x=True, y=True)
-                else:
-                    self.plotItem.showGrid(x=True, y=False)
+                    if x and y:
+                        self.plotItem.showGrid(x=False, y=False)
+                    elif x:
+                        self.plotItem.showGrid(x=True, y=True)
+                    else:
+                        self.plotItem.showGrid(x=True, y=False)
 
-                self.update()
+                    self.update()
+
+                elif modifier == QtCore.Qt.ShiftModifier:
+                    value, ok = QtWidgets.QInputDialog.getDouble(
+                        self,
+                        "Go to time stamp",
+                        "Time stamp",
+                        value=self.cursor1.value(),
+                        decimals=9,
+                    )
+
+                    if ok:
+                        self.cursor1.setPos(value)
+                        self.cursor_move_finished.emit(self.cursor1)
 
             elif (
                 key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O)
@@ -5693,7 +5704,7 @@ class PlotGraphics(pg.PlotWidget):
     def scale_curve_to_pixmap(self, x, y, y_range, x_start, delta):
         if self.py:
             y_low, y_high = y_range
-            y_scale = (y_high - y_low) / self.py
+            y_scale = (np.float64(y_high) - np.float64(y_low)) / np.float64(self.py)
             x_scale = self.px
 
             if y_scale * x_scale:

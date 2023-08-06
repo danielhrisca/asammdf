@@ -5,13 +5,11 @@ numpy>=1.23.0
 pandas
 typing_extensions
 isal; platform_machine == "x86_64" or platform_machine == "AMD64"
-lxml 
+lxml<=4.9.2
 natsort 
 psutil 
 PySide6==6.2.2
-pyqtgraph==0.12.4; sys_platform=="win32"
-pyqtgraph==0.12.4; sys_platform=="darwin"
-pyqtgraph==0.12.4; sys_platform=="linux"
+pyqtgraph==0.12.4
 pyqtlet2
 pyopengl
 h5py 
@@ -25,3 +23,4 @@ keyring
 pyinstaller; sys_platform=="win32"
 pyinstaller; sys_platform=="darwin"
 pyinstaller==4.10; sys_platform=="linux"
+scipy

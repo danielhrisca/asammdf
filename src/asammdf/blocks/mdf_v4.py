@@ -19,7 +19,7 @@ import os
 from pathlib import Path
 import shutil
 import sys
-from tempfile import gettempdir, TemporaryFile
+from tempfile import gettempdir, NamedTemporaryFile
 from time import sleep
 from traceback import format_exc
 from typing import Any, overload
@@ -75,7 +75,9 @@ from numpy.core.records import fromarrays, fromstring
 from numpy.typing import NDArray
 from pandas import DataFrame
 
+from . import bus_logging_utils
 from . import v4_constants as v4c
+from .. import tool
 from ..signal import Signal
 from ..types import (
     BusType,
@@ -87,7 +89,6 @@ from ..types import (
     WritableBufferType,
 )
 from ..version import __version__
-from .bus_logging_utils import extract_mux
 from .conversion_utils import conversion_transfer
 from .mdf_common import MDF_Common
 from .options import get_global_option
@@ -315,7 +316,7 @@ class MDF4(MDF_Common):
             self.load_filter = set(channels)
             self.use_load_filter = True
 
-        self._tempfile = TemporaryFile(dir=self.temporary_folder)
+        self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
         self._file = None
 
         self._read_fragment_size = get_global_option("read_fragment_size")
@@ -6223,12 +6224,15 @@ class MDF4(MDF_Common):
         creator_index = len(self.file_history)
         fh = FileHistory()
         fh.comment = """<FHcomment>
-<TX>Added new embedded attachment from {}</TX>
-<tool_id>asammdf</tool_id>
-<tool_vendor>asammdf</tool_vendor>
-<tool_version>{}</tool_version>
+<TX>Added new embedded attachment from {file_name}</TX>
+<tool_id>{tool}</tool_id>
+<tool_vendor>{vendor}</tool_vendor>
+<tool_version>{version}</tool_version>
 </FHcomment>""".format(
-            file_name if file_name else "bin.bin", __version__
+            file_name=file_name if file_name else "bin.bin",
+            version=tool.__version__,
+            tool=tool.__tool__,
+            vendor=tool.__vendor__,
         )
 
         self.file_history.append(fh)
@@ -7516,15 +7520,15 @@ class MDF4(MDF_Common):
                     if not channel.standard_C_size:
                         size = byte_size
 
-                        if channel_dtype.byteorder == "|" and data_type in (
+                        if channel_dtype.byteorder == "=" and data_type in (
                             v4c.DATA_TYPE_SIGNED_MOTOROLA,
                             v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
                         ):
-                            view = f">u{vals.itemsize}"
+                            view = dtype(f">u{vals.itemsize}")
                         else:
-                            view = f"{channel_dtype.byteorder}u{vals.itemsize}"
+                            view = dtype(f"{channel_dtype.byteorder}u{vals.itemsize}")
 
-                        if dtype(view) != vals.dtype:
+                        if view != vals.dtype:
                             vals = vals.view(view)
 
                         if bit_offset:
@@ -7637,7 +7641,7 @@ class MDF4(MDF_Common):
                     if not channel.standard_C_size:
                         size = dtype_.itemsize
 
-                        if channel_dtype.byteorder == "|" and data_type in (
+                        if channel_dtype.byteorder == "=" and data_type in (
                             v4c.DATA_TYPE_SIGNED_MOTOROLA,
                             v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
                         ):
@@ -8016,7 +8020,7 @@ class MDF4(MDF_Common):
         ch = group.channels[index]
 
         if ch.channel_type != v4c.CHANNEL_TYPE_VLSD:
-            return None
+            return 0
 
         if (group_index, ch.name) in self.vlsd_max_length:
             return self.vlsd_max_length[(group_index, ch.name)]
@@ -8530,7 +8534,7 @@ class MDF4(MDF_Common):
 
                         size = byte_size
 
-                        if channel_dtype.byteorder == "|" and time_ch.data_type in (
+                        if channel_dtype.byteorder == "=" and time_ch.data_type in (
                             v4c.DATA_TYPE_SIGNED_MOTOROLA,
                             v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
                         ):
@@ -8893,7 +8897,7 @@ class MDF4(MDF_Common):
             payload = payload[nonzero(~invalidation_bits)[0]]
             t = t[nonzero(~invalidation_bits)[0]]
 
-        extracted_signals = extract_mux(
+        extracted_signals = bus_logging_utils.extract_mux(
             payload,
             message,
             None,
@@ -9073,7 +9077,7 @@ class MDF4(MDF_Common):
             payload = payload[nonzero(~invalidation_bits)[0]]
             t = t[nonzero(~invalidation_bits)[0]]
 
-        extracted_signals = extract_mux(
+        extracted_signals = bus_logging_utils.extract_mux(
             payload,
             message,
             None,
@@ -9241,9 +9245,9 @@ class MDF4(MDF_Common):
             fh = FileHistory()
             fh.comment = f"""<FHcomment>
 <TX>{comment}</TX>
-<tool_id>asammdf</tool_id>
-<tool_vendor>asammdf</tool_vendor>
-<tool_version>{__version__}</tool_version>
+<tool_id>{tool.__tool__}</tool_id>
+<tool_vendor>{tool.__vendor__}</tool_vendor>
+<tool_version>{tool.__version__}</tool_version>
 </FHcomment>"""
 
             self.file_history.append(fh)
@@ -10052,7 +10056,7 @@ class MDF4(MDF_Common):
 
             self._ch_map.clear()
 
-            self._tempfile = TemporaryFile(dir=self.temporary_folder)
+            self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
             self._file = open(self.name, "rb")
             self._read()
 
@@ -10911,7 +10915,7 @@ class MDF4(MDF_Common):
                         payload = bus_data_bytes[idx]
                         t = bus_t[idx]
 
-                        extracted_signals = extract_mux(
+                        extracted_signals = bus_logging_utils.extract_mux(
                             payload, message, msg_id, bus, t
                         )
 
@@ -11088,7 +11092,9 @@ class MDF4(MDF_Common):
                     payload = bus_data_bytes[idx]
                     t = bus_t[idx]
 
-                    extracted_signals = extract_mux(payload, message, msg_id, 0, t)
+                    extracted_signals = bus_logging_utils.extract_mux(
+                        payload, message, msg_id, 0, t
+                    )
 
                     for entry, signals in extracted_signals.items():
                         if len(next(iter(signals.values()))["samples"]) == 0:

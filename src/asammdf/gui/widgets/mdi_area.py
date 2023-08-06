@@ -3,6 +3,7 @@ from copy import deepcopy
 from functools import partial
 import inspect
 import itertools
+import json
 import math
 import os
 from pathlib import Path
@@ -31,6 +32,7 @@ from ...blocks.v4_blocks import EventBlock, HeaderBlock
 from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
+from ..dialogs.messagebox import MessageBox
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..utils import (
     computation_to_python_function,
@@ -190,18 +192,23 @@ def extract_signals_using_pattern(
 ):
     pattern = pattern_info["pattern"]
     match_type = pattern_info["match_type"]
+    case_sensitive = pattern_info.get("case_sensitive", False)
     filter_value = pattern_info["filter_value"]
     filter_type = pattern_info["filter_type"]
     raw = pattern_info["raw"]
     integer_format = pattern_info.get("integer_format", "phys")
 
     if match_type == "Wildcard":
-        pattern = pattern.replace("*", "_WILDCARD_")
+        wild = f"__{os.urandom(3).hex()}WILDCARD{os.urandom(3).hex()}__"
+        pattern = pattern.replace("*", wild)
         pattern = re.escape(pattern)
-        pattern = pattern.replace("_WILDCARD_", ".*")
+        pattern = pattern.replace(wild, ".*")
 
     try:
-        pattern = re.compile(f"(?i){pattern}")
+        if case_sensitive:
+            pattern = re.compile(pattern)
+        else:
+            pattern = re.compile(f"(?i){pattern}")
 
         matches = {}
 
@@ -479,6 +486,40 @@ def parse_matrix_component(name):
             break
 
     return name, tuple(indexes)
+
+
+def load_comparison_display_file(file_name, uuids):
+    with open(file_name, "r") as infile:
+        info = json.load(infile)
+    windows = info.get("windows", [])
+    plot_windows = []
+    for window in windows:
+        if window["type"] != "Plot":
+            continue
+
+        window["configuration"]["channels"] = get_comparison_mime(
+            window["configuration"]["channels"], uuids
+        )
+
+        plot_windows.append(window)
+
+
+def get_comparison_mime(data, uuids):
+    entries = []
+
+    for item in data:
+        if item.get("type", "channel") == "channel":
+            for uuid in uuids:
+                new_item = dict(item)
+                new_item["origin_uuid"] = uuid
+                entries.append(new_item)
+
+        else:
+            new_item = dict(item)
+            new_item["channels"] = get_comparison_mime(item["channels"], uuids)
+            entries.append(new_item)
+
+    return entries
 
 
 class MdiSubWindow(QtWidgets.QMdiSubWindow):
@@ -895,7 +936,7 @@ class WithMDIArea:
                     measured_signals = {sig.name: sig for sig in sigs.values()}
 
                     required_channels = [
-                        (None, *file.mdf.whereis(channel)[0])
+                        (channel, *file.mdf.whereis(channel)[0])
                         for channel in required_channels
                         if channel not in measured_signals and channel in file.mdf
                     ]
@@ -2342,7 +2383,7 @@ class WithMDIArea:
 
             required_channels = set(required_channels)
             required_channels_list = [
-                (None, *self.mdf.whereis(channel)[0])
+                (channel, *self.mdf.whereis(channel)[0])
                 for channel in required_channels
                 if channel in self.mdf
             ]
@@ -2762,7 +2803,7 @@ class WithMDIArea:
         required_channels = set(get_required_from_computed(channel))
 
         required_channels = [
-            (None, *self.mdf.whereis(channel)[0])
+            (channel, *self.mdf.whereis(channel)[0])
             for channel in required_channels
             if channel in self.mdf
         ]
@@ -3271,7 +3312,7 @@ class WithMDIArea:
             required_channels = set(required_channels)
 
             required_channels = [
-                (None, *self.mdf.whereis(channel)[0])
+                (channel, *self.mdf.whereis(channel)[0])
                 for channel in required_channels
                 if channel not in list(measured_signals) and channel in self.mdf
             ]
@@ -4106,7 +4147,7 @@ class WithMDIArea:
                 msg = ChannelInfoDialog(channel, self)
                 msg.show()
             except MdfException:
-                QtWidgets.QMessageBox.warning(
+                MessageBox.warning(
                     self,
                     "Missing channel",
                     f"The channel {sig.name} does not exit in the current measurement file.",
@@ -4134,7 +4175,7 @@ class WithMDIArea:
         else:
             return
 
-        result = QtWidgets.QMessageBox.question(
+        result = MessageBox.question(
             self,
             "Save measurement bookmarks?",
             "You have modified bookmarks.\n\n"
@@ -4142,7 +4183,7 @@ class WithMDIArea:
             "",
         )
 
-        if result == QtWidgets.QMessageBox.No:
+        if result == MessageBox.No:
             return
 
         _password = self.mdf._password
@@ -4259,7 +4300,7 @@ class WithMDIArea:
             use_display_names=True,
         )
 
-        self.mdf.original_name = file_name
+        self.mdf.original_name = original_file_name
         self.mdf.uuid = uuid
 
         self.aspects.setCurrentIndex(0)

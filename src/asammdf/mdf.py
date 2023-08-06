@@ -35,9 +35,10 @@ from numpy.typing import NDArray
 import pandas as pd
 from typing_extensions import Literal
 
+from . import tool
+from .blocks import bus_logging_utils, utils
 from .blocks import v2_v3_constants as v23c
 from .blocks import v4_constants as v4c
-from .blocks.bus_logging_utils import extract_mux, extract_pdu
 from .blocks.conversion_utils import from_dict
 from .blocks.mdf_v2 import MDF2
 from .blocks.mdf_v3 import MDF3
@@ -609,9 +610,9 @@ class MDF:
             fh = FileHistory()
             fh.comment = f"""<FHcomment>
     <TX>{message}</TX>
-    <tool_id>asammdf</tool_id>
-    <tool_vendor>asammdf</tool_vendor>
-    <tool_version>{__version__}</tool_version>
+    <tool_id>{tool.__tool__}</tool_id>
+    <tool_vendor>{tool.__vendor__}</tool_vendor>
+    <tool_version>{tool.__version__}</tool_version>
 </FHcomment>"""
 
             self.file_history = [fh]
@@ -2371,6 +2372,8 @@ class MDF:
                 progress.signals.setValue.emit(0)
                 progress.signals.setMaximum.emit(100)
 
+                progress.signals.setWindowTitle.emit("Concatenating measurements")
+
                 if progress.stop:
                     return TERMINATED
 
@@ -2378,17 +2381,24 @@ class MDF:
         use_display_names = kwargs.get("use_display_names", False)
 
         input_types = [isinstance(mdf, MDF) for mdf in files]
-        files = [
-            f if _type else MDF(f, use_display_names=use_display_names)
-            for f, _type in zip(files, input_types)
-        ]
 
         versions = []
         if sync:
             timestamps = []
             for file in files:
-                timestamps.append(file.header.start_time)
-                versions.append(file.version)
+                if isinstance(file, MDF):
+                    timestamps.append(file.header.start_time)
+                    versions.append(file.version)
+                else:
+                    if is_file_like(file):
+                        ts, version = get_measurement_timestamp_and_version(file)
+                        timestamps.append(ts)
+                        versions.append(version)
+                    else:
+                        with open(file, "rb") as mdf:
+                            ts, version = get_measurement_timestamp_and_version(mdf)
+                            timestamps.append(ts)
+                            versions.append(version)
 
             try:
                 oldest = min(timestamps)
@@ -2403,9 +2413,18 @@ class MDF:
 
         else:
             file = files[0]
+            if isinstance(file, MDF):
+                timestamp = file.header.start_time
+                version = file.version
+            else:
+                if is_file_like(file):
+                    timestamp, version = get_measurement_timestamp_and_version(file)
+                else:
+                    with open(file, "rb") as mdf:
+                        timestamp, version = get_measurement_timestamp_and_version(mdf)
 
-            oldest = file.header.start_time
-            versions.append(file.version)
+            oldest = timestamp
+            versions.append(version)
 
             offsets = [0 for _ in files]
 
@@ -2416,12 +2435,26 @@ class MDF:
             origin_conversion = {}
             for i, mdf in enumerate(files):
                 origin_conversion[f"val_{i}"] = i
-                origin_conversion[f"text_{i}"] = str(mdf.name)
+                origin_conversion[f"text_{i}"] = str(
+                    mdf.original_name if isinstance(mdf, MDF) else str(mdf)
+                )
             origin_conversion = from_dict(origin_conversion)
 
         for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
+            if not isinstance(mdf, MDF):
+                mdf = MDF(mdf, use_display_names=use_display_names)
+                close = True
+            else:
+                close = False
+
+            if progress is not None and not callable(progress):
+                progress.signals.setLabelText.emit(
+                    f"Concatenating the file {mdf_index + 1} of {mdf_nr}\n{mdf.original_name}"
+                )
+
             if mdf_index == 0:
                 version = validate_version_argument(version)
+                first_version = mdf.version
 
                 kwargs = dict(mdf._kwargs)
 
@@ -2439,6 +2472,8 @@ class MDF:
             reorder_channel_groups = False
             cg_translations = {}
 
+            vlsd_max_length = {}
+
             if mdf_index == 0:
                 last_timestamps = [None for gp in mdf.virtual_groups]
                 groups_nr = len(last_timestamps)
@@ -2453,6 +2488,49 @@ class MDF:
 
                         if progress.stop:
                             return TERMINATED
+
+                if first_version >= "4.00":
+                    w_mdf = first_mdf
+
+                    vlds_channels = []
+
+                    for _gp_idx, _gp in enumerate(w_mdf.groups):
+                        for _ch_idx, _ch in enumerate(_gp.channels):
+                            if _ch.channel_type == v4c.CHANNEL_TYPE_VLSD:
+                                vlds_channels.append((_ch.name, _gp_idx, _ch_idx))
+
+                                vlsd_max_length[(_ch.name, _gp_idx)] = 0
+
+                    if vlsd_max_length:
+                        for i, _file in enumerate(files):
+                            if not isinstance(_file, MDF):
+                                _close = True
+                                _file = MDF(_file)
+                            else:
+                                _close = False
+
+                            _file.determine_max_vlsd_sample_size.cache_clear()
+
+                            for _ch_name, _gp_idx, _ch_idx in vlds_channels:
+                                key = (_ch_name, _gp_idx)
+                                for _second_gp_idx, _second_ch_idx in w_mdf.whereis(
+                                    _ch_name
+                                ):
+                                    if _second_gp_idx == _gp_idx:
+                                        vlsd_max_length[key] = max(
+                                            vlsd_max_length[key],
+                                            _file.determine_max_vlsd_sample_size(
+                                                _second_gp_idx, _second_ch_idx
+                                            ),
+                                        )
+                                        break
+                                else:
+                                    raise MdfException(
+                                        f"internal structure of file {i} is different; different channels"
+                                    )
+
+                            if _close:
+                                _file.close()
 
             else:
                 if len(mdf.virtual_groups) != groups_nr:
@@ -2551,37 +2629,8 @@ class MDF:
                 first_timestamp = None
                 original_first_timestamp = None
 
-                for w_file in files:
-                    w_file.determine_max_vlsd_sample_size.cache_clear()
-
-                if files[0].version >= "4.00":
-                    w_mdf = files[0]
-                    for _gp_idx, _gp in enumerate(w_mdf.groups):
-                        for _ch_idx, _ch in enumerate(_gp.channels):
-                            if _ch.channel_type == v4c.CHANNEL_TYPE_VLSD:
-                                key = _gp_idx, _ch.name
-                                max_size = w_mdf.determine_max_vlsd_sample_size(
-                                    _gp_idx, _ch_idx
-                                )
-                                for _mdf_index, _w_mdf in enumerate(files[1:]):
-                                    for _second_gp_idx, _second_ch_idx in w_mdf.whereis(
-                                        _ch.name
-                                    ):
-                                        if _second_gp_idx == _gp_idx:
-                                            max_size = max(
-                                                max_size,
-                                                _w_mdf.determine_max_vlsd_sample_size(
-                                                    _second_gp_idx, _second_ch_idx
-                                                ),
-                                            )
-                                            break
-                                    else:
-                                        raise MdfException(
-                                            f"internal structure of file {_mdf_index} is different; different channels"
-                                        )
-
-                                for _w_mdf in files:
-                                    _w_mdf.vlsd_max_length[key] = max_size
+                mdf.vlsd_max_length.clear()
+                mdf.vlsd_max_length.update(vlsd_max_length)
 
                 for idx, signals in enumerate(
                     mdf._yield_selected_signals(group_index, groups=included_channels)
@@ -2700,13 +2749,11 @@ class MDF:
                     if progress.stop:
                         return TERMINATED
 
-        for _w_mdf in files:
-            _w_mdf.vlsd_max_length.clear()
-            _w_mdf.determine_max_vlsd_sample_size.cache_clear()
-
-        for mdf, input_type in zip(files, input_types):
-            if not input_type:
+            if close and mdf_index:
                 mdf.close()
+
+        if not isinstance(files[0], MDF):
+            first_mdf.close()
 
         try:
             merged._process_bus_logging()
@@ -4731,7 +4778,8 @@ class MDF:
                     channel_name = used_names.get_unique_name(channel_name)
 
                     if reduce_memory_usage and sig.samples.dtype.kind not in "SU":
-                        sig.samples = downcast(sig.samples)
+                        if sig.samples.size > 0:
+                            sig.samples = downcast(sig.samples)
 
                     if sig.samples.dtype.byteorder not in target_byte_order:
                         sig.samples = sig.samples.byteswap().newbyteorder()
@@ -5003,12 +5051,7 @@ class MDF:
                         data=fragment,
                         samples_only=True,
                     )[0].astype("<u1")
-                    bus = self.get(
-                        "CAN_DataFrame.BusChannel",
-                        group=i,
-                        data=fragment,
-                        samples_only=True,
-                    )
+
                     msg_ids = (
                         self.get("CAN_DataFrame.ID", group=i, data=fragment).astype(
                             "<u4"
@@ -5105,7 +5148,7 @@ class MDF:
                             if not message.is_pdu_container:
 
                                 # extract signal from frames
-                                extracted_signals = extract_mux(
+                                extracted_signals = bus_logging_utils.extract_mux(
                                                             payload,
                                                             message,
                                                             msg_id,
@@ -5139,7 +5182,7 @@ class MDF:
                             else:
 
                                 # extract signals from PDU frames
-                                extracted_signals = extract_pdu(
+                                extracted_signals = bus_logging_utils.extract_pdu(
                                                                 payload,
                                                                 message,
                                                                 msg_id,
@@ -5322,16 +5365,14 @@ class MDF:
                 cg_nr
             ].channel_group.flags = v4c.FLAG_CG_BUS_EVENT
 
-
             if is_j1939:
-                max_flags.append([False])
+                max_flags.append([[False]])
                 for ch_index, sig in enumerate(sigs, 1):
                     max_flags[cg_nr].append(
-                        np.all(sig.invalidation_bits)
-                    )
-
+                            [np.all(sig.invalidation_bits)]
+                     )
             else:
-                max_flags.append([False] * (len(sigs) + 1))
+                    max_flags.append([[False]] * (len(sigs) + 1))
 
         else:
             index = msg_map[entry]
@@ -5347,14 +5388,14 @@ class MDF:
                 )
 
                 t = signal["t"]
-            if is_j1939:
-                for ch_index, sig in enumerate(sigs, 1):
-                    max_flags[index][ch_index] = self.max_flags[
-                                                     index
-                                                 ][ch_index] or np.all(sig[1])
 
+                if is_j1939:
+                    for ch_index, sig in enumerate(sigs, 1):
+                        max_flags[index][ch_index].append(
+                                                np.all(sig[1])
+                        )
 
-            sigs.insert(0, (t, None))
+                sigs.insert(0, (t, None))
 
             out.extend(index, sigs)
 
@@ -5500,7 +5541,7 @@ class MDF:
                             payload = bus_data_bytes[idx]
                             t = bus_t[idx]
 
-                            extracted_signals = extract_mux(
+                            extracted_signals = bus_logging_utils.extract_mux(
                                 payload,
                                 message,
                                 msg_id,
@@ -5873,19 +5914,19 @@ class MDF:
                 name for name in self.channels_db if compiled_pattern.search(name)
             ]
         elif search_mode is SearchMode.wildcard:
-            if case_insensitive:
-                pattern = pattern.casefold()
-                channels = [
-                    name
-                    for name in self.channels_db
-                    if fnmatch.fnmatch(name.casefold(), pattern)
-                ]
-            else:
-                channels = [
-                    name
-                    for name in self.channels_db
-                    if fnmatch.fnmatchcase(name, pattern)
-                ]
+            wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
+            pattern = pattern.replace("*", wildcard)
+            pattern = re.escape(pattern)
+            pattern = pattern.replace(wildcard, ".*")
+
+            flags = re.IGNORECASE if case_insensitive else 0
+
+            compiled_pattern = re.compile(pattern, flags=flags)
+
+            channels = [
+                name for name in self.channels_db if compiled_pattern.search(name)
+            ]
+
         else:
             raise ValueError(f"unsupported mode {search_mode}")
 
@@ -5998,6 +6039,9 @@ class MDF:
                         if "CAN_DataFrame.BRS" in names:
                             columns["BRS"] = data["CAN_DataFrame.BRS"].astype("u1")
 
+                        if "CAN_DataFrame.IDE" in names:
+                            columns["IDE"] = data["CAN_DataFrame.IDE"].astype("u1")
+
                     elif data.name == "CAN_RemoteFrame":
                         columns["Bus"] = data["CAN_RemoteFrame.BusChannel"].astype("u1")
 
@@ -6027,6 +6071,9 @@ class MDF:
                                     .astype("u1")
                                     .tolist()
                                 ]
+
+                        if "CAN_RemoteFrame.IDE" in names:
+                            columns["IDE"] = data["CAN_RemoteFrame.IDE"].astype("u1")
 
                     elif data.name == "CAN_ErrorFrame":
                         names = set(data.samples.dtype.names)
@@ -6292,7 +6339,6 @@ class MDF:
                         )
 
                     elif row["Event Type"] == "FlexRay NullFrame":
-                        print(row)
                         frame_flags = f'{row["FrameFlags"]:x}'
                         controller_flags = f'{row["ControllerFlags"]:x}'
                         header_crc = f'{row["Header CRC"]:x}'

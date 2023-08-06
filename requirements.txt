@@ -6,3 +6,4 @@ pandas
 typing_extensions
 python-dateutil
 isal; platform_machine == "x86_64" or platform_machine == "AMD64"
+lxml<=4.9.2

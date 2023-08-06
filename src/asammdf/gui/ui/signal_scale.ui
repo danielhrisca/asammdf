@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1091</width>
-    <height>676</height>
+    <height>678</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -348,6 +348,22 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>signal</tabstop>
+  <tabstop>target_max</tabstop>
+  <tabstop>target_min</tabstop>
+  <tabstop>zoom_in_btn</tabstop>
+  <tabstop>zoom_out_btn</tabstop>
+  <tabstop>fit_btn</tabstop>
+  <tabstop>shift_up_btn</tabstop>
+  <tabstop>shift_down_btn</tabstop>
+  <tabstop>fast_shift_up_btn</tabstop>
+  <tabstop>fast_shift_down_btn</tabstop>
+  <tabstop>scaling</tabstop>
+  <tabstop>offset</tabstop>
+  <tabstop>apply_btn</tabstop>
+  <tabstop>cancel_btn</tabstop>
+ </tabstops>
  <resources>
   <include location="resource.qrc"/>
  </resources>

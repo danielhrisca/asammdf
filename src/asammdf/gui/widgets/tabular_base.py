@@ -1088,7 +1088,7 @@ class HeaderNamesView(QtWidgets.QTableView):
         self.horizontalHeader().hide()
         self.verticalHeader().hide()
 
-        self.setSelectionMode(self.NoSelection)
+        self.setSelectionMode(self.SelectionMode.NoSelection)
 
         # Automatically stretch rows/columns as widget is resized
         if self.orientation == Qt.Horizontal:
@@ -1837,6 +1837,17 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             key == QtCore.Qt.Key_BracketRight and modifiers == QtCore.Qt.ControlModifier
         ):
             self.increase_font()
+
+        elif key == QtCore.Qt.Key_G and modifiers == QtCore.Qt.ShiftModifier:
+            value, ok = QtWidgets.QInputDialog.getDouble(
+                self,
+                "Go to time stamp",
+                "Time stamp",
+                decimals=9,
+            )
+
+            if ok:
+                self.set_timestamp(value)
 
         else:
             self.tree.dataView.keyPressEvent(event)

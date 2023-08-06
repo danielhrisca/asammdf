@@ -420,6 +420,24 @@ hr { height: 1px; border-width: 0; }
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>triggering_on_all</tabstop>
+  <tabstop>triggering_on_interval</tabstop>
+  <tabstop>trigger_interval</tabstop>
+  <tabstop>triggering_on_channel</tabstop>
+  <tabstop>trigger_channel</tabstop>
+  <tabstop>trigger_search_btn</tabstop>
+  <tabstop>sample_by_sample</tabstop>
+  <tabstop>complete_signal</tabstop>
+  <tabstop>scrollArea</tabstop>
+  <tabstop>functions</tabstop>
+  <tabstop>show_definition_btn</tabstop>
+  <tabstop>name</tabstop>
+  <tabstop>comment</tabstop>
+  <tabstop>unit</tabstop>
+  <tabstop>apply_btn</tabstop>
+  <tabstop>cancel_btn</tabstop>
+ </tabstops>
  <resources>
   <include location="resource.qrc"/>
  </resources>

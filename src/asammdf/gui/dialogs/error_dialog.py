@@ -10,17 +10,16 @@ from ..ui.error_dialog import Ui_ErrorDialog
 
 class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
     def __init__(self, title, message, trace, *args, **kwargs):
-        if "remote" in kwargs:
-            remote = kwargs.pop("remote")
-            if "timeout" in kwargs:
-                timeout = kwargs.pop("timeout")
-            else:
-                timeout = 60
-        else:
-            remote = False
+        remote = kwargs.pop("remote", False)
+        timeout = kwargs.pop("timeout", 120)
+        logger = kwargs.pop("logger", None)
 
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+
+        if logger is not None:
+            logger.error(f">>> {title}\n{message}\n{trace}")
+        print(trace)
 
         self.trace = QtWidgets.QTextEdit()
 
@@ -63,13 +62,16 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
         self.layout.setStretch(1, 0)
         self.layout.setStretch(2, 1)
 
-        if remote:
-            self._timeout = timeout
+        self._timeout = timeout
 
-            self._thread = Thread(target=self.count_down, args=())
-            self._thread.start()
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.count_down)
 
-            QtCore.QTimer.singleShot(self._timeout * 1000, self.close)
+        if timeout > 0:
+            self.status.setText(
+                f"This window will be closed in {self._timeout}s\nAbort the countdown - [F1]"
+            )
+            self.timer.start(1000)
 
     def copy_to_clipboard(self, event):
         text = (
@@ -78,10 +80,20 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
         QtWidgets.QApplication.instance().clipboard().setText(text)
 
     def count_down(self):
-        while self._timeout > 0:
-            sleep(1)
+        if self._timeout > 0:
             self._timeout -= 1
-            self.status.setText(f"This window will close in {self._timeout:02}s")
+            self.status.setText(
+                f"This window will be closed in {self._timeout}s\nAbort the countdown - [F1]"
+            )
+        else:
+            self.close()
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_F1:
+            self.timer.stop()
+            self.status.clear()
+        else:
+            super().keyPressEvent(event)
 
     def show_trace(self, event):
         if self.trace.isHidden():

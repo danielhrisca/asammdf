@@ -3,6 +3,7 @@
 import pandas as pd
 from PySide6 import QtCore, QtWidgets
 
+from ..dialogs.messagebox import MessageBox
 from ..ui import resource_rc
 from ..ui.tabular_filter import Ui_TabularFilter
 
@@ -45,7 +46,7 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                     try:
                         self._target = int(target, 16)
                     except:
-                        QtWidgets.QMessageBox.warning(
+                        MessageBox.warning(
                             None,
                             "Wrong target value",
                             f"{column_name} requires an integer target value",
@@ -55,7 +56,7 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                     try:
                         self._target = int(target, 2)
                     except:
-                        QtWidgets.QMessageBox.warning(
+                        MessageBox.warning(
                             None,
                             "Wrong target value",
                             f"{column_name} requires an integer target value",
@@ -66,7 +67,7 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                             self._target = int(target, 16)
                             self.target.setText(f"0x{self._target:X}")
                         except:
-                            QtWidgets.QMessageBox.warning(
+                            MessageBox.warning(
                                 None,
                                 "Wrong target value",
                                 f"{column_name} requires a hex-format integer target value",
@@ -76,7 +77,7 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                             self._target = int(target, 2)
                             self.target.setText(f"0b{self._target:b}")
                         except:
-                            QtWidgets.QMessageBox.warning(
+                            MessageBox.warning(
                                 None,
                                 "Wrong target value",
                                 f"{column_name} requires a bin-format integer target value",
@@ -89,7 +90,7 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                                 self._target = int(target, 16)
                                 self.target.setText(f"0x{self._target:X}")
                             except:
-                                QtWidgets.QMessageBox.warning(
+                                MessageBox.warning(
                                     None,
                                     "Wrong target value",
                                     f"{column_name} requires an integer target value",
@@ -98,7 +99,7 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                 try:
                     self._target = float(target)
                 except:
-                    QtWidgets.QMessageBox.warning(
+                    MessageBox.warning(
                         None,
                         "Wrong target value",
                         f"{column_name} requires a float target value",
@@ -109,7 +110,7 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                     try:
                         bytes.fromhex(target.replace(" ", ""))
                     except:
-                        QtWidgets.QMessageBox.warning(
+                        MessageBox.warning(
                             None,
                             "Wrong target value",
                             f"{column_name} requires a correct hexstring",
@@ -135,7 +136,7 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                 try:
                     pd.Timestamp(target)
                 except:
-                    QtWidgets.QMessageBox.warning(
+                    MessageBox.warning(
                         None,
                         "Wrong target value",
                         f"Datetime {column_name} requires a correct pandas Timestamp literal",

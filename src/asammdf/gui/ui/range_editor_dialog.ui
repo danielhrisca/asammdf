@@ -90,11 +90,13 @@
   <customwidget>
    <class>MinimalListWidget</class>
    <extends>QListWidget</extends>
-   <header>asammdf/gui/widgets/list.h</header>
+   <header>asammdf.gui.widgets.list.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>
   <tabstop>ranges</tabstop>
+  <tabstop>insert_btn</tabstop>
+  <tabstop>reset_btn</tabstop>
   <tabstop>apply_btn</tabstop>
   <tabstop>cancel_btn</tabstop>
  </tabstops>

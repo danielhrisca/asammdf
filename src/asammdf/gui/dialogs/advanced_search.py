@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from fnmatch import fnmatch, fnmatchcase
+import os
 import re
 from traceback import format_exc
 
@@ -9,6 +9,7 @@ from PySide6 import QtCore, QtWidgets
 from ...blocks.utils import extract_xml_comment
 from ..ui import resource_rc
 from ..ui.search_dialog import Ui_SearchDialog
+from .messagebox import MessageBox
 from .range_editor import RangeEditor
 
 
@@ -98,6 +99,10 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             self.filter_type.setCurrentText(pattern["filter_type"])
             self.filter_value.setValue(pattern["filter_value"])
             self.pattern_match_type.setCurrentText(pattern["match_type"])
+            if pattern.get("case_sensitive", False):
+                self.case_sensitivity_pattern.setCurrentText("Case sensitive")
+            else:
+                self.case_sensitivity_pattern.setCurrentText("Case insensitive")
             self.raw.setCheckState(
                 QtCore.Qt.Checked if pattern["raw"] else QtCore.Qt.Unchecked
             )
@@ -127,11 +132,19 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             match_kind = self.match_kind.currentText()
 
             if match_kind == "Wildcard":
-                pattern = text.casefold()
+                wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
+                pattern = text.replace("*", wildcard)
+                pattern = re.escape(pattern)
+                pattern = pattern.replace(wildcard, ".*")
             else:
-                pattern = re.compile(f"(?i){text}")
+                pattern = text
 
             try:
+                if self.case_sensitivity.currentText() == "Case insensitive":
+                    pattern = re.compile(f"(?i){pattern}")
+                else:
+                    pattern = re.compile(pattern)
+
                 if extened_search:
                     matches = {}
 
@@ -141,16 +154,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                         # check channel group source name
 
                         if cg_source and (
-                            match_kind == "Wildcard"
-                            and (
-                                fnmatch((cg_source.name or "").casefold(), pattern)
-                                or fnmatch((cg_source.path or "").casefold(), pattern)
-                            )
-                            or match_kind != "Wildcard"
-                            and (
-                                pattern.fullmatch(cg_source.name or "")
-                                or pattern.fullmatch(cg_source.path or "")
-                            )
+                            pattern.fullmatch(cg_source.name or "")
+                            or pattern.fullmatch(cg_source.path or "")
                         ):
                             matches.update(
                                 {
@@ -180,12 +185,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                 ]
 
                                 for target in targets:
-                                    if (
-                                        match_kind != "Wildcard"
-                                        and pattern.fullmatch(target)
-                                        or match_kind == "Wildcard"
-                                        and fnmatch(target.casefold(), pattern)
-                                    ):
+                                    if pattern.fullmatch(target):
                                         if entry not in matches:
                                             matches[entry] = {
                                                 "names": [target],
@@ -212,12 +212,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                         targets.append(source.path)
 
                                     for target in targets:
-                                        if (
-                                            match_kind != "Wildcard"
-                                            and pattern.fullmatch(target)
-                                            or match_kind == "Wildcard"
-                                            and fnmatch(target.casefold(), pattern)
-                                        ):
+                                        if pattern.fullmatch(target):
                                             matches[entry] = {
                                                 "names": [ch.name],
                                                 "comment": extract_xml_comment(
@@ -236,16 +231,9 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                             break
 
                 else:
-                    if match_kind == "Wildcard":
-                        found_names = [
-                            name
-                            for name in self.channels_db
-                            if fnmatch(name.casefold(), pattern)
-                        ]
-                    else:
-                        found_names = [
-                            name for name in self.channels_db if pattern.fullmatch(name)
-                        ]
+                    found_names = [
+                        name for name in self.channels_db if pattern.fullmatch(name)
+                    ]
 
                     matches = {}
                     for name in found_names:
@@ -391,6 +379,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.result = {
             "pattern": self.pattern.text().strip(),
             "match_type": self.pattern_match_type.currentText(),
+            "case_sensitive": self.case_sensitivity_pattern.currentText()
+            == "Case sensitive",
             "filter_type": self.filter_type.currentText(),
             "filter_value": self.filter_value.value(),
             "raw": self.raw.checkState() == QtCore.Qt.Checked,
@@ -400,15 +390,13 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         }
 
         if not self.result["pattern"]:
-            QtWidgets.QMessageBox.warning(
+            MessageBox.warning(
                 self, "Cannot apply pattern", "The pattern cannot be empty"
             )
             return
 
         if not self.result["name"]:
-            QtWidgets.QMessageBox.warning(
-                self, "Cannot apply pattern", "The name cannot be empty"
-            )
+            MessageBox.warning(self, "Cannot apply pattern", "The name cannot be empty")
             return
 
         self.pattern_window = True

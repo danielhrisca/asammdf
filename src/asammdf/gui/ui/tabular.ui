@@ -240,9 +240,21 @@
   <customwidget>
    <class>MinimalListWidget</class>
    <extends>QListWidget</extends>
-   <header>asammdf/gui/widgets/list.h</header>
+   <header>asammdf.gui.widgets.list.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>format_selection</tabstop>
+  <tabstop>float_precision</tabstop>
+  <tabstop>time_as_date</tabstop>
+  <tabstop>remove_prefix</tabstop>
+  <tabstop>prefix</tabstop>
+  <tabstop>toggle_filters_btn</tabstop>
+  <tabstop>add_filter_btn</tabstop>
+  <tabstop>apply_filters_btn</tabstop>
+  <tabstop>filters</tabstop>
+  <tabstop>query</tabstop>
+ </tabstops>
  <resources>
   <include location="resource.qrc"/>
  </resources>

@@ -16,7 +16,7 @@ import mmap
 import os
 from pathlib import Path
 import sys
-from tempfile import TemporaryFile
+from tempfile import NamedTemporaryFile
 import time
 from traceback import format_exc
 from typing import Any, overload
@@ -45,6 +45,7 @@ from pandas import DataFrame
 from typing_extensions import Literal, TypedDict
 
 from . import v2_v3_constants as v23c
+from .. import tool
 from ..signal import Signal
 from ..types import ChannelsType, CompressionType, RasterType, StrPathType
 from ..version import __version__
@@ -203,7 +204,7 @@ class MDF3(MDF_Common):
         self._master_channel_metadata = {}
         self._closed = False
 
-        self._tempfile = TemporaryFile(dir=self.temporary_folder)
+        self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
         self._tempfile.write(b"\0")
         self._file = None
 
@@ -3103,7 +3104,7 @@ class MDF3(MDF_Common):
                             )
                             channel_dtype = dtype(dtype_fmt.split(")")[-1])
 
-                            if channel_dtype.byteorder == "|" and data_type in (
+                            if channel_dtype.byteorder == "=" and data_type in (
                                 v23c.DATA_TYPE_SIGNED_MOTOROLA,
                                 v23c.DATA_TYPE_UNSIGNED_MOTOROLA,
                             ):
@@ -3342,7 +3343,7 @@ class MDF3(MDF_Common):
                     )
                     channel_dtype = dtype(dtype_fmt.split(")")[-1])
 
-                    if channel_dtype.byteorder == "|" and time_ch.data_type in (
+                    if channel_dtype.byteorder == "=" and time_ch.data_type in (
                         v23c.DATA_TYPE_SIGNED_MOTOROLA,
                         v23c.DATA_TYPE_UNSIGNED_MOTOROLA,
                     ):
@@ -3528,17 +3529,17 @@ class MDF3(MDF_Common):
                 dst = name
 
         if not self.header.comment:
-            self.header.comment = """<FHcomment>
+            self.header.comment = f"""<FHcomment>
 <TX>created</TX>
-<tool_id>asammdf</tool_id>
-<tool_vendor> </tool_vendor>
-<tool_version>{__version__}</tool_version>
+<tool_id>{tool.__tool__}</tool_id>
+<tool_vendor>{tool.__vendor__}</tool_vendor>
+<tool_version>{tool.__version__}</tool_version>
 </FHcomment>"""
         else:
             old_history = self.header.comment
             timestamp = time.asctime()
 
-            text = f"{old_history}\n{timestamp}: updated by asammdf {__version__}"
+            text = f"{old_history}\n{timestamp}: updated by {tool.__tool__} {tool.__version__}"
             self.header.comment = text
 
         defined_texts, cc_map, si_map = {}, {}, {}
@@ -3736,7 +3737,7 @@ class MDF3(MDF_Common):
             self.channels_db.clear()
             self.masters_db.clear()
 
-            self._tempfile = TemporaryFile(dir=self.temporary_folder)
+            self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
             self._file = open(self.name, "rb")
             self._read()
 

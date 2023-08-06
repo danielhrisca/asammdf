@@ -70,7 +70,7 @@ class FormatedAxis(pg.AxisItem):
         if self.text_conversion and self.mode == "phys":
             strns = []
             for val in values:
-                nv = self.text_conversion.convert(np.array([val]))[0]
+                nv = self.text_conversion.convert(np.array([val]), as_bytes=True)[0]
 
                 val = float(val)
 
@@ -379,6 +379,8 @@ class FormatedAxis(pg.AxisItem):
         self.label.setFont(font)
 
     def setRange(self, mn, mx):
+        if mn > mx:
+            mn, mx = mx, mn
         super().setRange(mn, mx)
         self.rangeChanged.emit(self.uuid, (mn, mx))
 

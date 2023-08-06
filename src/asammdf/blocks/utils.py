@@ -2108,7 +2108,7 @@ def load_dsp(file, background="#000000", flat=False):
                 if c in (0xFFFFFF, 0x0):
                     c = 0x808080
 
-                gain = float(elem.get("gain"))
+                gain = abs(float(elem.get("gain")))
                 offset = float(elem.get("offset")) / 100
 
                 multi_color = elem.find("MULTI_COLOR")
@@ -2152,10 +2152,12 @@ def load_dsp(file, background="#000000", flat=False):
                     "ranges": ranges,
                     "unit": "",
                     "type": "channel",
-                    "y_range": [
-                        -gain * offset,
-                        -gain * offset + 19 * gain,
-                    ],
+                    "y_range": sorted(
+                        [
+                            -gain * offset,
+                            -gain * offset + 19 * gain,
+                        ]
+                    ),
                     "origin_uuid": "000000000000",
                 }
 

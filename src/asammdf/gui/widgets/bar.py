@@ -7,6 +7,7 @@ import numpy as np
 from numpy import searchsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ..dialogs.messagebox import MessageBox
 from ..ui import resource_rc
 from ..ui.bar import Ui_BarDisplay
 from ..utils import COLORS
@@ -119,7 +120,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
 
         if invalid:
             errors = "\n".join(invalid)
-            QtWidgets.QMessageBox.warning(
+            MessageBox.warning(
                 self,
                 "The following channels do not have monotonous increasing time stamps:",
                 f"The following channels do not have monotonous increasing time stamps:\n{errors}",
@@ -145,7 +146,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
                 valid.append(channel)
 
         if invalid:
-            QtWidgets.QMessageBox.warning(
+            MessageBox.warning(
                 self,
                 "All NaN channels will not be plotted:",
                 f"The following channels have all NaN samples and will not be plotted:\n{', '.join(invalid)}",
@@ -246,9 +247,10 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
 
         operator = self.op.currentText()
 
-        pattern = self.pattern_match.text().strip().replace("*", "_WILDCARD_")
+        wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
+        pattern = text.replace("*", wildcard)
         pattern = re.escape(pattern)
-        pattern = pattern.replace("_WILDCARD_", ".*")
+        pattern = pattern.replace(wildcard, ".*")
 
         pattern = re.compile(f"(?i){pattern}")
         matches = [name for name in self.signals if pattern.search(name)]

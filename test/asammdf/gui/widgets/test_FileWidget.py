@@ -1,86 +1,22 @@
 #!/usr/bin/env python
 import pathlib
-import sys
-from test.asammdf.gui import QtCore, QtTest, QtWidgets
-from test.asammdf.gui.test_base import TestBase
+import shutil
+from test.asammdf.gui.test_base import DragAndDrop
+from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 import time
-import unittest
 from unittest import mock
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtTest, QtWidgets
 
-from asammdf.gui.widgets.file import FileWidget
+from asammdf.gui.dialogs.channel_group_info import ChannelGroupInfoDialog
+from asammdf.gui.dialogs.channel_info import ChannelInfoDialog
 
-
-class DragAndDrop:
-    class MoveThread(QtCore.QThread):
-        def __init__(self, widget, position=None, step=None, drop=False):
-            super().__init__()
-            self.widget = widget
-            self.position = position
-            self.step = step
-            self.drop = drop
-
-        def run(self):
-            time.sleep(0.1)
-            if not self.step:
-                QtTest.QTest.mouseMove(self.widget, self.position)
-            else:
-                for step in range(self.step):
-                    QtTest.QTest.mouseMove(
-                        self.widget, self.position + QtCore.QPoint(step, step)
-                    )
-                    QtTest.QTest.qWait(2)
-            QtTest.QTest.qWait(50)
-            if self.drop:
-                QtTest.QTest.mouseRelease(
-                    self.widget,
-                    QtCore.Qt.LeftButton,
-                    QtCore.Qt.NoModifier,
-                    self.position,
-                )
-                QtTest.QTest.qWait(10)
-
-    def __init__(self, source_widget, destination_widget, source_pos, destination_pos):
-        # Press on Source Widget
-        QtTest.QTest.mousePress(
-            source_widget, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier, source_pos
-        )
-        # Drag few pixels in order to detect startDrag event
-        # drag_thread = DragAndDrop.MoveThread(widget=source_widget, position=source_pos, step=50)
-        # drag_thread.start()
-        # Move to Destination Widget
-        move_thread = DragAndDrop.MoveThread(
-            widget=destination_widget, position=destination_pos, drop=True
-        )
-        move_thread.start()
-
-        source_widget.startDrag(QtCore.Qt.MoveAction)
-        QtTest.QTest.qWait(50)
-
-        # drag_thread.wait()
-        move_thread.wait()
-        move_thread.quit()
+# Note: If it's possible and make sense use self.subTests
+# to avoid initialize widgets multiple times and consume time.
 
 
-@unittest.skipIf(
-    sys.platform == "darwin", "Test Development on MacOS was not done yet."
-)
-class TestFileWidget(TestBase):
-    # Note: If it's possible and make sense use self.subTests
-    # to avoid initialize widgets multiple times and consume time.
-    def setUp(self):
-        super().setUp()
-        self.widget = None
-
-    def tearDown(self):
-        if self.widget:
-            self.widget.close()
-            self.widget.deleteLater()
-        self.mc_ErrorDialog.reset_mock()
-        super().tearDown()
-
-    def test_Tab_Channels_PushButton_LoadOfflineWindows_DSP(self):
+class TestTabChannels(TestFileWidget):
+    def test_PushButton_LoadOfflineWindows_DSP(self):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -93,42 +29,23 @@ class TestFileWidget(TestBase):
         measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
         valid_dsp = str(pathlib.Path(self.resource, "valid.dsp"))
         # Event
-        self.widget = FileWidget(
-            measurement_file,
-            True,  # with_dots
-            True,  # subplots
-            True,  # subplots_link
-            False,  # ignore_value2text_conversions
-            False,  # display_cg_name
-            "line",  # line_interconnect
-            1,  # password
-            None,  # hide_missing_channels
-            None,  # hide_disabled_channels
-        )
+        self.setUpFileWidget(measurement_file=measurement_file, default=True)
 
         with mock.patch(
             "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
         ) as mo_getOpenFileName:
             mo_getOpenFileName.return_value = valid_dsp, None
             QtTest.QTest.mouseClick(
-                self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                self.widget.load_channel_list_btn,
+                QtCore.Qt.MouseButton.LeftButton,
             )
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-            widget_types = sorted(
-                map(
-                    lambda w: w.widget().__class__.__name__,
-                    self.widget.mdi_area.subWindowList(),
-                )
-            )
+            widget_types = self.get_subwindows()
             self.assertIn("Plot", widget_types)
 
-    @unittest.skipIf(
-        sys.platform in ("darwin", "linux"),
-        "Test is failing due to Segmentation Fault on Linux platform.",
-    )
     @mock.patch("asammdf.gui.widgets.file.ErrorDialog")
-    def test_Tab_Channels_PushButton_LoadOfflineWindows_DSPF(self, mc_file_ErrorDialog):
+    def test_PushButton_LoadOfflineWindows_DSPF(self, mc_file_ErrorDialog):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -191,18 +108,8 @@ class TestFileWidget(TestBase):
         )
 
         # Event
-        self.widget = FileWidget(
-            measurement_file,
-            True,  # with_dots
-            True,  # subplots
-            True,  # subplots_link
-            False,  # ignore_value2text_conversions
-            False,  # display_cg_name
-            "line",  # line_interconnect
-            1,  # password
-            None,  # hide_missing_channels
-            None,  # hide_disabled_channels
-        )
+        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+
         # Case 0
         with self.subTest("test_PushButton_LoadOfflineWindows_DSPF_0"):
             with mock.patch.object(
@@ -212,7 +119,8 @@ class TestFileWidget(TestBase):
             ) as mo_getOpenFileName:
                 mo_getOpenFileName.return_value = None, None
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 mo_load_window.assert_not_called()
@@ -227,7 +135,8 @@ class TestFileWidget(TestBase):
             ) as mo_getOpenFileName:
                 mo_getOpenFileName.return_value = valid_dspf[:-2], None
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 mo_load_window.assert_not_called()
@@ -240,9 +149,13 @@ class TestFileWidget(TestBase):
             ) as mo_load_window, mock.patch(
                 "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
             ) as mo_getOpenFileName:
-                mo_getOpenFileName.return_value = invalid_json_decode_error_dspf, None
+                mo_getOpenFileName.return_value = (
+                    invalid_json_decode_error_dspf,
+                    None,
+                )
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 mo_load_window.assert_not_called()
@@ -262,18 +175,14 @@ class TestFileWidget(TestBase):
                     None,
                 )
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
                 mc_ErrorDialog.assert_called()
                 mc_ErrorDialog.reset_mock()
-                widget_types = sorted(
-                    map(
-                        lambda w: w.widget().__class__.__name__,
-                        self.widget.mdi_area.subWindowList(),
-                    )
-                )
+                widget_types = self.get_subwindows()
                 self.assertNotIn("Plot", widget_types)
 
         # Case 4
@@ -288,18 +197,14 @@ class TestFileWidget(TestBase):
                     None,
                 )
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
                 mc_ErrorDialog.assert_called()
                 mc_ErrorDialog.reset_mock()
-                widget_types = sorted(
-                    map(
-                        lambda w: w.widget().__class__.__name__,
-                        self.widget.mdi_area.subWindowList(),
-                    )
-                )
+                widget_types = self.get_subwindows()
                 self.assertNotIn("Numeric", widget_types)
 
         # Case 5
@@ -314,18 +219,14 @@ class TestFileWidget(TestBase):
                     None,
                 )
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
                 mc_ErrorDialog.assert_called()
                 mc_ErrorDialog.reset_mock()
-                widget_types = sorted(
-                    map(
-                        lambda w: w.widget().__class__.__name__,
-                        self.widget.mdi_area.subWindowList(),
-                    )
-                )
+                widget_types = self.get_subwindows()
                 self.assertNotIn("Tabular", widget_types)
 
         # Case 6
@@ -337,22 +238,18 @@ class TestFileWidget(TestBase):
             ) as mo_getOpenFileName:
                 mo_getOpenFileName.return_value = valid_dspf, None
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 mo_load_window.assert_called()
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 3)
-                widget_types = sorted(
-                    map(
-                        lambda w: w.widget().__class__.__name__,
-                        self.widget.mdi_area.subWindowList(),
-                    )
-                )
+                widget_types = self.get_subwindows()
                 self.assertListEqual(["Numeric", "Plot", "Tabular"], widget_types)
 
         mc_file_ErrorDialog.assert_not_called()
 
-    def test_Tab_Channels_PushButton_LoadOfflineWindows_LAB(self):
+    def test_PushButton_LoadOfflineWindows_LAB(self):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -383,18 +280,7 @@ class TestFileWidget(TestBase):
         measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
         # Event
-        self.widget = FileWidget(
-            measurement_file,
-            True,  # with_dots
-            True,  # subplots
-            True,  # subplots_link
-            False,  # ignore_value2text_conversions
-            False,  # display_cg_name
-            "line",  # line_interconnect
-            1,  # password
-            None,  # hide_missing_channels
-            None,  # hide_disabled_channels
-        )
+        self.setUpFileWidget(measurement_file=measurement_file, default=True)
         # Switch ComboBox to "Internal file structure"
         self.widget.channel_view.setCurrentText("Internal file structure")
         # Case 0:
@@ -402,9 +288,13 @@ class TestFileWidget(TestBase):
             with mock.patch(
                 "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
             ) as mo_getOpenFileName:
-                mo_getOpenFileName.return_value = invalid_empty_section_lab, None
+                mo_getOpenFileName.return_value = (
+                    invalid_empty_section_lab,
+                    None,
+                )
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
@@ -430,9 +320,13 @@ class TestFileWidget(TestBase):
             with mock.patch(
                 "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
             ) as mo_getOpenFileName:
-                mo_getOpenFileName.return_value = invalid_missing_section_lab, None
+                mo_getOpenFileName.return_value = (
+                    invalid_missing_section_lab,
+                    None,
+                )
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
@@ -463,7 +357,8 @@ class TestFileWidget(TestBase):
                 mo_getOpenFileName.return_value = valid_lab, None
                 mo_getItem.return_value = "lab", True
                 QtTest.QTest.mouseClick(
-                    self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                    self.widget.load_channel_list_btn,
+                    QtCore.Qt.MouseButton.LeftButton,
                 )
                 # Evaluate
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
@@ -491,7 +386,7 @@ class TestFileWidget(TestBase):
                     set(checked_items),
                 )
 
-    def test_Tab_Channels_PushButton_SaveOfflineWindows(self):
+    def test_PushButton_SaveOfflineWindows(self):
         """
 
         Events:
@@ -515,21 +410,7 @@ class TestFileWidget(TestBase):
         saved_dspf = pathlib.Path(self.test_workspace, f"{self.id()}.dspf")
         measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
-        # Event
-        self.widget = FileWidget(
-            measurement_file,
-            True,  # with_dots
-            True,  # subplots
-            True,  # subplots_link
-            False,  # ignore_value2text_conversions
-            False,  # display_cg_name
-            "line",  # line_interconnect
-            1,  # password
-            None,  # hide_missing_channels
-            None,  # hide_disabled_channels
-        )
-        self.widget.showNormal()
-        self.widget.activateWindow()
+        self.setUpFileWidget(measurement_file=measurement_file, default=True)
         # Switch ComboBox to "Internal file structure"
         self.widget.channel_view.setCurrentText("Internal file structure")
 
@@ -540,7 +421,8 @@ class TestFileWidget(TestBase):
         ) as mo_getOpenFileName:
             mo_getOpenFileName.return_value = valid_dspf, None
             QtTest.QTest.mouseClick(
-                self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                self.widget.load_channel_list_btn,
+                QtCore.Qt.MouseButton.LeftButton,
             )
             # Pre-Evaluate
             mo_load_window.assert_called()
@@ -598,7 +480,8 @@ class TestFileWidget(TestBase):
         ) as mo_getSaveFileName:
             mo_getSaveFileName.return_value = str(saved_dspf), None
             QtTest.QTest.mouseClick(
-                self.widget.save_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                self.widget.save_channel_list_btn,
+                QtCore.Qt.MouseButton.LeftButton,
             )
         # Evaluate
         self.assertTrue(saved_dspf.exists())
@@ -611,7 +494,8 @@ class TestFileWidget(TestBase):
         ) as mo_getOpenFileName:
             mo_getOpenFileName.return_value = saved_dspf, None
             QtTest.QTest.mouseClick(
-                self.widget.load_channel_list_btn, QtCore.Qt.MouseButton.LeftButton
+                self.widget.load_channel_list_btn,
+                QtCore.Qt.MouseButton.LeftButton,
             )
             # Pre-Evaluate
             mo_load_window.assert_called()
@@ -624,7 +508,7 @@ class TestFileWidget(TestBase):
             )
             self.assertSetEqual({"Plot"}, widget_types)
 
-    def test_Tab_Channels_PushButton_SelectAll(self):
+    def test_PushButton_SelectAll(self):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -640,19 +524,7 @@ class TestFileWidget(TestBase):
         measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
         # Event
-        self.widget = FileWidget(
-            measurement_file,
-            True,  # with_dots
-            True,  # subplots
-            True,  # subplots_link
-            False,  # ignore_value2text_conversions
-            False,  # display_cg_name
-            "line",  # line_interconnect
-            1,  # password
-            None,  # hide_missing_channels
-            None,  # hide_disabled_channels
-        )
-        self.widget.showNormal()
+        self.setUpFileWidget(measurement_file=measurement_file, default=True)
 
         # Switch ComboBox to "Natural sort"
         self.widget.channel_view.setCurrentText("Natural Sort")
@@ -700,7 +572,7 @@ class TestFileWidget(TestBase):
             self.assertTrue(item.checkState(0))
             iterator += 1
 
-    def test_Tab_Channels_PushButton_ClearAll(self):
+    def test_PushButton_ClearAll(self):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -717,19 +589,7 @@ class TestFileWidget(TestBase):
         measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
         # Event
-        self.widget = FileWidget(
-            measurement_file,
-            True,  # with_dots
-            True,  # subplots
-            True,  # subplots_link
-            False,  # ignore_value2text_conversions
-            False,  # display_cg_name
-            "line",  # line_interconnect
-            1,  # password
-            None,  # hide_missing_channels
-            None,  # hide_disabled_channels
-        )
-        self.widget.showNormal()
+        self.setUpFileWidget(measurement_file=measurement_file, default=True)
 
         # Switch ComboBox to "Natural sort"
         self.widget.channel_view.setCurrentText("Natural Sort")
@@ -781,7 +641,7 @@ class TestFileWidget(TestBase):
             self.assertFalse(item.checkState(0))
             iterator += 1
 
-    def test_Tab_Channels_PushButton_Search(self):
+    def test_PushButton_Search(self):
         """
         Events:
             - Open 'FileWidget' with valid measurement.
@@ -807,21 +667,9 @@ class TestFileWidget(TestBase):
         # Setup
         measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
         # Event
-        self.widget = FileWidget(
-            measurement_file,
-            True,  # with_dots
-            True,  # subplots
-            True,  # subplots_link
-            False,  # ignore_value2text_conversions
-            False,  # display_cg_name
-            "line",  # line_interconnect
-            1,  # password
-            None,  # hide_missing_channels
-            None,  # hide_disabled_channels
-        )
-        self.widget.showNormal()
+        self.setUpFileWidget(measurement_file=measurement_file, default=True)
         # Case 0:
-        with self.subTest("test_Tab_Channels_PushButton_Search_0"):
+        with self.subTest("test_PushButton_Search_0"):
             with mock.patch(
                 "asammdf.gui.widgets.file.AdvancedSearch"
             ) as mc_AdvancedSearch:
@@ -841,7 +689,7 @@ class TestFileWidget(TestBase):
                     iterator += 1
 
         # Case 1:
-        with self.subTest("test_Tab_Channels_PushButton_Search_1"):
+        with self.subTest("test_PushButton_Search_1"):
             with mock.patch(
                 "asammdf.gui.widgets.file.AdvancedSearch"
             ) as mc_AdvancedSearch:
@@ -868,7 +716,7 @@ class TestFileWidget(TestBase):
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
 
         # Case 2:
-        with self.subTest("test_Tab_Channels_PushButton_Search_2"):
+        with self.subTest("test_PushButton_Search_2"):
             # - Clear 'channel_tree' selection
             iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
             while iterator.value():
@@ -908,10 +756,347 @@ class TestFileWidget(TestBase):
                     iterator += 1
                 self.assertEqual(2, checked_channels)
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-                widget_types = sorted(
-                    map(
-                        lambda w: w.widget().__class__.__name__,
-                        self.widget.mdi_area.subWindowList(),
-                    )
-                )
+                widget_types = self.get_subwindows()
                 self.assertIn("Plot", widget_types)
+
+    def test_PushButton_CreateWindow(self):
+        """
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Switch ComboBox to "Natural sort"
+            - Case 0:
+                - Press PushButton "Create Window"
+                    - Simulate that "WindowSelectionDialog" is cancelled/closed.
+            - Case 1:
+                - Press PushButton "Create Window"
+                    - Simulate that Window Type is Plot.
+            - Case 2:
+                - Select one channel
+                - Press PushButton "Create Window"
+                    - Simulate that Window Type is Numeric.
+            - Case 3:
+                - Press PushButton "Create Window"
+                    - Simulate that Window Type is Tabular.
+            - Case 4:
+                - Press PushButton "Create Window"
+                    - Simulate that Window Type is Plot.
+        Evaluate:
+            - Evaluate that 4 sub-windows are created.
+            - Check if windows contain channel selected.
+        """
+        # Setup
+        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
+        # Event
+        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.widget.channel_view.setCurrentText("Natural sort")
+
+        # Case 0:
+        with self.subTest("test_PushButton_CreateWindow_0"):
+            with mock.patch(
+                "asammdf.gui.widgets.file.WindowSelectionDialog"
+            ) as mc_WindowSelectionDialog:
+                mc_WindowSelectionDialog.return_value.result.return_value = False
+                # - Press PushButton "Create Window"
+                QtTest.QTest.mouseClick(
+                    self.widget.create_window_btn, QtCore.Qt.LeftButton
+                )
+            # Evaluate
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
+
+        # Case 1:
+        with self.subTest("test_PushButton_CreateWindow_1"):
+            with mock.patch(
+                "asammdf.gui.widgets.file.WindowSelectionDialog"
+            ) as mc_WindowSelectionDialog:
+                mc_WindowSelectionDialog.return_value.result.return_value = True
+                mc_WindowSelectionDialog.return_value.selected_type.return_value = (
+                    "Plot"
+                )
+                # - Press PushButton "Create Window"
+                QtTest.QTest.mouseClick(
+                    self.widget.create_window_btn, QtCore.Qt.LeftButton
+                )
+            # Evaluate
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+            widget_types = self.get_subwindows()
+            self.assertIn("Plot", widget_types)
+
+        # Case 2:
+        with self.subTest("test_PushButton_CreateWindow_2"):
+            with mock.patch(
+                "asammdf.gui.widgets.file.WindowSelectionDialog"
+            ) as mc_WindowSelectionDialog:
+                mc_WindowSelectionDialog.return_value.result.return_value = True
+                mc_WindowSelectionDialog.return_value.selected_type.return_value = (
+                    "Numeric"
+                )
+                # - Select one channel
+                channel = self.widget.channels_tree.topLevelItem(0).text(0)
+                self.widget.channels_tree.topLevelItem(0).setCheckState(
+                    0, QtCore.Qt.Checked
+                )
+                # - Press PushButton "Create Window"
+                QtTest.QTest.mouseClick(
+                    self.widget.create_window_btn, QtCore.Qt.LeftButton
+                )
+            # Evaluate
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
+            widget_types = self.get_subwindows()
+            self.assertIn("Numeric", widget_types)
+            numeric_data = (
+                self.widget.mdi_area.subWindowList()[1].widget().channels.dataView
+            )
+            numeric_channel = numeric_data.model().data(
+                numeric_data.model().index(0, 0)
+            )
+            self.assertEqual(channel, numeric_channel)
+
+        # Case 3:
+        with self.subTest("test_PushButton_CreateWindow_3"):
+            with mock.patch(
+                "asammdf.gui.widgets.file.WindowSelectionDialog"
+            ) as mc_WindowSelectionDialog:
+                mc_WindowSelectionDialog.return_value.result.return_value = True
+                mc_WindowSelectionDialog.return_value.selected_type.return_value = (
+                    "Tabular"
+                )
+                # - Press PushButton "Create Window"
+                QtTest.QTest.mouseClick(
+                    self.widget.create_window_btn, QtCore.Qt.LeftButton
+                )
+            # Evaluate
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 3)
+            widget_types = self.get_subwindows()
+            self.assertIn("Tabular", widget_types)
+
+        # Case 4:
+        with self.subTest("test_PushButton_CreateWindow_4"):
+            with mock.patch(
+                "asammdf.gui.widgets.file.WindowSelectionDialog"
+            ) as mc_WindowSelectionDialog:
+                mc_WindowSelectionDialog.return_value.result.return_value = True
+                mc_WindowSelectionDialog.return_value.selected_type.return_value = (
+                    "Plot"
+                )
+                # - Press PushButton "Create Window"
+                QtTest.QTest.mouseClick(
+                    self.widget.create_window_btn, QtCore.Qt.LeftButton
+                )
+            # Evaluate
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 4)
+            widget_types = self.get_subwindows()
+            self.assertIn("Plot", widget_types)
+            plot_widget = self.widget.mdi_area.subWindowList()[3].widget()
+            plot_channel = plot_widget.channel_selection.topLevelItem(0).text(0)
+            self.assertEqual(channel, plot_channel)
+
+    def test_DoubleClick_Channel(self):
+        """
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Ensure that "channel_view" is set to "Internal file structure"
+            - Case 0:
+                - DoubleClick on Channel Group
+            - Case 1:
+                - DoubleClick on Channel
+        Evaluate:
+            - Evaluate that new dialog is visible and display channel meta-data.
+        """
+        # Setup
+        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
+        # Event
+        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.widget.channel_view.setCurrentText("Internal file structure")
+
+        first_item = self.widget.channels_tree.topLevelItem(0)
+        first_item_center = self.widget.channels_tree.visualItemRect(
+            first_item
+        ).center()
+        QtTest.QTest.mouseClick(
+            self.widget.channels_tree.viewport(),
+            QtCore.Qt.MouseButton.LeftButton,
+            QtCore.Qt.KeyboardModifiers(),
+            first_item_center,
+        )
+        # Case 0:
+        with mock.patch(
+            "asammdf.gui.widgets.file.ChannelGroupInfoDialog",
+            wraps=ChannelGroupInfoDialog,
+        ) as mc_ChannelGroupInfoDialog:
+            QtTest.QTest.mouseDClick(
+                self.widget.channels_tree.viewport(),
+                QtCore.Qt.MouseButton.LeftButton,
+                QtCore.Qt.KeyboardModifiers(),
+                first_item_center,
+            )
+            # Evaluate
+            mc_ChannelGroupInfoDialog.assert_called()
+            # Identify child: ChannelGroupInfoDialog
+            for child in self.widget.children():
+                if child.__class__.__name__ == "ChannelGroupInfoDialog":
+                    break
+            if hasattr(child, "isVisible") and hasattr(child, "close"):
+                self.assertTrue(child.isVisible())
+                child.close()
+                self.assertFalse(child.isVisible())
+
+        # Case 1:
+        child_item = first_item.child(0)
+        child_item_center = self.widget.channels_tree.visualItemRect(
+            child_item
+        ).center()
+        QtTest.QTest.mouseClick(
+            self.widget.channels_tree.viewport(),
+            QtCore.Qt.MouseButton.LeftButton,
+            QtCore.Qt.KeyboardModifiers(),
+            child_item_center,
+        )
+        with mock.patch(
+            "asammdf.gui.widgets.file.ChannelInfoDialog",
+            wraps=ChannelInfoDialog,
+        ) as mc_ChannelGroupInfoDialog:
+            QtTest.QTest.mouseDClick(
+                self.widget.channels_tree.viewport(),
+                QtCore.Qt.MouseButton.LeftButton,
+                QtCore.Qt.KeyboardModifiers(),
+                child_item_center,
+            )
+            # Evaluate
+            mc_ChannelGroupInfoDialog.assert_called()
+            # Identify child: ChannelInfoDialog
+            for child in self.widget.children():
+                if child.__class__.__name__ == "ChannelInfoDialog":
+                    break
+            if hasattr(child, "isVisible") and hasattr(child, "close"):
+                self.assertTrue(child.isVisible())
+                child.close()
+                self.assertFalse(child.isVisible())
+
+
+class TestTabModifyAndExport(TestFileWidget):
+    def test_PushButton_ScrambleTexts(self):
+        """
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Go to Tab: "Modify & Export": Index 1
+            - Press PushButton "Scramble texts"
+        Evaluate:
+            - New file is created
+            - No channel from first file is found in 2nd file (scrambled file)
+        """
+        # Setup
+        measurement_file = str(pathlib.Path(self.test_workspace, "ASAP2_Demo_V171.mf4"))
+        shutil.copy(
+            pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"), measurement_file
+        )
+        # Event
+        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        # Go to Tab: "Modify & Export": Index 1
+        self.widget.aspects.setCurrentIndex(1)
+        # Press PushButton ScrambleTexts
+        QtTest.QTest.mouseClick(self.widget.scramble_btn, QtCore.Qt.LeftButton)
+
+        channels = self.widget.channels_db_items
+
+        # Evaluate
+        scrambled_filepath = pathlib.Path(
+            self.test_workspace, "ASAP2_Demo_V171.scrambled.mf4"
+        )
+        # Wait for Thread to finish
+        time.sleep(0.1)
+        # TearDown Current Widget.
+        self.widget.close()
+        self.widget.destroy()
+        self.widget.deleteLater()
+
+        self.setUpFileWidget(measurement_file=scrambled_filepath, default=True)
+        scrambled_channels = self.widget.channels_db_items
+        result = filter(lambda c: c in scrambled_channels, channels)
+        self.assertFalse(any(result))
+
+    def test_ExportMDF(self):
+        """
+        When QThreads are running, event-loops needs to be processed.
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Go to Tab: "Modify & Export": Index 1
+            - Set "channel_view" to "Natural sort"
+            - Select two channels
+            - Ensure that output format is MDF
+            - Case 0:
+                - Press PushButton Apply.
+                    - Simulate that no valid path is provided.
+            - Case 1:
+                - Press PushButton Apply.
+                    - Simulate that no valid path is provided.
+        Evaluate:
+            - Evaluate that file was created.
+            - Open File and check that there are only two channels.
+        """
+        # Setup
+        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
+        # Event
+        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        # Go to Tab: "Modify & Export": Index 1
+        self.widget.aspects.setCurrentIndex(1)
+        self.widget.filter_view.setCurrentText("Natural sort")
+
+        count = 2
+        selected_channels = []
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.filter_tree)
+        while iterator.value() and count:
+            item = iterator.value()
+            item.setCheckState(0, QtCore.Qt.Checked)
+            self.assertTrue(item.checkState(0))
+            selected_channels.append(item.text(0))
+            iterator += 1
+            count -= 1
+        # Evaluate that channels were added to "selected_filter_channels"
+        for index in range(self.widget.selected_filter_channels.count()):
+            item = self.widget.selected_filter_channels.item(index)
+            self.assertIn(item.text(), selected_channels)
+
+        self.widget.output_format.setCurrentText("MDF")
+
+        # Case 0:
+        self.processEvents()
+        with self.subTest("test_ExportMDF_0"):
+            with mock.patch(
+                "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName"
+            ) as mc_getSaveFileName, mock.patch(
+                "asammdf.gui.widgets.file.setup_progress"
+            ) as mo_setup_progress:
+                mc_getSaveFileName.return_value = None, None
+                QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.LeftButton)
+                self.processEvents()
+            # Evaluate
+            # Progress is not created
+            mo_setup_progress.assert_not_called()
+
+        # Case 1:
+        self.processEvents()
+        with self.subTest("test_ExportMDF_1"):
+            saved_file = pathlib.Path(self.test_workspace, f"{self.id()}.mf4")
+            with mock.patch(
+                "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName"
+            ) as mc_getSaveFileName:
+                mc_getSaveFileName.return_value = str(saved_file), None
+                QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.LeftButton)
+                self.processEvents()
+        # Wait for thread to finish
+        self.processEvents(0.1)
+
+        # Evaluate
+        self.assertTrue(saved_file.exists())
+
+        # TearDown Widget
+        self.widget.close()
+        self.widget.destroy()
+        self.widget.deleteLater()
+        self.processEvents()
+
+        self.setUpFileWidget(measurement_file=saved_file, default=True)
+
+        channels = self.widget.channels_db_items
+        selected_channels.append("time")
+        self.assertListEqual(selected_channels, list(channels))

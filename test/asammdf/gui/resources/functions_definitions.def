@@ -1,0 +1,6 @@
+{
+  "maximum": "def maximum(channel1=0, channel2=-1, channel3=0, t=0):\n    return np.maximum.reduce([channel1, channel2, channel3])",
+  "gray2dec": "def gray2dec(position_sensor_value=0, t=0):\n\n    for shift in (8, 4, 2, 1):\n        position_sensor_value = position_sensor_value ^ (position_sensor_value >> shift)\n\n    return position_sensor_value",
+  "rpm_to_rad_per_second": "def rpm_to_rad_per_second(speed=0, t=0):\n    return np.diff(speed) / np.diff(t)",
+  "Function1": "def Function1(t=0):\n    return 0"
+}

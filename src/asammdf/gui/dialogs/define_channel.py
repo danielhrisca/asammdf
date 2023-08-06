@@ -13,6 +13,7 @@ from ..ui.define_channel_dialog import Ui_ComputedChannel
 from ..utils import computation_to_python_function
 from ..widgets.python_highlighter import PythonHighlighter
 from .advanced_search import AdvancedSearch
+from .messagebox import MessageBox
 
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
 
@@ -278,13 +279,13 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         else:
             if self.computation:
                 function = self.computation["function"]
-                QtWidgets.QMessageBox.warning(
+                MessageBox.warning(
                     self,
                     f"{function} definition missing",
                     f"The function {function} was not found in the Functions manager",
                 )
             else:
-                QtWidgets.QMessageBox.warning(
+                MessageBox.warning(
                     self,
                     f"No function selected",
                     f"Please select one of the fucntion defined in the Functions manager",

@@ -1,38 +1,31 @@
 # -*- coding: utf-8 -*-
-from collections import defaultdict
-from copy import deepcopy
+import ctypes
 from datetime import datetime
 from functools import reduce
 import inspect
 from io import StringIO
-import json
 import math
 import os
-from pathlib import Path
 import random
 import re
 import sys
-from textwrap import dedent, indent
+from textwrap import indent
 from threading import Thread
 from time import perf_counter, sleep
 import traceback
 from traceback import format_exc
+from typing import Dict, Union
 
-import lxml
-import natsort
-from numexpr import evaluate
 import numpy as np
 import pandas as pd
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Signal, Slot
+from PySide6.QtCore import QThreadPool, Signal
 
-from ..blocks import v4_constants as v4c
-from ..blocks.conversion_utils import from_dict
 from ..blocks.options import FloatInterpolation, IntegerInterpolation
-from ..mdf import MDF, MDF2, MDF3, MDF4
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
+from .dialogs.messagebox import MessageBox
 
 ERROR_ICON = None
 RANGE_INDICATOR_ICON = None
@@ -267,7 +260,7 @@ class Worker(QtCore.QRunnable):
 
 
 class ProgressDialog(QtWidgets.QProgressDialog):
-    finished = QtCore.Signal()
+    qfinished = QtCore.Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -276,6 +269,8 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.error = None
         self.result = None
         self.thread_finished = True
+        # Connect signal to "processEvents": Give the chance to "destroy" function to make his job
+        self.qfinished.connect(lambda: QtCore.QCoreApplication.processEvents())
 
     def run_thread_with_progress(self, target, args, kwargs):
         self.show()
@@ -309,9 +304,9 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.error = error
 
     def thread_complete(self):
-        self.finished.emit()
         self.thread_finished = True
         super().close()
+        self.qfinished.emit()
 
     def cancel(self):
         super().cancel()
@@ -1088,9 +1083,18 @@ def draw_color_icon(color):
     return QtGui.QIcon(pix)
 
 
-def generate_python_function(definition, in_globals=None):
+def generate_python_function(
+    definition: str, in_globals: Union[Dict, None] = None
+) -> tuple:
     trace = None
     func = None
+
+    if not isinstance(definition, str):
+        trace = "The function definition must be a string"
+        return func, trace
+    if in_globals and not isinstance(in_globals, dict):
+        trace = "'in_globals' must be a dict"
+        return func, trace
 
     definition = definition.replace("\t", "    ")
 
@@ -1205,7 +1209,7 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
 
     elif not sample_by_sample:
         if not silent:
-            QtWidgets.QMessageBox.information(
+            MessageBox.information(
                 parent,
                 "Function definition check",
                 "The function definition appears to be correct only for complete signal mode.",
@@ -1215,7 +1219,7 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
 
     elif not complete_signal:
         if not silent:
-            QtWidgets.QMessageBox.information(
+            MessageBox.information(
                 parent,
                 "Function definition check",
                 "The function definition appears to be correct only for sample by sample mode.",
@@ -1224,13 +1228,18 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
         return True, func
     else:
         if not silent:
-            QtWidgets.QMessageBox.information(
+            MessageBox.information(
                 parent,
                 "Function definition check",
                 "The function definition appears to be correct for both sample by sample and complete signal modes.",
             )
 
         return True, func
+
+
+def set_app_user_model_id(app_user_model_id: str) -> None:
+    if sys.platform == "win32":
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_user_model_id)
 
 
 if __name__ == "__main__":

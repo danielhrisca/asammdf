@@ -46,6 +46,7 @@
     <file alias="line_interconnect.png">images/line_interconnect.png</file>
     <file alias="list.png">images/list.png</file>
     <file alias="list2.png">images/list2.png</file>
+    <file alias="load_embed.png">images/load_embed.png</file>
     <file alias="lock_range.png">images/lock_range.png</file>
     <file alias="locked.png">images/locked.png</file>
     <file alias="memory.png">images/memory.png</file>

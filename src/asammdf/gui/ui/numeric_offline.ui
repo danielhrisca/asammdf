@@ -161,6 +161,20 @@
         </item>
        </widget>
       </item>
+      <item row="1" column="1">
+       <widget class="QComboBox" name="match_type">
+        <item>
+         <property name="text">
+          <string>Wildcard</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Regex</string>
+         </property>
+        </item>
+       </widget>
+      </item>
       <item row="0" column="3">
        <widget class="QLineEdit" name="target">
         <property name="placeholderText">
@@ -168,7 +182,35 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="3">
+      <item row="0" column="0">
+       <widget class="QComboBox" name="match_mode">
+        <item>
+         <property name="text">
+          <string>Raw</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Scaled</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QComboBox" name="case_sensitivity">
+        <item>
+         <property name="text">
+          <string>Case insensitive</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Case sensitive</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="1" column="3" rowspan="2">
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <widget class="QPushButton" name="backward">
@@ -207,21 +249,7 @@
         </item>
        </layout>
       </item>
-      <item row="0" column="0">
-       <widget class="QComboBox" name="match_mode">
-        <item>
-         <property name="text">
-          <string>Raw</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Scaled</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item row="1" column="0" colspan="2">
+      <item row="3" column="0" colspan="4">
        <widget class="QLabel" name="match">
         <property name="text">
          <string/>
