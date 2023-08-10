@@ -3358,6 +3358,11 @@ class Plot(QtWidgets.QWidget):
         self.plot.y_axis.set_font_size(size)
         self.plot.x_axis.set_font_size(size)
 
+    def set_initial_zoom(self):
+        self.zoom_history.clear()
+        self.zoom_history_index = -1
+        self.zoom_changed(inplace=True)
+
     def set_locked(self, event=None, locked=None):
         if locked is None:
             locked = not self.locked

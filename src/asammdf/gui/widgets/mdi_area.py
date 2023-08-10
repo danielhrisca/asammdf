@@ -645,7 +645,7 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
 
 class WithMDIArea:
     windows_modified = QtCore.Signal()
-    load_plot_x_range = True
+    load_plot_x_range = False
 
     def __init__(self, *args, **kwargs):
         self._cursor_source = None
@@ -3607,6 +3607,7 @@ class WithMDIArea:
         plot.plot._can_paint_global = True
         plot.update()
         plot.channel_selection.refresh()
+        plot.set_initial_zoom()
 
         return w, pattern_info
 
