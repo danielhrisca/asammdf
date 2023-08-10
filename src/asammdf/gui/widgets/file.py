@@ -992,7 +992,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 window_config["type"] = "Plot"
                 if wid.closed:
                     continue
-                del window_config["configuration"]["x_range"]
             elif isinstance(wid, Tabular):
                 window_config["type"] = "Tabular"
             elif isinstance(wid, GPS):

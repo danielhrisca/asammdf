@@ -645,6 +645,7 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
 
 class WithMDIArea:
     windows_modified = QtCore.Signal()
+    load_plot_x_range = True
 
     def __init__(self, *args, **kwargs):
         self._cursor_source = None
@@ -3521,10 +3522,13 @@ class WithMDIArea:
             generate_window_title(w, window_info["type"], window_info["title"])
         )
 
-        if "x_range" in window_info["configuration"]:
-            plot.plot.viewbox.setXRange(
-                *window_info["configuration"]["x_range"], padding=0
-            )
+        if "x_range" in window_info["configuration"] and WithMDIArea.load_plot_x_range:
+            x_range = window_info["configuration"]["x_range"]
+            if isinstance(x_range, float):
+                x_range = 0, x_range
+
+            plot.plot.viewbox.setXRange(*x_range, padding=0)
+            plot.plot.initial_x_range = "shift"
 
         if "splitter" in window_info["configuration"]:
             plot.splitter.setSizes(window_info["configuration"]["splitter"])

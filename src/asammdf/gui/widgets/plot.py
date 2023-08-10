@@ -1441,6 +1441,7 @@ class Plot(QtWidgets.QWidget):
         **kwargs,
     ):
         events = kwargs.pop("events", None)
+
         self.owner = owner
         self.enable_zoom_history = enable_zoom_history
         super().__init__(*args, **kwargs)
@@ -3474,7 +3475,10 @@ class Plot(QtWidgets.QWidget):
             + [
                 0,
             ],
-            "x_range": [float(e) for e in self.plot.viewbox.viewRange()[0]],
+            "x_range": float(
+                self.plot.viewbox.viewRange()[0][1]
+                - self.plot.viewbox.viewRange()[0][0]
+            ),
             "y_axis_width": self.plot.y_axis.width(),
             "grid": [
                 self.plot.plotItem.ctrl.xGridCheck.isChecked(),
@@ -3727,6 +3731,7 @@ class PlotGraphics(pg.PlotWidget):
     ):
         events = kwargs.pop("events", [])
         viewBox = ViewBoxWithCursor(plot=self)
+        self.initial_x_range = "adjust"
         super().__init__(viewBox=viewBox)
 
         # del self.plotItem.vb
@@ -3971,6 +3976,8 @@ class PlotGraphics(pg.PlotWidget):
 
         self._inhibit = False
 
+        self.viewbox.setXRange(0, 10, update=False)
+
         if signals:
             self.add_new_channels(signals)
 
@@ -4145,9 +4152,14 @@ class PlotGraphics(pg.PlotWidget):
                     stop_t = max(stop_t, sig.timestamps[-1])
 
             if (start_t, stop_t) != (np.inf, -np.inf):
-                self.viewbox.setXRange(start_t, stop_t, update=False)
-            else:
-                self.viewbox.setXRange(0, 10, update=False)
+                if self.initial_x_range == "adjust":
+                    self.viewbox.setXRange(start_t, stop_t, update=False)
+                else:
+                    delta = (
+                        self.viewbox.viewRange()[0][1] - self.viewbox.viewRange()[0][0]
+                    )
+                    stop_t = start_t + delta
+                    self.viewbox.setXRange(start_t, stop_t, padding=0, update=False)
 
         (start, stop), _ = self.viewbox.viewRange()
 
@@ -4786,6 +4798,7 @@ class PlotGraphics(pg.PlotWidget):
                 if self.cursor1.isVisible():
                     pos = self.cursor1.value()
                     x_range = pos - delta / 2, pos + delta / 2
+
                 self.viewbox.setXRange(x_range[0] - step, x_range[1] + step, padding=0)
 
             elif (
