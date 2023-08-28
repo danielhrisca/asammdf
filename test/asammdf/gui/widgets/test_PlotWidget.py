@@ -1226,9 +1226,9 @@ class TestShortcuts(TestPlotWidget):
         )
 
         # Move Cursors
-        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Left)
+        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Right)
         self.processEvents(timeout=0.01)
-        QtTest.QTest.keySequence(plot.plot, QtGui.QKeySequence("Ctrl+Right"))
+        QtTest.QTest.keySequence(plot.plot, QtGui.QKeySequence("Ctrl+Left"))
         self.processEvents(timeout=0.01)
 
         # Save PixMap of Range plot
