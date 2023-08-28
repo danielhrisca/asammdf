@@ -1458,7 +1458,7 @@ address: {hex(self.address)}
 
         return "\n".join(metadata)
 
-    def convert(self, values, as_object=False):
+    def convert(self, values, as_object=False, as_bytes=False):
         conversion_type = self.conversion_type
 
         if conversion_type == v23c.CONVERSION_TYPE_NONE:

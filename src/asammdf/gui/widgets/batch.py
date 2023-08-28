@@ -1938,11 +1938,25 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 items = []
                 self.filter_tree.clear()
 
-                for i, gp in enumerate(self.mdf.groups):
+                source_files = [
+                    Path(self.files_list.item(row).text())
+                    for row in range(self.files_list.count())
+                ]
+
+                for file_name in source_files:
+                    if file_name.suffix.lower() in (".mdf", ".mf4"):
+                        break
+                else:
+                    file_name = source_files[0]
+
+                mdf = self._as_mdf(file_name)
+                origin_uuid = os.urandom(6).hex()
+
+                for i, gp in enumerate(mdf.groups):
                     for j, ch in enumerate(gp.channels):
                         if ch.name in channels:
                             entry = i, j
-                            channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
+                            channel = TreeItem(entry, ch.name, origin_uuid=origin_uuid)
                             channel.setText(0, ch.name)
                             channel.setCheckState(0, QtCore.Qt.Checked)
                             items.append(channel)
