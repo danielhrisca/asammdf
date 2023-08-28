@@ -3480,10 +3480,7 @@ class Plot(QtWidgets.QWidget):
             + [
                 0,
             ],
-            "x_range": float(
-                self.plot.viewbox.viewRange()[0][1]
-                - self.plot.viewbox.viewRange()[0][0]
-            ),
+            "x_range": self.plot.viewbox.viewRange()[0],
             "y_axis_width": self.plot.y_axis.width(),
             "grid": [
                 self.plot.plotItem.ctrl.xGridCheck.isChecked(),
