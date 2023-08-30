@@ -10,7 +10,6 @@ from copy import deepcopy
 import csv
 from datetime import datetime, timezone
 from enum import Enum
-import fnmatch
 from functools import reduce
 import gzip
 from io import BytesIO
@@ -29,7 +28,7 @@ from warnings import warn
 import xml.etree.ElementTree as ET
 import zipfile
 
-from canmatrix import CanMatrix, Frame
+from canmatrix import CanMatrix
 import numpy as np
 from numpy.typing import NDArray
 import pandas as pd
