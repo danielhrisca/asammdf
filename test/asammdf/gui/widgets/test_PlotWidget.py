@@ -51,6 +51,106 @@ class TestDoubleClick(TestPlotWidget):
         self.mouseDClick_WidgetItem(plot_channel)
         self.assertEqual(QtCore.Qt.Checked, plot_channel.checkState(0))
 
+    def test_DoubleClick_Group(self):
+        """
+        Test Scope: Validate that doubleClick operation will activate de-activate groups.
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Switch ComboBox to "Natural sort"
+            - Press PushButton "Create Window"
+                - Simulate that Plot window is selected as window type.
+            - Drag and Drop channels from FileWidget.channel_tree to Plot
+            - Press 'Shift-Insert' in order to Insert Group
+            - Drag and Drop some channels to new Group
+            - Press mouse double click on added group
+            - Press key Down few times
+            - Press mouse double click on added group
+            - Press key Down few times
+        Evaluate:
+            - Evaluate that group is disabled (not selectable anymore).
+            - Evaluate that channel is enabled (selectable).
+        """
+        # Event
+        # Open File Widget
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
+        # Switch ComboBox to "Natural sort"
+        self.widget.channel_view.setCurrentText("Natural sort")
+        # Create plot window
+        self.create_window(window_type="Plot")
+        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+        # Drag and Drop channel from FileWidget.channel_tree to Plot
+        plot = self.widget.mdi_area.subWindowList()[0].widget()
+        plot_channel_0 = self.add_channel_to_plot(plot=plot, channel_index=10)
+        plot_channel_1 = self.add_channel_to_plot(plot=plot, channel_index=11)
+        plot_channel_2 = self.add_channel_to_plot(plot=plot, channel_index=12)
+        # Press 'Shift-Insert' in order to Insert Group
+        # Create Channel Group. Drag channels inside the group one by one
+        with mock.patch(
+            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
+        ) as mc_getText:
+            # Create Channel Group
+            mc_getText.return_value = "FirstGroup", True
+            QtTest.QTest.keySequence(
+                plot.channel_selection, QtGui.QKeySequence("Shift+Insert")
+            )
+            # PreEvaluation: Check if there is one extra-item
+            self.assertEqual(4, plot.channel_selection.topLevelItemCount())
+            # Get Group Position
+            for index in range(plot.channel_selection.topLevelItemCount()):
+                item = plot.channel_selection.topLevelItem(index)
+                if item.text(self.Column.NAME) == "FirstGroup":
+                    first_group = item
+                    break
+            else:
+                self.fail("FirstGroup is not present on Plot Channel Selection.")
+            first_group.setExpanded(True)
+            # Get First Item that will be moved
+            drag_position = plot.channel_selection.visualItemRect(
+                plot_channel_0
+            ).center()
+            drop_position = plot.channel_selection.visualItemRect(first_group).center()
+            # Get Name of first channel
+            first_channel = plot_channel_0.text(self.Column.NAME)
+            # PreEvaluation: Ensure that group has no child
+            self.assertEqual(0, first_group.childCount())
+            DragAndDrop(
+                source_widget=plot.channel_selection,
+                destination_widget=plot.channel_selection.viewport(),
+                source_pos=drag_position,
+                destination_pos=drop_position,
+            )
+            # PreEvaluate: Ensure that channel was added to group
+            self.assertEqual(1, first_group.childCount())
+            self.assertEqual(first_channel, first_group.child(0).text(self.Column.NAME))
+            self.assertEqual(3, plot.channel_selection.topLevelItemCount())
+
+            # Press mouse double click on channel
+            self.mouseDClick_WidgetItem(first_group)
+
+            for _ in range(4):
+                QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Down)
+                self.processEvents()
+
+            # Evaluate that item is still 2nd one because
+            selectedItems = plot.channel_selection.selectedItems()
+            self.assertEqual(1, len(selectedItems))
+            selectedItem = selectedItems[0].text(self.Column.NAME)
+            self.assertEqual(plot_channel_2.text(self.Column.NAME), selectedItem)
+
+            # Press mouse double click on channel
+            self.mouseDClick_WidgetItem(first_group)
+            self.processEvents()
+
+            for _ in range(4):
+                QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Down)
+                self.processEvents()
+
+            # Evaluate that item is still 2nd one because
+            selectedItems = plot.channel_selection.selectedItems()
+            self.assertEqual(1, len(selectedItems))
+            selectedItem = selectedItems[0].text(self.Column.NAME)
+            self.assertEqual(plot_channel_0.text(self.Column.NAME), selectedItem)
+
 
 class TestDragAndDrop(TestPlotWidget):
     # Note: Test Plot Widget through FileWidget.

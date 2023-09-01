@@ -1037,10 +1037,12 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             QtWidgets.QApplication.instance().clipboard().setText("\n".join(texts))
 
         elif action_text == "Activate group":
-            for item in self.selectedItems():
-                if item.type() == item.Group and item.isDisabled():
-                    item.set_disabled(False)
-                    item.setIcon(item.NameColumn, QtGui.QIcon(":/open.png"))
+            # Selected Items will not be retrieved if there are disabled.
+            # So Activating multiple groups will not be possible.
+            # for item in self.selectedItems():
+            if item.type() == item.Group and item.isDisabled():
+                item.set_disabled(False)
+                item.setIcon(item.NameColumn, QtGui.QIcon(":/open.png"))
             self.group_activation_changed.emit()
 
         elif action_text == "Deactivate groups":
