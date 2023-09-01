@@ -145,7 +145,7 @@ class TestDoubleClick(TestPlotWidget):
                 QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Down)
                 self.processEvents()
 
-            # Evaluate that item is still 2nd one because
+            # Evaluate that item is the one from the group
             selectedItems = plot.channel_selection.selectedItems()
             self.assertEqual(1, len(selectedItems))
             selectedItem = selectedItems[0].text(self.Column.NAME)
