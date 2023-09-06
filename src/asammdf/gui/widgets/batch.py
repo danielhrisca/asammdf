@@ -1853,11 +1853,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             with open(file_name, "w") as output:
                 if suffix == ".lab":
-                    output.write("""[SETTINGS]
+                    output.write(
+                        """[SETTINGS]
 Version;V1.1
 MultiRasterSeparator;&
 
-""")
+"""
+                    )
                     output.write(f"[{section_name}]\n")
                 output.write("\n".join(natsorted(signals)))
 
@@ -1900,11 +1902,8 @@ MultiRasterSeparator;&
                             return
                     else:
                         channels = list(info.values())[0]
-                        
-                    channels = [
-                        name.split(';')[0]
-                        for name in channels
-                    ]
+
+                    channels = [name.split(";")[0] for name in channels]
 
             else:
                 channels = load_channel_names_from_file(file_name)
