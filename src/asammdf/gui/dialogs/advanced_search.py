@@ -126,6 +126,42 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         extened_search = self.extended_search.checkState() == QtCore.Qt.Checked
 
         if len(text) >= 2:
+            # delete the old widget since QTreeWidget.clear is very slow for large item count
+            # it takes ~1 minute for 60000 previous search results
+
+            self.matches.hide()
+            self.matches.setParent(None)
+
+            self.matches = QtWidgets.QTreeWidget(self.tab)
+            self.matches.setObjectName("matches")
+            self.matches.setHeaderLabels(
+                [
+                    "Comment",
+                    "Source path",
+                    "Source name",
+                    "Unit",
+                    "Index",
+                    "Group",
+                    "Name",
+                ]
+            )
+
+            self.matches.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+            self.matches.setUniformRowHeights(False)
+            self.matches.setSortingEnabled(False)
+            self.matches.header().setMinimumSectionSize(40)
+            self.matches.header().setStretchLastSection(True)
+            self.gridLayout.addWidget(self.matches, 2, 0, 1, 5)
+
+            self.matches.itemDoubleClicked.connect(self._match_double_clicked)
+
+            for col in range(self.matches.columnCount()):
+                width = self.selection.columnWidth(col)
+                self.matches.setColumnWidth(col, width)
+
+            self.matches.header().sectionResized.connect(self.section_resized)
+            self.matches.can_delete_items = False
+
             self.matches.setSortingEnabled(False)
             self.matches.clear()
 
