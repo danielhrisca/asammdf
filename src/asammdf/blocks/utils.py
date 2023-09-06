@@ -2420,6 +2420,11 @@ def load_channel_names_from_file(file_name, lab_section=""):
                 channels = info[lab_section]
             else:
                 channels = list(info.values())[0]
+             
+            channels = [
+                name.split(';')[0]
+                for name in channels
+            ]
 
     elif extension == ".cfg":
         with open(file_name, "r") as infile:
@@ -2455,7 +2460,12 @@ def load_lab(file):
                 if "s" in locals():
                     s.append(line)
 
-    return {name: channels for name, channels in sections.items() if channels}
+    return {
+        name: channels
+        for name, channels in sections.items()
+        if channels
+        if name != "SETTINGS"
+    }
 
 
 class SignalFlags(IntFlag):
