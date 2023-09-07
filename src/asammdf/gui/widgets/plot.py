@@ -2186,6 +2186,8 @@ class Plot(QtWidgets.QWidget):
                                 if info["enabled"]
                                 else QtCore.Qt.Unchecked,
                             )
+                    if info["disabled"]:
+                        item.set_disabled(info["disabled"])
 
                 self.channel_selection.blockSignals(False)
                 self.channel_selection.refresh()
@@ -2464,10 +2466,8 @@ class Plot(QtWidgets.QWidget):
                         self.channel_selection.setExpandsOnDoubleClick(False)
                     if item.isDisabled():
                         item.set_disabled(False)
-                        item.setIcon(item.NameColumn, QtGui.QIcon(":/open.png"))
                     else:
                         item.set_disabled(True)
-                        item.setIcon(item.NameColumn, QtGui.QIcon(":/erase.png"))
                     self.plot.update()
                 else:
                     item.setExpanded(not item.isExpanded())
