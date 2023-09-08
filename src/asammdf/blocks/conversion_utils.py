@@ -330,14 +330,16 @@ def from_dict(conversion: dict[str, Any]) -> v4b.ChannelConversion:
             if isinstance(val, (bytes, str)):
                 partial_conversion = {
                     "conversion_type": v4c.CONVERSION_TYPE_RTABX,
-                    "upper_0": conversion[f"upper_{nr}"],
-                    "lower_0": conversion[f"lower_{nr}"],
-                    "text_0": conversion[f"text_{nr}"]
+                    f"upper_{nr}": conversion[f"upper_{nr}"],
+                    f"lower_{nr}": conversion[f"lower_{nr}"],
+                    f"text_{nr}": conversion[f"text_{nr}"]
                     if isinstance(conversion[f"text_{nr}"], bytes)
                     else conversion[f"text_{nr}"].encode("utf-8"),
                     "default": b"",
                 }
                 conversion[f"text_{nr}"] = from_dict(partial_conversion)
+            elif isinstance(val, dict):
+                conversion[f"text_{nr}"] = from_dict(val)
 
             nr += 1
 
