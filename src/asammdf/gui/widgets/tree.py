@@ -889,7 +889,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         # If there was a click performed on disabled item, then clear selection
         item = self.itemAt(event.pos())
-        if item.isDisabled():
+        if item and item.isDisabled():
             self.clearSelection()
         super().mousePressEvent(event)
 
