@@ -5245,7 +5245,7 @@ class MDF:
 
         for i, group in enumerate(out.groups):
             for j, channel in enumerate(group.channels[1:], 1):
-                if not max_flags[i][j]:
+                if not all(max_flags[i][j]):
                     to_keep.append((None, i, j))
                 all_channels.append((None, i, j))
 

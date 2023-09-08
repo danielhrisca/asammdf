@@ -316,7 +316,6 @@ def extract_pdu(
     for pdu in pdus:
         extracted_signals = {}
         for pair, pair_signals in pdu.items():
-            chgroup_name = pair_signals[0].pdu_name
             entry = bus, message_id, original_message_id, pair_signals[0].pdu_id, muxer, *pair # (18,172,None, 367800, none, none)
 
 
