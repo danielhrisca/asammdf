@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import sys
-from test.asammdf.gui.test_base import DragAndDrop
-from test.asammdf.gui.widgets.test_BasePlotWidget import Pixmap, TestPlotWidget
+from test.asammdf.gui.test_base import DragAndDrop, Pixmap
+from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 import unittest
 from unittest import mock
 
