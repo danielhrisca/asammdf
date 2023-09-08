@@ -2118,7 +2118,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 child.set_conversion(conversion)
 
     def set_disabled(self, disabled, preserve_subgroup_state=True):
-        if self.type() == self.Channel:
+        if self.type() == self.Channel and self.parent().isDisabled() == disabled:
             self.setDisabled(disabled)
             if self.details is not None:
                 self.details.setDisabled(disabled)
