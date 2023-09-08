@@ -192,7 +192,7 @@ def run_thread_with_progress(
         sleep(0.1)
 
     while thr.is_alive():
-        if not progress.wasCanceled():
+        if progress and not progress.wasCanceled():
             if widget.progress is not None:
                 if widget.progress != (0, 0):
                     progress.setValue(
@@ -203,11 +203,13 @@ def run_thread_with_progress(
         QtCore.QCoreApplication.processEvents()
         sleep(0.1)
 
-    progress.setValue(factor + offset)
+    if progress:
+        progress.setValue(factor + offset)
 
     if thr.error:
         widget.progress = None
-        progress.cancel()
+        if progress:
+            progress.cancel()
         raise Exception(thr.error)
 
     widget.progress = None

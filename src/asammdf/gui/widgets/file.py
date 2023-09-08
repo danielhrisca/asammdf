@@ -119,6 +119,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     ):
         self.default_folder = kwargs.pop("default_folder", "")
         display_file = kwargs.pop("display_file", "")
+        show_progress = kwargs.pop("show_progress", True)
 
         self._progress = None
 
@@ -149,25 +150,30 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self._show_filter_tree = False
         self.line_interconnect = line_interconnect
+        if show_progress:
+            progress = QtWidgets.QProgressDialog(
+                f'Opening "{self.file_name}"', "", 0, 100, self.parent()
+            )
 
-        progress = QtWidgets.QProgressDialog(
-            f'Opening "{self.file_name}"', "", 0, 100, self.parent()
-        )
-
-        progress.setWindowModality(QtCore.Qt.ApplicationModal)
-        progress.setCancelButton(None)
-        progress.setAutoClose(True)
-        progress.setWindowTitle("Opening measurement")
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        progress.setWindowIcon(icon)
-        progress.setMinimumWidth(600)
-        progress.show()
+            progress.setWindowModality(QtCore.Qt.ApplicationModal)
+            progress.setCancelButton(None)
+            progress.setAutoClose(True)
+            progress.setWindowTitle("Opening measurement")
+            icon = QtGui.QIcon()
+            icon.addPixmap(
+                QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
+            progress.setWindowIcon(icon)
+            progress.setMinimumWidth(600)
+            progress.show()
+        else:
+            progress = None
 
         try:
             if file_name.suffix.lower() in (".erg", ".bsig", ".dl3"):
                 extension = file_name.suffix.lower().strip(".")
-                progress.setLabelText(f"Converting from {extension} to mdf")
+                if progress:
+                    progress.setLabelText(f"Converting from {extension} to mdf")
 
                 try:
                     from mfile import BSIG, DL3, ERG
@@ -212,7 +218,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         self.mdf.uuid = self.uuid
                         self.mdf.original_name = file_name
                 except:
-                    progress.cancel()
+                    if progress:
+                        progress.cancel()
                     print(format_exc())
                     raise Exception(
                         "Could not load CSV. The first line must contain the channel names. The seconds line "
@@ -250,10 +257,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             channels_db_items = sorted(self.mdf.channels_db, key=lambda x: x.lower())
             self.channels_db_items = channels_db_items
 
-            progress.setLabelText("Loading graphical elements")
+            if progress:
+                progress.setLabelText("Loading graphical elements")
             QtWidgets.QApplication.processEvents()
 
-            progress.setValue(37)
+            if progress:
+                progress.setValue(37)
 
             self.channels_tree.setDragEnabled(True)
 
@@ -291,13 +300,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.channel_view.setCurrentText(
                 self._settings.value("channels_view", "Internal file structure")
             )
-
-            progress.setValue(70)
+            if progress:
+                progress.setValue(70)
             QtWidgets.QApplication.processEvents()
 
             self.raster_type_channel.toggled.connect(self.set_raster_type)
-
-            progress.setValue(90)
+            if progress:
+                progress.setValue(90)
             QtWidgets.QApplication.processEvents()
 
             self.output_options.setCurrentIndex(0)
@@ -324,7 +333,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.load_can_database_btn.clicked.connect(self.load_can_database)
             self.load_lin_database_btn.clicked.connect(self.load_lin_database)
 
-            progress.setValue(99)
+            if progress:
+                progress.setValue(99)
 
             self.empty_channels.insertItems(0, ("skip", "zeros"))
             self.empty_channels_bus.insertItems(0, ("skip", "zeros"))
@@ -352,13 +362,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.aspects.currentChanged.connect(self.aspect_changed)
 
         except:
-            progress.setValue(100)
-            progress.deleteLater()
+            if progress:
+                progress.setValue(100)
+                progress.deleteLater()
             raise
 
         else:
-            progress.setValue(100)
-            progress.deleteLater()
+            if progress:
+                progress.setValue(100)
+                progress.deleteLater()
 
         self.load_channel_list_btn.clicked.connect(
             partial(self.load_channel_list, manually=True)
