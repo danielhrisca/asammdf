@@ -886,6 +886,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if self.context_menu is not None:
             self.context_menu.close()
             self.context_menu = None
+
+        # If there was a click performed on disabled item, then clear selection
+        item = self.itemAt(event.pos())
+        if item.isDisabled():
+            self.clearSelection()
         super().mousePressEvent(event)
 
     def mouseDoubleClickEvent(self, event):
