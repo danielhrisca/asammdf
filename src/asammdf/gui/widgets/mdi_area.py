@@ -164,9 +164,7 @@ def build_mime_from_config(
             if item_is_computed:
                 group_index, channel_index = -1, -1
                 computed[uuid] = item
-                item["computation"] = computation_to_python_function(
-                    item["computation"]
-                )
+                item["computation"] = computation_to_python_function(item["computation"])
                 item["computation"].pop("definition", None)
                 item["origin_uuid"] = computed_origin_uuid
 
@@ -187,9 +185,7 @@ def build_mime_from_config(
     return mime, descriptions, found, not_found, computed
 
 
-def extract_signals_using_pattern(
-    mdf, pattern_info, ignore_value2text_conversions, uuid
-):
+def extract_signals_using_pattern(mdf, pattern_info, ignore_value2text_conversions, uuid):
     pattern = pattern_info["pattern"]
     match_type = pattern_info["match_type"]
     case_sensitive = pattern_info.get("case_sensitive", False)
@@ -284,11 +280,7 @@ def extract_signals_using_pattern(
 
 
 def generate_window_title(mdi, window_name="", title=""):
-    used_names = {
-        window.windowTitle()
-        for window in mdi.mdiArea().subWindowList()
-        if window is not mdi
-    }
+    used_names = {window.windowTitle() for window in mdi.mdiArea().subWindowList() if window is not mdi}
 
     if not title or title in used_names:
         window_name = title or window_name or "Subwindow"
@@ -332,9 +324,7 @@ def get_flatten_entries_from_mime(data, default_index=None):
             entries.append(new_item)
 
         else:
-            entries.extend(
-                get_flatten_entries_from_mime(item["channels"], default_index)
-            )
+            entries.extend(get_flatten_entries_from_mime(item["channels"], default_index))
     return entries
 
 
@@ -346,9 +336,7 @@ def get_functions(data):
             functions.update(get_functions(item["channels"]))
         else:
             if item.get("computed", False):
-                computation = item["computation"] = computation_to_python_function(
-                    item["computation"]
-                )
+                computation = item["computation"] = computation_to_python_function(item["computation"])
 
                 functions[computation["function"]] = computation["definition"]
 
@@ -390,12 +378,7 @@ def get_required_from_computed(channel):
                     names.extend(get_required_from_computed(op))
             elif computation["type"] == "expression":
                 expression_string = computation["expression"]
-                names.extend(
-                    [
-                        match.group("name")
-                        for match in SIG_RE.finditer(expression_string)
-                    ]
-                )
+                names.extend([match.group("name") for match in SIG_RE.finditer(expression_string)])
             elif computation["type"] == "python_function":
                 for alternative_names in computation["args"].values():
                     for name in alternative_names:
@@ -423,9 +406,7 @@ def get_required_from_computed(channel):
 
         elif channel["type"] == "expression":
             expression_string = channel["expression"]
-            names.extend(
-                [match.group("name") for match in SIG_RE.finditer(expression_string)]
-            )
+            names.extend([match.group("name") for match in SIG_RE.finditer(expression_string)])
 
         elif channel["type"] == "function":
             op = channel["channel"]
@@ -455,9 +436,7 @@ def substitude_mime_uuids(mime, uuid=None, force=False):
                 item["origin_uuid"] = uuid
             new_mime.append(item)
         else:
-            item["channels"] = substitude_mime_uuids(
-                item["channels"], uuid, force=force
-            )
+            item["channels"] = substitude_mime_uuids(item["channels"], uuid, force=force)
             if force or item["origin_uuid"] is None:
                 item["origin_uuid"] = uuid
             new_mime.append(item)
@@ -497,9 +476,7 @@ def load_comparison_display_file(file_name, uuids):
         if window["type"] != "Plot":
             continue
 
-        window["configuration"]["channels"] = get_comparison_mime(
-            window["configuration"]["channels"], uuids
-        )
+        window["configuration"]["channels"] = get_comparison_mime(window["configuration"]["channels"], uuids)
 
         plot_windows.append(window)
 
@@ -545,7 +522,9 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
         super().__init__(*args, **kwargs)
 
         self.setAcceptDrops(True)
-        self.placeholder_text = "Drag and drop channels, or select channels and press the <Create window> button, to create new windows"
+        self.placeholder_text = (
+            "Drag and drop channels, or select channels and press the <Create window> button, to create new windows"
+        )
         self.show()
 
     def dragEnterEvent(self, e):
@@ -565,9 +544,7 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
                 if dialog.result():
                     window_type = dialog.selected_type()
                     disable_new_channels = dialog.disable_new_channels()
-                    names = extract_mime_names(
-                        data, disable_new_channels=disable_new_channels
-                    )
+                    names = extract_mime_names(data, disable_new_channels=disable_new_channels)
 
                     self.add_window_request.emit([window_type, names])
             else:
@@ -636,9 +613,7 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
             col = self.palette().placeholderText().color()
             painter.setPen(col)
             fm = self.fontMetrics()
-            elided_text = fm.elidedText(
-                self.placeholder_text, QtCore.Qt.ElideRight, self.viewport().width()
-            )
+            elided_text = fm.elidedText(self.placeholder_text, QtCore.Qt.ElideRight, self.viewport().width())
             painter.drawText(self.viewport().rect(), QtCore.Qt.AlignCenter, elided_text)
             painter.restore()
 
@@ -672,9 +647,7 @@ class WithMDIArea:
         signals = {
             sig_uuid: sig
             for sig_uuid, sig in signals.items()
-            if sig.samples.dtype.kind not in "SU"
-            and not sig.samples.dtype.names
-            and not len(sig.samples.shape) > 1
+            if sig.samples.dtype.kind not in "SU" and not sig.samples.dtype.names and not len(sig.samples.shape) > 1
         }
 
         group.count = len(signals)
@@ -730,22 +703,12 @@ class WithMDIArea:
                     if self.file_by_uuid(uuid):
                         break
                 else:
-                    mime_data = substitude_mime_uuids(
-                        mime_data, uuid=self.uuid, force=True
-                    )
+                    mime_data = substitude_mime_uuids(mime_data, uuid=self.uuid, force=True)
                     entries = get_flatten_entries_from_mime(mime_data)
 
-                signals_ = [
-                    entry
-                    for entry in entries
-                    if (entry["group_index"], entry["channel_index"]) != (-1, -1)
-                ]
+                signals_ = [entry for entry in entries if (entry["group_index"], entry["channel_index"]) != (-1, -1)]
 
-                computed = [
-                    entry
-                    for entry in entries
-                    if (entry["group_index"], entry["channel_index"]) == (-1, -1)
-                ]
+                computed = [entry for entry in entries if (entry["group_index"], entry["channel_index"]) == (-1, -1)]
 
                 uuids = set(entry["origin_uuid"] for entry in entries)
 
@@ -791,9 +754,7 @@ class WithMDIArea:
                         if entry["origin_uuid"] == uuid
                     ]
 
-                    uuids_signals_uuid = [
-                        entry for entry in signals_ if entry["origin_uuid"] == uuid
-                    ]
+                    uuids_signals_uuid = [entry for entry in signals_ if entry["origin_uuid"] == uuid]
 
                     file_info = self.file_by_uuid(uuid)
                     if not file_info:
@@ -809,9 +770,7 @@ class WithMDIArea:
                         raw=True,
                     )
 
-                    for sig, sig_, sig_uuid in zip(
-                        selected_signals, uuids_signals, uuids_signals_uuid
-                    ):
+                    for sig, sig_, sig_uuid in zip(selected_signals, uuids_signals, uuids_signals_uuid):
                         sig.group_index = sig_[1]
                         sig.channel_index = sig_[2]
                         sig.flags &= ~sig.Flags.computed
@@ -831,9 +790,7 @@ class WithMDIArea:
 
                 for signal in signals:
                     if len(signal.samples.shape) > 1:
-                        signal.samples = csv_bytearray2hex(
-                            pd.Series(list(signal.samples))
-                        )
+                        signal.samples = csv_bytearray2hex(pd.Series(list(signal.samples)))
 
                     if signal.name.endswith(".ID"):
                         signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
@@ -848,9 +805,7 @@ class WithMDIArea:
                 not_found = []
 
                 for uuid in uuids:
-                    uuids_entries = [
-                        entry for entry in signals_ if entry["origin_uuid"] == uuid
-                    ]
+                    uuids_entries = [entry for entry in signals_ if entry["origin_uuid"] == uuid]
 
                     uuids_signals = []
 
@@ -868,9 +823,7 @@ class WithMDIArea:
                                 entry["group_index"],
                                 entry["channel_index"],
                             ) not in entries:
-                                entry["group_index"], entry["channel_index"] = entries[
-                                    0
-                                ]
+                                entry["group_index"], entry["channel_index"] = entries[0]
                             uuids_signals.append(entry)
                         else:
                             not_found.append(entry)
@@ -918,9 +871,7 @@ class WithMDIArea:
 
                 for signal in signals.values():
                     if len(signal.samples.shape) > 1:
-                        signal.samples = csv_bytearray2hex(
-                            pd.Series(list(signal.samples))
-                        )
+                        signal.samples = csv_bytearray2hex(pd.Series(list(signal.samples)))
 
                     if signal.name.endswith(".ID"):
                         signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
@@ -952,16 +903,10 @@ class WithMDIArea:
 
                     required_channels.update(measured_signals)
 
-                    required_channels = {
-                        key: sig.physical() for key, sig in required_channels.items()
-                    }
+                    required_channels = {key: sig.physical() for key, sig in required_channels.items()}
 
                     if required_channels:
-                        all_timebase = np.unique(
-                            np.concatenate(
-                                [sig.timestamps for sig in required_channels.values()]
-                            )
-                        )
+                        all_timebase = np.unique(np.concatenate([sig.timestamps for sig in required_channels.values()]))
                     else:
                         all_timebase = []
 
@@ -984,9 +929,7 @@ class WithMDIArea:
                         signal.group_index = -1
                         signal.channel_index = -1
                         signal.origin_uuid = file.uuid
-                        signal.comment = channel["computation"].get(
-                            "channel_comment", ""
-                        )
+                        signal.comment = channel["computation"].get("channel_comment", "")
                         signal.uuid = channel.get("uuid", os.urandom(6).hex())
 
                         if channel["flags"] & Signal.Flags.user_defined_conversion:
@@ -1036,9 +979,7 @@ class WithMDIArea:
 
                 else:
                     destination = None
-                widget.add_new_channels(
-                    signals, mime_data=mime_data, destination=destination
-                )
+                widget.add_new_channels(signals, mime_data=mime_data, destination=destination)
 
         except MdfException:
             print(format_exc())
@@ -1115,9 +1056,7 @@ class WithMDIArea:
                     if data.attachment and data.attachment[0]:
                         dbc = load_can_database(data.attachment[1], data.attachment[0])
                         if dbc:
-                            frame_map = {
-                                frame.arbitration_id.id: frame.name for frame in dbc
-                            }
+                            frame_map = {frame.arbitration_id.id: frame.name for frame in dbc}
 
                             for name in frame_map.values():
                                 sys.intern(name)
@@ -1131,14 +1070,10 @@ class WithMDIArea:
                         vals = data["CAN_DataFrame.ID"].astype("u4") & 0x1FFFFFFF
                         columns["ID"] = vals
                         if frame_map:
-                            columns["Name"] = [
-                                frame_map.get(_id, "") for _id in vals.tolist()
-                            ]
+                            columns["Name"] = [frame_map.get(_id, "") for _id in vals.tolist()]
 
                         columns["DLC"] = data["CAN_DataFrame.DLC"].astype("u1")
-                        data_length = (
-                            data["CAN_DataFrame.DataLength"].astype("u1").tolist()
-                        )
+                        data_length = data["CAN_DataFrame.DataLength"].astype("u1").tolist()
                         columns["Data Length"] = data_length
 
                         vals = csv_bytearray2hex(
@@ -1149,41 +1084,26 @@ class WithMDIArea:
 
                         if "CAN_DataFrame.Dir" in names:
                             if data["CAN_DataFrame.Dir"].dtype.kind == "S":
-                                columns["Direction"] = [
-                                    v.decode("utf-8")
-                                    for v in data["CAN_DataFrame.Dir"].tolist()
-                                ]
+                                columns["Direction"] = [v.decode("utf-8") for v in data["CAN_DataFrame.Dir"].tolist()]
                             else:
                                 columns["Direction"] = [
-                                    "TX" if dir else "RX"
-                                    for dir in data["CAN_DataFrame.Dir"]
-                                    .astype("u1")
-                                    .tolist()
+                                    "TX" if dir else "RX" for dir in data["CAN_DataFrame.Dir"].astype("u1").tolist()
                                 ]
 
                         if "CAN_DataFrame.ESI" in names:
                             columns["ESI"] = [
                                 "Error" if dir else "No error"
-                                for dir in data["CAN_DataFrame.ESI"]
-                                .astype("u1")
-                                .tolist()
+                                for dir in data["CAN_DataFrame.ESI"].astype("u1").tolist()
                             ]
 
                         if "CAN_DataFrame.EDL" in names:
                             columns["EDL"] = [
                                 "CAN FD" if dir else "Standard CAN"
-                                for dir in data["CAN_DataFrame.EDL"]
-                                .astype("u1")
-                                .tolist()
+                                for dir in data["CAN_DataFrame.EDL"].astype("u1").tolist()
                             ]
 
                         if "CAN_DataFrame.BRS" in names:
-                            columns["BRS"] = [
-                                str(dir)
-                                for dir in data["CAN_DataFrame.BRS"]
-                                .astype("u1")
-                                .tolist()
-                            ]
+                            columns["BRS"] = [str(dir) for dir in data["CAN_DataFrame.BRS"].astype("u1").tolist()]
 
                         vals = None
                         data_length = None
@@ -1196,29 +1116,19 @@ class WithMDIArea:
                         vals = data["CAN_RemoteFrame.ID"].astype("u4") & 0x1FFFFFFF
                         columns["ID"] = vals
                         if frame_map:
-                            columns["Name"] = [
-                                frame_map.get(_id, "") for _id in vals.tolist()
-                            ]
+                            columns["Name"] = [frame_map.get(_id, "") for _id in vals.tolist()]
 
                         columns["DLC"] = data["CAN_RemoteFrame.DLC"].astype("u1")
-                        data_length = (
-                            data["CAN_RemoteFrame.DataLength"].astype("u1").tolist()
-                        )
+                        data_length = data["CAN_RemoteFrame.DataLength"].astype("u1").tolist()
                         columns["Data Length"] = data_length
                         columns["Event Type"] = "Remote Frame"
 
                         if "CAN_RemoteFrame.Dir" in names:
                             if data["CAN_RemoteFrame.Dir"].dtype.kind == "S":
-                                columns["Direction"] = [
-                                    v.decode("utf-8")
-                                    for v in data["CAN_RemoteFrame.Dir"].tolist()
-                                ]
+                                columns["Direction"] = [v.decode("utf-8") for v in data["CAN_RemoteFrame.Dir"].tolist()]
                             else:
                                 columns["Direction"] = [
-                                    "TX" if dir else "RX"
-                                    for dir in data["CAN_RemoteFrame.Dir"]
-                                    .astype("u1")
-                                    .tolist()
+                                    "TX" if dir else "RX" for dir in data["CAN_RemoteFrame.Dir"].astype("u1").tolist()
                                 ]
 
                         vals = None
@@ -1236,43 +1146,28 @@ class WithMDIArea:
                             vals = data["CAN_ErrorFrame.ID"].astype("u4") & 0x1FFFFFFF
                             columns["ID"] = vals
                             if frame_map:
-                                columns["Name"] = [
-                                    frame_map.get(_id, "") for _id in vals.tolist()
-                                ]
+                                columns["Name"] = [frame_map.get(_id, "") for _id in vals.tolist()]
 
                         if "CAN_ErrorFrame.DLC" in names:
                             columns["DLC"] = data["CAN_ErrorFrame.DLC"].astype("u1")
 
                         if "CAN_ErrorFrame.DataLength" in names:
-                            columns["Data Length"] = (
-                                data["CAN_ErrorFrame.DataLength"].astype("u1").tolist()
-                            )
+                            columns["Data Length"] = data["CAN_ErrorFrame.DataLength"].astype("u1").tolist()
 
                         columns["Event Type"] = "Error Frame"
 
                         if "CAN_ErrorFrame.ErrorType" in names:
-                            vals = (
-                                data["CAN_ErrorFrame.ErrorType"].astype("u1").tolist()
-                            )
-                            vals = [
-                                v4c.CAN_ERROR_TYPES.get(err, "Other error")
-                                for err in vals
-                            ]
+                            vals = data["CAN_ErrorFrame.ErrorType"].astype("u1").tolist()
+                            vals = [v4c.CAN_ERROR_TYPES.get(err, "Other error") for err in vals]
 
                             columns["Details"] = vals
 
                         if "CAN_ErrorFrame.Dir" in names:
                             if data["CAN_ErrorFrame.Dir"].dtype.kind == "S":
-                                columns["Direction"] = [
-                                    v.decode("utf-8")
-                                    for v in data["CAN_ErrorFrame.Dir"].tolist()
-                                ]
+                                columns["Direction"] = [v.decode("utf-8") for v in data["CAN_ErrorFrame.Dir"].tolist()]
                             else:
                                 columns["Direction"] = [
-                                    "TX" if dir else "RX"
-                                    for dir in data["CAN_ErrorFrame.Dir"]
-                                    .astype("u1")
-                                    .tolist()
+                                    "TX" if dir else "RX" for dir in data["CAN_ErrorFrame.Dir"].astype("u1").tolist()
                                 ]
 
                     df = pd.DataFrame(columns, index=df_index)
@@ -1298,9 +1193,7 @@ class WithMDIArea:
         sub.titleModified.connect(self.window_closed_handler)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/bus_can.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/bus_can.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         sub.setWindowIcon(icon)
 
         if not self.subplots:
@@ -1325,9 +1218,7 @@ class WithMDIArea:
         w.layout().setSpacing(1)
 
         def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(
-                None, "Set sub-plot title", "Title:"
-            )
+            name, ok = QtWidgets.QInputDialog.getText(None, "Set sub-plot title", "Title:")
             if ok and name:
                 mdi.setWindowTitle(name)
 
@@ -1431,9 +1322,7 @@ class WithMDIArea:
                 vals = data["FLX_Frame.ID"].astype("u2")
                 columns["ID"][index] = vals
                 if frame_map:
-                    columns["Name"][index] = [
-                        frame_map.get(_id, "") for _id in vals.tolist()
-                    ]
+                    columns["Name"][index] = [frame_map.get(_id, "") for _id in vals.tolist()]
 
                 vals = data["FLX_Frame.Cycle"].astype("u1")
                 columns["Cycle"][index] = vals
@@ -1452,13 +1341,10 @@ class WithMDIArea:
 
                 if "FLX_Frame.Dir" in names:
                     if data["FLX_Frame.Dir"].dtype.kind == "S":
-                        columns["Direction"][index] = [
-                            v.decode("utf-8") for v in data["FLX_Frame.Dir"].tolist()
-                        ]
+                        columns["Direction"][index] = [v.decode("utf-8") for v in data["FLX_Frame.Dir"].tolist()]
                     else:
                         columns["Direction"][index] = [
-                            "TX" if dir else "RX"
-                            for dir in data["FLX_Frame.Dir"].astype("u1").tolist()
+                            "TX" if dir else "RX" for dir in data["FLX_Frame.Dir"].astype("u1").tolist()
                         ]
 
                 vals = None
@@ -1474,9 +1360,7 @@ class WithMDIArea:
                 vals = data["FLX_NullFrame.ID"].astype("u2")
                 columns["ID"][index] = vals
                 if frame_map:
-                    columns["Name"][index] = [
-                        frame_map.get(_id, "") for _id in vals.tolist()
-                    ]
+                    columns["Name"][index] = [frame_map.get(_id, "") for _id in vals.tolist()]
 
                 vals = data["FLX_NullFrame.Cycle"].astype("u1")
                 columns["Cycle"][index] = vals
@@ -1488,14 +1372,10 @@ class WithMDIArea:
 
                 if "FLX_NullFrame.Dir" in names:
                     if data["FLX_NullFrame.Dir"].dtype.kind == "S":
-                        columns["Direction"][index] = [
-                            v.decode("utf-8")
-                            for v in data["FLX_NullFrame.Dir"].tolist()
-                        ]
+                        columns["Direction"][index] = [v.decode("utf-8") for v in data["FLX_NullFrame.Dir"].tolist()]
                     else:
                         columns["Direction"][index] = [
-                            "TX" if dir else "RX"
-                            for dir in data["FLX_NullFrame.Dir"].astype("u1").tolist()
+                            "TX" if dir else "RX" for dir in data["FLX_NullFrame.Dir"].astype("u1").tolist()
                         ]
 
                 vals = None
@@ -1525,9 +1405,7 @@ class WithMDIArea:
 
         signals = pd.DataFrame(columns)
 
-        trace = FlexRayBusTrace(
-            signals, start=self.mdf.header.start_time, ranges=ranges
-        )
+        trace = FlexRayBusTrace(signals, start=self.mdf.header.start_time, ranges=ranges)
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(trace)
@@ -1537,9 +1415,7 @@ class WithMDIArea:
         sub.titleModified.connect(self.window_closed_handler)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/bus_flx.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/bus_flx.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         sub.setWindowIcon(icon)
 
         if not self.subplots:
@@ -1564,9 +1440,7 @@ class WithMDIArea:
         w.layout().setSpacing(1)
 
         def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(
-                None, "Set sub-plot title", "Title:"
-            )
+            name, ok = QtWidgets.QInputDialog.getText(None, "Set sub-plot title", "Title:")
             if ok and name:
                 mdi.setWindowTitle(name)
 
@@ -1599,9 +1473,7 @@ class WithMDIArea:
         sub.titleModified.connect(self.window_closed_handler)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/globe.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/globe.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         sub.setWindowIcon(icon)
 
         w = self.mdi_area.addSubWindow(sub)
@@ -1619,9 +1491,7 @@ class WithMDIArea:
         w.layout().setSpacing(1)
 
         def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(
-                None, "Set sub-plot title", "Title:"
-            )
+            name, ok = QtWidgets.QInputDialog.getText(None, "Set sub-plot title", "Title:")
             if ok and name:
                 mdi.setWindowTitle(name)
 
@@ -1688,9 +1558,7 @@ class WithMDIArea:
                     if data.attachment and data.attachment[0]:
                         dbc = load_can_database(data.attachment[1], data.attachment[0])
                         if dbc:
-                            frame_map = {
-                                frame.arbitration_id.id: frame.name for frame in dbc
-                            }
+                            frame_map = {frame.arbitration_id.id: frame.name for frame in dbc}
 
                             for name in frame_map.values():
                                 sys.intern(name)
@@ -1703,13 +1571,9 @@ class WithMDIArea:
                         vals = data["LIN_Frame.ID"].astype("u1") & 0x3F
                         columns["ID"] = vals
                         if frame_map:
-                            columns["Name"] = [
-                                frame_map.get(_id, "") for _id in vals.tolist()
-                            ]
+                            columns["Name"] = [frame_map.get(_id, "") for _id in vals.tolist()]
 
-                        columns["Received Byte Count"] = data[
-                            "LIN_Frame.ReceivedDataByteCount"
-                        ].astype("u1")
+                        columns["Received Byte Count"] = data["LIN_Frame.ReceivedDataByteCount"].astype("u1")
                         data_length = data["LIN_Frame.DataLength"].astype("u1").tolist()
                         columns["Data Length"] = data_length
 
@@ -1721,16 +1585,10 @@ class WithMDIArea:
 
                         if "LIN_Frame.Dir" in names:
                             if data["LIN_Frame.Dir"].dtype.kind == "S":
-                                columns["Direction"] = [
-                                    v.decode("utf-8")
-                                    for v in data["LIN_Frame.Dir"].tolist()
-                                ]
+                                columns["Direction"] = [v.decode("utf-8") for v in data["LIN_Frame.Dir"].tolist()]
                             else:
                                 columns["Direction"] = [
-                                    "TX" if dir else "RX"
-                                    for dir in data["LIN_Frame.Dir"]
-                                    .astype("u1")
-                                    .tolist()
+                                    "TX" if dir else "RX" for dir in data["LIN_Frame.Dir"].astype("u1").tolist()
                                 ]
 
                         vals = None
@@ -1776,9 +1634,7 @@ class WithMDIArea:
                         vals = data["LIN_TransmissionError.ID"].astype("u1") & 0x3F
                         columns["ID"] = vals
                         if frame_map:
-                            columns["Name"] = [
-                                frame_map.get(_id, "") for _id in vals.tolist()
-                            ]
+                            columns["Name"] = [frame_map.get(_id, "") for _id in vals.tolist()]
 
                         columns["Event Type"] = "Transmission Error Frame"
                         columns["Direction"] = ["TX"] * count
@@ -1836,11 +1692,7 @@ class WithMDIArea:
                                 columns["Name"] = [frame_map[_id] for _id in vals]
 
                         if "LIN_ChecksumError.DataBytes" in names:
-                            data_length = (
-                                data["LIN_ChecksumError.DataLength"]
-                                .astype("u1")
-                                .tolist()
-                            )
+                            data_length = data["LIN_ChecksumError.DataLength"].astype("u1").tolist()
                             columns["Data Length"] = data_length
 
                             vals = csv_bytearray2hex(
@@ -1853,10 +1705,7 @@ class WithMDIArea:
 
                         if "LIN_ChecksumError.Dir" in names:
                             columns["Direction"] = [
-                                "TX" if dir else "RX"
-                                for dir in data["LIN_ChecksumError.Dir"]
-                                .astype("u1")
-                                .tolist()
+                                "TX" if dir else "RX" for dir in data["LIN_ChecksumError.Dir"].astype("u1").tolist()
                             ]
 
                         vals = None
@@ -1882,9 +1731,7 @@ class WithMDIArea:
         sub.titleModified.connect(self.window_closed_handler)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/bus_lin.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/bus_lin.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         sub.setWindowIcon(icon)
 
         if not self.subplots:
@@ -1909,9 +1756,7 @@ class WithMDIArea:
         w.layout().setSpacing(1)
 
         def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(
-                None, "Set sub-plot title", "Title:"
-            )
+            name, ok = QtWidgets.QInputDialog.getText(None, "Set sub-plot title", "Title:")
             if ok and name:
                 mdi.setWindowTitle(name)
 
@@ -1959,9 +1804,7 @@ class WithMDIArea:
                 flatten_entries = get_flatten_entries_from_mime(names)
 
             signals_ = [
-                entry
-                for entry in flatten_entries
-                if tuple((entry["group_index"], entry["channel_index"])) != (-1, -1)
+                entry for entry in flatten_entries if tuple((entry["group_index"], entry["channel_index"])) != (-1, -1)
             ]
 
         signals_ = natsorted(signals_)
@@ -1984,15 +1827,11 @@ class WithMDIArea:
             ]
 
             uuids_signals_objs = [
-                entry
-                for entry in signals_
-                if entry["origin_uuid"] == uuid and entry["group_index"] != NOT_FOUND
+                entry for entry in signals_ if entry["origin_uuid"] == uuid and entry["group_index"] != NOT_FOUND
             ]
 
             not_found_objs = [
-                entry
-                for entry in signals_
-                if entry["origin_uuid"] == uuid and entry["group_index"] == NOT_FOUND
+                entry for entry in signals_ if entry["origin_uuid"] == uuid and entry["group_index"] == NOT_FOUND
             ]
 
             file_info = self.file_by_uuid(uuid)
@@ -2009,9 +1848,7 @@ class WithMDIArea:
                 raw=True,
             )
 
-            for sig, sig_, sig_obj in zip(
-                selected_signals, uuids_signals, uuids_signals_objs
-            ):
+            for sig, sig_, sig_obj in zip(selected_signals, uuids_signals, uuids_signals_objs):
                 sig.group_index = sig_[1]
                 sig.channel_index = sig_[2]
                 sig.flags &= ~sig.Flags.computed
@@ -2060,16 +1897,12 @@ class WithMDIArea:
                                 length = None
                     else:
                         length = None
-                    signal.samples = csv_bytearray2hex(
-                        pd.Series(list(signal.samples)), length
-                    )
+                    signal.samples = csv_bytearray2hex(pd.Series(list(signal.samples)), length)
 
                 if signal.name.endswith(".ID"):
                     signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
 
-            not_found = [
-                Signal([], [], name=name) for name, gp_index, ch_index in not_found
-            ]
+            not_found = [Signal([], [], name=name) for name, gp_index, ch_index in not_found]
             uuid = os.urandom(6).hex()
             for sig, sig_obj in zip(not_found, not_found_objs):
                 sig.origin_uuid = uuid
@@ -2079,12 +1912,8 @@ class WithMDIArea:
 
                 ranges = sig_obj["ranges"]
                 for range in ranges:
-                    range["font_color"] = QtGui.QBrush(
-                        QtGui.QColor(range["font_color"])
-                    )
-                    range["background_color"] = QtGui.QBrush(
-                        QtGui.QColor(range["background_color"])
-                    )
+                    range["font_color"] = QtGui.QBrush(QtGui.QColor(range["font_color"]))
+                    range["background_color"] = QtGui.QBrush(QtGui.QColor(range["background_color"]))
                 sig.ranges = ranges
                 sig.format = sig_obj["format"]
 
@@ -2133,9 +1962,7 @@ class WithMDIArea:
 
         w.setWindowTitle(generate_window_title(w, "Numeric"))
 
-        numeric.add_channels_request.connect(
-            partial(self.add_new_channels, widget=numeric)
-        )
+        numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
         if self.subplots_link:
             numeric.timestamp_changed_signal.connect(self.set_cursor)
         numeric.add_new_channels(signals)
@@ -2178,8 +2005,7 @@ class WithMDIArea:
         signals_ = {
             entry["uuid"]: entry
             for entry in flatten_entries
-            if (entry["group_index"], entry["channel_index"])
-            not in ((-1, -1), (NOT_FOUND, NOT_FOUND))
+            if (entry["group_index"], entry["channel_index"]) not in ((-1, -1), (NOT_FOUND, NOT_FOUND))
         }
 
         not_found = {
@@ -2199,11 +2025,7 @@ class WithMDIArea:
         signals = {}
 
         for uuid in uuids:
-            uuids_signals = {
-                key: entry
-                for key, entry in signals_.items()
-                if entry["origin_uuid"] == uuid
-            }
+            uuids_signals = {key: entry for key, entry in signals_.items() if entry["origin_uuid"] == uuid}
 
             file_info = self.file_by_uuid(uuid)
             if not file_info:
@@ -2212,10 +2034,7 @@ class WithMDIArea:
             file_index, file = file_info
 
             selected_signals = file.mdf.select(
-                [
-                    (entry["name"], entry["group_index"], entry["channel_index"])
-                    for entry in uuids_signals.values()
-                ],
+                [(entry["name"], entry["group_index"], entry["channel_index"]) for entry in uuids_signals.values()],
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
                 copy_master=False,
                 validate=True,
@@ -2247,16 +2066,13 @@ class WithMDIArea:
             nd = {
                 key: sig
                 for key, sig in signals.items()
-                if sig.samples.dtype.kind not in "SU"
-                and (sig.samples.dtype.names or len(sig.samples.shape) > 1)
+                if sig.samples.dtype.kind not in "SU" and (sig.samples.dtype.names or len(sig.samples.shape) > 1)
             }
 
             signals = {
                 key: sig
                 for key, sig in signals.items()
-                if sig.samples.dtype.kind not in "SU"
-                and not sig.samples.dtype.names
-                and not len(sig.samples.shape) > 1
+                if sig.samples.dtype.kind not in "SU" and not sig.samples.dtype.names and not len(sig.samples.shape) > 1
             }
 
             for sig in nd.values():
@@ -2299,9 +2115,7 @@ class WithMDIArea:
                         matrix_name = sig.name
 
                         for indexes in itertools.product(*matrix_dims):
-                            indexes_string = "".join(
-                                f"[{_index}]" for _index in indexes
-                            )
+                            indexes_string = "".join(f"[{_index}]" for _index in indexes)
 
                             samples = array_samples
                             for idx in indexes:
@@ -2336,9 +2150,7 @@ class WithMDIArea:
                                 length = None
                     else:
                         length = None
-                    signal.samples = csv_bytearray2hex(
-                        pd.Series(list(signal.samples)), length.astype("u2")
-                    )
+                    signal.samples = csv_bytearray2hex(pd.Series(list(signal.samples)), length.astype("u2"))
 
                 if signal.name.endswith(".ID"):
                     signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
@@ -2369,11 +2181,7 @@ class WithMDIArea:
         if computed:
             measured_signals = {sig.uuid: sig for sig in signals.values()}
             if measured_signals:
-                all_timebase = np.unique(
-                    np.concatenate(
-                        [sig.timestamps for sig in measured_signals.values()]
-                    )
-                )
+                all_timebase = np.unique(np.concatenate([sig.timestamps for sig in measured_signals.values()]))
             else:
                 all_timebase = []
 
@@ -2384,9 +2192,7 @@ class WithMDIArea:
 
             required_channels = set(required_channels)
             required_channels_list = [
-                (channel, *self.mdf.whereis(channel)[0])
-                for channel in required_channels
-                if channel in self.mdf
+                (channel, *self.mdf.whereis(channel)[0]) for channel in required_channels if channel in self.mdf
             ]
 
             required_channels = {}
@@ -2629,8 +2435,7 @@ class WithMDIArea:
             signals_ = [
                 entry
                 for entry in flatten_entries
-                if tuple((entry["group_index"], entry["channel_index"]))
-                != (NOT_FOUND, NOT_FOUND)
+                if tuple((entry["group_index"], entry["channel_index"])) != (NOT_FOUND, NOT_FOUND)
             ]
 
         signals_ = natsorted(signals_)
@@ -2665,13 +2470,7 @@ class WithMDIArea:
                     }
                 )
             else:
-                ranges.update(
-                    {
-                        entry["name"]: entry["ranges"]
-                        for entry in signals_
-                        if entry["origin_uuid"] == uuid
-                    }
-                )
+                ranges.update({entry["name"]: entry["ranges"] for entry in signals_ if entry["origin_uuid"] == uuid})
 
             start.append(file.mdf.header.start_time)
 
@@ -2688,11 +2487,7 @@ class WithMDIArea:
                     ]
                 )
 
-            uuids_signals = [
-                entry
-                for entry in uuids_signals
-                if entry[2] != file.mdf.masters_db.get(entry[1], None)
-            ]
+            uuids_signals = [entry for entry in uuids_signals if entry[2] != file.mdf.masters_db.get(entry[1], None)]
 
             df = file.mdf.to_dataframe(
                 channels=uuids_signals,
@@ -2760,9 +2555,7 @@ class WithMDIArea:
         if self.subplots_link:
             tabular.timestamp_changed_signal.connect(self.set_cursor)
 
-        tabular.add_channels_request.connect(
-            partial(self.add_new_channels, widget=tabular)
-        )
+        tabular.add_channels_request.connect(partial(self.add_new_channels, widget=tabular))
 
         tabular.tree.auto_size_header()
 
@@ -2794,9 +2587,7 @@ class WithMDIArea:
                     if item.type() == item.Channel:
                         if item.signal.flags & item.signal.Flags.computed:
                             if item.signal.computation["function"] in deleted:
-                                self.edit_channel(
-                                    wid.channel_item_to_config(item), item, wid
-                                )
+                                self.edit_channel(wid.channel_item_to_config(item), item, wid)
 
                     iterator += 1
 
@@ -2804,9 +2595,7 @@ class WithMDIArea:
         required_channels = set(get_required_from_computed(channel))
 
         required_channels = [
-            (channel, *self.mdf.whereis(channel)[0])
-            for channel in required_channels
-            if channel in self.mdf
+            (channel, *self.mdf.whereis(channel)[0]) for channel in required_channels if channel in self.mdf
         ]
         required_channels = {
             sig.name: sig
@@ -2818,15 +2607,11 @@ class WithMDIArea:
         }
 
         if required_channels:
-            all_timebase = np.unique(
-                np.concatenate([sig.timestamps for sig in required_channels.values()])
-            )
+            all_timebase = np.unique(np.concatenate([sig.timestamps for sig in required_channels.values()]))
         else:
             all_timebase = []
 
-        required_channels = {
-            key: sig.physical() for key, sig in required_channels.items()
-        }
+        required_channels = {key: sig.physical() for key, sig in required_channels.items()}
 
         computation = channel["computation"]
 
@@ -2859,9 +2644,7 @@ class WithMDIArea:
         new_name = signal.name
         uuid = item.uuid
 
-        item.signal.samples = (
-            item.signal.raw_samples
-        ) = item.signal.phys_samples = signal.samples
+        item.signal.samples = item.signal.raw_samples = item.signal.phys_samples = signal.samples
         item.signal.timestamps = signal.timestamps
         item.signal.trim(force=True)
         item.signal.computation = signal.computation
@@ -2978,9 +2761,7 @@ class WithMDIArea:
 
             for range in ranges:
                 range["font_color"] = QtGui.QBrush(QtGui.QColor(range["font_color"]))
-                range["background_color"] = QtGui.QBrush(
-                    QtGui.QColor(range["background_color"])
-                )
+                range["background_color"] = QtGui.QBrush(QtGui.QColor(range["background_color"]))
 
             pattern_info["ranges"] = ranges
 
@@ -2989,9 +2770,7 @@ class WithMDIArea:
 
             found = [elem for elem in required if elem["name"] in self.mdf]
 
-            signals_ = [
-                (elem["name"], *self.mdf.whereis(elem["name"])[0]) for elem in found
-            ]
+            signals_ = [(elem["name"], *self.mdf.whereis(elem["name"])[0]) for elem in found]
 
             if not signals_:
                 return None, False
@@ -3011,20 +2790,12 @@ class WithMDIArea:
                 sig.computation = None
                 ranges = description["ranges"]
                 for range in ranges:
-                    range["font_color"] = QtGui.QBrush(
-                        QtGui.QColor(range["font_color"])
-                    )
-                    range["background_color"] = QtGui.QBrush(
-                        QtGui.QColor(range["background_color"])
-                    )
+                    range["font_color"] = QtGui.QBrush(QtGui.QColor(range["font_color"]))
+                    range["background_color"] = QtGui.QBrush(QtGui.QColor(range["background_color"]))
                 sig.ranges = ranges
                 sig.format = description["format"]
 
-            signals = [
-                sig
-                for sig in signals
-                if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
-            ]
+            signals = [sig for sig in signals if not sig.samples.dtype.names and len(sig.samples.shape) <= 1]
 
             signals = natsorted(signals, key=lambda x: x.name)
 
@@ -3075,9 +2846,7 @@ class WithMDIArea:
         elif window_info.get("minimized", False):
             w.showMinimized()
 
-        w.setWindowTitle(
-            generate_window_title(w, window_info["type"], window_info["title"])
-        )
+        w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
 
         numeric.add_new_channels(signals)
 
@@ -3088,18 +2857,14 @@ class WithMDIArea:
         before = menu.actions()[0]
         menu.insertAction(before, action)
 
-        numeric.add_channels_request.connect(
-            partial(self.add_new_channels, widget=numeric)
-        )
+        numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
 
         if self.subplots_link:
             numeric.timestamp_changed_signal.connect(self.set_cursor)
 
         sections_width = window_info["configuration"].get("header_sections_width", [])
         if sections_width:
-            sections_width = reversed(
-                [(i, width) for i, width in enumerate(sections_width)]
-            )
+            sections_width = reversed([(i, width) for i, width in enumerate(sections_width)])
             for column_index, width in sections_width:
                 numeric.channels.columnHeader.setColumnWidth(column_index, width)
                 numeric.channels.dataView.setColumnWidth(
@@ -3107,9 +2872,7 @@ class WithMDIArea:
                     numeric.channels.columnHeader.columnWidth(column_index),
                 )
 
-        font_size = window_info["configuration"].get(
-            "font_size", numeric.font().pointSize()
-        )
+        font_size = window_info["configuration"].get("font_size", numeric.font().pointSize())
         numeric.set_font_size(font_size)
 
         return w, pattern_info
@@ -3161,9 +2924,7 @@ class WithMDIArea:
             else:
                 self.mdi_area.tileSubWindows()
 
-        w.setWindowTitle(
-            generate_window_title(w, window_info["type"], window_info["title"])
-        )
+        w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
 
         if window_info.get("maximized", False):
             w.showMaximized()
@@ -3205,9 +2966,7 @@ class WithMDIArea:
                 found,
                 not_found,
                 computed,
-            ) = build_mime_from_config(
-                window_info["configuration"]["channels"], self.mdf, self.uuid
-            )
+            ) = build_mime_from_config(window_info["configuration"]["channels"], self.mdf, self.uuid)
 
             plot_signals = {}
             measured_signals = {}
@@ -3256,9 +3015,7 @@ class WithMDIArea:
             }
 
             new_matrix_signals = {}
-            for signal_mat, (_n, indexes) in zip(
-                matrix_signals.values(), matrix_components
-            ):
+            for signal_mat, (_n, indexes) in zip(matrix_signals.values(), matrix_components):
                 indexes_string = "".join(f"[{_index}]" for _index in indexes)
                 sig_name = f"{signal_mat.name}{indexes_string}"
 
@@ -3293,16 +3050,10 @@ class WithMDIArea:
 
                     plot_signals[sig_uuid] = signal
 
-            measured_signals.update(
-                {name: sig for name, sig in new_matrix_signals.items()}
-            )
+            measured_signals.update({name: sig for name, sig in new_matrix_signals.items()})
 
             if measured_signals:
-                all_timebase = np.unique(
-                    np.concatenate(
-                        [sig.timestamps for sig in measured_signals.values()]
-                    )
-                )
+                all_timebase = np.unique(np.concatenate([sig.timestamps for sig in measured_signals.values()]))
             else:
                 all_timebase = []
 
@@ -3328,9 +3079,7 @@ class WithMDIArea:
 
             required_channels.update(measured_signals)
 
-            required_channels = {
-                key: sig.physical() for key, sig in required_channels.items()
-            }
+            required_channels = {key: sig.physical() for key, sig in required_channels.items()}
 
             for sig_uuid, channel in computed.items():
                 computation = channel["computation"]
@@ -3364,9 +3113,7 @@ class WithMDIArea:
         signals = {
             sig_uuid: sig
             for sig_uuid, sig in plot_signals.items()
-            if sig.samples.dtype.kind not in "SU"
-            and not sig.samples.dtype.names
-            and not len(sig.samples.shape) > 1
+            if sig.samples.dtype.kind not in "SU" and not sig.samples.dtype.names and not len(sig.samples.shape) > 1
         }
 
         for uuid in descriptions:
@@ -3518,9 +3265,7 @@ class WithMDIArea:
         before = menu.actions()[0]
         menu.insertAction(before, action)
 
-        w.setWindowTitle(
-            generate_window_title(w, window_info["type"], window_info["title"])
-        )
+        w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
 
         if "x_range" in window_info["configuration"] and WithMDIArea.load_plot_x_range:
             x_range = window_info["configuration"]["x_range"]
@@ -3560,9 +3305,7 @@ class WithMDIArea:
         self.set_subplots_link(self.subplots_link)
 
         if "cursor_precision" in window_info["configuration"]:
-            plot.cursor_info.set_precision(
-                window_info["configuration"]["cursor_precision"]
-            )
+            plot.cursor_info.set_precision(window_info["configuration"]["cursor_precision"])
 
         iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
         while iterator.value():
@@ -3576,9 +3319,7 @@ class WithMDIArea:
                     item.setCheckState(item.NameColumn, state)
 
         if "common_axis_y_range" in window_info["configuration"]:
-            plot.plot.common_axis_y_range = tuple(
-                window_info["configuration"]["common_axis_y_range"]
-            )
+            plot.plot.common_axis_y_range = tuple(window_info["configuration"]["common_axis_y_range"])
 
         if "channels_header" in window_info["configuration"]:
             width, sizes = window_info["configuration"]["channels_header"]
@@ -3590,19 +3331,11 @@ class WithMDIArea:
         plot.set_locked(locked=window_info["configuration"].get("locked", False))
         plot.hide_axes(hide=window_info["configuration"].get("hide_axes", False))
         plot.hide_selected_channel_value(
-            hide=window_info["configuration"].get(
-                "hide_selected_channel_value_panel", True
-            )
+            hide=window_info["configuration"].get("hide_selected_channel_value_panel", True)
         )
-        plot.toggle_bookmarks(
-            hide=window_info["configuration"].get("hide_bookmarks", False)
-        )
-        plot.toggle_focused_mode(
-            focused=window_info["configuration"].get("focused_mode", False)
-        )
-        plot.toggle_region_values_display_mode(
-            mode=window_info["configuration"].get("delta_mode", "value")
-        )
+        plot.toggle_bookmarks(hide=window_info["configuration"].get("hide_bookmarks", False))
+        plot.toggle_focused_mode(focused=window_info["configuration"].get("focused_mode", False))
+        plot.toggle_region_values_display_mode(mode=window_info["configuration"].get("delta_mode", "value"))
 
         plot.plot._can_paint_global = True
         plot.update()
@@ -3644,18 +3377,12 @@ class WithMDIArea:
                 ranges = pattern_info["ranges"]
 
             for range_info in ranges:
-                range_info["font_color"] = QtGui.QBrush(
-                    QtGui.QColor(range_info["font_color"])
-                )
-                range_info["background_color"] = QtGui.QBrush(
-                    QtGui.QColor(range_info["background_color"])
-                )
+                range_info["font_color"] = QtGui.QBrush(QtGui.QColor(range_info["font_color"]))
+                range_info["background_color"] = QtGui.QBrush(QtGui.QColor(range_info["background_color"]))
 
             ranges = {sig.name: copy_ranges(ranges) for sig in signals_}
 
-            signals_ = [
-                (sig.name, sig.group_index, sig.channel_index) for sig in signals_
-            ]
+            signals_ = [(sig.name, sig.group_index, sig.channel_index) for sig in signals_]
 
             pattern_info["ranges"] = ranges
 
@@ -3671,12 +3398,8 @@ class WithMDIArea:
             ranges = window_info["configuration"].get("ranges", {})
             for channel_ranges in ranges.values():
                 for range_info in channel_ranges:
-                    range_info["font_color"] = QtGui.QBrush(
-                        QtGui.QColor(range_info["font_color"])
-                    )
-                    range_info["background_color"] = QtGui.QBrush(
-                        QtGui.QColor(range_info["background_color"])
-                    )
+                    range_info["font_color"] = QtGui.QBrush(QtGui.QColor(range_info["font_color"]))
+                    range_info["background_color"] = QtGui.QBrush(QtGui.QColor(range_info["background_color"]))
 
             if not signals_:
                 return None, False
@@ -3731,9 +3454,7 @@ class WithMDIArea:
         elif window_info.get("minimized", False):
             w.showMinimized()
 
-        w.setWindowTitle(
-            generate_window_title(w, window_info["type"], window_info["title"])
-        )
+        w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
 
         filter_count = 0
         available_columns = [signals.index.name] + list(signals.columns)
@@ -3741,9 +3462,7 @@ class WithMDIArea:
             if filter_info["column"] in available_columns:
                 tabular.add_filter()
                 filter = tabular.filters.itemWidget(tabular.filters.item(filter_count))
-                filter.enabled.setCheckState(
-                    QtCore.Qt.Checked if filter_info["enabled"] else QtCore.Qt.Unchecked
-                )
+                filter.enabled.setCheckState(QtCore.Qt.Checked if filter_info["enabled"] else QtCore.Qt.Unchecked)
                 filter.relation.setCurrentText(filter_info["relation"])
                 filter.column.setCurrentText(filter_info["column"])
                 filter.op.setCurrentText(filter_info["op"])
@@ -3756,13 +3475,9 @@ class WithMDIArea:
             tabular.apply_filters()
 
         tabular.time_as_date.setCheckState(
-            QtCore.Qt.Checked
-            if window_info["configuration"]["time_as_date"]
-            else QtCore.Qt.Unchecked
+            QtCore.Qt.Checked if window_info["configuration"]["time_as_date"] else QtCore.Qt.Unchecked
         )
-        tabular.add_channels_request.connect(
-            partial(self.add_new_channels, widget=tabular)
-        )
+        tabular.add_channels_request.connect(partial(self.add_new_channels, widget=tabular))
 
         menu = w.systemMenu()
 
@@ -3792,12 +3507,8 @@ class WithMDIArea:
         ranges = window_info["configuration"].get("ranges", {})
         for channel_ranges in ranges.values():
             for range_info in channel_ranges:
-                range_info["font_color"] = QtGui.QBrush(
-                    QtGui.QColor(range_info["font_color"])
-                )
-                range_info["background_color"] = QtGui.QBrush(
-                    QtGui.QColor(range_info["background_color"])
-                )
+                range_info["font_color"] = QtGui.QBrush(QtGui.QColor(range_info["font_color"]))
+                range_info["background_color"] = QtGui.QBrush(QtGui.QColor(range_info["background_color"]))
 
         widget = self._add_can_bus_trace_window(ranges)
 
@@ -3819,12 +3530,8 @@ class WithMDIArea:
         ranges = window_info["configuration"].get("ranges", {})
         for channel_ranges in ranges.values():
             for range_info in channel_ranges:
-                range_info["font_color"] = QtGui.QBrush(
-                    QtGui.QColor(range_info["font_color"])
-                )
-                range_info["background_color"] = QtGui.QBrush(
-                    QtGui.QColor(range_info["background_color"])
-                )
+                range_info["font_color"] = QtGui.QBrush(QtGui.QColor(range_info["font_color"]))
+                range_info["background_color"] = QtGui.QBrush(QtGui.QColor(range_info["background_color"]))
 
         widget = self._add_flexray_bus_trace_window(ranges)
 
@@ -3846,12 +3553,8 @@ class WithMDIArea:
         ranges = window_info["configuration"].get("ranges", {})
         for channel_ranges in ranges.values():
             for range_info in channel_ranges:
-                range_info["font_color"] = QtGui.QBrush(
-                    QtGui.QColor(range_info["font_color"])
-                )
-                range_info["background_color"] = QtGui.QBrush(
-                    QtGui.QColor(range_info["background_color"])
-                )
+                range_info["font_color"] = QtGui.QBrush(QtGui.QColor(range_info["font_color"]))
+                range_info["background_color"] = QtGui.QBrush(QtGui.QColor(range_info["background_color"]))
 
         widget = self._add_lin_bus_trace_window(ranges)
 
@@ -3989,19 +3692,13 @@ class WithMDIArea:
                     if selection_width is not None:
                         total_size = sum(wid.splitter.sizes())
                         if total_size > selection_width:
-                            wid.splitter.setSizes(
-                                [selection_width, total_size - selection_width]
-                            )
+                            wid.splitter.setSizes([selection_width, total_size - selection_width])
 
             self._splitter_source = None
 
     def update_functions(self, original_definitions, modified_definitions):
         # new definitions
-        new_functions = [
-            info
-            for uuid, info in modified_definitions.items()
-            if uuid not in original_definitions
-        ]
+        new_functions = [info for uuid, info in modified_definitions.items() if uuid not in original_definitions]
 
         for info in new_functions:
             self.functions[info["name"]] = info["definition"]
@@ -4028,11 +3725,7 @@ class WithMDIArea:
 
         deleted = set()
 
-        deleted_functions = [
-            info
-            for uuid, info in original_definitions.items()
-            if uuid not in modified_definitions
-        ]
+        deleted_functions = [info for uuid, info in original_definitions.items() if uuid not in modified_definitions]
 
         for info in deleted_functions:
             del self.functions[info["name"]]
@@ -4065,9 +3758,7 @@ class WithMDIArea:
                                     exec(definition.replace("\t", "    "), _globals)
                                     func = _globals[func_name]
 
-                                    parameters = list(
-                                        inspect.signature(func).parameters
-                                    )[:-1]
+                                    parameters = list(inspect.signature(func).parameters)[:-1]
                                     args = {name: [] for name in parameters}
                                     for arg_name, alternatives in zip(
                                         parameters,
@@ -4079,9 +3770,7 @@ class WithMDIArea:
                                 except:
                                     print(format_exc())
 
-                            self.edit_channel(
-                                wid.channel_item_to_config(item), item, wid
-                            )
+                            self.edit_channel(wid.channel_item_to_config(item), item, wid)
 
                     iterator += 1
 
@@ -4183,9 +3872,7 @@ class WithMDIArea:
         result = MessageBox.question(
             self,
             "Save measurement bookmarks?",
-            "You have modified bookmarks.\n\n"
-            "Do you want to save the changes in the measurement file?\n"
-            "",
+            "You have modified bookmarks.\n\n" "Do you want to save the changes in the measurement file?\n" "",
         )
 
         if result == MessageBox.No:
@@ -4314,9 +4001,7 @@ class WithMDIArea:
     def window_closed_handler(self, obj=None):
         self.windows_modified.emit()
 
-    def set_cursor_options(
-        self, cursor_circle, cursor_horizontal_line, cursor_line_width, cursor_color
-    ):
+    def set_cursor_options(self, cursor_circle, cursor_horizontal_line, cursor_line_width, cursor_color):
         cursor_color = QtGui.QColor(cursor_color)
         self.cursor_circle = cursor_circle
         self.cursor_horizontal_line = cursor_horizontal_line

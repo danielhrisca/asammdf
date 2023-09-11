@@ -67,17 +67,9 @@ def generate_graphs(result, topic, aspect, for_doc=False):
     ax.invert_yaxis()
     ax.set_xlabel("Time [ms]" if aspect == "time" else "RAM [MB]")
     if topic == "Get":
-        ax.set_title(
-            "Get all channels (36424 calls) - {}".format(
-                "time" if aspect == "time" else "ram usage"
-            )
-        )
+        ax.set_title("Get all channels (36424 calls) - {}".format("time" if aspect == "time" else "ram usage"))
     else:
-        ax.set_title(
-            "{} test file - {}".format(
-                topic, "time" if aspect == "time" else "ram usage"
-            )
-        )
+        ax.set_title("{} test file - {}".format(topic, "time" if aspect == "time" else "ram usage"))
     ax.xaxis.grid()
 
     fig.subplots_adjust(

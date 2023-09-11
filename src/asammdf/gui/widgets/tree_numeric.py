@@ -32,10 +32,7 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
 
     def keyPressEvent(self, event):
         key = event.key()
-        if (
-            event.key() == QtCore.Qt.Key_Delete
-            and event.modifiers() == QtCore.Qt.NoModifier
-        ):
+        if event.key() == QtCore.Qt.Key_Delete and event.modifiers() == QtCore.Qt.NoModifier:
             selected = reversed(self.selectedItems())
             names = [(item.origin_uuid, item.text(0)) for item in selected]
             for item in selected:

@@ -25,9 +25,7 @@ LOCAL_TIMEZONE = dateutil.tz.tzlocal()
 class Tabular(TabularBase):
     add_channels_request = QtCore.Signal(list)
 
-    def __init__(
-        self, signals=None, start=None, format="phys", ranges=None, *args, **kwargs
-    ):
+    def __init__(self, signals=None, start=None, format="phys", ranges=None, *args, **kwargs):
         # super().__init__(*args, **kwargs)
 
         self.signals_descr = {}
@@ -53,9 +51,7 @@ class Tabular(TabularBase):
                 if col.dtype.kind == "O":
                     if name_.endswith("DataBytes"):
                         try:
-                            sizes = signals[
-                                name_.replace("DataBytes", "DataLength")
-                            ].astype("u2")
+                            sizes = signals[name_.replace("DataBytes", "DataLength")].astype("u2")
                         except:
                             sizes = None
                         dropped[name_] = pd.Series(
@@ -68,9 +64,7 @@ class Tabular(TabularBase):
 
                     elif name_.endswith("Data Bytes"):
                         try:
-                            sizes = signals[
-                                name_.replace("Data Bytes", "Data Length")
-                            ].astype("u2")
+                            sizes = signals[name_.replace("Data Bytes", "Data Length")].astype("u2")
                         except:
                             sizes = None
                         dropped[name_] = pd.Series(
@@ -83,9 +77,7 @@ class Tabular(TabularBase):
 
                     elif col.dtype.name != "category":
                         try:
-                            dropped[name_] = pd.Series(
-                                csv_bytearray2hex(col), index=signals.index
-                            )
+                            dropped[name_] = pd.Series(csv_bytearray2hex(col), index=signals.index)
                         except:
                             pass
 
@@ -93,13 +85,9 @@ class Tabular(TabularBase):
 
                 elif col.dtype.kind == "S":
                     try:
-                        dropped[name_] = pd.Series(
-                            npchar.decode(col, "utf-8"), index=signals.index
-                        )
+                        dropped[name_] = pd.Series(npchar.decode(col, "utf-8"), index=signals.index)
                     except:
-                        dropped[name_] = pd.Series(
-                            npchar.decode(col, "latin-1"), index=signals.index
-                        )
+                        dropped[name_] = pd.Series(npchar.decode(col, "latin-1"), index=signals.index)
                     self.signals_descr[name_] = 0
                 else:
                     self.signals_descr[name_] = 0
@@ -112,11 +100,7 @@ class Tabular(TabularBase):
             names = [
                 "timestamps",
                 *[name for name in names if name.endswith((".ID", ".DataBytes"))],
-                *[
-                    name
-                    for name in names
-                    if name != "timestamps" and not name.endswith((".ID", ".DataBytes"))
-                ],
+                *[name for name in names if name != "timestamps" and not name.endswith((".ID", ".DataBytes"))],
             ]
             signals = signals[names]
 

@@ -120,27 +120,21 @@ class PlotWindow(QtWidgets.QMainWindow):
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\tS".format("Stack"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_S))
         action.setShortcut(QtCore.Qt.Key_S)
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/zoom-in.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/zoom-in.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\tI".format("Zoom in"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_I))
         action.setShortcut(QtCore.Qt.Key_I)
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/zoom-out.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/zoom-out.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\tO".format("Zoom out"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_O))
         action.setShortcut(QtCore.Qt.Key_O)
@@ -160,9 +154,7 @@ class PlotWindow(QtWidgets.QMainWindow):
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        action = QtGui.QAction(
-            icon, "{: <20}\tCtrl+S".format("Save active subplot channels"), menu
-        )
+        action = QtGui.QAction(icon, "{: <20}\tCtrl+S".format("Save active subplot channels"), menu)
         action.triggered.connect(
             partial(
                 self.plot_action,
@@ -215,20 +207,12 @@ class PlotWindow(QtWidgets.QMainWindow):
         samples_format_actions = QtGui.QActionGroup(self)
 
         action = QtGui.QAction("{: <20}\tAlt+R".format("Raw samples"), menu)
-        action.triggered.connect(
-            partial(
-                self.plot_action, key=QtCore.Qt.Key_R, modifier=QtCore.Qt.AltModifier
-            )
-        )
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_R, modifier=QtCore.Qt.AltModifier))
         action.setShortcut(QtGui.QKeySequence("Alt+R"))
         samples_format_actions.addAction(action)
 
         action = QtGui.QAction("{: <20}\tAlt+S".format("Scaled samples"), menu)
-        action.triggered.connect(
-            partial(
-                self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.AltModifier
-            )
-        )
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.AltModifier))
         action.setShortcut(QtGui.QKeySequence("Alt+S"))
         samples_format_actions.addAction(action)
 
@@ -247,18 +231,14 @@ class PlotWindow(QtWidgets.QMainWindow):
         cursors_actions = QtGui.QActionGroup(self)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/cursor.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/cursor.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\tC".format("Cursor"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_C))
         action.setShortcut(QtCore.Qt.Key_C)
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\t←".format("Move cursor left"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_Left))
         action.setShortcut(QtCore.Qt.Key_Left)
@@ -272,30 +252,22 @@ class PlotWindow(QtWidgets.QMainWindow):
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/range.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/range.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\tR".format("Range"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_R))
         action.setShortcut(QtCore.Qt.Key_R)
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/lock_range.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/lock_range.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\tY".format("Lock/unlock range"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_Y))
         action.setShortcut(QtCore.Qt.Key_Y)
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/comments.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        action = QtGui.QAction(
-            icon, "{: <20}\tCtrl+I".format("Insert cursor comment"), menu
-        )
+        icon.addPixmap(QtGui.QPixmap(":/comments.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtGui.QAction(icon, "{: <20}\tCtrl+I".format("Insert cursor comment"), menu)
         action.triggered.connect(
             partial(
                 self.plot_action,
@@ -308,11 +280,7 @@ class PlotWindow(QtWidgets.QMainWindow):
 
         icon = QtGui.QIcon()
         action = QtGui.QAction("{: <20}\tAlt+I".format("Toggle trigger texts"), menu)
-        action.triggered.connect(
-            partial(
-                self.plot_action, key=QtCore.Qt.Key_I, modifier=QtCore.Qt.AltModifier
-            )
-        )
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_I, modifier=QtCore.Qt.AltModifier))
         action.setShortcut(QtGui.QKeySequence("Alt+I"))
         cursors_actions.addAction(action)
 
@@ -475,9 +443,7 @@ class PlotWindow(QtWidgets.QMainWindow):
             palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Shadow, brush)
             brush = QtGui.QBrush(QtGui.QColor(27, 27, 27))
             brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(
-                QtGui.QPalette.Inactive, QtGui.QPalette.AlternateBase, brush
-            )
+            palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.AlternateBase, brush)
             brush = QtGui.QBrush(QtGui.QColor(255, 255, 220))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.ToolTipBase, brush)
@@ -523,9 +489,7 @@ class PlotWindow(QtWidgets.QMainWindow):
             palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Shadow, brush)
             brush = QtGui.QBrush(QtGui.QColor(55, 55, 55))
             brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(
-                QtGui.QPalette.Disabled, QtGui.QPalette.AlternateBase, brush
-            )
+            palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.AlternateBase, brush)
             brush = QtGui.QBrush(QtGui.QColor(255, 255, 220))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.ToolTipBase, brush)

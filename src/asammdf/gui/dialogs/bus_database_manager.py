@@ -40,9 +40,7 @@ class BusDatabaseManagerDialog(QtWidgets.QDialog):
 
         self.horLayout = QtWidgets.QHBoxLayout(self)
 
-        spacer = QtWidgets.QSpacerItem(
-            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-        )
+        spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.apply_btn = QtWidgets.QPushButton("Apply")
         self.cancel_btn = QtWidgets.QPushButton("Cancel")
         self.horLayout.addSpacerItem(spacer)

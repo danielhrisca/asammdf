@@ -57,9 +57,7 @@ def generate_test_file(tmpdir, version="4.10"):
     sigs = []
     for i in range(channels_count):
         conversion = {
-            "conversion_type": v4c.CONVERSION_TYPE_LIN
-            if version >= "4.00"
-            else v3c.CONVERSION_TYPE_LINEAR,
+            "conversion_type": v4c.CONVERSION_TYPE_LIN if version >= "4.00" else v3c.CONVERSION_TYPE_LINEAR,
             "a": float(i),
             "b": -0.5,
         }
@@ -79,9 +77,7 @@ def generate_test_file(tmpdir, version="4.10"):
     sigs = []
     for i in range(channels_count):
         conversion = {
-            "conversion_type": v4c.CONVERSION_TYPE_ALG
-            if version >= "4.00"
-            else v3c.CONVERSION_TYPE_FORMULA,
+            "conversion_type": v4c.CONVERSION_TYPE_ALG if version >= "4.00" else v3c.CONVERSION_TYPE_FORMULA,
             "formula": "{} * sin(X)".format(i),
         }
         sig = Signal(
@@ -100,9 +96,7 @@ def generate_test_file(tmpdir, version="4.10"):
     sigs = []
     for i in range(channels_count):
         conversion = {
-            "conversion_type": v4c.CONVERSION_TYPE_RAT
-            if version >= "4.00"
-            else v3c.CONVERSION_TYPE_RAT,
+            "conversion_type": v4c.CONVERSION_TYPE_RAT if version >= "4.00" else v3c.CONVERSION_TYPE_RAT,
             "P1": 0,
             "P2": i,
             "P3": -0.5,
@@ -126,9 +120,7 @@ def generate_test_file(tmpdir, version="4.10"):
     sigs = []
     encoding = "latin-1" if version < "4.00" else "utf-8"
     for i in range(channels_count):
-        sig = [
-            "Channel {} sample {}".format(i, j).encode(encoding) for j in range(cycles)
-        ]
+        sig = ["Channel {} sample {}".format(i, j).encode(encoding) for j in range(cycles)]
         sig = Signal(
             np.array(sig),
             t,
@@ -162,17 +154,13 @@ def generate_test_file(tmpdir, version="4.10"):
     conversion = {
         "raw": np.arange(255, dtype=np.float64),
         "phys": np.array(["Value {}".format(i).encode("ascii") for i in range(255)]),
-        "conversion_type": v4c.CONVERSION_TYPE_TABX
-        if version >= "4.00"
-        else v3c.CONVERSION_TYPE_TABX,
+        "conversion_type": v4c.CONVERSION_TYPE_TABX if version >= "4.00" else v3c.CONVERSION_TYPE_TABX,
         "links_nr": 260,
         "ref_param_nr": 255,
     }
 
     for i in range(255):
-        conversion["val_{}".format(i)] = conversion[
-            "param_val_{}".format(i)
-        ] = conversion["raw"][i]
+        conversion["val_{}".format(i)] = conversion["param_val_{}".format(i)] = conversion["raw"][i]
         conversion["text_{}".format(i)] = conversion["phys"][i]
     conversion["text_{}".format(255)] = "Default"
 

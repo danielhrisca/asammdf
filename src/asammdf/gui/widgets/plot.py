@@ -44,9 +44,7 @@ def monkey_patch_pyqtgraph():
             try:
                 return obj._id
             except AttributeError:
-                obj._id = next(
-                    pg.graphicsItems.ScatterPlotItem.SymbolAtlas._idGenerator
-                )
+                obj._id = next(pg.graphicsItems.ScatterPlotItem.SymbolAtlas._idGenerator)
                 return obj._id
 
         res = [
@@ -542,9 +540,7 @@ class PlotSignal(Signal):
 
                     value, kind, _ = self.value_at_timestamp(position)
 
-                    stats["cursor_value"] = value_as_str(
-                        value, format, self.plot_samples.dtype, precision
-                    )
+                    stats["cursor_value"] = value_as_str(value, format, self.plot_samples.dtype, precision)
 
                 else:
                     stats["cursor_t"] = ""
@@ -552,27 +548,17 @@ class PlotSignal(Signal):
 
                 if region:
                     start, stop = region
-                    stats["selected_start"] = value_as_str(
-                        start, format, np.dtype("f8"), precision
-                    )
-                    stats["selected_stop"] = value_as_str(
-                        stop, format, np.dtype("f8"), precision
-                    )
-                    stats["selected_delta_t"] = value_as_str(
-                        stop - start, format, np.dtype("f8"), precision
-                    )
+                    stats["selected_start"] = value_as_str(start, format, np.dtype("f8"), precision)
+                    stats["selected_stop"] = value_as_str(stop, format, np.dtype("f8"), precision)
+                    stats["selected_delta_t"] = value_as_str(stop - start, format, np.dtype("f8"), precision)
 
                     value, kind, _ = self.value_at_timestamp(start)
 
-                    stats["selected_left"] = value_as_str(
-                        value, format, self.plot_samples.dtype, precision
-                    )
+                    stats["selected_left"] = value_as_str(value, format, self.plot_samples.dtype, precision)
 
                     value, kind, _ = self.value_at_timestamp(stop)
 
-                    stats["selected_right"] = value_as_str(
-                        value, format, self.plot_samples.dtype, precision
-                    )
+                    stats["selected_right"] = value_as_str(value, format, self.plot_samples.dtype, precision)
 
                 else:
                     stats["selected_start"] = ""
@@ -603,8 +589,7 @@ class PlotSignal(Signal):
                     stats["overall_integral"] = 0
                 else:
                     stats["overall_gradient"] = value_as_str(
-                        (float(sig.samples[-1]) - float(sig.samples[0]))
-                        / (sig.timestamps[-1] - sig.timestamps[0]),
+                        (float(sig.samples[-1]) - float(sig.samples[0])) / (sig.timestamps[-1] - sig.timestamps[0]),
                         format,
                         None,
                         precision,
@@ -613,47 +598,31 @@ class PlotSignal(Signal):
                         np.trapz(sig.samples, sig.timestamps), format, None, precision
                     )
 
-                stats["overall_min"] = value_as_str(
-                    self.min, format, self.plot_samples.dtype, precision
-                )
-                stats["overall_max"] = value_as_str(
-                    self.max, format, self.plot_samples.dtype, precision
-                )
-                stats["overall_average"] = value_as_str(
-                    sig.avg, format, None, precision
-                )
+                stats["overall_min"] = value_as_str(self.min, format, self.plot_samples.dtype, precision)
+                stats["overall_max"] = value_as_str(self.max, format, self.plot_samples.dtype, precision)
+                stats["overall_average"] = value_as_str(sig.avg, format, None, precision)
                 stats["overall_rms"] = value_as_str(sig.rms, format, None, precision)
                 stats["overall_std"] = value_as_str(sig.std, format, None, precision)
-                stats["overall_start"] = value_as_str(
-                    sig.timestamps[0], format, np.dtype("f8"), precision
-                )
-                stats["overall_stop"] = value_as_str(
-                    sig.timestamps[-1], format, np.dtype("f8"), precision
-                )
+                stats["overall_start"] = value_as_str(sig.timestamps[0], format, np.dtype("f8"), precision)
+                stats["overall_stop"] = value_as_str(sig.timestamps[-1], format, np.dtype("f8"), precision)
                 stats["overall_delta"] = value_as_str(
                     sig.samples[-1] - sig.samples[0],
                     format,
                     self.plot_samples.dtype,
                     precision,
                 )
-                stats["overall_delta_t"] = value_as_str(
-                    x[-1] - x[0], format, np.dtype("f8"), precision
-                )
+                stats["overall_delta_t"] = value_as_str(x[-1] - x[0], format, np.dtype("f8"), precision)
                 stats["unit"] = sig.unit
                 stats["color"] = sig.color
                 stats["name"] = sig.name
 
                 if cursor is not None:
                     position = cursor
-                    stats["cursor_t"] = value_as_str(
-                        position, format, np.dtype("f8"), precision
-                    )
+                    stats["cursor_t"] = value_as_str(position, format, np.dtype("f8"), precision)
 
                     value, kind, _ = self.value_at_timestamp(position)
 
-                    stats["cursor_value"] = value_as_str(
-                        value, format, self.plot_samples.dtype, precision
-                    )
+                    stats["cursor_value"] = value_as_str(value, format, self.plot_samples.dtype, precision)
 
                 else:
                     stats["cursor_t"] = ""
@@ -663,15 +632,9 @@ class PlotSignal(Signal):
                     start, stop = region
 
                     new_stats = {}
-                    new_stats["selected_start"] = value_as_str(
-                        start, format, np.dtype("f8"), precision
-                    )
-                    new_stats["selected_stop"] = value_as_str(
-                        stop, format, np.dtype("f8"), precision
-                    )
-                    new_stats["selected_delta_t"] = value_as_str(
-                        stop - start, format, np.dtype("f8"), precision
-                    )
+                    new_stats["selected_start"] = value_as_str(start, format, np.dtype("f8"), precision)
+                    new_stats["selected_stop"] = value_as_str(stop, format, np.dtype("f8"), precision)
+                    new_stats["selected_delta_t"] = value_as_str(stop - start, format, np.dtype("f8"), precision)
 
                     cut = sig.cut(start, stop)
 
@@ -695,18 +658,10 @@ class PlotSignal(Signal):
                             samples[-1], format, self.plot_samples.dtype, precision
                         )
 
-                        new_stats["selected_min"] = value_as_str(
-                            np.nanmin(samples), format, samples.dtype, precision
-                        )
-                        new_stats["selected_max"] = value_as_str(
-                            np.nanmax(samples), format, samples.dtype, precision
-                        )
-                        new_stats["selected_average"] = value_as_str(
-                            np.mean(samples), format, None, precision
-                        )
-                        new_stats["selected_std"] = value_as_str(
-                            np.std(samples), format, None, precision
-                        )
+                        new_stats["selected_min"] = value_as_str(np.nanmin(samples), format, samples.dtype, precision)
+                        new_stats["selected_max"] = value_as_str(np.nanmax(samples), format, samples.dtype, precision)
+                        new_stats["selected_average"] = value_as_str(np.mean(samples), format, None, precision)
+                        new_stats["selected_std"] = value_as_str(np.std(samples), format, None, precision)
                         new_stats["selected_rms"] = value_as_str(
                             np.sqrt(np.mean(np.square(samples))),
                             format,
@@ -733,8 +688,7 @@ class PlotSignal(Signal):
                             new_stats["selected_integral"] = 0
                         else:
                             new_stats["selected_gradient"] = value_as_str(
-                                (float(samples[-1]) - float(samples[0]))
-                                / (timestamps[-1] - timestamps[0]),
+                                (float(samples[-1]) - float(samples[0])) / (timestamps[-1] - timestamps[0]),
                                 format,
                                 None,
                                 precision,
@@ -778,15 +732,9 @@ class PlotSignal(Signal):
                 start, stop = view_region
 
                 new_stats = {}
-                new_stats["visible_start"] = value_as_str(
-                    start, format, np.dtype("f8"), precision
-                )
-                new_stats["visible_stop"] = value_as_str(
-                    stop, format, np.dtype("f8"), precision
-                )
-                new_stats["visible_delta_t"] = value_as_str(
-                    stop - start, format, np.dtype("f8"), precision
-                )
+                new_stats["visible_start"] = value_as_str(start, format, np.dtype("f8"), precision)
+                new_stats["visible_stop"] = value_as_str(stop, format, np.dtype("f8"), precision)
+                new_stats["visible_delta_t"] = value_as_str(stop - start, format, np.dtype("f8"), precision)
 
                 cut = sig.cut(start, stop)
 
@@ -804,18 +752,10 @@ class PlotSignal(Signal):
                 if size:
                     kind = samples.dtype.kind
 
-                    new_stats["visible_min"] = value_as_str(
-                        np.nanmin(samples), format, samples.dtype, precision
-                    )
-                    new_stats["visible_max"] = value_as_str(
-                        np.nanmax(samples), format, samples.dtype, precision
-                    )
-                    new_stats["visible_average"] = value_as_str(
-                        np.mean(samples), format, None, precision
-                    )
-                    new_stats["visible_std"] = value_as_str(
-                        np.std(samples), format, None, precision
-                    )
+                    new_stats["visible_min"] = value_as_str(np.nanmin(samples), format, samples.dtype, precision)
+                    new_stats["visible_max"] = value_as_str(np.nanmax(samples), format, samples.dtype, precision)
+                    new_stats["visible_average"] = value_as_str(np.mean(samples), format, None, precision)
+                    new_stats["visible_std"] = value_as_str(np.std(samples), format, None, precision)
                     new_stats["visible_rms"] = value_as_str(
                         np.sqrt(np.mean(np.square(samples))), format, None, precision
                     )
@@ -839,8 +779,7 @@ class PlotSignal(Signal):
                         new_stats["visible_integral"] = 0
                     else:
                         new_stats["visible_gradient"] = value_as_str(
-                            (float(samples[-1]) - float(samples[0]))
-                            / (timestamps[-1] - timestamps[0]),
+                            (float(samples[-1]) - float(samples[0])) / (timestamps[-1] - timestamps[0]),
                             format,
                             None,
                             precision,
@@ -882,9 +821,7 @@ class PlotSignal(Signal):
 
             if cursor is not None:
                 position = cursor
-                stats["cursor_t"] = value_as_str(
-                    position, format, np.dtype("f8"), precision
-                )
+                stats["cursor_t"] = value_as_str(position, format, np.dtype("f8"), precision)
 
                 stats["cursor_value"] = "n.a."
 
@@ -895,15 +832,9 @@ class PlotSignal(Signal):
             if region is not None:
                 start, stop = region
 
-                stats["selected_start"] = value_as_str(
-                    start, format, np.dtype("f8"), precision
-                )
-                stats["selected_stop"] = value_as_str(
-                    stop, format, np.dtype("f8"), precision
-                )
-                stats["selected_delta_t"] = value_as_str(
-                    stop - start, format, np.dtype("f8"), precision
-                )
+                stats["selected_start"] = value_as_str(start, format, np.dtype("f8"), precision)
+                stats["selected_stop"] = value_as_str(stop, format, np.dtype("f8"), precision)
+                stats["selected_delta_t"] = value_as_str(stop - start, format, np.dtype("f8"), precision)
 
                 stats["selected_min"] = "n.a."
                 stats["selected_max"] = "n.a."
@@ -933,15 +864,9 @@ class PlotSignal(Signal):
 
             start, stop = view_region
 
-            stats["visible_start"] = value_as_str(
-                start, format, np.dtype("f8"), precision
-            )
-            stats["visible_stop"] = value_as_str(
-                stop, format, np.dtype("f8"), precision
-            )
-            stats["visible_delta_t"] = value_as_str(
-                stop - start, format, np.dtype("f8"), precision
-            )
+            stats["visible_start"] = value_as_str(start, format, np.dtype("f8"), precision)
+            stats["visible_stop"] = value_as_str(stop, format, np.dtype("f8"), precision)
+            stats["visible_delta_t"] = value_as_str(stop - start, format, np.dtype("f8"), precision)
 
             stats["visible_min"] = "n.a."
             stats["visible_max"] = "n.a."
@@ -1110,9 +1035,7 @@ class PlotSignal(Signal):
                         self._dtype = "f8"
 
                     if samples.dtype != self._plot_samples.dtype:
-                        self._plot_samples = np.empty(
-                            2 * PLOT_BUFFER_SIZE, dtype=samples.dtype
-                        )
+                        self._plot_samples = np.empty(2 * PLOT_BUFFER_SIZE, dtype=samples.dtype)
 
                         self._dtype = samples.dtype
 
@@ -1223,9 +1146,7 @@ class PlotSignal(Signal):
                     rows = (stop_ - start_) // visible_duplication
                     stop_2 = start_ + rows * visible_duplication
 
-                    samples = signal_samples[start_:stop_2].reshape(
-                        rows, visible_duplication
-                    )
+                    samples = signal_samples[start_:stop_2].reshape(rows, visible_duplication)
 
                     try:
                         pos_max = samples.argmax(axis=1)
@@ -1262,11 +1183,7 @@ class PlotSignal(Signal):
                             pos_max = np.nanargmax(samples_)
                             pos_min = np.nanargmin(samples_)
 
-                        pos2 = (
-                            [pos_min, pos_max]
-                            if pos_min < pos_max
-                            else [pos_max, pos_min]
-                        )
+                        pos2 = [pos_min, pos_max] if pos_min < pos_max else [pos_max, pos_min]
 
                         _size = len(pos)
 
@@ -1376,9 +1293,7 @@ class PlotSignal(Signal):
                 try:
                     value = value.decode("utf-8", errors="replace").strip(" \r\n\t\v\0")
                 except:
-                    value = value.decode("latin-1", errors="replace").strip(
-                        " \r\n\t\v\0"
-                    )
+                    value = value.decode("latin-1", errors="replace").strip(" \r\n\t\v\0")
 
                 value = value or "<empty string>"
             elif kind == "f":
@@ -1462,9 +1377,7 @@ class Plot(QtWidgets.QWidget):
         self._inhibit_timestamp_signals = False
         self._inhibit_timestamp_signals_timer = QtCore.QTimer()
         self._inhibit_timestamp_signals_timer.setSingleShot(True)
-        self._inhibit_timestamp_signals_timer.timeout.connect(
-            self._inhibit_timestamp_handler
-        )
+        self._inhibit_timestamp_signals_timer.timeout.connect(self._inhibit_timestamp_handler)
         self.can_edit_ranges = True
 
         self.region_values_display_mode = region_values_display_mode
@@ -1574,9 +1487,7 @@ class Plot(QtWidgets.QWidget):
         )
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/stack.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/stack.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         menu.addAction(
             icon,
             "Stack",
@@ -1590,15 +1501,11 @@ class Plot(QtWidgets.QWidget):
         )
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/increase-font.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/increase-font.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         menu.addAction(icon, "Increase font", self.increase_font)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/decrease-font.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/decrease-font.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         menu.addAction(icon, "Decrease font", self.decrease_font)
 
         btn.setMenu(menu)
@@ -1616,9 +1523,7 @@ class Plot(QtWidgets.QWidget):
             )
         )
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/zoom-in.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/zoom-in.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         btn.setIcon(icon)
         btn.setToolTip("Zoom in")
         hbox.addWidget(btn)
@@ -1634,9 +1539,7 @@ class Plot(QtWidgets.QWidget):
             )
         )
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/zoom-out.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/zoom-out.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         btn.setIcon(icon)
         btn.setToolTip("Zoom out")
         hbox.addWidget(btn)
@@ -1645,9 +1548,7 @@ class Plot(QtWidgets.QWidget):
             self.undo_btn = btn = QtWidgets.QPushButton("")
             btn.clicked.connect(self.undo_zoom)
             icon = QtGui.QIcon()
-            icon.addPixmap(
-                QtGui.QPixmap(":/undo.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-            )
+            icon.addPixmap(QtGui.QPixmap(":/undo.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
             btn.setIcon(icon)
             btn.setToolTip("Undo zoom")
             hbox.addWidget(btn)
@@ -1656,9 +1557,7 @@ class Plot(QtWidgets.QWidget):
             self.redo_btn = btn = QtWidgets.QPushButton("")
             btn.clicked.connect(self.redo_zoom)
             icon = QtGui.QIcon()
-            icon.addPixmap(
-                QtGui.QPixmap(":/redo.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-            )
+            icon.addPixmap(QtGui.QPixmap(":/redo.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
             btn.setIcon(icon)
             btn.setToolTip("Redo zoom")
             hbox.addWidget(btn)
@@ -1668,9 +1567,7 @@ class Plot(QtWidgets.QWidget):
         btn.setObjectName("lock_btn")
         btn.clicked.connect(self.set_locked)
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/unlocked.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/unlocked.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         btn.setIcon(icon)
         btn.setToolTip("The Y axis is unlocked. Press to lock")
         hbox.addWidget(btn)
@@ -1681,22 +1578,16 @@ class Plot(QtWidgets.QWidget):
         btn.setObjectName("hide_axes_btn")
         self.hide_axes_btn.clicked.connect(self.hide_axes)
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/axis_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/axis_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         btn.setIcon(icon)
         btn.setToolTip("Hide axis")
         hbox.addWidget(self.hide_axes_btn)
 
         self.selected_channel_value_btn = btn = QtWidgets.QPushButton("")
         btn.setObjectName("selected_channel_value_btn")
-        self.selected_channel_value_btn.clicked.connect(
-            self.hide_selected_channel_value
-        )
+        self.selected_channel_value_btn.clicked.connect(self.hide_selected_channel_value)
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/number_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/number_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         btn.setIcon(icon)
         btn.setToolTip("Hide axis")
         hbox.addWidget(self.selected_channel_value_btn)
@@ -1705,9 +1596,7 @@ class Plot(QtWidgets.QWidget):
         btn.setObjectName("focused_mode_btn")
         self.focused_mode_btn.clicked.connect(self.toggle_focused_mode)
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/focus_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/focus_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         btn.setIcon(icon)
         btn.setToolTip("Toggle focused mode")
         hbox.addWidget(self.focused_mode_btn)
@@ -1716,9 +1605,7 @@ class Plot(QtWidgets.QWidget):
         btn.setObjectName("delta_btn")
         self.delta_btn.clicked.connect(self.toggle_region_values_display_mode)
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/delta_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/delta_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         btn.setIcon(icon)
         btn.setToolTip("Toggle region values display mode")
         hbox.addWidget(self.delta_btn)
@@ -1727,9 +1614,7 @@ class Plot(QtWidgets.QWidget):
         btn.setObjectName("bookmark_btn")
         btn.clicked.connect(self.toggle_bookmarks)
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/bookmark_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/bookmark_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         btn.setIcon(icon)
         btn.setToolTip("Toggle bookmarks")
         hbox.addWidget(btn)
@@ -1737,9 +1622,7 @@ class Plot(QtWidgets.QWidget):
         hbox.addStretch()
 
         self.selected_channel_value = QtWidgets.QLabel("")
-        self.selected_channel_value.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
-        )
+        self.selected_channel_value.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.selected_channel_value.setAutoFillBackground(True)
         font = self.selected_channel_value.font()
         font.setBold(True)
@@ -1751,24 +1634,18 @@ class Plot(QtWidgets.QWidget):
         vbox.addWidget(self.channel_selection)
         vbox.addWidget(self.cursor_info)
 
-        self.range_proxy = pg.SignalProxy(
-            self.plot.range_modified, rateLimit=16, slot=self.range_modified
-        )
+        self.range_proxy = pg.SignalProxy(self.plot.range_modified, rateLimit=16, slot=self.range_modified)
         # self.plot.range_modified.connect(self.range_modified)
         self.plot.range_removed.connect(self.range_removed)
         self.plot.range_modified_finished.connect(self.range_modified_finished)
         self.plot.cursor_removed.connect(self.cursor_removed)
         self.plot.current_uuid_changed.connect(self.current_uuid_changed)
 
-        self.cursor_proxy = pg.SignalProxy(
-            self.plot.cursor_moved, rateLimit=16, slot=self.cursor_moved
-        )
+        self.cursor_proxy = pg.SignalProxy(self.plot.cursor_moved, rateLimit=16, slot=self.cursor_moved)
         # self.plot.cursor_moved.connect(self.cursor_moved)
         self.plot.cursor_move_finished.connect(self.cursor_move_finished)
         self.plot.xrange_changed.connect(self.xrange_changed)
-        self.plot.computation_channel_inserted.connect(
-            self.computation_channel_inserted
-        )
+        self.plot.computation_channel_inserted.connect(self.computation_channel_inserted)
         self.plot.curve_clicked.connect(self.curve_clicked)
         self._visible_entries = set()
         self.visible_entries_modified = False
@@ -1810,19 +1687,11 @@ class Plot(QtWidgets.QWidget):
         if signals:
             unitColumnWidth = max([len(signal.unit) + 10 for signal in signals])
 
-        self.channel_selection.setColumnWidth(
-            self.channel_selection.NameColumn, nameColumnWidth
-        )
+        self.channel_selection.setColumnWidth(self.channel_selection.NameColumn, nameColumnWidth)
         self.channel_selection.setColumnWidth(self.channel_selection.ValueColumn, 83)
-        self.channel_selection.setColumnWidth(
-            self.channel_selection.UnitColumn, unitColumnWidth
-        )
-        self.channel_selection.setColumnWidth(
-            self.channel_selection.CommonAxisColumn, 35
-        )
-        self.channel_selection.setColumnWidth(
-            self.channel_selection.IndividualAxisColumn, 35
-        )
+        self.channel_selection.setColumnWidth(self.channel_selection.UnitColumn, unitColumnWidth)
+        self.channel_selection.setColumnWidth(self.channel_selection.CommonAxisColumn, 35)
+        self.channel_selection.setColumnWidth(self.channel_selection.IndividualAxisColumn, 35)
         self.hide()
 
         if signals:
@@ -1835,12 +1704,8 @@ class Plot(QtWidgets.QWidget):
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
         self.channel_selection.group_activation_changed.connect(self.plot.update)
-        self.channel_selection.currentItemChanged.connect(
-            self.channel_selection_row_changed
-        )
-        self.channel_selection.itemSelectionChanged.connect(
-            self.channel_selection_changed
-        )
+        self.channel_selection.currentItemChanged.connect(self.channel_selection_row_changed)
+        self.channel_selection.itemSelectionChanged.connect(self.channel_selection_changed)
         self.channel_selection.add_channels_request.connect(self.add_channels_request)
         self.channel_selection.set_time_offset.connect(self.plot.set_time_offset)
         self.channel_selection.show_properties.connect(self._show_properties)
@@ -1848,24 +1713,16 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.edit_computation.connect(self.plot.edit_computation)
         self.channel_selection.itemClicked.connect(self.flash_curve)
 
-        self.channel_selection.model().dataChanged.connect(
-            self.channel_selection_item_changed
-        )
+        self.channel_selection.model().dataChanged.connect(self.channel_selection_item_changed)
 
-        self.channel_selection.visible_items_changed.connect(
-            self._update_visibile_entries
-        )
+        self.channel_selection.visible_items_changed.connect(self._update_visibile_entries)
 
         self.channel_selection.pattern_group_added.connect(self.pattern_group_added_req)
-        self.channel_selection.double_click.connect(
-            self.channel_selection_item_double_clicked
-        )
+        self.channel_selection.double_click.connect(self.channel_selection_item_double_clicked)
 
         self.channel_selection.compute_fft_request.connect(self.compute_fft)
         self.channel_selection.itemExpanded.connect(self.update_current_values)
-        self.channel_selection.verticalScrollBar().valueChanged.connect(
-            self.update_current_values
-        )
+        self.channel_selection.verticalScrollBar().valueChanged.connect(self.update_current_values)
 
         self.keyboard_events = (
             set(
@@ -1934,20 +1791,12 @@ class Plot(QtWidgets.QWidget):
         self.splitter.splitterMoved.connect(self.set_splitter)
 
         self.hide_selected_channel_value(
-            hide=self._settings.value(
-                "plot_hide_selected_channel_value", False, type=bool
-            )
+            hide=self._settings.value("plot_hide_selected_channel_value", False, type=bool)
         )
-        self.toggle_focused_mode(
-            focused=self._settings.value("plot_focused_mode", False, type=bool)
-        )
-        self.toggle_region_values_display_mode(
-            mode=self._settings.value("plot_region_values_display_mode", "value")
-        )
+        self.toggle_focused_mode(focused=self._settings.value("plot_focused_mode", False, type=bool))
+        self.toggle_region_values_display_mode(mode=self._settings.value("plot_region_values_display_mode", "value"))
 
-        self.toggle_bookmarks(
-            hide=not self._settings.value("plot_bookmarks", False, type=bool)
-        )
+        self.toggle_bookmarks(hide=not self._settings.value("plot_bookmarks", False, type=bool))
         self.hide_axes(hide=self._settings.value("plot_hide_axes", False, type=bool))
         self.set_locked(locked=self._settings.value("plot_locked", False, type=bool))
 
@@ -1973,9 +1822,7 @@ class Plot(QtWidgets.QWidget):
                 ranges = copy_ranges(info["ranges"])
                 for range_info in ranges:
                     range_info["font_color"] = fn.mkColor(range_info["font_color"])
-                    range_info["background_color"] = fn.mkColor(
-                        range_info["background_color"]
-                    )
+                    range_info["background_color"] = fn.mkColor(range_info["background_color"])
 
                 if info.get("type", "channel") == "group":
                     item = ChannelsTreeItem(
@@ -1988,9 +1835,7 @@ class Plot(QtWidgets.QWidget):
                     children.append(item)
                     item.set_ranges(ranges)
 
-                    groups.extend(
-                        add_new_items(tree, item, info["channels"], items_pool)
-                    )
+                    groups.extend(add_new_items(tree, item, info["channels"], items_pool))
                     groups.append((item, info))
 
                 else:
@@ -2027,9 +1872,7 @@ class Plot(QtWidgets.QWidget):
                 invalid_indexes = invalid_indexes[:10] + 1
                 idx = invalid_indexes[0]
                 ts = channel.timestamps[idx - 1 : idx + 2]
-                invalid.append(
-                    f"{channel.name} @ index {invalid_indexes[:10] - 1} with first time stamp error: {ts}"
-                )
+                invalid.append(f"{channel.name} @ index {invalid_indexes[:10] - 1} with first time stamp error: {ts}")
                 if len(np.argwhere(diff < 0).ravel()):
                     can_trim = False
 
@@ -2174,19 +2017,15 @@ class Plot(QtWidgets.QWidget):
                     if item.pattern:
                         item.setCheckState(
                             item.NameColumn,
-                            QtCore.Qt.Checked
-                            if info["enabled"]
-                            else QtCore.Qt.Unchecked,
+                            QtCore.Qt.Checked if info["enabled"] else QtCore.Qt.Unchecked,
                         )
                     else:
                         if not item.childCount():
                             item.setCheckState(
                                 item.NameColumn,
-                                QtCore.Qt.Checked
-                                if info["enabled"]
-                                else QtCore.Qt.Unchecked,
+                                QtCore.Qt.Checked if info["enabled"] else QtCore.Qt.Unchecked,
                             )
-                    if info["disabled"]:
+                    if "disabled" in info and info["disabled"]:
                         item.set_disabled(info["disabled"])
 
                 self.channel_selection.blockSignals(False)
@@ -2205,10 +2044,7 @@ class Plot(QtWidgets.QWidget):
                 if destination.type() == ChannelsTreeItem.Group:
                     destination.addChildren(children)
                 else:
-                    parent = (
-                        destination.parent()
-                        or self.channel_selection.invisibleRootItem()
-                    )
+                    parent = destination.parent() or self.channel_selection.invisibleRootItem()
                     index = parent.indexOfChild(destination)
                     parent.insertChildren(index, children)
 
@@ -2252,17 +2088,10 @@ class Plot(QtWidgets.QWidget):
         size = sum(self.splitter.sizes())
 
         if Plot.dynamic_columns_width or initial:
-            self.channel_selection.resizeColumnToContents(
-                self.channel_selection.NameColumn
-            )
-            self.channel_selection.resizeColumnToContents(
-                self.channel_selection.UnitColumn
-            )
+            self.channel_selection.resizeColumnToContents(self.channel_selection.NameColumn)
+            self.channel_selection.resizeColumnToContents(self.channel_selection.UnitColumn)
 
-        width = sum(
-            self.channel_selection.columnWidth(col)
-            for col in range(self.channel_selection.columnCount())
-        )
+        width = sum(self.channel_selection.columnWidth(col) for col in range(self.channel_selection.columnCount()))
 
         if width > self.splitter.sizes()[0]:
             if size - width >= 300:
@@ -2325,9 +2154,7 @@ class Plot(QtWidgets.QWidget):
         else:
             channel["individual_axis"] = False
 
-        channel["common_axis"] = (
-            item.checkState(item.CommonAxisColumn) == QtCore.Qt.Checked
-        )
+        channel["common_axis"] = item.checkState(item.CommonAxisColumn) == QtCore.Qt.Checked
         channel["color"] = sig.color.name()
         channel["computed"] = bool(sig.flags & Signal.Flags.computed)
         channel["ranges"] = copy_ranges(widget.ranges)
@@ -2455,10 +2282,7 @@ class Plot(QtWidgets.QWidget):
                         item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
             elif item.type() == item.Group:
                 if (
-                    (
-                        Plot.item_double_click_handling == "enable/disable"
-                        and button == QtCore.Qt.MouseButton.LeftButton
-                    )
+                    (Plot.item_double_click_handling == "enable/disable" and button == QtCore.Qt.MouseButton.LeftButton)
                     or Plot.item_double_click_handling == "expand/collapse"
                     and button == QtCore.Qt.MouseButton.RightButton
                 ):
@@ -2507,13 +2331,9 @@ class Plot(QtWidgets.QWidget):
                     self.flash_curve(current, 0)
 
     def clear(self):
-        event = QtGui.QKeyEvent(
-            QtCore.QEvent.KeyPress, QtCore.Qt.Key_A, QtCore.Qt.ControlModifier
-        )
+        event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_A, QtCore.Qt.ControlModifier)
         self.channel_selection.keyPressEvent(event)
-        event = QtGui.QKeyEvent(
-            QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier
-        )
+        event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier)
         self.channel_selection.keyPressEvent(event)
 
     def close(self):
@@ -2649,9 +2469,7 @@ class Plot(QtWidgets.QWidget):
                             self.selected_channel_value.width() - 10,
                         )
 
-                        self.selected_channel_value.setText(
-                            elided
-                        )  # (f"{value} {unit}")
+                        self.selected_channel_value.setText(elided)  # (f"{value} {unit}")
 
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
@@ -2774,15 +2592,11 @@ class Plot(QtWidgets.QWidget):
         if hide:
             self.selected_channel_value.hide()
             self.selected_channel_value_btn.setFlat(True)
-            self.selected_channel_value_btn.setToolTip(
-                "Show selected channel value panel"
-            )
+            self.selected_channel_value_btn.setToolTip("Show selected channel value panel")
         else:
             self.selected_channel_value.show()
             self.selected_channel_value_btn.setFlat(False)
-            self.selected_channel_value_btn.setToolTip(
-                "Hide selected channel value panel"
-            )
+            self.selected_channel_value_btn.setToolTip("Hide selected channel value panel")
 
         if hide:
             png = ":/number.png"
@@ -2851,8 +2665,7 @@ class Plot(QtWidgets.QWidget):
             and modifiers == QtCore.Qt.ControlModifier
         ):
             selected_items = self.channel_selection.selectedItems() or [
-                self.channel_selection.topLevelItem(i)
-                for i in range(self.channel_selection.topLevelItemCount())
+                self.channel_selection.topLevelItem(i) for i in range(self.channel_selection.topLevelItemCount())
             ]
 
             if key == QtCore.Qt.Key_B:
@@ -2907,22 +2720,14 @@ class Plot(QtWidgets.QWidget):
             self.current_uuid_changed(self.plot.current_uuid)
             self.plot.update()
 
-        elif (
-            key in (QtCore.Qt.Key_R, QtCore.Qt.Key_S)
-            and modifiers == QtCore.Qt.AltModifier
-            and self._can_switch_mode
-        ):
+        elif key in (QtCore.Qt.Key_R, QtCore.Qt.Key_S) and modifiers == QtCore.Qt.AltModifier and self._can_switch_mode:
             selected_items = self.channel_selection.selectedItems()
             if not selected_items:
                 signals = [(sig, i) for i, sig in enumerate(self.plot.signals)]
                 uuids = [sig.uuid for sig in self.plot.signals]
 
             else:
-                uuids = [
-                    item.uuid
-                    for item in selected_items
-                    if item.type() == ChannelsTreeItem.Channel
-                ]
+                uuids = [item.uuid for item in selected_items if item.type() == ChannelsTreeItem.Channel]
 
                 signals = [self.plot.signal_by_uuid(uuid) for uuid in uuids]
 
@@ -2975,9 +2780,7 @@ class Plot(QtWidgets.QWidget):
                             self.plot.y_axis.mode = mode
                             self.plot.y_axis.picture = None
                             self.plot.y_axis.update()
-                            self.plot.viewbox.setYRange(
-                                buttom, top, padding=0, update=True
-                            )
+                            self.plot.viewbox.setYRange(buttom, top, padding=0, update=True)
 
                         self.plot.get_axis(idx).mode = mode
                         self.plot.get_axis(idx).picture = None
@@ -3038,9 +2841,7 @@ class Plot(QtWidgets.QWidget):
 
         elif key == QtCore.Qt.Key_G and modifiers == QtCore.Qt.ControlModifier:
             selected_items = [
-                item
-                for item in self.channel_selection.selectedItems()
-                if item.type() == ChannelsTreeItem.Channel
+                item for item in self.channel_selection.selectedItems() if item.type() == ChannelsTreeItem.Channel
             ]
 
             if selected_items:
@@ -3097,11 +2898,7 @@ class Plot(QtWidgets.QWidget):
         ):
             self.channel_selection.keyPressEvent(event)
 
-        elif (
-            key == QtCore.Qt.Key_R
-            and modifiers == QtCore.Qt.ControlModifier
-            and self.can_edit_ranges
-        ):
+        elif key == QtCore.Qt.Key_R and modifiers == QtCore.Qt.ControlModifier and self.can_edit_ranges:
             self.channel_selection.keyPressEvent(event)
 
         elif key == QtCore.Qt.Key_V and modifiers in (
@@ -3110,14 +2907,10 @@ class Plot(QtWidgets.QWidget):
         ):
             self.channel_selection.keyPressEvent(event)
 
-        elif (
-            key == QtCore.Qt.Key_BracketLeft and modifiers == QtCore.Qt.ControlModifier
-        ):
+        elif key == QtCore.Qt.Key_BracketLeft and modifiers == QtCore.Qt.ControlModifier:
             self.decrease_font()
 
-        elif (
-            key == QtCore.Qt.Key_BracketRight and modifiers == QtCore.Qt.ControlModifier
-        ):
+        elif key == QtCore.Qt.Key_BracketRight and modifiers == QtCore.Qt.ControlModifier:
             self.increase_font()
 
         elif event.keyCombination().toCombined() in self.plot.keyboard_events:
@@ -3321,9 +3114,7 @@ class Plot(QtWidgets.QWidget):
 
     def redo_zoom(self):
         if self.enable_zoom_history and self.zoom_history:
-            self.zoom_history_index = min(
-                self.zoom_history_index + 1, len(self.zoom_history) - 1
-            )
+            self.zoom_history_index = min(self.zoom_history_index + 1, len(self.zoom_history) - 1)
 
             snapshot = self.zoom_history[self.zoom_history_index]
 
@@ -3381,9 +3172,7 @@ class Plot(QtWidgets.QWidget):
         self.lock_btn.setToolTip(tooltip)
         self.lock_btn.setIcon(icon)
 
-        self.channel_selection.setColumnHidden(
-            self.channel_selection.CommonAxisColumn, locked
-        )
+        self.channel_selection.setColumnHidden(self.channel_selection.CommonAxisColumn, locked)
 
         self.locked = locked
         self.plot.set_locked(locked)
@@ -3436,9 +3225,7 @@ class Plot(QtWidgets.QWidget):
 
                         for range_info in ranges:
                             range_info["font_color"] = range_info["font_color"].name()
-                            range_info["background_color"] = range_info[
-                                "background_color"
-                            ].name()
+                            range_info["background_color"] = range_info["background_color"].name()
 
                         pattern["ranges"] = ranges
 
@@ -3446,14 +3233,10 @@ class Plot(QtWidgets.QWidget):
 
                     for range_info in ranges:
                         range_info["font_color"] = range_info["font_color"].name()
-                        range_info["background_color"] = range_info[
-                            "background_color"
-                        ].name()
+                        range_info["background_color"] = range_info["background_color"].name()
 
                     channel = self.channel_group_item_to_config(item)
-                    channel["channels"] = (
-                        item_to_config(tree, item) if item.pattern is None else []
-                    )
+                    channel["channels"] = item_to_config(tree, item) if item.pattern is None else []
 
                 channels.append(channel)
 
@@ -3470,9 +3253,7 @@ class Plot(QtWidgets.QWidget):
             pattern["ranges"] = ranges
 
         config = {
-            "channels": item_to_config(
-                self.channel_selection, self.channel_selection.invisibleRootItem()
-            )
+            "channels": item_to_config(self.channel_selection, self.channel_selection.invisibleRootItem())
             if not self.pattern
             else [],
             "pattern": pattern,
@@ -3530,9 +3311,7 @@ class Plot(QtWidgets.QWidget):
             # invert so that the key press event will set the desider focused mode
             self.focused_mode = not focused
 
-        key_event = QtGui.QKeyEvent(
-            QtCore.QEvent.KeyPress, QtCore.Qt.Key_2, QtCore.Qt.NoModifier
-        )
+        key_event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_2, QtCore.Qt.NoModifier)
         self.keyPressEvent(key_event)
 
         if focused is None:
@@ -3555,9 +3334,7 @@ class Plot(QtWidgets.QWidget):
 
     def toggle_region_values_display_mode(self, event=None, mode=None):
         if mode is None:
-            self.region_values_display_mode = (
-                "delta" if self.region_values_display_mode == "value" else "value"
-            )
+            self.region_values_display_mode = "delta" if self.region_values_display_mode == "value" else "value"
         else:
             self.region_values_display_mode = mode
 
@@ -3566,9 +3343,7 @@ class Plot(QtWidgets.QWidget):
             self.delta_btn.setToolTip("Switch to region cursors delta display mode")
         else:
             self.delta_btn.setFlat(False)
-            self.delta_btn.setToolTip(
-                "Switch to active region cursor value display mode"
-            )
+            self.delta_btn.setToolTip("Switch to active region cursor value display mode")
 
         if self.delta_btn.isFlat():
             png = ":/delta.png"
@@ -3579,9 +3354,7 @@ class Plot(QtWidgets.QWidget):
         self.delta_btn.setIcon(icon)
 
         if mode is None:
-            self._settings.setValue(
-                "plot_region_values_display_mode", self.region_values_display_mode
-            )
+            self._settings.setValue("plot_region_values_display_mode", self.region_values_display_mode)
 
         self.range_modified()
 
@@ -3644,10 +3417,7 @@ class Plot(QtWidgets.QWidget):
                     if (
                         item.uuid == self.info_uuid
                         or item.exists
-                        and (
-                            item.checkState(item.NameColumn) == QtCore.Qt.Checked
-                            or item._is_visible
-                        )
+                        and (item.checkState(item.NameColumn) == QtCore.Qt.Checked or item._is_visible)
                     ):
                         entry = (item.origin_uuid, item.signal.name, item.uuid)
                         _visible_entries.add(entry)
@@ -3670,11 +3440,7 @@ class Plot(QtWidgets.QWidget):
             self.info.set_stats(stats)
 
     def zoom_changed(self, inplace=False):
-        if (
-            self.enable_zoom_history
-            and self.plot.signals
-            and not self.plot.block_zoom_signal
-        ):
+        if self.enable_zoom_history and self.plot.signals and not self.plot.block_zoom_signal:
             snapshot = {
                 "x": self.plot.viewbox.viewRange()[0],
                 "y": {sig.uuid: sig.y_range for sig in self.plot.signals},
@@ -3687,10 +3453,7 @@ class Plot(QtWidgets.QWidget):
                 else:
                     self.zoom_history[self.zoom_history_index] = snapshot
             else:
-                if (
-                    not self.zoom_history
-                    or self.zoom_history[self.zoom_history_index] != snapshot
-                ):
+                if not self.zoom_history or self.zoom_history[self.zoom_history_index] != snapshot:
                     self.zoom_history = self.zoom_history[: self.zoom_history_index + 1]
 
                     self.zoom_history.append(snapshot)
@@ -3762,9 +3525,7 @@ class PlotGraphics(pg.PlotWidget):
 
         self.cursor_unit = "s" if x_axis == "time" else "Hz"
 
-        self.line_interconnect = (
-            line_interconnect if line_interconnect != "line" else ""
-        )
+        self.line_interconnect = line_interconnect if line_interconnect != "line" else ""
 
         self._can_trim = True
         self._can_paint = True
@@ -3849,17 +3610,13 @@ class PlotGraphics(pg.PlotWidget):
             else:
                 color = "black"
 
-            self.cursor1 = Cursor(
-                pos=pos, angle=90, movable=True, pen=color, hoverPen=color
-            )
+            self.cursor1 = Cursor(pos=pos, angle=90, movable=True, pen=color, hoverPen=color)
 
             self.viewbox.cursor = self.cursor1
             self.viewbox.addItem(self.cursor1, ignoreBounds=True)
 
             self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
-            self.cursor1.sigPositionChangeFinished.connect(
-                self.cursor_move_finished.emit
-            )
+            self.cursor1.sigPositionChangeFinished.connect(self.cursor_move_finished.emit)
             self.cursor_move_finished.emit(self.cursor1)
             self.cursor1.show()
         else:
@@ -3868,9 +3625,7 @@ class PlotGraphics(pg.PlotWidget):
         self.viewbox.sigYRangeChanged.connect(self.y_changed)
         self.viewbox.sigRangeChangedManually.connect(self.y_changed)
 
-        self.x_axis = FormatedAxis(
-            "bottom", maxTickLength=5, background=self.backgroundBrush().color()
-        )
+        self.x_axis = FormatedAxis("bottom", maxTickLength=5, background=self.backgroundBrush().color())
 
         if x_axis == "time":
             fmt = self._settings.value("plot_xaxis")
@@ -3881,9 +3636,7 @@ class PlotGraphics(pg.PlotWidget):
         self.x_axis.format = fmt
         self.x_axis.origin = origin
 
-        self.y_axis = FormatedAxis(
-            "left", maxTickLength=-5, background=self.backgroundBrush().color()
-        )
+        self.y_axis = FormatedAxis("left", maxTickLength=-5, background=self.backgroundBrush().color())
         self.y_axis.setWidth(48)
 
         self.y_axis.scale_editor_requested.connect(self.open_scale_editor)
@@ -4157,9 +3910,7 @@ class PlotGraphics(pg.PlotWidget):
                 if self.initial_x_range == "adjust":
                     self.viewbox.setXRange(start_t, stop_t, update=False)
                 else:
-                    delta = (
-                        self.viewbox.viewRange()[0][1] - self.viewbox.viewRange()[0][0]
-                    )
+                    delta = self.viewbox.viewRange()[0][1] - self.viewbox.viewRange()[0][0]
                     stop_t = start_t + delta
                     self.viewbox.setXRange(start_t, stop_t, padding=0, update=False)
 
@@ -4169,8 +3920,7 @@ class PlotGraphics(pg.PlotWidget):
         trim_info = start, stop, width
 
         channels = [
-            PlotSignal(sig, i, trim_info=trim_info)
-            for i, sig in enumerate(channels.values(), len(self.signals))
+            PlotSignal(sig, i, trim_info=trim_info) for i, sig in enumerate(channels.values(), len(self.signals))
         ]
 
         self.signals.extend(channels)
@@ -4276,9 +4026,7 @@ class PlotGraphics(pg.PlotWidget):
                 break
         else:
             if (
-                QtCore.QKeyCombination(
-                    QtCore.Qt.Key_C, QtCore.Qt.ControlModifier
-                ).toCombined()
+                QtCore.QKeyCombination(QtCore.Qt.Key_C, QtCore.Qt.ControlModifier).toCombined()
                 not in self.disabled_keys
             ):
                 if self.region is not None:
@@ -4313,11 +4061,7 @@ class PlotGraphics(pg.PlotWidget):
         if self._timebase_db:
             stamps = {id(sig.timestamps): sig.timestamps for sig in self.signals}
 
-            timebases = [
-                timestamps
-                for id_, timestamps in stamps.items()
-                if id_ in self._timebase_db
-            ]
+            timebases = [timestamps for id_, timestamps in stamps.items() if id_ in self._timebase_db]
 
             count = len(timebases)
 
@@ -4360,10 +4104,7 @@ class PlotGraphics(pg.PlotWidget):
 
         self.block_zoom_signal = True
 
-        if (
-            zoom_mode in (self.viewbox.Y_zoom, *self.viewbox.XY_zoom)
-            and not self.locked
-        ):
+        if zoom_mode in (self.viewbox.Y_zoom, *self.viewbox.XY_zoom) and not self.locked:
             y1, y2 = sorted([p1.y(), p2.y()])
             y_bottom, y_top = self.viewbox.viewRange()[1]
             r_top = (y2 - y_bottom) / (y_top - y_bottom)
@@ -4568,9 +4309,7 @@ class PlotGraphics(pg.PlotWidget):
             cursor=self.cursor1.value() if self.cursor1 else None,
             region=self.region.getRegion() if self.region else None,
             view_region=self.viewbox.viewRange()[0],
-            precision=self._settings.value(
-                "stats_float_precision", sig.precision, type=int
-            ),
+            precision=self._settings.value("stats_float_precision", sig.precision, type=int),
         )
 
     def get_timestamp_index(self, timestamp, timestamps):
@@ -4630,9 +4369,7 @@ class PlotGraphics(pg.PlotWidget):
             handled = True
             if key == QtCore.Qt.Key_Y and modifier == QtCore.Qt.NoModifier:
                 if self.region is None:
-                    event_ = QtGui.QKeyEvent(
-                        QtCore.QEvent.KeyPress, QtCore.Qt.Key_R, QtCore.Qt.NoModifier
-                    )
+                    event_ = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_R, QtCore.Qt.NoModifier)
                     self.keyPressEvent(event_)
 
                 if self.region_lock is not None:
@@ -4651,16 +4388,10 @@ class PlotGraphics(pg.PlotWidget):
             elif key == QtCore.Qt.Key_X and modifier == QtCore.Qt.NoModifier:
                 if self.region is not None:
                     self.viewbox.setXRange(*self.region.getRegion(), padding=0)
-                    event_ = QtGui.QKeyEvent(
-                        QtCore.QEvent.KeyPress, QtCore.Qt.Key_R, QtCore.Qt.NoModifier
-                    )
+                    event_ = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_R, QtCore.Qt.NoModifier)
                     self.keyPressEvent(event_)
 
-            elif (
-                key == QtCore.Qt.Key_F
-                and modifier == QtCore.Qt.NoModifier
-                and not self.locked
-            ):
+            elif key == QtCore.Qt.Key_F and modifier == QtCore.Qt.NoModifier and not self.locked:
                 self.block_zoom_signal = True
                 if self.common_axis_items:
                     if any(
@@ -4691,9 +4422,7 @@ class PlotGraphics(pg.PlotWidget):
                             min_ = common_min
                             max_ = common_max
                         else:
-                            samples = signal.plot_samples[
-                                np.isfinite(signal.plot_samples)
-                            ]
+                            samples = signal.plot_samples[np.isfinite(signal.plot_samples)]
                             if len(samples):
                                 min_, max_ = (
                                     np.nanmin(samples),
@@ -4716,11 +4445,7 @@ class PlotGraphics(pg.PlotWidget):
                 self.zoom_changed.emit(False)
                 self.update()
 
-            elif (
-                key == QtCore.Qt.Key_F
-                and modifier == QtCore.Qt.ShiftModifier
-                and not self.locked
-            ):
+            elif key == QtCore.Qt.Key_F and modifier == QtCore.Qt.ShiftModifier and not self.locked:
                 self.block_zoom_signal = True
                 parent = self.parent().parent()
                 uuids = [
@@ -4787,10 +4512,7 @@ class PlotGraphics(pg.PlotWidget):
                         self.cursor1.setPos(value)
                         self.cursor_move_finished.emit(self.cursor1)
 
-            elif (
-                key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O)
-                and modifier == QtCore.Qt.NoModifier
-            ):
+            elif key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O) and modifier == QtCore.Qt.NoModifier:
                 x_range, _ = self.viewbox.viewRange()
                 delta = x_range[1] - x_range[0]
                 if key == QtCore.Qt.Key_I:
@@ -4803,11 +4525,7 @@ class PlotGraphics(pg.PlotWidget):
 
                 self.viewbox.setXRange(x_range[0] - step, x_range[1] + step, padding=0)
 
-            elif (
-                key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O)
-                and modifier == QtCore.Qt.ShiftModifier
-                and not self.locked
-            ):
+            elif key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O) and modifier == QtCore.Qt.ShiftModifier and not self.locked:
                 if key == QtCore.Qt.Key_I:
                     factor = 0.25
                 else:
@@ -4848,9 +4566,7 @@ class PlotGraphics(pg.PlotWidget):
                     self.viewbox.addItem(self.region)
                     self.region.sigRegionChanged.connect(self.range_modified.emit)
                     self.region.sigRegionChanged.connect(self.range_modified_handler)
-                    self.region.sigRegionChangeFinished.connect(
-                        self.range_modified_finished_handler
-                    )
+                    self.region.sigRegionChangeFinished.connect(self.range_modified_finished_handler)
                     start, stop = self.viewbox.viewRange()[0]
                     start, stop = (
                         start + 0.1 * (stop - start),
@@ -4860,9 +4576,7 @@ class PlotGraphics(pg.PlotWidget):
 
                     if self.cursor1 is not None:
                         self.cursor1.hide()
-                        self.region.setRegion(
-                            tuple(sorted((self.cursor1.value(), stop)))
-                        )
+                        self.region.setRegion(tuple(sorted((self.cursor1.value(), stop))))
 
                 else:
                     self.region_lock = None
@@ -4911,9 +4625,7 @@ class PlotGraphics(pg.PlotWidget):
                                 tmpf = Path(gettempdir()) / f"{perf_counter()}.mf4"
                                 mdf.save(tmpf, overwrite=True, compression=2)
 
-                                zipped_mf4 = ZipFile(
-                                    file_name, "w", compression=ZIP_DEFLATED
-                                )
+                                zipped_mf4 = ZipFile(file_name, "w", compression=ZIP_DEFLATED)
                                 zipped_mf4.write(
                                     str(tmpf),
                                     file_name.with_suffix(".mf4").name,
@@ -4925,11 +4637,7 @@ class PlotGraphics(pg.PlotWidget):
                             else:
                                 mdf.save(file_name, overwrite=True, compression=2)
 
-            elif (
-                key == QtCore.Qt.Key_S
-                and modifier == QtCore.Qt.NoModifier
-                and not self.locked
-            ):
+            elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.NoModifier and not self.locked:
                 self.block_zoom_signal = True
                 parent = self.parent().parent()
                 uuids = []
@@ -4950,33 +4658,24 @@ class PlotGraphics(pg.PlotWidget):
                 count = sum(
                     1
                     for sig in self.signals
-                    if sig.min != "n.a."
-                    and sig.enable
-                    and sig.uuid not in self.common_axis_items
+                    if sig.min != "n.a." and sig.enable and sig.uuid not in self.common_axis_items
                 )
 
-                if any(
-                    sig.min != "n.a."
-                    and sig.enable
-                    and sig.uuid in self.common_axis_items
-                    for sig in self.signals
-                ):
+                if any(sig.min != "n.a." and sig.enable and sig.uuid in self.common_axis_items for sig in self.signals):
                     count += 1
 
                     common_min_ = np.nanmin(
                         [
                             np.nanmin(self.signal_by_uuid(uuid)[0].plot_samples)
                             for uuid in self.common_axis_items
-                            if len(self.signal_by_uuid(uuid)[0].plot_samples)
-                            and self.signal_by_uuid(uuid)[0].enable
+                            if len(self.signal_by_uuid(uuid)[0].plot_samples) and self.signal_by_uuid(uuid)[0].enable
                         ]
                     )
                     common_max_ = np.nanmax(
                         [
                             np.nanmax(self.signal_by_uuid(uuid)[0].plot_samples)
                             for uuid in self.common_axis_items
-                            if len(self.signal_by_uuid(uuid)[0].plot_samples)
-                            and self.signal_by_uuid(uuid)[0].enable
+                            if len(self.signal_by_uuid(uuid)[0].plot_samples) and self.signal_by_uuid(uuid)[0].enable
                         ]
                     )
 
@@ -5047,11 +4746,7 @@ class PlotGraphics(pg.PlotWidget):
 
                 self.update()
 
-            elif (
-                key == QtCore.Qt.Key_S
-                and modifier == QtCore.Qt.ShiftModifier
-                and not self.locked
-            ):
+            elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.ShiftModifier and not self.locked:
                 self.block_zoom_signal = True
                 parent = self.parent().parent()
                 uuids = [
@@ -5084,27 +4779,19 @@ class PlotGraphics(pg.PlotWidget):
 
                                 min_ = np.nanmin(
                                     [
-                                        np.nanmin(
-                                            self.signal_by_uuid(uuid)[0].plot_samples
-                                        )
+                                        np.nanmin(self.signal_by_uuid(uuid)[0].plot_samples)
                                         for uuid in self.common_axis_items
                                         if uuid in uuids_set
-                                        and len(
-                                            self.signal_by_uuid(uuid)[0].plot_samples
-                                        )
+                                        and len(self.signal_by_uuid(uuid)[0].plot_samples)
                                         and self.signal_by_uuid(uuid)[0].enable
                                     ]
                                 )
                                 max_ = np.nanmax(
                                     [
-                                        np.nanmax(
-                                            self.signal_by_uuid(uuid)[0].plot_samples
-                                        )
+                                        np.nanmax(self.signal_by_uuid(uuid)[0].plot_samples)
                                         for uuid in self.common_axis_items
                                         if uuid in uuids_set
-                                        and len(
-                                            self.signal_by_uuid(uuid)[0].plot_samples
-                                        )
+                                        and len(self.signal_by_uuid(uuid)[0].plot_samples)
                                         and self.signal_by_uuid(uuid)[0].enable
                                     ]
                                 )
@@ -5193,14 +4880,10 @@ class PlotGraphics(pg.PlotWidget):
 
                     if pos >= right_side:
                         delta = abs(pos - prev_pos)
-                        self.viewbox.setXRange(
-                            left_side + delta, right_side + delta, padding=0
-                        )
+                        self.viewbox.setXRange(left_side + delta, right_side + delta, padding=0)
                     elif pos <= left_side:
                         delta = abs(pos - prev_pos)
-                        self.viewbox.setXRange(
-                            left_side - delta, right_side - delta, padding=0
-                        )
+                        self.viewbox.setXRange(left_side - delta, right_side - delta, padding=0)
 
                     self.cursor1.set_value(pos)
 
@@ -5249,10 +4932,7 @@ class PlotGraphics(pg.PlotWidget):
                     else:
                         self.region.setRegion(tuple(sorted((second_pos, pos))))
 
-            elif (
-                key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right)
-                and modifier == QtCore.Qt.ShiftModifier
-            ):
+            elif key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right) and modifier == QtCore.Qt.ShiftModifier:
                 parent = self.parent().parent()
                 uuids = list(
                     set(
@@ -5296,9 +4976,7 @@ class PlotGraphics(pg.PlotWidget):
                 if not uuids:
                     return
 
-                factor = (
-                    10 if key in (QtCore.Qt.Key_PageUp, QtCore.Qt.Key_PageDown) else 100
-                )
+                factor = 10 if key in (QtCore.Qt.Key_PageUp, QtCore.Qt.Key_PageDown) else 100
 
                 for uuid in uuids:
                     signal, index = self.signal_by_uuid(uuid)
@@ -5457,9 +5135,7 @@ class PlotGraphics(pg.PlotWidget):
                 x = sig.plot_timestamps
 
                 if len(x):
-                    x, y = self.scale_curve_to_pixmap(
-                        x, y, y_range=sig.y_range, x_start=x_start, delta=delta
-                    )
+                    x, y = self.scale_curve_to_pixmap(x, y, y_range=sig.y_range, x_start=x_start, delta=delta)
 
                     sig.pen.setWidth(pen_width)
 
@@ -5545,9 +5221,7 @@ class PlotGraphics(pg.PlotWidget):
                             y[~idx] = np.inf
                             x = sig.plot_timestamps
 
-                            x, y = self.scale_curve_to_pixmap(
-                                x, y, y_range=sig.y_range, x_start=x_start, delta=delta
-                            )
+                            x, y = self.scale_curve_to_pixmap(x, y, y_range=sig.y_range, x_start=x_start, delta=delta)
 
                             color = range_info["font_color"]
                             pen = fn.mkPen(color.name())
@@ -5557,9 +5231,7 @@ class PlotGraphics(pg.PlotWidget):
                             paint.drawPath(self.generatePath(x, y))
 
                             if with_dots:
-                                paint.setRenderHints(
-                                    paint.RenderHint.Antialiasing, True
-                                )
+                                paint.setRenderHints(paint.RenderHint.Antialiasing, True)
                                 pen.setWidth(dots_with)
                                 pen.setCapStyle(cap_style)
                                 paint.setPen(pen)
@@ -5573,9 +5245,7 @@ class PlotGraphics(pg.PlotWidget):
                                 arr[:, 0] = x
                                 arr[:, 1] = y
                                 paint.drawPoints(poly)
-                                paint.setRenderHints(
-                                    paint.RenderHint.Antialiasing, False
-                                )
+                                paint.setRenderHints(paint.RenderHint.Antialiasing, False)
             paint.end()
 
         paint = QtGui.QPainter()
@@ -5652,11 +5322,7 @@ class PlotGraphics(pg.PlotWidget):
 
             rect = None
 
-            if (
-                zoom_mode == self.viewbox.X_zoom
-                or zoom_mode in self.viewbox.XY_zoom
-                and self.locked
-            ):
+            if zoom_mode == self.viewbox.X_zoom or zoom_mode in self.viewbox.XY_zoom and self.locked:
                 x1, x2 = sorted([x1, x2])
                 rect = QtCore.QRectF(
                     x1,
@@ -5763,9 +5429,7 @@ class PlotGraphics(pg.PlotWidget):
             if val == "n.a.":
                 continue
 
-            x_val, y_val = self.scale_curve_to_pixmap(
-                x, val, y_range=sig.y_range, x_start=x_start, delta=delta
-            )
+            x_val, y_val = self.scale_curve_to_pixmap(x, val, y_range=sig.y_range, x_start=x_start, delta=delta)
 
             candidates.append((abs(y_val - y), sig.uuid))
 
@@ -5805,9 +5469,7 @@ class PlotGraphics(pg.PlotWidget):
         else:
             self.common_axis_items.remove(uuid)
 
-        self.common_axis_label = ", ".join(
-            self.signal_by_uuid(uuid)[0].name for uuid in self.common_axis_items
-        )
+        self.common_axis_label = ", ".join(self.signal_by_uuid(uuid)[0].name for uuid in self.common_axis_items)
 
         self.set_current_uuid(self.current_uuid, True)
         self.update()
@@ -6077,9 +5739,7 @@ class PlotGraphics(pg.PlotWidget):
             if sig.name == name:
                 return sig, i
 
-        raise Exception(
-            f"Signal not found: {name} {[sig.name for sig in self.signals]}"
-        )
+        raise Exception(f"Signal not found: {name} {[sig.name for sig in self.signals]}")
 
     def signal_by_uuid(self, uuid):
         return self._uuid_map[uuid]
@@ -6171,9 +5831,7 @@ class CursorInfo(QtWidgets.QLabel):
         self.plot = plot
 
         self.setTextFormat(QtCore.Qt.RichText)
-        self.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
-        )
+        self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.open_menu)
@@ -6181,9 +5839,7 @@ class CursorInfo(QtWidgets.QLabel):
         if precision == -1:
             self.setToolTip(f"Cursor information uses maximum precision")
         else:
-            self.setToolTip(
-                f"Cursor information precision is set to {self.precision} decimals"
-            )
+            self.setToolTip(f"Cursor information precision is set to {self.precision} decimals")
 
     def open_menu(self, point):
         menu = QtWidgets.QMenu(self)
@@ -6218,9 +5874,7 @@ class CursorInfo(QtWidgets.QLabel):
                 elif fmt == "time":
                     cursor_info_text = f"{self.name} = {timedelta(seconds=position)}"
                 elif fmt == "date":
-                    position_date = self.plot.x_axis.origin + timedelta(
-                        seconds=position
-                    )
+                    position_date = self.plot.x_axis.origin + timedelta(seconds=position)
                     cursor_info_text = f"{self.name} = {position_date}"
 
                 if cursor_info_text:
@@ -6265,9 +5919,7 @@ class CursorInfo(QtWidgets.QLabel):
         if precision == -1:
             self.setToolTip(f"Cursor information uses maximum precision")
         else:
-            self.setToolTip(
-                f"Cursor information precision is set to {precision} decimals"
-            )
+            self.setToolTip(f"Cursor information precision is set to {precision} decimals")
         self.update_value()
 
 

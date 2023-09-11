@@ -88,9 +88,7 @@ class DependenciesDlg(QDialog):
             parent = get_root_node()
 
             if req.marker is not None:
-                match = re.search(
-                    r"extra\s*==\s*['\"](?P<extra>\S+)['\"]", str(req.marker)
-                )
+                match = re.search(r"extra\s*==\s*['\"](?P<extra>\S+)['\"]", str(req.marker))
                 if match:
                     parent = get_root_node(match["extra"])
 

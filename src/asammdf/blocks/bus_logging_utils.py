@@ -34,9 +34,7 @@ def defined_j1939_bit_count(signal):
     return size
 
 
-def apply_conversion(
-    vals: NDArray[Any], signal: Signal, ignore_value2text_conversion: bool
-) -> NDArray[Any]:
+def apply_conversion(vals: NDArray[Any], signal: Signal, ignore_value2text_conversion: bool) -> NDArray[Any]:
     a, b = float(signal.factor), float(signal.offset)
 
     if signal.values:
@@ -99,13 +97,9 @@ def extract_signal(
 
     if is_float:
         if bit_offset:
-            raise MdfException(
-                f"Cannot extract float signal '{signal}' because it is not byte aligned"
-            )
+            raise MdfException(f"Cannot extract float signal '{signal}' because it is not byte aligned")
         if bit_count not in (16, 32, 64):
-            raise MdfException(
-                f"Cannot extract float signal '{signal}' because it does not have a standard byte size"
-            )
+            raise MdfException(f"Cannot extract float signal '{signal}' because it does not have a standard byte size")
 
     if big_endian:
         byte_pos = start_byte + 1
@@ -332,10 +326,7 @@ def extract_mux(
                     multiplexor_name = sig.name
                     break
             for sig in message:
-                if (
-                    sig.multiplex not in (None, "Multiplexor")
-                    and sig.muxer_for_signal is None
-                ):
+                if sig.multiplex not in (None, "Multiplexor") and sig.muxer_for_signal is None:
                     sig.muxer_for_signal = multiplexor_name
                     sig.mux_val_min = sig.mux_val_max = int(sig.multiplex)
                     sig.mux_val_grp.insert(0, (int(sig.multiplex), int(sig.multiplex)))
@@ -389,17 +380,13 @@ def extract_mux(
                     "name": sig_name,
                     "comment": sig.comment or "",
                     "unit": sig.unit or "",
-                    "samples": samples
-                    if raw
-                    else apply_conversion(samples, sig, ignore_value2text_conversion),
+                    "samples": samples if raw else apply_conversion(samples, sig, ignore_value2text_conversion),
                     "t": t_,
                     "invalidation_bits": None,
                 }
 
                 if is_j1939:
-                    signals[sig_name]["invalidation_bits"] = (
-                        samples > MAX_VALID_J1939[defined_j1939_bit_count(sig)]
-                    )
+                    signals[sig_name]["invalidation_bits"] = samples > MAX_VALID_J1939[defined_j1939_bit_count(sig)]
 
             except:
                 print(format_exc())

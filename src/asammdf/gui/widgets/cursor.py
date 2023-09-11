@@ -72,9 +72,7 @@ class Bookmark(pg.InfiniteLine):
 
         ## add a 6-pixel radius around the line for mouse interaction.
 
-        px = self.pixelLength(
-            direction=pg.Point(1, 0), ortho=True
-        )  ## get pixel length orthogonal to the line
+        px = self.pixelLength(direction=pg.Point(1, 0), ortho=True)  ## get pixel length orthogonal to the line
         if px is None:
             px = 0
         pw = max(self.pen.width() / 2, self.hoverPen.width() / 2)
@@ -190,14 +188,10 @@ class Bookmark(pg.InfiniteLine):
                 paint.drawRect(rect2)
 
                 pix = QtGui.QPixmap(":/edit.png").scaled(16, 16)
-                paint.drawPixmap(
-                    QtCore.QPointF(rect.x() + rect.width() - 34, rect.y() + 1), pix
-                )
+                paint.drawPixmap(QtCore.QPointF(rect.x() + rect.width() - 34, rect.y() + 1), pix)
 
                 pix = QtGui.QPixmap(":/erase.png").scaled(16, 16)
-                paint.drawPixmap(
-                    QtCore.QPointF(rect.x() + rect.width() - 17, rect.y() + 1), pix
-                )
+                paint.drawPixmap(QtCore.QPointF(rect.x() + rect.width() - 17, rect.y() + 1), pix)
 
     def set_value(self, value):
         self.setPos(value)
@@ -329,33 +323,21 @@ class Cursor(pg.InfiniteLine):
                         )
 
                         if self.show_circle:
-                            paint.drawLine(
-                                QtCore.QPointF(x, 0), QtCore.QPointF(x, y - 5)
-                            )
-                            paint.drawLine(
-                                QtCore.QPointF(x, y + 5), QtCore.QPointF(x, height)
-                            )
+                            paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, y - 5))
+                            paint.drawLine(QtCore.QPointF(x, y + 5), QtCore.QPointF(x, height))
 
                             if self.show_horizontal_line:
-                                paint.drawLine(
-                                    QtCore.QPointF(delta, y), QtCore.QPointF(x - 5, y)
-                                )
-                                paint.drawLine(
-                                    QtCore.QPointF(x + 5, y), QtCore.QPointF(width, y)
-                                )
+                                paint.drawLine(QtCore.QPointF(delta, y), QtCore.QPointF(x - 5, y))
+                                paint.drawLine(QtCore.QPointF(x + 5, y), QtCore.QPointF(width, y))
 
                             paint.setRenderHints(paint.RenderHint.Antialiasing, True)
                             paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
                             paint.setRenderHints(paint.RenderHint.Antialiasing, False)
 
                         else:
-                            paint.drawLine(
-                                QtCore.QPointF(x, 0), QtCore.QPointF(x, height)
-                            )
+                            paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
                             if self.show_horizontal_line:
-                                paint.drawLine(
-                                    QtCore.QPointF(delta, y), QtCore.QPointF(width, y)
-                                )
+                                paint.drawLine(QtCore.QPointF(delta, y), QtCore.QPointF(width, y))
 
                     else:
                         x, y = plot.scale_curve_to_pixmap(
@@ -384,9 +366,7 @@ class Cursor(pg.InfiniteLine):
 
         ## add a 6-pixel radius around the line for mouse interaction.
 
-        px = self.pixelLength(
-            direction=pg.Point(1, 0), ortho=True
-        )  ## get pixel length orthogonal to the line
+        px = self.pixelLength(direction=pg.Point(1, 0), ortho=True)  ## get pixel length orthogonal to the line
         if px is None:
             px = 0
         pw = max(self.pen.width() / 2, self.hoverPen.width() / 2)
