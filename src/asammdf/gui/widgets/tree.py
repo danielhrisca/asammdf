@@ -851,7 +851,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.context_menu_timer.stop()
             self.context_menu_pos = None
 
-        self.double_click.emit(self.itemAt(event.pos()), event.button())
+        position = event.position()
+        self.double_click.emit(self.itemAt(position.x(), position.y()), event.button())
 
     def open_menu(self):
         position = self.context_menu_pos

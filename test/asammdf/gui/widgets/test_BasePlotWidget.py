@@ -50,6 +50,7 @@ class TestPlotWidget(TestFileWidget):
             source_pos=drag_position,
             destination_pos=drop_position,
         )
+        self.processEvents(0.05)
         plot_channel = None
         iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
         while iterator.value():
@@ -58,7 +59,6 @@ class TestPlotWidget(TestFileWidget):
                 plot_channel = item
             iterator += 1
 
-        self.processEvents(0.05)
         return plot_channel
 
     def create_window(self, window_type):

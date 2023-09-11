@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 import sys
+from test.asammdf.gui.test_base import DragAndDrop, Pixmap
+from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 import unittest
 from unittest import mock
 
 from PySide6 import QtCore, QtGui, QtTest
-
-from test.asammdf.gui.test_base import DragAndDrop, Pixmap
-from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
@@ -332,10 +331,10 @@ class TestDoubleClick(TestPlotWidget):
 
             enabled_groups_pixmap = self.plot.plot.viewport().grab()
             for channel in (
-                    plot_channel_a,
-                    plot_channel_b,
-                    plot_channel_c,
-                    plot_channel_d,
+                plot_channel_a,
+                plot_channel_b,
+                plot_channel_c,
+                plot_channel_d,
             ):
                 self.assertTrue(
                     Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=channel.color),
@@ -482,10 +481,10 @@ class TestDoubleClick(TestPlotWidget):
 
             enabled_groups_pixmap = self.plot.plot.viewport().grab()
             for channel in (
-                    plot_channel_a,
-                    plot_channel_b,
-                    plot_channel_c,
-                    plot_channel_d,
+                plot_channel_a,
+                plot_channel_b,
+                plot_channel_c,
+                plot_channel_d,
             ):
                 self.assertTrue(
                     Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=channel.color),

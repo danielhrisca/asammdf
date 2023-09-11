@@ -209,6 +209,7 @@ class DragAndDrop:
         # drag_thread.wait()
         move_thread.wait()
         move_thread.quit()
+        QtCore.QCoreApplication.processEvents()
 
 
 class Pixmap:
