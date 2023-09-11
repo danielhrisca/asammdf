@@ -27,6 +27,10 @@ class TestDoubleClick(TestPlotWidget):
         # Press PushButton 'FocusMode' - disabled (easy for evaluation)
         if not self.plot.focused_mode_btn.isFlat():
             QtTest.QTest.mouseClick(self.plot.focused_mode_btn, QtCore.Qt.LeftButton)
+        # Press PushButton "Hide axis"
+        if not self.plot.hide_axes_btn.isFlat():
+            QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.LeftButton)
+        self.processEvents()
 
     def test_ChannelSelection(self):
         """
@@ -127,7 +131,7 @@ class TestDoubleClick(TestPlotWidget):
                     color_name=plot_channel_0.color,
                 )
             )
-            # Press mouse double click on channel
+            # Press mouse double click on Group
             self.mouseDClick_WidgetItem(first_group)
 
             # Evaluate
