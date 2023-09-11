@@ -26,9 +26,7 @@ class MDF2(MDF3):
         version = validate_version_argument(version, hint=2)
 
         if not kwargs.get("__internal__", False):
-            raise MdfException(
-                "Always use the MDF class; do not use the class MDF2 directly"
-            )
+            raise MdfException("Always use the MDF class; do not use the class MDF2 directly")
 
         super().__init__(name, version, **kwargs)
 

@@ -16,7 +16,10 @@ class TestPlotWidget(TestFileWidget):
 
     measurement_file = str(pathlib.Path(TestFileWidget.resource, "ASAP2_Demo_V171.mf4"))
 
-    def add_channel_to_plot(self, plot, channel_name=None, channel_index=None):
+    def add_channel_to_plot(self, plot=None, channel_name=None, channel_index=None):
+        if not plot and self.plot:
+            plot = self.plot
+
         # Select channel
         selected_channel = None
         channel_tree = self.widget.channels_tree
@@ -59,13 +62,9 @@ class TestPlotWidget(TestFileWidget):
         return plot_channel
 
     def create_window(self, window_type):
-        with mock.patch(
-            "asammdf.gui.widgets.file.WindowSelectionDialog"
-        ) as mc_WindowSelectionDialog:
+        with mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mc_WindowSelectionDialog:
             mc_WindowSelectionDialog.return_value.result.return_value = True
-            mc_WindowSelectionDialog.return_value.selected_type.return_value = (
-                window_type
-            )
+            mc_WindowSelectionDialog.return_value.selected_type.return_value = window_type
             # - Press PushButton "Create Window"
             QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
             widget_types = self.get_subwindows()

@@ -8,6 +8,7 @@ class TestFileWidget(TestBase):
     def setUp(self):
         super().setUp()
         self.widget = None
+        self.plot = None
 
         patcher = mock.patch("asammdf.gui.widgets.file.ErrorDialog")
         self.mc_widget_ed = patcher.start()
@@ -42,6 +43,7 @@ class TestFileWidget(TestBase):
         else:
             self.widget = FileWidget(measurement_file, *args)
         self.widget.showNormal()
+        self.processEvents()
 
     def get_subwindows(self):
         widget_types = sorted(

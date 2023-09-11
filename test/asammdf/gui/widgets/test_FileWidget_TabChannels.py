@@ -34,9 +34,7 @@ class TestTabChannels(TestFileWidget):
         # Event
         self.setUpFileWidget(measurement_file=measurement_file, default=True)
 
-        with mock.patch(
-            "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
-        ) as mo_getOpenFileName:
+        with mock.patch("asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName") as mo_getOpenFileName:
             mo_getOpenFileName.return_value = valid_dsp, None
             QtTest.QTest.mouseClick(
                 self.widget.load_channel_list_btn,
@@ -97,18 +95,10 @@ class TestTabChannels(TestFileWidget):
         # Setup
         measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
         valid_dspf = str(pathlib.Path(self.resource, "valid.dspf"))
-        invalid_json_decode_error_dspf = str(
-            pathlib.Path(self.resource, "invalid_JsonDecodeError.dspf")
-        )
-        invalid_numeric_section_key_error_dspf = str(
-            pathlib.Path(self.resource, "invalid_NumericSectionKeyError.dspf")
-        )
-        invalid_plot_section_key_error_dspf = str(
-            pathlib.Path(self.resource, "invalid_PlotSectionKeyError.dspf")
-        )
-        invalid_tabular_section_key_error_dspf = str(
-            pathlib.Path(self.resource, "invalid_TabularSectionKeyError.dspf")
-        )
+        invalid_json_decode_error_dspf = str(pathlib.Path(self.resource, "invalid_JsonDecodeError.dspf"))
+        invalid_numeric_section_key_error_dspf = str(pathlib.Path(self.resource, "invalid_NumericSectionKeyError.dspf"))
+        invalid_plot_section_key_error_dspf = str(pathlib.Path(self.resource, "invalid_PlotSectionKeyError.dspf"))
+        invalid_tabular_section_key_error_dspf = str(pathlib.Path(self.resource, "invalid_TabularSectionKeyError.dspf"))
 
         # Event
         self.setUpFileWidget(measurement_file=measurement_file, default=True)
@@ -168,9 +158,7 @@ class TestTabChannels(TestFileWidget):
 
         # Case 3
         with self.subTest("test_PushButton_LoadOfflineWindows_DSPF_3"):
-            with mock.patch(
-                "asammdf.gui.widgets.file.ErrorDialog"
-            ) as mc_ErrorDialog, mock.patch(
+            with mock.patch("asammdf.gui.widgets.file.ErrorDialog") as mc_ErrorDialog, mock.patch(
                 "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
             ) as mo_getOpenFileName:
                 mo_getOpenFileName.return_value = (
@@ -190,9 +178,7 @@ class TestTabChannels(TestFileWidget):
 
         # Case 4
         with self.subTest("test_PushButton_LoadOfflineWindows_DSPF_4"):
-            with mock.patch(
-                "asammdf.gui.widgets.file.ErrorDialog"
-            ) as mc_ErrorDialog, mock.patch(
+            with mock.patch("asammdf.gui.widgets.file.ErrorDialog") as mc_ErrorDialog, mock.patch(
                 "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
             ) as mo_getOpenFileName:
                 mo_getOpenFileName.return_value = (
@@ -212,9 +198,7 @@ class TestTabChannels(TestFileWidget):
 
         # Case 5
         with self.subTest("test_PushButton_LoadOfflineWindows_DSPF_5"):
-            with mock.patch(
-                "asammdf.gui.widgets.file.ErrorDialog"
-            ) as mc_ErrorDialog, mock.patch(
+            with mock.patch("asammdf.gui.widgets.file.ErrorDialog") as mc_ErrorDialog, mock.patch(
                 "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
             ) as mo_getOpenFileName:
                 mo_getOpenFileName.return_value = (
@@ -274,12 +258,8 @@ class TestTabChannels(TestFileWidget):
         """
         # Setup
         valid_lab = str(pathlib.Path(self.resource, "valid.lab"))
-        invalid_missing_section_lab = str(
-            pathlib.Path(self.resource, "invalid_MissingSection.lab")
-        )
-        invalid_empty_section_lab = str(
-            pathlib.Path(self.resource, "invalid_EmptySection.lab")
-        )
+        invalid_missing_section_lab = str(pathlib.Path(self.resource, "invalid_MissingSection.lab"))
+        invalid_empty_section_lab = str(pathlib.Path(self.resource, "invalid_EmptySection.lab"))
         measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
         # Event
@@ -288,9 +268,7 @@ class TestTabChannels(TestFileWidget):
         self.widget.channel_view.setCurrentText("Internal file structure")
         # Case 0:
         with self.subTest("test_PushButton_LoadOfflineWindows_LAB_0"):
-            with mock.patch(
-                "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
-            ) as mo_getOpenFileName:
+            with mock.patch("asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName") as mo_getOpenFileName:
                 mo_getOpenFileName.return_value = (
                     invalid_empty_section_lab,
                     None,
@@ -320,9 +298,7 @@ class TestTabChannels(TestFileWidget):
 
         # Case 1:
         with self.subTest("test_PushButton_LoadOfflineWindows_LAB_1"):
-            with mock.patch(
-                "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
-            ) as mo_getOpenFileName:
+            with mock.patch("asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName") as mo_getOpenFileName:
                 mo_getOpenFileName.return_value = (
                     invalid_missing_section_lab,
                     None,
@@ -417,9 +393,7 @@ class TestTabChannels(TestFileWidget):
         # Switch ComboBox to "Internal file structure"
         self.widget.channel_view.setCurrentText("Internal file structure")
 
-        with mock.patch.object(
-            self.widget, "load_window", wraps=self.widget.load_window
-        ) as mo_load_window, mock.patch(
+        with mock.patch.object(self.widget, "load_window", wraps=self.widget.load_window) as mo_load_window, mock.patch(
             "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
         ) as mo_getOpenFileName:
             mo_getOpenFileName.return_value = valid_dspf, None
@@ -452,21 +426,13 @@ class TestTabChannels(TestFileWidget):
 
                 item_rect = channels_tree.visualItemRect(item)
                 drag_position = item_rect.center()
-                drop_position = mdi_area.viewport().rect().center() - QtCore.QPoint(
-                    200, 200
-                )
+                drop_position = mdi_area.viewport().rect().center() - QtCore.QPoint(200, 200)
 
-                with mock.patch(
-                    "asammdf.gui.widgets.mdi_area.WindowSelectionDialog"
-                ) as mc_WindowSelectionDialog:
+                with mock.patch("asammdf.gui.widgets.mdi_area.WindowSelectionDialog") as mc_WindowSelectionDialog:
                     # Setup
                     mc_WindowSelectionDialog.return_value.result.return_value = True
-                    mc_WindowSelectionDialog.return_value.disable_new_channels.return_value = (
-                        False
-                    )
-                    mc_WindowSelectionDialog.return_value.selected_type.return_value = (
-                        "Plot"
-                    )
+                    mc_WindowSelectionDialog.return_value.disable_new_channels.return_value = False
+                    mc_WindowSelectionDialog.return_value.selected_type.return_value = "Plot"
 
                     DragAndDrop(
                         source_widget=channels_tree,
@@ -478,9 +444,7 @@ class TestTabChannels(TestFileWidget):
             iterator += 1
 
         # Press PushButton: "Save offline windows"
-        with mock.patch(
-            "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName"
-        ) as mo_getSaveFileName:
+        with mock.patch("asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName") as mo_getSaveFileName:
             mo_getSaveFileName.return_value = str(saved_dspf), None
             QtTest.QTest.mouseClick(
                 self.widget.save_channel_list_btn,
@@ -490,9 +454,7 @@ class TestTabChannels(TestFileWidget):
         self.assertTrue(saved_dspf.exists())
 
         # Event
-        with mock.patch.object(
-            self.widget, "load_window", wraps=self.widget.load_window
-        ) as mo_load_window, mock.patch(
+        with mock.patch.object(self.widget, "load_window", wraps=self.widget.load_window) as mo_load_window, mock.patch(
             "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
         ) as mo_getOpenFileName:
             mo_getOpenFileName.return_value = saved_dspf, None
@@ -532,9 +494,7 @@ class TestTabChannels(TestFileWidget):
         # Switch ComboBox to "Natural sort"
         self.widget.channel_view.setCurrentText("Natural Sort")
         # Press PushButton: "Select all the channels"
-        QtTest.QTest.mouseClick(
-            self.widget.select_all_btn, QtCore.Qt.MouseButton.LeftButton
-        )
+        QtTest.QTest.mouseClick(self.widget.select_all_btn, QtCore.Qt.MouseButton.LeftButton)
 
         # Evaluate
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
@@ -554,9 +514,7 @@ class TestTabChannels(TestFileWidget):
         # Switch ComboBox to "Internal file structure"
         self.widget.channel_view.setCurrentText("Internal file structure")
         # Press PushButton: "Select all the channels"
-        QtTest.QTest.mouseClick(
-            self.widget.select_all_btn, QtCore.Qt.MouseButton.LeftButton
-        )
+        QtTest.QTest.mouseClick(self.widget.select_all_btn, QtCore.Qt.MouseButton.LeftButton)
 
         # Evaluate
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
@@ -604,9 +562,7 @@ class TestTabChannels(TestFileWidget):
             self.assertTrue(item.checkState(0))
             iterator += 1
         # Press PushButton: "Clear all selected channels"
-        QtTest.QTest.mouseClick(
-            self.widget.clear_channels_btn, QtCore.Qt.MouseButton.LeftButton
-        )
+        QtTest.QTest.mouseClick(self.widget.clear_channels_btn, QtCore.Qt.MouseButton.LeftButton)
 
         # Evaluate
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
@@ -623,9 +579,7 @@ class TestTabChannels(TestFileWidget):
             self.assertTrue(item.checkState(0))
             iterator += 1
         # Press PushButton: "Clear all selected channels"
-        QtTest.QTest.mouseClick(
-            self.widget.clear_channels_btn, QtCore.Qt.MouseButton.LeftButton
-        )
+        QtTest.QTest.mouseClick(self.widget.clear_channels_btn, QtCore.Qt.MouseButton.LeftButton)
 
         # Evaluate
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
@@ -673,17 +627,13 @@ class TestTabChannels(TestFileWidget):
         self.setUpFileWidget(measurement_file=measurement_file, default=True)
         # Case 0:
         with self.subTest("test_PushButton_Search_0"):
-            with mock.patch(
-                "asammdf.gui.widgets.file.AdvancedSearch"
-            ) as mc_AdvancedSearch:
+            with mock.patch("asammdf.gui.widgets.file.AdvancedSearch") as mc_AdvancedSearch:
                 mc_AdvancedSearch.return_value.result = {}
                 mc_AdvancedSearch.return_value.pattern_window = False
                 mc_AdvancedSearch.return_value.add_window_request = False
 
                 # - Press PushButton: "Search and select channels"
-                QtTest.QTest.mouseClick(
-                    self.widget.advanced_search_btn, QtCore.Qt.LeftButton
-                )
+                QtTest.QTest.mouseClick(self.widget.advanced_search_btn, QtCore.Qt.LeftButton)
                 # Evaluate
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
                 while iterator.value():
@@ -693,9 +643,7 @@ class TestTabChannels(TestFileWidget):
 
         # Case 1:
         with self.subTest("test_PushButton_Search_1"):
-            with mock.patch(
-                "asammdf.gui.widgets.file.AdvancedSearch"
-            ) as mc_AdvancedSearch:
+            with mock.patch("asammdf.gui.widgets.file.AdvancedSearch") as mc_AdvancedSearch:
                 mc_AdvancedSearch.return_value.result = {
                     (4, 3): "ASAM.M.SCALAR.FLOAT64.IDENTICAL",
                     (2, 10): "ASAM.M.SCALAR.FLOAT32.IDENTICAL",
@@ -704,9 +652,7 @@ class TestTabChannels(TestFileWidget):
                 mc_AdvancedSearch.return_value.add_window_request = False
 
                 # - Press PushButton: "Search and select channels"
-                QtTest.QTest.mouseClick(
-                    self.widget.advanced_search_btn, QtCore.Qt.LeftButton
-                )
+                QtTest.QTest.mouseClick(self.widget.advanced_search_btn, QtCore.Qt.LeftButton)
                 # Evaluate
                 checked_channels = 0
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
@@ -726,9 +672,7 @@ class TestTabChannels(TestFileWidget):
                 item = iterator.value()
                 item.setCheckState(0, QtCore.Qt.Unchecked)
                 iterator += 1
-            with mock.patch(
-                "asammdf.gui.widgets.file.AdvancedSearch"
-            ) as mc_AdvancedSearch, mock.patch(
+            with mock.patch("asammdf.gui.widgets.file.AdvancedSearch") as mc_AdvancedSearch, mock.patch(
                 "asammdf.gui.widgets.file.WindowSelectionDialog"
             ) as mc_WindowSelectionDialog:
                 mc_AdvancedSearch.return_value.result = {
@@ -738,17 +682,11 @@ class TestTabChannels(TestFileWidget):
                 mc_AdvancedSearch.return_value.pattern_window = False
                 mc_AdvancedSearch.return_value.add_window_request = True
                 mc_WindowSelectionDialog.return_value.result.return_value = True
-                mc_WindowSelectionDialog.return_value.selected_type.return_value = (
-                    "New plot window"
-                )
-                mc_WindowSelectionDialog.return_value.disable_new_channels.return_value = (
-                    False
-                )
+                mc_WindowSelectionDialog.return_value.selected_type.return_value = "New plot window"
+                mc_WindowSelectionDialog.return_value.disable_new_channels.return_value = False
 
                 # - Press PushButton: "Search and select channels"
-                QtTest.QTest.mouseClick(
-                    self.widget.advanced_search_btn, QtCore.Qt.LeftButton
-                )
+                QtTest.QTest.mouseClick(self.widget.advanced_search_btn, QtCore.Qt.LeftButton)
                 # Evaluate
                 checked_channels = 0
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
@@ -795,30 +733,20 @@ class TestTabChannels(TestFileWidget):
 
         # Case 0:
         with self.subTest("test_PushButton_CreateWindow_0"):
-            with mock.patch(
-                "asammdf.gui.widgets.file.WindowSelectionDialog"
-            ) as mc_WindowSelectionDialog:
+            with mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mc_WindowSelectionDialog:
                 mc_WindowSelectionDialog.return_value.result.return_value = False
                 # - Press PushButton "Create Window"
-                QtTest.QTest.mouseClick(
-                    self.widget.create_window_btn, QtCore.Qt.LeftButton
-                )
+                QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
 
         # Case 1:
         with self.subTest("test_PushButton_CreateWindow_1"):
-            with mock.patch(
-                "asammdf.gui.widgets.file.WindowSelectionDialog"
-            ) as mc_WindowSelectionDialog:
+            with mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mc_WindowSelectionDialog:
                 mc_WindowSelectionDialog.return_value.result.return_value = True
-                mc_WindowSelectionDialog.return_value.selected_type.return_value = (
-                    "Plot"
-                )
+                mc_WindowSelectionDialog.return_value.selected_type.return_value = "Plot"
                 # - Press PushButton "Create Window"
-                QtTest.QTest.mouseClick(
-                    self.widget.create_window_btn, QtCore.Qt.LeftButton
-                )
+                QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
             widget_types = self.get_subwindows()
@@ -826,47 +754,29 @@ class TestTabChannels(TestFileWidget):
 
         # Case 2:
         with self.subTest("test_PushButton_CreateWindow_2"):
-            with mock.patch(
-                "asammdf.gui.widgets.file.WindowSelectionDialog"
-            ) as mc_WindowSelectionDialog:
+            with mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mc_WindowSelectionDialog:
                 mc_WindowSelectionDialog.return_value.result.return_value = True
-                mc_WindowSelectionDialog.return_value.selected_type.return_value = (
-                    "Numeric"
-                )
+                mc_WindowSelectionDialog.return_value.selected_type.return_value = "Numeric"
                 # - Select one channel
                 channel = self.widget.channels_tree.topLevelItem(0).text(0)
-                self.widget.channels_tree.topLevelItem(0).setCheckState(
-                    0, QtCore.Qt.Checked
-                )
+                self.widget.channels_tree.topLevelItem(0).setCheckState(0, QtCore.Qt.Checked)
                 # - Press PushButton "Create Window"
-                QtTest.QTest.mouseClick(
-                    self.widget.create_window_btn, QtCore.Qt.LeftButton
-                )
+                QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
             widget_types = self.get_subwindows()
             self.assertIn("Numeric", widget_types)
-            numeric_data = (
-                self.widget.mdi_area.subWindowList()[1].widget().channels.dataView
-            )
-            numeric_channel = numeric_data.model().data(
-                numeric_data.model().index(0, 0)
-            )
+            numeric_data = self.widget.mdi_area.subWindowList()[1].widget().channels.dataView
+            numeric_channel = numeric_data.model().data(numeric_data.model().index(0, 0))
             self.assertEqual(channel, numeric_channel)
 
         # Case 3:
         with self.subTest("test_PushButton_CreateWindow_3"):
-            with mock.patch(
-                "asammdf.gui.widgets.file.WindowSelectionDialog"
-            ) as mc_WindowSelectionDialog:
+            with mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mc_WindowSelectionDialog:
                 mc_WindowSelectionDialog.return_value.result.return_value = True
-                mc_WindowSelectionDialog.return_value.selected_type.return_value = (
-                    "Tabular"
-                )
+                mc_WindowSelectionDialog.return_value.selected_type.return_value = "Tabular"
                 # - Press PushButton "Create Window"
-                QtTest.QTest.mouseClick(
-                    self.widget.create_window_btn, QtCore.Qt.LeftButton
-                )
+                QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 3)
             widget_types = self.get_subwindows()
@@ -874,17 +784,11 @@ class TestTabChannels(TestFileWidget):
 
         # Case 4:
         with self.subTest("test_PushButton_CreateWindow_4"):
-            with mock.patch(
-                "asammdf.gui.widgets.file.WindowSelectionDialog"
-            ) as mc_WindowSelectionDialog:
+            with mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mc_WindowSelectionDialog:
                 mc_WindowSelectionDialog.return_value.result.return_value = True
-                mc_WindowSelectionDialog.return_value.selected_type.return_value = (
-                    "Plot"
-                )
+                mc_WindowSelectionDialog.return_value.selected_type.return_value = "Plot"
                 # - Press PushButton "Create Window"
-                QtTest.QTest.mouseClick(
-                    self.widget.create_window_btn, QtCore.Qt.LeftButton
-                )
+                QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 4)
             widget_types = self.get_subwindows()
@@ -912,9 +816,7 @@ class TestTabChannels(TestFileWidget):
         self.widget.channel_view.setCurrentText("Internal file structure")
 
         first_item = self.widget.channels_tree.topLevelItem(0)
-        first_item_center = self.widget.channels_tree.visualItemRect(
-            first_item
-        ).center()
+        first_item_center = self.widget.channels_tree.visualItemRect(first_item).center()
         QtTest.QTest.mouseClick(
             self.widget.channels_tree.viewport(),
             QtCore.Qt.MouseButton.LeftButton,
@@ -945,9 +847,7 @@ class TestTabChannels(TestFileWidget):
 
         # Case 1:
         child_item = first_item.child(0)
-        child_item_center = self.widget.channels_tree.visualItemRect(
-            child_item
-        ).center()
+        child_item_center = self.widget.channels_tree.visualItemRect(child_item).center()
         QtTest.QTest.mouseClick(
             self.widget.channels_tree.viewport(),
             QtCore.Qt.MouseButton.LeftButton,

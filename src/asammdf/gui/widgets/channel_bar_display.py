@@ -33,16 +33,9 @@ class BarWidget(QtWidgets.QWidget):
                     break
 
         if isinstance(self.range[0], int):
-            self.ticks = [
-                int(e)
-                for e in np.linspace(
-                    self.range[0], self.range[1], parts + 1, True
-                ).tolist()
-            ]
+            self.ticks = [int(e) for e in np.linspace(self.range[0], self.range[1], parts + 1, True).tolist()]
         else:
-            self.ticks = np.linspace(
-                self.range[0], self.range[1], parts + 1, True
-            ).tolist()
+            self.ticks = np.linspace(self.range[0], self.range[1], parts + 1, True).tolist()
 
     def setValue(self, value):
         self.value = float(value)
@@ -235,15 +228,9 @@ class ChannelBarDisplay(Ui_ChannelBarDisplay, QtWidgets.QWidget):
     def update(self):
         width = self.name.size().width()
         if self.unit:
-            self.name.setText(
-                self.fm.elidedText(
-                    f"{self._name} ({self.unit})", QtCore.Qt.ElideMiddle, width
-                )
-            )
+            self.name.setText(self.fm.elidedText(f"{self._name} ({self.unit})", QtCore.Qt.ElideMiddle, width))
         else:
-            self.name.setText(
-                self.fm.elidedText(self._name, QtCore.Qt.ElideMiddle, width)
-            )
+            self.name.setText(self.fm.elidedText(self._name, QtCore.Qt.ElideMiddle, width))
         self.set_value(self._value, update=True)
 
     def set_value(self, value, update=False):
@@ -265,24 +252,16 @@ class ChannelBarDisplay(Ui_ChannelBarDisplay, QtWidgets.QWidget):
     def resizeEvent(self, event):
         width = self.name.size().width()
         if self.unit:
-            self.name.setText(
-                self.fm.elidedText(
-                    f"{self._name} ({self.unit})", QtCore.Qt.ElideMiddle, width
-                )
-            )
+            self.name.setText(self.fm.elidedText(f"{self._name} ({self.unit})", QtCore.Qt.ElideMiddle, width))
         else:
-            self.name.setText(
-                self.fm.elidedText(self._name, QtCore.Qt.ElideMiddle, width)
-            )
+            self.name.setText(self.fm.elidedText(self._name, QtCore.Qt.ElideMiddle, width))
 
     def text(self):
         return self._name
 
     def does_not_exist(self):
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.color_btn.setIcon(icon)
         self.color_btn.setFlat(True)
         self.color_btn.clicked.disconnect()

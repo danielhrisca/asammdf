@@ -69,12 +69,8 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
         self.font_color = font_color
         self.background_color = background_color
 
-        self.name.setStyleSheet(
-            f"background-color: {background_color}; color: {font_color};"
-        )
-        self.background_color_btn.setStyleSheet(
-            f"background-color: {background_color};"
-        )
+        self.name.setStyleSheet(f"background-color: {background_color}; color: {font_color};")
+        self.background_color_btn.setStyleSheet(f"background-color: {background_color};")
         self.font_color_btn.setStyleSheet(f"background-color: {font_color};")
 
     def value1_changed(self, text):
@@ -96,9 +92,7 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
             color = color.name()
             self.background_color = color
             self.background_color_btn.setStyleSheet(f"background-color: {color};")
-            self.name.setStyleSheet(
-                f"background-color: {self.background_color}; color: {self.font_color};"
-            )
+            self.name.setStyleSheet(f"background-color: {self.background_color}; color: {self.font_color};")
 
     def select_font_color(self, event=None):
         color = self.font_color_btn.palette().button().color()
@@ -107,9 +101,7 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
             color = color.name()
             self.font_color = color
             self.font_color_btn.setStyleSheet(f"background-color: {color};")
-            self.name.setStyleSheet(
-                f"background-color: {self.background_color}; color: {self.font_color};"
-            )
+            self.name.setStyleSheet(f"background-color: {self.background_color}; color: {self.font_color};")
 
     def to_dict(self, brush=False):
         value1 = self.value1.text().strip()

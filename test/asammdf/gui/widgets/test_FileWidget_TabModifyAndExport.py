@@ -24,9 +24,7 @@ class TestTabModifyAndExport(TestFileWidget):
         """
         # Setup
         measurement_file = str(pathlib.Path(self.test_workspace, "ASAP2_Demo_V171.mf4"))
-        shutil.copy(
-            pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"), measurement_file
-        )
+        shutil.copy(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"), measurement_file)
         # Event
         self.setUpFileWidget(measurement_file=measurement_file, default=True)
         # Go to Tab: "Modify & Export": Index 1
@@ -37,9 +35,7 @@ class TestTabModifyAndExport(TestFileWidget):
         channels = self.widget.channels_db_items
 
         # Evaluate
-        scrambled_filepath = pathlib.Path(
-            self.test_workspace, "ASAP2_Demo_V171.scrambled.mf4"
-        )
+        scrambled_filepath = pathlib.Path(self.test_workspace, "ASAP2_Demo_V171.scrambled.mf4")
         # Wait for Thread to finish
         time.sleep(0.1)
         # TearDown Current Widget.
@@ -101,9 +97,7 @@ class TestTabModifyAndExport(TestFileWidget):
         with self.subTest("test_ExportMDF_0"):
             with mock.patch(
                 "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName"
-            ) as mc_getSaveFileName, mock.patch(
-                "asammdf.gui.widgets.file.setup_progress"
-            ) as mo_setup_progress:
+            ) as mc_getSaveFileName, mock.patch("asammdf.gui.widgets.file.setup_progress") as mo_setup_progress:
                 mc_getSaveFileName.return_value = None, None
                 QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.LeftButton)
                 self.processEvents()
@@ -115,9 +109,7 @@ class TestTabModifyAndExport(TestFileWidget):
         self.processEvents()
         with self.subTest("test_ExportMDF_1"):
             saved_file = pathlib.Path(self.test_workspace, f"{self.id()}.mf4")
-            with mock.patch(
-                "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName"
-            ) as mc_getSaveFileName:
+            with mock.patch("asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName") as mc_getSaveFileName:
                 mc_getSaveFileName.return_value = str(saved_file), None
                 QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.LeftButton)
                 self.processEvents()

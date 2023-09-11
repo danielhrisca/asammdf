@@ -30,13 +30,9 @@ class TestPushButtons(TestPlotWidget):
         self.assertTrue(Pixmap.is_black(clear_pixmap))
 
         # Add Channels to Plot
-        self.plot_tree_channel_0 = self.add_channel_to_plot(
-            plot=self.plot, channel_name=self.channel_0_name
-        )
+        self.plot_tree_channel_0 = self.add_channel_to_plot(plot=self.plot, channel_name=self.channel_0_name)
         self.assertEqual(1, self.plot.channel_selection.topLevelItemCount())
-        self.plot_tree_channel_1 = self.add_channel_to_plot(
-            plot=self.plot, channel_name=self.channel_1_name
-        )
+        self.plot_tree_channel_1 = self.add_channel_to_plot(plot=self.plot, channel_name=self.channel_1_name)
         self.assertEqual(2, self.plot.channel_selection.topLevelItemCount())
 
         # Identify PlotSignal
@@ -74,24 +70,16 @@ class TestPushButtons(TestPlotWidget):
         # Event
         if self.plot.selected_channel_value.isVisible():
             # Press PushButton "Hide selected channel value panel"
-            QtTest.QTest.mouseClick(
-                self.plot.selected_channel_value_btn, QtCore.Qt.LeftButton
-            )
+            QtTest.QTest.mouseClick(self.plot.selected_channel_value_btn, QtCore.Qt.LeftButton)
         # Press PushButton "Show selected channel value panel"
-        QtTest.QTest.mouseClick(
-            self.plot.selected_channel_value_btn, QtCore.Qt.LeftButton
-        )
+        QtTest.QTest.mouseClick(self.plot.selected_channel_value_btn, QtCore.Qt.LeftButton)
         self.assertTrue(self.plot.selected_channel_value.isVisible())
 
         # Press PushButton "Hide selected channel value panel"
-        QtTest.QTest.mouseClick(
-            self.plot.selected_channel_value_btn, QtCore.Qt.LeftButton
-        )
+        QtTest.QTest.mouseClick(self.plot.selected_channel_value_btn, QtCore.Qt.LeftButton)
         self.assertFalse(self.plot.selected_channel_value.isVisible())
         # Press PushButton "Show selected channel value panel"
-        QtTest.QTest.mouseClick(
-            self.plot.selected_channel_value_btn, QtCore.Qt.LeftButton
-        )
+        QtTest.QTest.mouseClick(self.plot.selected_channel_value_btn, QtCore.Qt.LeftButton)
         self.assertTrue(self.plot.selected_channel_value.isVisible())
 
         # Select Channel
@@ -205,9 +193,7 @@ class TestPushButtons(TestPlotWidget):
             self.plot.channel_selection.viewport(),
             QtCore.Qt.LeftButton,
             QtCore.Qt.KeyboardModifiers(),
-            self.plot.channel_selection.visualItemRect(
-                self.plot_tree_channel_1
-            ).center(),
+            self.plot.channel_selection.visualItemRect(self.plot_tree_channel_1).center(),
         )
         # Process flash until signal is present on plot.
         for _ in range(10):
@@ -293,9 +279,7 @@ class TestPushButtons(TestPlotWidget):
             self.plot.channel_selection.viewport(),
             QtCore.Qt.LeftButton,
             QtCore.Qt.KeyboardModifiers(),
-            self.plot.channel_selection.visualItemRect(
-                self.plot_tree_channel_1
-            ).center(),
+            self.plot.channel_selection.visualItemRect(self.plot_tree_channel_1).center(),
         )
         self.plot.plot.setFocus()
         self.processEvents(0.1)
@@ -305,22 +289,14 @@ class TestPushButtons(TestPlotWidget):
             self.processEvents(timeout=0.1)
 
         # Get current value: Ex: 'Δ = 8'. Get last number
-        old_channel_0_value = int(
-            self.plot_tree_channel_0.text(self.Column.VALUE).split(" ")[-1]
-        )
-        old_channel_1_value = int(
-            self.plot_tree_channel_1.text(self.Column.VALUE).split(" ")[-1]
-        )
+        old_channel_0_value = int(self.plot_tree_channel_0.text(self.Column.VALUE).split(" ")[-1])
+        old_channel_1_value = int(self.plot_tree_channel_1.text(self.Column.VALUE).split(" ")[-1])
         for count in range(5):
             QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Right)
             self.processEvents(timeout=0.1)
             # Evaluate
-            channel_0_value = int(
-                self.plot_tree_channel_0.text(self.Column.VALUE).split(" ")[-1]
-            )
-            channel_1_value = int(
-                self.plot_tree_channel_1.text(self.Column.VALUE).split(" ")[-1]
-            )
+            channel_0_value = int(self.plot_tree_channel_0.text(self.Column.VALUE).split(" ")[-1])
+            channel_1_value = int(self.plot_tree_channel_1.text(self.Column.VALUE).split(" ")[-1])
             self.assertLess(old_channel_0_value, channel_0_value)
             self.assertGreater(old_channel_1_value, channel_1_value)
             old_channel_0_value = channel_0_value

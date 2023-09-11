@@ -8,6 +8,22 @@ from PySide6 import QtCore, QtGui, QtTest
 
 class TestDoubleClick(TestPlotWidget):
     # Note: Test Plot Widget through FileWidget.
+    def setUp(self):
+        super().setUp()
+
+        # Open File Widget
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
+        # Switch ComboBox to "Natural sort"
+        self.widget.channel_view.setCurrentText("Natural sort")
+        # Create a plot window
+        self.create_window(window_type="Plot")
+        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+        # Drag and Drop channel from FileWidget.channel_tree to Plot
+        self.plot = self.widget.mdi_area.subWindowList()[0].widget()
+
+        # Press PushButton 'FocusMode' - disabled (easy for evaluation)
+        if not self.plot.focused_mode_btn.isFlat():
+            QtTest.QTest.mouseClick(self.plot.focused_mode_btn, QtCore.Qt.LeftButton)
 
     def test_ChannelSelection(self):
         """
@@ -25,16 +41,7 @@ class TestDoubleClick(TestPlotWidget):
             - Evaluate that channel checkbox is checked.
         """
         # Event
-        # Open File Widget
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Switch ComboBox to "Natural sort"
-        self.widget.channel_view.setCurrentText("Natural sort")
-        # Create a plot window
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-        # Drag and Drop channel from FileWidget.channel_tree to Plot
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
-        plot_channel = self.add_channel_to_plot(plot=plot)
+        plot_channel = self.add_channel_to_plot()
 
         # Pre-evaluation
         self.assertEqual(QtCore.Qt.Checked, plot_channel.checkState(0))
@@ -70,37 +77,22 @@ class TestDoubleClick(TestPlotWidget):
             - Evaluate that channel is not present on plot when is disabled.
         """
         # Event
-        # Open File Widget
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Switch ComboBox to "Natural sort"
-        self.widget.channel_view.setCurrentText("Natural sort")
-        # Create a plot window
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
-        # Press PushButton 'FocusMode' - disabled (easy for evaluation)
-        if not plot.focused_mode_btn.isFlat():
-            QtTest.QTest.mouseClick(plot.focused_mode_btn, QtCore.Qt.LeftButton)
         # Drag and Drop channel from FileWidget.channel_tree to Plot
-        plot_channel_0 = self.add_channel_to_plot(plot=plot, channel_index=10)
-        _ = self.add_channel_to_plot(plot=plot, channel_index=11)
-        plot_channel_2 = self.add_channel_to_plot(plot=plot, channel_index=12)
+        plot_channel_0 = self.add_channel_to_plot(channel_index=10)
+        _ = self.add_channel_to_plot(channel_index=11)
+        plot_channel_2 = self.add_channel_to_plot(channel_index=12)
         # Press 'Shift-Insert' in order to Insert Group
         # Create Channel Group. Drag channels inside the group one by one
-        with mock.patch(
-            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
-        ) as mc_getText:
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mc_getText:
             # Create Channel Group
             mc_getText.return_value = "FirstGroup", True
-            QtTest.QTest.keySequence(
-                plot.channel_selection, QtGui.QKeySequence("Shift+Insert")
-            )
+            QtTest.QTest.keySequence(self.plot.channel_selection, QtGui.QKeySequence("Shift+Insert"))
             self.processEvents()
             # PreEvaluation: Check if there is one extra-item
-            self.assertEqual(4, plot.channel_selection.topLevelItemCount())
+            self.assertEqual(4, self.plot.channel_selection.topLevelItemCount())
             # Get Group Position
-            for index in range(plot.channel_selection.topLevelItemCount()):
-                item = plot.channel_selection.topLevelItem(index)
+            for index in range(self.plot.channel_selection.topLevelItemCount()):
+                item = self.plot.channel_selection.topLevelItem(index)
                 if item.text(self.Column.NAME) == "FirstGroup":
                     first_group = item
                     break
@@ -108,26 +100,24 @@ class TestDoubleClick(TestPlotWidget):
                 self.fail("FirstGroup is not present on Plot Channel Selection.")
             first_group.setExpanded(True)
             # Get the First Item that will be moved
-            drag_position = plot.channel_selection.visualItemRect(
-                plot_channel_0
-            ).center()
-            drop_position = plot.channel_selection.visualItemRect(first_group).center()
+            drag_position = self.plot.channel_selection.visualItemRect(plot_channel_0).center()
+            drop_position = self.plot.channel_selection.visualItemRect(first_group).center()
             # Get the Name of the first channel
             first_channel = plot_channel_0.text(self.Column.NAME)
             # PreEvaluation: Ensure that group has no child
             self.assertEqual(0, first_group.childCount())
             DragAndDrop(
-                source_widget=plot.channel_selection,
-                destination_widget=plot.channel_selection.viewport(),
+                source_widget=self.plot.channel_selection,
+                destination_widget=self.plot.channel_selection.viewport(),
                 source_pos=drag_position,
                 destination_pos=drop_position,
             )
             # PreEvaluate: Ensure that channel was added to group
             self.assertEqual(1, first_group.childCount())
             self.assertEqual(first_channel, first_group.child(0).text(self.Column.NAME))
-            self.assertEqual(3, plot.channel_selection.topLevelItemCount())
+            self.assertEqual(3, self.plot.channel_selection.topLevelItemCount())
 
-            enabled_groups_pixmap = plot.plot.viewport().grab()
+            enabled_groups_pixmap = self.plot.plot.viewport().grab()
             # Evaluate
             self.assertTrue(
                 Pixmap.has_color(
@@ -137,7 +127,7 @@ class TestDoubleClick(TestPlotWidget):
             )
             # Press mouse double click on channel
             self.mouseDClick_WidgetItem(first_group)
-            disabled_groups_pixmap = plot.plot.viewport().grab()
+            disabled_groups_pixmap = self.plot.plot.viewport().grab()
 
             # Evaluate
             self.assertFalse(
@@ -148,11 +138,11 @@ class TestDoubleClick(TestPlotWidget):
             )
 
             for _ in range(4):
-                QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
                 self.processEvents()
 
             # Evaluate that item is still 2nd one because
-            selectedItems = plot.channel_selection.selectedItems()
+            selectedItems = self.plot.channel_selection.selectedItems()
             self.assertEqual(1, len(selectedItems))
             selectedItem = selectedItems[0].text(self.Column.NAME)
             self.assertEqual(plot_channel_2.text(self.Column.NAME), selectedItem)
@@ -162,11 +152,11 @@ class TestDoubleClick(TestPlotWidget):
             self.processEvents()
 
             for _ in range(4):
-                QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
                 self.processEvents()
 
             # Evaluate that item is the one from the group
-            selectedItems = plot.channel_selection.selectedItems()
+            selectedItems = self.plot.channel_selection.selectedItems()
             self.assertEqual(1, len(selectedItems))
             selectedItem = selectedItems[0].text(self.Column.NAME)
             self.assertEqual(plot_channel_0.text(self.Column.NAME), selectedItem)
@@ -175,15 +165,15 @@ class TestDoubleClick(TestPlotWidget):
             # After channels are enabled, they first flash a few times on plot.
             # ProcessEvents few times for channels to be present
             for _ in range(20):
-                self.processEvents()
+                self.processEvents(0.05)
 
-            self.processEvents(0.1)
-            enabled_groups_pixmap = plot.plot.viewport().grab()
+            enabled_groups_pixmap = self.plot.plot.viewport().grab()
             self.assertTrue(
                 Pixmap.has_color(
                     pixmap=enabled_groups_pixmap,
                     color_name=plot_channel_0.color,
-                )
+                ),
+                msg=f"Color of channel {plot_channel_0.text(self.Column.NAME)} is not present on plot.",
             )
 
     def test_EnableDisable_ParentGroup(self):
@@ -215,61 +205,40 @@ class TestDoubleClick(TestPlotWidget):
             - Evaluate channel color is darkGray when it's disabled.
         """
         # Event
-        # Open File Widget
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Switch ComboBox to "Natural sort"
-        self.widget.channel_view.setCurrentText("Natural sort")
-        # Create a plot window
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
-        # Press PushButton 'FocusMode' - disabled (easy for evaluation)
-        if not plot.focused_mode_btn.isFlat():
-            QtTest.QTest.mouseClick(plot.focused_mode_btn, QtCore.Qt.LeftButton)
         # Drag and Drop channel from FileWidget.channel_tree to Plot
-        plot_channel_a = self.add_channel_to_plot(plot=plot, channel_index=10)
-        plot_channel_b = self.add_channel_to_plot(plot=plot, channel_index=11)
-        plot_channel_c = self.add_channel_to_plot(plot=plot, channel_index=12)
-        plot_channel_d = self.add_channel_to_plot(plot=plot, channel_index=13)
+        plot_channel_a = self.add_channel_to_plot(channel_index=10)
+        plot_channel_b = self.add_channel_to_plot(channel_index=11)
+        plot_channel_c = self.add_channel_to_plot(channel_index=12)
+        plot_channel_d = self.add_channel_to_plot(channel_index=13)
+        self.processEvents()
         # Press 'Shift-Insert' in order to Insert Group
         # Create Channel Group. Drag channels inside the group one by one
         groups = {}
-        with mock.patch(
-            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
-        ) as mc_getText:
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mc_getText:
             for group_name in ("A", "B", "C"):
                 # Create Channel Group
                 mc_getText.return_value = group_name, True
-                QtTest.QTest.keySequence(
-                    plot.channel_selection, QtGui.QKeySequence("Shift+Insert")
-                )
+                QtTest.QTest.keySequence(self.plot.channel_selection, QtGui.QKeySequence("Shift+Insert"))
                 self.processEvents()
 
             # Get Groups Position
-            for index in range(plot.channel_selection.topLevelItemCount()):
-                item = plot.channel_selection.topLevelItem(index)
+            for index in range(self.plot.channel_selection.topLevelItemCount()):
+                item = self.plot.channel_selection.topLevelItem(index)
                 group_name = item.text(self.Column.NAME)
                 if group_name in ("A", "B", "C"):
                     groups[group_name] = item
                     item.setExpanded(True)
 
             # Get the First Item that will be moved
-            for group_name in ("A", "B", "C"):
-                plot_channel = locals()[f"plot_channel_{group_name.lower()}"]
-                drag_position = plot.channel_selection.visualItemRect(
-                    plot_channel
-                ).center()
-                drop_position = plot.channel_selection.visualItemRect(
-                    groups[group_name]
-                ).center()
+            for group_name, plot_channel in zip(("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c)):
+                drag_position = self.plot.channel_selection.visualItemRect(plot_channel).center()
+                drop_position = self.plot.channel_selection.visualItemRect(groups[group_name]).center()
 
-                # Get the Name of the first channel
-                first_channel = plot_channel.text(self.Column.NAME)
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
                 DragAndDrop(
-                    source_widget=plot.channel_selection,
-                    destination_widget=plot.channel_selection.viewport(),
+                    source_widget=self.plot.channel_selection,
+                    destination_widget=self.plot.channel_selection.viewport(),
                     source_pos=drag_position,
                     destination_pos=drop_position,
                 )
@@ -277,20 +246,20 @@ class TestDoubleClick(TestPlotWidget):
                 self.processEvents()
 
             # Move Group C inside Group B
-            drag_position = plot.channel_selection.visualItemRect(groups["C"]).center()
-            drop_position = plot.channel_selection.visualItemRect(groups["B"]).center()
+            drag_position = self.plot.channel_selection.visualItemRect(groups["C"]).center()
+            drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
             DragAndDrop(
-                source_widget=plot.channel_selection,
-                destination_widget=plot.channel_selection.viewport(),
+                source_widget=self.plot.channel_selection,
+                destination_widget=self.plot.channel_selection.viewport(),
                 source_pos=drag_position,
                 destination_pos=drop_position,
             )
             # Move Group B inside Group A
-            drag_position = plot.channel_selection.visualItemRect(groups["B"]).center()
-            drop_position = plot.channel_selection.visualItemRect(groups["A"]).center()
+            drag_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
+            drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
             DragAndDrop(
-                source_widget=plot.channel_selection,
-                destination_widget=plot.channel_selection.viewport(),
+                source_widget=self.plot.channel_selection,
+                destination_widget=self.plot.channel_selection.viewport(),
                 source_pos=drag_position,
                 destination_pos=drop_position,
             )
@@ -300,13 +269,11 @@ class TestDoubleClick(TestPlotWidget):
             groups["C"].setExpanded(True)
 
             self.processEvents()
-            enabled_groups_pixmap = plot.plot.viewport().grab()
+            enabled_groups_pixmap = self.plot.plot.viewport().grab()
             # Evaluate
             for channel in (plot_channel_a, plot_channel_b, plot_channel_c):
                 self.assertTrue(
-                    Pixmap.has_color(
-                        pixmap=enabled_groups_pixmap, color_name=channel.color
-                    ),
+                    Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=channel.color),
                     msg=f"Color of Channel: {channel.text(self.Column.NAME)} not present on 'plot'.",
                 )
                 color_name = channel.foreground(self.Column.NAME).color().name()
@@ -314,7 +281,7 @@ class TestDoubleClick(TestPlotWidget):
             # Press mouse double click on Group A
             self.mouseDClick_WidgetItem(groups["A"])
             self.processEvents()
-            disabled_groups_pixmap = plot.plot.viewport().grab()
+            disabled_groups_pixmap = self.plot.plot.viewport().grab()
 
             # Evaluate
             for channel in (plot_channel_a, plot_channel_b, plot_channel_c):
@@ -328,13 +295,13 @@ class TestDoubleClick(TestPlotWidget):
                 color_name = channel.foreground(self.Column.NAME).color().name()
                 self.assertEqual(color_name, "#808080")
 
-            QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Up)
+            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Up)
             for _ in range(4):
-                QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
                 self.processEvents()
 
             # Evaluate that item is still plot_channel_d
-            selectedItems = plot.channel_selection.selectedItems()
+            selectedItems = self.plot.channel_selection.selectedItems()
             self.assertEqual(1, len(selectedItems))
             selectedItem = selectedItems[0].text(self.Column.NAME)
             self.assertEqual(plot_channel_d.text(self.Column.NAME), selectedItem)
@@ -344,22 +311,22 @@ class TestDoubleClick(TestPlotWidget):
             self.processEvents()
 
             for _ in range(8):
-                QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
                 self.processEvents()
 
             # Evaluate that item is the one from the group C
-            selectedItems = plot.channel_selection.selectedItems()
+            selectedItems = self.plot.channel_selection.selectedItems()
             self.assertEqual(1, len(selectedItems))
             selectedItem = selectedItems[0].text(self.Column.NAME)
             self.assertEqual(plot_channel_c.text(self.Column.NAME), selectedItem)
 
             # Evaluate
-            # After channels are enabled, they first flash a few times on plot.
+            # After channels are enabled, they first flash a few times on self.plot.
             # ProcessEvents few times for channels to be present
             for _ in range(20):
-                self.processEvents()
+                self.processEvents(0.05)
 
-            enabled_groups_pixmap = plot.plot.viewport().grab()
+            enabled_groups_pixmap = self.plot.plot.viewport().grab()
             for channel in (
                 plot_channel_a,
                 plot_channel_b,
@@ -367,9 +334,7 @@ class TestDoubleClick(TestPlotWidget):
                 plot_channel_d,
             ):
                 self.assertTrue(
-                    Pixmap.has_color(
-                        pixmap=enabled_groups_pixmap, color_name=channel.color
-                    ),
+                    Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=channel.color),
                     msg=f"Color for Channel: {channel.text(self.Column.NAME)} not present on 'plot'",
                 )
                 color_name = channel.foreground(self.Column.NAME).color().name()
@@ -403,61 +368,40 @@ class TestDoubleClick(TestPlotWidget):
             - Evaluate that channel is not present on plot when is disabled.
         """
         # Event
-        # Open File Widget
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Switch ComboBox to "Natural sort"
-        self.widget.channel_view.setCurrentText("Natural sort")
-        # Create a plot window
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
-        # Press PushButton 'FocusMode' - disabled (easy for evaluation)
-        if not plot.focused_mode_btn.isFlat():
-            QtTest.QTest.mouseClick(plot.focused_mode_btn, QtCore.Qt.LeftButton)
         # Drag and Drop channel from FileWidget.channel_tree to Plot
-        plot_channel_a = self.add_channel_to_plot(plot=plot, channel_index=10)
-        plot_channel_b = self.add_channel_to_plot(plot=plot, channel_index=11)
-        plot_channel_c = self.add_channel_to_plot(plot=plot, channel_index=12)
-        plot_channel_d = self.add_channel_to_plot(plot=plot, channel_index=13)
+        plot_channel_a = self.add_channel_to_plot(channel_index=10)
+        plot_channel_b = self.add_channel_to_plot(channel_index=11)
+        plot_channel_c = self.add_channel_to_plot(channel_index=12)
+        plot_channel_d = self.add_channel_to_plot(channel_index=13)
+
         # Press 'Shift-Insert' in order to Insert Group
         # Create Channel Group. Drag channels inside the group one by one
         groups = {}
-        with mock.patch(
-            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
-        ) as mc_getText:
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mc_getText:
             for group_name in ("A", "B", "C"):
                 # Create Channel Group
                 mc_getText.return_value = group_name, True
-                QtTest.QTest.keySequence(
-                    plot.channel_selection, QtGui.QKeySequence("Shift+Insert")
-                )
+                QtTest.QTest.keySequence(self.plot.channel_selection, QtGui.QKeySequence("Shift+Insert"))
                 self.processEvents()
 
             # Get Groups Position
-            for index in range(plot.channel_selection.topLevelItemCount()):
-                item = plot.channel_selection.topLevelItem(index)
+            for index in range(self.plot.channel_selection.topLevelItemCount()):
+                item = self.plot.channel_selection.topLevelItem(index)
                 group_name = item.text(self.Column.NAME)
                 if group_name in ("A", "B", "C"):
                     groups[group_name] = item
                     item.setExpanded(True)
 
             # Get the First Item that will be moved
-            for group_name in ("A", "B", "C"):
-                plot_channel = locals()[f"plot_channel_{group_name.lower()}"]
-                drag_position = plot.channel_selection.visualItemRect(
-                    plot_channel
-                ).center()
-                drop_position = plot.channel_selection.visualItemRect(
-                    groups[group_name]
-                ).center()
+            for group_name, plot_channel in zip(("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c)):
+                drag_position = self.plot.channel_selection.visualItemRect(plot_channel).center()
+                drop_position = self.plot.channel_selection.visualItemRect(groups[group_name]).center()
 
-                # Get the Name of the first channel
-                first_channel = plot_channel.text(self.Column.NAME)
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
                 DragAndDrop(
-                    source_widget=plot.channel_selection,
-                    destination_widget=plot.channel_selection.viewport(),
+                    source_widget=self.plot.channel_selection,
+                    destination_widget=self.plot.channel_selection.viewport(),
                     source_pos=drag_position,
                     destination_pos=drop_position,
                 )
@@ -465,20 +409,20 @@ class TestDoubleClick(TestPlotWidget):
                 self.processEvents()
 
             # Move Group C inside Group B
-            drag_position = plot.channel_selection.visualItemRect(groups["C"]).center()
-            drop_position = plot.channel_selection.visualItemRect(groups["B"]).center()
+            drag_position = self.plot.channel_selection.visualItemRect(groups["C"]).center()
+            drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
             DragAndDrop(
-                source_widget=plot.channel_selection,
-                destination_widget=plot.channel_selection.viewport(),
+                source_widget=self.plot.channel_selection,
+                destination_widget=self.plot.channel_selection.viewport(),
                 source_pos=drag_position,
                 destination_pos=drop_position,
             )
             # Move Group B inside Group A
-            drag_position = plot.channel_selection.visualItemRect(groups["B"]).center()
-            drop_position = plot.channel_selection.visualItemRect(groups["A"]).center()
+            drag_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
+            drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
             DragAndDrop(
-                source_widget=plot.channel_selection,
-                destination_widget=plot.channel_selection.viewport(),
+                source_widget=self.plot.channel_selection,
+                destination_widget=self.plot.channel_selection.viewport(),
                 source_pos=drag_position,
                 destination_pos=drop_position,
             )
@@ -487,25 +431,21 @@ class TestDoubleClick(TestPlotWidget):
             groups["B"].setExpanded(True)
             groups["C"].setExpanded(True)
 
-            enabled_groups_pixmap = plot.plot.viewport().grab()
+            enabled_groups_pixmap = self.plot.plot.viewport().grab()
             self.processEvents()
             # Evaluate
             for channel in (plot_channel_a, plot_channel_b, plot_channel_c):
                 self.assertTrue(
-                    Pixmap.has_color(
-                        pixmap=enabled_groups_pixmap, color_name=channel.color
-                    ),
+                    Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=channel.color),
                     msg=f"Color of Channel: {channel.text(self.Column.NAME)} not present on 'plot'.",
                 )
             # Press mouse double click on Group B
             self.mouseDClick_WidgetItem(groups["B"])
-            disabled_groups_pixmap = plot.plot.viewport().grab()
+            disabled_groups_pixmap = self.plot.plot.viewport().grab()
 
             # Evaluate
             self.assertTrue(
-                Pixmap.has_color(
-                    pixmap=enabled_groups_pixmap, color_name=plot_channel_a.color
-                ),
+                Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=plot_channel_a.color),
                 msg=f"Color of Channel: {plot_channel_a.text(self.Column.NAME)} not present on 'plot'.",
             )
             for channel in (plot_channel_b, plot_channel_c):
@@ -517,9 +457,9 @@ class TestDoubleClick(TestPlotWidget):
                     msg=f"Color of Channel: {channel.text(self.Column.NAME)} present on 'plot'.",
                 )
 
-            QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Up)
+            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Up)
             for _ in range(4):
-                QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
                 self.processEvents()
 
             # Press mouse double click on group B
@@ -527,16 +467,16 @@ class TestDoubleClick(TestPlotWidget):
             self.processEvents()
 
             for _ in range(8):
-                QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
                 self.processEvents()
 
             # Evaluate
-            # After channels are enabled, they first flash a few times on plot.
+            # After channels are enabled, they first flash a few times on self.plot.
             # ProcessEvents few times for channels to be present
             for _ in range(20):
-                self.processEvents()
+                self.processEvents(0.05)
 
-            enabled_groups_pixmap = plot.plot.viewport().grab()
+            enabled_groups_pixmap = self.plot.plot.viewport().grab()
             for channel in (
                 plot_channel_a,
                 plot_channel_b,
@@ -544,9 +484,7 @@ class TestDoubleClick(TestPlotWidget):
                 plot_channel_d,
             ):
                 self.assertTrue(
-                    Pixmap.has_color(
-                        pixmap=enabled_groups_pixmap, color_name=channel.color
-                    ),
+                    Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=channel.color),
                     msg=f"Color for Channel: {channel.text(self.Column.NAME)} not present on 'plot'",
                 )
 
@@ -580,82 +518,60 @@ class TestDoubleClick(TestPlotWidget):
             - Evaluate that subgroup C state is maintained after subgroup B is enabled.
         """
         # Event
-        # Open File Widget
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Switch ComboBox to "Natural sort"
-        self.widget.channel_view.setCurrentText("Natural sort")
-        # Create a plot window
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
-        # Press PushButton 'FocusMode' - disabled (easy for evaluation)
-        if not plot.focused_mode_btn.isFlat():
-            QtTest.QTest.mouseClick(plot.focused_mode_btn, QtCore.Qt.LeftButton)
         # Drag and Drop channel from FileWidget.channel_tree to Plot
-        plot_channel_a = self.add_channel_to_plot(plot=plot, channel_index=10)
-        plot_channel_b = self.add_channel_to_plot(plot=plot, channel_index=11)
-        plot_channel_c = self.add_channel_to_plot(plot=plot, channel_index=12)
-        plot_channel_d = self.add_channel_to_plot(plot=plot, channel_index=13)
+        plot_channel_a = self.add_channel_to_plot(channel_index=10)
+        plot_channel_b = self.add_channel_to_plot(channel_index=11)
+        plot_channel_c = self.add_channel_to_plot(channel_index=12)
+        plot_channel_d = self.add_channel_to_plot(channel_index=13)
         # Press 'Shift-Insert' in order to Insert Group
         # Create Channel Group. Drag channels inside the group one by one
         groups = {}
-        with mock.patch(
-            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
-        ) as mc_getText:
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mc_getText:
             for group_name in ("A", "B", "C"):
                 # Create Channel Group
                 mc_getText.return_value = group_name, True
-                QtTest.QTest.keySequence(
-                    plot.channel_selection, QtGui.QKeySequence("Shift+Insert")
-                )
+                QtTest.QTest.keySequence(self.plot.channel_selection, QtGui.QKeySequence("Shift+Insert"))
                 self.processEvents()
 
             # Get Groups Position
-            for index in range(plot.channel_selection.topLevelItemCount()):
-                item = plot.channel_selection.topLevelItem(index)
+            for index in range(self.plot.channel_selection.topLevelItemCount()):
+                item = self.plot.channel_selection.topLevelItem(index)
                 group_name = item.text(self.Column.NAME)
                 if group_name in ("A", "B", "C"):
                     groups[group_name] = item
                     item.setExpanded(True)
 
             # Get the First Item that will be moved
-            for group_name in ("A", "B", "C"):
-                plot_channel = locals()[f"plot_channel_{group_name.lower()}"]
-                drag_position = plot.channel_selection.visualItemRect(
-                    plot_channel
-                ).center()
-                drop_position = plot.channel_selection.visualItemRect(
-                    groups[group_name]
-                ).center()
+            for group_name, plot_channel in zip(("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c)):
+                drag_position = self.plot.channel_selection.visualItemRect(plot_channel).center()
+                drop_position = self.plot.channel_selection.visualItemRect(groups[group_name]).center()
 
-                # Get the Name of the first channel
-                first_channel = plot_channel.text(self.Column.NAME)
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
                 DragAndDrop(
-                    source_widget=plot.channel_selection,
-                    destination_widget=plot.channel_selection.viewport(),
+                    source_widget=self.plot.channel_selection,
+                    destination_widget=self.plot.channel_selection.viewport(),
                     source_pos=drag_position,
                     destination_pos=drop_position,
                 )
+                self.processEvents(0.05)
                 self.assertEqual(1, groups[group_name].childCount())
-                self.processEvents()
 
             # Move Group C inside Group B
-            drag_position = plot.channel_selection.visualItemRect(groups["C"]).center()
-            drop_position = plot.channel_selection.visualItemRect(groups["B"]).center()
+            drag_position = self.plot.channel_selection.visualItemRect(groups["C"]).center()
+            drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
             DragAndDrop(
-                source_widget=plot.channel_selection,
-                destination_widget=plot.channel_selection.viewport(),
+                source_widget=self.plot.channel_selection,
+                destination_widget=self.plot.channel_selection.viewport(),
                 source_pos=drag_position,
                 destination_pos=drop_position,
             )
             # Move Group B inside Group A
-            drag_position = plot.channel_selection.visualItemRect(groups["B"]).center()
-            drop_position = plot.channel_selection.visualItemRect(groups["A"]).center()
+            drag_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
+            drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
             DragAndDrop(
-                source_widget=plot.channel_selection,
-                destination_widget=plot.channel_selection.viewport(),
+                source_widget=self.plot.channel_selection,
+                destination_widget=self.plot.channel_selection.viewport(),
                 source_pos=drag_position,
                 destination_pos=drop_position,
             )
@@ -664,27 +580,23 @@ class TestDoubleClick(TestPlotWidget):
             groups["B"].setExpanded(True)
             groups["C"].setExpanded(True)
 
-            enabled_groups_pixmap = plot.plot.viewport().grab()
+            enabled_groups_pixmap = self.plot.plot.viewport().grab()
             self.processEvents()
             # Evaluate
             for channel in (plot_channel_a, plot_channel_b, plot_channel_c):
                 self.assertTrue(
-                    Pixmap.has_color(
-                        pixmap=enabled_groups_pixmap, color_name=channel.color
-                    ),
+                    Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=channel.color),
                     msg=f"Color of Channel: {channel.text(self.Column.NAME)} not present on 'plot'.",
                 )
             # Press mouse double click on Group C
             self.mouseDClick_WidgetItem(groups["C"])
             # Press mouse double click on Group B
             self.mouseDClick_WidgetItem(groups["B"])
-            disabled_groups_pixmap = plot.plot.viewport().grab()
+            disabled_groups_pixmap = self.plot.plot.viewport().grab()
 
             # Evaluate
             self.assertTrue(
-                Pixmap.has_color(
-                    pixmap=enabled_groups_pixmap, color_name=plot_channel_a.color
-                ),
+                Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=plot_channel_a.color),
                 msg=f"Color of Channel: {plot_channel_a.text(self.Column.NAME)} not present on 'plot'.",
             )
             for channel in (plot_channel_b, plot_channel_c):
@@ -696,9 +608,9 @@ class TestDoubleClick(TestPlotWidget):
                     msg=f"Color of Channel: {channel.text(self.Column.NAME)} present on 'plot'.",
                 )
 
-            QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Up)
+            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Up)
             for _ in range(4):
-                QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
                 self.processEvents()
 
             # Press mouse double click on group B
@@ -706,27 +618,23 @@ class TestDoubleClick(TestPlotWidget):
             self.processEvents()
 
             for _ in range(8):
-                QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
                 self.processEvents()
 
             # Evaluate
-            # After channels are enabled, they first flash a few times on plot.
+            # After channels are enabled, they first flash a few times on self.plot.
             # ProcessEvents few times for channels to be present
             for _ in range(20):
-                self.processEvents()
+                self.processEvents(0.05)
 
-            enabled_groups_pixmap = plot.plot.viewport().grab()
+            enabled_groups_pixmap = self.plot.plot.viewport().grab()
             self.assertFalse(
-                Pixmap.has_color(
-                    pixmap=enabled_groups_pixmap, color_name=plot_channel_c.color
-                ),
+                Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=plot_channel_c.color),
                 msg=f"Color for Channel: {plot_channel_c.text(self.Column.NAME)} present on 'plot'",
             )
             for channel in (plot_channel_a, plot_channel_b, plot_channel_d):
                 self.assertTrue(
-                    Pixmap.has_color(
-                        pixmap=enabled_groups_pixmap, color_name=channel.color
-                    ),
+                    Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=channel.color),
                     msg=f"Color for Channel: {channel.text(self.Column.NAME)} not present on 'plot'",
                 )
 
@@ -763,82 +671,60 @@ class TestDoubleClick(TestPlotWidget):
             - Evaluate that channel is not present on plot when is disabled.
         """
         # Event
-        # Open File Widget
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Switch ComboBox to "Natural sort"
-        self.widget.channel_view.setCurrentText("Natural sort")
-        # Create a plot window
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
-        # Press PushButton 'FocusMode' - disabled (easy for evaluation)
-        if not plot.focused_mode_btn.isFlat():
-            QtTest.QTest.mouseClick(plot.focused_mode_btn, QtCore.Qt.LeftButton)
         # Drag and Drop channel from FileWidget.channel_tree to Plot
-        plot_channel_a = self.add_channel_to_plot(plot=plot, channel_index=10)
-        plot_channel_b = self.add_channel_to_plot(plot=plot, channel_index=11)
-        plot_channel_c = self.add_channel_to_plot(plot=plot, channel_index=12)
-        plot_channel_d = self.add_channel_to_plot(plot=plot, channel_index=13)
+        plot_channel_a = self.add_channel_to_plot(channel_index=10)
+        plot_channel_b = self.add_channel_to_plot(channel_index=11)
+        plot_channel_c = self.add_channel_to_plot(channel_index=12)
+        plot_channel_d = self.add_channel_to_plot(channel_index=13)
         # Press 'Shift-Insert' in order to Insert Group
         # Create Channel Group. Drag channels inside the group one by one
         groups = {}
-        with mock.patch(
-            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
-        ) as mc_getText:
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mc_getText:
             for group_name in ("A", "B", "C"):
                 # Create Channel Group
                 mc_getText.return_value = group_name, True
-                QtTest.QTest.keySequence(
-                    plot.channel_selection, QtGui.QKeySequence("Shift+Insert")
-                )
+                QtTest.QTest.keySequence(self.plot.channel_selection, QtGui.QKeySequence("Shift+Insert"))
                 self.processEvents()
 
             # Get Groups Position
-            for index in range(plot.channel_selection.topLevelItemCount()):
-                item = plot.channel_selection.topLevelItem(index)
+            for index in range(self.plot.channel_selection.topLevelItemCount()):
+                item = self.plot.channel_selection.topLevelItem(index)
                 group_name = item.text(self.Column.NAME)
                 if group_name in ("A", "B", "C"):
                     groups[group_name] = item
                     item.setExpanded(True)
 
             # Get the First Item that will be moved
-            for group_name in ("A", "B", "C"):
-                plot_channel = locals()[f"plot_channel_{group_name.lower()}"]
-                drag_position = plot.channel_selection.visualItemRect(
-                    plot_channel
-                ).center()
-                drop_position = plot.channel_selection.visualItemRect(
-                    groups[group_name]
-                ).center()
+            for group_name, plot_channel in zip(("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c)):
+                drag_position = self.plot.channel_selection.visualItemRect(plot_channel).center()
+                drop_position = self.plot.channel_selection.visualItemRect(groups[group_name]).center()
 
-                # Get the Name of the first channel
-                first_channel = plot_channel.text(self.Column.NAME)
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
                 DragAndDrop(
-                    source_widget=plot.channel_selection,
-                    destination_widget=plot.channel_selection.viewport(),
+                    source_widget=self.plot.channel_selection,
+                    destination_widget=self.plot.channel_selection.viewport(),
                     source_pos=drag_position,
                     destination_pos=drop_position,
                 )
+                self.processEvents(0.05)
                 self.assertEqual(1, groups[group_name].childCount())
-                self.processEvents()
 
             # Move Group C inside Group B
-            drag_position = plot.channel_selection.visualItemRect(groups["C"]).center()
-            drop_position = plot.channel_selection.visualItemRect(groups["B"]).center()
+            drag_position = self.plot.channel_selection.visualItemRect(groups["C"]).center()
+            drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
             DragAndDrop(
-                source_widget=plot.channel_selection,
-                destination_widget=plot.channel_selection.viewport(),
+                source_widget=self.plot.channel_selection,
+                destination_widget=self.plot.channel_selection.viewport(),
                 source_pos=drag_position,
                 destination_pos=drop_position,
             )
             # Move Group B inside Group A
-            drag_position = plot.channel_selection.visualItemRect(groups["B"]).center()
-            drop_position = plot.channel_selection.visualItemRect(groups["A"]).center()
+            drag_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
+            drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
             DragAndDrop(
-                source_widget=plot.channel_selection,
-                destination_widget=plot.channel_selection.viewport(),
+                source_widget=self.plot.channel_selection,
+                destination_widget=self.plot.channel_selection.viewport(),
                 source_pos=drag_position,
                 destination_pos=drop_position,
             )
@@ -847,27 +733,23 @@ class TestDoubleClick(TestPlotWidget):
             groups["B"].setExpanded(True)
             groups["C"].setExpanded(True)
 
-            enabled_groups_pixmap = plot.plot.viewport().grab()
+            enabled_groups_pixmap = self.plot.plot.viewport().grab()
             self.processEvents()
             # Evaluate
             for channel in (plot_channel_a, plot_channel_b, plot_channel_c):
                 self.assertTrue(
-                    Pixmap.has_color(
-                        pixmap=enabled_groups_pixmap, color_name=channel.color
-                    ),
+                    Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=channel.color),
                     msg=f"Color of Channel: {channel.text(self.Column.NAME)} not present on 'plot'.",
                 )
             # Press mouse double click on Group C
             self.mouseDClick_WidgetItem(groups["C"])
             # Press mouse double click on Group B
             self.mouseDClick_WidgetItem(groups["B"])
-            disabled_groups_pixmap = plot.plot.viewport().grab()
+            disabled_groups_pixmap = self.plot.plot.viewport().grab()
 
             # Evaluate
             self.assertTrue(
-                Pixmap.has_color(
-                    pixmap=enabled_groups_pixmap, color_name=plot_channel_a.color
-                ),
+                Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=plot_channel_a.color),
                 msg=f"Color of Channel: {plot_channel_a.text(self.Column.NAME)} not present on 'plot'.",
             )
             for channel in (plot_channel_b, plot_channel_c):
@@ -879,9 +761,9 @@ class TestDoubleClick(TestPlotWidget):
                     msg=f"Color of Channel: {channel.text(self.Column.NAME)} present on 'plot'.",
                 )
 
-            QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Up)
+            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Up)
             for _ in range(4):
-                QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
                 self.processEvents()
 
             # Press mouse double click on group B
@@ -890,7 +772,7 @@ class TestDoubleClick(TestPlotWidget):
             self.processEvents()
 
             # Evaluate selected items
-            selectedItems = plot.channel_selection.selectedItems()
+            selectedItems = self.plot.channel_selection.selectedItems()
             self.assertEqual(1, len(selectedItems))
             self.assertEqual("B", selectedItems[0].text(self.Column.NAME))
 
@@ -904,30 +786,26 @@ class TestDoubleClick(TestPlotWidget):
             self.mouseClick_WidgetItem(groups["C"])
 
             # Evaluate that selection was changed.
-            selectedItems = plot.channel_selection.selectedItems()
+            selectedItems = self.plot.channel_selection.selectedItems()
             self.assertEqual(0, len(selectedItems))
 
             for _ in range(8):
-                QtTest.QTest.keyClick(plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
                 self.processEvents()
 
             # Evaluate
-            # After channels are enabled, they first flash a few times on plot.
+            # After channels are enabled, they first flash a few times on self.plot.
             # ProcessEvents few times for channels to be present
             for _ in range(20):
-                self.processEvents()
+                self.processEvents(0.05)
 
-            enabled_groups_pixmap = plot.plot.viewport().grab()
+            enabled_groups_pixmap = self.plot.plot.viewport().grab()
             self.assertFalse(
-                Pixmap.has_color(
-                    pixmap=enabled_groups_pixmap, color_name=plot_channel_c.color
-                ),
+                Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=plot_channel_c.color),
                 msg=f"Color for Channel: {plot_channel_c.text(self.Column.NAME)} present on 'plot'",
             )
             for channel in (plot_channel_a, plot_channel_b, plot_channel_d):
                 self.assertTrue(
-                    Pixmap.has_color(
-                        pixmap=enabled_groups_pixmap, color_name=channel.color
-                    ),
+                    Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=channel.color),
                     msg=f"Color for Channel: {channel.text(self.Column.NAME)} not present on 'plot'",
                 )

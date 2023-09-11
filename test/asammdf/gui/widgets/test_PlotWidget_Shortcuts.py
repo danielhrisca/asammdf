@@ -36,12 +36,8 @@ class TestShortcuts(TestPlotWidget):
 
         plot = self.widget.mdi_area.subWindowList()[0].widget()
         channel_selection = plot.channel_selection
-        channel_14 = self.add_channel_to_plot(
-            plot=plot, channel_name="ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
-        )
-        channel_15 = self.add_channel_to_plot(
-            plot=plot, channel_name="ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
-        )
+        channel_14 = self.add_channel_to_plot(plot=plot, channel_name="ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL")
+        channel_15 = self.add_channel_to_plot(plot=plot, channel_name="ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL")
         self.assertEqual(2, plot.channel_selection.topLevelItemCount())
 
         # Case 0:
