@@ -15,9 +15,7 @@ LOCAL_TIMEZONE = dateutil.tz.tzlocal()
 class FlexRayBusTrace(TabularBase):
     add_channels_request = QtCore.Signal(list)
 
-    def __init__(
-        self, signals=None, start=0, format="phys", ranges=None, *args, **kwargs
-    ):
+    def __init__(self, signals=None, start=0, format="phys", ranges=None, *args, **kwargs):
         ranges = ranges or {name: [] for name in signals.columns}
         if not ranges["Event Type"]:
             ranges["Event Type"] = [

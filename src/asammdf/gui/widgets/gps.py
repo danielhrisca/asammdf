@@ -24,9 +24,7 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
-        timebase = np.around(
-            np.union1d(latitude_channel.timestamps, longitude_channel.timestamps), 9
-        )
+        timebase = np.around(np.union1d(latitude_channel.timestamps, longitude_channel.timestamps), 9)
         self.latitude_signal = latitude_channel.interp(timebase)
         self.longitude_signal = longitude_channel.interp(timebase)
         if len(timebase):
@@ -69,11 +67,7 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         # L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png").addTo(self.map)
 
         if len(timebase):
-            line = L.polyline(
-                np.column_stack(
-                    [self.latitude_signal.samples, self.longitude_signal.samples]
-                ).tolist()
-            )
+            line = L.polyline(np.column_stack([self.latitude_signal.samples, self.longitude_signal.samples]).tolist())
             line.addTo(self.map)
 
             self.map.setView([self.latitude, self.longitude], zoom)

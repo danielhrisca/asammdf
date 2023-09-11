@@ -50,8 +50,7 @@ class ReportTests:
             verdict_details = ""
             for data in datas:
                 verdict_table_entry = (
-                    f"|{data.classname}|[{data.name}](#user-content-{data.name.lower()})|"
-                    f"{data.time}|\n"
+                    f"|{data.classname}|[{data.name}](#user-content-{data.name.lower()})|" f"{data.time}|\n"
                 )
                 verdict_data_entry = (
                     f"<details><summary>\n"

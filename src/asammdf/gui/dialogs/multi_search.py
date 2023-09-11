@@ -16,11 +16,7 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
     def __init__(self, channels_dbs, measurements, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
-        self.setWindowFlags(
-            self.windowFlags()
-            | QtCore.Qt.WindowSystemMenuHint
-            | QtCore.Qt.WindowMinMaxButtonsHint
-        )
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowSystemMenuHint | QtCore.Qt.WindowMinMaxButtonsHint)
 
         for widget in (
             self.apply_btn,
@@ -69,11 +65,7 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
                 else:
                     pattern = re.compile(f"(?i){pattern}")
                 for i, channels_db in enumerate(self.channels_dbs, 1):
-                    match_results = [
-                        f"{i:> 2}: {name}"
-                        for name in channels_db
-                        if pattern.fullmatch(name)
-                    ]
+                    match_results = [f"{i:> 2}: {name}" for name in channels_db if pattern.fullmatch(name)]
                     results.extend(match_results)
 
             except Exception as err:
@@ -123,6 +115,4 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
         for i, name in enumerate(self.measurements, 1):
             info.extend(wrap(f"{i:> 2}: {name}", 120))
 
-        MessageBox.information(
-            self, "Measurement files used for comparison", "\n".join(info)
-        )
+        MessageBox.information(self, "Measurement files used for comparison", "\n".join(info))

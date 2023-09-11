@@ -103,9 +103,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                 self.case_sensitivity_pattern.setCurrentText("Case sensitive")
             else:
                 self.case_sensitivity_pattern.setCurrentText("Case insensitive")
-            self.raw.setCheckState(
-                QtCore.Qt.Checked if pattern["raw"] else QtCore.Qt.Unchecked
-            )
+            self.raw.setCheckState(QtCore.Qt.Checked if pattern["raw"] else QtCore.Qt.Unchecked)
             self.name.setText(pattern["name"])
             self.ranges = pattern["ranges"]
             self.integer_format.setCurrentText(pattern.get("integer_format", "phys"))
@@ -190,19 +188,14 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                         # check channel group source name
 
                         if cg_source and (
-                            pattern.fullmatch(cg_source.name or "")
-                            or pattern.fullmatch(cg_source.path or "")
+                            pattern.fullmatch(cg_source.name or "") or pattern.fullmatch(cg_source.path or "")
                         ):
                             matches.update(
                                 {
                                     (group_index, channel_index): {
                                         "names": [ch.name],
-                                        "comment": extract_xml_comment(
-                                            ch.comment
-                                        ).strip(),
-                                        "unit": ch.conversion
-                                        and ch.conversion.unit
-                                        or ch.unit,
+                                        "comment": extract_xml_comment(ch.comment).strip(),
+                                        "unit": ch.conversion and ch.conversion.unit or ch.unit,
                                         "source_name": cg_source.name,
                                         "source_path": cg_source.path,
                                     }
@@ -225,18 +218,10 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                         if entry not in matches:
                                             matches[entry] = {
                                                 "names": [target],
-                                                "comment": extract_xml_comment(
-                                                    ch.comment
-                                                ).strip(),
-                                                "unit": ch.conversion
-                                                and ch.conversion.unit
-                                                or ch.unit,
-                                                "source_name": source.name
-                                                if source
-                                                else "",
-                                                "source_path": source.path
-                                                if source
-                                                else "",
+                                                "comment": extract_xml_comment(ch.comment).strip(),
+                                                "unit": ch.conversion and ch.conversion.unit or ch.unit,
+                                                "source_name": source.name if source else "",
+                                                "source_path": source.path if source else "",
                                             }
                                         else:
                                             matches[entry]["name"].append(target)
@@ -251,34 +236,22 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                         if pattern.fullmatch(target):
                                             matches[entry] = {
                                                 "names": [ch.name],
-                                                "comment": extract_xml_comment(
-                                                    ch.comment
-                                                ).strip(),
-                                                "unit": ch.conversion
-                                                and ch.conversion.unit
-                                                or ch.unit,
-                                                "source_name": source.name
-                                                if source
-                                                else "",
-                                                "source_path": source.path
-                                                if source
-                                                else "",
+                                                "comment": extract_xml_comment(ch.comment).strip(),
+                                                "unit": ch.conversion and ch.conversion.unit or ch.unit,
+                                                "source_name": source.name if source else "",
+                                                "source_path": source.path if source else "",
                                             }
                                             break
 
                 else:
-                    found_names = [
-                        name for name in self.channels_db if pattern.fullmatch(name)
-                    ]
+                    found_names = [name for name in self.channels_db if pattern.fullmatch(name)]
 
                     matches = {}
                     for name in found_names:
                         for entry in self.channels_db[name]:
                             if entry not in matches:
                                 (group_index, channel_index) = entry
-                                ch = self.mdf.groups[group_index].channels[
-                                    channel_index
-                                ]
+                                ch = self.mdf.groups[group_index].channels[channel_index]
                                 cg = self.mdf.groups[group_index].channel_group
 
                                 source = ch.source or getattr(cg, "acq_source", None)
@@ -286,9 +259,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                 matches[entry] = {
                                     "names": [],
                                     "comment": extract_xml_comment(ch.comment).strip(),
-                                    "unit": ch.conversion
-                                    and ch.conversion.unit
-                                    or ch.unit,
+                                    "unit": ch.conversion and ch.conversion.unit or ch.unit,
                                     "source_name": source.name if source else "",
                                     "source_path": source.path if source else "",
                                 }
@@ -300,10 +271,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                             else:
                                 info["names"].append(name)
 
-                matches = [
-                    (group_index, channel_index, info)
-                    for (group_index, channel_index), info in matches.items()
-                ]
+                matches = [(group_index, channel_index, info) for (group_index, channel_index), info in matches.items()]
                 matches.sort(key=lambda x: x[-1]["names"][0])
 
                 self.matches.clear()
@@ -402,9 +370,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                 if item is None:
                     break
 
-                entry = int(item.text(self.GroupColumn)), int(
-                    item.text(self.ChannelColumn)
-                )
+                entry = int(item.text(self.GroupColumn)), int(item.text(self.ChannelColumn))
                 name = item.text(self.NameColumn)
                 self.result[entry] = name
                 iterator += 1
@@ -415,8 +381,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.result = {
             "pattern": self.pattern.text().strip(),
             "match_type": self.pattern_match_type.currentText(),
-            "case_sensitive": self.case_sensitivity_pattern.currentText()
-            == "Case sensitive",
+            "case_sensitive": self.case_sensitivity_pattern.currentText() == "Case sensitive",
             "filter_type": self.filter_type.currentText(),
             "filter_value": self.filter_value.value(),
             "raw": self.raw.checkState() == QtCore.Qt.Checked,
@@ -426,9 +391,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         }
 
         if not self.result["pattern"]:
-            MessageBox.warning(
-                self, "Cannot apply pattern", "The pattern cannot be empty"
-            )
+            MessageBox.warning(self, "Cannot apply pattern", "The pattern cannot be empty")
             return
 
         if not self.result["name"]:

@@ -94,9 +94,7 @@ class TestMDF4(unittest.TestCase):
             mime=r"text/plain",
             embedded=True,
         )
-        outfile = mdf.save(
-            Path(TestMDF4.tempdir.name) / "attachment.mf4", overwrite=True
-        )
+        outfile = mdf.save(Path(TestMDF4.tempdir.name) / "attachment.mf4", overwrite=True)
 
         with MDF(outfile) as attachment_mdf:
             data, filename, md5_sum = attachment_mdf.extract_attachment(index=0)
@@ -118,9 +116,7 @@ class TestMDF4(unittest.TestCase):
             mime=r"text/plain",
             embedded=True,
         )
-        outfile = mdf.save(
-            Path(TestMDF4.tempdir.name) / "attachment.mf4", overwrite=True
-        )
+        outfile = mdf.save(Path(TestMDF4.tempdir.name) / "attachment.mf4", overwrite=True)
 
         with MDF(outfile) as attachment_mdf:
             data, filename, md5_sum = attachment_mdf.extract_attachment(index=0)

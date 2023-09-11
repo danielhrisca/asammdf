@@ -39,9 +39,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.origin_uuid = origin_uuid or (mdf.uuid if mdf else os.urandom(6).hex())
 
         self.arg_widgets = []
-        spacer = QtWidgets.QSpacerItem(
-            20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
-        )
+        spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.arg_layout.addItem(spacer, len(self.arg_widgets) + 2, 0)
         self.arg_widgets.append(spacer)
 
@@ -70,9 +68,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         if computation:
             computation = computation_to_python_function(computation)
 
-            self.name.setText(
-                computation.get("channel_name", computation.get("channel", ""))
-            )
+            self.name.setText(computation.get("channel_name", computation.get("channel", "")))
             self.unit.setText(computation.get("channel_unit", ""))
             self.comment.setPlainText(computation.get("channel_comment", ""))
 
@@ -93,10 +89,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 for i, names in enumerate(computation["args"].values()):
                     self.arg_widgets[i][1].insertPlainText("\n".join(names))
 
-            if (
-                computation.get("computation_mode", "sample_by_sample")
-                == "sample_by_sample"
-            ):
+            if computation.get("computation_mode", "sample_by_sample") == "sample_by_sample":
                 self.sample_by_sample.setChecked(True)
             else:
                 self.complete_signal.setChecked(True)
@@ -154,9 +147,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 "channel_comment": self.comment.toPlainText().strip(),
                 "triggering": triggering,
                 "triggering_value": triggering_value,
-                "computation_mode": "sample_by_sample"
-                if self.sample_by_sample.isChecked()
-                else "complete_signal",
+                "computation_mode": "sample_by_sample" if self.sample_by_sample.isChecked() else "complete_signal",
             },
         }
 
@@ -184,9 +175,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         func = locals()[name]
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/search.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/search.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
 
         parameters = list(inspect.signature(func).parameters)[:-1]
         for i, arg_name in enumerate(parameters, 2):
@@ -201,9 +190,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
             self.arg_widgets.append((label, text_edit, button))
 
-        spacer = QtWidgets.QSpacerItem(
-            20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
-        )
+        spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
 
         self.arg_layout.addItem(spacer, len(self.arg_widgets) + 2, 0)
         self.arg_widgets.append(spacer)
@@ -265,9 +252,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             info.setPalette(p)
 
             icon = QtGui.QIcon()
-            icon.addPixmap(
-                QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-            )
+            icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
             info.setWindowIcon(icon)
 
             info.show()

@@ -1,4 +1,5 @@
 from test.asammdf.gui.test_base import TestBase
+from unittest import mock
 
 from asammdf.gui.widgets.file import FileWidget
 
@@ -7,6 +8,11 @@ class TestFileWidget(TestBase):
     def setUp(self):
         super().setUp()
         self.widget = None
+        self.plot = None
+
+        patcher = mock.patch("asammdf.gui.widgets.file.ErrorDialog")
+        self.mc_widget_ed = patcher.start()
+        self.addCleanup(patcher.stop)
 
     def tearDown(self):
         if self.widget:
@@ -37,6 +43,7 @@ class TestFileWidget(TestBase):
         else:
             self.widget = FileWidget(measurement_file, *args)
         self.widget.showNormal()
+        self.processEvents()
 
     def get_subwindows(self):
         widget_types = sorted(
