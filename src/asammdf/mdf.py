@@ -3338,12 +3338,16 @@ class MDF:
 
         if not raw:
             if ignore_value2text_conversions:
+                if self.version < "4.00":
+                    text_conversion = 11
+                else:
+                    text_conversion = 7
+
                 for signal in signals:
                     conversion = signal.conversion
-                    if conversion:
-                        samples = conversion.convert(signal.samples)
-                        if samples.dtype.kind not in "US":
-                            signal.samples = samples
+                    if conversion and conversion.conversion_type < text_conversion:
+                        signal.samples = conversion.convert(signal.samples)
+
                     signal.raw = True
                     signal.conversion = None
             else:
@@ -4418,12 +4422,15 @@ class MDF:
 
             if not raw:
                 if ignore_value2text_conversions:
+                    if self.version < "4.00":
+                        text_conversion = 11
+                    else:
+                        text_conversion = 7
+
                     for signal in signals:
                         conversion = signal.conversion
-                        if conversion:
-                            samples = conversion.convert(signal.samples)
-                            if samples.dtype.kind not in "US":
-                                signal.samples = samples
+                        if conversion and conversion.conversion_type < text_conversion:
+                            signal.samples = conversion.convert(signal.samples)
                 else:
                     for signal in signals:
                         if signal.conversion:
