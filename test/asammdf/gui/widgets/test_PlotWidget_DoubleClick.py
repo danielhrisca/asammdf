@@ -177,6 +177,7 @@ class TestDoubleClick(TestPlotWidget):
             for _ in range(20):
                 self.processEvents()
 
+            self.processEvents(0.1)
             enabled_groups_pixmap = plot.plot.viewport().grab()
             self.assertTrue(
                 Pixmap.has_color(
@@ -298,8 +299,8 @@ class TestDoubleClick(TestPlotWidget):
             groups["B"].setExpanded(True)
             groups["C"].setExpanded(True)
 
-            enabled_groups_pixmap = plot.plot.viewport().grab()
             self.processEvents()
+            enabled_groups_pixmap = plot.plot.viewport().grab()
             # Evaluate
             for channel in (plot_channel_a, plot_channel_b, plot_channel_c):
                 self.assertTrue(
@@ -312,6 +313,7 @@ class TestDoubleClick(TestPlotWidget):
                 self.assertNotEqual(color_name, "#808080")
             # Press mouse double click on Group A
             self.mouseDClick_WidgetItem(groups["A"])
+            self.processEvents()
             disabled_groups_pixmap = plot.plot.viewport().grab()
 
             # Evaluate
