@@ -58,7 +58,7 @@ class TestPlotWidget(TestFileWidget):
                 plot_channel = item
             iterator += 1
 
-        self.processEvents()
+        self.processEvents(0.05)
         return plot_channel
 
     def create_window(self, window_type):

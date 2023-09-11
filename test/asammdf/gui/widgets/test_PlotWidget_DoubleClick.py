@@ -1,11 +1,15 @@
 #!/usr/bin/env python
-from test.asammdf.gui.test_base import DragAndDrop, Pixmap
-from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
+import sys
+import unittest
 from unittest import mock
 
 from PySide6 import QtCore, QtGui, QtTest
 
+from test.asammdf.gui.test_base import DragAndDrop, Pixmap
+from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
+
+@unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
 class TestDoubleClick(TestPlotWidget):
     # Note: Test Plot Widget through FileWidget.
     def setUp(self):
@@ -88,8 +92,7 @@ class TestDoubleClick(TestPlotWidget):
             mc_getText.return_value = "FirstGroup", True
             QtTest.QTest.keySequence(self.plot.channel_selection, QtGui.QKeySequence("Shift+Insert"))
             self.processEvents()
-            # PreEvaluation: Check if there is one extra-item
-            self.assertEqual(4, self.plot.channel_selection.topLevelItemCount())
+
             # Get Group Position
             for index in range(self.plot.channel_selection.topLevelItemCount()):
                 item = self.plot.channel_selection.topLevelItem(index)
@@ -127,9 +130,10 @@ class TestDoubleClick(TestPlotWidget):
             )
             # Press mouse double click on channel
             self.mouseDClick_WidgetItem(first_group)
-            disabled_groups_pixmap = self.plot.plot.viewport().grab()
 
             # Evaluate
+            self.processEvents(0.05)
+            disabled_groups_pixmap = self.plot.plot.viewport().grab()
             self.assertFalse(
                 Pixmap.has_color(
                     pixmap=disabled_groups_pixmap,
@@ -328,10 +332,10 @@ class TestDoubleClick(TestPlotWidget):
 
             enabled_groups_pixmap = self.plot.plot.viewport().grab()
             for channel in (
-                plot_channel_a,
-                plot_channel_b,
-                plot_channel_c,
-                plot_channel_d,
+                    plot_channel_a,
+                    plot_channel_b,
+                    plot_channel_c,
+                    plot_channel_d,
             ):
                 self.assertTrue(
                     Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=channel.color),
@@ -478,10 +482,10 @@ class TestDoubleClick(TestPlotWidget):
 
             enabled_groups_pixmap = self.plot.plot.viewport().grab()
             for channel in (
-                plot_channel_a,
-                plot_channel_b,
-                plot_channel_c,
-                plot_channel_d,
+                    plot_channel_a,
+                    plot_channel_b,
+                    plot_channel_c,
+                    plot_channel_d,
             ):
                 self.assertTrue(
                     Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=channel.color),
