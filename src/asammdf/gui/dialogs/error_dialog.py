@@ -45,9 +45,7 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
         self.trace.setReadOnly(True)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
 
         self.setWindowIcon(icon)
 
@@ -68,23 +66,17 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
         self.timer.timeout.connect(self.count_down)
 
         if timeout > 0:
-            self.status.setText(
-                f"This window will be closed in {self._timeout}s\nAbort the countdown - [F1]"
-            )
+            self.status.setText(f"This window will be closed in {self._timeout}s\nAbort the countdown - [F1]")
             self.timer.start(1000)
 
     def copy_to_clipboard(self, event):
-        text = (
-            f"Error: {self.error_message.text()}\n\nDetails: {self.trace.toPlainText()}"
-        )
+        text = f"Error: {self.error_message.text()}\n\nDetails: {self.trace.toPlainText()}"
         QtWidgets.QApplication.instance().clipboard().setText(text)
 
     def count_down(self):
         if self._timeout > 0:
             self._timeout -= 1
-            self.status.setText(
-                f"This window will be closed in {self._timeout}s\nAbort the countdown - [F1]"
-            )
+            self.status.setText(f"This window will be closed in {self._timeout}s\nAbort the countdown - [F1]")
         else:
             self.close()
 

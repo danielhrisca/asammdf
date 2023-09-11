@@ -18,9 +18,7 @@ class ViewBoxMenu(QtWidgets.QMenu):
             view
         )  ## keep weakref to view to avoid circular reference (don't know why, but this prevents the ViewBox from being collected)
         self.valid = False  ## tells us whether the ui needs to be updated
-        self.viewMap = (
-            weakref.WeakValueDictionary()
-        )  ## weakrefs to all views listed in the link combos
+        self.viewMap = weakref.WeakValueDictionary()  ## weakrefs to all views listed in the link combos
 
         self.leftMenu = QtWidgets.QMenu("Mouse Mode")
         group = QtGui.QActionGroup(self)
@@ -169,10 +167,7 @@ class ViewBoxWithCursor(pg.ViewBox):
         if axis is not None:
             mask[1 - axis] = 0.0
 
-        if (
-            self.state["mouseMode"] == ViewBoxWithCursor.CursorMode
-            and not ignore_cursor
-        ):
+        if self.state["mouseMode"] == ViewBoxWithCursor.CursorMode and not ignore_cursor:
             if ev.button() == QtCore.Qt.MouseButton.LeftButton:
                 self.sigCursorMoved.emit(ev)
                 if self.zoom_start is not None:
@@ -228,9 +223,7 @@ class ViewBoxWithCursor(pg.ViewBox):
                 x = s[0] if mouseEnabled[0] == 1 else None
                 y = s[1] if mouseEnabled[1] == 1 else None
 
-                center = pg.Point(
-                    tr.map(ev.buttonDownPos(QtCore.Qt.MouseButton.RightButton))
-                )
+                center = pg.Point(tr.map(ev.buttonDownPos(QtCore.Qt.MouseButton.RightButton)))
                 self._resetTarget()
                 self.scaleBy(x=x, y=y, center=center)
                 self.sigRangeChangedManually.emit(self.state["mouseEnabled"])
@@ -294,9 +287,7 @@ class ViewBoxWithCursor(pg.ViewBox):
         else:
             pos = ev.pos()
 
-            s = 1.02 ** (
-                ev.delta() * self.state["wheelScaleFactor"]
-            )  # actual scaling factor
+            s = 1.02 ** (ev.delta() * self.state["wheelScaleFactor"])  # actual scaling factor
 
             s = [(None if m is False else s) for m in mask]
             center = pg.Point(fn.invertQTransform(self.childGroup.transform()).map(pos))

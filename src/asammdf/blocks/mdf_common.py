@@ -63,10 +63,7 @@ class MDF_Common:
 
         if name is None:
             if group is None or index is None:
-                message = (
-                    "Invalid arguments for channel selection: "
-                    'must give "name" or, "group" and "index"'
-                )
+                message = "Invalid arguments for channel selection: " 'must give "name" or, "group" and "index"'
                 raise MdfException(message)
             else:
                 gp_nr, ch_nr = group, index
@@ -79,9 +76,7 @@ class MDF_Common:
                     try:
                         grp.channels[ch_nr]
                     except IndexError:
-                        raise MdfException(
-                            f"Channel index out of range: {(name, group, index)}"
-                        )
+                        raise MdfException(f"Channel index out of range: {(name, group, index)}")
         else:
             if name not in self.channels_db:
                 raise MdfException(f'Channel "{name}" not found')
@@ -114,11 +109,7 @@ class MDF_Common:
                         ch_nr = index
                     else:
                         if index is None:
-                            entries = tuple(
-                                (gp_nr, ch_nr)
-                                for gp_nr, ch_nr in self.channels_db[name]
-                                if gp_nr == group
-                            )
+                            entries = tuple((gp_nr, ch_nr) for gp_nr, ch_nr in self.channels_db[name] if gp_nr == group)
                             count = len(entries)
 
                             if count == 1:

@@ -90,9 +90,7 @@ sigs.append(sig)
 # value to text
 vals = 20
 conversion = {"val_{}".format(i): i for i in range(vals)}
-conversion.update(
-    {"text_{}".format(i): "key_{}".format(i).encode("ascii") for i in range(vals)}
-)
+conversion.update({"text_{}".format(i): "key_{}".format(i).encode("ascii") for i in range(vals)})
 conversion["default"] = b"default key"
 sig = Signal(
     np.arange(cycles, dtype=np.uint32) % 30,

@@ -26,13 +26,9 @@ WritableBufferType = Union[BufferedRandom, BufferedWriter, BytesIO, mmap]
 # asammdf specific types
 
 BusType = Literal["CAN", "LIN"]
-ChannelConversionType = Union[
-    "v2_v3_blocks.ChannelConversion", "v4_blocks.ChannelConversion"
-]
+ChannelConversionType = Union["v2_v3_blocks.ChannelConversion", "v4_blocks.ChannelConversion"]
 ChannelGroupType = Union["v2_v3_blocks.ChannelGroup", "v4_blocks.ChannelGroup"]
-ChannelsType = Union[
-    Sequence[str], Sequence[Tuple[Optional[str], int, int]], Sequence[Tuple[str, int]]
-]
+ChannelsType = Union[Sequence[str], Sequence[Tuple[Optional[str], int, int]], Sequence[Tuple[str, int]]]
 ChannelType = Union["v2_v3_blocks.Channel", "v4_blocks.Channel"]
 CompressionType = Literal[0, 1, 2]
 DataGroupType = Union["v2_v3_blocks.DataGroup", "v4_blocks.DataGroup"]
@@ -43,7 +39,5 @@ InputType = Union[BufferedReader, BytesIO, StrPathType, ZipFile, BZ2File, GzipFi
 IntInterpolationModeType = Literal[0, 1, 2]
 MDF_v2_v3_v4 = Union["MDF2", "MDF3", "MDF4"]
 RasterType = Union[float, str, NDArray[Any]]
-SourceType = Union[
-    "v2_v3_blocks.ChannelExtension", "v4_blocks.SourceInformation", "Source"
-]
+SourceType = Union["v2_v3_blocks.ChannelExtension", "v4_blocks.SourceInformation", "Source"]
 SyncType = Literal[0, 1, 2, 3, 4]

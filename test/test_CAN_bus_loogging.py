@@ -37,25 +37,13 @@ class TestCANBusLogging(unittest.TestCase):
         for file in temp_dir.iterdir():
             print(file)
 
-        mdf = [
-            input_file
-            for input_file in temp_dir.iterdir()
-            if input_file.suffix == ".mf4"
-        ][0]
+        mdf = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
 
         mdf = MDF(mdf)
 
-        dbc = [
-            input_file
-            for input_file in temp_dir.iterdir()
-            if input_file.suffix == ".dbc"
-        ][0]
+        dbc = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
 
-        signals = [
-            input_file
-            for input_file in temp_dir.iterdir()
-            if input_file.suffix == ".npy"
-        ]
+        signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
 
         out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]})
 
@@ -65,34 +53,20 @@ class TestCANBusLogging(unittest.TestCase):
             target = np.load(signal)
             sig = out.get(name)
 
-            self.assertTrue(
-                np.array_equal(sig.samples, target), f"{name} {sig} {target}"
-            )
+            self.assertTrue(np.array_equal(sig.samples, target), f"{name} {sig} {target}")
 
     def test_j1939_extract(self):
         print("J1939 extract")
 
         temp_dir = Path(TestCANBusLogging.tempdir_j1939.name)
 
-        mdf = [
-            input_file
-            for input_file in temp_dir.iterdir()
-            if input_file.suffix == ".mf4"
-        ][0]
+        mdf = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
 
         mdf = MDF(mdf)
 
-        dbc = [
-            input_file
-            for input_file in temp_dir.iterdir()
-            if input_file.suffix == ".dbc"
-        ][0]
+        dbc = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
 
-        signals = [
-            input_file
-            for input_file in temp_dir.iterdir()
-            if input_file.suffix == ".npy"
-        ]
+        signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
 
         out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]})
 
@@ -109,25 +83,13 @@ class TestCANBusLogging(unittest.TestCase):
 
         temp_dir = Path(TestCANBusLogging.tempdir_j1939.name)
 
-        mdf = [
-            input_file
-            for input_file in temp_dir.iterdir()
-            if input_file.suffix == ".mf4"
-        ][0]
+        mdf = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
 
         mdf = MDF(mdf)
 
-        dbc = [
-            input_file
-            for input_file in temp_dir.iterdir()
-            if input_file.suffix == ".dbc"
-        ][0]
+        dbc = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
 
-        signals = [
-            input_file
-            for input_file in temp_dir.iterdir()
-            if input_file.suffix == ".npy"
-        ]
+        signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
 
         for signal in signals:
             name = signal.stem

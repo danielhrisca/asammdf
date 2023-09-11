@@ -27,9 +27,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
         self.vrtt_default_conversion = None
 
         self.vtt_default_mode.currentIndexChanged.connect(self.vtt_mode.setCurrentIndex)
-        self.vrtt_default_mode.currentIndexChanged.connect(
-            self.vrtt_mode.setCurrentIndex
-        )
+        self.vrtt_default_mode.currentIndexChanged.connect(self.vrtt_mode.setCurrentIndex)
 
         self.vtt_default_btn.clicked.connect(self.edit_vtt_default_conversion)
         self.vrtt_default_btn.clicked.connect(self.edit_vrtt_default_conversion)
@@ -81,25 +79,19 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                     self.vtt_default_mode.setCurrentIndex(0)
 
                     self.vtt_default.setText(
-                        conversion.referenced_blocks["default_addr"].decode(
-                            "utf-8", errors="replace"
-                        )
+                        conversion.referenced_blocks["default_addr"].decode("utf-8", errors="replace")
                     )
                 else:
                     self.vtt_default_mode.setCurrentIndex(1)
 
-                    self.vtt_default_conversion = conversion.referenced_blocks[
-                        "default_addr"
-                    ]
+                    self.vtt_default_conversion = conversion.referenced_blocks["default_addr"]
 
                 for i in range(conversion.ref_param_nr - 1):
                     if isinstance(conversion.referenced_blocks[f"text_{i}"], bytes):
                         widget = VTTWidget(
                             mode="text",
                             value=conversion[f"val_{i}"],
-                            text=conversion.referenced_blocks[f"text_{i}"].decode(
-                                "utf-8", errors="replace"
-                            ),
+                            text=conversion.referenced_blocks[f"text_{i}"].decode("utf-8", errors="replace"),
                         )
 
                     else:
@@ -122,16 +114,12 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                     self.vrtt_default_mode.setCurrentIndex(0)
 
                     self.vrtt_default.setText(
-                        conversion.referenced_blocks["default_addr"].decode(
-                            "utf-8", errors="replace"
-                        )
+                        conversion.referenced_blocks["default_addr"].decode("utf-8", errors="replace")
                     )
                 else:
                     self.vrtt_default_mode.setCurrentIndex(1)
 
-                    self.vrtt_default_conversion = conversion.referenced_blocks[
-                        "default_addr"
-                    ]
+                    self.vrtt_default_conversion = conversion.referenced_blocks["default_addr"]
 
                 for i in range(conversion.ref_param_nr - 1):
                     if isinstance(conversion.referenced_blocks[f"text_{i}"], bytes):
@@ -139,9 +127,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                             mode="text",
                             lower=conversion[f"lower_{i}"],
                             upper=conversion[f"upper_{i}"],
-                            text=conversion.referenced_blocks[f"text_{i}"].decode(
-                                "utf-8", errors="replace"
-                            ),
+                            text=conversion.referenced_blocks[f"text_{i}"].decode("utf-8", errors="replace"),
                         )
 
                     else:
@@ -291,9 +277,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                 }
 
                 if self.vtt_default_mode.currentIndex() == 0:
-                    conversion["default"] = (
-                        self.vtt_default.text().strip().encode("utf-8")
-                    )
+                    conversion["default"] = self.vtt_default.text().strip().encode("utf-8")
                 else:
                     conversion["default"] = self.vtt_default_conversion
 
@@ -320,9 +304,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                 }
 
                 if self.vrtt_default_mode.currentIndex() == 0:
-                    conversion["default"] = (
-                        self.vrtt_default.text().strip().encode("utf-8")
-                    )
+                    conversion["default"] = self.vrtt_default.text().strip().encode("utf-8")
                 else:
                     conversion["default"] = self.vrtt_default_conversion
 

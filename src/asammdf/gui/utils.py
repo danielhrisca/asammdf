@@ -174,14 +174,10 @@ def excepthook(exc_type, exc_value, tracebackobj):
     print("".join(traceback.format_tb(tracebackobj)))
     print("{0}: {1}".format(exc_type, exc_value))
 
-    ErrorDialog(
-        message=errmsg, trace=msg, title="The following error was triggered"
-    ).exec_()
+    ErrorDialog(message=errmsg, trace=msg, title="The following error was triggered").exec_()
 
 
-def run_thread_with_progress(
-    widget, target, kwargs, factor=100, offset=0, progress=None
-):
+def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progress=None):
     termination_request = False
 
     thr = WorkerThread(target=target, kwargs=kwargs)
@@ -192,22 +188,22 @@ def run_thread_with_progress(
         sleep(0.1)
 
     while thr.is_alive():
-        if not progress.wasCanceled():
+        if progress and not progress.wasCanceled():
             if widget.progress is not None:
                 if widget.progress != (0, 0):
-                    progress.setValue(
-                        int(widget.progress[0] / widget.progress[1] * factor) + offset
-                    )
+                    progress.setValue(int(widget.progress[0] / widget.progress[1] * factor) + offset)
                 else:
                     progress.setRange(0, 0)
         QtCore.QCoreApplication.processEvents()
         sleep(0.1)
 
-    progress.setValue(factor + offset)
+    if progress:
+        progress.setValue(factor + offset)
 
     if thr.error:
         widget.progress = None
-        progress.cancel()
+        if progress:
+            progress.cancel()
         raise Exception(thr.error)
 
     widget.progress = None
@@ -320,10 +316,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.destroy()
 
     def keyPressEvent(self, event):
-        if (
-            event.key() == QtCore.Qt.Key_Escape
-            and event.modifiers() == QtCore.Qt.NoModifier
-        ):
+        if event.key() == QtCore.Qt.Key_Escape and event.modifiers() == QtCore.Qt.NoModifier:
             self.close()
         else:
             super().keyPressEvent(event)
@@ -337,9 +330,7 @@ def setup_progress(parent, title="", message="", icon_name="", autoclose=False):
     progress.setAutoClose(autoclose)
     progress.setWindowTitle(title)
     icon = QtGui.QIcon()
-    icon.addPixmap(
-        QtGui.QPixmap(f":/{icon_name}.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-    )
+    icon.addPixmap(QtGui.QPixmap(f":/{icon_name}.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
     progress.setWindowIcon(icon)
     progress.setMinimumWidth(600)
 
@@ -474,22 +465,14 @@ def compute_signal(
 
                 signals = [sig.interp(common_timebase) for sig in signals]
 
-            if (
-                description.get("computation_mode", "sample_by_sample")
-                == "sample_by_sample"
-            ):
+            if description.get("computation_mode", "sample_by_sample") == "sample_by_sample":
                 signals = [sig.samples.tolist() for sig in signals]
                 signals.append(common_timebase)
 
                 samples = []
                 for values in zip(*signals):
                     try:
-                        current_sample = func(
-                            **{
-                                arg_name: arg_val
-                                for arg_name, arg_val in zip(names, values)
-                            }
-                        )
+                        current_sample = func(**{arg_name: arg_val for arg_name, arg_val in zip(names, values)})
                     except:
                         current_sample = COMPUTED_FUNCTION_ERROR_VALUE
                     samples.append(current_sample)
@@ -506,11 +489,7 @@ def compute_signal(
 
                 signals.append(common_timebase)
 
-                not_found = [
-                    arg_name
-                    for arg_name in description["args"]
-                    if arg_name not in names
-                ]
+                not_found = [arg_name for arg_name in description["args"] if arg_name not in names]
 
                 not_found_signals = []
 
@@ -520,19 +499,12 @@ def compute_signal(
                     if arg_name in names:
                         continue
                     else:
-                        not_found_signals.append(
-                            np.ones(len(common_timebase), dtype="u1") * arg.default
-                        )
+                        not_found_signals.append(np.ones(len(common_timebase), dtype="u1") * arg.default)
 
                 names.extend(not_found)
                 signals.extend(not_found_signals)
 
-                samples = func(
-                    **{
-                        arg_name: arg_signal
-                        for arg_name, arg_signal in zip(names, signals)
-                    }
-                )
+                samples = func(**{arg_name: arg_signal for arg_name, arg_signal in zip(names, signals)})
                 if len(samples) != len(common_timebase):
                     common_timebase = common_timebase[-len(samples) :]
 
@@ -729,9 +701,7 @@ def computation_to_python_function(description):
                 "channel_comment": description["channel_comment"],
                 "channel_name": description["channel_name"],
                 "channel_unit": description["channel_unit"],
-                "computation_mode": description.get(
-                    "computation_mode", "sample_by_sample"
-                ),
+                "computation_mode": description.get("computation_mode", "sample_by_sample"),
                 "definition": definition,
                 "type": "python_function",
                 "triggering": "triggering_on_all",
@@ -740,9 +710,7 @@ def computation_to_python_function(description):
             }
         else:
             new_description = description
-            new_description["computation_mode"] = description.get(
-                "computation_mode", "sample_by_sample"
-            )
+            new_description["computation_mode"] = description.get("computation_mode", "sample_by_sample")
 
     return new_description
 
@@ -753,9 +721,7 @@ def replace_computation_dependency(computation, old_name, new_name):
         if isinstance(val, str) and old_name in val:
             new_computation[key] = val.replace(old_name, new_name)
         elif isinstance(val, dict):
-            new_computation[key] = replace_computation_dependency(
-                val, old_name, new_name
-            )
+            new_computation[key] = replace_computation_dependency(val, old_name, new_name)
         else:
             new_computation[key] = val
 
@@ -826,9 +792,7 @@ def unique_ranges(ranges):
                 )
 
         ranges = []
-        for value1, value2, op1, op2, bk_color, ft_color in sorted(
-            new_ranges, key=compare
-        ):
+        for value1, value2, op1, op2, bk_color, ft_color in sorted(new_ranges, key=compare):
             if bk_color[0] == 0:
                 ranges.append(
                     {
@@ -855,9 +819,7 @@ def unique_ranges(ranges):
     return ranges
 
 
-def get_colors_using_ranges(
-    value, ranges, default_background_color, default_font_color
-):
+def get_colors_using_ranges(value, ranges, default_background_color, default_font_color):
     new_background_color = default_background_color
     new_font_color = default_font_color
 
@@ -1083,9 +1045,7 @@ def draw_color_icon(color):
     return QtGui.QIcon(pix)
 
 
-def generate_python_function(
-    definition: str, in_globals: Union[Dict, None] = None
-) -> tuple:
+def generate_python_function(definition: str, in_globals: Union[Dict, None] = None) -> tuple:
     trace = None
     func = None
 

@@ -10,9 +10,7 @@ class DatabaseItem(Ui_DatabaseItemUI, QtWidgets.QWidget):
         super().__init__()
         self.setupUi(self)
 
-        items = [f"Any {bus_type} bus"] + [
-            f"{bus_type} {i:>2} only" for i in range(1, 17)
-        ]
+        items = [f"Any {bus_type} bus"] + [f"{bus_type} {i:>2} only" for i in range(1, 17)]
 
         self.database.setText(database.strip())
         self.bus.addItems(items)

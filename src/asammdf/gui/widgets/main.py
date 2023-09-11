@@ -35,19 +35,13 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self._settings.setValue("current_theme", self._settings.value("theme", "Light"))
         self._light_palette = self.palette()
 
-        self.ignore_value2text_conversions = self._settings.value(
-            "ignore_value2text_conversions", False, type=bool
-        )
+        self.ignore_value2text_conversions = self._settings.value("ignore_value2text_conversions", False, type=bool)
 
         self.display_cg_name = self._settings.value("display_cg_name", False, type=bool)
 
-        self.integer_interpolation = int(
-            self._settings.value("integer_interpolation", "2 - hybrid interpolation")[0]
-        )
+        self.integer_interpolation = int(self._settings.value("integer_interpolation", "2 - hybrid interpolation")[0])
 
-        self.float_interpolation = int(
-            self._settings.value("float_interpolation", "1 - linear interpolation")[0]
-        )
+        self.float_interpolation = int(self._settings.value("float_interpolation", "1 - linear interpolation")[0])
 
         self.batch = BatchWidget(
             self.ignore_value2text_conversions,
@@ -62,9 +56,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         multi_search = QtWidgets.QPushButton("Search")
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/search.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/search.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         multi_search.setIcon(icon)
         multi_search.clicked.connect(self.comparison_search)
 
@@ -143,9 +135,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         mode_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/compare.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/compare.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}".format("Comparison"), menu)
         action.triggered.connect(partial(self.stackedWidget.setCurrentIndex, 2))
         mode_actions.addAction(action)
@@ -304,9 +294,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             theme_option.addAction(action)
             action.triggered.connect(partial(self.set_integer_interpolation, option))
 
-            if option == self._settings.value(
-                "integer_interpolation", "2 - hybrid interpolation"
-            ):
+            if option == self._settings.value("integer_interpolation", "2 - hybrid interpolation"):
                 action.setChecked(True)
                 action.triggered.emit()
 
@@ -324,9 +312,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             theme_option.addAction(action)
             action.triggered.connect(partial(self.set_float_interpolation, option))
 
-            if option == self._settings.value(
-                "float_interpolation", "1 - linear interpolation"
-            ):
+            if option == self._settings.value("float_interpolation", "1 - linear interpolation"):
                 action.setChecked(True)
                 action.triggered.emit()
 
@@ -348,9 +334,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setText("Line width")
         combo = QtWidgets.QComboBox()
         combo.addItems([f"{size}pixels width" for size in range(1, 5)])
-        combo.currentIndexChanged.connect(
-            partial(self.edit_cursor_options, action=action)
-        )
+        combo.currentIndexChanged.connect(partial(self.edit_cursor_options, action=action))
         action.setDefaultWidget(combo)
 
         submenu.addAction(action)
@@ -364,9 +348,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action = QtGui.QAction("Show horizontal line")
         action.setCheckable(True)
         action.toggled.connect(partial(self.edit_cursor_options, action=action))
-        action.setChecked(
-            self._settings.value("show_cursor_horizontal_line", False, type=bool)
-        )
+        action.setChecked(self._settings.value("show_cursor_horizontal_line", False, type=bool))
         submenu.addAction(action)
 
         menu.addMenu(submenu)
@@ -392,11 +374,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, f"{'Fit selected': <20}\tShift+F", menu)
-        action.triggered.connect(
-            partial(
-                self.plot_action, key=QtCore.Qt.Key_F, modifier=QtCore.Qt.ShiftModifier
-            )
-        )
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_F, modifier=QtCore.Qt.ShiftModifier))
         action.setShortcut(QtGui.QKeySequence("Shift+F"))
         plot_actions.addAction(action)
 
@@ -422,40 +400,28 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\tS".format("Stack all"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_S))
         action.setShortcut(QtCore.Qt.Key_S)
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\tShift+S".format("Stack selected"), menu)
-        action.triggered.connect(
-            partial(
-                self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.ShiftModifier
-            )
-        )
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.ShiftModifier))
         action.setShortcut(QtGui.QKeySequence("Shift+S"))
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/zoom-in.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/zoom-in.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\tI".format("Zoom in"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_I))
         action.setShortcut(QtCore.Qt.Key_I)
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/zoom-out.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/zoom-out.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\tO".format("Zoom out"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_O))
         action.setShortcut(QtCore.Qt.Key_O)
@@ -472,9 +438,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/focus.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/focus.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\t2".format("Focused mode"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_2))
         action.setShortcut(QtCore.Qt.Key_2)
@@ -489,9 +453,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        action = QtGui.QAction(
-            icon, "{: <20}\tCtrl+S".format("Save active subplot channels"), menu
-        )
+        action = QtGui.QAction(icon, "{: <20}\tCtrl+S".format("Save active subplot channels"), menu)
         action.triggered.connect(
             partial(
                 self.plot_action,
@@ -504,18 +466,14 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        action = QtGui.QAction(
-            icon, "{: <20}\tCtrl+Shift+S".format("Save all subplot channels"), menu
-        )
+        action = QtGui.QAction(icon, "{: <20}\tCtrl+Shift+S".format("Save all subplot channels"), menu)
         action.triggered.connect(self.save_all_subplots)
         action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+S"))
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        action = QtGui.QAction(
-            icon, "{: <20}\tCtrl+Shift+S".format("Save all subplot channels"), menu
-        )
+        action = QtGui.QAction(icon, "{: <20}\tCtrl+Shift+S".format("Save all subplot channels"), menu)
         action.triggered.connect(self.save_all_subplots)
         action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+S"))
         plot_actions.addAction(action)
@@ -525,12 +483,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         channel_shift_actions = QtGui.QActionGroup(self)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/shift_left.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        action = QtGui.QAction(
-            icon, "{: <20}\tShift+←".format("Shift channels left"), menu
-        )
+        icon.addPixmap(QtGui.QPixmap(":/shift_left.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtGui.QAction(icon, "{: <20}\tShift+←".format("Shift channels left"), menu)
         action.triggered.connect(
             partial(
                 self.plot_action,
@@ -542,12 +496,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         channel_shift_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/shift_right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        action = QtGui.QAction(
-            icon, "{: <20}\tShift+→".format("Shift channels right"), menu
-        )
+        icon.addPixmap(QtGui.QPixmap(":/shift_right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtGui.QAction(icon, "{: <20}\tShift+→".format("Shift channels right"), menu)
         action.triggered.connect(
             partial(
                 self.plot_action,
@@ -559,12 +509,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         channel_shift_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/shift_up.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        action = QtGui.QAction(
-            icon, "{: <20}\tShift+↑".format("Shift channels up"), menu
-        )
+        icon.addPixmap(QtGui.QPixmap(":/shift_up.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtGui.QAction(icon, "{: <20}\tShift+↑".format("Shift channels up"), menu)
         action.triggered.connect(
             partial(
                 self.plot_action,
@@ -576,12 +522,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         channel_shift_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/shift_down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        action = QtGui.QAction(
-            icon, "{: <20}\tShift+↓".format("Shift channels down"), menu
-        )
+        icon.addPixmap(QtGui.QPixmap(":/shift_down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtGui.QAction(icon, "{: <20}\tShift+↓".format("Shift channels down"), menu)
         action.triggered.connect(
             partial(
                 self.plot_action,
@@ -634,20 +576,12 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         samples_format_actions = QtGui.QActionGroup(self)
 
         action = QtGui.QAction("{: <20}\tAlt+R".format("Raw samples"), menu)
-        action.triggered.connect(
-            partial(
-                self.plot_action, key=QtCore.Qt.Key_R, modifier=QtCore.Qt.AltModifier
-            )
-        )
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_R, modifier=QtCore.Qt.AltModifier))
         action.setShortcut(QtGui.QKeySequence("Alt+R"))
         samples_format_actions.addAction(action)
 
         action = QtGui.QAction("{: <20}\tAlt+S".format("Scaled samples"), menu)
-        action.triggered.connect(
-            partial(
-                self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.AltModifier
-            )
-        )
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.AltModifier))
         action.setShortcut(QtGui.QKeySequence("Alt+S"))
         samples_format_actions.addAction(action)
 
@@ -671,32 +605,22 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setShortcut(QtGui.QKeySequence("Shift+C"))
         subs.addAction(action)
 
-        action = QtGui.QAction(
-            "{: <20}\tShift+T".format("Tile sub-windows in a grid"), menu
-        )
+        action = QtGui.QAction("{: <20}\tShift+T".format("Tile sub-windows in a grid"), menu)
         action.triggered.connect(partial(self.show_sub_windows, mode="tile"))
         action.setShortcut(QtGui.QKeySequence("Shift+T"))
         subs.addAction(action)
 
-        action = QtGui.QAction(
-            "{: <20}\tShift+V".format("Tile sub-windows vertically"), menu
-        )
+        action = QtGui.QAction("{: <20}\tShift+V".format("Tile sub-windows vertically"), menu)
         action.triggered.connect(partial(self.show_sub_windows, mode="tile vertically"))
         action.setShortcut(QtGui.QKeySequence("Shift+V"))
         subs.addAction(action)
 
-        action = QtGui.QAction(
-            "{: <20}\tShift+H".format("Tile sub-windows horizontally"), menu
-        )
-        action.triggered.connect(
-            partial(self.show_sub_windows, mode="tile horizontally")
-        )
+        action = QtGui.QAction("{: <20}\tShift+H".format("Tile sub-windows horizontally"), menu)
+        action.triggered.connect(partial(self.show_sub_windows, mode="tile horizontally"))
         action.setShortcut(QtGui.QKeySequence("Shift+H"))
         subs.addAction(action)
 
-        action = QtGui.QAction(
-            "{: <20}\tShift+Alt+F".format("Toggle sub-windows frames"), menu
-        )
+        action = QtGui.QAction("{: <20}\tShift+Alt+F".format("Toggle sub-windows frames"), menu)
         action.triggered.connect(self.toggle_frames)
         action.setShortcut(QtGui.QKeySequence("Shift+Alt+F"))
         subs.addAction(action)
@@ -710,18 +634,14 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         cursors_actions = QtGui.QActionGroup(self)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/cursor.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/cursor.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\tC".format("Cursor"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_C))
         action.setShortcut(QtCore.Qt.Key_C)
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\t←".format("Move cursor left"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_Left))
         action.setShortcut(QtCore.Qt.Key_Left)
@@ -735,27 +655,21 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/range.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/range.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\tR".format("Range"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_R))
         action.setShortcut(QtCore.Qt.Key_R)
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/lock_range.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/lock_range.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\tY".format("Lock/unlock range"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_Y))
         action.setShortcut(QtCore.Qt.Key_Y)
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/bookmark.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/bookmark.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\tCtrl+I".format("Insert bookmark"), menu)
         action.triggered.connect(
             partial(
@@ -768,15 +682,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/bookmark.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/bookmark.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\tAlt+I".format("Toggle bookmarks"), menu)
-        action.triggered.connect(
-            partial(
-                self.plot_action, key=QtCore.Qt.Key_I, modifier=QtCore.Qt.AltModifier
-            )
-        )
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_I, modifier=QtCore.Qt.AltModifier))
         action.setShortcut(QtGui.QKeySequence("Alt+I"))
         cursors_actions.addAction(action)
 
@@ -934,27 +842,19 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 self._settings.setValue("show_cursor_circle", action.isChecked())
 
             elif action.text() == "Show horizontal line":
-                self._settings.setValue(
-                    "show_cursor_horizontal_line", action.isChecked()
-                )
+                self._settings.setValue("show_cursor_horizontal_line", action.isChecked())
 
             elif action.text() == "Line width":
-                self._settings.setValue(
-                    "cursor_line_width", action.defaultWidget().currentIndex() + 1
-                )
+                self._settings.setValue("cursor_line_width", action.defaultWidget().currentIndex() + 1)
 
         cursor_circle = self._settings.value("show_cursor_circle", False, type=bool)
-        cursor_horizontal_line = self._settings.value(
-            "show_cursor_horizontal_line", False, type=bool
-        )
+        cursor_horizontal_line = self._settings.value("show_cursor_horizontal_line", False, type=bool)
         cursor_line_width = self._settings.value("cursor_line_width", 1, type=int)
         cursor_color = self._settings.value("cursor_color", "#e69138")
 
         for i in range(self.files.count()):
             file = self.files.widget(i)
-            file.set_cursor_options(
-                cursor_circle, cursor_horizontal_line, cursor_line_width, cursor_color
-            )
+            file.set_cursor_options(cursor_circle, cursor_horizontal_line, cursor_line_width, cursor_color)
 
     def set_subplot_option(self, state):
         if isinstance(state, str):
@@ -1057,9 +957,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
             brush = QtGui.QBrush(QtGui.QColor(100, 100, 100))
             brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(
-                QtGui.QPalette.Active, QtGui.QPalette.PlaceholderText, brush
-            )
+            palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.PlaceholderText, brush)
             brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.BrightText, brush)
@@ -1122,9 +1020,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Shadow, brush)
             brush = QtGui.QBrush(QtGui.QColor(27, 27, 27))
             brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(
-                QtGui.QPalette.Inactive, QtGui.QPalette.AlternateBase, brush
-            )
+            palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.AlternateBase, brush)
             brush = QtGui.QBrush(QtGui.QColor(255, 255, 220))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.ToolTipBase, brush)
@@ -1169,9 +1065,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Shadow, brush)
             brush = QtGui.QBrush(QtGui.QColor(55, 55, 55))
             brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(
-                QtGui.QPalette.Disabled, QtGui.QPalette.AlternateBase, brush
-            )
+            palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.AlternateBase, brush)
             brush = QtGui.QBrush(QtGui.QColor(255, 255, 220))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.ToolTipBase, brush)
@@ -1245,9 +1139,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             count = self.batch.files_list.count()
 
             icon = QtGui.QIcon()
-            icon.addPixmap(
-                QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-            )
+            icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
 
             for row in range(count):
                 self.batch.files_list.item(row).setIcon(icon)
@@ -1324,8 +1216,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self,
             "Select folder",
             "",
-            QtWidgets.QFileDialog.ShowDirsOnly
-            | QtWidgets.QFileDialog.DontResolveSymlinks,
+            QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks,
         )
         if not folder:
             return
@@ -1335,23 +1226,17 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         if self.stackedWidget.currentIndex() == 0:
             for root, dirs, files in os.walk(folder):
                 for file in natsorted(files):
-                    if file.lower().endswith(
-                        (".csv", ".erg", ".dl3", ".dat", ".mdf", ".mf4", ".mf4z")
-                    ):
+                    if file.lower().endswith((".csv", ".erg", ".dl3", ".dat", ".mdf", ".mf4", ".mf4z")):
                         self._open_file(os.path.join(root, file))
         else:
             icon = QtGui.QIcon()
-            icon.addPixmap(
-                QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-            )
+            icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
 
             self.batch._ignore = True
 
             for root, dirs, files in os.walk(folder):
                 for file in natsorted(files):
-                    if file.lower().endswith(
-                        (".csv", ".erg", ".dl3", ".dat", ".mdf", ".mf4", ".mf4z")
-                    ):
+                    if file.lower().endswith((".csv", ".erg", ".dl3", ".dat", ".mdf", ".mf4", ".mf4z")):
                         item = QtWidgets.QListWidgetItem(icon, os.path.join(root, file))
                         self.batch.files_list.addItem(item)
 
@@ -1393,9 +1278,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                         self._open_file(path)
             else:
                 icon = QtGui.QIcon()
-                icon.addPixmap(
-                    QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-                )
+                icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
 
                 for path in e.mimeData().text().splitlines():
                     path = Path(path.replace(r"file:///", ""))
@@ -1417,19 +1300,13 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def mode_changed(self, index):
         if index == 0:
             self.plot_menu.setEnabled(True)
-            self.setWindowTitle(
-                f"asammdf {libversion} [PID={os.getpid()}] - Single files"
-            )
+            self.setWindowTitle(f"asammdf {libversion} [PID={os.getpid()}] - Single files")
         elif index == 1:
             self.plot_menu.setEnabled(False)
-            self.setWindowTitle(
-                f"asammdf {libversion} [PID={os.getpid()}] - Batch processing"
-            )
+            self.setWindowTitle(f"asammdf {libversion} [PID={os.getpid()}] - Batch processing")
         elif index == 2:
             self.plot_menu.setEnabled(True)
-            self.setWindowTitle(
-                f"asammdf {libversion} [PID={os.getpid()}] - Comparison"
-            )
+            self.setWindowTitle(f"asammdf {libversion} [PID={os.getpid()}] - Comparison")
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -1440,12 +1317,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 self.files.currentWidget().keyPressEvent(event)
             elif self.files.count() and self.stackedWidget.currentIndex() == 2:
                 count = self.files.count()
-                channels_dbs = [
-                    self.files.widget(i).mdf.channels_db for i in range(count)
-                ]
-                measurements = [
-                    str(self.files.widget(i).mdf.name) for i in range(count)
-                ]
+                channels_dbs = [self.files.widget(i).mdf.channels_db for i in range(count)]
+                measurements = [str(self.files.widget(i).mdf.name) for i in range(count)]
 
                 dlg = MultiSearch(channels_dbs, measurements, parent=self)
                 dlg.setModal(True)
@@ -1502,9 +1375,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             super().keyPressEvent(event)
 
     def comparison_search(self, event):
-        event = QtGui.QKeyEvent(
-            QtCore.QEvent.KeyPress, QtCore.Qt.Key_F, QtCore.Qt.ControlModifier
-        )
+        event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_F, QtCore.Qt.ControlModifier)
         self.keyPressEvent(event)
 
     def comparison_info(self, event):
@@ -1515,9 +1386,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         for i, name in enumerate(measurements, 1):
             info.extend(wrap(f"{i:> 2}: {name}", 120))
 
-        MessageBox.information(
-            self, "Measurement files used for comparison", "\n".join(info)
-        )
+        MessageBox.information(self, "Measurement files used for comparison", "\n".join(info))
 
     def toggle_fullscreen(self):
         if self.files.count() > 0 or self.fullscreen is not None:
@@ -1557,9 +1426,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def toggle_channels_list(self, event=None):
         if self.stackedWidget.currentIndex() == 0:
             widget = self.files.currentWidget()
-            event = QtGui.QKeyEvent(
-                QtCore.QEvent.KeyPress, QtCore.Qt.Key_L, QtCore.Qt.ShiftModifier
-            )
+            event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_L, QtCore.Qt.ShiftModifier)
             if widget:
                 widget.keyPressEvent(event)
 

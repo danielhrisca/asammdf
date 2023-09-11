@@ -257,9 +257,7 @@ def get_text_v3(
     ...
 
 
-def get_text_v3(
-    address: int, stream: ReadableBufferType, mapped: bool = False, decode: bool = True
-) -> str | bytes:
+def get_text_v3(address: int, stream: ReadableBufferType, mapped: bool = False, decode: bool = True) -> str | bytes:
     """faster way to extract strings from mdf versions 2 and 3 TextBlock
 
     Parameters
@@ -284,9 +282,7 @@ def get_text_v3(
         if block_id != b"TX":
             return "" if decode else b""
         (size,) = UINT16_uf(stream, address + 2)
-        text_bytes = (
-            stream[address + 4 : address + size].split(b"\0", 1)[0].strip(b" \r\t\n")
-        )
+        text_bytes = stream[address + 4 : address + size].split(b"\0", 1)[0].strip(b" \r\t\n")
     else:
         stream.seek(address)
         block_id = stream.read(2)
@@ -329,9 +325,7 @@ def get_text_v4(
     ...
 
 
-def get_text_v4(
-    address: int, stream: ReadableBufferType, mapped: bool = False, decode: bool = True
-) -> str | bytes:
+def get_text_v4(address: int, stream: ReadableBufferType, mapped: bool = False, decode: bool = True) -> str | bytes:
     """faster way to extract strings from mdf version 4 TextBlock
 
     Parameters
@@ -355,9 +349,7 @@ def get_text_v4(
         block_id, size = BLK_COMMON_uf(stream, address)
         if block_id not in (b"##TX", b"##MD"):
             return "" if decode else b""
-        text_bytes = (
-            stream[address + 24 : address + size].split(b"\0", 1)[0].strip(b" \r\t\n")
-        )
+        text_bytes = stream[address + 24 : address + size].split(b"\0", 1)[0].strip(b" \r\t\n")
     else:
         stream.seek(address)
         block_id, size = BLK_COMMON_u(stream.read(24))
@@ -443,9 +435,7 @@ def extract_ev_tool(comment: str) -> str:
 
 
 @lru_cache(maxsize=1024)
-def get_fmt_v3(
-    data_type: int, size: int, byte_order: int = v3c.BYTE_ORDER_INTEL
-) -> str:
+def get_fmt_v3(data_type: int, size: int, byte_order: int = v3c.BYTE_ORDER_INTEL) -> str:
     """convert mdf versions 2 and 3 channel data type to numpy dtype format
     string
 
@@ -532,9 +522,7 @@ def get_fmt_v3(
 
 
 @lru_cache(maxsize=1024)
-def get_fmt_v4(
-    data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_VALUE
-) -> str:
+def get_fmt_v4(data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_VALUE) -> str:
     """convert mdf version 4 channel data type to numpy dtype format string
 
     Parameters
@@ -646,9 +634,7 @@ def get_fmt_v4(
 
 
 @lru_cache(maxsize=1024)
-def fmt_to_datatype_v3(
-    fmt: dtype[Any], shape: tuple[int, ...], array: bool = False
-) -> tuple[int, int]:
+def fmt_to_datatype_v3(fmt: dtype[Any], shape: tuple[int, ...], array: bool = False) -> tuple[int, int]:
     """convert numpy dtype format string to mdf versions 2 and 3
     channel data type and size
 
@@ -745,9 +731,7 @@ def info_to_datatype_v4(signed: bool, little_endian: bool) -> int:
 
 
 @lru_cache(maxsize=1024)
-def fmt_to_datatype_v4(
-    fmt: dtype[Any], shape: tuple[int, ...], array: bool = False
-) -> tuple[int, int]:
+def fmt_to_datatype_v4(fmt: dtype[Any], shape: tuple[int, ...], array: bool = False) -> tuple[int, int]:
     """convert numpy dtype format string to mdf version 4 channel data
     type and size
 
@@ -811,9 +795,7 @@ def fmt_to_datatype_v4(
     return data_type, size
 
 
-def as_non_byte_sized_signed_int(
-    integer_array: NDArray[Any], bit_length: int
-) -> NDArray[Any]:
+def as_non_byte_sized_signed_int(integer_array: NDArray[Any], bit_length: int) -> NDArray[Any]:
     """
     The MDF spec allows values to be encoded as integers that aren't
     byte-sized. Numpy only knows how to do two's complement on byte-sized
@@ -839,14 +821,10 @@ def as_non_byte_sized_signed_int(
         integer_array &= (1 << bit_length) - 1  # Zero out the unwanted bits
         truncated_integers = integer_array
     else:
-        truncated_integers = integer_array & (
-            (1 << bit_length) - 1
-        )  # Zero out the unwanted bits
+        truncated_integers = integer_array & ((1 << bit_length) - 1)  # Zero out the unwanted bits
     return where(
-        truncated_integers
-        >> bit_length - 1,  # sign bit as a truth series (True when negative)
-        (2**bit_length - truncated_integers)
-        * -1,  # when negative, do two's complement
+        truncated_integers >> bit_length - 1,  # sign bit as a truth series (True when negative)
+        (2**bit_length - truncated_integers) * -1,  # when negative, do two's complement
         truncated_integers,  # when positive, return the truncated int
     )
 
@@ -953,21 +931,15 @@ def count_channel_groups(
                             ch_count += 1
                             ch_addr = UINT64_uf(stream, ch_addr + 24)[0]
                             if ch_addr >= file_limit:
-                                raise MdfException(
-                                    f"File is a corrupted MDF file - Invalid CH block address"
-                                )
+                                raise MdfException(f"File is a corrupted MDF file - Invalid CH block address")
 
                     cg_addr = UINT64_uf(stream, cg_addr + 24)[0]
                     if cg_addr >= file_limit:
-                        raise MdfException(
-                            f"File is a corrupted MDF file - Invalid CG block address"
-                        )
+                        raise MdfException(f"File is a corrupted MDF file - Invalid CG block address")
 
                 dg_addr = UINT64_uf(stream, dg_addr + 24)[0]
                 if dg_addr >= file_limit:
-                    raise MdfException(
-                        f"File is a corrupted MDF file - Invalid DG block address"
-                    )
+                    raise MdfException(f"File is a corrupted MDF file - Invalid DG block address")
         else:
             stream.seek(88, 0)
             dg_addr = UINT64_u(stream.read(8))[0]
@@ -984,24 +956,18 @@ def count_channel_groups(
                             stream.seek(ch_addr + 24)
                             ch_addr = UINT64_u(stream.read(8))[0]
                             if ch_addr >= file_limit:
-                                raise MdfException(
-                                    f"File is a corrupted MDF file - Invalid CH block address"
-                                )
+                                raise MdfException(f"File is a corrupted MDF file - Invalid CH block address")
 
                     stream.seek(cg_addr + 24)
                     cg_addr = UINT64_u(stream.read(8))[0]
                     if cg_addr >= file_limit:
-                        raise MdfException(
-                            f"File is a corrupted MDF file - Invalid CG block address"
-                        )
+                        raise MdfException(f"File is a corrupted MDF file - Invalid CG block address")
 
                 stream.seek(dg_addr + 24)
                 dg_addr = UINT64_u(stream.read(8))[0]
 
                 if dg_addr >= file_limit:
-                    raise MdfException(
-                        f"File is a corrupted MDF file - Invalid DG block address"
-                    )
+                    raise MdfException(f"File is a corrupted MDF file - Invalid DG block address")
 
     else:
         stream.seek(68, 0)
@@ -1019,24 +985,18 @@ def count_channel_groups(
                         stream.seek(ch_addr + 4)
                         ch_addr = UINT32_u(stream.read(4))[0]
                         if ch_addr >= file_limit:
-                            raise MdfException(
-                                f"File is a corrupted MDF file - Invalid CH block address"
-                            )
+                            raise MdfException(f"File is a corrupted MDF file - Invalid CH block address")
 
                 stream.seek(cg_addr + 4)
                 cg_addr = UINT32_u(stream.read(4))[0]
                 if cg_addr >= file_limit:
-                    raise MdfException(
-                        f"File is a corrupted MDF file - Invalid CG block address"
-                    )
+                    raise MdfException(f"File is a corrupted MDF file - Invalid CG block address")
 
             stream.seek(dg_addr + 4)
             dg_addr = UINT32_u(stream.read(4))[0]
 
             if dg_addr >= file_limit:
-                raise MdfException(
-                    f"File is a corrupted MDF file - Invalid DG block address"
-                )
+                raise MdfException(f"File is a corrupted MDF file - Invalid DG block address")
 
     return count, ch_count
 
@@ -1065,11 +1025,7 @@ def validate_version_argument(version: str, hint: int = 4) -> str:
             valid_version = "3.30"
         else:
             valid_version = "4.10"
-        message = (
-            'Unknown mdf version "{}".'
-            " The available versions are {};"
-            ' automatically using version "{}"'
-        )
+        message = 'Unknown mdf version "{}".' " The available versions are {};" ' automatically using version "{}"'
         message = message.format(version, SUPPORTED_VERSIONS, valid_version)
         logger.warning(message)
     else:
@@ -1493,9 +1449,7 @@ def components(
 
                 if not only_basenames:
                     name_ = unique_names.get_unique_name(
-                        f"{prefix}.{channel_name}.{name}"
-                        if prefix
-                        else f"{channel_name}.{name}"
+                        f"{prefix}.{channel_name}.{name}" if prefix else f"{channel_name}.{name}"
                     )
                 else:
                     name_ = unique_names.get_unique_name(name)
@@ -1567,9 +1521,7 @@ class InvalidationBlockInfo(DataBlockInfo):
         all_valid: bool = False,
         block_limit: int | None = None,
     ) -> None:
-        super().__init__(
-            address, block_type, original_size, compressed_size, param, block_limit
-        )
+        super().__init__(address, block_type, original_size, compressed_size, param, block_limit)
         self.all_valid = all_valid
 
     def __repr__(self) -> str:
@@ -1663,9 +1615,7 @@ def downcast(array: NDArray[Any]) -> NDArray[Any]:
     return array
 
 
-def master_using_raster(
-    mdf: MDF_v2_v3_v4, raster: RasterType, endpoint: bool = False
-) -> NDArray[Any]:
+def master_using_raster(mdf: MDF_v2_v3_v4, raster: RasterType, endpoint: bool = False) -> NDArray[Any]:
     """get single master based on the raster
 
     Parameters
@@ -1692,14 +1642,10 @@ def master_using_raster(
             group = mdf.groups[group_index]
             cycles_nr = group.channel_group.cycles_nr
             if cycles_nr:
-                master_min = mdf.get_master(
-                    group_index, record_offset=0, record_count=1
-                )
+                master_min = mdf.get_master(group_index, record_offset=0, record_count=1)
                 if len(master_min):
                     t_min.append(master_min[0])
-                master_max = mdf.get_master(
-                    group_index, record_offset=cycles_nr - 1, record_count=1
-                )
+                master_max = mdf.get_master(group_index, record_offset=cycles_nr - 1, record_count=1)
                 if len(master_max):
                     t_max.append(master_max[0])
 
@@ -1800,9 +1746,7 @@ def pandas_query_compatible(name: str) -> str:
     return name
 
 
-def load_can_database(
-    path: StrPathType, contents: bytes | str | None = None, **kwargs
-) -> CanMatrix | None:
+def load_can_database(path: StrPathType, contents: bytes | str | None = None, **kwargs) -> CanMatrix | None:
     """
 
 
@@ -1950,9 +1894,9 @@ def plausible_timestamps(
     """
 
     exps = np.log10(t)
-    idx = (~np.isnan(t)) & (~np.isinf(t)) & (t >= minimum) & (t <= maximum) & (
-        t == 0
-    ) | ((exps >= exp_min) & (exps <= exp_max))
+    idx = (~np.isnan(t)) & (~np.isinf(t)) & (t >= minimum) & (t <= maximum) & (t == 0) | (
+        (exps >= exp_min) & (exps <= exp_max)
+    )
     if not np.all(idx):
         all_ok = False
         return all_ok, idx
@@ -1989,9 +1933,7 @@ def extract_mime_names(data, disable_new_channels=None):
             else:
                 if disable_new_channels is not None:
                     item["enabled"] = not disable_new_channels
-                fix_comparison_name(
-                    item["channels"], disable_new_channels=disable_new_channels
-                )
+                fix_comparison_name(item["channels"], disable_new_channels=disable_new_channels)
 
     names = []
     if data.hasFormat("application/octet-stream-asammdf"):
@@ -2300,9 +2242,7 @@ def load_dsp(file, background="#000000", flat=False):
     functions = {}
     virtual_channels = []
 
-    for i, ch in enumerate(
-        parse_virtual_channels(dsp.find("VIRTUAL_CHANNEL")).values()
-    ):
+    for i, ch in enumerate(parse_virtual_channels(dsp.find("VIRTUAL_CHANNEL")).values()):
         virtual_channels.append(
             {
                 "color": COLORS[i % len(COLORS)],
@@ -2318,9 +2258,7 @@ def load_dsp(file, background="#000000", flat=False):
                     "triggering": "triggering_on_all",
                     "triggering_value": "all",
                 },
-                "flags": int(
-                    SignalFlags.computed | SignalFlags.user_defined_conversion
-                ),
+                "flags": int(SignalFlags.computed | SignalFlags.user_defined_conversion),
                 "enabled": True,
                 "fmt": "{}",
                 "individual_axis": False,
@@ -2336,9 +2274,7 @@ def load_dsp(file, background="#000000", flat=False):
             }
         )
 
-        functions[
-            f"f_{ch['name']}"
-        ] = f"def f_{ch['name']}(arg1=0, t=0):\n    return arg1"
+        functions[f"f_{ch['name']}"] = f"def f_{ch['name']}(arg1=0, t=0):\n    return arg1"
 
     if virtual_channels:
         channels.append(
@@ -2407,9 +2343,7 @@ def load_channel_names_from_file(file_name, lab_section=""):
             if window["type"] == "Plot":
                 channels.extend(flatten_dsp(window["configuration"]["channels"]))
             elif window["type"] == "Numeric":
-                channels.extend(
-                    [item["name"] for item in window["configuration"]["channels"]]
-                )
+                channels.extend([item["name"] for item in window["configuration"]["channels"]])
             elif window["type"] == "Tabular":
                 channels.extend(window["configuration"]["channels"])
 
@@ -2420,6 +2354,8 @@ def load_channel_names_from_file(file_name, lab_section=""):
                 channels = info[lab_section]
             else:
                 channels = list(info.values())[0]
+
+            channels = [name.split(";")[0] for name in channels]
 
     elif extension == ".cfg":
         with open(file_name, "r") as infile:
@@ -2455,7 +2391,7 @@ def load_lab(file):
                 if "s" in locals():
                     s.append(line)
 
-    return {name: channels for name, channels in sections.items() if channels}
+    return {name: channels for name, channels in sections.items() if channels if name != "SETTINGS"}
 
 
 class SignalFlags(IntFlag):
