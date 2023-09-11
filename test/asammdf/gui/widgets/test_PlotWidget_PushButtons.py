@@ -1,11 +1,8 @@
 #!/usr/bin/env python
-import sys
-from test.asammdf.gui.test_base import DragAndDrop, Pixmap
-from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
-import unittest
-from unittest import mock
+from PySide6 import QtCore, QtTest
 
-from PySide6 import QtCore, QtGui, QtTest, QtWidgets
+from test.asammdf.gui.test_base import Pixmap
+from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestPushButtons(TestPlotWidget):
@@ -217,8 +214,8 @@ class TestPushButtons(TestPlotWidget):
             self.processEvents(timeout=0.01)
             focus_mode_channel_1_pixmap = self.plot.plot.viewport().grab()
             if Pixmap.has_color(
-                pixmap=focus_mode_channel_1_pixmap,
-                color_name=self.plot_graph_channel_1.color_name,
+                    pixmap=focus_mode_channel_1_pixmap,
+                    color_name=self.plot_graph_channel_1.color_name,
             ):
                 break
 

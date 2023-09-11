@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-from test.asammdf.gui.test_base import DragAndDrop, Pixmap
-from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 from unittest import mock
 
 from PySide6 import QtCore, QtGui, QtTest
+
+from test.asammdf.gui.test_base import DragAndDrop, Pixmap
+from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestDoubleClick(TestPlotWidget):
@@ -29,7 +30,7 @@ class TestDoubleClick(TestPlotWidget):
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Switch ComboBox to "Natural sort"
         self.widget.channel_view.setCurrentText("Natural sort")
-        # Create plot window
+        # Create a plot window
         self.create_window(window_type="Plot")
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
         # Drag and Drop channel from FileWidget.channel_tree to Plot
@@ -88,7 +89,7 @@ class TestDoubleClick(TestPlotWidget):
         # Press 'Shift-Insert' in order to Insert Group
         # Create Channel Group. Drag channels inside the group one by one
         with mock.patch(
-            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
+                "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
         ) as mc_getText:
             # Create Channel Group
             mc_getText.return_value = "FirstGroup", True
@@ -234,7 +235,7 @@ class TestDoubleClick(TestPlotWidget):
         # Create Channel Group. Drag channels inside the group one by one
         groups = {}
         with mock.patch(
-            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
+                "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
         ) as mc_getText:
             for group_name in ("A", "B", "C"):
                 # Create Channel Group
@@ -359,10 +360,10 @@ class TestDoubleClick(TestPlotWidget):
 
             enabled_groups_pixmap = plot.plot.viewport().grab()
             for channel in (
-                plot_channel_a,
-                plot_channel_b,
-                plot_channel_c,
-                plot_channel_d,
+                    plot_channel_a,
+                    plot_channel_b,
+                    plot_channel_c,
+                    plot_channel_d,
             ):
                 self.assertTrue(
                     Pixmap.has_color(
@@ -421,7 +422,7 @@ class TestDoubleClick(TestPlotWidget):
         # Create Channel Group. Drag channels inside the group one by one
         groups = {}
         with mock.patch(
-            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
+                "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
         ) as mc_getText:
             for group_name in ("A", "B", "C"):
                 # Create Channel Group
@@ -536,10 +537,10 @@ class TestDoubleClick(TestPlotWidget):
 
             enabled_groups_pixmap = plot.plot.viewport().grab()
             for channel in (
-                plot_channel_a,
-                plot_channel_b,
-                plot_channel_c,
-                plot_channel_d,
+                    plot_channel_a,
+                    plot_channel_b,
+                    plot_channel_c,
+                    plot_channel_d,
             ):
                 self.assertTrue(
                     Pixmap.has_color(
@@ -598,7 +599,7 @@ class TestDoubleClick(TestPlotWidget):
         # Create Channel Group. Drag channels inside the group one by one
         groups = {}
         with mock.patch(
-            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
+                "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
         ) as mc_getText:
             for group_name in ("A", "B", "C"):
                 # Create Channel Group
@@ -781,7 +782,7 @@ class TestDoubleClick(TestPlotWidget):
         # Create Channel Group. Drag channels inside the group one by one
         groups = {}
         with mock.patch(
-            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
+                "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
         ) as mc_getText:
             for group_name in ("A", "B", "C"):
                 # Create Channel Group
