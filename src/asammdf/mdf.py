@@ -3819,6 +3819,37 @@ class MDF:
             only_basenames=only_basenames,
         )
 
+    def _is_skip_value2test_conversion(
+        self, conversion, channel_conversion_class: type, text_conversion_type: int
+    ) -> bool:
+        """determines if a value to text conversion should be skipped by evaluating the conversion_type of the underlying
+        default conversion
+
+        Parameters
+        ----------
+        conversion: ChannelConversionV3 or ChannelConversionV4
+            signal conversion
+        channel_conversion_class: type
+            class of signal conversion for default conversion
+        text_conversion_type: int
+            boundary of conversion type for ignoring text conversion
+
+        Returns
+        -------
+        skip : bool
+        """
+        skip = True
+        if conversion:
+            conversion_type = conversion.conversion_type
+            referenced_blocks = conversion.referenced_blocks
+            if referenced_blocks:
+                default = referenced_blocks.get("default_addr", None)
+                if default and isinstance(default, channel_conversion_class):
+                    conversion_type = default.conversion_type
+            if conversion_type < text_conversion_type:
+                skip = False
+        return skip
+
     def iter_to_dataframe(
         self,
         channels: ChannelsType | None = None,
@@ -3962,6 +3993,13 @@ class MDF:
             else:
                 master = np.array([], dtype="<f4")
 
+        if self.version < "4.00":
+            text_conversion = 11
+            ChannelConversion = ChannelConversionV3
+        else:
+            text_conversion = 7
+            ChannelConversion = ChannelConversionV4
+
         master_ = master
         channel_count = sum(len(gp.channels) - 1 for gp in self.groups) + 1
         # approximation with all float64 dtype
@@ -4038,14 +4076,9 @@ class MDF:
 
                 if not raw:
                     if ignore_value2text_conversions:
-                        if self.version < "4.00":
-                            text_conversion = 11
-                        else:
-                            text_conversion = 7
-
                         for signal in signals:
                             conversion = signal.conversion
-                            if conversion and conversion.conversion_type < text_conversion:
+                            if not self._is_skip_value2test_conversion(conversion, ChannelConversion, text_conversion):
                                 signal.samples = conversion.convert(signal.samples)
 
                     else:
@@ -4373,6 +4406,13 @@ class MDF:
 
             del masters
 
+        if self.version < "4.00":
+            text_conversion = 11
+            ChannelConversion = ChannelConversionV3
+        else:
+            text_conversion = 7
+            ChannelConversion = ChannelConversionV4
+
         idx = np.argwhere(np.diff(master, prepend=-np.inf) > 0).flatten()
         master = master[idx]
 
@@ -4422,14 +4462,9 @@ class MDF:
 
             if not raw:
                 if ignore_value2text_conversions:
-                    if self.version < "4.00":
-                        text_conversion = 11
-                    else:
-                        text_conversion = 7
-
                     for signal in signals:
                         conversion = signal.conversion
-                        if conversion and conversion.conversion_type < text_conversion:
+                        if not self._is_skip_value2test_conversion(conversion, ChannelConversion, text_conversion):
                             signal.samples = conversion.convert(signal.samples)
                 else:
                     for signal in signals:
