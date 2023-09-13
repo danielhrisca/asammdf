@@ -117,6 +117,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.matches.setColumnWidth(self.SourceNameColumn, 170)
         self.matches.setColumnWidth(self.SourcePathColumn, 170)
 
+        self.setWindowFlag(QtCore.Qt.WindowMaximizeButtonHint, True)
+
         self.showMaximized()
 
     def search_text_changed(self):
@@ -128,19 +130,21 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             # it takes ~1 minute for 60000 previous search results
 
             self.matches.hide()
+            self.matches.itemDoubleClicked.disconnect()
+            self.matches.header().sectionResized.disconnect()
             self.matches.setParent(None)
 
             self.matches = QtWidgets.QTreeWidget(self.tab)
             self.matches.setObjectName("matches")
             self.matches.setHeaderLabels(
                 [
-                    "Comment",
-                    "Source path",
-                    "Source name",
-                    "Unit",
-                    "Index",
-                    "Group",
                     "Name",
+                    "Group",
+                    "Index",
+                    "Unit",
+                    "Source name",
+                    "Source path",
+                    "Comment",
                 ]
             )
 
@@ -451,6 +455,9 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         root = self.selection.invisibleRootItem()
         (item.parent() or root).removeChild(item)
 
+    @QtCore.Slot(int, int, int, result=None)
     def section_resized(self, index, old_size, new_size):
-        self.selection.setColumnWidth(index, new_size)
-        self.matches.setColumnWidth(index, new_size)
+        if self.selection.columnWidth(index) != new_size:
+            self.selection.setColumnWidth(index, new_size)
+        if self.matches.columnWidth(index) != new_size:
+            self.matches.setColumnWidth(index, new_size)
