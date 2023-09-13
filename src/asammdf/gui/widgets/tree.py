@@ -428,6 +428,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.details_enabled = False
         self.hide_missing_channels = hide_missing_channels
         self.hide_disabled_channels = hide_disabled_channels
+        self.filter_computed_channels = False
         self.can_delete_items = True
 
         self.setHeaderHidden(False)
@@ -919,6 +920,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         else:
             show_missing_channels = "Hide missing items"
         submenu.addAction(self.tr(show_missing_channels))
+        submenu.addAction("Filter only computed channels")
+        submenu.addAction("Un-filter computed channels")
         menu.addMenu(submenu)
         menu.addSeparator()
 
@@ -1167,6 +1170,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         elif action_text == show_missing_channels:
             self.hide_missing_channels = not self.hide_missing_channels
+            self.update_hidden_states()
+
+        elif action_text == "Filter only computed channels":
+            self.filter_computed_channels = True
+            self.update_hidden_states()
+
+        elif action_text == "Un-filter computed channels":
+            self.filter_computed_channels = False
             self.update_hidden_states()
 
         elif action_text == "Add to common Y axis":
@@ -1540,6 +1551,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     def update_hidden_states(self):
         hide_missing_channels = self.hide_missing_channels
         hide_disabled_channels = self.hide_disabled_channels
+        filter_computed = self.filter_computed_channels
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
         while True:
@@ -1549,14 +1561,17 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             hidden = False
 
-            if item.type() == ChannelsTreeItem.Channel:
-                if hide_missing_channels and not item.exists:
-                    hidden = True
-                if hide_disabled_channels and item.checkState(self.NameColumn) == QtCore.Qt.Unchecked:
-                    hidden = True
+            if filter_computed:
+                hidden = item.filter_computed()
             else:
-                if hide_disabled_channels and item.checkState(self.NameColumn) == QtCore.Qt.Unchecked:
-                    hidden = True
+                if item.type() == ChannelsTreeItem.Channel:
+                    if hide_missing_channels and not item.exists:
+                        hidden = True
+                    if hide_disabled_channels and item.checkState(self.NameColumn) == QtCore.Qt.Unchecked:
+                        hidden = True
+                else:
+                    if hide_disabled_channels and item.checkState(self.NameColumn) == QtCore.Qt.Unchecked:
+                        hidden = True
 
             item.setHidden(hidden)
 
@@ -1858,6 +1873,13 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.setIcon(self.NameColumn, icon)
 
         self.exists = exists
+
+    def filter_computed(self):
+        if self.type() == self.Channel:
+            hide = not (self.signal.flags & Signal.Flags.computed)
+        else:
+            hide = all(self.child(i).filter_computed() for i in range(self.childCount()))
+        return hide
 
     def get_all_channel_items(self):
         children = []
