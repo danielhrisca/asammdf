@@ -5477,24 +5477,28 @@ class HeaderBlock:
         self._common_properties.clear()
 
         def parse_common_properties(root):
+            root_name = root.get("name")
             info = {}
-            if root.tag in ("list", "tree"):
-                info[root.get("name")] = {}
+            if root.tag in ("list", "tree", "elist"):
+                info[root_name] = {}
             try:
                 for element in root:
                     name = element.get("name")
 
                     if element.tag == "e":
                         if root.tag == "tree":
-                            info[root.get("name")][name] = element.text or ""
+                            info[root_name][name] = element.text or ""
                         else:
                             info[name] = element.text or ""
 
-                    elif element.tag in ("list", "tree"):
+                    elif element.tag in ("list", "tree", "elist"):
                         info.update(parse_common_properties(element))
 
                     elif element.tag == "li":
-                        info[root.get("name")].update(parse_common_properties(element))
+                        info[root_name].update(parse_common_properties(element))
+
+                    elif element.tag == "eli":
+                        info[root_name][str(len(info[root_name]))] = element.text or ""
             except:
                 print(format_exc())
 
