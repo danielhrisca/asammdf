@@ -15,6 +15,7 @@ from ...blocks.utils import (
     load_channel_names_from_file,
     load_lab,
     TERMINATED,
+    timeit,
 )
 from ...blocks.v2_v3_blocks import HeaderBlock as HeaderBlockV3
 from ...blocks.v4_blocks import HeaderBlock as HeaderBlockV4
@@ -23,7 +24,7 @@ from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.messagebox import MessageBox
 from ..ui import resource_rc
 from ..ui.batch_widget import Ui_batch_widget
-from ..utils import HelperChannel, setup_progress, TERMINATED, timeit
+from ..utils import HelperChannel, setup_progress, TERMINATED
 from .database_item import DatabaseItem
 from .list import MinimalListWidget
 from .tree import add_children
