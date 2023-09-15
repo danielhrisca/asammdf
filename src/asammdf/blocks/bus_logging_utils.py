@@ -290,6 +290,34 @@ def extract_pdu(
     ignore_value2text_conversion: bool = True,
     is_j1939: bool = False,
 ):
+    """extract multiplexed CAN PDU signals from the raw payload
+
+        Parameters
+        ----------
+        payload : np.ndarray
+            raw CAN payload as numpy array
+        message : canmatrix.Frame
+            CAN message description parsed by canmatrix
+        message_id : int
+            message id
+        original_message_id : int
+            original message id
+        bus : int
+            bus channel number
+        t : np.ndarray
+            timestamps for the raw payload
+        muxer (None): str
+            name of the parent multiplexor signal
+        muxer_values (None): np.ndarray
+            multiplexor signal values
+        ignore_value2text_conversion (True): bool
+            ignore value to text conversions
+
+        Returns
+        -------
+        extracted_pdu_signals : dict
+            each value in the dict is a list of signals within the same PDU
+        """
     extracted_signals = {}
     extracted_pdu_signals = []
 
