@@ -359,22 +359,19 @@ class Delegate(QtWidgets.QItemDelegate):
         model = index.model()
 
         item = self.parent().itemFromIndex(index)
-        brush = model.data(index, QtCore.Qt.ForegroundRole)
 
-        # Paint disabled items - hard way
-        if item and item.type() == item.Channel and item.parent():
-            for column in range(item.columnCount()):
-                if item.isDisabled():
-                    item.setForeground(column, QtGui.Qt.darkGray)
-                else:
-                    item.setForeground(column, item.color)
+        if item.type() == item.Channel:
+            brush = model.data(index, QtCore.Qt.ForegroundRole)
 
-        if brush is not None:
-            color = brush.color()
+            if brush is not None:
+                color = brush.color()
 
-            complementary = fn.mkColor("#000000")
-            option.palette.setColor(QtGui.QPalette.Highlight, color)
-            option.palette.setColor(QtGui.QPalette.HighlightedText, complementary)
+                complementary = fn.mkColor("#000000")
+                if complementary == color:
+                    complementary = fn.mkColor("#FFFFFF")
+
+                option.palette.setColor(QtGui.QPalette.Highlight, color)
+                option.palette.setColor(QtGui.QPalette.HighlightedText, complementary)
 
         super().paint(painter, option, index)
 
@@ -1982,7 +1979,10 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self._name = text
         elif type == self.Channel:
             if text != self.signal.name:
+                if self.signal.original_name is None:
+                    self.signal.original_name = self.signal.name
                 self.signal.name = text
+
                 if not self.signal.flags & Signal.Flags.computed:
                     self.signal.flags |= Signal.Flags.user_defined_name
 
@@ -2061,16 +2061,30 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 child.set_conversion(conversion)
 
     def set_disabled(self, disabled, preserve_subgroup_state=True):
-        if self.type() == self.Channel and self.parent().isDisabled() == disabled:
-            self.setDisabled(disabled)
-            if self.details is not None:
-                self.details.setDisabled(disabled)
+        if self.type() == self.Channel:
+            for col in range(self.columnCount()):
+                self.setForeground(col, QtCore.Qt.NoBrush)
+                self.setBackground(col, QtCore.Qt.NoBrush)
+                self._current_background_color = None
+                self._current_font_color = None
 
-            if disabled:
-                self.signal.enable = False
-            else:
-                enable = self.checkState(self.NameColumn) == QtCore.Qt.Checked
-                self.signal.enable = enable
+            if self.parent().isDisabled() == disabled:
+                self.setDisabled(disabled)
+                if self.details is not None:
+                    self.details.setDisabled(disabled)
+
+                if disabled:
+                    self.signal.enable = False
+                else:
+                    enable = self.checkState(self.NameColumn) == QtCore.Qt.Checked
+                    self.signal.enable = enable
+                    color = self.signal.color
+
+                    self.setForeground(self.NameColumn, color)
+                    self.setForeground(self.ValueColumn, color)
+                    self.setForeground(self.CommonAxisColumn, color)
+                    self.setForeground(self.IndividualAxisColumn, color)
+                    self.setForeground(self.UnitColumn, color)
 
         elif self.type() == self.Group:
             # If the group is subgroup (has a parent)
@@ -2184,7 +2198,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         ranges = self.get_ranges()
 
-        if ranges:
+        if ranges and not self.isDisabled():
             new_background_color, new_font_color = get_colors_using_ranges(
                 value,
                 ranges=self.get_ranges(),

@@ -221,6 +221,7 @@ class PlotSignal(Signal):
 
         self.individual_axis = False
         self.computation = signal.computation
+        self.original_name = getattr(signal, "original_name", None)
 
         self.y_link = False
         self.y_range = (0, -1)
@@ -1704,6 +1705,7 @@ class Plot(QtWidgets.QWidget):
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
         self.channel_selection.group_activation_changed.connect(self.plot.update)
+        self.channel_selection.group_activation_changed.connect(self.cursor_moved)
         self.channel_selection.currentItemChanged.connect(self.channel_selection_row_changed)
         self.channel_selection.itemSelectionChanged.connect(self.channel_selection_changed)
         self.channel_selection.add_channels_request.connect(self.add_channels_request)
@@ -2071,6 +2073,9 @@ class Plot(QtWidgets.QWidget):
                     item.signal.flags |= Signal.Flags.user_defined_conversion
                     item.set_conversion(conversion)
 
+                if description.get("user_defined_name", None):
+                    item.name = description["user_defined_name"]
+
             if enforce_y_axis:
                 item.setCheckState(item.CommonAxisColumn, QtCore.Qt.Checked)
 
@@ -2143,7 +2148,12 @@ class Plot(QtWidgets.QWidget):
 
         sig, idx = self.plot.signal_by_uuid(widget.uuid)
 
-        channel["name"] = sig.name
+        if sig.flags & Signal.Flags.user_defined_name:
+            channel["user_defined_name"] = sig.name
+            channel["name"] = sig.original_name
+        else:
+            channel["name"] = sig.name
+
         channel["unit"] = sig.unit
         channel["flags"] = int(sig.flags)
         channel["enabled"] = item.checkState(item.NameColumn) == QtCore.Qt.Checked
