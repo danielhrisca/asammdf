@@ -20,6 +20,7 @@ from struct import Struct
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
+from time import perf_counter
 from traceback import format_exc
 from typing import Any, Dict, overload, Tuple
 import xml.etree.ElementTree as ET
@@ -2045,8 +2046,7 @@ def load_dsp(file, background="#000000", flat=False):
                     c += color_ & 0xFF
                     color_ = color_ >> 8
 
-                if c in (0xFFFFFF, 0x0):
-                    c = 0x808080
+                ch_color = c
 
                 gain = abs(float(elem.get("gain")))
                 offset = float(elem.get("offset")) / 100
@@ -2078,7 +2078,7 @@ def load_dsp(file, background="#000000", flat=False):
                         )
 
                 chan = {
-                    "color": f"#{c:06X}",
+                    "color": f"#{ch_color:06X}",
                     "common_axis": False,
                     "computed": False,
                     "flags": 0,
@@ -2402,3 +2402,18 @@ class SignalFlags(IntFlag):
     user_defined_name = 0x8
     stream_sync = 0x10
     computed = 0x20
+
+
+def timeit(func):
+    def timed(*args, **kwargs):
+        t1 = perf_counter()
+        ret = func(*args, **kwargs)
+        t2 = perf_counter()
+        delta = t2 - t1
+        if delta >= 1e-3:
+            print(f"CALL {func.__qualname__}: {delta*1e3:.3f} ms")
+        else:
+            print(f"CALL {func.__qualname__}: {delta*1e6:.3f} us")
+        return ret
+
+    return timed

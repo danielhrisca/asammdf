@@ -959,21 +959,6 @@ def get_color_using_ranges(
         return new_color
 
 
-def timeit(func):
-    def timed(*args, **kwargs):
-        t1 = perf_counter()
-        ret = func(*args, **kwargs)
-        t2 = perf_counter()
-        delta = t2 - t1
-        if delta >= 1e-3:
-            print(f"CALL {func.__qualname__}: {delta*1e3:.3f} ms")
-        else:
-            print(f"CALL {func.__qualname__}: {delta*1e6:.3f} us")
-        return ret
-
-    return timed
-
-
 def value_as_bin(value, dtype):
     byte_string = np.array([value], dtype=dtype).tobytes()
     if dtype.byteorder != ">":

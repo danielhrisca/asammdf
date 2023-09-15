@@ -20,9 +20,9 @@ PLOT_BUFFER_SIZE = 4000
 
 from ... import tool as Tool
 from ...blocks.conversion_utils import from_dict, to_dict
-from ...blocks.utils import target_byte_order
+from ...blocks.utils import target_byte_order, timeit
 from ..dialogs.messagebox import MessageBox
-from ..utils import BLUE, FONT_SIZE, GREEN, timeit, value_as_str
+from ..utils import BLUE, FONT_SIZE, GREEN, value_as_str
 from .viewbox import ViewBoxWithCursor
 
 try:
