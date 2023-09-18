@@ -24,8 +24,11 @@ class FormatedAxis(pg.AxisItem):
         self.plus = self.minus = None
         self.uuid = kwargs.pop("uuid", None)
         self.background = kwargs.pop("background", fn.mkColor("#000000"))
+        self.linked_signal = kwargs.pop("linked_signal", None)
 
         super().__init__(*args, **kwargs)
+
+        self._settings = QtCore.QSettings()
 
         self.format = "phys"
         self.mode = "phys"
@@ -389,68 +392,105 @@ class FormatedAxis(pg.AxisItem):
         if lv is None:
             # this is one of the individual axis
 
+            zoom_y_center_on_cursor = self._settings.value("zoom_y_center_on_cursor", False, type=bool)
+
             pos = event.pos()
             rect = self.boundingRect()
 
-            y_pos_val = ((rect.height() + rect.y()) - pos.y()) / rect.height() * (
-                self.range[-1] - self.range[0]
-            ) + self.range[0]
+            if zoom_y_center_on_cursor and 0:
+                plot, uuid = self.linked_signal
 
-            ratio = abs((pos.y() - (rect.height() + rect.y())) / rect.height())
+                y_pos_val, sig_y_top, sig_y_bottom = plot.value_at_cursor(uuid)
 
-            delta = self.range[-1] - self.range[0]
+                delta_proc = (y_pos_val - (sig_y_top + sig_y_bottom) / 2) / (sig_y_top - sig_y_bottom)
+                shift = delta_proc * (sig_y_top - sig_y_bottom)
+                sig_y_top, sig_y_bottom = sig_y_top + shift, sig_y_bottom + shift
 
-            if event.delta() > 0:
-                delta = 0.66 * delta
+                delta = sig_y_top - sig_y_bottom
+
+                if event.delta() > 0:
+                    end = sig_y_top - 0.165 * delta
+                    start = sig_y_bottom + 0.165 * delta
+                else:
+                    end = sig_y_top + 0.165 * delta
+                    start = sig_y_bottom - 0.165 * delta
+
+                self.setRange(start, end)
+
             else:
-                delta = 1.33 * delta
+                y_pos_val = ((rect.height() + rect.y()) - pos.y()) / rect.height() * (
+                    self.range[-1] - self.range[0]
+                ) + self.range[0]
 
-            start = y_pos_val - ratio * delta
-            end = y_pos_val + (1 - ratio) * delta
+                ratio = abs((pos.y() - (rect.height() + rect.y())) / rect.height())
 
-            self.setRange(start, end)
+                delta = self.range[-1] - self.range[0]
+
+                if event.delta() > 0:
+                    delta = 0.66 * delta
+                else:
+                    delta = 1.33 * delta
+
+                start = y_pos_val - ratio * delta
+                end = y_pos_val + (1 - ratio) * delta
+
+                self.setRange(start, end)
 
             event.accept()
         else:
             # this is the main Y axis or the X axis
-
-            if lv.state["mouseMode"] == lv.CursorMode:
-                if self.orientation in ("top", "bottom"):
-                    super().wheelEvent(event)
-                else:
-                    # main Y axis
-                    if lv.state["mouseEnabled"][1]:
-                        # the plot is not Y locked
-                        pos = event.pos()
-                        rect = self.boundingRect()
-
-                        y_pos_val = ((rect.height() + rect.y()) - pos.y()) / rect.height() * (
-                            self.range[-1] - self.range[0]
-                        ) + self.range[0]
-
-                        ratio = abs((pos.y() - (rect.height() + rect.y())) / rect.height())
-
-                        delta = self.range[-1] - self.range[0]
-
-                        if event.delta() > 0:
-                            delta = 0.66 * delta
-                        else:
-                            delta = 1.33 * delta
-
-                        start = y_pos_val - ratio * delta
-                        end = y_pos_val + (1 - ratio) * delta
-
-                        self.setRange(start, end)
-
-                        event.accept()
-                    else:
-                        event.ignore()
-
+            if self.orientation in ("top", "bottom"):
+                super().wheelEvent(event)
             else:
-                if self.orientation in ("top", "bottom") or lv.state["mouseEnabled"][1]:
-                    super().wheelEvent(event)
-                else:
+                # main Y axis
+
+                if lv.state["mouseEnabled"][1]:
                     event.ignore()
+
+                # the plot is not Y locked
+                pos = event.pos()
+                rect = self.boundingRect()
+
+                if self._settings.value("zoom_y_center_on_cursor", False, type=bool):
+                    plot, uuid = self.linked_signal
+
+                    y_pos_val, sig_y_top, sig_y_bottom = plot.value_at_cursor()
+
+                    delta_proc = (y_pos_val - (sig_y_top + sig_y_bottom) / 2) / (sig_y_top - sig_y_bottom)
+                    shift = delta_proc * (sig_y_top - sig_y_bottom)
+                    sig_y_top, sig_y_bottom = sig_y_top + shift, sig_y_bottom + shift
+
+                    delta = sig_y_top - sig_y_bottom
+
+                    if event.delta() > 0:
+                        end = sig_y_top - 0.165 * delta
+                        start = sig_y_bottom + 0.165 * delta
+                    else:
+                        end = sig_y_top + 0.165 * delta
+                        start = sig_y_bottom - 0.165 * delta
+
+                    self.setRange(start, end)
+
+                else:
+                    y_pos_val = ((rect.height() + rect.y()) - pos.y()) / rect.height() * (
+                        self.range[-1] - self.range[0]
+                    ) + self.range[0]
+
+                    ratio = abs((pos.y() - (rect.height() + rect.y())) / rect.height())
+
+                    delta = self.range[-1] - self.range[0]
+
+                    if event.delta() > 0:
+                        delta = 0.66 * delta
+                    else:
+                        delta = 1.33 * delta
+
+                    start = y_pos_val - ratio * delta
+                    end = y_pos_val + (1 - ratio) * delta
+
+                    self.setRange(start, end)
+
+                event.accept()
 
     def paint(self, p, opt, widget):
         rect = self.boundingRect()

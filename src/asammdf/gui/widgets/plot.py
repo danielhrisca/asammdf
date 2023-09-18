@@ -3635,7 +3635,9 @@ class PlotGraphics(pg.PlotWidget):
         self.viewbox.sigYRangeChanged.connect(self.y_changed)
         self.viewbox.sigRangeChangedManually.connect(self.y_changed)
 
-        self.x_axis = FormatedAxis("bottom", maxTickLength=5, background=self.backgroundBrush().color())
+        self.x_axis = FormatedAxis(
+            "bottom", maxTickLength=5, background=self.backgroundBrush().color(), linked_signal=(self, None)
+        )
 
         if x_axis == "time":
             fmt = self._settings.value("plot_xaxis")
@@ -3646,7 +3648,9 @@ class PlotGraphics(pg.PlotWidget):
         self.x_axis.format = fmt
         self.x_axis.origin = origin
 
-        self.y_axis = FormatedAxis("left", maxTickLength=-5, background=self.backgroundBrush().color())
+        self.y_axis = FormatedAxis(
+            "left", maxTickLength=-5, background=self.backgroundBrush().color(), linked_signal=(self, None)
+        )
         self.y_axis.setWidth(48)
 
         self.y_axis.scale_editor_requested.connect(self.open_scale_editor)
@@ -4286,6 +4290,7 @@ class PlotGraphics(pg.PlotWidget):
                 locked=self.locked,
                 maxTickLength=5,
                 background=self.backgroundBrush().color(),
+                linked_signal=(self, sig.uuid),
             )
             axis.scale_editor_requested.connect(self.open_scale_editor)
             if sig.conversion and hasattr(sig.conversion, "text_0"):
@@ -4529,7 +4534,7 @@ class PlotGraphics(pg.PlotWidget):
                     step = -delta * 0.25
                 else:
                     step = delta * 0.5
-                if self.cursor1.isVisible():
+                if self.cursor1.isVisible() and self._settings.value("zoom_x_center_on_cursor", True, type=bool):
                     pos = self.cursor1.value()
                     x_range = pos - delta / 2, pos + delta / 2
 
@@ -4543,8 +4548,27 @@ class PlotGraphics(pg.PlotWidget):
 
                 self.block_zoom_signal = True
 
+                if (
+                    self.cursor1.isVisible()
+                    and self.current_uuid is not None
+                    and self._settings.value("zoom_y_center_on_cursor", True, type=bool)
+                ):
+                    value_info = self.value_at_cursor()
+                    if value_info is None:
+                        delta_proc = 0
+                    else:
+                        y, sig_y_top, sig_y_bottom = value_info
+                        delta_proc = (y - (sig_y_top + sig_y_bottom) / 2) / (sig_y_top - sig_y_bottom)
+                else:
+                    delta_proc = 0
+
                 for sig in self.signals:
                     sig_y_bottom, sig_y_top = sig.y_range
+
+                    # center on the signal cursor Y value
+                    shift = delta_proc * (sig_y_top - sig_y_bottom)
+                    sig_y_top, sig_y_bottom = sig_y_top + shift, sig_y_bottom + shift
+
                     delta = sig_y_top - sig_y_bottom
                     sig_y_top -= delta * factor
                     sig_y_bottom += delta * factor
@@ -5785,6 +5809,18 @@ class PlotGraphics(pg.PlotWidget):
         geometry = self.viewbox.sceneBoundingRect()
         if geometry != self.viewbox_geometry:
             self.viewbox_geometry = geometry
+
+    def value_at_cursor(self, uuid=None):
+        uuid = uuid or self.current_uuid
+        if uuid is None or not self.cursor1.isVisible():
+            return None
+
+        timestamp = self.cursor1.value()
+        sig, idx = self.signal_by_uuid(uuid)
+        sig_y_bottom, sig_y_top = sig.y_range
+        y, *_ = sig.value_at_timestamp(timestamp, numeric=True)
+
+        return y, sig_y_bottom, sig_y_top
 
     def xrange_changed_handle(self, *args, force=False):
         if self._can_paint:
