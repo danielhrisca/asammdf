@@ -4,6 +4,7 @@ from enum import IntFlag
 from functools import lru_cache
 import json
 import os
+import random
 import re
 from traceback import format_exc
 
@@ -929,6 +930,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addSeparator()
 
         menu.addAction(self.tr("Set color [C]"))
+        menu.addAction(self.tr("Set random color"))
         menu.addAction(self.tr("Set precision"))
         menu.addAction(self.tr("Set color ranges [Ctrl+R]"))
         menu.addAction(self.tr("Set channel conversion"))
@@ -1022,6 +1024,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 QtCore.Qt.NoModifier,
             )
             self.keyPressEvent(event)
+
+        elif action_text == "Set random color":
+            for item in self.selectedItems():
+                if item.type() == ChannelsTreeItem.Channel:
+                    while True:
+                        rgb = random.randbytes(3)
+                        if 100 <= sum(rgb) <= 650:
+                            break
+
+                    item.color = f"#{rgb.hex()}"
 
         elif action_text == "Set color ranges [Ctrl+R]":
             event = QtGui.QKeyEvent(
