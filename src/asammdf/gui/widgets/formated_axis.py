@@ -444,7 +444,7 @@ class FormatedAxis(pg.AxisItem):
             else:
                 # main Y axis
 
-                if lv.state["mouseEnabled"][1]:
+                if not lv.state["mouseEnabled"][1]:
                     event.ignore()
                 else:
                     # the plot is not Y locked
