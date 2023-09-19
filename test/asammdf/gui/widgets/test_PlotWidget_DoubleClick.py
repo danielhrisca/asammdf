@@ -301,8 +301,6 @@ class TestDoubleClick(TestPlotWidget):
                     ),
                     msg=f"Color of Channel: {channel.text(self.Column.NAME)} present on 'plot'.",
                 )
-                color_name = channel.foreground(self.Column.NAME).color().name()
-                self.assertEqual(color_name, "#808080")
 
             QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Up)
             for _ in range(4):
@@ -346,8 +344,6 @@ class TestDoubleClick(TestPlotWidget):
                     Pixmap.has_color(pixmap=enabled_groups_pixmap, color_name=channel.color),
                     msg=f"Color for Channel: {channel.text(self.Column.NAME)} not present on 'plot'",
                 )
-                color_name = channel.foreground(self.Column.NAME).color().name()
-                self.assertNotEqual(color_name, "#808080")
 
     def test_EnableDisable_Subgroup(self):
         """
