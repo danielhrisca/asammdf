@@ -14,40 +14,80 @@ class ViewBoxMenu(QtWidgets.QMenu):
     def __init__(self, view):
         super().__init__()
 
+        self._settings = QtCore.QSettings()
+
         self.view = weakref.ref(
             view
         )  ## keep weakref to view to avoid circular reference (don't know why, but this prevents the ViewBox from being collected)
         self.valid = False  ## tells us whether the ui needs to be updated
         self.viewMap = weakref.WeakValueDictionary()  ## weakrefs to all views listed in the link combos
 
-        self.leftMenu = QtWidgets.QMenu("Mouse Mode")
+        # mouse mode
+        self.mouse_mode_menu = QtWidgets.QMenu("Mouse Mode")
         group = QtGui.QActionGroup(self)
 
-        # This does not work! QAction _must_ be initialized with a permanent
-        # object as the parent or else it may be collected prematurely.
-        # pan = self.leftMenu.addAction("3 button", self.set3ButtonMode)
-        # zoom = self.leftMenu.addAction("1 button", self.set1ButtonMode)
-        pan = QtGui.QAction(ViewBoxMenu.pan, self.leftMenu)
-        cursor = QtGui.QAction(ViewBoxMenu.cursor, self.leftMenu)
-        zoom = QtGui.QAction("Rectangle selection mode", self.leftMenu)
-        self.leftMenu.addAction(pan)
-        self.leftMenu.addAction(cursor)
-        # self.leftMenu.addAction(zoom)
+        pan = QtGui.QAction(ViewBoxMenu.pan, self.mouse_mode_menu)
+        cursor = QtGui.QAction(ViewBoxMenu.cursor, self.mouse_mode_menu)
+        self.mouse_mode_menu.addAction(pan)
+        self.mouse_mode_menu.addAction(cursor)
         pan.triggered.connect(partial(self.set_mouse_mode, "pan"))
         cursor.triggered.connect(partial(self.set_mouse_mode, "cursor"))
-        zoom.triggered.connect(partial(self.set_mouse_mode, "rect"))
-
         pan.setCheckable(True)
         cursor.setCheckable(True)
-        zoom.setCheckable(True)
         pan.setActionGroup(group)
         cursor.setActionGroup(group)
-        zoom.setActionGroup(group)
-        self.mouseModes = [pan, cursor, zoom]
-        self.addMenu(self.leftMenu)
+        self.mouseModes = [pan, cursor]
+        self.addMenu(self.mouse_mode_menu)
+
+        # X zoom mode
+        self.x_zoom_mode_menu = QtWidgets.QMenu("X-axis zoom mode")
+        group = QtGui.QActionGroup(self)
+
+        center_on_cursor = QtGui.QAction("Center on cursor", self.x_zoom_mode_menu)
+        center_on_cursor.setCheckable(True)
+        center_on_cursor.setActionGroup(group)
+        self.x_zoom_mode_menu.addAction(center_on_cursor)
+
+        center_on_mouse = QtGui.QAction("Center on mouse position", self.x_zoom_mode_menu)
+        center_on_mouse.setCheckable(True)
+        center_on_mouse.setActionGroup(group)
+        self.x_zoom_mode_menu.addAction(center_on_mouse)
+
+        if self._settings.value("zoom_x_center_on_cursor", True, type=bool):
+            center_on_cursor.setChecked(True)
+        else:
+            center_on_mouse.setChecked(True)
+        center_on_cursor.triggered.connect(partial(self.set_x_zoom_mode, True))
+        center_on_mouse.triggered.connect(partial(self.set_x_zoom_mode, False))
+
+        self.addMenu(self.x_zoom_mode_menu)
+
+        # Y zoom mode
+        self.y_zoom_mode_menu = QtWidgets.QMenu("Y-axis zoom mode")
+        group = QtGui.QActionGroup(self)
+
+        center_on_cursor = QtGui.QAction("Center on cursor", self.y_zoom_mode_menu)
+        center_on_cursor.setCheckable(True)
+        center_on_cursor.setActionGroup(group)
+        self.y_zoom_mode_menu.addAction(center_on_cursor)
+
+        center_on_mouse = QtGui.QAction("Center on mouse position", self.y_zoom_mode_menu)
+        center_on_mouse.setCheckable(True)
+        center_on_mouse.setActionGroup(group)
+        self.y_zoom_mode_menu.addAction(center_on_mouse)
+
+        if self._settings.value("zoom_y_center_on_cursor", True, type=bool):
+            center_on_cursor.setChecked(True)
+        else:
+            center_on_mouse.setChecked(True)
+        center_on_cursor.triggered.connect(partial(self.set_y_zoom_mode, True))
+        center_on_mouse.triggered.connect(partial(self.set_y_zoom_mode, False))
+
+        self.addMenu(self.x_zoom_mode_menu)
+
+        self.addMenu(self.y_zoom_mode_menu)
 
         self.view().sigStateChanged.connect(self.viewStateChanged)
-
         self.updateState()
 
     def viewStateChanged(self):
@@ -60,8 +100,6 @@ class ViewBoxMenu(QtWidgets.QMenu):
             self.mouseModes[0].setChecked(True)
         elif state["mouseMode"] == ViewBoxWithCursor.CursorMode:
             self.mouseModes[1].setChecked(True)
-        else:
-            self.mouseModes[2].setChecked(True)
 
         self.valid = True
 
@@ -72,6 +110,12 @@ class ViewBoxMenu(QtWidgets.QMenu):
 
     def set_mouse_mode(self, mode):
         self.view().setLeftButtonAction(mode)
+
+    def set_x_zoom_mode(self, on_cursor=True):
+        self._settings.setValue("zoom_x_center_on_cursor", on_cursor)
+
+    def set_y_zoom_mode(self, on_cursor=True):
+        self._settings.setValue("zoom_y_center_on_cursor", on_cursor)
 
 
 class ViewBoxWithCursor(pg.ViewBox):
@@ -266,6 +310,16 @@ class ViewBoxWithCursor(pg.ViewBox):
             else:
                 mask = self.state["mouseEnabled"][:]
 
+        pos = ev.pos()
+
+        s = 1.02 ** (ev.delta() * self.state["wheelScaleFactor"])  # actual scaling factor
+
+        s = [(None if m is False else s) for m in mask]
+        center = pg.Point(fn.invertQTransform(self.childGroup.transform()).map(pos))
+
+        self._resetTarget()
+        self.scaleBy(s, center)
+
         if (
             self._settings.value("zoom_x_center_on_cursor", True, type=bool)
             and self.cursor is not None
@@ -274,26 +328,8 @@ class ViewBoxWithCursor(pg.ViewBox):
             x_range, _ = self.viewRange()
             delta = x_range[1] - x_range[0]
 
-            # mouse scroll wheel has 120 delta for each step
-            # touchpad has much lower delta values but is triggerd more often
-            event_delta = ev.delta() * 0.15 / 120
-
-            step = -delta * event_delta
-
             pos = self.cursor.value()
-            x_range = pos - delta / 2, pos + delta / 2
-            self.setXRange(x_range[0] - step, x_range[1] + step, padding=0)
-
-        else:
-            pos = ev.pos()
-
-            s = 1.02 ** (ev.delta() * self.state["wheelScaleFactor"])  # actual scaling factor
-
-            s = [(None if m is False else s) for m in mask]
-            center = pg.Point(fn.invertQTransform(self.childGroup.transform()).map(pos))
-
-            self._resetTarget()
-            self.scaleBy(s, center)
+            self.setXRange(pos - delta / 2, pos + delta / 2, padding=0)
 
         ev.accept()
         self.sigRangeChangedManually.emit(mask)
