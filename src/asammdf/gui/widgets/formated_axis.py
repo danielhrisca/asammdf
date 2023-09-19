@@ -397,10 +397,10 @@ class FormatedAxis(pg.AxisItem):
             pos = event.pos()
             rect = self.boundingRect()
 
-            if zoom_y_center_on_cursor and 0:
+            if zoom_y_center_on_cursor:
                 plot, uuid = self.linked_signal
 
-                y_pos_val, sig_y_top, sig_y_bottom = plot.value_at_cursor(uuid)
+                y_pos_val, sig_y_bottom, sig_y_top = plot.value_at_cursor(uuid)
 
                 delta_proc = (y_pos_val - (sig_y_top + sig_y_bottom) / 2) / (sig_y_top - sig_y_bottom)
                 shift = delta_proc * (sig_y_top - sig_y_bottom)
@@ -454,7 +454,7 @@ class FormatedAxis(pg.AxisItem):
                     if self._settings.value("zoom_y_center_on_cursor", False, type=bool):
                         plot, uuid = self.linked_signal
 
-                        y_pos_val, sig_y_top, sig_y_bottom = plot.value_at_cursor()
+                        y_pos_val, sig_y_bottom, sig_y_top = plot.value_at_cursor()
 
                         delta_proc = (y_pos_val - (sig_y_top + sig_y_bottom) / 2) / (sig_y_top - sig_y_bottom)
                         shift = delta_proc * (sig_y_top - sig_y_bottom)

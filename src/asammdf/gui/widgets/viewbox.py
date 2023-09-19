@@ -312,6 +312,16 @@ class ViewBoxWithCursor(pg.ViewBox):
 
         pos = ev.pos()
 
+        if self._settings.value("zoom_y_center_on_cursor", True, type=bool):
+            y_pos_val, sig_y_top, sig_y_bottom = self.plot.value_at_cursor()
+
+            ratio = (sig_y_top - y_pos_val) / (sig_y_top - sig_y_bottom)
+
+            rect = self.boundingRect()
+
+            y_coord = (rect.height() - rect.y()) * ratio
+            pos.setY(y_coord)
+
         s = 1.02 ** (ev.delta() * self.state["wheelScaleFactor"])  # actual scaling factor
 
         s = [(None if m is False else s) for m in mask]

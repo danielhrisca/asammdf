@@ -4542,9 +4542,9 @@ class PlotGraphics(pg.PlotWidget):
 
             elif key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O) and modifier == QtCore.Qt.ShiftModifier and not self.locked:
                 if key == QtCore.Qt.Key_I:
-                    factor = 0.25
+                    factor = 0.165
                 else:
-                    factor = -0.25
+                    factor = -0.165
 
                 self.block_zoom_signal = True
 
@@ -4557,7 +4557,7 @@ class PlotGraphics(pg.PlotWidget):
                     if value_info is None:
                         delta_proc = 0
                     else:
-                        y, sig_y_top, sig_y_bottom = value_info
+                        y, sig_y_bottom, sig_y_top = value_info
                         delta_proc = (y - (sig_y_top + sig_y_bottom) / 2) / (sig_y_top - sig_y_bottom)
                 else:
                     delta_proc = 0
