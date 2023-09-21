@@ -1,0 +1,5 @@
+[run]
+source =
+    asammdf
+omit =
+    */asammdf/gui/ui/*

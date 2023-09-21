@@ -3,7 +3,10 @@ from __future__ import annotations
 from traceback import format_exc
 from typing import Any
 
-from canmatrix import Frame, Signal
+import canmatrix
+
+from canmatrix import Frame, Signal, Pdu
+
 import numpy as np
 from numpy.typing import NDArray
 from typing_extensions import TypedDict
@@ -273,6 +276,115 @@ class ExtractedSignal(TypedDict):
     t: NDArray[Any]
     invalidation_bits: NDArray[Any]
 
+def extract_pdu(
+    payload: NDArray[Any],
+    message: Frame,
+    message_id: int,
+    bus: int,
+    t: NDArray[Any],
+    muxer: str | None = None,
+    muxer_values: NDArray[Any] | None = None,
+    original_message_id: int | None = None,
+    raw: bool = False,
+    include_message_name: bool = False,
+    ignore_value2text_conversion: bool = True,
+    is_j1939: bool = False,
+):
+    """extract multiplexed CAN PDU signals from the raw payload
+
+        Parameters
+        ----------
+        payload : np.ndarray
+            raw CAN payload as numpy array
+        message : canmatrix.Frame
+            CAN message description parsed by canmatrix
+        message_id : int
+            message id
+        original_message_id : int
+            original message id
+        bus : int
+            bus channel number
+        t : np.ndarray
+            timestamps for the raw payload
+        muxer (None): str
+            name of the parent multiplexor signal
+        muxer_values (None): np.ndarray
+            multiplexor signal values
+        ignore_value2text_conversion (True): bool
+            ignore value to text conversions
+
+        Returns
+        -------
+        extracted_pdu_signals : dict
+            each value in the dict is a list of signals within the same PDU
+        """
+    extracted_signals = {}
+    extracted_pdu_signals = []
+
+
+    if message.size > payload.shape[1] or message.size == 0:
+        return extracted_signals
+    pdus = []
+
+    for pdu in message.pdus:
+        pairs = {}
+        for signal in pdu.signals:
+            # signal_mdf = MDF(None, version='4.10', pdu.signals)
+
+            setattr(signal, 'pdu_id', pdu.id)
+
+            try:
+                entry = signal.mux_val_min, signal.mux_val_max
+            except:
+                entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0, 0)
+            pair_signals = pairs.setdefault(entry, [])
+            pair_signals.append(signal)
+        pdus.append(pairs)
+
+    for pdu in pdus:
+        extracted_signals = {}
+        for pair, pair_signals in pdu.items():
+            entry = bus, message_id, original_message_id, pair_signals[0].pdu_id, muxer, *pair # (18,172,None, 367800, none, none)
+
+
+            extracted_signals[entry] = signals = {}
+
+            t_ = t
+            payload_ = payload
+
+            for sig in pair_signals:
+                samples = extract_signal(
+                    sig,
+                    payload_,
+                    ignore_value2text_conversion=ignore_value2text_conversion,
+                    raw=True,
+                )
+
+                if len(samples) == 0 and len(t_):
+                    continue
+                if include_message_name:
+                    sig_name = f"{message.name}.{sig.name}"
+                else:
+                    sig_name = sig.name
+
+                try:
+                    signals[sig_name] = {
+                        "name": sig_name,
+                        "comment": sig.comment or "",
+                        "unit": sig.unit or "",
+                        "samples": samples
+                        if raw
+                            else apply_conversion(samples, sig, ignore_value2text_conversion),
+                        "t": t_,
+                        "invalidation_bits": None,
+                    }
+                except:
+                    print(format_exc())
+                    print(message, sig)
+                    print(samples, set(samples), samples.dtype, samples.shape)
+                    raise
+        extracted_pdu_signals.append(extracted_signals)
+    return extracted_pdu_signals
 
 def extract_mux(
     payload: NDArray[Any],
@@ -353,7 +465,7 @@ def extract_mux(
             pair_signals.append(signal)
 
     for pair, pair_signals in pairs.items():
-        entry = bus, message_id, original_message_id, muxer, *pair
+        entry = bus, message_id, original_message_id, muxer, *pair #(18,172,None, none, none)
 
         extracted_signals[entry] = signals = {}
 
