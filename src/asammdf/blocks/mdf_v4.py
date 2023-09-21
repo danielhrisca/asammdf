@@ -3955,8 +3955,8 @@ class MDF4(MDF_Common):
                 else:
                     invalidation_bits = None
 
-                gp["types"] = dtype(new_types)
-                offset = gp["types"].itemsize
+                gp["signal_types"] = dtype(new_types)
+                offset = gp["signal_types"].itemsize
 
                 samples = signal.samples
 
@@ -4155,7 +4155,7 @@ class MDF4(MDF_Common):
 
                     ch_cntr += 1
 
-                gp["types"] = dtype(types)
+                gp["signal_types"] = dtype(types)
 
                 samples = signal.samples
 
