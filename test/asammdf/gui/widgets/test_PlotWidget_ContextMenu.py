@@ -417,3 +417,127 @@ class TestContextMenu(TestPlotWidget):
             channel_b_properties = QtWidgets.QApplication.instance().clipboard().text()
 
             self.assertEqual(channel_a_properties, channel_b_properties)
+
+    def test_Action_CopyChannelStructure(self):
+        """
+        Test Scope:
+            - Ensure that channel structure is copied in clipboard.
+        Events:
+            - Select one channel
+            - Open Context Menu
+            - Trigger 'Copy channel structure' action
+        Evaluate:
+            - Evaluate that channel structure is stored in clipboard in json format.
+        """
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
+            mo_action = mock.MagicMock()
+            mo_action.text.return_value = "Copy channel structure [Ctrl+C]"
+            QMenuWrap.return_action = mo_action
+
+            position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+            QtTest.QTest.mouseClick(
+                self.plot.channel_selection.viewport(),
+                QtCore.Qt.MouseButton.RightButton,
+                QtCore.Qt.KeyboardModifiers(),
+                position,
+            )
+            while not mo_action.text.called:
+                self.processEvents(0.02)
+
+        clipboard = QtWidgets.QApplication.instance().clipboard().text()
+        try:
+            content = json.loads(clipboard)
+        except JSONDecodeError:
+            self.fail("Clipboard Content cannot be decoded as JSON content.")
+        else:
+            self.assertIsInstance(content, list)
+            for channel_properties in content:
+                self.assertIsInstance(channel_properties, dict)
+
+    def test_Action_PasteChannelStructure(self):
+        """
+        Test Scope:
+            - Ensure that channel and structure is duplicated and structure is kept.
+        Events:
+            - Select one channel
+            - Open Context Menu
+            - Trigger 'Copy display properties' action
+            - Trigger 'Copy channel structure' action
+            - Open Context Menu
+            - Trigger 'Paste channel structure' action
+            - Select dst channel
+            - Open Context Menu
+            - Trigger 'Copy display properties' action
+        Evaluate:
+            - Evaluate that channel is duplicated and structure is kept.
+        """
+        action_copy_dsp_properties = "Copy display properties [Ctrl+Shift+C]"
+        action_copy = "Copy channel structure [Ctrl+C]"
+        action_paste = "Paste channel structure [Ctrl+V]"
+
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
+            # Copy DSP Properties
+            mo_action = mock.MagicMock()
+            mo_action.text.return_value = action_copy_dsp_properties
+            QMenuWrap.return_action = mo_action
+
+            position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+            QtTest.QTest.mouseClick(
+                self.plot.channel_selection.viewport(),
+                QtCore.Qt.MouseButton.RightButton,
+                QtCore.Qt.KeyboardModifiers(),
+                position_src,
+            )
+            while not mo_action.text.called:
+                self.processEvents(0.02)
+
+            channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
+
+            # Copy Channel Structure
+            mo_action = mock.MagicMock()
+            mo_action.text.return_value = action_copy
+            QMenuWrap.return_action = mo_action
+
+            QtTest.QTest.mouseClick(
+                self.plot.channel_selection.viewport(),
+                QtCore.Qt.MouseButton.RightButton,
+                QtCore.Qt.KeyboardModifiers(),
+                position_src,
+            )
+            while not mo_action.text.called:
+                self.processEvents(0.02)
+
+            channels_count = self.plot.channel_selection.topLevelItemCount()
+
+            # Paste Channel Structure
+            mo_action = mock.MagicMock()
+            mo_action.text.return_value = action_paste
+            QMenuWrap.return_action = mo_action
+
+            QtTest.QTest.mouseClick(self.plot.channel_selection.viewport(), QtCore.Qt.MouseButton.RightButton)
+            while not mo_action.text.called:
+                self.processEvents(0.02)
+
+            # channel_b_properties = QtWidgets.QApplication.instance().clipboard().text()
+
+            self.assertEqual(channels_count + 1, self.plot.channel_selection.topLevelItemCount())
+
+            new_channel = self.plot.channel_selection.itemBelow(self.plot_channel_d)
+            # Copy DSP Properties
+            mo_action = mock.MagicMock()
+            mo_action.text.return_value = action_copy_dsp_properties
+            QMenuWrap.return_action = mo_action
+
+            position_src = self.plot.channel_selection.visualItemRect(new_channel).center()
+            QtTest.QTest.mouseClick(
+                self.plot.channel_selection.viewport(),
+                QtCore.Qt.MouseButton.RightButton,
+                QtCore.Qt.KeyboardModifiers(),
+                position_src,
+            )
+            while not mo_action.text.called:
+                self.processEvents(0.02)
+
+            new_channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
+
+            self.assertEqual(channel_a_properties, new_channel_a_properties)
