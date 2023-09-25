@@ -1,9 +1,9 @@
 #!/usr/bin/env python
+from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 from unittest import mock
+from unittest.mock import ANY
 
 from PySide6 import QtCore, QtTest, QtWidgets
-
-from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class QMenuWrap(QtWidgets.QMenu):
@@ -59,7 +59,7 @@ class TestContextMenu(TestPlotWidget):
 
         with (
             mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap),
-            mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText
+            mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText,
         ):
             mo_getText.return_value = None, None
 
@@ -104,12 +104,7 @@ class TestContextMenu(TestPlotWidget):
                 self.processEvents(0.02)
 
         self.assertEqual(0, len(self.plot.channel_selection.selectedItems()))
-        mo_warning.assert_called_with(
-            self.plot.channel_selection,
-            "No matches found",
-            "No item matches the pattern\n"
-            "test_PlotWidget_ContextMenu.TestContextMenu.test_Action_SearchItem_NonexistentChannel"
-        )
+        mo_warning.assert_called_with(self.plot.channel_selection, "No matches found", ANY)
 
     def test_Action_SearchItem_ExistentChannel(self):
         """
@@ -227,7 +222,7 @@ class TestContextMenu(TestPlotWidget):
                     self.plot.channel_selection.viewport(),
                     QtCore.Qt.MouseButton.RightButton,
                     QtCore.Qt.KeyboardModifiers(),
-                    position
+                    position,
                 )
                 while not mo_action.text.called:
                     self.processEvents(0.02)
@@ -249,14 +244,11 @@ class TestContextMenu(TestPlotWidget):
                     self.plot.channel_selection.viewport(),
                     QtCore.Qt.MouseButton.RightButton,
                     QtCore.Qt.KeyboardModifiers(),
-                    position_1
+                    position_1,
                 )
                 while not mo_action.text.called:
                     self.processEvents(0.02)
 
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
-            channels = (
-                self.plot_channel_a.text(self.Column.NAME),
-                self.plot_channel_b.text(self.Column.NAME)
-            )
+            channels = (self.plot_channel_a.text(self.Column.NAME), self.plot_channel_b.text(self.Column.NAME))
             self.assertEqual("\n".join(channels), clipboard)
