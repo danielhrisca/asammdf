@@ -421,18 +421,41 @@ def compute_signal(
                         signals.append(measured_signals[name])
                         found_args.append(arg)
                         break
+                    else:
+                        found_numeric = False
+                        for base in (10, 16, 2):
+                            try:
+                                value = int(name, base)
+                                signals.append(value)
+                                found_args.append(arg)
+                                found_numeric = True
+                                break
+                            except:
+                                continue
+
+                        else:
+                            try:
+                                value = float(name)
+                                signals.append(value)
+                                found_args.append(arg)
+                                found_numeric = True
+                            except:
+                                continue
+
+                        if found_numeric:
+                            break
 
             names = found_args + ["t"]
 
             triggering = description.get("triggering", "triggering_on_all")
             if triggering == "triggering_on_all":
-                timestamps = [sig.timestamps for sig in signals]
+                timestamps = [sig.timestamps for sig in signals if not isinstance(sig, (int, float))]
 
                 if timestamps:
                     common_timebase = reduce(np.union1d, timestamps)
                 else:
                     common_timebase = all_timebase
-                signals = [sig.interp(common_timebase) for sig in signals]
+                signals = [sig.interp(common_timebase) if not isinstance(sig, (int, float)) else sig for sig in signals]
 
             elif triggering == "triggering_on_channel":
                 triggering_channel = description["triggering_value"]
@@ -441,12 +464,15 @@ def compute_signal(
                     common_timebase = measured_signals[triggering_channel].timestamps
                 else:
                     common_timebase = np.array([])
-                signals = [sig.interp(common_timebase) for sig in signals]
+                signals = [sig.interp(common_timebase) if not isinstance(sig, (int, float)) else sig for sig in signals]
             else:
                 step = float(description["triggering_value"])
 
                 common_timebase = []
                 for signal in signals:
+                    if isinstance(sig, (int, float)):
+                        continue
+
                     if len(signal):
                         common_timebase.append(signal.timestamps[0])
                         common_timebase.append(signal.timestamps[-1])
@@ -463,7 +489,14 @@ def compute_signal(
                 else:
                     common_timebase = np.array([])
 
-                signals = [sig.interp(common_timebase) for sig in signals]
+                signals = [sig.interp(common_timebase) if not isinstance(sig, (int, float)) else sig for sig in signals]
+
+            for i, (signal, arg_name) in enumerate(zip(signals, found_args)):
+                if isinstance(signal, (int, float)):
+                    value = signal
+                    signals[i] = Signal(
+                        name=arg_name, samples=np.full(len(common_timebase), value), timestamps=common_timebase
+                    )
 
             if description.get("computation_mode", "sample_by_sample") == "sample_by_sample":
                 signals = [sig.samples.tolist() for sig in signals]
