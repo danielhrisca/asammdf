@@ -57,18 +57,16 @@ class TestContextMenu(TestPlotWidget):
         QtTest.QTest.keyClick(self.plot.channel_selection.viewport(), QtCore.Qt.Key_Down)
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
-        with (
-            mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap),
-            mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText,
-        ):
-            mo_getText.return_value = None, None
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
+            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+                mo_getText.return_value = None, None
 
-            mo_action = mock.MagicMock()
-            mo_action.text.return_value = "Search item"
-            QMenuWrap.return_action = mo_action
+                mo_action = mock.MagicMock()
+                mo_action.text.return_value = "Search item"
+                QMenuWrap.return_action = mo_action
 
-            QtTest.QTest.mouseClick(self.plot.channel_selection.viewport(), QtCore.Qt.MouseButton.RightButton)
-            self.processEvents(0.01)
+                QtTest.QTest.mouseClick(self.plot.channel_selection.viewport(), QtCore.Qt.MouseButton.RightButton)
+                self.processEvents(0.01)
 
         self.assertEqual(0, len(self.plot.channel_selection.selectedItems()))
 
@@ -88,11 +86,9 @@ class TestContextMenu(TestPlotWidget):
         QtTest.QTest.keyClick(self.plot.channel_selection.viewport(), QtCore.Qt.Key_Down)
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
-        with (
-            mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap),
-            mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText,
-            mock.patch("asammdf.gui.widgets.tree.MessageBox.warning") as mo_warning,
-        ):
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap), mock.patch(
+            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
+        ) as mo_getText, mock.patch("asammdf.gui.widgets.tree.MessageBox.warning") as mo_warning:
             mo_action = mock.MagicMock()
             mo_action.text.return_value = "Search item"
             QMenuWrap.return_action = mo_action
@@ -122,11 +118,9 @@ class TestContextMenu(TestPlotWidget):
         QtTest.QTest.keyClick(self.plot.channel_selection.viewport(), QtCore.Qt.Key_Down)
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
-        with (
-            mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap),
-            mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText,
-            mock.patch("asammdf.gui.widgets.tree.MessageBox.warning") as mo_warning,
-        ):
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap), mock.patch(
+            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
+        ) as mo_getText, mock.patch("asammdf.gui.widgets.tree.MessageBox.warning") as mo_warning:
             mo_action = mock.MagicMock()
             mo_action.text.return_value = "Search item"
             QMenuWrap.return_action = mo_action
@@ -151,10 +145,9 @@ class TestContextMenu(TestPlotWidget):
         """
         channels_nr = self.plot.channel_selection.topLevelItemCount()
 
-        with (
-            mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap),
-            mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText,
-        ):
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap), mock.patch(
+            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
+        ) as mo_getText:
             mo_action = mock.MagicMock()
             mo_action.text.return_value = "Add channel group [Shift+Insert]"
             QMenuWrap.return_action = mo_action
@@ -180,10 +173,9 @@ class TestContextMenu(TestPlotWidget):
         """
         channels_nr = self.plot.channel_selection.topLevelItemCount()
 
-        with (
-            mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap),
-            mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText,
-        ):
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap), mock.patch(
+            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
+        ) as mo_getText:
             mo_action = mock.MagicMock()
             mo_action.text.return_value = "Add channel group [Shift+Insert]"
             QMenuWrap.return_action = mo_action
