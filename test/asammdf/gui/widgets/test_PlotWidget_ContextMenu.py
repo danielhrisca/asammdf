@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import json
+from json import JSONDecodeError
 import re
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 from unittest import mock
@@ -309,3 +311,109 @@ class TestContextMenu(TestPlotWidget):
                 expected_regex.append(f"{pattern_name}, t = \d+[.]?\d+s, \d+[.]?\d+{pattern_unit}")
 
             self.assertRegex(clipboard, "\\n".join(expected_regex))
+
+    def test_Action_CopyDisplayProperties(self):
+        """
+        Test Scope:
+            - Ensure that channel display properties are copied in clipboard.
+        Events:
+            - Select one channel
+            - Open Context Menu
+            - Trigger 'Copy display properties' action
+        Evaluate:
+            - Evaluate that channel display properties are stored in clipboard in json format.
+        """
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
+            mo_action = mock.MagicMock()
+            mo_action.text.return_value = "Copy display properties [Ctrl+Shift+C]"
+            QMenuWrap.return_action = mo_action
+
+            position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+            QtTest.QTest.mouseClick(
+                self.plot.channel_selection.viewport(),
+                QtCore.Qt.MouseButton.RightButton,
+                QtCore.Qt.KeyboardModifiers(),
+                position,
+            )
+            while not mo_action.text.called:
+                self.processEvents(0.02)
+
+        clipboard = QtWidgets.QApplication.instance().clipboard().text()
+        try:
+            content = json.loads(clipboard)
+        except JSONDecodeError:
+            self.fail("Clipboard Content cannot be decoded as JSON content.")
+        else:
+            self.assertIsInstance(content, dict)
+
+    def test_Action_PasteDisplayProperties(self):
+        """
+        Test Scope:
+            - Ensure that channel display properties can be pasted over different channel.
+        Events:
+            - Select one channel
+            - Open Context Menu
+            - Trigger 'Copy display properties' action
+            - Select a different channel
+            - Open Context Menu
+            - Trigger 'Paste display properties' action
+            - Select dst channel
+            - Open Context Menu
+            - Trigger 'Copy display properties' action
+        Evaluate:
+            - Evaluate that display properties are transferred from one channel to another
+        """
+        action_copy = "Copy display properties [Ctrl+Shift+C]"
+        action_paste = "Paste display properties [Ctrl+Shift+V]"
+
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
+            # Copy
+            mo_action = mock.MagicMock()
+            mo_action.text.return_value = action_copy
+            QMenuWrap.return_action = mo_action
+
+            position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+            QtTest.QTest.mouseClick(
+                self.plot.channel_selection.viewport(),
+                QtCore.Qt.MouseButton.RightButton,
+                QtCore.Qt.KeyboardModifiers(),
+                position_src,
+            )
+            while not mo_action.text.called:
+                self.processEvents(0.02)
+
+            channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
+
+            # Paste
+            mo_action = mock.MagicMock()
+            mo_action.text.return_value = action_paste
+            QMenuWrap.return_action = mo_action
+
+            position_dst = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
+            QtTest.QTest.mouseClick(
+                self.plot.channel_selection.viewport(),
+                QtCore.Qt.MouseButton.RightButton,
+                QtCore.Qt.KeyboardModifiers(),
+                position_dst,
+            )
+            while not mo_action.text.called:
+                self.processEvents(0.02)
+
+            # Copy
+            mo_action = mock.MagicMock()
+            mo_action.text.return_value = action_copy
+            QMenuWrap.return_action = mo_action
+
+            position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
+            QtTest.QTest.mouseClick(
+                self.plot.channel_selection.viewport(),
+                QtCore.Qt.MouseButton.RightButton,
+                QtCore.Qt.KeyboardModifiers(),
+                position_src,
+            )
+            while not mo_action.text.called:
+                self.processEvents(0.02)
+
+            channel_b_properties = QtWidgets.QApplication.instance().clipboard().text()
+
+            self.assertEqual(channel_a_properties, channel_b_properties)
