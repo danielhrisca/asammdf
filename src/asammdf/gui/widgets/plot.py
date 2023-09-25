@@ -4554,7 +4554,7 @@ class PlotGraphics(pg.PlotWidget):
                     and self._settings.value("zoom_y_center_on_cursor", True, type=bool)
                 ):
                     value_info = self.value_at_cursor()
-                    if value_info is None:
+                    if value_info is None or not isinstance(value_info[0], (int, float)):
                         delta_proc = 0
                     else:
                         y, sig_y_bottom, sig_y_top = value_info

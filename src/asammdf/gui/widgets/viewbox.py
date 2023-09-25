@@ -315,16 +315,20 @@ class ViewBoxWithCursor(pg.ViewBox):
         if self._settings.value("zoom_y_center_on_cursor", True, type=bool):
             y_pos_val, sig_y_top, sig_y_bottom = self.plot.value_at_cursor()
 
-            ratio = (sig_y_top - y_pos_val) / (sig_y_top - sig_y_bottom)
+            if isinstance(y_pos_val, (int, float)):
+                ratio = (sig_y_top - y_pos_val) / (sig_y_top - sig_y_bottom)
 
-            rect = self.boundingRect()
+                rect = self.boundingRect()
 
-            y_coord = (rect.height() - rect.y()) * ratio
-            pos.setY(y_coord)
+                y_coord = (rect.height() - rect.y()) * ratio
+                pos.setY(y_coord)
 
         s = 1.02 ** (ev.delta() * self.state["wheelScaleFactor"])  # actual scaling factor
 
         s = [(None if m is False else s) for m in mask]
+        if any(np.isnan(v) for v in s if v is not None):
+            return
+
         center = pg.Point(fn.invertQTransform(self.childGroup.transform()).map(pos))
 
         self._resetTarget()

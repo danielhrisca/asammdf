@@ -3087,7 +3087,14 @@ MultiRasterSeparator;&
                         blocks = []
 
                         mdf.seek(0, 2)
-                        address = mdf.tell()
+                        file_end = mdf.tell()
+                        if (file_end - (at_block.address + at_block.block_len)) <= 7:
+                            address = at_block.address
+                        else:
+                            address = file_end
+
+                        mdf.seek(address)
+
                         align = address % 8
                         if align:
                             mdf.write(b"\0" * (8 - align))
@@ -3104,6 +3111,8 @@ MultiRasterSeparator;&
 
                         mdf.seek(parent.address)
                         mdf.write(bytes(parent))
+
+                        mdf.truncate(new_at_block.address + new_at_block.block_len)
 
                         break
 
@@ -3145,8 +3154,8 @@ MultiRasterSeparator;&
                         mdf.write(b"\0" * (8 - align))
                         address += 8 - align
 
-                    address = at_block.to_blocks(address, blocks, {})
                     address = fh_block.to_blocks(address, blocks, {})
+                    address = at_block.to_blocks(address, blocks, {})
 
                     for block in blocks:
                         mdf.write(bytes(block))
