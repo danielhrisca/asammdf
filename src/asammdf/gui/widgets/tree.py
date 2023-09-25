@@ -966,7 +966,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addAction(self.tr("Edit group"))
             menu.addAction(self.tr("Group properties"))
 
-        action = menu.exec_(self.viewport().mapToGlobal(position))
+        action = menu.exec(self.viewport().mapToGlobal(position))
 
         if action is None:
             return
