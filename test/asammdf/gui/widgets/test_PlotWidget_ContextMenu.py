@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import re
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 from unittest import mock
 from unittest.mock import ANY
@@ -244,3 +245,67 @@ class TestContextMenu(TestPlotWidget):
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             channels = (self.plot_channel_a.text(self.Column.NAME), self.plot_channel_b.text(self.Column.NAME))
             self.assertEqual("\n".join(channels), clipboard)
+
+    def test_Action_CopyNamesAndValues(self):
+        """
+        Test Scope:
+            - Ensure that action 'Copy names and value' will place channel names in clipboard.
+        Events:
+            - Select one channel
+            - Open Context Menu
+            - Trigger 'Copy names and value' action
+            - Select two channels
+            - Open Context Menu
+            - Trigger 'Copy names and value' action
+        Evaluate:
+            - Evaluate that channels names are placed in clipboard.
+        """
+
+        with self.subTest("1Channel"):
+            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
+                mo_action = mock.MagicMock()
+                mo_action.text.return_value = "Copy names and values"
+                QMenuWrap.return_action = mo_action
+
+                position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+                QtTest.QTest.mouseClick(
+                    self.plot.channel_selection.viewport(),
+                    QtCore.Qt.MouseButton.RightButton,
+                    QtCore.Qt.KeyboardModifiers(),
+                    position,
+                )
+                while not mo_action.text.called:
+                    self.processEvents(0.02)
+
+            clipboard = QtWidgets.QApplication.instance().clipboard().text()
+            pattern_name = re.escape(self.plot_channel_a.text(self.Column.NAME))
+            pattern_unit = re.escape(self.plot_channel_a.text(self.Column.UNIT))
+            self.assertRegex(clipboard, expected_regex=f"{pattern_name}, t = \d+[.]?\d+s, \d+[.]?\d+{pattern_unit}")
+
+        with self.subTest("2Channels"):
+            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
+                mo_action = mock.MagicMock()
+                mo_action.text.return_value = "Copy names and values"
+                QMenuWrap.return_action = mo_action
+
+                self.plot_channel_a.setSelected(True)
+                self.plot_channel_b.setSelected(True)
+                position_1 = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
+
+                QtTest.QTest.mouseClick(
+                    self.plot.channel_selection.viewport(),
+                    QtCore.Qt.MouseButton.RightButton,
+                    QtCore.Qt.KeyboardModifiers(),
+                    position_1,
+                )
+                while not mo_action.text.called:
+                    self.processEvents(0.02)
+
+            clipboard = QtWidgets.QApplication.instance().clipboard().text()
+            expected_regex = []
+            for channel in (self.plot_channel_a, self.plot_channel_b):
+                pattern_name = re.escape(channel.text(self.Column.NAME))
+                pattern_unit = re.escape(channel.text(self.Column.UNIT))
+                expected_regex.append(f"{pattern_name}, t = \d+[.]?\d+s, \d+[.]?\d+{pattern_unit}")
+
+            self.assertRegex(clipboard, "\\n".join(expected_regex))
