@@ -884,12 +884,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addAction(self.tr(f"Add pattern based channel group [Ctrl+Insert]"))
         menu.addSeparator()
 
-        if item and item.type() == ChannelsTreeItem.Channel:
-            menu.addAction(self.tr("Copy names [Ctrl+N]"))
-            menu.addAction(self.tr("Copy names and values"))
+        menu.addAction(self.tr("Copy names [Ctrl+N]"))
+        menu.addAction(self.tr("Copy names and values"))
         menu.addAction(self.tr("Copy display properties [Ctrl+Shift+C]"))
         menu.addAction(self.tr("Paste display properties [Ctrl+Shift+V]"))
-
         menu.addAction(self.tr("Copy channel structure [Ctrl+C]"))
         menu.addAction(self.tr("Paste channel structure [Ctrl+V]"))
 
