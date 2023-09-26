@@ -773,7 +773,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.plot.plot.update()
 
         elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier) and key == QtCore.Qt.Key_C:
-            selected_items = self.selectedItems()
+            selected_items = [item for item in self.selectedItems() if item.type() == ChannelsTreeItem.Channel]
             if not selected_items:
                 return
             else:
@@ -807,14 +807,17 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                             QtCore.Qt.Checked if info["ylink"] else QtCore.Qt.Unchecked,
                         )
 
-                        plot = item.treeWidget().plot.plot
-                        sig, index = plot.signal_by_uuid(item.uuid)
-                        sig.y_range = info["y_range"]
+                        if item.type() == ChannelsTreeItem.Channel:
+                            plot = item.treeWidget().plot.plot
+                            sig, index = plot.signal_by_uuid(item.uuid)
+                            sig.y_range = info["y_range"]
 
-                        item.set_ranges(info["ranges"])
+                            item.set_ranges(info["ranges"])
 
-                        if "conversion" in info:
-                            item.set_conversion(from_dict(info["conversion"]))
+                            if "conversion" in info:
+                                item.set_conversion(from_dict(info["conversion"]))
+                        elif item.type() == ChannelsTreeItem.Group:
+                            item.set_ranges(info["ranges"])
 
                     except:
                         print(format_exc())
@@ -884,8 +887,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if item and item.type() == ChannelsTreeItem.Channel:
             menu.addAction(self.tr("Copy names [Ctrl+N]"))
             menu.addAction(self.tr("Copy names and values"))
-            menu.addAction(self.tr("Copy display properties [Ctrl+Shift+C]"))
-            menu.addAction(self.tr("Paste display properties [Ctrl+Shift+V]"))
+        menu.addAction(self.tr("Copy display properties [Ctrl+Shift+C]"))
+        menu.addAction(self.tr("Paste display properties [Ctrl+Shift+V]"))
 
         menu.addAction(self.tr("Copy channel structure [Ctrl+C]"))
         menu.addAction(self.tr("Paste channel structure [Ctrl+V]"))
@@ -1918,6 +1921,11 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.set_fmt(format)
 
             self.set_value(update=True)
+        elif self.type() == self.Group:
+            count = self.childCount()
+            for row in range(count):
+                child = self.child(row)
+                child.set_fmt(format)
 
     @lru_cache(maxsize=1024)
     def get_color_using_ranges(self, value, pen=False):
@@ -2024,6 +2032,11 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 else:
                     self.fmt = "{}"
             self.set_value(update=True)
+        elif self.type() == self.Group:
+            count = self.childCount()
+            for row in range(count):
+                child = self.child(row)
+                child.precision = precision
 
     def reset_resolved_ranges(self):
         self.resolved_ranges = None
