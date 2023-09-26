@@ -9,18 +9,6 @@ from unittest.mock import ANY
 from PySide6 import QtCore, QtTest, QtWidgets
 
 
-class QMenuWrap(QtWidgets.QMenu):
-    return_action = None
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def exec(self, *args, **kwargs):
-        if not self.return_action:
-            return super().exec_(*args, **kwargs)
-        return self.return_action
-
-
 class TestContextMenu(TestPlotWidget):
     # Note: Test Plot Widget through FileWidget.
 
@@ -60,16 +48,9 @@ class TestContextMenu(TestPlotWidget):
         QtTest.QTest.keyClick(self.plot.channel_selection.viewport(), QtCore.Qt.Key_Down)
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
-        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
-            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
-                mo_getText.return_value = None, None
-
-                mo_action = mock.MagicMock()
-                mo_action.text.return_value = "Search item"
-                QMenuWrap.return_action = mo_action
-
-                QtTest.QTest.mouseClick(self.plot.channel_selection.viewport(), QtCore.Qt.MouseButton.RightButton)
-                self.processEvents(0.01)
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = None, None
+            self.context_menu(action_text="Search item")
 
         self.assertEqual(0, len(self.plot.channel_selection.selectedItems()))
 
@@ -89,18 +70,11 @@ class TestContextMenu(TestPlotWidget):
         QtTest.QTest.keyClick(self.plot.channel_selection.viewport(), QtCore.Qt.Key_Down)
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
-        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap), mock.patch(
-            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
-        ) as mo_getText, mock.patch("asammdf.gui.widgets.tree.MessageBox.warning") as mo_warning:
-            mo_action = mock.MagicMock()
-            mo_action.text.return_value = "Search item"
-            QMenuWrap.return_action = mo_action
-
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText, mock.patch(
+            "asammdf.gui.widgets.tree.MessageBox.warning"
+        ) as mo_warning:
             mo_getText.return_value = self.id(), True
-
-            QtTest.QTest.mouseClick(self.plot.channel_selection.viewport(), QtCore.Qt.MouseButton.RightButton)
-            while not mo_action.text.called:
-                self.processEvents(0.02)
+            self.context_menu(action_text="Search item")
 
         self.assertEqual(0, len(self.plot.channel_selection.selectedItems()))
         mo_warning.assert_called_with(self.plot.channel_selection, "No matches found", ANY)
@@ -121,18 +95,11 @@ class TestContextMenu(TestPlotWidget):
         QtTest.QTest.keyClick(self.plot.channel_selection.viewport(), QtCore.Qt.Key_Down)
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
-        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap), mock.patch(
-            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
-        ) as mo_getText, mock.patch("asammdf.gui.widgets.tree.MessageBox.warning") as mo_warning:
-            mo_action = mock.MagicMock()
-            mo_action.text.return_value = "Search item"
-            QMenuWrap.return_action = mo_action
-
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText, mock.patch(
+            "asammdf.gui.widgets.tree.MessageBox.warning"
+        ) as mo_warning:
             mo_getText.return_value = self.plot_channel_b.text(self.Column.NAME), True
-
-            QtTest.QTest.mouseClick(self.plot.channel_selection.viewport(), QtCore.Qt.MouseButton.RightButton)
-            while not mo_action.text.called:
-                self.processEvents(0.02)
+            self.context_menu(action_text="Search item")
 
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
         mo_warning.assert_not_called()
@@ -148,18 +115,9 @@ class TestContextMenu(TestPlotWidget):
         """
         channels_nr = self.plot.channel_selection.topLevelItemCount()
 
-        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap), mock.patch(
-            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
-        ) as mo_getText:
-            mo_action = mock.MagicMock()
-            mo_action.text.return_value = "Add channel group [Shift+Insert]"
-            QMenuWrap.return_action = mo_action
-
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
             mo_getText.return_value = "FirstGroup", None
-
-            QtTest.QTest.mouseClick(self.plot.channel_selection.viewport(), QtCore.Qt.MouseButton.RightButton)
-            while not mo_action.text.called:
-                self.processEvents(0.02)
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
 
         self.assertEqual(channels_nr, self.plot.channel_selection.topLevelItemCount())
 
@@ -176,18 +134,9 @@ class TestContextMenu(TestPlotWidget):
         """
         channels_nr = self.plot.channel_selection.topLevelItemCount()
 
-        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap), mock.patch(
-            "asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText"
-        ) as mo_getText:
-            mo_action = mock.MagicMock()
-            mo_action.text.return_value = "Add channel group [Shift+Insert]"
-            QMenuWrap.return_action = mo_action
-
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
             mo_getText.return_value = "FirstGroup", True
-
-            QtTest.QTest.mouseClick(self.plot.channel_selection.viewport(), QtCore.Qt.MouseButton.RightButton)
-            while not mo_action.text.called:
-                self.processEvents(0.02)
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
 
         self.assertEqual(channels_nr + 1, self.plot.channel_selection.topLevelItemCount())
 
@@ -207,42 +156,17 @@ class TestContextMenu(TestPlotWidget):
         """
 
         with self.subTest("1Channel"):
-            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
-                mo_action = mock.MagicMock()
-                mo_action.text.return_value = "Copy names [Ctrl+N]"
-                QMenuWrap.return_action = mo_action
-
-                position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
-                QtTest.QTest.mouseClick(
-                    self.plot.channel_selection.viewport(),
-                    QtCore.Qt.MouseButton.RightButton,
-                    QtCore.Qt.KeyboardModifiers(),
-                    position,
-                )
-                while not mo_action.text.called:
-                    self.processEvents(0.02)
+            position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+            self.context_menu(action_text="Copy names [Ctrl+N]", position=position)
 
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             self.assertEqual(self.plot_channel_a.text(self.Column.NAME), clipboard)
 
         with self.subTest("2Channels"):
-            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
-                mo_action = mock.MagicMock()
-                mo_action.text.return_value = "Copy names [Ctrl+N]"
-                QMenuWrap.return_action = mo_action
-
-                self.plot_channel_a.setSelected(True)
-                self.plot_channel_b.setSelected(True)
-                position_1 = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
-
-                QtTest.QTest.mouseClick(
-                    self.plot.channel_selection.viewport(),
-                    QtCore.Qt.MouseButton.RightButton,
-                    QtCore.Qt.KeyboardModifiers(),
-                    position_1,
-                )
-                while not mo_action.text.called:
-                    self.processEvents(0.02)
+            self.plot_channel_a.setSelected(True)
+            self.plot_channel_b.setSelected(True)
+            position_1 = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
+            self.context_menu(action_text="Copy names [Ctrl+N]", position=position_1)
 
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             channels = (self.plot_channel_a.text(self.Column.NAME), self.plot_channel_b.text(self.Column.NAME))
@@ -264,20 +188,8 @@ class TestContextMenu(TestPlotWidget):
         """
 
         with self.subTest("1Channel"):
-            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
-                mo_action = mock.MagicMock()
-                mo_action.text.return_value = "Copy names and values"
-                QMenuWrap.return_action = mo_action
-
-                position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
-                QtTest.QTest.mouseClick(
-                    self.plot.channel_selection.viewport(),
-                    QtCore.Qt.MouseButton.RightButton,
-                    QtCore.Qt.KeyboardModifiers(),
-                    position,
-                )
-                while not mo_action.text.called:
-                    self.processEvents(0.02)
+            position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+            self.context_menu(action_text="Copy names and values", position=position)
 
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             pattern_name = re.escape(self.plot_channel_a.text(self.Column.NAME))
@@ -285,23 +197,10 @@ class TestContextMenu(TestPlotWidget):
             self.assertRegex(clipboard, expected_regex=f"{pattern_name}, t = \d+[.]?\d+s, \d+[.]?\d+{pattern_unit}")
 
         with self.subTest("2Channels"):
-            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
-                mo_action = mock.MagicMock()
-                mo_action.text.return_value = "Copy names and values"
-                QMenuWrap.return_action = mo_action
-
-                self.plot_channel_a.setSelected(True)
-                self.plot_channel_b.setSelected(True)
-                position_1 = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
-
-                QtTest.QTest.mouseClick(
-                    self.plot.channel_selection.viewport(),
-                    QtCore.Qt.MouseButton.RightButton,
-                    QtCore.Qt.KeyboardModifiers(),
-                    position_1,
-                )
-                while not mo_action.text.called:
-                    self.processEvents(0.02)
+            self.plot_channel_a.setSelected(True)
+            self.plot_channel_b.setSelected(True)
+            position_1 = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
+            self.context_menu(action_text="Copy names and values", position=position_1)
 
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             expected_regex = []
@@ -323,20 +222,8 @@ class TestContextMenu(TestPlotWidget):
         Evaluate:
             - Evaluate that channel display properties are stored in clipboard in json format.
         """
-        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
-            mo_action = mock.MagicMock()
-            mo_action.text.return_value = "Copy display properties [Ctrl+Shift+C]"
-            QMenuWrap.return_action = mo_action
-
-            position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
-            QtTest.QTest.mouseClick(
-                self.plot.channel_selection.viewport(),
-                QtCore.Qt.MouseButton.RightButton,
-                QtCore.Qt.KeyboardModifiers(),
-                position,
-            )
-            while not mo_action.text.called:
-                self.processEvents(0.02)
+        position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+        self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
 
         clipboard = QtWidgets.QApplication.instance().clipboard().text()
         try:
@@ -366,59 +253,24 @@ class TestContextMenu(TestPlotWidget):
         action_copy = "Copy display properties [Ctrl+Shift+C]"
         action_paste = "Paste display properties [Ctrl+Shift+V]"
 
-        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
-            # Copy
-            mo_action = mock.MagicMock()
-            mo_action.text.return_value = action_copy
-            QMenuWrap.return_action = mo_action
+        position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+        self.context_menu(action_text=action_copy, position=position_src)
 
-            position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
-            QtTest.QTest.mouseClick(
-                self.plot.channel_selection.viewport(),
-                QtCore.Qt.MouseButton.RightButton,
-                QtCore.Qt.KeyboardModifiers(),
-                position_src,
-            )
-            while not mo_action.text.called:
-                self.processEvents(0.02)
+        channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
 
-            channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
+        # Paste
+        position_dst = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
+        self.context_menu(action_text=action_paste, position=position_dst)
 
-            # Paste
-            mo_action = mock.MagicMock()
-            mo_action.text.return_value = action_paste
-            QMenuWrap.return_action = mo_action
+        # Copy
+        position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
+        self.context_menu(action_text=action_copy, position=position_src)
 
-            position_dst = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
-            QtTest.QTest.mouseClick(
-                self.plot.channel_selection.viewport(),
-                QtCore.Qt.MouseButton.RightButton,
-                QtCore.Qt.KeyboardModifiers(),
-                position_dst,
-            )
-            while not mo_action.text.called:
-                self.processEvents(0.02)
+        channel_b_properties = QtWidgets.QApplication.instance().clipboard().text()
 
-            # Copy
-            mo_action = mock.MagicMock()
-            mo_action.text.return_value = action_copy
-            QMenuWrap.return_action = mo_action
+        self.assertEqual(channel_a_properties, channel_b_properties)
 
-            position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
-            QtTest.QTest.mouseClick(
-                self.plot.channel_selection.viewport(),
-                QtCore.Qt.MouseButton.RightButton,
-                QtCore.Qt.KeyboardModifiers(),
-                position_src,
-            )
-            while not mo_action.text.called:
-                self.processEvents(0.02)
-
-            channel_b_properties = QtWidgets.QApplication.instance().clipboard().text()
-
-            self.assertEqual(channel_a_properties, channel_b_properties)
-
-    def test_Action_CopyChannelStructure(self):
+    def test_Action_CopyChannelStructure_Channel(self):
         """
         Test Scope:
             - Ensure that channel structure is copied in clipboard.
@@ -429,20 +281,8 @@ class TestContextMenu(TestPlotWidget):
         Evaluate:
             - Evaluate that channel structure is stored in clipboard in json format.
         """
-        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
-            mo_action = mock.MagicMock()
-            mo_action.text.return_value = "Copy channel structure [Ctrl+C]"
-            QMenuWrap.return_action = mo_action
-
-            position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
-            QtTest.QTest.mouseClick(
-                self.plot.channel_selection.viewport(),
-                QtCore.Qt.MouseButton.RightButton,
-                QtCore.Qt.KeyboardModifiers(),
-                position,
-            )
-            while not mo_action.text.called:
-                self.processEvents(0.02)
+        position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+        self.context_menu(action_text="Copy channel structure [Ctrl+C]", position=position)
 
         clipboard = QtWidgets.QApplication.instance().clipboard().text()
         try:
@@ -454,7 +294,7 @@ class TestContextMenu(TestPlotWidget):
             for channel_properties in content:
                 self.assertIsInstance(channel_properties, dict)
 
-    def test_Action_PasteChannelStructure(self):
+    def test_Action_PasteChannelStructure_Channel(self):
         """
         Test Scope:
             - Ensure that channel and structure is duplicated and structure is kept.
@@ -475,69 +315,98 @@ class TestContextMenu(TestPlotWidget):
         action_copy = "Copy channel structure [Ctrl+C]"
         action_paste = "Paste channel structure [Ctrl+V]"
 
-        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
-            # Copy DSP Properties
-            mo_action = mock.MagicMock()
-            mo_action.text.return_value = action_copy_dsp_properties
-            QMenuWrap.return_action = mo_action
+        position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+        self.context_menu(action_text=action_copy_dsp_properties, position=position_src)
 
-            position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
-            QtTest.QTest.mouseClick(
-                self.plot.channel_selection.viewport(),
-                QtCore.Qt.MouseButton.RightButton,
-                QtCore.Qt.KeyboardModifiers(),
-                position_src,
-            )
-            while not mo_action.text.called:
-                self.processEvents(0.02)
+        channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
 
-            channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
+        # Copy Channel Structure
+        self.context_menu(action_text=action_copy, position=position_src)
 
-            # Copy Channel Structure
-            mo_action = mock.MagicMock()
-            mo_action.text.return_value = action_copy
-            QMenuWrap.return_action = mo_action
+        channels_count = self.plot.channel_selection.topLevelItemCount()
 
-            QtTest.QTest.mouseClick(
-                self.plot.channel_selection.viewport(),
-                QtCore.Qt.MouseButton.RightButton,
-                QtCore.Qt.KeyboardModifiers(),
-                position_src,
-            )
-            while not mo_action.text.called:
-                self.processEvents(0.02)
+        # Paste Channel Structure
+        self.context_menu(action_text=action_paste)
 
-            channels_count = self.plot.channel_selection.topLevelItemCount()
+        self.assertEqual(channels_count + 1, self.plot.channel_selection.topLevelItemCount())
 
-            # Paste Channel Structure
-            mo_action = mock.MagicMock()
-            mo_action.text.return_value = action_paste
-            QMenuWrap.return_action = mo_action
+        new_channel = self.plot.channel_selection.itemBelow(self.plot_channel_d)
+        # Copy DSP Properties
+        position_src = self.plot.channel_selection.visualItemRect(new_channel).center()
+        self.context_menu(action_text=action_copy_dsp_properties, position=position_src)
 
-            QtTest.QTest.mouseClick(self.plot.channel_selection.viewport(), QtCore.Qt.MouseButton.RightButton)
-            while not mo_action.text.called:
-                self.processEvents(0.02)
+        new_channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
 
-            # channel_b_properties = QtWidgets.QApplication.instance().clipboard().text()
+        self.assertEqual(channel_a_properties, new_channel_a_properties)
 
-            self.assertEqual(channels_count + 1, self.plot.channel_selection.topLevelItemCount())
+    def test_Action_CopyChannelStructure_Group(self):
+        """
+        Test Scope:
+            - Ensure that channel structure is copied in clipboard.
+        Events:
+            - Select one group
+            - Open Context Menu
+            - Trigger 'Copy channel structure' action
+        Evaluate:
+            - Evaluate that group channel structure is stored in clipboard in json format.
+        """
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "FirstGroup", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
 
-            new_channel = self.plot.channel_selection.itemBelow(self.plot_channel_d)
-            # Copy DSP Properties
-            mo_action = mock.MagicMock()
-            mo_action.text.return_value = action_copy_dsp_properties
-            QMenuWrap.return_action = mo_action
+        # Add Channels to Group
+        group_channel = self.plot.channel_selection.findItems("FirstGroup", QtCore.Qt.MatchFlags())[0]
+        self.add_channel_to_group(channel=self.plot_channel_a, group=group_channel)
 
-            position_src = self.plot.channel_selection.visualItemRect(new_channel).center()
-            QtTest.QTest.mouseClick(
-                self.plot.channel_selection.viewport(),
-                QtCore.Qt.MouseButton.RightButton,
-                QtCore.Qt.KeyboardModifiers(),
-                position_src,
-            )
-            while not mo_action.text.called:
-                self.processEvents(0.02)
+        position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+        self.context_menu(action_text="Copy channel structure [Ctrl+C]", position=position)
 
-            new_channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
+        clipboard = QtWidgets.QApplication.instance().clipboard().text()
+        try:
+            content = json.loads(clipboard)
+        except JSONDecodeError:
+            self.fail("Clipboard Content cannot be decoded as JSON content.")
+        else:
+            self.assertIsInstance(content, list)
+            for channel_properties in content:
+                self.assertIsInstance(channel_properties, dict)
 
-            self.assertEqual(channel_a_properties, new_channel_a_properties)
+    def test_Action_PasteChannelStructure_Group(self):
+        """
+        Test Scope:
+            - Ensure that channel and structure is duplicated and structure is kept.
+        Events:
+            - Create group
+            - Add channels to group
+            - Open Context Menu
+            - Trigger 'Copy channel structure' action
+            - Trigger 'Paste channel structure' action over new group
+        Evaluate:
+            - Evaluate that group channel is duplicated and structure is kept.
+        """
+        action_copy = "Copy channel structure [Ctrl+C]"
+        action_paste = "Paste channel structure [Ctrl+V]"
+
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "FirstGroup", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+
+        # Add Channels to Group
+        group_channel = self.plot.channel_selection.findItems("FirstGroup", QtCore.Qt.MatchFlags())[0]
+        group_channel.setExpanded(True)
+        self.add_channel_to_group(channel=self.plot_channel_a, group=group_channel)
+        self.add_channel_to_group(channel=self.plot_channel_b, group=group_channel)
+
+        # Copy Channel Structure
+        position_src = self.plot.channel_selection.visualItemRect(group_channel).center()
+        self.context_menu(action_text=action_copy, position=position_src)
+
+        channels_count = self.plot.channel_selection.topLevelItemCount()
+
+        # Paste Channel Structure
+        position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+        self.context_menu(action_text=action_paste, position=position_src)
+
+        self.assertEqual(channels_count + 1, self.plot.channel_selection.topLevelItemCount())
+        self.assertEqual(2, len(self.plot.channel_selection.findItems("FirstGroup", QtCore.Qt.MatchFlags())))
+        self.processEvents(0.1)

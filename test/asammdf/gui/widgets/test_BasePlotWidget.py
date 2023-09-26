@@ -6,6 +6,18 @@ from unittest import mock
 from PySide6 import QtCore, QtTest, QtWidgets
 
 
+class QMenuWrap(QtWidgets.QMenu):
+    return_action = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def exec(self, *args, **kwargs):
+        if not self.return_action:
+            return super().exec_(*args, **kwargs)
+        return self.return_action
+
+
 class TestPlotWidget(TestFileWidget):
     class Column:
         NAME = 0
@@ -61,6 +73,22 @@ class TestPlotWidget(TestFileWidget):
 
         return plot_channel
 
+    def add_channel_to_group(self, plot=None, channel=None, group=None):
+        if not plot and self.plot:
+            plot = self.plot
+        channel_tree = self.widget.channels_tree
+
+        drag_position = self.plot.channel_selection.visualItemRect(channel).center()
+        drop_position = self.plot.channel_selection.visualItemRect(group).center()
+
+        DragAndDrop(
+            source_widget=channel_tree,
+            destination_widget=plot.channel_selection,
+            source_pos=drag_position,
+            destination_pos=drop_position,
+        )
+        self.processEvents(0.05)
+
     def create_window(self, window_type):
         with mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mc_WindowSelectionDialog:
             mc_WindowSelectionDialog.return_value.result.return_value = True
@@ -69,3 +97,23 @@ class TestPlotWidget(TestFileWidget):
             QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
             widget_types = self.get_subwindows()
             self.assertIn(window_type, widget_types)
+
+    def context_menu(self, action_text, position=None):
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
+            mo_action = mock.MagicMock()
+            mo_action.text.return_value = action_text
+            QMenuWrap.return_action = mo_action
+
+            if not position:
+                QtTest.QTest.mouseClick(self.plot.channel_selection.viewport(), QtCore.Qt.MouseButton.RightButton)
+            else:
+                QtTest.QTest.mouseClick(
+                    self.plot.channel_selection.viewport(),
+                    QtCore.Qt.MouseButton.RightButton,
+                    QtCore.Qt.KeyboardModifiers(),
+                    position,
+                )
+            self.processEvents(0.01)
+
+            while not mo_action.text.called:
+                self.processEvents(0.02)
