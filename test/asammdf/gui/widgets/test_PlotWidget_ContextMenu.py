@@ -211,7 +211,7 @@ class TestContextMenu(TestPlotWidget):
 
             self.assertRegex(clipboard, "\\n".join(expected_regex))
 
-    def test_Action_CopyDisplayProperties(self):
+    def test_Action_CopyDisplayProperties_Channel(self):
         """
         Test Scope:
             - Ensure that channel display properties are copied in clipboard.
@@ -233,7 +233,7 @@ class TestContextMenu(TestPlotWidget):
         else:
             self.assertIsInstance(content, dict)
 
-    def test_Action_PasteDisplayProperties(self):
+    def test_Action_PasteDisplayProperties_Channel(self):
         """
         Test Scope:
             - Ensure that channel display properties can be pasted over different channel.
@@ -316,10 +316,6 @@ class TestContextMenu(TestPlotWidget):
         action_paste = "Paste channel structure [Ctrl+V]"
 
         position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
-        self.context_menu(action_text=action_copy_dsp_properties, position=position_src)
-
-        channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
-
         # Copy Channel Structure
         self.context_menu(action_text=action_copy, position=position_src)
 
@@ -330,14 +326,23 @@ class TestContextMenu(TestPlotWidget):
 
         self.assertEqual(channels_count + 1, self.plot.channel_selection.topLevelItemCount())
 
-        new_channel = self.plot.channel_selection.itemBelow(self.plot_channel_d)
+        channels = self.plot.channel_selection.findItems(
+            self.plot_channel_a.text(self.Column.NAME), QtCore.Qt.MatchFlags()
+        )
+        self.assertEqual(2, len(channels))
+
         # Copy DSP Properties
-        position_src = self.plot.channel_selection.visualItemRect(new_channel).center()
+        position_src = self.plot.channel_selection.visualItemRect(channels[0]).center()
         self.context_menu(action_text=action_copy_dsp_properties, position=position_src)
 
-        new_channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
+        channe_0_properties = QtWidgets.QApplication.instance().clipboard().text()
 
-        self.assertEqual(channel_a_properties, new_channel_a_properties)
+        position_src = self.plot.channel_selection.visualItemRect(channels[1]).center()
+        self.context_menu(action_text=action_copy_dsp_properties, position=position_src)
+
+        channe_1_properties = QtWidgets.QApplication.instance().clipboard().text()
+
+        self.assertEqual(channe_0_properties, channe_1_properties)
 
     def test_Action_CopyChannelStructure_Group(self):
         """
@@ -356,7 +361,7 @@ class TestContextMenu(TestPlotWidget):
 
         # Add Channels to Group
         group_channel = self.plot.channel_selection.findItems("FirstGroup", QtCore.Qt.MatchFlags())[0]
-        self.add_channel_to_group(channel=self.plot_channel_a, group=group_channel)
+        self.add_channel_to_group(src=self.plot_channel_a, dst=group_channel)
 
         position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
         self.context_menu(action_text="Copy channel structure [Ctrl+C]", position=position)
@@ -394,8 +399,8 @@ class TestContextMenu(TestPlotWidget):
         # Add Channels to Group
         group_channel = self.plot.channel_selection.findItems("FirstGroup", QtCore.Qt.MatchFlags())[0]
         group_channel.setExpanded(True)
-        self.add_channel_to_group(channel=self.plot_channel_a, group=group_channel)
-        self.add_channel_to_group(channel=self.plot_channel_b, group=group_channel)
+        self.add_channel_to_group(src=self.plot_channel_c, dst=group_channel)
+        self.add_channel_to_group(src=self.plot_channel_d, dst=group_channel)
 
         # Copy Channel Structure
         position_src = self.plot.channel_selection.visualItemRect(group_channel).center()
@@ -406,7 +411,91 @@ class TestContextMenu(TestPlotWidget):
         # Paste Channel Structure
         position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
         self.context_menu(action_text=action_paste, position=position_src)
+        self.processEvents(0.1)
 
         self.assertEqual(channels_count + 1, self.plot.channel_selection.topLevelItemCount())
         self.assertEqual(2, len(self.plot.channel_selection.findItems("FirstGroup", QtCore.Qt.MatchFlags())))
-        self.processEvents(0.1)
+
+    def test_Action_EnableDisable_DeactivateGroups_Channel(self):
+        """
+        Test Scope:
+            - Ensure that group items can be disabled from Context Menu.
+        Events:
+            - Select 1 channel
+            - Open Context Menu
+            - Trigger "Enable/Disable -> Deactivate Groups" action
+        Expected:
+            - Individual channels that are not part of group should not be affected
+        """
+        # Events
+        position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+        self.context_menu(action_text="Deactivate groups", position=position)
+
+        # Evaluate
+        self.assertEqual(False, self.plot_channel_a.isDisabled())
+
+    def test_Action_EnableDisable_DeactivateGroups_Group(self):
+        """
+        Test Scope:
+            - Ensure that group items can be disabled from Context Menu.
+        Events:
+            - Add two groups
+            - Add channels to group
+            - Add group in group
+            - Select 1 group
+            - Open Context Menu
+            - Trigger "Enable/Disable -> Deactivate Groups" action
+        Expected:
+            - Group Items should be disabled
+            - Sub-groups should be disabled
+        """
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "Group_A", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            mo_getText.return_value = "Group_B", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+
+        # Add Channels to Group
+        group_a_channel = self.plot.channel_selection.findItems("Group_A", QtCore.Qt.MatchFlags())[0]
+        group_a_channel.setExpanded(True)
+        self.add_channel_to_group(src=self.plot_channel_a, dst=group_a_channel)
+        self.add_channel_to_group(src=self.plot_channel_b, dst=group_a_channel)
+
+        # Add Channels to Group
+        group_b_channel = self.plot.channel_selection.findItems("Group_B", QtCore.Qt.MatchFlags())[0]
+        group_b_channel.setExpanded(True)
+        self.add_channel_to_group(src=self.plot_channel_c, dst=group_b_channel)
+        self.add_channel_to_group(src=self.plot_channel_d, dst=group_b_channel)
+
+        self.add_channel_to_plot(channel_index=14)
+
+        self.add_channel_to_group(src=group_b_channel, dst=group_a_channel)
+        group_a_channel.setExpanded(True)
+        group_b_channel.setExpanded(True)
+
+        position = self.plot.channel_selection.visualItemRect(group_b_channel).center()
+        self.context_menu(action_text="Deactivate groups", position=position)
+
+        # Evaluate
+        self.assertEqual(False, group_a_channel.isDisabled())
+        self.assertEqual(True, group_b_channel.isDisabled())
+        for child_index in range(group_b_channel.childCount()):
+            child = group_b_channel.child(child_index)
+            self.assertEqual(True, child.isDisabled())
+        for child_index in range(group_a_channel.childCount()):
+            child = group_a_channel.child(child_index)
+            if child.type() == child.Channel:
+                self.assertEqual(False, child.isDisabled())
+
+        position = self.plot.channel_selection.visualItemRect(group_a_channel).center()
+        self.context_menu(action_text="Deactivate groups", position=position)
+
+        # Evaluate
+        self.assertEqual(True, group_a_channel.isDisabled())
+        self.assertEqual(True, group_b_channel.isDisabled())
+        for child_index in range(group_b_channel.childCount()):
+            child = group_b_channel.child(child_index)
+            self.assertEqual(True, child.isDisabled())
+        for child_index in range(group_a_channel.childCount()):
+            child = group_a_channel.child(child_index)
+            self.assertEqual(True, child.isDisabled())

@@ -73,16 +73,16 @@ class TestPlotWidget(TestFileWidget):
 
         return plot_channel
 
-    def add_channel_to_group(self, plot=None, channel=None, group=None):
+    def add_channel_to_group(self, plot=None, src=None, dst=None):
         if not plot and self.plot:
             plot = self.plot
-        channel_tree = self.widget.channels_tree
+        channel_selection = plot.channel_selection
 
-        drag_position = self.plot.channel_selection.visualItemRect(channel).center()
-        drop_position = self.plot.channel_selection.visualItemRect(group).center()
+        drag_position = plot.channel_selection.visualItemRect(src).center()
+        drop_position = plot.channel_selection.visualItemRect(dst).center()
 
         DragAndDrop(
-            source_widget=channel_tree,
+            source_widget=channel_selection,
             destination_widget=plot.channel_selection,
             source_pos=drag_position,
             destination_pos=drop_position,
