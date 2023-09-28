@@ -3448,7 +3448,7 @@ class ChannelConversion(_ChannelConversionBase):
                     try:
                         ret = np.array(ret, dtype="<f8")
                     except:
-                        ret = np.array(ret)
+                        ret = np.array(ret, dtype="O")
                         if as_bytes:
                             ret = ret.astype(bytes)
                         elif not as_object:
@@ -3493,7 +3493,7 @@ class ChannelConversion(_ChannelConversionBase):
                     try:
                         ret = np.array(ret, dtype="<f8")
                     except:
-                        ret = np.array(ret)
+                        ret = np.array(ret, dtype="O")
                         if as_bytes:
                             ret = ret.astype(bytes)
                         elif not as_object:
@@ -3658,7 +3658,7 @@ class ChannelConversion(_ChannelConversionBase):
                 try:
                     ret = np.array(ret, dtype="f8")
                 except:
-                    ret = np.array(ret)
+                    ret = np.array(ret, dtype="O")
                     if as_bytes:
                         ret = ret.astype(bytes)
                     elif not as_object:
