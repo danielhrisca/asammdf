@@ -524,3 +524,70 @@ class TestShortcuts(TestPlotWidget):
         self.assertFalse(Pixmap.has_color(yTopLine, channel_1.color.name()))
         self.assertFalse(Pixmap.has_color(yBottomLine, channel_0.color.name()))
         self.assertTrue(Pixmap.has_color(yBottomLine, channel_1.color.name()))
+
+    def test_Plot_Plot_Shortcut_Shift_S(self):
+        """
+        Test Scope:
+            Check if 2 plotted signals is separated on Y ax after pressing "Shift+S".
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Select 2 signals and create a plot
+            - Press Key "F" to fit signals (precondition)
+            - Press Key "S"
+        Evaluate:
+            - Evaluate that two signals are available
+            - Evaluate that plot is not black
+            - Evaluate that the color of signals is displayed on top and bottom line of plot after pressing key "F"
+            - Evaluate that signals are separated in top and bottom half of plot after pressing key "S"
+        """
+        channel_0 = self.add_channel_to_plot(plot=self.plot, channel_index=7)
+        channel_1 = self.add_channel_to_plot(plot=self.plot, channel_name="ASAM.M.SCALAR.UBYTE.HYPERBOLIC")
+        self.assertEqual(2, self.plot.channel_selection.topLevelItemCount())
+        # save pixmap
+        pixmap = self.plot.plot.viewport().grab()
+        self.assertFalse(Pixmap.is_black(pixmap))
+        # Press "F"
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_F)
+        self.processEvents()
+        # Save Top and Bottom pixel line of plot
+        yTopLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, self.plot.plot.height() - self.PlotOffset, self.plot.plot.viewport().width(), 1)
+        )
+        yBottomLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, self.PlotOffset, self.plot.plot.viewport().width(), 1)
+        )
+        self.assertTrue(Pixmap.has_color(yTopLine, channel_0.color.name()))
+        self.assertTrue(Pixmap.has_color(yTopLine, channel_1.color.name()))
+        self.assertTrue(Pixmap.has_color(yBottomLine, channel_0.color.name()))
+        self.assertTrue(Pixmap.has_color(yBottomLine, channel_1.color.name()))
+        # Press "S"
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_S)
+        self.processEvents()
+        # Select midd line for both signals
+        half = self.plot.plot.height() / 2
+        yTopLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, half - half / 2, self.plot.plot.viewport().width(), 1)
+        )
+        yBottomLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, half + half / 2, self.plot.plot.viewport().width(), 1)
+        )
+        self.assertTrue(Pixmap.has_color(yTopLine, channel_0.color.name()))
+        self.assertFalse(Pixmap.has_color(yTopLine, channel_1.color.name()))
+        self.assertFalse(Pixmap.has_color(yBottomLine, channel_0.color.name()))
+        self.assertTrue(Pixmap.has_color(yBottomLine, channel_1.color.name()))
+        # Select first signal and pres "Shift+S"
+        self.mouseClick_WidgetItem(channel_0)
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+S"))
+        self.processEvents()
+        # Select midd line for both signals
+        half = self.plot.plot.height() / 2
+        yTopLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, half - half / 2, self.plot.plot.viewport().width(), 1)
+        )
+        yBottomLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, half + half / 2, self.plot.plot.viewport().width(), 1)
+        )
+        self.assertTrue(Pixmap.has_color(yTopLine, channel_0.color.name()))
+        self.assertFalse(Pixmap.has_color(yTopLine, channel_1.color.name()))
+        self.assertTrue(Pixmap.has_color(yBottomLine, channel_0.color.name()))
+        self.assertTrue(Pixmap.has_color(yBottomLine, channel_1.color.name()))
