@@ -3311,7 +3311,7 @@ class ChannelConversion(_ChannelConversionBase):
                 if isinstance(default, bytes):
                     ret[idx] = default
                 else:
-                    ret[idx] = default.convert(vals[idx])
+                    ret[idx] = default.convert(vals[idx], ignore_value2text_conversions=ignore_value2text_conversions)
 
                 idx = np.argwhere(idx1 == idx2).ravel()
                 if idx.size:
@@ -3323,7 +3323,9 @@ class ChannelConversion(_ChannelConversionBase):
                         if isinstance(item, bytes):
                             ret[idx[idx_]] = item
                         else:
-                            ret[idx[idx_]] = item.convert(vals[idx[idx_]])
+                            ret[idx[idx_]] = item.convert(
+                                vals[idx[idx_]], ignore_value2text_conversions=ignore_value2text_conversions
+                            )
 
                 all_bytes = True
                 for v in ret.tolist():
@@ -3364,7 +3366,9 @@ class ChannelConversion(_ChannelConversionBase):
                     if isinstance(default, bytes):
                         ret[idx] = default
                     else:
-                        ret[idx] = default.convert(values[idx])
+                        ret[idx] = default.convert(
+                            values[idx], ignore_value2text_conversions=ignore_value2text_conversions
+                        )
 
                     idx = np.argwhere(idx1 == idx2).ravel()
 
@@ -3381,7 +3385,9 @@ class ChannelConversion(_ChannelConversionBase):
                             if isinstance(item, bytes):
                                 ret[idx[idx_]] = item
                             else:
-                                ret[idx[idx_]] = item.convert(values[idx[idx_]])
+                                ret[idx[idx_]] = item.convert(
+                                    values[idx[idx_]], ignore_value2text_conversions=ignore_value2text_conversions
+                                )
 
                 else:
                     # all the raw values are found in the conversion table
@@ -3397,7 +3403,9 @@ class ChannelConversion(_ChannelConversionBase):
                             if isinstance(item, bytes):
                                 ret[idx_] = item
                             else:
-                                ret[idx_] = item.convert(values[idx_])
+                                ret[idx_] = item.convert(
+                                    values[idx_], ignore_value2text_conversions=ignore_value2text_conversions
+                                )
 
                 all_bytes = True
                 for v in ret.tolist():
@@ -3481,7 +3489,7 @@ class ChannelConversion(_ChannelConversionBase):
                         if isinstance(v_, bytes):
                             ret.append(v_)
                         else:
-                            v_ = v_.convert([v])[0]
+                            v_ = v_.convert([v], ignore_value2text_conversions=ignore_value2text_conversions)[0]
                             ret.append(v_)
                             if all_bytes and not isinstance(v_, bytes):
                                 all_bytes = False
@@ -3491,7 +3499,7 @@ class ChannelConversion(_ChannelConversionBase):
                             ret.append(default)
 
                         else:
-                            v_ = default.convert([v])[0]
+                            v_ = default.convert([v], ignore_value2text_conversions=ignore_value2text_conversions)[0]
                             ret.append(v_)
                             if all_bytes and not isinstance(v_, bytes):
                                 all_bytes = False
@@ -3526,7 +3534,7 @@ class ChannelConversion(_ChannelConversionBase):
                         if isinstance(v_, bytes):
                             ret.append(v_)
                         else:
-                            v_ = v_.convert([v])[0]
+                            v_ = v_.convert([v], ignore_value2text_conversions=ignore_value2text_conversions)[0]
                             ret.append(v_)
                             if all_bytes and not isinstance(v_, bytes):
                                 all_bytes = False
@@ -3536,7 +3544,7 @@ class ChannelConversion(_ChannelConversionBase):
                             ret.append(default)
 
                         else:
-                            v_ = default.convert([v])[0]
+                            v_ = default.convert([v], ignore_value2text_conversions=ignore_value2text_conversions)[0]
                             ret.append(v_)
                             if all_bytes and not isinstance(v_, bytes):
                                 all_bytes = False
@@ -3624,7 +3632,9 @@ class ChannelConversion(_ChannelConversionBase):
             if isinstance(default, bytes):
                 ret[idx_ne] = default
             else:
-                ret[idx_ne] = default.convert(values[idx_ne])
+                ret[idx_ne] = default.convert(
+                    values[idx_ne], ignore_value2text_conversions=ignore_value2text_conversions
+                )
 
             if idx_eq.size:
                 indexes = idx1[idx_eq]
@@ -3637,7 +3647,9 @@ class ChannelConversion(_ChannelConversionBase):
                         ret[idx_eq[idx_]] = item
                     else:
                         try:
-                            ret[idx_eq[idx_]] = item.convert(values[idx_eq[idx_]])
+                            ret[idx_eq[idx_]] = item.convert(
+                                values[idx_eq[idx_]], ignore_value2text_conversions=ignore_value2text_conversions
+                            )
                         except:
                             raise
 
@@ -3729,7 +3741,7 @@ class ChannelConversion(_ChannelConversionBase):
                             if isinstance(p, bytes):
                                 ret.append(p)
                             else:
-                                p = p.convert([v])[0]
+                                p = p.convert([v], ignore_value2text_conversions=ignore_value2text_conversions)[0]
                                 ret.append(p)
                                 if all_bytes and not isinstance(p, bytes):
                                     all_bytes = False
@@ -3739,7 +3751,7 @@ class ChannelConversion(_ChannelConversionBase):
                             ret.append(default)
 
                         else:
-                            v_ = default.convert([v])[0]
+                            v_ = default.convert([v], ignore_value2text_conversions=ignore_value2text_conversions)[0]
                             ret.append(v_)
                             if all_bytes and not isinstance(v_, bytes):
                                 all_bytes = False
@@ -3751,7 +3763,7 @@ class ChannelConversion(_ChannelConversionBase):
                             if isinstance(p, bytes):
                                 ret.append(p)
                             else:
-                                p = p.convert([v])[0]
+                                p = p.convert([v], ignore_value2text_conversions=ignore_value2text_conversions)[0]
                                 ret.append(p)
                                 if all_bytes and not isinstance(p, bytes):
                                     all_bytes = False
@@ -3761,7 +3773,7 @@ class ChannelConversion(_ChannelConversionBase):
                             ret.append(default)
 
                         else:
-                            v_ = default.convert([v])[0]
+                            v_ = default.convert([v], ignore_value2text_conversions=ignore_value2text_conversions)[0]
                             ret.append(v_)
                             if all_bytes and not isinstance(v_, bytes):
                                 all_bytes = False
@@ -3845,7 +3857,9 @@ class ChannelConversion(_ChannelConversionBase):
                                 new_val.append(conv)
                         else:
                             prefix, conv = conv
-                            converted_val = conv.convert([on])
+                            converted_val = conv.convert(
+                                [on], ignore_value2text_conversions=ignore_value2text_conversions
+                            )
                             if converted_val:
                                 if prefix:
                                     new_val.append(prefix + converted_val)
