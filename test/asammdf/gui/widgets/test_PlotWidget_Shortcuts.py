@@ -10,7 +10,7 @@ class TestShortcuts(TestPlotWidget):
     def setUpClass(cls):
         super().setUpClass()
         cls.PlotOffset = 5
-        
+
     def setUp(self):
         # Open measurement file
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
@@ -39,13 +39,8 @@ class TestShortcuts(TestPlotWidget):
             - Evaluate values from `Value` column on self.plot.channels_selection
             - Evaluate timestamp label
         """
-        # Event
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Switch ComboBox to "Natural sort"
         self.widget.channel_view.setCurrentText("Natural sort")
-
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
         channel_14 = self.add_channel_to_plot(plot=self.plot, channel_name="ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL")
         channel_15 = self.add_channel_to_plot(plot=self.plot, channel_name="ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL")
         self.assertEqual(2, self.plot.channel_selection.topLevelItemCount())
@@ -261,7 +256,7 @@ class TestShortcuts(TestPlotWidget):
         # Select first and last effective pixel line of plot
         yTopLine = self.plot.plot.viewport().grab(
             QtCore.QRect(0, self.plot.plot.height() - self.PlotOffset, self.plot.plot.viewport().width(), 1)
-            )
+        )
         yBottomLine = self.plot.plot.viewport().grab(
             QtCore.QRect(0, self.PlotOffset, self.plot.plot.viewport().width(), 1)
         )
@@ -275,7 +270,7 @@ class TestShortcuts(TestPlotWidget):
         # Save Top and Bottom pixel line of plot
         yTopLine = self.plot.plot.viewport().grab(
             QtCore.QRect(0, self.plot.plot.height() - self.PlotOffset, self.plot.plot.viewport().width(), 1)
-            )
+        )
         yBottomLine = self.plot.plot.viewport().grab(
             QtCore.QRect(0, self.PlotOffset, self.plot.plot.viewport().width(), 1)
         )
@@ -431,17 +426,19 @@ class TestShortcuts(TestPlotWidget):
         firstColoredColumn = None
         lastColoredColumn = None
         for line in range(self.plot.plot.viewport().height()):
-            if Pixmap.has_color(self.plot.plot.viewport().grab(
-                QtCore.QRect(line, 0, 1, self.plot.plot.viewport().rect().height())
-            ), channel_0.color.name()):
+            if Pixmap.has_color(
+                self.plot.plot.viewport().grab(QtCore.QRect(line, 0, 1, self.plot.plot.viewport().rect().height())),
+                channel_0.color.name(),
+            ):
                 firstColoredColumn = line
                 break
         # Evaluate that there are at least one column with signal color
         self.assertTrue(firstColoredColumn)
         for line in range(self.plot.plot.viewport().height(), firstColoredColumn, -1):
-            if Pixmap.has_color(self.plot.plot.viewport().grab(
-                QtCore.QRect(line, 0, 1, self.plot.plot.viewport().rect().height())
-            ), channel_0.color.name()):
+            if Pixmap.has_color(
+                self.plot.plot.viewport().grab(QtCore.QRect(line, 0, 1, self.plot.plot.viewport().rect().height())),
+                channel_0.color.name(),
+            ):
                 lastColoredColumn = line
                 break
         # Press "S" and "I"
