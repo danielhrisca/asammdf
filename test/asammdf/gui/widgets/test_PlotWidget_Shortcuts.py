@@ -415,8 +415,8 @@ class TestShortcuts(TestPlotWidget):
             - Evaluate that window is created
             - Evaluate that there are at least one column with first signal color
             - Evaluate first and last columns where is first signal:
-                * first column after pressing "S" and "I" is full black => signal colors are not there
-                * signal is zoomed => is extended to left side => in last column is both signals colors
+                > first column after pressing "S" and "I" is full black => signal colors are not there
+                > signal is zoomed => is extended to left side => in last column is both signals colors
             - Evaluate that after pressing key "W" in first and last column is displayed both signals
         """
         channel_0 = self.add_channel_to_plot(plot=self.plot, channel_index=7)
