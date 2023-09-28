@@ -3442,7 +3442,7 @@ class ChannelConversion(_ChannelConversionBase):
                         phys.append(ref)
 
                 x = sorted(zip(raw_vals, phys))
-                raw_vals = np.array([e[0] for e in x], dtype="<i8")
+                raw_vals = [e[0] for e in x]
                 phys = [e[1] for e in x]
 
                 ref = self.referenced_blocks["default_addr"]
@@ -3690,8 +3690,8 @@ class ChannelConversion(_ChannelConversionBase):
                 upper = [self[f"upper_{i}"] for i in range(nr)]
 
                 x = sorted(zip(lower, upper, phys))
-                lower = np.array([e[0] for e in x], dtype="<i8")
-                upper = np.array([e[1] for e in x], dtype="<i8")
+                lower = [e[0] for e in x]
+                upper = [e[1] for e in x]
                 phys = [e[2] for e in x]
 
                 ref = self.referenced_blocks["default_addr"]
