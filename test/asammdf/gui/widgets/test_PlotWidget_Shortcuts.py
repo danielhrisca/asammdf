@@ -10,6 +10,14 @@ class TestShortcuts(TestPlotWidget):
     def setUpClass(cls):
         super().setUpClass()
         cls.PlotOffset = 5
+        
+    def setUp(self):
+        # Open measurement file
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
+        # Press PushButton "Create Window" -> "Plot"
+        self.create_window(window_type="Plot")
+        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+        self.plot = self.widget.mdi_area.subWindowList()[0].widget()
 
     def test_Plot_Plot_Shortcut_Key_LeftRight(self):
         """
@@ -20,7 +28,7 @@ class TestShortcuts(TestPlotWidget):
             - Open 'FileWidget' with valid measurement.
             - Switch ComboBox to "Natural sort"
             - Press PushButton "Create Window"
-            - Drag and Drop channels from FileWidget.channels_tree to Plot.channels_selection:
+            - Drag and Drop channels from FileWidget.channels_tree to self.plot.channels_selection:
                 # First
                 - ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL
                 # Second
@@ -28,7 +36,7 @@ class TestShortcuts(TestPlotWidget):
             - Send KeyClick Right 5 times
             - Send KeyClick Left 4 times
         Evaluate:
-            - Evaluate values from `Value` column on Plot.channels_selection
+            - Evaluate values from `Value` column on self.plot.channels_selection
             - Evaluate timestamp label
         """
         # Event
@@ -38,18 +46,15 @@ class TestShortcuts(TestPlotWidget):
 
         self.create_window(window_type="Plot")
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
-        channel_selection = plot.channel_selection
-        channel_14 = self.add_channel_to_plot(plot=plot, channel_name="ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL")
-        channel_15 = self.add_channel_to_plot(plot=plot, channel_name="ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL")
-        self.assertEqual(2, plot.channel_selection.topLevelItemCount())
+        channel_14 = self.add_channel_to_plot(plot=self.plot, channel_name="ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL")
+        channel_15 = self.add_channel_to_plot(plot=self.plot, channel_name="ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL")
+        self.assertEqual(2, self.plot.channel_selection.topLevelItemCount())
 
         # Case 0:
         with self.subTest("test_Plot_Plot_Shortcut_Key_LeftRight_0"):
             # Select channel: ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL
             self.mouseClick_WidgetItem(channel_15)
-            plot.plot.setFocus()
+            self.plot.plot.setFocus()
             self.processEvents(0.1)
 
             self.assertEqual("25", channel_14.text(self.Column.VALUE))
@@ -57,59 +62,59 @@ class TestShortcuts(TestPlotWidget):
 
             # Send Key strokes
             for _ in range(6):
-                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Right)
+                QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Right)
                 self.processEvents(0.1)
             self.processEvents(0.1)
 
             # Evaluate
             self.assertEqual("8", channel_14.text(self.Column.VALUE))
             self.assertEqual("6", channel_15.text(self.Column.VALUE))
-            self.assertEqual("t = 0.082657s", plot.cursor_info.text())
+            self.assertEqual("t = 0.082657s", self.plot.cursor_info.text())
 
             # Send Key strokes
             for _ in range(5):
-                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Left)
+                QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Left)
                 self.processEvents(0.1)
             self.processEvents(0.1)
 
             # Evaluate
             self.assertEqual("21", channel_14.text(self.Column.VALUE))
             self.assertEqual("247", channel_15.text(self.Column.VALUE))
-            self.assertEqual("t = 0.032657s", plot.cursor_info.text())
+            self.assertEqual("t = 0.032657s", self.plot.cursor_info.text())
 
         # Case 1:
         with self.subTest("test_Plot_Plot_Shortcut_Key_LeftRight_1"):
             # Select channel: ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL
             self.mouseClick_WidgetItem(channel_15)
-            plot.plot.setFocus()
+            self.plot.plot.setFocus()
             self.processEvents(0.1)
 
             # Send Key strokes
             for _ in range(6):
-                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Right)
+                QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Right)
                 self.processEvents(0.1)
             self.processEvents(0.1)
 
             # Evaluate
             self.assertEqual("5", channel_14.text(self.Column.VALUE))
             self.assertEqual("9", channel_15.text(self.Column.VALUE))
-            self.assertEqual("t = 0.092657s", plot.cursor_info.text())
+            self.assertEqual("t = 0.092657s", self.plot.cursor_info.text())
 
             # Send Key strokes
             for _ in range(5):
-                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Left)
+                QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Left)
                 self.processEvents(0.1)
             self.processEvents(0.1)
 
             # Evaluate
             self.assertEqual("18", channel_14.text(self.Column.VALUE))
             self.assertEqual("250", channel_15.text(self.Column.VALUE))
-            self.assertEqual("t = 0.042657s", plot.cursor_info.text())
+            self.assertEqual("t = 0.042657s", self.plot.cursor_info.text())
 
     def test_Plot_Plot_Shortcut_Key_R(self):
         """
         Test Scope:
-            Check if Range Selection rectangle is painted over the plot.
+            Check if Range Selection rectangle is painted over the self.plot.
         Events:
             - Open 'FileWidget' with valid measurement.
             - Press PushButton "Create Window"
@@ -123,19 +128,12 @@ class TestShortcuts(TestPlotWidget):
             - Evaluate that sum of rectangle areas is same with the one when plot is full black.
             - Evaluate that range selection disappear.
         """
-        # Event
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Press PushButton "Create Window"
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
-
         # Press PushButton "Hide axis"
-        if not plot.hide_axes_btn.isFlat():
-            QtTest.QTest.mouseClick(plot.hide_axes_btn, QtCore.Qt.LeftButton)
+        if not self.plot.hide_axes_btn.isFlat():
+            QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.LeftButton)
 
         # Save PixMap of clear plot
-        clear_pixmap = plot.plot.viewport().grab()
+        clear_pixmap = self.plot.plot.viewport().grab()
         self.assertTrue(Pixmap.is_black(clear_pixmap))
 
         # Get X position of Cursor
@@ -144,11 +142,11 @@ class TestShortcuts(TestPlotWidget):
         self.assertEqual(1, len(cursors))
 
         # Press Key 'R' for range selection
-        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_R)
+        QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_R)
         self.processEvents(timeout=0.01)
 
         # Save PixMap of Range plot
-        range_pixmap = plot.plot.viewport().grab()
+        range_pixmap = self.plot.plot.viewport().grab()
         self.assertFalse(Pixmap.is_black(range_pixmap))
 
         # Get X position of Cursors
@@ -185,13 +183,13 @@ class TestShortcuts(TestPlotWidget):
         )
 
         # Move Cursors
-        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Right)
+        QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Right)
         self.processEvents(timeout=0.01)
-        QtTest.QTest.keySequence(plot.plot, QtGui.QKeySequence("Ctrl+Left"))
+        QtTest.QTest.keySequence(self.plot.plot, QtGui.QKeySequence("Ctrl+Left"))
         self.processEvents(timeout=0.01)
 
         # Save PixMap of Range plot
-        range_pixmap = plot.plot.viewport().grab()
+        range_pixmap = self.plot.plot.viewport().grab()
         self.assertFalse(Pixmap.is_black(range_pixmap))
 
         # Get X position of Cursors
@@ -230,21 +228,21 @@ class TestShortcuts(TestPlotWidget):
         )
 
         # Press Key 'R' for range selection
-        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_R)
+        QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_R)
         self.processEvents(timeout=0.01)
 
         # Save PixMap of clear plot
-        clear_pixmap = plot.plot.viewport().grab()
+        clear_pixmap = self.plot.plot.viewport().grab()
         self.assertTrue(Pixmap.is_black(clear_pixmap))
 
     def test_Plot_Plot_Shortcut_Key_F(self):
         """
         Test Scope:
-            Check if all plotted signals is fitted on Y ax after pressing key "F".
+            Check if 2 plotted signals is fitted on Y ax after pressing key "F".
         Events:
             - Open 'FileWidget' with valid measurement.
-            - Select 2 measurement and create a plot
-            - Press Key "S"
+            - Select 2 signals and create a plot
+            - Press Key "S" to separate signals (precondition)
             - Press Key "F"
         Evaluate:
             - Evaluate that two signals are available
@@ -252,40 +250,34 @@ class TestShortcuts(TestPlotWidget):
             - Evaluate that the color of signals is not displayed on top and bottom line of plot after pressing key "S"
             - Evaluate that are both colors of signals in top and bottom line of plot after pressing key "F"
         """
-        # Event
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Press PushButton "Create Window"
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
-        channel_0 = self.add_channel_to_plot(plot=plot, channel_index=7)
-        channel_1 = self.add_channel_to_plot(plot=plot, channel_name="ASAM.M.SCALAR.UBYTE.HYPERBOLIC")
-        self.assertEqual(2, plot.channel_selection.topLevelItemCount())
+        channel_0 = self.add_channel_to_plot(plot=self.plot, channel_index=7)
+        channel_1 = self.add_channel_to_plot(plot=self.plot, channel_name="ASAM.M.SCALAR.UBYTE.HYPERBOLIC")
+        self.assertEqual(2, self.plot.channel_selection.topLevelItemCount())
         # Press "S"
-        QtTest.QTest.keyClick(plot.plot.viewport(), QtCore.Qt.Key_S)
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_S)
         # save pixmap
-        pixmap = plot.plot.viewport().grab()
+        pixmap = self.plot.plot.viewport().grab()
         self.assertFalse(Pixmap.is_black(pixmap))
         # Select first and last effective pixel line of plot
-        yTopLine = plot.plot.viewport().grab(
-            QtCore.QRect(0, plot.plot.height() - self.PlotOffset, plot.plot.viewport().width(), 1)
+        yTopLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, self.plot.plot.height() - self.PlotOffset, self.plot.plot.viewport().width(), 1)
             )
-        yBottomLine = plot.plot.viewport().grab(
-            QtCore.QRect(0, self.PlotOffset, plot.plot.viewport().width(), 1)
+        yBottomLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, self.PlotOffset, self.plot.plot.viewport().width(), 1)
         )
         self.assertFalse(Pixmap.has_color(yTopLine, channel_0.color.name()))
         self.assertFalse(Pixmap.has_color(yTopLine, channel_1.color.name()))
         self.assertFalse(Pixmap.has_color(yBottomLine, channel_0.color.name()))
         self.assertFalse(Pixmap.has_color(yBottomLine, channel_1.color.name()))
         # Press "F"
-        QtTest.QTest.keyClick(plot.plot.viewport(), QtCore.Qt.Key_F)
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_F)
         self.processEvents()
         # Save Top and Bottom pixel line of plot
-        yTopLine = plot.plot.viewport().grab(
-            QtCore.QRect(0, plot.plot.height() - self.PlotOffset, plot.plot.viewport().width(), 1)
+        yTopLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, self.plot.plot.height() - self.PlotOffset, self.plot.plot.viewport().width(), 1)
             )
-        yBottomLine = plot.plot.viewport().grab(
-            QtCore.QRect(0, self.PlotOffset, plot.plot.viewport().width(), 1)
+        yBottomLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, self.PlotOffset, self.plot.plot.viewport().width(), 1)
         )
         self.assertTrue(Pixmap.has_color(yTopLine, channel_0.color.name()))
         self.assertTrue(Pixmap.has_color(yTopLine, channel_1.color.name()))
@@ -307,26 +299,20 @@ class TestShortcuts(TestPlotWidget):
             - Evaluate that only color of first signal is displayed on top and bottom line of plot
                     after pressing "Shift+F"
         """
-        # Event
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Press PushButton "Create Window"
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
-        channel_0 = self.add_channel_to_plot(plot=plot, channel_index=7)
-        channel_1 = self.add_channel_to_plot(plot=plot, channel_name="ASAM.M.SCALAR.UBYTE.HYPERBOLIC")
-        self.assertEqual(2, plot.channel_selection.topLevelItemCount())
+        channel_0 = self.add_channel_to_plot(plot=self.plot, channel_index=7)
+        channel_1 = self.add_channel_to_plot(plot=self.plot, channel_name="ASAM.M.SCALAR.UBYTE.HYPERBOLIC")
+        self.assertEqual(2, self.plot.channel_selection.topLevelItemCount())
         # Press "S"
-        QtTest.QTest.keyClick(plot.plot.viewport(), QtCore.Qt.Key_S)
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_S)
         # save pixmap
-        pixmap = plot.plot.viewport().grab()
+        pixmap = self.plot.plot.viewport().grab()
         self.assertFalse(Pixmap.is_black(pixmap))
         # Select top and bottom pixel line of plot
-        yTopLine = plot.plot.viewport().grab(
-            QtCore.QRect(0, plot.plot.height() - self.PlotOffset, plot.plot.viewport().width(), 1)
+        yTopLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, self.plot.plot.height() - self.PlotOffset, self.plot.plot.viewport().width(), 1)
         )
-        yBottomLine = plot.plot.viewport().grab(
-            QtCore.QRect(0, self.PlotOffset, plot.plot.viewport().width(), 1)
+        yBottomLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, self.PlotOffset, self.plot.plot.viewport().width(), 1)
         )
         self.assertFalse(Pixmap.has_color(yTopLine, channel_0.color.name()))
         self.assertFalse(Pixmap.has_color(yTopLine, channel_1.color.name()))
@@ -335,14 +321,14 @@ class TestShortcuts(TestPlotWidget):
         # Select first signal
         self.mouseClick_WidgetItem(channel_0)
         # Press "Shift+F"
-        QtTest.QTest.keySequence(plot.plot.viewport(), QtGui.QKeySequence("Shift+F"))
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+F"))
         self.processEvents()
         # save top and bottom pixel line of plot
-        yTopLine = plot.plot.viewport().grab(
-            QtCore.QRect(0, plot.plot.height() - self.PlotOffset, plot.plot.viewport().width(), 1)
+        yTopLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, self.plot.plot.height() - self.PlotOffset, self.plot.plot.viewport().width(), 1)
         )
-        yBottomLine = plot.plot.viewport().grab(
-            QtCore.QRect(0, self.PlotOffset, plot.plot.viewport().width(), 1)
+        yBottomLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, self.PlotOffset, self.plot.plot.viewport().width(), 1)
         )
         self.assertTrue(Pixmap.has_color(yTopLine, channel_0.color.name()))
         self.assertFalse(Pixmap.has_color(yTopLine, channel_1.color.name()))
@@ -364,64 +350,63 @@ class TestShortcuts(TestPlotWidget):
                 2. Is X and Y axes grid
                 3. There is no grid
         """
-        # Event
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Press PushButton "Create Window"
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
         # check if grid is available
-        if plot.hide_axes_btn.isFlat():
-            QtTest.QTest.mouseClick(plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
-        # case 1: check if X and Y axes is hidden
-        if not plot.plot.x_axis.grid and not plot.plot.y_axis.grid:
-            # press key "G"
-            QtTest.QTest.keyClick(plot.plot.viewport(), QtCore.Qt.Key_G)
-            self.processEvents()
-            self.assertTrue(plot.plot.x_axis.grid)
-            self.assertFalse(plot.plot.y_axis.grid)
-            # press key "G"
-            QtTest.QTest.keyClick(plot.plot.viewport(), QtCore.Qt.Key_G)
-            self.processEvents()
-            self.assertTrue(plot.plot.x_axis.grid)
-            self.assertTrue(plot.plot.y_axis.grid)
-            # press key "G"
-            QtTest.QTest.keyClick(plot.plot.viewport(), QtCore.Qt.Key_G)
-            self.processEvents()
-            self.assertFalse(plot.plot.x_axis.grid)
-            self.assertFalse(plot.plot.y_axis.grid)
-        elif plot.plot.x_axis.grid and  not plot.plot.y_axis.grid:
-            # press key "G"
-            QtTest.QTest.keyClick(plot.plot.viewport(), QtCore.Qt.Key_G)
-            self.processEvents()
-            self.assertTrue(plot.plot.x_axis.grid)
-            self.assertTrue(plot.plot.y_axis.grid)
-            # press key "G"
-            QtTest.QTest.keyClick(plot.plot.viewport(), QtCore.Qt.Key_G)
-            self.processEvents()
-            self.assertFalse(plot.plot.x_axis.grid)
-            self.assertFalse(plot.plot.y_axis.grid)
-            # press key "G"
-            QtTest.QTest.keyClick(plot.plot.viewport(), QtCore.Qt.Key_G)
-            self.processEvents()
-            self.assertTrue(plot.plot.x_axis.grid)
-            self.assertFalse(plot.plot.y_axis.grid)
+        if self.plot.hide_axes_btn.isFlat():
+            QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
+        # case 1: X and Y axes is hidden
+        if not self.plot.plot.x_axis.grid and not self.plot.plot.y_axis.grid:
+            with self.subTest("test_shortcut_key_G_no_grid_displayed"):
+                # press key "G"
+                QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_G)
+                self.processEvents()
+                self.assertTrue(self.plot.plot.x_axis.grid)
+                self.assertFalse(self.plot.plot.y_axis.grid)
+                # press key "G"
+                QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_G)
+                self.processEvents()
+                self.assertTrue(self.plot.plot.x_axis.grid)
+                self.assertTrue(self.plot.plot.y_axis.grid)
+                # press key "G"
+                QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_G)
+                self.processEvents()
+                self.assertFalse(self.plot.plot.x_axis.grid)
+                self.assertFalse(self.plot.plot.y_axis.grid)
+        # case 2: X is visible, Y is hidden
+        elif self.plot.plot.x_axis.grid and not self.plot.plot.y_axis.grid:
+            with self.subTest("test_shortcut_key_G_X_grid_already_displayed"):
+                # press key "G"
+                QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_G)
+                self.processEvents()
+                self.assertTrue(self.plot.plot.x_axis.grid)
+                self.assertTrue(self.plot.plot.y_axis.grid)
+                # press key "G"
+                QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_G)
+                self.processEvents()
+                self.assertFalse(self.plot.plot.x_axis.grid)
+                self.assertFalse(self.plot.plot.y_axis.grid)
+                # press key "G"
+                QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_G)
+                self.processEvents()
+                self.assertTrue(self.plot.plot.x_axis.grid)
+                self.assertFalse(self.plot.plot.y_axis.grid)
+        # case 3: X and Y axes is visible
         else:
-            # press key "G"
-            QtTest.QTest.keyClick(plot.plot.viewport(), QtCore.Qt.Key_G)
-            self.processEvents()
-            self.assertTrue(plot.plot.x_axis.grid)
-            self.assertFalse(plot.plot.y_axis.grid)
-            # press key "G"
-            QtTest.QTest.keyClick(plot.plot.viewport(), QtCore.Qt.Key_G)
-            self.processEvents()
-            self.assertTrue(plot.plot.x_axis.grid)
-            self.assertTrue(plot.plot.y_axis.grid)
-            # press key "G"
-            QtTest.QTest.keyClick(plot.plot.viewport(), QtCore.Qt.Key_G)
-            self.processEvents()
-            self.assertFalse(plot.plot.x_axis.grid)
-            self.assertFalse(plot.plot.y_axis.grid)
+            with self.subTest("test_shortcut_key_G_XU_grid_already_displayed"):
+                # press key "G"
+                QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_G)
+                self.processEvents()
+                self.assertTrue(self.plot.plot.x_axis.grid)
+                self.assertFalse(self.plot.plot.y_axis.grid)
+                # press key "G"
+                QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_G)
+                self.processEvents()
+                self.assertTrue(self.plot.plot.x_axis.grid)
+                self.assertTrue(self.plot.plot.y_axis.grid)
+                # press key "G"
+                QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_G)
+                self.processEvents()
+                self.assertFalse(self.plot.plot.x_axis.grid)
+                self.assertFalse(self.plot.plot.y_axis.grid)
 
     def test_Plot_Plot_Shortcut_Key_W(self):
         """
@@ -439,59 +424,53 @@ class TestShortcuts(TestPlotWidget):
                 * signal is zoomed => is extended to left side => in last column is both signals colors
             - Evaluate that after pressing key "W" in first and last column is displayed both signals
         """
-        # Event
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Press PushButton "Create Window"
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
-        channel_0 = self.add_channel_to_plot(plot=plot, channel_index=7)
-        channel_1 = self.add_channel_to_plot(plot=plot, channel_name="ASAM.M.SCALAR.UBYTE.HYPERBOLIC")
-        self.assertEqual(2, plot.channel_selection.topLevelItemCount())
+        channel_0 = self.add_channel_to_plot(plot=self.plot, channel_index=7)
+        channel_1 = self.add_channel_to_plot(plot=self.plot, channel_name="ASAM.M.SCALAR.UBYTE.HYPERBOLIC")
+        self.assertEqual(2, self.plot.channel_selection.topLevelItemCount())
         # search first and last column where is displayed first signal
         firstColoredColumn = None
         lastColoredColumn = None
-        for line in range(plot.plot.viewport().height()):
-            if Pixmap.has_color(plot.plot.viewport().grab(
-                QtCore.QRect(line, 0, 1, plot.plot.viewport().rect().height())
+        for line in range(self.plot.plot.viewport().height()):
+            if Pixmap.has_color(self.plot.plot.viewport().grab(
+                QtCore.QRect(line, 0, 1, self.plot.plot.viewport().rect().height())
             ), channel_0.color.name()):
                 firstColoredColumn = line
                 break
         # Evaluate that there are at least one column with signal color
         self.assertTrue(firstColoredColumn)
-        for line in range(plot.plot.viewport().height(), firstColoredColumn, -1):
-            if Pixmap.has_color(plot.plot.viewport().grab(
-                QtCore.QRect(line, 0, 1, plot.plot.viewport().rect().height())
+        for line in range(self.plot.plot.viewport().height(), firstColoredColumn, -1):
+            if Pixmap.has_color(self.plot.plot.viewport().grab(
+                QtCore.QRect(line, 0, 1, self.plot.plot.viewport().rect().height())
             ), channel_0.color.name()):
                 lastColoredColumn = line
                 break
         # Press "S" and "I"
-        QtTest.QTest.keyClick(plot.plot.viewport(), QtCore.Qt.Key_S)
-        QtTest.QTest.keyClick(plot.plot.viewport(), QtCore.Qt.Key_I)
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_S)
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_I)
         self.processEvents()
         # save pixmap
-        pixmap = plot.plot.viewport().grab()
+        pixmap = self.plot.plot.viewport().grab()
         self.assertFalse(Pixmap.is_black(pixmap))
         # save left and right pixel column
-        xLeftColumn = plot.plot.viewport().grab(
-            QtCore.QRect(firstColoredColumn, 0, 1, plot.plot.viewport().rect().height())
+        xLeftColumn = self.plot.plot.viewport().grab(
+            QtCore.QRect(firstColoredColumn, 0, 1, self.plot.plot.viewport().rect().height())
         )
-        xRightColumn = plot.plot.viewport().grab(
-            QtCore.QRect(lastColoredColumn, 0, 1, plot.plot.viewport().rect().height())
+        xRightColumn = self.plot.plot.viewport().grab(
+            QtCore.QRect(lastColoredColumn, 0, 1, self.plot.plot.viewport().rect().height())
         )
         self.assertFalse(Pixmap.has_color(xLeftColumn, channel_0.color.name()))
         self.assertFalse(Pixmap.has_color(xLeftColumn, channel_1.color.name()))
         self.assertTrue(Pixmap.has_color(xRightColumn, channel_0.color.name()))
         self.assertTrue(Pixmap.has_color(xRightColumn, channel_1.color.name()))
         # Press "W"
-        QtTest.QTest.keyClick(plot.plot.viewport(), QtCore.Qt.Key_W)
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_W)
         self.processEvents()
         # Save left and right pixel column
-        xLeftColumn = plot.plot.viewport().grab(
-            QtCore.QRect(firstColoredColumn, 0, 1, plot.plot.viewport().rect().height())
+        xLeftColumn = self.plot.plot.viewport().grab(
+            QtCore.QRect(firstColoredColumn, 0, 1, self.plot.plot.viewport().rect().height())
         )
-        xRightColumn = plot.plot.viewport().grab(
-            QtCore.QRect(lastColoredColumn, 0, 1, plot.plot.viewport().rect().height())
+        xRightColumn = self.plot.plot.viewport().grab(
+            QtCore.QRect(lastColoredColumn, 0, 1, self.plot.plot.viewport().rect().height())
         )
         self.assertTrue(Pixmap.has_color(xLeftColumn, channel_0.color.name()))
         self.assertTrue(Pixmap.has_color(xLeftColumn, channel_1.color.name()))
