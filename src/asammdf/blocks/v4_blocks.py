@@ -3108,7 +3108,7 @@ class ChannelConversion(_ChannelConversionBase):
 
         return address
 
-    def convert(self, values, as_object=False, as_bytes=False):
+    def convert(self, values, as_object=False, as_bytes=False, ignore_value2text_conversions=False):
         if not isinstance(values, np.ndarray):
             values = np.array(values)
 
@@ -3251,22 +3251,47 @@ class ChannelConversion(_ChannelConversionBase):
             values = new_values
 
         elif conversion_type == v4c.CONVERSION_TYPE_TABX and values_count >= 150:
-            if self._cache is None or self._cache["type"] != "big":
+            if ignore_value2text_conversions:
                 nr = self.val_param_nr
                 raw_vals = [self[f"val_{i}"] for i in range(nr)]
 
-                phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
+                identical = ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_NON)
+
+                phys = []
+                for i in range(nr):
+                    ref = self.referenced_blocks[f"text_{i}"]
+                    if isinstance(ref, bytes):
+                        phys.append(identical)
+                    else:
+                        phys.append(ref)
 
                 x = sorted(zip(raw_vals, phys))
                 raw_vals = np.array([e[0] for e in x], dtype="<i8")
                 phys = [e[1] for e in x]
 
-                self._cache = {"phys": phys, "raw_vals": raw_vals, "type": "big"}
-            else:
-                phys = self._cache["phys"]
-                raw_vals = self._cache["raw_vals"]
+                ref = self.referenced_blocks["default_addr"]
+                if isinstance(ref, bytes):
+                    default = identical
+                else:
+                    default = ref
 
-            default = self.referenced_blocks["default_addr"]
+            else:
+                if self._cache is None or self._cache["type"] != "big":
+                    nr = self.val_param_nr
+                    raw_vals = [self[f"val_{i}"] for i in range(nr)]
+
+                    phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
+
+                    x = sorted(zip(raw_vals, phys))
+                    raw_vals = np.array([e[0] for e in x], dtype="<i8")
+                    phys = [e[1] for e in x]
+
+                    self._cache = {"phys": phys, "raw_vals": raw_vals, "type": "big"}
+                else:
+                    phys = self._cache["phys"]
+                    raw_vals = self._cache["raw_vals"]
+
+                default = self.referenced_blocks["default_addr"]
 
             names = values.dtype.names
 
@@ -3394,23 +3419,50 @@ class ChannelConversion(_ChannelConversionBase):
                 values = ret
 
         elif conversion_type == v4c.CONVERSION_TYPE_TABX:
-            if self._cache is None or self._cache["type"] != "small":
+            if ignore_value2text_conversions:
                 nr = self.val_param_nr
                 raw_vals = [self[f"val_{i}"] for i in range(nr)]
 
-                phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
+                identical = ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_NON)
+
+                phys = []
+                for i in range(nr):
+                    ref = self.referenced_blocks[f"text_{i}"]
+                    if isinstance(ref, bytes):
+                        phys.append(identical)
+                    else:
+                        phys.append(ref)
 
                 x = sorted(zip(raw_vals, phys))
-                raw_vals = [e[0] for e in x]
+                raw_vals = np.array([e[0] for e in x], dtype="<i8")
                 phys = [e[1] for e in x]
 
-                self._cache = {"phys": phys, "raw_vals": raw_vals, "type": "small"}
-            else:
-                phys = self._cache["phys"]
-                raw_vals = self._cache["raw_vals"]
+                ref = self.referenced_blocks["default_addr"]
+                if isinstance(ref, bytes):
+                    default = identical
+                else:
+                    default = ref
 
-            default = self.referenced_blocks["default_addr"]
-            default_is_bytes = isinstance(default, bytes)
+                default_is_bytes = False
+
+            else:
+                if self._cache is None or self._cache["type"] != "small":
+                    nr = self.val_param_nr
+                    raw_vals = [self[f"val_{i}"] for i in range(nr)]
+
+                    phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
+
+                    x = sorted(zip(raw_vals, phys))
+                    raw_vals = [e[0] for e in x]
+                    phys = [e[1] for e in x]
+
+                    self._cache = {"phys": phys, "raw_vals": raw_vals, "type": "small"}
+                else:
+                    phys = self._cache["phys"]
+                    raw_vals = self._cache["raw_vals"]
+
+                default = self.referenced_blocks["default_addr"]
+                default_is_bytes = isinstance(default, bytes)
 
             names = values.dtype.names
 
@@ -3505,10 +3557,18 @@ class ChannelConversion(_ChannelConversionBase):
                 values = ret
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX and values_count >= 100:
-            if self._cache is None or self._cache["type"] != "big":
+            if ignore_value2text_conversions:
                 nr = self.val_param_nr // 2
 
-                phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
+                identical = ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_NON)
+
+                phys = []
+                for i in range(nr):
+                    ref = self.referenced_blocks[f"text_{i}"]
+                    if isinstance(ref, bytes):
+                        phys.append(identical)
+                    else:
+                        phys.append(ref)
 
                 lower = [self[f"lower_{i}"] for i in range(nr)]
                 upper = [self[f"upper_{i}"] for i in range(nr)]
@@ -3518,18 +3578,40 @@ class ChannelConversion(_ChannelConversionBase):
                 upper = np.array([e[1] for e in x], dtype="<i8")
                 phys = [e[2] for e in x]
 
-                self._cache = {
-                    "phys": phys,
-                    "lower": lower,
-                    "upper": upper,
-                    "type": "big",
-                }
-            else:
-                phys = self._cache["phys"]
-                lower = self._cache["lower"]
-                upper = self._cache["upper"]
+                ref = self.referenced_blocks["default_addr"]
+                if isinstance(ref, bytes):
+                    default = identical
+                else:
+                    default = ref
 
-            default = self.referenced_blocks["default_addr"]
+                default_is_bytes = False
+
+            else:
+                if self._cache is None or self._cache["type"] != "big":
+                    nr = self.val_param_nr // 2
+
+                    phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
+
+                    lower = [self[f"lower_{i}"] for i in range(nr)]
+                    upper = [self[f"upper_{i}"] for i in range(nr)]
+
+                    x = sorted(zip(lower, upper, phys))
+                    lower = np.array([e[0] for e in x], dtype="<i8")
+                    upper = np.array([e[1] for e in x], dtype="<i8")
+                    phys = [e[2] for e in x]
+
+                    self._cache = {
+                        "phys": phys,
+                        "lower": lower,
+                        "upper": upper,
+                        "type": "big",
+                    }
+                else:
+                    phys = self._cache["phys"]
+                    lower = self._cache["lower"]
+                    upper = self._cache["upper"]
+
+                default = self.referenced_blocks["default_addr"]
 
             ret = np.full(values.size, None, "O")
 
@@ -3579,32 +3661,62 @@ class ChannelConversion(_ChannelConversionBase):
             values = ret
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
-            if self._cache is None or self._cache["type"] != "small":
+            if ignore_value2text_conversions:
                 nr = self.val_param_nr // 2
 
-                phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
+                identical = ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_NON)
+
+                phys = []
+                for i in range(nr):
+                    ref = self.referenced_blocks[f"text_{i}"]
+                    if isinstance(ref, bytes):
+                        phys.append(identical)
+                    else:
+                        phys.append(ref)
 
                 lower = [self[f"lower_{i}"] for i in range(nr)]
                 upper = [self[f"upper_{i}"] for i in range(nr)]
 
                 x = sorted(zip(lower, upper, phys))
-                lower = [e[0] for e in x]
-                upper = [e[1] for e in x]
+                lower = np.array([e[0] for e in x], dtype="<i8")
+                upper = np.array([e[1] for e in x], dtype="<i8")
                 phys = [e[2] for e in x]
 
-                self._cache = {
-                    "phys": phys,
-                    "lower": lower,
-                    "upper": upper,
-                    "type": "small",
-                }
-            else:
-                phys = self._cache["phys"]
-                lower = self._cache["lower"]
-                upper = self._cache["upper"]
+                ref = self.referenced_blocks["default_addr"]
+                if isinstance(ref, bytes):
+                    default = identical
+                else:
+                    default = ref
 
-            default = self.referenced_blocks["default_addr"]
-            default_is_bytes = isinstance(default, bytes)
+                default_is_bytes = False
+
+            else:
+                if self._cache is None or self._cache["type"] != "small":
+                    nr = self.val_param_nr // 2
+
+                    phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
+
+                    lower = [self[f"lower_{i}"] for i in range(nr)]
+                    upper = [self[f"upper_{i}"] for i in range(nr)]
+
+                    x = sorted(zip(lower, upper, phys))
+                    lower = [e[0] for e in x]
+                    upper = [e[1] for e in x]
+                    phys = [e[2] for e in x]
+
+                    self._cache = {
+                        "phys": phys,
+                        "lower": lower,
+                        "upper": upper,
+                        "type": "small",
+                    }
+                else:
+                    phys = self._cache["phys"]
+                    lower = self._cache["lower"]
+                    upper = self._cache["upper"]
+
+                default = self.referenced_blocks["default_addr"]
+                default_is_bytes = isinstance(default, bytes)
 
             ret = []
             vals = values.tolist()
@@ -3686,61 +3798,63 @@ class ChannelConversion(_ChannelConversionBase):
             values = np.array(new_values)
 
         elif conversion_type == v4c.CONVERSION_TYPE_TRANS:
-            nr = (self.ref_param_nr - 1) // 2
+            if not ignore_value2text_conversions:
+                nr = (self.ref_param_nr - 1) // 2
 
-            in_ = [self.referenced_blocks[f"input_{i}_addr"] for i in range(nr)]
+                in_ = [self.referenced_blocks[f"input_{i}_addr"] for i in range(nr)]
 
-            out_ = [self.referenced_blocks[f"output_{i}_addr"] for i in range(nr)]
-            default = self.referenced_blocks["default_addr"]
+                out_ = [self.referenced_blocks[f"output_{i}_addr"] for i in range(nr)]
+                default = self.referenced_blocks["default_addr"]
 
-            new_values = []
-            for val in values:
-                try:
-                    val = out_[in_.index(val.strip(b"\0"))]
-                except ValueError:
-                    val = default
-                new_values.append(val)
+                new_values = []
+                for val in values:
+                    try:
+                        val = out_[in_.index(val.strip(b"\0"))]
+                    except ValueError:
+                        val = default
+                    new_values.append(val)
 
-            values = np.array(new_values)
+                values = np.array(new_values)
 
         elif conversion_type == v4c.CONVERSION_TYPE_BITFIELD:
-            nr = self.val_param_nr
+            if not ignore_value2text_conversions:
+                nr = self.val_param_nr
 
-            phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
-            masks = np.array([self[f"mask_{i}"] for i in range(nr)], dtype="u8")
+                phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
+                masks = np.array([self[f"mask_{i}"] for i in range(nr)], dtype="u8")
 
-            phys = [
-                conv
-                if isinstance(conv, bytes)
-                else ((f"{conv.name}=".encode("utf-8"), conv) if conv.name else (b"", conv))
-                for conv in phys
-            ]
+                phys = [
+                    conv
+                    if isinstance(conv, bytes)
+                    else ((f"{conv.name}=".encode("utf-8"), conv) if conv.name else (b"", conv))
+                    for conv in phys
+                ]
 
-            new_values = []
-            values = values.astype("u8").tolist()
-            for val in values:
-                new_val = []
-                masked_values = (masks & val).tolist()
+                new_values = []
+                values = values.astype("u8").tolist()
+                for val in values:
+                    new_val = []
+                    masked_values = (masks & val).tolist()
 
-                for on, conv in zip(masked_values, phys):
-                    if not on:
-                        continue
+                    for on, conv in zip(masked_values, phys):
+                        if not on:
+                            continue
 
-                    if isinstance(conv, bytes):
-                        if conv:
-                            new_val.append(conv)
-                    else:
-                        prefix, conv = conv
-                        converted_val = conv.convert([on])
-                        if converted_val:
-                            if prefix:
-                                new_val.append(prefix + converted_val)
-                            else:
-                                new_val.append(converted_val)
+                        if isinstance(conv, bytes):
+                            if conv:
+                                new_val.append(conv)
+                        else:
+                            prefix, conv = conv
+                            converted_val = conv.convert([on])
+                            if converted_val:
+                                if prefix:
+                                    new_val.append(prefix + converted_val)
+                                else:
+                                    new_val.append(converted_val)
 
-                new_values.append(b"|".join(new_val))
+                    new_values.append(b"|".join(new_val))
 
-            values = np.array(new_values)
+                values = np.array(new_values)
 
         return values
 

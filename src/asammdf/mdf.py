@@ -3340,9 +3340,9 @@ class MDF:
             for signal in signals:
                 conversion = signal.conversion
                 if conversion:
-                    samples = conversion.convert(signal.samples)
-                    if ignore_value2text_conversions and samples.dtype.kind == "S" or np.any(np.isnan(samples)):
-                        samples = signal.samples
+                    samples = conversion.convert(
+                        signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
+                    )
 
                 signal.samples = samples
                 signal.raw = False
@@ -4030,9 +4030,9 @@ class MDF:
                     for signal in signals:
                         conversion = signal.conversion
                         if conversion:
-                            samples = conversion.convert(signal.samples)
-                            if ignore_value2text_conversions and samples.dtype.kind == "S" or np.any(np.isnan(samples)):
-                                samples = signal.samples
+                            samples = conversion.convert(
+                                signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
+                            )
 
                         signal.samples = samples
                         signal.raw = False
@@ -4411,9 +4411,9 @@ class MDF:
                 for signal in signals:
                     conversion = signal.conversion
                     if conversion:
-                        samples = conversion.convert(signal.samples)
-                        if ignore_value2text_conversions and samples.dtype.kind == "S" or np.any(np.isnan(samples)):
-                            samples = signal.samples
+                        samples = conversion.convert(
+                            signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
+                        )
 
                     signal.samples = samples
                     signal.raw = False
