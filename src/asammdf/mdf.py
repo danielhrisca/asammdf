@@ -3343,8 +3343,8 @@ class MDF:
                     samples = conversion.convert(
                         signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
                     )
+                    signal.samples = samples
 
-                signal.samples = samples
                 signal.raw = False
                 signal.conversion = None
                 if signal.samples.dtype.kind == "S":
@@ -4033,8 +4033,8 @@ class MDF:
                             samples = conversion.convert(
                                 signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
                             )
+                            signal.samples = samples
 
-                        signal.samples = samples
                         signal.raw = False
                         signal.conversion = None
                         if signal.samples.dtype.kind == "S":
@@ -4414,8 +4414,8 @@ class MDF:
                         samples = conversion.convert(
                             signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
                         )
+                        signal.samples = samples
 
-                    signal.samples = samples
                     signal.raw = False
                     signal.conversion = None
                     if signal.samples.dtype.kind == "S":
