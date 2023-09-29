@@ -1360,6 +1360,7 @@ class Plot(QtWidgets.QWidget):
 
         self.owner = owner
         self.enable_zoom_history = enable_zoom_history
+
         super().__init__(*args, **kwargs)
         self.closed = False
         self.line_interconnect = line_interconnect
@@ -4213,8 +4214,10 @@ class PlotGraphics(pg.PlotWidget):
 
             if self.y_axis.grid and self.y_axis.isVisible():
                 for pen, p1, p2 in self.y_axis.tickSpecs:
+                    pen2 = fn.mkPen(pen)
+                    pen2.setStyle(QtCore.Qt.DashLine)
                     y_pos = p1.y() + y_delta
-                    paint.setPen(pen)
+                    paint.setPen(pen2)
                     paint.drawLine(
                         QtCore.QPointF(0, y_pos),
                         QtCore.QPointF(event_rect.x() + event_rect.width(), y_pos),
@@ -4222,8 +4225,10 @@ class PlotGraphics(pg.PlotWidget):
 
             if self.x_axis.grid and self.x_axis.isVisible():
                 for pen, p1, p2 in self.x_axis.tickSpecs:
+                    pen2 = fn.mkPen(pen)
+                    pen2.setStyle(QtCore.Qt.DashLine)
                     x_pos = p1.x() + x_delta
-                    paint.setPen(pen)
+                    paint.setPen(pen2)
                     paint.drawLine(
                         QtCore.QPointF(x_pos, 0),
                         QtCore.QPointF(x_pos, event_rect.y() + event_rect.height()),

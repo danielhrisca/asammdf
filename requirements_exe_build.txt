@@ -21,7 +21,7 @@ cChardet==2.1.5
 chardet
 cryptography
 keyring
-pyinstaller==5.13.2; sys_platform=="win32"
-pyinstaller==5.13.2; sys_platform=="darwin"
+pyinstaller<6.0; sys_platform=="win32"
+pyinstaller<6.0; sys_platform=="darwin"
 pyinstaller==4.10; sys_platform=="linux"
 scipy
