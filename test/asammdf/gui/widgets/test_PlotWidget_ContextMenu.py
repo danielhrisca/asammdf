@@ -19,17 +19,22 @@ class TestContextMenu(TestPlotWidget):
         # Switch ComboBox to "Natural sort"
         self.widget.channel_view.setCurrentText("Natural sort")
 
-        self.create_window(window_type="Plot")
+        self.create_window(window_type="Plot", channels_indexes=[10, 11, 12, 13, 15])
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
 
         # Drag and Drop channel from FileWidget.channel_tree to Plot
         self.plot = self.widget.mdi_area.subWindowList()[0].widget()
+        self.plot_channel_a = self.plot.channel_selection.topLevelItem(0)
+        self.plot_channel_a.setCheckState(self.Column.NAME, QtCore.Qt.CheckState.Checked)
+        self.plot_channel_b = self.plot.channel_selection.topLevelItem(1)
+        self.plot_channel_b.setCheckState(self.Column.NAME, QtCore.Qt.CheckState.Checked)
+        self.plot_channel_c = self.plot.channel_selection.topLevelItem(2)
+        self.plot_channel_c.setCheckState(self.Column.NAME, QtCore.Qt.CheckState.Checked)
+        self.plot_channel_d = self.plot.channel_selection.topLevelItem(3)
+        self.plot_channel_d.setCheckState(self.Column.NAME, QtCore.Qt.CheckState.Checked)
+        self.plot_channel_e = self.plot.channel_selection.topLevelItem(4)
+        self.plot_channel_e.setCheckState(self.Column.NAME, QtCore.Qt.CheckState.Checked)
 
-        # Add channels
-        self.plot_channel_a = self.add_channel_to_plot(channel_index=10)
-        self.plot_channel_b = self.add_channel_to_plot(channel_index=11)
-        self.plot_channel_c = self.add_channel_to_plot(channel_index=12)
-        self.plot_channel_d = self.add_channel_to_plot(channel_index=13)
         self.processEvents()
 
     def test_Action_SearchItem_Cancel(self):
@@ -332,17 +337,15 @@ class TestContextMenu(TestPlotWidget):
         self.assertEqual(2, len(channels))
 
         # Copy DSP Properties
-        position_src = self.plot.channel_selection.visualItemRect(channels[0]).center()
-        self.context_menu(action_text=action_copy_dsp_properties, position=position_src)
+        channel_properties = []
+        for channel in channels:
+            position_src = self.plot.channel_selection.visualItemRect(channel).center()
+            self.context_menu(action_text=action_copy_dsp_properties, position=position_src)
+            channel_properties.append(QtWidgets.QApplication.instance().clipboard().text())
 
-        channe_0_properties = QtWidgets.QApplication.instance().clipboard().text()
+        self.assertEqual(channel_properties[0], channel_properties[1])
 
-        position_src = self.plot.channel_selection.visualItemRect(channels[1]).center()
-        self.context_menu(action_text=action_copy_dsp_properties, position=position_src)
-
-        channe_1_properties = QtWidgets.QApplication.instance().clipboard().text()
-
-        self.assertEqual(channe_0_properties, channe_1_properties)
+        self.processEvents(0.2)
 
     def test_Action_CopyChannelStructure_Group(self):
         """
@@ -466,8 +469,6 @@ class TestContextMenu(TestPlotWidget):
         group_b_channel.setExpanded(True)
         self.add_channel_to_group(src=self.plot_channel_c, dst=group_b_channel)
         self.add_channel_to_group(src=self.plot_channel_d, dst=group_b_channel)
-
-        self.add_channel_to_plot(channel_index=14)
 
         self.add_channel_to_group(src=group_b_channel, dst=group_a_channel)
         group_a_channel.setExpanded(True)
