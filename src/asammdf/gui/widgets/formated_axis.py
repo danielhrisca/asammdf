@@ -27,6 +27,7 @@ class FormatedAxis(pg.AxisItem):
         self.linked_signal = kwargs.pop("linked_signal", None)
 
         super().__init__(*args, **kwargs)
+        self.setStyle(tickAlpha=0.75)
 
         self._settings = QtCore.QSettings()
 
