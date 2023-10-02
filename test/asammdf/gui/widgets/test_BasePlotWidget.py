@@ -6,6 +6,18 @@ from unittest import mock
 from PySide6 import QtCore, QtTest, QtWidgets
 
 
+class QMenuWrap(QtWidgets.QMenu):
+    return_action = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def exec(self, *args, **kwargs):
+        if not self.return_action:
+            return super().exec_(*args, **kwargs)
+        return self.return_action
+
+
 class TestPlotWidget(TestFileWidget):
     class Column:
         NAME = 0
@@ -61,7 +73,32 @@ class TestPlotWidget(TestFileWidget):
 
         return plot_channel
 
-    def create_window(self, window_type):
+    def add_channel_to_group(self, plot=None, src=None, dst=None):
+        if not plot and self.plot:
+            plot = self.plot
+        channel_selection = plot.channel_selection
+
+        drag_position = plot.channel_selection.visualItemRect(src).center()
+        drop_position = plot.channel_selection.visualItemRect(dst).center()
+
+        DragAndDrop(
+            source_widget=channel_selection,
+            destination_widget=plot.channel_selection,
+            source_pos=drag_position,
+            destination_pos=drop_position,
+        )
+        self.processEvents(0.05)
+
+    def create_window(self, window_type, channels_names=tuple(), channels_indexes=tuple()):
+        channel_tree = self.widget.channels_tree
+        channel_tree.clearSelection()
+        for channel in channels_names:
+            channel = self.find_channel(channel_tree, channel_name=channel)
+            channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
+        for channel in channels_indexes:
+            channel = self.find_channel(channel_tree, channel_index=channel)
+            channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
+
         with mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mc_WindowSelectionDialog:
             mc_WindowSelectionDialog.return_value.result.return_value = True
             mc_WindowSelectionDialog.return_value.selected_type.return_value = window_type
@@ -69,3 +106,41 @@ class TestPlotWidget(TestFileWidget):
             QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
             widget_types = self.get_subwindows()
             self.assertIn(window_type, widget_types)
+
+    def context_menu(self, action_text, position=None):
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
+            mo_action = mock.MagicMock()
+            mo_action.text.return_value = action_text
+            QMenuWrap.return_action = mo_action
+
+            if not position:
+                QtTest.QTest.mouseClick(self.plot.channel_selection.viewport(), QtCore.Qt.MouseButton.RightButton)
+            else:
+                QtTest.QTest.mouseClick(
+                    self.plot.channel_selection.viewport(),
+                    QtCore.Qt.MouseButton.RightButton,
+                    QtCore.Qt.KeyboardModifiers(),
+                    position,
+                )
+            self.processEvents(0.01)
+
+            while not mo_action.text.called:
+                self.processEvents(0.02)
+
+    @staticmethod
+    def find_channel(channel_tree, channel_name=None, channel_index=None):
+        selected_channel = None
+        if not channel_name and not channel_index:
+            selected_channel = channel_tree.topLevelItem(0)
+        elif channel_index:
+            selected_channel = channel_tree.topLevelItem(channel_index)
+        elif channel_name:
+            iterator = QtWidgets.QTreeWidgetItemIterator(channel_tree)
+            while iterator.value():
+                item = iterator.value()
+                if item and item.text(0) == channel_name:
+                    item.setSelected(True)
+                    selected_channel = item
+                    break
+                iterator += 1
+        return selected_channel
