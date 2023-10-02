@@ -6,7 +6,6 @@ from PySide6 import QtCore, QtGui, QtTest
 
 
 class TestShortcuts(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -279,7 +278,7 @@ class TestShortcuts(TestPlotWidget):
                         self.plot.plot.viewport().grab(QtCore.QRect(0, y, self.plot.plot.viewport().width(), 1)),
                         self.channel_37.color.name(),
                     ),
-                    f"Line {y} doesn't contain {self.channel_37.name} color"
+                    f"Line {y} doesn't contain {self.channel_37.name} color",
                 )
             else:
                 self.assertFalse(
@@ -287,7 +286,7 @@ class TestShortcuts(TestPlotWidget):
                         self.plot.plot.viewport().grab(QtCore.QRect(0, y, self.plot.plot.viewport().width(), 1)),
                         self.channel_36.color.name(),
                     ),
-                    f"Line {y} doesn't contain{self.channel_36.name} color"
+                    f"Line {y} doesn't contain{self.channel_36.name} color",
                 )
 
         # Press "F"
@@ -299,14 +298,14 @@ class TestShortcuts(TestPlotWidget):
                     self.plot.plot.viewport().grab(QtCore.QRect(0, y, self.plot.plot.viewport().width(), 1)),
                     self.channel_36.color.name(),
                 ),
-                f"Line {y} contain {self.channel_36.name} color"
+                f"Line {y} contain {self.channel_36.name} color",
             )
             self.assertTrue(
                 Pixmap.has_color(
                     self.plot.plot.viewport().grab(QtCore.QRect(0, y, self.plot.plot.viewport().width(), 1)),
                     self.channel_37.color.name(),
                 ),
-                f"Line {y} contain {self.channel_37.name} color"
+                f"Line {y} contain {self.channel_37.name} color",
             )
 
     def test_Plot_Plot_Shortcut_Shift_F(self):
@@ -341,7 +340,7 @@ class TestShortcuts(TestPlotWidget):
                         self.plot.plot.viewport().grab(QtCore.QRect(0, y, self.plot.plot.viewport().width(), 1)),
                         self.channel_37.color.name(),
                     ),
-                    f"Line {y} doesn't contain {self.channel_37.name} color"
+                    f"Line {y} doesn't contain {self.channel_37.name} color",
                 )
             else:
                 self.assertFalse(
@@ -349,7 +348,7 @@ class TestShortcuts(TestPlotWidget):
                         self.plot.plot.viewport().grab(QtCore.QRect(0, y, self.plot.plot.viewport().width(), 1)),
                         self.channel_36.color.name(),
                     ),
-                    f"Line {y} doesn't contain{self.channel_36.name} color"
+                    f"Line {y} doesn't contain{self.channel_36.name} color",
                 )
         # Select first signal
         self.mouseClick_WidgetItem(self.channel_36)
@@ -363,7 +362,7 @@ class TestShortcuts(TestPlotWidget):
                     self.plot.plot.viewport().grab(QtCore.QRect(0, y, self.plot.plot.viewport().width(), 1)),
                     self.channel_36.color.name(),
                 ),
-                f"Line {y} contain {self.channel_36.name} color"
+                f"Line {y} contain {self.channel_36.name} color",
             )
             if y < self.plot.plot.height() / 2:
                 self.assertFalse(
@@ -371,7 +370,7 @@ class TestShortcuts(TestPlotWidget):
                         self.plot.plot.viewport().grab(QtCore.QRect(0, y, self.plot.plot.viewport().width(), 1)),
                         self.channel_37.color.name(),
                     ),
-                    f"Line {y} doesn't contain {self.channel_37.name} color"
+                    f"Line {y} doesn't contain {self.channel_37.name} color",
                 )
 
     def test_Plot_Plot_Shortcut_Key_G(self):
@@ -472,8 +471,8 @@ class TestShortcuts(TestPlotWidget):
         lastColoredColumn = None
         for x in range(self.plot.plot.viewport().width()):
             if Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.viewport().height())),
-                    self.channel_36.color.name(),
+                self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.viewport().height())),
+                self.channel_36.color.name(),
             ):
                 firstColoredColumn = x
                 break
@@ -481,8 +480,8 @@ class TestShortcuts(TestPlotWidget):
         self.assertTrue(firstColoredColumn)
         for x in range(self.plot.plot.viewport().width(), firstColoredColumn, -1):
             if Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.viewport().height())),
-                    self.channel_36.color.name(),
+                self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.viewport().height())),
+                self.channel_36.color.name(),
             ):
                 lastColoredColumn = x
                 break
@@ -565,8 +564,8 @@ class TestShortcuts(TestPlotWidget):
         lastColoredLine_channel_36 = None
         for column in range(halfOfY):
             if Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                    self.channel_36.color.name(),
+                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
+                self.channel_36.color.name(),
             ):
                 firstColoredLine_channel_36 = column
                 break
@@ -574,8 +573,8 @@ class TestShortcuts(TestPlotWidget):
         self.assertTrue(firstColoredLine_channel_36)
         for column in range(halfOfY, firstColoredLine_channel_36, -1):
             if Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                    self.channel_36.color.name(),
+                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
+                self.channel_36.color.name(),
             ):
                 lastColoredLine_channel_36 = column
                 break
@@ -594,8 +593,8 @@ class TestShortcuts(TestPlotWidget):
         lastColoredLine_channel_37 = None
         for column in range(halfOfY, self.plot.plot.viewport().height(), 1):
             if Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                    self.channel_37.color.name(),
+                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
+                self.channel_37.color.name(),
             ):
                 firstColoredLine_channel_37 = column
                 break
@@ -603,8 +602,8 @@ class TestShortcuts(TestPlotWidget):
         self.assertTrue(firstColoredLine_channel_37)
         for column in range(firstColoredLine_channel_37, halfOfY, -1):
             if Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                    self.channel_37.color.name(),
+                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
+                self.channel_37.color.name(),
             ):
                 lastColoredLine_channel_37 = column
                 break
@@ -695,8 +694,8 @@ class TestShortcuts(TestPlotWidget):
         lastColoredLine_channel_35 = None
         for column in range(thirdOfY):
             if Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                    channel_35.color.name(),
+                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
+                channel_35.color.name(),
             ):
                 firstColoredLine_channel_35 = column
                 break
@@ -704,8 +703,8 @@ class TestShortcuts(TestPlotWidget):
         self.assertTrue(firstColoredLine_channel_35)
         for column in range(thirdOfY, firstColoredLine_channel_35, -1):
             if Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                    channel_35.color.name(),
+                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
+                channel_35.color.name(),
             ):
                 lastColoredLine_channel_35 = column
                 break
@@ -727,8 +726,8 @@ class TestShortcuts(TestPlotWidget):
         lastColoredLine_channel_36 = None
         for column in range(thirdOfY, thirdOfY * 2):
             if Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                    self.channel_36.color.name(),
+                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
+                self.channel_36.color.name(),
             ):
                 firstColoredLine_channel_36 = column
                 break
@@ -736,8 +735,8 @@ class TestShortcuts(TestPlotWidget):
         self.assertTrue(firstColoredLine_channel_36)
         for column in range(thirdOfY * 2, thirdOfY, -1):
             if Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                    self.channel_36.color.name(),
+                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
+                self.channel_36.color.name(),
             ):
                 lastColoredLine_channel_36 = column
                 break
@@ -759,8 +758,8 @@ class TestShortcuts(TestPlotWidget):
         lastColoredLine_channel_37 = None
         for column in range(thirdOfY * 2, self.plot.plot.viewport().height()):
             if Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                    self.channel_37.color.name(),
+                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
+                self.channel_37.color.name(),
             ):
                 firstColoredLine_channel_37 = column
                 break
@@ -768,8 +767,8 @@ class TestShortcuts(TestPlotWidget):
         self.assertTrue(firstColoredLine_channel_37)
         for column in range(self.plot.plot.viewport().height(), firstColoredLine_channel_37, -1):
             if Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                    self.channel_37.color.name(),
+                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
+                self.channel_37.color.name(),
             ):
                 lastColoredLine_channel_37 = column
                 break
