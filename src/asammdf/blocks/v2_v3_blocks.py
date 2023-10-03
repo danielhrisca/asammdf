@@ -1412,7 +1412,7 @@ address: {hex(self.address)}
 
         return "\n".join(metadata)
 
-    def convert(self, values, as_object=False, as_bytes=False):
+    def convert(self, values, as_object=False, as_bytes=False, ignore_value2text_conversions=False):
         conversion_type = self.conversion_type
 
         if conversion_type == v23c.CONVERSION_TYPE_NONE:
@@ -1451,83 +1451,85 @@ address: {hex(self.address)}
                 values = np.where(cond, phys[inds2], phys[inds])
 
         elif conversion_type == v23c.CONVERSION_TYPE_TABX:
-            nr = self.ref_param_nr
-            raw_vals = [self[f"param_val_{i}"] for i in range(nr)]
-            raw_vals = np.array(raw_vals)
-            phys = [self[f"text_{i}"] for i in range(nr)]
-            phys = np.array(phys)
+            if not ignore_value2text_conversions:
+                nr = self.ref_param_nr
+                raw_vals = [self[f"param_val_{i}"] for i in range(nr)]
+                raw_vals = np.array(raw_vals)
+                phys = [self[f"text_{i}"] for i in range(nr)]
+                phys = np.array(phys)
 
-            x = sorted(zip(raw_vals, phys))
-            raw_vals = np.array([e[0] for e in x], dtype="<i8")
-            phys = np.array([e[1] for e in x])
+                x = sorted(zip(raw_vals, phys))
+                raw_vals = np.array([e[0] for e in x], dtype="<i8")
+                phys = np.array([e[1] for e in x])
 
-            default = b""
+                default = b""
 
-            idx1 = np.searchsorted(raw_vals, values, side="right") - 1
-            idx2 = np.searchsorted(raw_vals, values, side="left")
+                idx1 = np.searchsorted(raw_vals, values, side="right") - 1
+                idx2 = np.searchsorted(raw_vals, values, side="left")
 
-            idx = np.argwhere(idx1 != idx2).flatten()
+                idx = np.argwhere(idx1 != idx2).flatten()
 
-            new_values = np.zeros(len(values), dtype=max(phys.dtype, np.array([default]).dtype))
+                new_values = np.zeros(len(values), dtype=max(phys.dtype, np.array([default]).dtype))
 
-            new_values[idx] = default
-            idx = np.argwhere(idx1 == idx2).flatten()
-            if len(idx):
-                new_values[idx] = phys[idx1[idx]]
+                new_values[idx] = default
+                idx = np.argwhere(idx1 == idx2).flatten()
+                if len(idx):
+                    new_values[idx] = phys[idx1[idx]]
 
             values = new_values
 
         elif conversion_type == v23c.CONVERSION_TYPE_RTABX:
-            nr = self.ref_param_nr - 1
+            if not ignore_value2text_conversions:
+                nr = self.ref_param_nr - 1
 
-            phys = []
-            for i in range(nr):
-                value = self.referenced_blocks[f"text_{i}"]
-                phys.append(value)
+                phys = []
+                for i in range(nr):
+                    value = self.referenced_blocks[f"text_{i}"]
+                    phys.append(value)
 
-            phys = np.array(phys)
+                phys = np.array(phys)
 
-            default = self.referenced_blocks["default_addr"]
+                default = self.referenced_blocks["default_addr"]
 
-            if b"{X}" in default:
-                default = default.decode("latin-1").replace("{X}", "X").split('"')[1]
-                partial_conversion = True
-            else:
-                partial_conversion = False
+                if b"{X}" in default:
+                    default = default.decode("latin-1").replace("{X}", "X").split('"')[1]
+                    partial_conversion = True
+                else:
+                    partial_conversion = False
 
-            lower = np.array([self[f"lower_{i}"] for i in range(nr)])
-            upper = np.array([self[f"upper_{i}"] for i in range(nr)])
+                lower = np.array([self[f"lower_{i}"] for i in range(nr)])
+                upper = np.array([self[f"upper_{i}"] for i in range(nr)])
 
-            idx1 = np.searchsorted(lower, values, side="right") - 1
-            idx2 = np.searchsorted(upper, values, side="left")
+                idx1 = np.searchsorted(lower, values, side="right") - 1
+                idx2 = np.searchsorted(upper, values, side="left")
 
-            idx = np.argwhere(idx1 != idx2).flatten()
+                idx = np.argwhere(idx1 != idx2).flatten()
 
-            if partial_conversion and len(idx):
-                X = values[idx]
-                new_values = np.zeros(len(values), dtype=np.float64)
+                if partial_conversion and len(idx):
+                    X = values[idx]
+                    new_values = np.zeros(len(values), dtype=np.float64)
 
-                a = float(default.split("*")[0])
-                b = float(default.split("X")[-1])
-                new_values[idx] = a * X + b
-
-                idx = np.argwhere(idx1 == idx2).flatten()
-                if len(idx):
-                    new_values[idx] = np.nan
-                values = new_values
-
-            else:
-                if len(idx):
-                    new_values = np.zeros(len(values), dtype=max(phys.dtype, np.array([default]).dtype))
-                    new_values[idx] = default
+                    a = float(default.split("*")[0])
+                    b = float(default.split("X")[-1])
+                    new_values[idx] = a * X + b
 
                     idx = np.argwhere(idx1 == idx2).flatten()
                     if len(idx):
-                        new_values[idx] = phys[idx1[idx]]
-
+                        new_values[idx] = np.nan
                     values = new_values
+
                 else:
-                    values = phys[idx1]
+                    if len(idx):
+                        new_values = np.zeros(len(values), dtype=max(phys.dtype, np.array([default]).dtype))
+                        new_values[idx] = default
+
+                        idx = np.argwhere(idx1 == idx2).flatten()
+                        if len(idx):
+                            new_values[idx] = phys[idx1[idx]]
+
+                        values = new_values
+                    else:
+                        values = phys[idx1]
 
         elif conversion_type in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):
             # pylint: disable=C0103
@@ -1608,9 +1610,9 @@ address: {hex(self.address)}
 
             X1 = values
             try:
-                values = evaluate(self.formula)
+                values = evaluate(self.formula.replace("^", "**"))
             except:
-                values = evaluate3(self.formula)
+                values = evaluate3(self.formula.replace("^", "**"))
 
         return values
 

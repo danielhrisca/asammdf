@@ -847,9 +847,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         file_name = Path(file_name)
         suffix = file_name.suffix.lower()
 
-        if suffix in (".erg", ".bsig", ".dl3"):
+        if suffix in (".erg", ".bsig", ".dl3", ".tdms"):
             try:
-                from mfile import BSIG, DL3, ERG
+                from mfile import BSIG, DL3, ERG, TDMS
             except ImportError:
                 from cmerg import BSIG, ERG
 
@@ -857,6 +857,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 cls = ERG
             elif suffix == ".bsig":
                 cls = BSIG
+            elif suffix == ".tdms":
+                cls = TDMS
             else:
                 cls = DL3
 

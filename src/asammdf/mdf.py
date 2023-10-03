@@ -3337,28 +3337,18 @@ class MDF:
                 signal.timestamps = signal.timestamps.copy()
 
         if not raw:
-            if ignore_value2text_conversions:
-                if self.version < "4.00":
-                    text_conversion = 11
-                else:
-                    text_conversion = 7
+            for signal in signals:
+                conversion = signal.conversion
+                if conversion:
+                    samples = conversion.convert(
+                        signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
+                    )
+                    signal.samples = samples
 
-                for signal in signals:
-                    conversion = signal.conversion
-                    if conversion and conversion.conversion_type < text_conversion:
-                        signal.samples = conversion.convert(signal.samples)
-
-                    signal.raw = True
-                    signal.conversion = None
-            else:
-                for signal in signals:
-                    conversion = signal.conversion
-                    if conversion:
-                        signal.samples = conversion.convert(signal.samples)
-                    signal.raw = False
-                    signal.conversion = None
-                    if signal.samples.dtype.kind == "S":
-                        signal.encoding = "utf-8" if self.version >= "4.00" else "latin-1"
+                signal.raw = False
+                signal.conversion = None
+                if signal.samples.dtype.kind == "S":
+                    signal.encoding = "utf-8" if self.version >= "4.00" else "latin-1"
 
         if validate:
             signals = [sig.validate(copy=False) for sig in signals]
@@ -4037,21 +4027,18 @@ class MDF:
                             sig.timestamps = master if virtual_group.cycles_nr == 0 else group_master
 
                 if not raw:
-                    if ignore_value2text_conversions:
-                        if self.version < "4.00":
-                            text_conversion = 11
-                        else:
-                            text_conversion = 7
+                    for signal in signals:
+                        conversion = signal.conversion
+                        if conversion:
+                            samples = conversion.convert(
+                                signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
+                            )
+                            signal.samples = samples
 
-                        for signal in signals:
-                            conversion = signal.conversion
-                            if conversion and conversion.conversion_type < text_conversion:
-                                signal.samples = conversion.convert(signal.samples)
-
-                    else:
-                        for signal in signals:
-                            if signal.conversion:
-                                signal.samples = signal.conversion.convert(signal.samples)
+                        signal.raw = False
+                        signal.conversion = None
+                        if signal.samples.dtype.kind == "S":
+                            signal.encoding = "utf-8" if self.version >= "4.00" else "latin-1"
 
                 for s_index, sig in enumerate(signals):
                     sig = sig.validate(copy=False)
@@ -4421,20 +4408,18 @@ class MDF:
                         sig.timestamps = master if virtual_group.cycles_nr == 0 else group_master
 
             if not raw:
-                if ignore_value2text_conversions:
-                    if self.version < "4.00":
-                        text_conversion = 11
-                    else:
-                        text_conversion = 7
+                for signal in signals:
+                    conversion = signal.conversion
+                    if conversion:
+                        samples = conversion.convert(
+                            signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
+                        )
+                        signal.samples = samples
 
-                    for signal in signals:
-                        conversion = signal.conversion
-                        if conversion and conversion.conversion_type < text_conversion:
-                            signal.samples = conversion.convert(signal.samples)
-                else:
-                    for signal in signals:
-                        if signal.conversion:
-                            signal.samples = signal.conversion.convert(signal.samples)
+                    signal.raw = False
+                    signal.conversion = None
+                    if signal.samples.dtype.kind == "S":
+                        signal.encoding = "utf-8" if self.version >= "4.00" else "latin-1"
 
             for s_index, sig in enumerate(signals):
                 sig = sig.validate(copy=False)
