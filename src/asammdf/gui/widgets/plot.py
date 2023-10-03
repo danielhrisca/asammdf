@@ -3975,7 +3975,7 @@ class PlotGraphics(pg.PlotWidget):
 
         if axis_uuid is not None:
             self.set_current_uuid(sig.uuid)
-            if len(self.all_timebase):
+            if len(self.all_timebase) and self.cursor1 is not None:
                 self.cursor1.set_value(self.all_timebase[0])
 
         self.viewbox._matrixNeedsUpdate = True
@@ -4520,17 +4520,18 @@ class PlotGraphics(pg.PlotWidget):
                     self.update()
 
                 elif modifier == QtCore.Qt.ShiftModifier:
-                    value, ok = QtWidgets.QInputDialog.getDouble(
-                        self,
-                        "Go to time stamp",
-                        "Time stamp",
-                        value=self.cursor1.value(),
-                        decimals=9,
-                    )
+                    if self.cursor1 is not None:
+                        value, ok = QtWidgets.QInputDialog.getDouble(
+                            self,
+                            "Go to time stamp",
+                            "Time stamp",
+                            value=self.cursor1.value(),
+                            decimals=9,
+                        )
 
-                    if ok:
-                        self.cursor1.setPos(value)
-                        self.cursor_move_finished.emit(self.cursor1)
+                        if ok:
+                            self.cursor1.setPos(value)
+                            self.cursor_move_finished.emit(self.cursor1)
 
             elif key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O) and modifier == QtCore.Qt.NoModifier:
                 x_range, _ = self.viewbox.viewRange()
@@ -4539,7 +4540,11 @@ class PlotGraphics(pg.PlotWidget):
                     step = -delta * 0.25
                 else:
                     step = delta * 0.5
-                if self.cursor1.isVisible() and self._settings.value("zoom_x_center_on_cursor", True, type=bool):
+                if (
+                    self.cursor1
+                    and self.cursor1.isVisible()
+                    and self._settings.value("zoom_x_center_on_cursor", True, type=bool)
+                ):
                     pos = self.cursor1.value()
                     x_range = pos - delta / 2, pos + delta / 2
 
@@ -4553,13 +4558,9 @@ class PlotGraphics(pg.PlotWidget):
 
                 self.block_zoom_signal = True
 
-                if (
-                    self.cursor1.isVisible()
-                    and self.current_uuid is not None
-                    and self._settings.value("zoom_y_center_on_cursor", True, type=bool)
-                ):
+                if self._settings.value("zoom_y_center_on_cursor", True, type=bool):
                     value_info = self.value_at_cursor()
-                    if value_info is None or not isinstance(value_info[0], (int, float)):
+                    if not isinstance(value_info[0], (int, float)):
                         delta_proc = 0
                     else:
                         y, sig_y_bottom, sig_y_top = value_info
@@ -5817,13 +5818,29 @@ class PlotGraphics(pg.PlotWidget):
 
     def value_at_cursor(self, uuid=None):
         uuid = uuid or self.current_uuid
-        if uuid is None or not self.cursor1.isVisible():
-            return None
 
-        timestamp = self.cursor1.value()
-        sig, idx = self.signal_by_uuid(uuid)
-        sig_y_bottom, sig_y_top = sig.y_range
-        y, *_ = sig.value_at_timestamp(timestamp, numeric=True)
+        if uuid is None:
+            y, sig_y_bottom, sig_y_top = "n.a.", 0, 1
+        elif self.cursor1:
+            if not self.cursor1.isVisible():
+                cursor = self.region.lines[0]
+            else:
+                cursor = self.cursor1
+
+            timestamp = cursor.value()
+            sig, idx = self.signal_by_uuid(uuid)
+            sig_y_bottom, sig_y_top = sig.y_range
+            y, *_ = sig.value_at_timestamp(timestamp, numeric=True)
+
+        else:
+            sig, idx = self.signal_by_uuid(uuid)
+            sig_y_bottom, sig_y_top = sig.y_range
+            if not sig.current_position:
+                return "n.a.", sig_y_bottom, sig_y_top
+            else:
+                y = sig._phys_samples[sig.current_position - 1]
+                if y.dtype.kind not in "uif":
+                    y = sig._raw_samples[sig.current_position - 1]
 
         return y, sig_y_bottom, sig_y_top
 
