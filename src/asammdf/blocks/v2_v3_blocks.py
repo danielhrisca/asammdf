@@ -18,9 +18,12 @@ import dateutil
 from numexpr import evaluate
 
 try:
-    from numexpr3 import evaluate as evaluate3
+    from sympy import lambdify, symbols
+
+    X_symbol = symbols("X")
 except:
-    evaluate3 = evaluate
+    lambdify, symbols, X_symbol = None, None, None
+
 import numpy as np
 
 from . import v2_v3_constants as v23c
@@ -1608,11 +1611,21 @@ address: {hex(self.address)}
         elif conversion_type == v23c.CONVERSION_TYPE_FORMULA:
             # pylint: disable=unused-variable,C0103
 
-            X1 = values
             try:
-                values = evaluate(self.formula.replace("^", "**"))
+                X = values
+                INF = np.inf
+                NaN = np.nan
+                values = evaluate(self.formula)
             except:
-                values = evaluate3(self.formula.replace("^", "**"))
+                if lambdify is not None:
+                    expr = lambdify(
+                        X_symbol,
+                        self.formula,
+                        modules=[{"INF": np.inf, "NaN": np.nan}, "numpy"],
+                        dummify=False,
+                        cse=True,
+                    )
+                    values = expr(values)
 
         return values
 

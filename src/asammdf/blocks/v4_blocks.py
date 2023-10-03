@@ -35,9 +35,12 @@ except ImportError:
 from numexpr import evaluate
 
 try:
-    from numexpr3 import evaluate as evaluate3
+    from sympy import lambdify, symbols
+
+    X_symbol = symbols("X")
 except:
-    evaluate3 = evaluate
+    lambdify, symbols, X_symbol = None, None, None
+
 import numpy as np
 
 from . import v4_constants as v4c
@@ -3197,11 +3200,21 @@ class ChannelConversion(_ChannelConversionBase):
                         values = (P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)
 
         elif conversion_type == v4c.CONVERSION_TYPE_ALG:
-            X = values
             try:
-                values = evaluate(self.formula.replace("X1", "X").replace("^", "**"))
+                X = values
+                INF = np.inf
+                NaN = np.nan
+                values = evaluate(self.formula.replace("X1", "X"))
             except:
-                values = evaluate3(self.formula.replace("X1", "X").replace("^", "**"))
+                if lambdify is not None:
+                    expr = lambdify(
+                        X_symbol,
+                        self.formula.replace("X1", "X"),
+                        modules=[{"INF": np.inf, "NaN": np.nan}, "numpy"],
+                        dummify=False,
+                        cse=True,
+                    )
+                    values = expr(values)
 
         elif conversion_type in (v4c.CONVERSION_TYPE_TABI, v4c.CONVERSION_TYPE_TAB):
             nr = self.val_param_nr // 2
