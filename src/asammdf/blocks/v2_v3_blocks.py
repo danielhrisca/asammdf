@@ -1610,9 +1610,9 @@ address: {hex(self.address)}
 
             X1 = values
             try:
-                values = evaluate(self.formula)
+                values = evaluate(self.formula.replace("^", "**"))
             except:
-                values = evaluate3(self.formula)
+                values = evaluate3(self.formula.replace("^", "**"))
 
         return values
 
