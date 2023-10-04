@@ -349,6 +349,7 @@ class TestContextMenu(TestPlotWidget):
 
         self.processEvents(0.2)
 
+    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Action_CopyChannelStructure_Group(self):
         """
         Test Scope:
@@ -381,6 +382,7 @@ class TestContextMenu(TestPlotWidget):
             for channel_properties in content:
                 self.assertIsInstance(channel_properties, dict)
 
+    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Action_PasteChannelStructure_Group(self):
         """
         Test Scope:
