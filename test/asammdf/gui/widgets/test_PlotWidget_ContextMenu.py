@@ -2,7 +2,9 @@
 import json
 from json import JSONDecodeError
 import re
+import sys
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
+import unittest
 from unittest import mock
 from unittest.mock import ANY
 
@@ -364,7 +366,7 @@ class TestContextMenu(TestPlotWidget):
 
         # Add Channels to Group
         group_channel = self.plot.channel_selection.findItems("FirstGroup", QtCore.Qt.MatchFlags())[0]
-        self.add_channel_to_group(src=self.plot_channel_a, dst=group_channel)
+        self.move_channel_to_group(src=self.plot_channel_a, dst=group_channel)
 
         position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
         self.context_menu(action_text="Copy channel structure [Ctrl+C]", position=position)
@@ -402,8 +404,8 @@ class TestContextMenu(TestPlotWidget):
         # Add Channels to Group
         group_channel = self.plot.channel_selection.findItems("FirstGroup", QtCore.Qt.MatchFlags())[0]
         group_channel.setExpanded(True)
-        self.add_channel_to_group(src=self.plot_channel_c, dst=group_channel)
-        self.add_channel_to_group(src=self.plot_channel_d, dst=group_channel)
+        self.move_channel_to_group(src=self.plot_channel_c, dst=group_channel)
+        self.move_channel_to_group(src=self.plot_channel_d, dst=group_channel)
 
         # Copy Channel Structure
         position_src = self.plot.channel_selection.visualItemRect(group_channel).center()
@@ -437,6 +439,7 @@ class TestContextMenu(TestPlotWidget):
         # Evaluate
         self.assertEqual(False, self.plot_channel_a.isDisabled())
 
+    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Action_EnableDisable_DeactivateGroups_Group(self):
         """
         Test Scope:
@@ -461,16 +464,16 @@ class TestContextMenu(TestPlotWidget):
         # Add Channels to Group
         group_a_channel = self.plot.channel_selection.findItems("Group_A", QtCore.Qt.MatchFlags())[0]
         group_a_channel.setExpanded(True)
-        self.add_channel_to_group(src=self.plot_channel_a, dst=group_a_channel)
-        self.add_channel_to_group(src=self.plot_channel_b, dst=group_a_channel)
+        self.move_channel_to_group(src=self.plot_channel_a, dst=group_a_channel)
+        self.move_channel_to_group(src=self.plot_channel_b, dst=group_a_channel)
 
         # Add Channels to Group
         group_b_channel = self.plot.channel_selection.findItems("Group_B", QtCore.Qt.MatchFlags())[0]
         group_b_channel.setExpanded(True)
-        self.add_channel_to_group(src=self.plot_channel_c, dst=group_b_channel)
-        self.add_channel_to_group(src=self.plot_channel_d, dst=group_b_channel)
+        self.move_channel_to_group(src=self.plot_channel_c, dst=group_b_channel)
+        self.move_channel_to_group(src=self.plot_channel_d, dst=group_b_channel)
 
-        self.add_channel_to_group(src=group_b_channel, dst=group_a_channel)
+        self.move_channel_to_group(src=group_b_channel, dst=group_a_channel)
         group_a_channel.setExpanded(True)
         group_b_channel.setExpanded(True)
 

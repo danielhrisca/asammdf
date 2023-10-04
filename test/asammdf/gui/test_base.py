@@ -217,28 +217,28 @@ class DragAndDrop:
                 QtCore.Qt.MoveAction,
                 mo_QDrag.setMimeData.call_args.args[0],
                 QtCore.Qt.LeftButton,
-                QtCore.Qt.KeyboardModifiers()
+                QtCore.Qt.KeyboardModifiers(),
             )
             move_src_event = QtGui.QDragMoveEvent(
                 src_pos + QtCore.QPoint(3, 3),
                 QtCore.Qt.MoveAction,
                 mo_QDrag.setMimeData.call_args.args[0],
                 QtCore.Qt.LeftButton,
-                QtCore.Qt.KeyboardModifiers()
+                QtCore.Qt.KeyboardModifiers(),
             )
             drag_dst_event = QtGui.QDragEnterEvent(
                 src_pos + QtCore.QPoint(3, 3),
                 QtCore.Qt.MoveAction,
                 mo_QDrag.setMimeData.call_args.args[0],
                 QtCore.Qt.LeftButton,
-                QtCore.Qt.KeyboardModifiers()
+                QtCore.Qt.KeyboardModifiers(),
             )
             drop_dst_event = QtGui.QDropEvent(
                 dst_pos,
                 QtCore.Qt.MoveAction,
                 mo_QDrag.setMimeData.call_args.args[0],
                 QtCore.Qt.MouseButtons(),
-                QtCore.Qt.KeyboardModifiers()
+                QtCore.Qt.KeyboardModifiers(),
             )
 
             QtCore.QCoreApplication.postEvent(source_viewport, drag_src_event)
@@ -254,8 +254,8 @@ class DragAndDrop:
                     QtCore.Qt.DropAction.MoveAction,
                     mo_QDrag.setMimeData.call_args.args[0],
                     QtCore.Qt.LeftButton,
-                    QtCore.Qt.KeyboardModifiers()
-                )
+                    QtCore.Qt.KeyboardModifiers(),
+                ),
             )
             QtCore.QCoreApplication.postEvent(destination_viewport, drop_dst_event)
 
@@ -264,7 +264,9 @@ class DragAndDrop:
 
             # Release on Destination Widget
             QtTest.QTest.mouseMove(destination_viewport, dst_pos)
-            QtTest.QTest.mouseRelease(destination_viewport, QtCore.Qt.LeftButton, QtCore.Qt.KeyboardModifiers(), dst_pos)
+            QtTest.QTest.mouseRelease(
+                destination_viewport, QtCore.Qt.LeftButton, QtCore.Qt.KeyboardModifiers(), dst_pos
+            )
         QtCore.QCoreApplication.processEvents()
 
 

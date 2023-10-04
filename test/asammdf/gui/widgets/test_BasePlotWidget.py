@@ -62,39 +62,6 @@ class TestPlotWidget(TestFileWidget):
 
         return plot_channel
 
-    def add_channel_to_group(self, plot=None, src=None, dst=None):
-        if not plot and self.plot:
-            plot = self.plot
-
-        drag_position = plot.channel_selection.visualItemRect(src).center()
-        drop_position = plot.channel_selection.visualItemRect(dst).center()
-
-        DragAndDrop(
-            src_widget=plot.channel_selection,
-            dst_widget=plot.channel_selection,
-            src_pos=drag_position,
-            dst_pos=drop_position,
-        )
-        self.processEvents(0.05)
-
-    def create_window(self, window_type, channels_names=tuple(), channels_indexes=tuple()):
-        channel_tree = self.widget.channels_tree
-        channel_tree.clearSelection()
-        for channel in channels_names:
-            channel = self.find_channel(channel_tree, channel_name=channel)
-            channel.setCheckState(self.Column.NAME, QtCore.Qt.CheckState.Checked)
-        for channel in channels_indexes:
-            channel = self.find_channel(channel_tree, channel_index=channel)
-            channel.setCheckState(self.Column.NAME, QtCore.Qt.CheckState.Checked)
-
-        with mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mc_WindowSelectionDialog:
-            mc_WindowSelectionDialog.return_value.result.return_value = True
-            mc_WindowSelectionDialog.return_value.selected_type.return_value = window_type
-            # - Press PushButton "Create Window"
-            QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
-            widget_types = self.get_subwindows()
-            self.assertIn(window_type, widget_types)
-
     def context_menu(self, action_text, position=None):
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
             mo_action = mock.MagicMock()
@@ -115,19 +82,17 @@ class TestPlotWidget(TestFileWidget):
             while not mo_action.text.called:
                 self.processEvents(0.02)
 
-    @staticmethod
-    def find_channel(channel_tree, channel_name=None, channel_index=None):
-        selected_channel = None
-        if not channel_name and not channel_index:
-            selected_channel = channel_tree.topLevelItem(0)
-        elif channel_index:
-            selected_channel = channel_tree.topLevelItem(channel_index)
-        elif channel_name:
-            iterator = QtWidgets.QTreeWidgetItemIterator(channel_tree)
-            while iterator.value():
-                item = iterator.value()
-                if item and item.text(0) == channel_name:
-                    selected_channel = item
-                    break
-                iterator += 1
-        return selected_channel
+    def move_channel_to_group(self, plot=None, src=None, dst=None):
+        if not plot and self.plot:
+            plot = self.plot
+
+        drag_position = plot.channel_selection.visualItemRect(src).center()
+        drop_position = plot.channel_selection.visualItemRect(dst).center()
+
+        DragAndDrop(
+            src_widget=plot.channel_selection,
+            dst_widget=plot.channel_selection,
+            src_pos=drag_position,
+            dst_pos=drop_position,
+        )
+        self.processEvents(0.05)

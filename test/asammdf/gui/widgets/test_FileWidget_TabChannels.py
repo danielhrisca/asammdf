@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import pathlib
-from test.asammdf.gui.test_base import DragAndDrop
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 from unittest import mock
 
@@ -374,8 +373,7 @@ class TestTabChannels(TestFileWidget):
             - Press PushButton: "Load offline windows"
                 - Simulate that valid "dspf" file was selected
             - Close all Numeric and Tabular windows
-            - Add new Plot window
-                - Drag and drop signal from channels tree to Plot
+            - Add new Plot window with few channels
             - Press PushButton: "Save offline windows"
             - Close all windows.
             - Press PushButton: "Load offline windows"
@@ -393,55 +391,19 @@ class TestTabChannels(TestFileWidget):
         # Switch ComboBox to "Internal file structure"
         self.widget.channel_view.setCurrentText("Internal file structure")
 
-        with mock.patch.object(self.widget, "load_window", wraps=self.widget.load_window) as mo_load_window, mock.patch(
-            "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
-        ) as mo_getOpenFileName:
-            mo_getOpenFileName.return_value = valid_dspf, None
-            QtTest.QTest.mouseClick(
-                self.widget.load_channel_list_btn,
-                QtCore.Qt.MouseButton.LeftButton,
-            )
-            # Pre-Evaluate
-            mo_load_window.assert_called()
-            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 3)
-            for window in self.widget.mdi_area.subWindowList():
-                if window.widget().__class__.__name__ in ("Numeric", "Tabular"):
-                    window.close()
+        # Load Display File
+        self.load_display_file(display_file=valid_dspf)
+        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 3)
+
+        # Close all Numeric and Tabular windows
+        for window in self.widget.mdi_area.subWindowList():
+            if window.widget().__class__.__name__ in ("Numeric", "Tabular"):
+                window.close()
 
         # Drag Part
-        channels_tree = self.widget.channels_tree
-        mdi_area = self.widget.mdi_area
 
-        iterator = QtWidgets.QTreeWidgetItemIterator(channels_tree)
-        while iterator.value():
-            item = iterator.value()
-            # Expand Parent: Channel group 2 (Engine_1)
-            if item.parent() is None and item.text(0) == "Channel group 2 (Engine_1)":
-                item.setExpanded(True)
-                iterator += 1
-                continue
-            # Select item: ASAM.M.SCALAR.UBYTE.VTAB_RANGE_NO_DEFAULT_VALUE
-            if item.text(0) == "ASAM.M.SCALAR.UBYTE.VTAB_RANGE_NO_DEFAULT_VALUE":
-                item.setSelected(True)
-
-                item_rect = channels_tree.visualItemRect(item)
-                drag_position = item_rect.center()
-                drop_position = mdi_area.viewport().rect().center() - QtCore.QPoint(200, 200)
-
-                with mock.patch("asammdf.gui.widgets.mdi_area.WindowSelectionDialog") as mc_WindowSelectionDialog:
-                    # Setup
-                    mc_WindowSelectionDialog.return_value.result.return_value = True
-                    mc_WindowSelectionDialog.return_value.disable_new_channels.return_value = False
-                    mc_WindowSelectionDialog.return_value.selected_type.return_value = "Plot"
-
-                    DragAndDrop(
-                        src_widget=channels_tree,
-                        dst_widget=mdi_area,
-                        src_pos=drag_position,
-                        dst_pos=drop_position,
-                    )
-                break
-            iterator += 1
+        # Add a new Plot window with few channels
+        self.create_window(window_type="Plot", channels_names=["ASAM.M.SCALAR.UBYTE.VTAB_RANGE_NO_DEFAULT_VALUE"])
 
         # Press PushButton: "Save offline windows"
         with mock.patch("asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName") as mo_getSaveFileName:
@@ -454,24 +416,15 @@ class TestTabChannels(TestFileWidget):
         self.assertTrue(saved_dspf.exists())
 
         # Event
-        with mock.patch.object(self.widget, "load_window", wraps=self.widget.load_window) as mo_load_window, mock.patch(
-            "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
-        ) as mo_getOpenFileName:
-            mo_getOpenFileName.return_value = saved_dspf, None
-            QtTest.QTest.mouseClick(
-                self.widget.load_channel_list_btn,
-                QtCore.Qt.MouseButton.LeftButton,
+        self.load_display_file(display_file=saved_dspf)
+        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
+        widget_types = set(
+            map(
+                lambda w: w.widget().__class__.__name__,
+                self.widget.mdi_area.subWindowList(),
             )
-            # Pre-Evaluate
-            mo_load_window.assert_called()
-            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
-            widget_types = set(
-                map(
-                    lambda w: w.widget().__class__.__name__,
-                    self.widget.mdi_area.subWindowList(),
-                )
-            )
-            self.assertSetEqual({"Plot"}, widget_types)
+        )
+        self.assertSetEqual({"Plot"}, widget_types)
 
     def test_PushButton_SelectAll(self):
         """
