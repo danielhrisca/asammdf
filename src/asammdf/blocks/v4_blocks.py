@@ -37,9 +37,8 @@ from numexpr import evaluate
 try:
     from sympy import lambdify, symbols
 
-    X_symbol = symbols("X")
 except:
-    lambdify, symbols, X_symbol = None, None, None
+    lambdify, symbols = None, None
 
 import numpy as np
 
@@ -3207,6 +3206,7 @@ class ChannelConversion(_ChannelConversionBase):
                 values = evaluate(self.formula.replace("X1", "X"))
             except:
                 if lambdify is not None:
+                    X_symbol = symbols("X")
                     expr = lambdify(
                         X_symbol,
                         self.formula.replace("X1", "X"),

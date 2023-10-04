@@ -20,9 +20,8 @@ from numexpr import evaluate
 try:
     from sympy import lambdify, symbols
 
-    X_symbol = symbols("X1")
 except:
-    lambdify, symbols, X_symbol = None, None, None
+    lambdify, symbols = None, None
 
 import numpy as np
 
@@ -1618,6 +1617,7 @@ address: {hex(self.address)}
                 values = evaluate(self.formula)
             except:
                 if lambdify is not None:
+                    X_symbol = symbols("X1")
                     expr = lambdify(
                         X_symbol,
                         self.formula,
