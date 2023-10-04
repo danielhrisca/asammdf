@@ -196,77 +196,14 @@ class DragAndDrop:
         # Press on Source Widget
         QtTest.QTest.mousePress(source_viewport, QtCore.Qt.LeftButton, QtCore.Qt.KeyboardModifiers(), src_pos)
 
-        if source_viewport == destination_viewport:
-            move_thread = DragAndDrop.MoveThread(widget=destination_viewport, position=dst_pos)
-            move_thread.start()
+        move_thread = DragAndDrop.MoveThread(widget=destination_viewport, position=dst_pos)
+        move_thread.start()
 
-            src_widget.startDrag(QtCore.Qt.MoveAction)
-            QtTest.QTest.qWait(50)
+        src_widget.startDrag(QtCore.Qt.MoveAction)
+        QtTest.QTest.qWait(50)
 
-            move_thread.wait()
-            move_thread.quit()
-        else:
-            # Steal MimeData
-            with mock.patch(f"{src_widget.__module__}.QtGui.QDrag") as mc_QDrag:
-                mo_QDrag = mock.MagicMock()
-                mc_QDrag.return_value = mo_QDrag
-                src_widget.startDrag(QtCore.Qt.MoveAction)
-
-            drag_src_event = QtGui.QDragEnterEvent(
-                src_pos,
-                QtCore.Qt.MoveAction,
-                mo_QDrag.setMimeData.call_args.args[0],
-                QtCore.Qt.LeftButton,
-                QtCore.Qt.KeyboardModifiers(),
-            )
-            move_src_event = QtGui.QDragMoveEvent(
-                src_pos + QtCore.QPoint(3, 3),
-                QtCore.Qt.MoveAction,
-                mo_QDrag.setMimeData.call_args.args[0],
-                QtCore.Qt.LeftButton,
-                QtCore.Qt.KeyboardModifiers(),
-            )
-            drag_dst_event = QtGui.QDragEnterEvent(
-                src_pos + QtCore.QPoint(3, 3),
-                QtCore.Qt.MoveAction,
-                mo_QDrag.setMimeData.call_args.args[0],
-                QtCore.Qt.LeftButton,
-                QtCore.Qt.KeyboardModifiers(),
-            )
-            drop_dst_event = QtGui.QDropEvent(
-                dst_pos,
-                QtCore.Qt.MoveAction,
-                mo_QDrag.setMimeData.call_args.args[0],
-                QtCore.Qt.MouseButtons(),
-                QtCore.Qt.KeyboardModifiers(),
-            )
-
-            QtCore.QCoreApplication.postEvent(source_viewport, drag_src_event)
-
-            QtCore.QCoreApplication.postEvent(source_viewport, move_src_event)
-            QtCore.QCoreApplication.postEvent(source_viewport, QtGui.QDragLeaveEvent())
-            QtCore.QCoreApplication.postEvent(destination_viewport, drag_dst_event)
-
-            QtCore.QCoreApplication.postEvent(
-                destination_viewport,
-                QtGui.QDragMoveEvent(
-                    dst_pos,
-                    QtCore.Qt.DropAction.MoveAction,
-                    mo_QDrag.setMimeData.call_args.args[0],
-                    QtCore.Qt.LeftButton,
-                    QtCore.Qt.KeyboardModifiers(),
-                ),
-            )
-            QtCore.QCoreApplication.postEvent(destination_viewport, drop_dst_event)
-
-            # Send PostedEvents
-            QtCore.QCoreApplication.sendPostedEvents()
-
-            # Release on Destination Widget
-            QtTest.QTest.mouseMove(destination_viewport, dst_pos)
-            QtTest.QTest.mouseRelease(
-                destination_viewport, QtCore.Qt.LeftButton, QtCore.Qt.KeyboardModifiers(), dst_pos
-            )
+        move_thread.wait()
+        move_thread.quit()
         QtCore.QCoreApplication.processEvents()
 
 
