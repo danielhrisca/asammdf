@@ -25,3 +25,4 @@ pyinstaller<6.0; sys_platform=="win32"
 pyinstaller<6.0; sys_platform=="darwin"
 pyinstaller==4.10; sys_platform=="linux"
 scipy
+sympy

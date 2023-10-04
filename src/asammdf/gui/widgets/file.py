@@ -166,13 +166,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             progress = None
 
         try:
-            if file_name.suffix.lower() in (".erg", ".bsig", ".dl3"):
+            if file_name.suffix.lower() in (".erg", ".bsig", ".dl3", ".tdms"):
                 extension = file_name.suffix.lower().strip(".")
                 if progress:
                     progress.setLabelText(f"Converting from {extension} to mdf")
 
                 try:
-                    from mfile import BSIG, DL3, ERG
+                    from mfile import BSIG, DL3, ERG, TDMS
                 except ImportError:
                     from cmerg import BSIG, ERG
 
@@ -180,6 +180,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     cls = ERG
                 elif file_name.suffix.lower() == ".bsig":
                     cls = BSIG
+                elif file_name.suffix.lower() == ".tdms":
+                    cls = TDMS
                 else:
                     cls = DL3
 

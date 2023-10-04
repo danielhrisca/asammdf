@@ -118,7 +118,7 @@ setup(
             "packaging",
         ],
         "encryption": ["cryptography", "keyring"],
-        "symbolic_math": "numexpr3",
+        "symbolic_math": "sympy",
         "filesystem": "fsspec",
     },
     # If there are data files included in your packages that need to be

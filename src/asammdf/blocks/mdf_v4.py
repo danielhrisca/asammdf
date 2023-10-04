@@ -6777,9 +6777,7 @@ class MDF4(MDF_Common):
         dim = 1
         for d in shape:
             dim *= d
-
-        item_size = channel.bit_count // 8
-        size = item_size * dim
+        size = ca_block.byte_offset_base * dim
 
         if group.uses_ld:
             record_size = group.channel_group.samples_byte_nr
