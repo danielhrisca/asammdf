@@ -46,10 +46,10 @@ class TestPlotWidget(TestFileWidget):
 
         # PreEvaluation
         DragAndDrop(
-            source_widget=channel_tree,
-            destination_widget=plot.channel_selection,
-            source_pos=drag_position,
-            destination_pos=drop_position,
+            src_widget=channel_tree,
+            dst_widget=plot.channel_selection,
+            src_pos=drag_position,
+            dst_pos=drop_position,
         )
         self.processEvents(0.05)
         plot_channel = None
@@ -65,16 +65,15 @@ class TestPlotWidget(TestFileWidget):
     def add_channel_to_group(self, plot=None, src=None, dst=None):
         if not plot and self.plot:
             plot = self.plot
-        channel_selection = plot.channel_selection
 
         drag_position = plot.channel_selection.visualItemRect(src).center()
         drop_position = plot.channel_selection.visualItemRect(dst).center()
 
         DragAndDrop(
-            source_widget=channel_selection,
-            destination_widget=plot.channel_selection,
-            source_pos=drag_position,
-            destination_pos=drop_position,
+            src_widget=plot.channel_selection,
+            dst_widget=plot.channel_selection,
+            src_pos=drag_position,
+            dst_pos=drop_position,
         )
         self.processEvents(0.05)
 

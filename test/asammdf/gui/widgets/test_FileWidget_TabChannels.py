@@ -435,10 +435,10 @@ class TestTabChannels(TestFileWidget):
                     mc_WindowSelectionDialog.return_value.selected_type.return_value = "Plot"
 
                     DragAndDrop(
-                        source_widget=channels_tree,
-                        destination_widget=mdi_area,
-                        source_pos=drag_position,
-                        destination_pos=drop_position,
+                        src_widget=channels_tree,
+                        dst_widget=mdi_area,
+                        src_pos=drag_position,
+                        dst_pos=drop_position,
                     )
                 break
             iterator += 1

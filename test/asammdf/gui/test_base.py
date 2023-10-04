@@ -70,9 +70,11 @@ class TestBase(unittest.TestCase):
     @staticmethod
     def processEvents(timeout=0.001):
         QtCore.QCoreApplication.processEvents()
+        QtCore.QCoreApplication.sendPostedEvents()
         if timeout:
             time.sleep(timeout)
             QtCore.QCoreApplication.processEvents()
+            QtCore.QCoreApplication.sendPostedEvents()
 
     def setUp(self) -> None:
         if os.path.exists(self.test_workspace):
@@ -171,44 +173,98 @@ class DragAndDrop:
             )
             QtTest.QTest.qWait(10)
 
-    def __init__(self, source_widget, destination_widget, source_pos, destination_pos):
-        # Ensure that previous drop was not in the same place because mouse needs to be moved.
-        if self._previous_position and self._previous_position == destination_pos:
-            move_thread = DragAndDrop.MoveThread(widget=source_widget, position=QtCore.QPoint(101, 101))
+    def __init__(self, src_widget, dst_widget, src_pos, dst_pos):
+        # Ensure that the previous drop was not in the same place because the mouse needs to be moved.
+        if self._previous_position and self._previous_position == dst_pos:
+            move_thread = DragAndDrop.MoveThread(widget=src_widget, position=QtCore.QPoint(101, 101))
             move_thread.start()
             move_thread.wait()
             move_thread.quit()
-        DragAndDrop._previous_position = destination_pos
+        DragAndDrop._previous_position = dst_pos
 
         QtCore.QCoreApplication.processEvents()
-        if hasattr(source_widget, "viewport"):
-            source_viewport = source_widget.viewport()
+        if hasattr(src_widget, "viewport"):
+            source_viewport = src_widget.viewport()
         else:
-            source_viewport = source_widget
-        # Press on Source Widget
-        QtTest.QTest.mousePress(
-            source_viewport,
-            QtCore.Qt.LeftButton,
-            QtCore.Qt.KeyboardModifiers(),
-            source_pos,
-        )
-        # Drag few pixels in order to detect startDrag event
-        # drag_thread = DragAndDrop.MoveThread(widget=source_widget, position=source_pos, step=50)
-        # drag_thread.start()
+            source_viewport = src_widget
         # Move to Destination Widget
-        if hasattr(destination_widget, "viewport") and sys.platform == "win32":
-            destination_viewport = destination_widget.viewport()
+        if hasattr(dst_widget, "viewport"):
+            destination_viewport = dst_widget.viewport()
         else:
-            destination_viewport = destination_widget
-        move_thread = DragAndDrop.MoveThread(widget=destination_viewport, position=destination_pos)
-        move_thread.start()
+            destination_viewport = dst_widget
 
-        source_widget.startDrag(QtCore.Qt.MoveAction)
-        QtTest.QTest.qWait(50)
+        # Press on Source Widget
+        QtTest.QTest.mousePress(source_viewport, QtCore.Qt.LeftButton, QtCore.Qt.KeyboardModifiers(), src_pos)
 
-        # drag_thread.wait()
-        move_thread.wait()
-        move_thread.quit()
+        if source_viewport == destination_viewport:
+            move_thread = DragAndDrop.MoveThread(widget=destination_viewport, position=dst_pos)
+            move_thread.start()
+
+            src_widget.startDrag(QtCore.Qt.MoveAction)
+            QtTest.QTest.qWait(50)
+
+            move_thread.wait()
+            move_thread.quit()
+        else:
+            # Steal MimeData
+            with mock.patch(f"{src_widget.__module__}.QtGui.QDrag") as mc_QDrag:
+                mo_QDrag = mock.MagicMock()
+                mc_QDrag.return_value = mo_QDrag
+                src_widget.startDrag(QtCore.Qt.MoveAction)
+
+            drag_src_event = QtGui.QDragEnterEvent(
+                src_pos,
+                QtCore.Qt.MoveAction,
+                mo_QDrag.setMimeData.call_args.args[0],
+                QtCore.Qt.LeftButton,
+                QtCore.Qt.KeyboardModifiers()
+            )
+            move_src_event = QtGui.QDragMoveEvent(
+                src_pos + QtCore.QPoint(3, 3),
+                QtCore.Qt.MoveAction,
+                mo_QDrag.setMimeData.call_args.args[0],
+                QtCore.Qt.LeftButton,
+                QtCore.Qt.KeyboardModifiers()
+            )
+            drag_dst_event = QtGui.QDragEnterEvent(
+                src_pos + QtCore.QPoint(3, 3),
+                QtCore.Qt.MoveAction,
+                mo_QDrag.setMimeData.call_args.args[0],
+                QtCore.Qt.LeftButton,
+                QtCore.Qt.KeyboardModifiers()
+            )
+            drop_dst_event = QtGui.QDropEvent(
+                dst_pos,
+                QtCore.Qt.MoveAction,
+                mo_QDrag.setMimeData.call_args.args[0],
+                QtCore.Qt.MouseButtons(),
+                QtCore.Qt.KeyboardModifiers()
+            )
+
+            QtCore.QCoreApplication.postEvent(source_viewport, drag_src_event)
+
+            QtCore.QCoreApplication.postEvent(source_viewport, move_src_event)
+            QtCore.QCoreApplication.postEvent(source_viewport, QtGui.QDragLeaveEvent())
+            QtCore.QCoreApplication.postEvent(destination_viewport, drag_dst_event)
+
+            QtCore.QCoreApplication.postEvent(
+                destination_viewport,
+                QtGui.QDragMoveEvent(
+                    dst_pos,
+                    QtCore.Qt.DropAction.MoveAction,
+                    mo_QDrag.setMimeData.call_args.args[0],
+                    QtCore.Qt.LeftButton,
+                    QtCore.Qt.KeyboardModifiers()
+                )
+            )
+            QtCore.QCoreApplication.postEvent(destination_viewport, drop_dst_event)
+
+            # Send PostedEvents
+            QtCore.QCoreApplication.sendPostedEvents()
+
+            # Release on Destination Widget
+            QtTest.QTest.mouseMove(destination_viewport, dst_pos)
+            QtTest.QTest.mouseRelease(destination_viewport, QtCore.Qt.LeftButton, QtCore.Qt.KeyboardModifiers(), dst_pos)
         QtCore.QCoreApplication.processEvents()
 
 
