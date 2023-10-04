@@ -130,10 +130,10 @@ class TestDragAndDrop(TestPlotWidget):
 
     @unittest.skipIf(sys.platform != "win32", "Test applicable just for Windows.")
     # Test is applicable just for Windows because of Drag and Drop implementation.
-    # In order to perform this operation two threads are needed, one to startDrag operation and the other one to move
+    # In order to perform this operation, two threads are needed, one to startDrag operation and the other one to move
     # the cursor and Release/drop the item.
     # It may happen that drag operation or drop operation to lead on starting/stopping internal QTimers.
-    # On Linux closing any QTimer/QThread in other one thread than parent leads to Segmentation Fault.
+    # On Linux, closing any QTimer/QThread in other one thread than parent leads to Segmentation Fault.
     # Windows behaves differently on startDrag operation.
     def test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot(self):
         """
@@ -322,7 +322,7 @@ class TestDragAndDrop(TestPlotWidget):
 
                 drag_position = plot.channel_selection.visualItemRect(first_channel).center()
                 drop_position = plot.channel_selection.visualItemRect(first_group).center()
-                # Get Name of first channel
+                # Get the Name of first channel
                 first_channel = first_channel.text(self.Column.NAME)
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, first_group.childCount())
@@ -460,7 +460,7 @@ class TestDragAndDrop(TestPlotWidget):
             - Open 'FileWidget' with valid measurement.
             - Switch ComboBox to "Natural sort"
             - Press PushButton "Create Window"
-                - Simulate that Plot window is selected as window type.
+                - Simulate that Plot window is selected as a window type.
         Events:
             - Select one channel and drag it to the 'Plot 0'
             - Press PushButton "Create Window"
@@ -511,7 +511,7 @@ class TestDragAndDrop(TestPlotWidget):
         )
         self.assertEqual(1, plot_1.channel_selection.topLevelItemCount())
 
-        # Select channel from 'Plot 0' and drag it to the 'Plot 1'
+        # Select the channel from 'Plot 0' and drag it to 'Plot 1'
         # Drag one Channel from FileWidget channel_tree to Plot_0
         plot_0_channel = plot_0.channel_selection.topLevelItem(0)
         plot_0_channel_name = plot_0_channel.text(self.Column.NAME)
