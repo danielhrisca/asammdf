@@ -292,6 +292,18 @@ class Pixmap:
         return color_names
 
     @staticmethod
+    def color_map(pixmap):
+        color_dict = {}
+        line = []
+        image = pixmap.toImage()
+        for y in range(image.height()):
+            for x in range(image.width()):
+                line.append(QtGui.QColor(image.pixel(x, y)).name())
+            color_dict[y] = line
+            line = []
+        return color_dict
+
+    @staticmethod
     def cursors_x(pixmap):
         image = pixmap.toImage()
 

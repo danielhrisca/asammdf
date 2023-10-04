@@ -12,7 +12,6 @@ class TestShortcuts(TestPlotWidget):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.PlotOffset = 5
 
     def setUp(self):
         # Open measurement file
@@ -31,6 +30,12 @@ class TestShortcuts(TestPlotWidget):
         self.mouseDClick_WidgetItem(self.channel_36)
         self.mouseDClick_WidgetItem(self.channel_37)
         self.processEvents()
+        # Remove dots
+        if self.plot.plot.with_dots:
+            self.plot.plot.set_dots(False)
+        self.processEvents()
+        # pixmap is not black
+        self.assertFalse(Pixmap.is_black(self.plot.plot.viewport().grab()))
 
     def test_Plot_Plot_Shortcut_Key_LeftRight(self):
         """
@@ -265,47 +270,41 @@ class TestShortcuts(TestPlotWidget):
         # check if grid is available
         if not self.plot.hide_axes_btn.isFlat():
             QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
-        # Test if plot is not only black
-        pixmap = self.plot.plot.viewport().grab()
-        self.assertFalse(Pixmap.is_black(pixmap))
 
         # Press "S"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_S)
+        self.processEvents()
+        # Create a color map for plot
+        colorMap = Pixmap.color_map(self.plot.plot.viewport().grab())
+        self.assertTrue(colorMap, "Failed to create color map")
+        # Evaluate if signal was separated
         for y in range(self.plot.plot.height()):
             if y < self.plot.plot.height() / 2:
                 self.assertFalse(
-                    Pixmap.has_color(
-                        self.plot.plot.viewport().grab(QtCore.QRect(0, y, self.plot.plot.viewport().width(), 1)),
-                        self.channel_37.color.name(),
-                    ),
-                    f"Line {y} doesn't contain {self.channel_37.name} color",
+                    colorMap[y].count(self.channel_37.color.name()),
+                    f"Line {y} contain {self.channel_37.name} color",
                 )
             else:
                 self.assertFalse(
-                    Pixmap.has_color(
-                        self.plot.plot.viewport().grab(QtCore.QRect(0, y, self.plot.plot.viewport().width(), 1)),
-                        self.channel_36.color.name(),
-                    ),
-                    f"Line {y} doesn't contain{self.channel_36.name} color",
+                    colorMap[y].count(self.channel_36.color.name()),
+                    f"Line {y} contain{self.channel_36.name} color",
                 )
 
         # Press "F"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_F)
         self.processEvents()
+        # Create a color map for plot
+        colorMap = Pixmap.color_map(self.plot.plot.viewport().grab())
+        self.assertTrue(colorMap, "Failed to create color map")
+        # First and last line is black
         for y in range(1, self.plot.plot.height() - 1):
             self.assertTrue(
-                Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(0, y, self.plot.plot.viewport().width(), 1)),
-                    self.channel_36.color.name(),
-                ),
-                f"Line {y} contain {self.channel_36.name} color",
+                colorMap[y].count(self.channel_36.color.name()),
+                f"Line {y} doesn't contain {self.channel_36.name} color",
             )
             self.assertTrue(
-                Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(0, y, self.plot.plot.viewport().width(), 1)),
-                    self.channel_37.color.name(),
-                ),
-                f"Line {y} contain {self.channel_37.name} color",
+                colorMap[y].count(self.channel_37.color.name()),
+                f"Line {y} doesn't contain {self.channel_37.name} color",
             )
 
     def test_Plot_Plot_Shortcut_Shift_F(self):
@@ -315,40 +314,35 @@ class TestShortcuts(TestPlotWidget):
             - Open 'FileWidget' with valid measurement.
             - Select 2 measurement and create a plot
             - Press Key "S"
+            - Select first channel
             - Press "Shift+F"
         Evaluate:
             - Evaluate that two signals are available
             - Evaluate that plot is not black
-            - Evaluate that the color of signals is not displayed on top and bottom line of plot after pressing key "S"
-            - Evaluate that only color of first signal is displayed on top and bottom line of plot
-                    after pressing "Shift+F"
+            - Evaluate that signals is separated after pressing key "S"
+            - Evaluate that only first signal is fitted by Y ax of plot after pressing "Shift+F"
         """
         # check if grid is available
         if not self.plot.hide_axes_btn.isFlat():
             QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
 
-        # Evaluate that plot is not only black
-        pixmap = self.plot.plot.viewport().grab()
-        self.assertFalse(Pixmap.is_black(pixmap))
-
         # Press "S"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_S)
+        self.processEvents()
+        # Create a color map for plot
+        colorMap = Pixmap.color_map(self.plot.plot.viewport().grab())
+        self.assertTrue(colorMap, "Failed to create color map")
+        # Evaluate if signal was separated
         for y in range(self.plot.plot.height()):
             if y < self.plot.plot.height() / 2:
                 self.assertFalse(
-                    Pixmap.has_color(
-                        self.plot.plot.viewport().grab(QtCore.QRect(0, y, self.plot.plot.viewport().width(), 1)),
-                        self.channel_37.color.name(),
-                    ),
-                    f"Line {y} doesn't contain {self.channel_37.name} color",
+                    colorMap[y].count(self.channel_37.color.name()),
+                    f"Line {y} contain {self.channel_37.name} color",
                 )
             else:
                 self.assertFalse(
-                    Pixmap.has_color(
-                        self.plot.plot.viewport().grab(QtCore.QRect(0, y, self.plot.plot.viewport().width(), 1)),
-                        self.channel_36.color.name(),
-                    ),
-                    f"Line {y} doesn't contain{self.channel_36.name} color",
+                    colorMap[y].count(self.channel_36.color.name()),
+                    f"Line {y} contain{self.channel_36.name} color",
                 )
         # Select first signal
         self.mouseClick_WidgetItem(self.channel_36)
@@ -356,20 +350,17 @@ class TestShortcuts(TestPlotWidget):
         QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+F"))
         for i in range(100):
             self.processEvents()
+        # Create a color map for plot
+        colorMap = Pixmap.color_map(self.plot.plot.viewport().grab())
+        self.assertTrue(colorMap, "Failed to create color map")
         for y in range(1, self.plot.plot.height() - 1):
             self.assertTrue(
-                Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(0, y, self.plot.plot.viewport().width(), 1)),
-                    self.channel_36.color.name(),
-                ),
-                f"Line {y} contain {self.channel_36.name} color",
+                colorMap[y].count(self.channel_36.color.name()),
+                f"Line {y} doesn't contain {self.channel_36.name} color",
             )
             if y < self.plot.plot.height() / 2:
                 self.assertFalse(
-                    Pixmap.has_color(
-                        self.plot.plot.viewport().grab(QtCore.QRect(0, y, self.plot.plot.viewport().width(), 1)),
-                        self.channel_37.color.name(),
-                    ),
+                    colorMap[y].count(self.channel_37.color.name()),
                     f"Line {y} doesn't contain {self.channel_37.name} color",
                 )
 
@@ -469,7 +460,7 @@ class TestShortcuts(TestPlotWidget):
         # search first and last column where is displayed first signal
         firstColoredColumn = None
         lastColoredColumn = None
-        for x in range(self.plot.plot.viewport().width()):
+        for x in range(self.plot.plot.width()):
             if Pixmap.has_color(
                 self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.viewport().height())),
                 self.channel_36.color.name(),
@@ -478,7 +469,7 @@ class TestShortcuts(TestPlotWidget):
                 break
         # Evaluate that there are at least one column with signal color
         self.assertTrue(firstColoredColumn)
-        for x in range(self.plot.plot.viewport().width(), firstColoredColumn, -1):
+        for x in range(self.plot.plot.width(), firstColoredColumn, -1):
             if Pixmap.has_color(
                 self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.viewport().height())),
                 self.channel_36.color.name(),
@@ -489,16 +480,10 @@ class TestShortcuts(TestPlotWidget):
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_S)
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_I)
         self.processEvents()
-        # save pixmap
-        pixmap = self.plot.plot.viewport().grab()
-        self.assertFalse(Pixmap.is_black(pixmap))
+
         # save left and right pixel column
-        xLeftColumn = self.plot.plot.viewport().grab(
-            QtCore.QRect(firstColoredColumn, 0, 1, self.plot.plot.viewport().height())
-        )
-        xRightColumn = self.plot.plot.viewport().grab(
-            QtCore.QRect(lastColoredColumn, 0, 1, self.plot.plot.viewport().height())
-        )
+        xLeftColumn = self.plot.plot.viewport().grab(QtCore.QRect(firstColoredColumn, 0, 1, self.plot.plot.height()))
+        xRightColumn = self.plot.plot.viewport().grab(QtCore.QRect(lastColoredColumn, 0, 1, self.plot.plot.height()))
         self.assertFalse(Pixmap.has_color(xLeftColumn, self.channel_36.color.name()))
         self.assertFalse(Pixmap.has_color(xLeftColumn, self.channel_37.color.name()))
         self.assertTrue(Pixmap.has_color(xRightColumn, self.channel_36.color.name()))
@@ -507,12 +492,8 @@ class TestShortcuts(TestPlotWidget):
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_W)
         self.processEvents()
         # Save left and right pixel column
-        xLeftColumn = self.plot.plot.viewport().grab(
-            QtCore.QRect(firstColoredColumn, 0, 1, self.plot.plot.viewport().height())
-        )
-        xRightColumn = self.plot.plot.viewport().grab(
-            QtCore.QRect(lastColoredColumn, 0, 1, self.plot.plot.viewport().height())
-        )
+        xLeftColumn = self.plot.plot.viewport().grab(QtCore.QRect(firstColoredColumn, 0, 1, self.plot.plot.height()))
+        xRightColumn = self.plot.plot.viewport().grab(QtCore.QRect(lastColoredColumn, 0, 1, self.plot.plot.height()))
         self.assertTrue(Pixmap.has_color(xLeftColumn, self.channel_36.color.name()))
         self.assertTrue(Pixmap.has_color(xLeftColumn, self.channel_37.color.name()))
         self.assertTrue(Pixmap.has_color(xRightColumn, self.channel_36.color.name()))
@@ -532,7 +513,7 @@ class TestShortcuts(TestPlotWidget):
             - Evaluate that plot is not black
             - Evaluate that the color of both signals is displayed on midd line of plot after pressing key "F"
             - Evaluate that signals are separated in top and bottom half of plot after pressing key "S"
-                > midd line iis empty
+                > top, midd and bottom lines is empty
                 > top half contain only first signal
                 > bottom half contain only second signal
         """
@@ -540,83 +521,87 @@ class TestShortcuts(TestPlotWidget):
         if not self.plot.hide_axes_btn.isFlat():
             QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
 
-        # save pixmap
-        pixmap = self.plot.plot.viewport().grab()
-        self.assertFalse(Pixmap.is_black(pixmap))
         # Press "F"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_F)
         self.processEvents()
-        # Save Top and Bottom pixel line of plot
-        halfOfY = int(self.plot.plot.height() / 2)  # halfOfY of Y ax
-        yMiddLine = self.plot.plot.viewport().grab(QtCore.QRect(0, halfOfY, self.plot.plot.viewport().width(), 1))
-        self.assertTrue(Pixmap.has_color(yMiddLine, self.channel_36.color.name()))
-        self.assertTrue(Pixmap.has_color(yMiddLine, self.channel_37.color.name()))
+        # Create a color map for plot
+        colorMap = Pixmap.color_map(self.plot.plot.viewport().grab())
+        self.assertTrue(colorMap, "Failed to create color map")
+        # Evaluate if signal was fitted (first and last line is black)
+        for y in range(1, self.plot.plot.height() - 1):
+            self.assertTrue(
+                colorMap[y].count(self.channel_37.color.name()),
+                f"Line {y} doesn't contain {self.channel_37.name} color",
+            )
+            self.assertTrue(
+                colorMap[y].count(self.channel_36.color.name()),
+                f"Line {y} doesn't contain {self.channel_36.name} color",
+            )
 
         # Press "S"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_S)
         self.processEvents()
-        # Select midd line
-        yMiddLine = self.plot.plot.viewport().grab(QtCore.QRect(0, halfOfY, self.plot.plot.viewport().width(), 1))
-        self.assertFalse(Pixmap.has_color(yMiddLine, self.channel_36.color.name()))
-        self.assertFalse(Pixmap.has_color(yMiddLine, self.channel_37.color.name()))
-        # Select First and Last line for first signal
-        firstColoredLine_channel_36 = None
-        lastColoredLine_channel_36 = None
-        for column in range(halfOfY):
-            if Pixmap.has_color(
-                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                self.channel_36.color.name(),
-            ):
-                firstColoredLine_channel_36 = column
+        # Create a color map for plot
+        colorMap = Pixmap.color_map(self.plot.plot.viewport().grab())
+        self.assertTrue(colorMap, "Failed to create color map")
+        # Search top and bottom
+        topOfChannel_36 = None
+        for y in range(self.plot.plot.height()):
+            if colorMap[y].count(self.channel_36.color.name()):
+                topOfChannel_36 = y
                 break
-        # Evaluate that there are at least one column with signal color
-        self.assertTrue(firstColoredLine_channel_36)
-        for column in range(halfOfY, firstColoredLine_channel_36, -1):
-            if Pixmap.has_color(
-                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                self.channel_36.color.name(),
-            ):
-                lastColoredLine_channel_36 = column
+        self.assertTrue(topOfChannel_36)
+        bottomOfChannel_36 = None
+        for y in range(int(self.plot.plot.height() / 2), topOfChannel_36, -1):
+            if colorMap[y].count(self.channel_36.color.name()):
+                bottomOfChannel_36 = y
                 break
-        yTopLine_channel_36 = self.plot.plot.viewport().grab(
-            QtCore.QRect(0, firstColoredLine_channel_36, self.plot.plot.viewport().width(), 1)
-        )
-        yBottomLine_channel_36 = self.plot.plot.viewport().grab(
-            QtCore.QRect(0, lastColoredLine_channel_36, self.plot.plot.viewport().width(), 1)
-        )
-        self.assertTrue(Pixmap.has_color(yTopLine_channel_36, self.channel_36.color.name()))
-        self.assertFalse(Pixmap.has_color(yTopLine_channel_36, self.channel_37.color.name()))
-        self.assertTrue(Pixmap.has_color(yBottomLine_channel_36, self.channel_36.color.name()))
-        self.assertFalse(Pixmap.has_color(yBottomLine_channel_36, self.channel_37.color.name()))
-        # Select First and Last line for second signal
-        firstColoredLine_channel_37 = None
-        lastColoredLine_channel_37 = None
-        for column in range(halfOfY, self.plot.plot.viewport().height(), 1):
-            if Pixmap.has_color(
-                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                self.channel_37.color.name(),
-            ):
-                firstColoredLine_channel_37 = column
+        topOfChannel_37 = None
+        for y in range(int(self.plot.plot.height() / 2), self.plot.plot.height(), 1):
+            if colorMap[y].count(self.channel_37.color.name()):
+                topOfChannel_37 = y
                 break
-        # Evaluate that there are at least one column with signal color
-        self.assertTrue(firstColoredLine_channel_37)
-        for column in range(firstColoredLine_channel_37, halfOfY, -1):
-            if Pixmap.has_color(
-                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                self.channel_37.color.name(),
-            ):
-                lastColoredLine_channel_37 = column
+        self.assertTrue(topOfChannel_37)
+        bottomOfChannel_37 = None
+        for y in range(self.plot.plot.height() - 1, topOfChannel_37, -1):
+            if colorMap[y].count(self.channel_37.color.name()):
+                bottomOfChannel_37 = y
                 break
-        yTopLine_channel_37 = self.plot.plot.viewport().grab(
-            QtCore.QRect(0, firstColoredLine_channel_37, self.plot.plot.viewport().width(), 1)
-        )
-        yBottomLine_channel_37 = self.plot.plot.viewport().grab(
-            QtCore.QRect(0, lastColoredLine_channel_37, self.plot.plot.viewport().width(), 1)
-        )
-        self.assertFalse(Pixmap.has_color(yTopLine_channel_37, self.channel_36.color.name()))
-        self.assertTrue(Pixmap.has_color(yTopLine_channel_37, self.channel_37.color.name()))
-        self.assertFalse(Pixmap.has_color(yBottomLine_channel_37, self.channel_36.color.name()))
-        self.assertTrue(Pixmap.has_color(yBottomLine_channel_37, self.channel_37.color.name()))
+        # Evaluate plot
+        self.assertNotEqual(bottomOfChannel_36, topOfChannel_37, "The signals is intersected")
+        for key in colorMap.keys():
+            if key < topOfChannel_36:
+                self.assertEqual(
+                    colorMap[key].count("#000000"), self.plot.plot.width(), f"Top line {key} of plot is not only black"
+                )
+            elif topOfChannel_36 <= key <= bottomOfChannel_36:
+                self.assertTrue(
+                    colorMap[key].count(self.channel_36.color.name()),
+                    f"In line {key} of plot was not found color of {self.channel_36.name}",
+                )
+                self.assertFalse(
+                    colorMap[key].count(self.channel_37.color.name()),
+                    f"In line {key} of plot was found color of {self.channel_37.name}",
+                )
+            elif bottomOfChannel_36 < key < topOfChannel_37:
+                self.assertEqual(
+                    colorMap[key].count("#000000"), self.plot.plot.width(), f"Midd line {key} of plot is not only black"
+                )
+            elif topOfChannel_37 <= key <= bottomOfChannel_37:
+                self.assertFalse(
+                    colorMap[key].count(self.channel_36.color.name()),
+                    f"In line {key} of plot was found color of {self.channel_36.name}",
+                )
+                self.assertTrue(
+                    colorMap[key].count(self.channel_37.color.name()),
+                    f"In line {key} of plot was not found color of {self.channel_37.name}",
+                )
+            else:
+                self.assertEqual(
+                    colorMap[key].count("#000000"),
+                    self.plot.plot.width(),
+                    f"Bottom line {key} of plot is not only black",
+                )
 
     def test_Plot_Plot_Shortcut_Key_S_3_Signals(self):
         """
@@ -654,136 +639,133 @@ class TestShortcuts(TestPlotWidget):
         # check if grid is available
         if not self.plot.hide_axes_btn.isFlat():
             QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
-
-        # save pixmap
-        pixmap = self.plot.plot.viewport().grab()
-        self.assertFalse(Pixmap.is_black(pixmap))
+        # Remove dots
+        if self.plot.plot.with_dots:
+            self.plot.plot.set_dots(False)
+        self.processEvents()
+        # pixmap is not black
+        self.assertFalse(Pixmap.is_black(self.plot.plot.viewport().grab()))
         # Press "F"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_F)
         self.processEvents()
-        # Save Top and Bottom pixel line of plot
-        thirdOfY = int(self.plot.plot.height() / 3)  # third of Y ax
-        yTopThirdLine = self.plot.plot.viewport().grab(QtCore.QRect(0, thirdOfY, self.plot.plot.viewport().width(), 1))
-        yBottomThirdLine = self.plot.plot.viewport().grab(
-            QtCore.QRect(0, thirdOfY * 2, self.plot.plot.viewport().width(), 1)
-        )
-        self.assertTrue(Pixmap.has_color(yTopThirdLine, channel_35.color.name()))
-        self.assertTrue(Pixmap.has_color(yTopThirdLine, self.channel_36.color.name()))
-        self.assertTrue(Pixmap.has_color(yTopThirdLine, self.channel_37.color.name()))
-        self.assertTrue(Pixmap.has_color(yBottomThirdLine, channel_35.color.name()))
-        self.assertTrue(Pixmap.has_color(yBottomThirdLine, self.channel_36.color.name()))
-        self.assertTrue(Pixmap.has_color(yBottomThirdLine, self.channel_37.color.name()))
+        # Create a color map for plot
+        colorMap = Pixmap.color_map(self.plot.plot.viewport().grab())
+        self.assertTrue(colorMap, "Failed to create color map")
+        # Evaluate if signal was fitted (first and last line is black)
+        for y in range(1, self.plot.plot.height() - 1):
+            self.assertTrue(
+                colorMap[y].count(self.channel_37.color.name()),
+                f"Line {y} doesn't contain {self.channel_37.name} color",
+            )
+            self.assertTrue(
+                colorMap[y].count(self.channel_36.color.name()),
+                f"Line {y} doesn't contain {self.channel_36.name} color",
+            )
+            self.assertTrue(
+                colorMap[y].count(channel_35.color.name()),
+                f"Line {y} doesn't contain {channel_35.name} color",
+            )
 
         # Press "S"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_S)
         self.processEvents()
-        # Select third lines
-        yTopThirdLine = self.plot.plot.viewport().grab(QtCore.QRect(0, thirdOfY, self.plot.plot.viewport().width(), 1))
-        yBottomThirdLine = self.plot.plot.viewport().grab(
-            QtCore.QRect(0, thirdOfY * 2, self.plot.plot.viewport().width(), 1)
-        )
-        self.assertFalse(Pixmap.has_color(yTopThirdLine, channel_35.color.name()))
-        self.assertFalse(Pixmap.has_color(yTopThirdLine, self.channel_36.color.name()))
-        self.assertFalse(Pixmap.has_color(yTopThirdLine, self.channel_37.color.name()))
-        self.assertFalse(Pixmap.has_color(yBottomThirdLine, channel_35.color.name()))
-        self.assertFalse(Pixmap.has_color(yBottomThirdLine, self.channel_36.color.name()))
-        self.assertFalse(Pixmap.has_color(yBottomThirdLine, self.channel_37.color.name()))
-
-        # Select First and Last line for first signal
-        firstColoredLine_channel_35 = None
-        lastColoredLine_channel_35 = None
-        for column in range(thirdOfY):
-            if Pixmap.has_color(
-                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                channel_35.color.name(),
-            ):
-                firstColoredLine_channel_35 = column
+        # Create a color map for plot
+        colorMap = Pixmap.color_map(self.plot.plot.viewport().grab())
+        self.assertTrue(colorMap, "Failed to create color map")
+        # Search top and bottom of channels on plot
+        topOfChannel_35 = None
+        for y in range(self.plot.plot.height()):
+            if colorMap[y].count(channel_35.color.name()):
+                topOfChannel_35 = y
                 break
-        # Evaluate that there are at least one column with signal color
-        self.assertTrue(firstColoredLine_channel_35)
-        for column in range(thirdOfY, firstColoredLine_channel_35, -1):
-            if Pixmap.has_color(
-                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                channel_35.color.name(),
-            ):
-                lastColoredLine_channel_35 = column
+        self.assertTrue(topOfChannel_35)
+        bottomOfChannel_35 = None
+        for y in range(int(self.plot.plot.height() / 3), topOfChannel_35, -1):
+            if colorMap[y].count(channel_35.color.name()):
+                bottomOfChannel_35 = y
                 break
-        yTopLine_channel_35 = self.plot.plot.viewport().grab(
-            QtCore.QRect(0, firstColoredLine_channel_35, self.plot.plot.viewport().width(), 1)
-        )
-        yBottomLine_channel_35 = self.plot.plot.viewport().grab(
-            QtCore.QRect(0, lastColoredLine_channel_35, self.plot.plot.viewport().width(), 1)
-        )
-        self.assertTrue(Pixmap.has_color(yTopLine_channel_35, channel_35.color.name()))
-        self.assertTrue(Pixmap.has_color(yBottomLine_channel_35, channel_35.color.name()))
-        self.assertFalse(Pixmap.has_color(yTopLine_channel_35, self.channel_36.color.name()))
-        self.assertFalse(Pixmap.has_color(yBottomLine_channel_35, self.channel_36.color.name()))
-        self.assertFalse(Pixmap.has_color(yTopLine_channel_35, self.channel_37.color.name()))
-        self.assertFalse(Pixmap.has_color(yBottomLine_channel_35, self.channel_37.color.name()))
-
-        # Select First and Last line for second signal
-        firstColoredLine_channel_36 = None
-        lastColoredLine_channel_36 = None
-        for column in range(thirdOfY, thirdOfY * 2):
-            if Pixmap.has_color(
-                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                self.channel_36.color.name(),
-            ):
-                firstColoredLine_channel_36 = column
+        topOfChannel_36 = None
+        for y in range(int(self.plot.plot.height() / 3), int(self.plot.plot.height() / 3) * 2):
+            if colorMap[y].count(self.channel_36.color.name()):
+                topOfChannel_36 = y
                 break
-        # Evaluate that there are at least one column with signal color
-        self.assertTrue(firstColoredLine_channel_36)
-        for column in range(thirdOfY * 2, thirdOfY, -1):
-            if Pixmap.has_color(
-                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                self.channel_36.color.name(),
-            ):
-                lastColoredLine_channel_36 = column
+        self.assertTrue(topOfChannel_36)
+        bottomOfChannel_36 = None
+        for y in range(int(self.plot.plot.height() / 3) * 2, topOfChannel_36, -1):
+            if colorMap[y].count(self.channel_36.color.name()):
+                bottomOfChannel_36 = y
                 break
-        yTopLine_channel_36 = self.plot.plot.viewport().grab(
-            QtCore.QRect(0, firstColoredLine_channel_36, self.plot.plot.viewport().width(), 1)
-        )
-        yBottomLine_channel_36 = self.plot.plot.viewport().grab(
-            QtCore.QRect(0, lastColoredLine_channel_36, self.plot.plot.viewport().width(), 1)
-        )
-        self.assertFalse(Pixmap.has_color(yTopLine_channel_36, channel_35.color.name()))
-        self.assertFalse(Pixmap.has_color(yBottomLine_channel_36, channel_35.color.name()))
-        self.assertTrue(Pixmap.has_color(yTopLine_channel_36, self.channel_36.color.name()))
-        self.assertTrue(Pixmap.has_color(yBottomLine_channel_36, self.channel_36.color.name()))
-        self.assertFalse(Pixmap.has_color(yTopLine_channel_36, self.channel_37.color.name()))
-        self.assertFalse(Pixmap.has_color(yBottomLine_channel_36, self.channel_37.color.name()))
-
-        # Select First and Last line for third signal
-        firstColoredLine_channel_37 = None
-        lastColoredLine_channel_37 = None
-        for column in range(thirdOfY * 2, self.plot.plot.viewport().height()):
-            if Pixmap.has_color(
-                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                self.channel_37.color.name(),
-            ):
-                firstColoredLine_channel_37 = column
+        topOfChannel_37 = None
+        for y in range(int(self.plot.plot.height() / 3) * 2, self.plot.plot.height(), 1):
+            if colorMap[y].count(self.channel_37.color.name()):
+                topOfChannel_37 = y
                 break
-        # Evaluate that there are at least one column with signal color
-        self.assertTrue(firstColoredLine_channel_37)
-        for column in range(self.plot.plot.viewport().height(), firstColoredLine_channel_37, -1):
-            if Pixmap.has_color(
-                self.plot.plot.viewport().grab(QtCore.QRect(0, column, self.plot.plot.viewport().width(), 1)),
-                self.channel_37.color.name(),
-            ):
-                lastColoredLine_channel_37 = column
+        self.assertTrue(topOfChannel_37)
+        bottomOfChannel_37 = None
+        for y in range(self.plot.plot.height() - 1, topOfChannel_37, -1):
+            if colorMap[y].count(self.channel_37.color.name()):
+                bottomOfChannel_37 = y
                 break
-        yTopLine_channel_37 = self.plot.plot.viewport().grab(
-            QtCore.QRect(0, firstColoredLine_channel_37, self.plot.plot.viewport().width(), 1)
-        )
-        yBottomLine_channel_37 = self.plot.plot.viewport().grab(
-            QtCore.QRect(0, lastColoredLine_channel_37, self.plot.plot.viewport().width(), 1)
-        )
-        self.assertFalse(Pixmap.has_color(yBottomLine_channel_37, channel_35.color.name()))
-        self.assertFalse(Pixmap.has_color(yBottomLine_channel_37, channel_35.color.name()))
-        self.assertFalse(Pixmap.has_color(yTopLine_channel_37, self.channel_36.color.name()))
-        self.assertFalse(Pixmap.has_color(yTopLine_channel_37, self.channel_36.color.name()))
-        self.assertTrue(Pixmap.has_color(yTopLine_channel_37, self.channel_37.color.name()))
-        self.assertTrue(Pixmap.has_color(yBottomLine_channel_37, self.channel_37.color.name()))
+        # Evaluate plot
+        self.assertNotEqual(bottomOfChannel_36, topOfChannel_37, "The signals is intersected")
+        for key in colorMap.keys():
+            if key < topOfChannel_35:
+                self.assertEqual(
+                    colorMap[key].count("#000000"), self.plot.plot.width(), f"Top line {key} of plot is not only black"
+                )
+            elif topOfChannel_35 <= key <= bottomOfChannel_35:
+                self.assertTrue(
+                    colorMap[key].count(channel_35.color.name()),
+                    f"In line {key} of plot was not found color of {channel_35.name}",
+                )
+                self.assertFalse(
+                    colorMap[key].count(self.channel_36.color.name()),
+                    f"In line {key} of plot was found color of {self.channel_36.name}",
+                )
+                self.assertFalse(
+                    colorMap[key].count(self.channel_37.color.name()),
+                    f"In line {key} of plot was found color of {self.channel_37.name}",
+                )
+            elif bottomOfChannel_35 < key < topOfChannel_36:
+                self.assertEqual(
+                    colorMap[key].count("#000000"), self.plot.plot.width(), f"Top line {key} of plot is not only black"
+                )
+            elif topOfChannel_36 <= key <= bottomOfChannel_36:
+                self.assertFalse(
+                    colorMap[key].count(channel_35.color.name()),
+                    f"In line {key} of plot was found color of {channel_35.name}",
+                )
+                self.assertTrue(
+                    colorMap[key].count(self.channel_36.color.name()),
+                    f"In line {key} of plot was not found color of {self.channel_36.name}",
+                )
+                self.assertFalse(
+                    colorMap[key].count(self.channel_37.color.name()),
+                    f"In line {key} of plot was found color of {self.channel_37.name}",
+                )
+            elif bottomOfChannel_36 < key < topOfChannel_37:
+                self.assertEqual(
+                    colorMap[key].count("#000000"), self.plot.plot.width(), f"Midd line {key} of plot is not only black"
+                )
+            elif topOfChannel_37 <= key <= bottomOfChannel_37:
+                self.assertFalse(
+                    colorMap[key].count(channel_35.color.name()),
+                    f"In line {key} of plot was found color of {channel_35.name}",
+                )
+                self.assertFalse(
+                    colorMap[key].count(self.channel_36.color.name()),
+                    f"In line {key} of plot was found color of {self.channel_36.name}",
+                )
+                self.assertTrue(
+                    colorMap[key].count(self.channel_37.color.name()),
+                    f"In line {key} of plot was not found color of {self.channel_37.name}",
+                )
+            else:
+                self.assertEqual(
+                    colorMap[key].count("#000000"),
+                    self.plot.plot.width(),
+                    f"Bottom line {key} of plot is not only black",
+                )
 
     def test_Plot_Plot_Shortcut_Shift_S(self):
         """
@@ -803,9 +785,6 @@ class TestShortcuts(TestPlotWidget):
             - Evaluate that signals are separated in top and bottom half of plot after pressing key "S"
             - Evaluate that first signal is in both half's of plot and second is ony in bottom half of plot
         """
-        # save pixmap
-        pixmap = self.plot.plot.viewport().grab()
-        self.assertFalse(Pixmap.is_black(pixmap))
         # Press "F"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_F)
         self.processEvents()
@@ -841,3 +820,48 @@ class TestShortcuts(TestPlotWidget):
         self.assertFalse(Pixmap.has_color(yMiddLine, self.channel_37.color.name()))
         self.assertTrue(Pixmap.has_color(yBottomLine, self.channel_36.color.name()))
         self.assertTrue(Pixmap.has_color(yBottomLine, self.channel_37.color.name()))
+
+    def test_Plot_Plot_Shortcut_I(self):
+        """
+        Test Scope:
+            Check if zooming is released after pressing key "I".
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Display 1 signal on plot
+            - Press combination "Shift+S"
+        Evaluate:
+            - Evaluate that plot is not black
+            - Evaluate that distance between first and second transition of signal in the same line is increased
+                after pressing key "I"
+        """
+        self.mouseDClick_WidgetItem(self.channel_37)
+        self.processEvents()
+        # Select line
+        yMiddLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.viewport().width(), 1)
+        )
+        colorMap = Pixmap.color_map(yMiddLine)
+        distanceInPixels_1 = 0
+        # Find distance between first and second signal transit trough midd line
+        for i, x in enumerate(colorMap[0]):
+            if x == self.channel_36.color.name():
+                distanceInPixels_1 = i - distanceInPixels_1
+                if distanceInPixels_1 != i:
+                    break
+        self.assertTrue(distanceInPixels_1)
+        # Press "I"
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_I)
+        self.processEvents()
+        # Select line
+        yMiddLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.viewport().width(), 1)
+        )
+        colorMap = Pixmap.color_map(yMiddLine)
+        distanceInPixels_2 = 0
+        # Find distance between first and second signal transit trough midd line
+        for i, x in enumerate(colorMap[0]):
+            if x == self.channel_36.color.name():
+                distanceInPixels_2 = i - distanceInPixels_2
+                if distanceInPixels_2 != i:
+                    break
+        self.assertLess(distanceInPixels_1, distanceInPixels_2)
