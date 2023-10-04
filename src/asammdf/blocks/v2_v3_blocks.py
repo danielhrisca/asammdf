@@ -20,7 +20,7 @@ from numexpr import evaluate
 try:
     from sympy import lambdify, symbols
 
-    X_symbol = symbols("X")
+    X_symbol = symbols("X1")
 except:
     lambdify, symbols, X_symbol = None, None, None
 
@@ -1612,7 +1612,7 @@ address: {hex(self.address)}
             # pylint: disable=unused-variable,C0103
 
             try:
-                X = values
+                X1 = values
                 INF = np.inf
                 NaN = np.nan
                 values = evaluate(self.formula)
