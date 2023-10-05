@@ -16,12 +16,14 @@ class TestShortcuts(TestPlotWidget):
     def setUp(self):
         # Open measurement file
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
+        # Switch ComboBox to "Natural sort"
+        self.widget.channel_view.setCurrentText("Natural sort")
         # Select channels -> Press PushButton "Create Window" -> "Plot"
         self.create_window(window_type="Plot", channels_indexes=(36, 37))
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
         self.plot = self.widget.mdi_area.subWindowList()[0].widget()
         # Settings for cursor
-        self.widget.set_cursor_options(False, False, 1, "#000000")
+        self.widget.set_cursor_options(False, False, 1, Pixmap.COLOR_BACKGROUND)
         # channels
         self.channel_36 = self.plot.channel_selection.topLevelItem(0)
         self.channel_37 = self.plot.channel_selection.topLevelItem(1)
@@ -57,9 +59,6 @@ class TestShortcuts(TestPlotWidget):
             - Evaluate values from `Value` column on self.plot.channels_selection
             - Evaluate timestamp label
         """
-        # Switch ComboBox to "Natural sort"
-        self.widget.channel_view.setCurrentText("Natural sort")
-
         # Case 0:
         with self.subTest("test_Plot_Plot_Shortcut_Key_LeftRight_0"):
             # Select channel: ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL
@@ -67,7 +66,7 @@ class TestShortcuts(TestPlotWidget):
             self.plot.plot.setFocus()
             self.processEvents(0.1)
 
-            self.assertEqual("25", self.channel_36.text(self.Column.VALUE))
+            self.assertEqual("23", self.channel_36.text(self.Column.VALUE))
             self.assertEqual("244", self.channel_37.text(self.Column.VALUE))
 
             # Send Key strokes
@@ -297,6 +296,12 @@ class TestShortcuts(TestPlotWidget):
         colorMap = Pixmap.color_map(self.plot.plot.viewport().grab())
         self.assertTrue(colorMap, "Failed to create color map")
         # First and last line is black
+        self.assertEqual(colorMap[0].count(Pixmap.COLOR_BACKGROUND), self.plot.plot.width(), "Top line is not black")
+        self.assertEqual(
+            colorMap[self.plot.plot.height() - 1].count(Pixmap.COLOR_BACKGROUND),
+            self.plot.plot.width(),
+            "Bottom line is not black",
+        )
         for y in range(1, self.plot.plot.height() - 1):
             self.assertTrue(
                 colorMap[y].count(self.channel_36.color.name()),
@@ -353,6 +358,13 @@ class TestShortcuts(TestPlotWidget):
         # Create a color map for plot
         colorMap = Pixmap.color_map(self.plot.plot.viewport().grab())
         self.assertTrue(colorMap, "Failed to create color map")
+        # first and last line is black
+        self.assertEqual(colorMap[0].count(Pixmap.COLOR_BACKGROUND), self.plot.plot.width(), "Top line is not black")
+        self.assertEqual(
+            colorMap[self.plot.plot.height() - 1].count(Pixmap.COLOR_BACKGROUND),
+            self.plot.plot.width(),
+            "Bottom line is not black",
+        )
         for y in range(1, self.plot.plot.height() - 1):
             self.assertTrue(
                 colorMap[y].count(self.channel_36.color.name()),
@@ -528,6 +540,13 @@ class TestShortcuts(TestPlotWidget):
         colorMap = Pixmap.color_map(self.plot.plot.viewport().grab())
         self.assertTrue(colorMap, "Failed to create color map")
         # Evaluate if signal was fitted (first and last line is black)
+        # first and last line is black
+        self.assertEqual(colorMap[0].count(Pixmap.COLOR_BACKGROUND), self.plot.plot.width(), "Top line is not black")
+        self.assertEqual(
+            colorMap[self.plot.plot.height() - 1].count(Pixmap.COLOR_BACKGROUND),
+            self.plot.plot.width(),
+            "Bottom line is not black",
+        )
         for y in range(1, self.plot.plot.height() - 1):
             self.assertTrue(
                 colorMap[y].count(self.channel_37.color.name()),
@@ -572,7 +591,9 @@ class TestShortcuts(TestPlotWidget):
         for key in colorMap.keys():
             if key < topOfChannel_36:
                 self.assertEqual(
-                    colorMap[key].count("#000000"), self.plot.plot.width(), f"Top line {key} of plot is not only black"
+                    colorMap[key].count(Pixmap.COLOR_BACKGROUND),
+                    self.plot.plot.width(),
+                    f"Top line {key} of plot is not only black",
                 )
             elif topOfChannel_36 <= key <= bottomOfChannel_36:
                 self.assertTrue(
@@ -585,7 +606,9 @@ class TestShortcuts(TestPlotWidget):
                 )
             elif bottomOfChannel_36 < key < topOfChannel_37:
                 self.assertEqual(
-                    colorMap[key].count("#000000"), self.plot.plot.width(), f"Midd line {key} of plot is not only black"
+                    colorMap[key].count(Pixmap.COLOR_BACKGROUND),
+                    self.plot.plot.width(),
+                    f"Midd line {key} of plot is not only black",
                 )
             elif topOfChannel_37 <= key <= bottomOfChannel_37:
                 self.assertFalse(
@@ -598,7 +621,7 @@ class TestShortcuts(TestPlotWidget):
                 )
             else:
                 self.assertEqual(
-                    colorMap[key].count("#000000"),
+                    colorMap[key].count(Pixmap.COLOR_BACKGROUND),
                     self.plot.plot.width(),
                     f"Bottom line {key} of plot is not only black",
                 )
@@ -628,12 +651,12 @@ class TestShortcuts(TestPlotWidget):
         # Open plot with 3 channels
         self.create_window(window_type="Plot", channels_indexes=(35, 36, 37))
         self.plot = self.widget.mdi_area.subWindowList()[0].widget()
-        channel_35 = self.plot.channel_selection.topLevelItem(0)
+        self.channel_35 = self.plot.channel_selection.topLevelItem(0)
         self.channel_36 = self.plot.channel_selection.topLevelItem(1)
         self.channel_37 = self.plot.channel_selection.topLevelItem(2)
         self.assertEqual(3, self.plot.channel_selection.topLevelItemCount())
         # Double-click on channels
-        self.mouseDClick_WidgetItem(channel_35)
+        self.mouseDClick_WidgetItem(self.channel_35)
         self.mouseDClick_WidgetItem(self.channel_36)
         self.mouseDClick_WidgetItem(self.channel_37)
         # check if grid is available
@@ -652,6 +675,13 @@ class TestShortcuts(TestPlotWidget):
         colorMap = Pixmap.color_map(self.plot.plot.viewport().grab())
         self.assertTrue(colorMap, "Failed to create color map")
         # Evaluate if signal was fitted (first and last line is black)
+        # first and last line is black
+        self.assertEqual(colorMap[0].count(Pixmap.COLOR_BACKGROUND), self.plot.plot.width(), "Top line is not black")
+        self.assertEqual(
+            colorMap[self.plot.plot.height() - 1].count(Pixmap.COLOR_BACKGROUND),
+            self.plot.plot.width(),
+            "Bottom line is not black",
+        )
         for y in range(1, self.plot.plot.height() - 1):
             self.assertTrue(
                 colorMap[y].count(self.channel_37.color.name()),
@@ -662,8 +692,8 @@ class TestShortcuts(TestPlotWidget):
                 f"Line {y} doesn't contain {self.channel_36.name} color",
             )
             self.assertTrue(
-                colorMap[y].count(channel_35.color.name()),
-                f"Line {y} doesn't contain {channel_35.name} color",
+                colorMap[y].count(self.channel_35.color.name()),
+                f"Line {y} doesn't contain {self.channel_35.name} color",
             )
 
         # Press "S"
@@ -675,13 +705,13 @@ class TestShortcuts(TestPlotWidget):
         # Search top and bottom of channels on plot
         topOfChannel_35 = None
         for y in range(self.plot.plot.height()):
-            if colorMap[y].count(channel_35.color.name()):
+            if colorMap[y].count(self.channel_35.color.name()):
                 topOfChannel_35 = y
                 break
         self.assertTrue(topOfChannel_35)
         bottomOfChannel_35 = None
         for y in range(int(self.plot.plot.height() / 3), topOfChannel_35, -1):
-            if colorMap[y].count(channel_35.color.name()):
+            if colorMap[y].count(self.channel_35.color.name()):
                 bottomOfChannel_35 = y
                 break
         topOfChannel_36 = None
@@ -711,12 +741,14 @@ class TestShortcuts(TestPlotWidget):
         for key in colorMap.keys():
             if key < topOfChannel_35:
                 self.assertEqual(
-                    colorMap[key].count("#000000"), self.plot.plot.width(), f"Top line {key} of plot is not only black"
+                    colorMap[key].count(Pixmap.COLOR_BACKGROUND),
+                    self.plot.plot.width(),
+                    f"Top line {key} of plot is not only black",
                 )
             elif topOfChannel_35 <= key <= bottomOfChannel_35:
                 self.assertTrue(
-                    colorMap[key].count(channel_35.color.name()),
-                    f"In line {key} of plot was not found color of {channel_35.name}",
+                    colorMap[key].count(self.channel_35.color.name()),
+                    f"In line {key} of plot was not found color of {self.channel_35.name}",
                 )
                 self.assertFalse(
                     colorMap[key].count(self.channel_36.color.name()),
@@ -728,12 +760,14 @@ class TestShortcuts(TestPlotWidget):
                 )
             elif bottomOfChannel_35 < key < topOfChannel_36:
                 self.assertEqual(
-                    colorMap[key].count("#000000"), self.plot.plot.width(), f"Top line {key} of plot is not only black"
+                    colorMap[key].count(Pixmap.COLOR_BACKGROUND),
+                    self.plot.plot.width(),
+                    f"Top line {key} of plot is not only black",
                 )
             elif topOfChannel_36 <= key <= bottomOfChannel_36:
                 self.assertFalse(
-                    colorMap[key].count(channel_35.color.name()),
-                    f"In line {key} of plot was found color of {channel_35.name}",
+                    colorMap[key].count(self.channel_35.color.name()),
+                    f"In line {key} of plot was found color of {self.channel_35.name}",
                 )
                 self.assertTrue(
                     colorMap[key].count(self.channel_36.color.name()),
@@ -745,12 +779,14 @@ class TestShortcuts(TestPlotWidget):
                 )
             elif bottomOfChannel_36 < key < topOfChannel_37:
                 self.assertEqual(
-                    colorMap[key].count("#000000"), self.plot.plot.width(), f"Midd line {key} of plot is not only black"
+                    colorMap[key].count(Pixmap.COLOR_BACKGROUND),
+                    self.plot.plot.width(),
+                    f"Midd line {key} of plot is not only black",
                 )
             elif topOfChannel_37 <= key <= bottomOfChannel_37:
                 self.assertFalse(
-                    colorMap[key].count(channel_35.color.name()),
-                    f"In line {key} of plot was found color of {channel_35.name}",
+                    colorMap[key].count(self.channel_35.color.name()),
+                    f"In line {key} of plot was found color of {self.channel_35.name}",
                 )
                 self.assertFalse(
                     colorMap[key].count(self.channel_36.color.name()),
@@ -762,7 +798,7 @@ class TestShortcuts(TestPlotWidget):
                 )
             else:
                 self.assertEqual(
-                    colorMap[key].count("#000000"),
+                    colorMap[key].count(Pixmap.COLOR_BACKGROUND),
                     self.plot.plot.width(),
                     f"Bottom line {key} of plot is not only black",
                 )
@@ -804,7 +840,7 @@ class TestShortcuts(TestPlotWidget):
         # Select first signal and pres "Shift+S"
         self.mouseClick_WidgetItem(self.channel_36)
         QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+S"))
-        for i in range(52):
+        for i in range(60):
             self.processEvents()
         # Select midd line
         yTopLine = self.plot.plot.viewport().grab(
@@ -865,3 +901,48 @@ class TestShortcuts(TestPlotWidget):
                 if distanceInPixels_2 != i:
                     break
         self.assertLess(distanceInPixels_1, distanceInPixels_2)
+
+    def test_Plot_Plot_Shortcut_O(self):
+        """
+        Test Scope:
+            Check if zooming is released after pressing key "O".
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Display 1 signal on plot
+            - Press combination "Shift+S"
+        Evaluate:
+            - Evaluate that plot is not black
+            - Evaluate that distance between first and second transition of signal in the same line is decreased
+                after pressing key "O"
+        """
+        self.mouseDClick_WidgetItem(self.channel_37)
+        self.processEvents()
+        # Select line
+        yMiddLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.viewport().width(), 1)
+        )
+        colorMap = Pixmap.color_map(yMiddLine)
+        distanceInPixels_1 = 0
+        # Find distance between first and second signal transit trough midd line
+        for i, x in enumerate(colorMap[0]):
+            if x == self.channel_36.color.name():
+                distanceInPixels_1 = i - distanceInPixels_1
+                if distanceInPixels_1 != i:
+                    break
+        self.assertTrue(distanceInPixels_1)
+        # Press "I"
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_O)
+        self.processEvents()
+        # Select line
+        yMiddLine = self.plot.plot.viewport().grab(
+            QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.viewport().width(), 1)
+        )
+        colorMap = Pixmap.color_map(yMiddLine)
+        distanceInPixels_2 = 0
+        # Find distance between first and second signal transit trough midd line
+        for i, x in enumerate(colorMap[0]):
+            if x == self.channel_36.color.name():
+                distanceInPixels_2 = i - distanceInPixels_2
+                if distanceInPixels_2 != i:
+                    break
+        self.assertGreater(distanceInPixels_1, distanceInPixels_2)
