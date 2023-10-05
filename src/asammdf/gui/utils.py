@@ -1162,7 +1162,7 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
     for i, (arg_name, arg) in enumerate(args.parameters.items()):
         kwargs[arg_name] = np.ones(10000, dtype="i1") * random.randint(1, 2**64)
 
-    # try with sample by sample call
+    # try with complete signal call
     complete_signal = True
     try:
         func(**kwargs)

@@ -6,7 +6,7 @@ from traceback import format_exc
 from natsort import natsorted
 from PySide6 import QtCore, QtWidgets
 
-from ...blocks.utils import extract_xml_comment
+from ...blocks.utils import extract_xml_comment, timeit
 from ..ui import resource_rc
 from ..ui.search_dialog import Ui_SearchDialog
 from .messagebox import MessageBox
@@ -126,45 +126,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         extened_search = self.extended_search.checkState() == QtCore.Qt.Checked
 
         if len(text) >= 2:
-            # delete the old widget since QTreeWidget.clear is very slow for large item count
-            # it takes ~1 minute for 60000 previous search results
-
-            self.matches.hide()
-            self.matches.itemDoubleClicked.disconnect()
-            self.matches.header().sectionResized.disconnect()
-            self.matches.setParent(None)
-
-            self.matches = QtWidgets.QTreeWidget(self.tab)
-            self.matches.setObjectName("matches")
-            self.matches.setHeaderLabels(
-                [
-                    "Name",
-                    "Group",
-                    "Index",
-                    "Unit",
-                    "Source name",
-                    "Source path",
-                    "Comment",
-                ]
-            )
-
-            self.matches.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-            self.matches.setUniformRowHeights(False)
-            self.matches.setSortingEnabled(False)
-            self.matches.header().setMinimumSectionSize(40)
-            self.matches.header().setStretchLastSection(True)
-            self.gridLayout.addWidget(self.matches, 2, 0, 1, 5)
-
-            self.matches.itemDoubleClicked.connect(self._match_double_clicked)
-
-            for col in range(self.matches.columnCount()):
-                width = self.selection.columnWidth(col)
-                self.matches.setColumnWidth(col, width)
-
-            self.matches.header().sectionResized.connect(self.section_resized)
-            self.matches.can_delete_items = False
-
-            self.matches.setSortingEnabled(False)
+            self.matches.collapseAll()
             self.matches.clear()
 
             match_kind = self.match_kind.currentText()
