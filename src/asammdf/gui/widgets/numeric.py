@@ -445,8 +445,13 @@ class TableModel(QtCore.QAbstractTableModel):
                 return "●"
             elif isinstance(cell, (bytes, np.bytes_)):
                 return cell.decode("utf-8", "replace")
+            elif isinstance(cell, str):
+                return cell
             else:
-                return value_as_str(cell, signal.format, None, self.float_precision)
+                if np.isnan(cell):
+                    return "NaN"
+                else:
+                    return value_as_str(cell, signal.format, None, self.float_precision)
 
         elif role == QtCore.Qt.BackgroundRole:
             channel_ranges = self.view.ranges[signal.entry]
@@ -1236,7 +1241,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     sig.computation = None
                     ranges = sig.ranges
                     exists = getattr(sig, "exists", True)
-                    sig = PlotSignal(sig, allow_trim=False)
+                    sig = PlotSignal(sig, allow_trim=False, allow_nans=True)
                     if sig.conversion:
                         sig.phys_samples = sig.conversion.convert(sig.raw_samples, as_bytes=True)
                     sig.entry = sig.group_index, sig.channel_index
