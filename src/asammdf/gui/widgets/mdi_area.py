@@ -1968,6 +1968,7 @@ class WithMDIArea:
         numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
         if self.subplots_link:
             numeric.timestamp_changed_signal.connect(self.set_cursor)
+
         numeric.add_new_channels(signals)
         numeric.show()
 
