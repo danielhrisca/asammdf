@@ -293,6 +293,11 @@ class Pixmap:
 
     @staticmethod
     def color_map(pixmap):
+        """
+        return dict, where:
+            > keys is line of pixmap
+            > values is list of color names ordered by columns of pixmap
+        """
         color_dict = {}
         line = []
         image = pixmap.toImage()
@@ -327,3 +332,38 @@ class Pixmap:
                     cursors.append(x)
 
         return cursors
+
+    @staticmethod
+    def search_signal_from_to_x(pixmap, color):
+        """
+        return column where signal start and end
+        """
+        from_to = []
+        image = pixmap.toImage()
+
+        for x in range(image.width()):
+            for y in range(image.height()):
+                if QtGui.QColor(image.pixel(x, y)).name() == color:
+                    from_to.append(x)
+                    break
+            if from_to:
+                break
+        if not from_to:
+            return
+        for x in range(image.width(), from_to[0], -1):
+            for y in range(image.height()):
+                if QtGui.QColor(image.pixel(x, y)).name() == color:
+                    from_to.append(x)
+                    break
+            if len(from_to) == 2:
+                break
+        return from_to
+
+    @staticmethod
+    def search_y_of_signal_in_x(pixmap, color):
+        image = pixmap.toImage()
+        line = None
+        for y in range(image.height()):
+            if QtGui.QColor(image.pixel(0, y)).name() == color:
+                line = y
+        return line
