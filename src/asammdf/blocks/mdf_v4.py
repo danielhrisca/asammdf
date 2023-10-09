@@ -2549,14 +2549,17 @@ class MDF4(MDF_Common):
         # check if the signals have a common timebase
         # if not interpolate the signals using the union of all timebases
 
+        supports_virtual_channels = self.version >= "4.10"
         virtual_master = False
         virtual_master_conversion = None
 
         if signals:
             t_ = signals[0].timestamps
 
-            if all(sig.flags & sig.Flags.virtual_master for sig in signals) and all(
-                np.array_equal(sig.timestamps, t_) for sig in signals
+            if (
+                supports_virtual_channels
+                and all(sig.flags & sig.Flags.virtual_master for sig in signals)
+                and all(np.array_equal(sig.timestamps, t_) for sig in signals)
             ):
                 virtual_master = True
                 virtual_master_conversion = signals[0].virtual_master_conversion
@@ -2745,7 +2748,7 @@ class MDF4(MDF_Common):
             name = signal.name
 
             if names is None:
-                if sig.flags & sig.Flags.virtual:
+                if supports_virtual_channels and sig.flags & sig.Flags.virtual:
                     sig_type = v4c.SIGNAL_TYPE_VIRTUAL
                 else:
                     sig_type = v4c.SIGNAL_TYPE_SCALAR

@@ -99,7 +99,6 @@ class Signal(object):
         flags: Flags = Flags.no_flags,
         virtual_conversion: dict[str, Any] | ChannelConversionType | None = None,
         virtual_master_conversion: dict[str, Any] | ChannelConversionType | None = None,
-
     ) -> None:
         if samples is None or timestamps is None or not name:
             message = (
