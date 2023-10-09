@@ -1,11 +1,11 @@
 # -*- mode: python -*-
-import argparse
-from pathlib import Path
-import site
+import os
 import sys
+from pathlib import Path
+
+sys.setrecursionlimit(sys.getrecursionlimit() * 5)
 
 asammdf_path = Path.cwd() / "src" / "asammdf" / "gui" / "asammdfgui.py"
-
 
 block_cipher = None
 added_files = []
@@ -54,7 +54,6 @@ a = Analysis(
     cipher=block_cipher,
     noarchive=False,
 )
-
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
