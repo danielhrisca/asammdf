@@ -113,10 +113,10 @@ class TestDoubleClick(TestPlotWidget):
             # PreEvaluation: Ensure that group has no child
             self.assertEqual(0, first_group.childCount())
             DragAndDrop(
-                source_widget=self.plot.channel_selection,
-                destination_widget=self.plot.channel_selection.viewport(),
-                source_pos=drag_position,
-                destination_pos=drop_position,
+                src_widget=self.plot.channel_selection,
+                dst_widget=self.plot.channel_selection.viewport(),
+                src_pos=drag_position,
+                dst_pos=QtCore.QPoint(97, 57),
             )
             # PreEvaluate: Ensure that channel was added to group
             self.assertEqual(1, first_group.childCount())
@@ -245,10 +245,10 @@ class TestDoubleClick(TestPlotWidget):
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
                 DragAndDrop(
-                    source_widget=self.plot.channel_selection,
-                    destination_widget=self.plot.channel_selection.viewport(),
-                    source_pos=drag_position,
-                    destination_pos=drop_position,
+                    src_widget=self.plot.channel_selection,
+                    dst_widget=self.plot.channel_selection.viewport(),
+                    src_pos=drag_position,
+                    dst_pos=drop_position,
                 )
                 self.assertEqual(1, groups[group_name].childCount())
                 self.processEvents()
@@ -257,19 +257,19 @@ class TestDoubleClick(TestPlotWidget):
             drag_position = self.plot.channel_selection.visualItemRect(groups["C"]).center()
             drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
             DragAndDrop(
-                source_widget=self.plot.channel_selection,
-                destination_widget=self.plot.channel_selection.viewport(),
-                source_pos=drag_position,
-                destination_pos=drop_position,
+                src_widget=self.plot.channel_selection,
+                dst_widget=self.plot.channel_selection.viewport(),
+                src_pos=drag_position,
+                dst_pos=drop_position,
             )
             # Move Group B inside Group A
             drag_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
             drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
             DragAndDrop(
-                source_widget=self.plot.channel_selection,
-                destination_widget=self.plot.channel_selection.viewport(),
-                source_pos=drag_position,
-                destination_pos=drop_position,
+                src_widget=self.plot.channel_selection,
+                dst_widget=self.plot.channel_selection.viewport(),
+                src_pos=drag_position,
+                dst_pos=drop_position,
             )
 
             groups["A"].setExpanded(True)
@@ -405,10 +405,10 @@ class TestDoubleClick(TestPlotWidget):
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
                 DragAndDrop(
-                    source_widget=self.plot.channel_selection,
-                    destination_widget=self.plot.channel_selection.viewport(),
-                    source_pos=drag_position,
-                    destination_pos=drop_position,
+                    src_widget=self.plot.channel_selection,
+                    dst_widget=self.plot.channel_selection.viewport(),
+                    src_pos=drag_position,
+                    dst_pos=drop_position,
                 )
                 self.assertEqual(1, groups[group_name].childCount())
                 self.processEvents()
@@ -417,19 +417,19 @@ class TestDoubleClick(TestPlotWidget):
             drag_position = self.plot.channel_selection.visualItemRect(groups["C"]).center()
             drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
             DragAndDrop(
-                source_widget=self.plot.channel_selection,
-                destination_widget=self.plot.channel_selection.viewport(),
-                source_pos=drag_position,
-                destination_pos=drop_position,
+                src_widget=self.plot.channel_selection,
+                dst_widget=self.plot.channel_selection.viewport(),
+                src_pos=drag_position,
+                dst_pos=drop_position,
             )
             # Move Group B inside Group A
             drag_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
             drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
             DragAndDrop(
-                source_widget=self.plot.channel_selection,
-                destination_widget=self.plot.channel_selection.viewport(),
-                source_pos=drag_position,
-                destination_pos=drop_position,
+                src_widget=self.plot.channel_selection,
+                dst_widget=self.plot.channel_selection.viewport(),
+                src_pos=drag_position,
+                dst_pos=drop_position,
             )
 
             groups["A"].setExpanded(True)
@@ -554,10 +554,10 @@ class TestDoubleClick(TestPlotWidget):
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
                 DragAndDrop(
-                    source_widget=self.plot.channel_selection,
-                    destination_widget=self.plot.channel_selection.viewport(),
-                    source_pos=drag_position,
-                    destination_pos=drop_position,
+                    src_widget=self.plot.channel_selection,
+                    dst_widget=self.plot.channel_selection.viewport(),
+                    src_pos=drag_position,
+                    dst_pos=drop_position,
                 )
                 self.processEvents(0.05)
                 self.assertEqual(1, groups[group_name].childCount())
@@ -566,19 +566,19 @@ class TestDoubleClick(TestPlotWidget):
             drag_position = self.plot.channel_selection.visualItemRect(groups["C"]).center()
             drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
             DragAndDrop(
-                source_widget=self.plot.channel_selection,
-                destination_widget=self.plot.channel_selection.viewport(),
-                source_pos=drag_position,
-                destination_pos=drop_position,
+                src_widget=self.plot.channel_selection,
+                dst_widget=self.plot.channel_selection.viewport(),
+                src_pos=drag_position,
+                dst_pos=drop_position,
             )
             # Move Group B inside Group A
             drag_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
             drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
             DragAndDrop(
-                source_widget=self.plot.channel_selection,
-                destination_widget=self.plot.channel_selection.viewport(),
-                source_pos=drag_position,
-                destination_pos=drop_position,
+                src_widget=self.plot.channel_selection,
+                dst_widget=self.plot.channel_selection.viewport(),
+                src_pos=drag_position,
+                dst_pos=drop_position,
             )
 
             groups["A"].setExpanded(True)
@@ -707,10 +707,10 @@ class TestDoubleClick(TestPlotWidget):
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
                 DragAndDrop(
-                    source_widget=self.plot.channel_selection,
-                    destination_widget=self.plot.channel_selection.viewport(),
-                    source_pos=drag_position,
-                    destination_pos=drop_position,
+                    src_widget=self.plot.channel_selection,
+                    dst_widget=self.plot.channel_selection.viewport(),
+                    src_pos=drag_position,
+                    dst_pos=drop_position,
                 )
                 self.processEvents(0.05)
                 self.assertEqual(1, groups[group_name].childCount())
@@ -719,19 +719,19 @@ class TestDoubleClick(TestPlotWidget):
             drag_position = self.plot.channel_selection.visualItemRect(groups["C"]).center()
             drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
             DragAndDrop(
-                source_widget=self.plot.channel_selection,
-                destination_widget=self.plot.channel_selection.viewport(),
-                source_pos=drag_position,
-                destination_pos=drop_position,
+                src_widget=self.plot.channel_selection,
+                dst_widget=self.plot.channel_selection.viewport(),
+                src_pos=drag_position,
+                dst_pos=drop_position,
             )
             # Move Group B inside Group A
             drag_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
             drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
             DragAndDrop(
-                source_widget=self.plot.channel_selection,
-                destination_widget=self.plot.channel_selection.viewport(),
-                source_pos=drag_position,
-                destination_pos=drop_position,
+                src_widget=self.plot.channel_selection,
+                dst_widget=self.plot.channel_selection.viewport(),
+                src_pos=drag_position,
+                dst_pos=drop_position,
             )
 
             groups["A"].setExpanded(True)
