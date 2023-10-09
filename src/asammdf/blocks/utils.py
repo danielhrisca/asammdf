@@ -2408,6 +2408,8 @@ class SignalFlags(IntFlag):
     user_defined_name = 0x8
     stream_sync = 0x10
     computed = 0x20
+    virtual = 0x40
+    virtual_master = 0x80
 
 
 def timeit(func):

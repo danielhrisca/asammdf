@@ -2548,35 +2548,48 @@ class MDF4(MDF_Common):
 
         # check if the signals have a common timebase
         # if not interpolate the signals using the union of all timebases
+
+        virtual_master = False
+        virtual_master_conversion = None
+
         if signals:
             t_ = signals[0].timestamps
-            if not common_timebase:
-                for s in signals[1:]:
-                    if not array_equal(s.timestamps, t_):
-                        different = True
-                        break
-                else:
-                    different = False
 
-                if different:
-                    times = [s.timestamps for s in signals]
-                    t = unique(concatenate(times)).astype(float64)
-                    signals = [
-                        s.interp(
-                            t,
-                            integer_interpolation_mode=self._integer_interpolation,
-                            float_interpolation_mode=self._float_interpolation,
-                        )
-                        for s in signals
-                    ]
+            if all(sig.flags & sig.Flags.virtual_master for sig in signals) and all(
+                np.array_equal(sig.timestamps, t_) for sig in signals
+            ):
+                virtual_master = True
+                virtual_master_conversion = signals[0].virtual_master_conversion
+                t = t_
+
+            else:
+                if not common_timebase:
+                    for s in signals[1:]:
+                        if not array_equal(s.timestamps, t_):
+                            different = True
+                            break
+                    else:
+                        different = False
+
+                    if different:
+                        times = [s.timestamps for s in signals]
+                        t = unique(concatenate(times)).astype(float64)
+                        signals = [
+                            s.interp(
+                                t,
+                                integer_interpolation_mode=self._integer_interpolation,
+                                float_interpolation_mode=self._float_interpolation,
+                            )
+                            for s in signals
+                        ]
+                    else:
+                        t = t_
                 else:
                     t = t_
-            else:
-                t = t_
         else:
             t = []
 
-        if self.version >= "4.20" and (self._column_storage or 1):
+        if self.version >= "4.20" and self._column_storage:
             return self._append_column_oriented(signals, acq_name=acq_name, acq_source=source_block, comment=comment)
 
         dg_cntr = len(self.groups)
@@ -2648,47 +2661,80 @@ class MDF4(MDF_Common):
 
         if signals:
             # time channel
-            t_type, t_size = fmt_to_datatype_v4(t.dtype, t.shape)
-            kwargs = {
-                "channel_type": v4c.CHANNEL_TYPE_MASTER,
-                "data_type": t_type,
-                "sync_type": sync_type,
-                "byte_offset": 0,
-                "bit_offset": 0,
-                "bit_count": t_size,
-            }
 
-            ch = Channel(**kwargs)
-            ch.unit = time_unit
-            ch.name = time_name
-            ch.source = source_block
-            ch.dtype_fmt = t.dtype
-            name = time_name
+            if virtual_master:
+                kwargs = {
+                    "channel_type": v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
+                    "data_type": v4c.DATA_TYPE_UNSIGNED_INTEL,
+                    "sync_type": sync_type,
+                    "byte_offset": 0,
+                    "bit_offset": 0,
+                    "bit_count": 0,
+                }
 
-            gp_channels.append(ch)
+                ch = Channel(**kwargs)
+                ch.unit = time_unit
+                ch.name = time_name
+                ch.source = source_block
+                ch.dtype_fmt = t.dtype
+                ch.conversion = conversion_transfer(virtual_master_conversion, version=4)
+                name = time_name
 
-            gp_sdata.append(None)
-            self.channels_db.add(name, (dg_cntr, ch_cntr))
-            self.masters_db[dg_cntr] = 0
+                gp_channels.append(ch)
 
-            record.append(
-                (
-                    t.dtype,
-                    t.dtype.itemsize,
-                    0,
-                    0,
+                gp_sdata.append(None)
+                self.channels_db.add(name, (dg_cntr, ch_cntr))
+                self.masters_db[dg_cntr] = 0
+
+                # time channel doesn't have channel dependencies
+                gp_dep.append(None)
+
+                ch_cntr += 1
+
+                gp_sig_types.append(v4c.SIGNAL_TYPE_VIRTUAL)
+
+            else:
+                t_type, t_size = fmt_to_datatype_v4(t.dtype, t.shape)
+                kwargs = {
+                    "channel_type": v4c.CHANNEL_TYPE_MASTER,
+                    "data_type": t_type,
+                    "sync_type": sync_type,
+                    "byte_offset": 0,
+                    "bit_offset": 0,
+                    "bit_count": t_size,
+                }
+
+                ch = Channel(**kwargs)
+                ch.unit = time_unit
+                ch.name = time_name
+                ch.source = source_block
+                ch.dtype_fmt = t.dtype
+                name = time_name
+
+                gp_channels.append(ch)
+
+                gp_sdata.append(None)
+                self.channels_db.add(name, (dg_cntr, ch_cntr))
+                self.masters_db[dg_cntr] = 0
+
+                record.append(
+                    (
+                        t.dtype,
+                        t.dtype.itemsize,
+                        0,
+                        0,
+                    )
                 )
-            )
 
-            # time channel doesn't have channel dependencies
-            gp_dep.append(None)
+                # time channel doesn't have channel dependencies
+                gp_dep.append(None)
 
-            fields.append((t.tobytes(), t.itemsize))
+                fields.append((t.tobytes(), t.itemsize))
 
-            offset += t_size // 8
-            ch_cntr += 1
+                offset += t_size // 8
+                ch_cntr += 1
 
-            gp_sig_types.append(0)
+                gp_sig_types.append(v4c.SIGNAL_TYPE_SCALAR)
 
         for signal in signals:
             sig = signal
@@ -2699,9 +2745,12 @@ class MDF4(MDF_Common):
             name = signal.name
 
             if names is None:
-                sig_type = v4c.SIGNAL_TYPE_SCALAR
-                if sig_dtype.kind in "SV":
-                    sig_type = v4c.SIGNAL_TYPE_STRING
+                if sig.flags & sig.Flags.virtual:
+                    sig_type = v4c.SIGNAL_TYPE_VIRTUAL
+                else:
+                    sig_type = v4c.SIGNAL_TYPE_SCALAR
+                    if sig_dtype.kind in "SV":
+                        sig_type = v4c.SIGNAL_TYPE_STRING
             else:
                 prepare_record = False
                 if names in (v4c.CANOPEN_TIME_FIELDS, v4c.CANOPEN_DATE_FIELDS):
@@ -2936,6 +2985,59 @@ class MDF4(MDF_Common):
 
                     # simple channels don't have channel dependencies
                     gp_dep.append(None)
+
+            elif sig_type == v4c.SIGNAL_TYPE_VIRTUAL:
+                channel_type = v4c.CHANNEL_TYPE_VIRTUAL
+                sync_type = v4c.SYNC_TYPE_NONE
+
+                kwargs = {
+                    "channel_type": channel_type,
+                    "sync_type": sync_type,
+                    "bit_count": 0,
+                    "byte_offset": offset,
+                    "bit_offset": 0,
+                    "data_type": v4c.DATA_TYPE_UNSIGNED_INTEL,
+                    "data_block_addr": 0,
+                    "flags": 0,
+                }
+
+                ch = Channel(**kwargs)
+                ch.name = name
+                ch.unit = signal.unit
+                ch.comment = signal.comment
+                ch.display_names = signal.display_names
+
+                # conversions for channel
+                ch.conversion = conversion_transfer(signal.virtual_conversion, version=4)
+
+                # source for channel
+
+                source = signal.source
+                if source:
+                    if source in si_map:
+                        ch.source = si_map[source]
+                    else:
+                        new_source = SourceInformation(source_type=source.source_type, bus_type=source.bus_type)
+                        new_source.name = source.name
+                        new_source.path = source.path
+                        new_source.comment = source.comment
+
+                        si_map[source] = new_source
+
+                        ch.source = new_source
+
+                gp_channels.append(ch)
+
+                gp_sdata.append(None)
+                entry = (dg_cntr, ch_cntr)
+                self.channels_db.add(name, entry)
+                for _name in ch.display_names:
+                    self.channels_db.add(_name, entry)
+
+                ch_cntr += 1
+
+                # virtual channels don't have channel dependencies
+                gp_dep.append(None)
 
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
                 if names == v4c.CANOPEN_TIME_FIELDS:
@@ -8017,8 +8119,8 @@ class MDF4(MDF_Common):
 
         Returns
         -------
-        t : numpy.array
-            master channel samples
+        t, virtual_master_conversion : (numpy.array, ChannelConvesion | None)
+            master channel samples and virtual master conversion
 
         """
 
@@ -8063,6 +8165,7 @@ class MDF4(MDF_Common):
                 t += offset
             else:
                 t = array([], dtype=float64)
+            virtual_conv = {"a": 1, "b": 0}
             metadata = ("timestamps", v4c.SYNC_TYPE_TIME)
         else:
             time_ch = group.channels[time_ch_nr]
@@ -8072,19 +8175,20 @@ class MDF4(MDF_Common):
             metadata = (time_name, time_ch.sync_type)
 
             if time_ch.channel_type == v4c.CHANNEL_TYPE_VIRTUAL_MASTER:
-                time_a = time_conv["a"]
-                time_b = time_conv["b"]
                 t = arange(cycles_nr, dtype=float64)
                 t += offset
-                t *= time_a
-                t += time_b
+                t = time_conv.convert(t)
 
                 if record_count is None:
                     t = t[record_offset:]
                 else:
                     t = t[record_offset : record_offset + record_count]
 
+                virtual_conv = time_conv
+
             else:
+                virtual_conv = None
+
                 # check if the channel group contains just the master channel
                 # and that there are no padding bytes
                 if len(group.channels) == 1 and time_ch.dtype_fmt.itemsize == record_size:
