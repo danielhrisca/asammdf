@@ -3,13 +3,12 @@ import json
 from json import JSONDecodeError
 import re
 import sys
+from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 import unittest
 from unittest import mock
 from unittest.mock import ANY
 
 from PySide6 import QtCore, QtTest, QtWidgets
-
-from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestContextMenu(TestPlotWidget):
@@ -79,7 +78,7 @@ class TestContextMenu(TestPlotWidget):
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText, mock.patch(
-                "asammdf.gui.widgets.tree.MessageBox.warning"
+            "asammdf.gui.widgets.tree.MessageBox.warning"
         ) as mo_warning:
             mo_getText.return_value = self.id(), True
             self.context_menu(action_text="Search item")
@@ -104,7 +103,7 @@ class TestContextMenu(TestPlotWidget):
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText, mock.patch(
-                "asammdf.gui.widgets.tree.MessageBox.warning"
+            "asammdf.gui.widgets.tree.MessageBox.warning"
         ) as mo_warning:
             mo_getText.return_value = self.plot_channel_b.text(self.Column.NAME), True
             self.context_menu(action_text="Search item")
@@ -581,7 +580,7 @@ class TestContextMenu(TestPlotWidget):
         self.assertEqual(channels_count + 1, self.plot.channel_selection.topLevelItemCount())
         self.assertEqual(2, len(self.plot.channel_selection.findItems("FirstGroup", QtCore.Qt.MatchFlags())))
 
-    def test_Action_EnableDisable_DeactivateGroups_Channel(self):
+    def test_Menu_EnableDisable_Action_DeactivateGroups_Channel(self):
         """
         Test Scope:
             - Ensure that group items can be disabled from Context Menu.
@@ -600,7 +599,7 @@ class TestContextMenu(TestPlotWidget):
         self.assertEqual(False, self.plot_channel_a.isDisabled())
 
     @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
-    def test_Action_EnableDisable_DeactivateGroups_Group(self):
+    def test_Menu_EnableDisable_Action_DeactivateGroups_Group(self):
         """
         Test Scope:
             - Ensure that group items can be disabled from Context Menu.
@@ -663,3 +662,6 @@ class TestContextMenu(TestPlotWidget):
         for child_index in range(group_a_channel.childCount()):
             child = group_a_channel.child(child_index)
             self.assertEqual(True, child.isDisabled())
+
+    def test_Menu_EnableDisable_Action_EnableAll(self):
+        """ """
