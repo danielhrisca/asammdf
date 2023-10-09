@@ -730,7 +730,7 @@ class TestContextMenu(TestPlotWidget):
         group_channel = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
         self.move_channel_to_group(src=self.plot_channel_a, dst=group_channel)
 
-        # Ensure that all items are enabled:
+        # Ensure that all items are enabled
         count = self.plot.channel_selection.topLevelItemCount()
         for i in range(count):
             item = self.plot.channel_selection.topLevelItem(i)
@@ -739,7 +739,7 @@ class TestContextMenu(TestPlotWidget):
 
         self.context_menu(action_text="Disable all")
 
-        # Ensure that all items are enabled:
+        # Ensure that all items are disabled
         count = self.plot.channel_selection.topLevelItemCount()
         for i in range(count):
             item = self.plot.channel_selection.topLevelItem(i)
@@ -754,3 +754,108 @@ class TestContextMenu(TestPlotWidget):
             item = self.plot.channel_selection.topLevelItem(i)
             if item.type() != item.Info:
                 self.assertEqual(QtCore.Qt.Unchecked, item.checkState(self.Column.NAME))
+
+    def test_Menu_EnableDisable_Action_EnableSelected(self):
+        """
+        Test Scope:
+            - Ensure that channel selected is enabled.
+        Events:
+            - Disable all
+            - Open Context Menu
+            - Select action "Enable selected" from sub-menu "Enable/disable"
+            - Select two channel items
+            - Open Context Menu
+            - Select action "Enable selected" from sub-menu "Enable/disable"
+            - Select channel group
+            - Open Context Menu
+            - Select action "Enable selected" from sub-menu "Enable/disable"
+        Expected:
+            - Evaluate that selected items were enabled.
+        """
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "A", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+
+        # Add Channels to Group
+        group_channel = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
+        self.move_channel_to_group(src=self.plot_channel_c, dst=group_channel)
+
+        # Disable all items
+        count = self.plot.channel_selection.topLevelItemCount()
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                item.setCheckState(self.Column.NAME, QtCore.Qt.Unchecked)
+
+        self.context_menu(action_text="Enable selected")
+
+        # Ensure that all items are disabled
+        count = self.plot.channel_selection.topLevelItemCount()
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                self.assertEqual(QtCore.Qt.Unchecked, item.checkState(self.Column.NAME))
+
+        # Select two channels
+        self.plot_channel_a.setSelected(True)
+        self.plot_channel_b.setSelected(True)
+        position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
+        self.context_menu(action_text="Enable selected", position=position_src)
+
+        self.assertEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.NAME))
+        self.assertEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.NAME))
+
+        # Select group
+        position_src = self.plot.channel_selection.visualItemRect(group_channel).center()
+        self.context_menu(action_text="Enable selected", position=position_src)
+
+        self.assertEqual(QtCore.Qt.Checked, group_channel.checkState(self.Column.NAME))
+
+    def test_Menu_EnableDisable_Action_DisableSelected(self):
+        """
+        Test Scope:
+            - Ensure that channel selected is disabled.
+        Events:
+            - Disable all
+            - Open Context Menu
+            - Select action "Disable selected" from sub-menu "Enable/disable"
+            - Select two channel items
+            - Open Context Menu
+            - Select action "Disable selected" from sub-menu "Enable/disable"
+            - Select channel group
+            - Open Context Menu
+            - Select action "Disable selected" from sub-menu "Enable/disable"
+        Expected:
+            - Evaluate that selected items were disabled.
+        """
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "A", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+
+        # Add Channels to Group
+        group_channel = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
+        self.move_channel_to_group(src=self.plot_channel_c, dst=group_channel)
+
+        self.context_menu(action_text="Disable selected")
+
+        # Ensure that all items are disabled
+        count = self.plot.channel_selection.topLevelItemCount()
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                self.assertEqual(QtCore.Qt.Checked, item.checkState(self.Column.NAME))
+
+        # Select two channels
+        self.plot_channel_a.setSelected(True)
+        self.plot_channel_b.setSelected(True)
+        position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
+        self.context_menu(action_text="Disable selected", position=position_src)
+
+        self.assertEqual(QtCore.Qt.Unchecked, self.plot_channel_a.checkState(self.Column.NAME))
+        self.assertEqual(QtCore.Qt.Unchecked, self.plot_channel_b.checkState(self.Column.NAME))
+
+        # Select group
+        position_src = self.plot.channel_selection.visualItemRect(group_channel).center()
+        self.context_menu(action_text="Disable selected", position=position_src)
+
+        self.assertEqual(QtCore.Qt.Unchecked, group_channel.checkState(self.Column.NAME))
