@@ -664,4 +664,93 @@ class TestContextMenu(TestPlotWidget):
             self.assertEqual(True, child.isDisabled())
 
     def test_Menu_EnableDisable_Action_EnableAll(self):
-        """ """
+        """
+        Test Scope:
+            - Ensure that all channels are enabled.
+        Events:
+            - Open Context Menu
+            - Select action "Enable All" from sub-menu "Enable/disable"
+            - Disable elements
+            - Open Context Menu
+            - Select action "Enable All" from sub-menu "Enable/disable"
+        Expected:
+            - Evaluate that all items are enabled.
+        """
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "A", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+
+        # Add Channels to Group
+        group_channel = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
+        self.move_channel_to_group(src=self.plot_channel_a, dst=group_channel)
+
+        # Ensure that all items are enabled:
+        count = self.plot.channel_selection.topLevelItemCount()
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                self.assertEqual(QtCore.Qt.Checked, item.checkState(self.Column.NAME))
+
+        self.context_menu(action_text="Enable all")
+
+        # Ensure that all items are enabled:
+        count = self.plot.channel_selection.topLevelItemCount()
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                self.assertEqual(QtCore.Qt.Checked, item.checkState(self.Column.NAME))
+                # Disable items
+                item.setCheckState(self.Column.NAME, QtCore.Qt.Unchecked)
+
+        self.context_menu(action_text="Enable all")
+
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                self.assertEqual(QtCore.Qt.Checked, item.checkState(self.Column.NAME))
+
+    def test_Menu_EnableDisable_Action_DisableAll(self):
+        """
+        Test Scope:
+            - Ensure that all channels are disabled.
+        Events:
+            - Open Context Menu
+            - Select action "Disable All" from sub-menu "Enable/disable"
+            - Disable elements
+            - Open Context Menu
+            - Select action "Disable All" from sub-menu "Enable/disable"
+        Expected:
+            - Evaluate that all items are disabled.
+        """
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "A", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+
+        # Add Channels to Group
+        group_channel = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
+        self.move_channel_to_group(src=self.plot_channel_a, dst=group_channel)
+
+        # Ensure that all items are enabled:
+        count = self.plot.channel_selection.topLevelItemCount()
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                self.assertEqual(QtCore.Qt.Checked, item.checkState(self.Column.NAME))
+
+        self.context_menu(action_text="Disable all")
+
+        # Ensure that all items are enabled:
+        count = self.plot.channel_selection.topLevelItemCount()
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                self.assertEqual(QtCore.Qt.Unchecked, item.checkState(self.Column.NAME))
+                # Disable items
+                item.setCheckState(self.Column.NAME, QtCore.Qt.Checked)
+
+        self.context_menu(action_text="Disable all")
+
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                self.assertEqual(QtCore.Qt.Unchecked, item.checkState(self.Column.NAME))
