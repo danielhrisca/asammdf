@@ -63,6 +63,7 @@ class TestPlotWidget(TestFileWidget):
         return plot_channel
 
     def context_menu(self, action_text, position=None):
+        self.processEvents()
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
             mo_action = mock.MagicMock()
             mo_action.text.return_value = action_text

@@ -3,12 +3,13 @@ import json
 from json import JSONDecodeError
 import re
 import sys
-from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 import unittest
 from unittest import mock
 from unittest.mock import ANY
 
 from PySide6 import QtCore, QtTest, QtWidgets
+
+from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestContextMenu(TestPlotWidget):
@@ -78,7 +79,7 @@ class TestContextMenu(TestPlotWidget):
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText, mock.patch(
-            "asammdf.gui.widgets.tree.MessageBox.warning"
+                "asammdf.gui.widgets.tree.MessageBox.warning"
         ) as mo_warning:
             mo_getText.return_value = self.id(), True
             self.context_menu(action_text="Search item")
@@ -103,7 +104,7 @@ class TestContextMenu(TestPlotWidget):
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText, mock.patch(
-            "asammdf.gui.widgets.tree.MessageBox.warning"
+                "asammdf.gui.widgets.tree.MessageBox.warning"
         ) as mo_warning:
             mo_getText.return_value = self.plot_channel_b.text(self.Column.NAME), True
             self.context_menu(action_text="Search item")
@@ -276,6 +277,163 @@ class TestContextMenu(TestPlotWidget):
         channel_b_properties = QtWidgets.QApplication.instance().clipboard().text()
 
         self.assertEqual(channel_a_properties, channel_b_properties)
+
+    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
+    def test_Action_CopyDisplayProperties_Group(self):
+        """
+        Test Scope:
+            - Ensure that first channel display properties are copied in clipboard if item selected is group item.
+        Events:
+            - Insert Empty Group
+            - Select Group
+            - Trigger 'Copy display properties' action
+            - Add items to group
+            - Open Context Menu
+            - Trigger 'Copy display properties' action
+            - Remove channel from group
+            - Open Context Menu
+            - Trigger 'Copy display properties' action
+        Evaluate:
+            - Evaluate that channel display properties are stored in clipboard in json format.
+        """
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "A", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+        group_channel = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
+
+        QtWidgets.QApplication.instance().clipboard().clear()
+        with self.subTest("EmptyGroup_0"):
+            position = self.plot.channel_selection.visualItemRect(group_channel).center()
+            self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
+            clipboard = QtWidgets.QApplication.instance().clipboard().text()
+            with self.assertRaises(JSONDecodeError):
+                json.loads(clipboard)
+
+        with self.subTest("PopulatedGroup"):
+            # Add Channels to Group
+            self.move_channel_to_group(src=self.plot_channel_a, dst=group_channel)
+
+            position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+            self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
+
+            clipboard = QtWidgets.QApplication.instance().clipboard().text()
+            try:
+                content = json.loads(clipboard)
+            except JSONDecodeError:
+                self.fail("Clipboard Content cannot be decoded as JSON content.")
+            else:
+                self.assertIsInstance(content, dict)
+
+        with self.subTest("EmptyGroup_1"):
+            group_channel.removeChild(self.plot_channel_a)
+            position = self.plot.channel_selection.visualItemRect(group_channel).center()
+            self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
+            clipboard = QtWidgets.QApplication.instance().clipboard().text()
+            print(clipboard)
+            with self.assertRaises(JSONDecodeError):
+                json.loads(clipboard)
+
+    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
+    def test_Action_PasteDisplayProperties_Group(self):
+        """
+        Test Scope:
+            - Ensure that channel display properties can be pasted over different channel.
+        Events:
+            - Select one channel
+            - Open Context Menu
+            - Trigger 'Copy display properties' action
+            - Select a group channel
+            - Open Context Menu
+            - Trigger 'Paste display properties' action
+            - Select group channel
+            - Open Context Menu
+            - Trigger 'Copy display properties' action
+            - Select a channel
+            - Open Context Menu
+            - Trigger 'Paste display properties' action
+        Evaluate:
+            - Evaluate that display properties are transferred from one channel to another
+        """
+        action_copy = "Copy display properties [Ctrl+Shift+C]"
+        action_paste = "Paste display properties [Ctrl+Shift+V]"
+
+        # Insert Group
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "A", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            mo_getText.return_value = "B", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+
+        # Add Channels to Group
+        group_channel_a = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
+        group_channel_a.setExpanded(True)
+        self.move_channel_to_group(src=self.plot_channel_b, dst=group_channel_a)
+
+        # Add Channels to Group
+        group_channel_b = self.plot.channel_selection.findItems("B", QtCore.Qt.MatchFlags())[0]
+        group_channel_b.setExpanded(True)
+        self.move_channel_to_group(src=self.plot_channel_d, dst=group_channel_b)
+
+        with self.subTest("FromChannel_ToGroup"):
+            position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+            self.context_menu(action_text=action_copy, position=position_src)
+
+            channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
+
+            # Paste
+            position_dst = self.plot.channel_selection.visualItemRect(group_channel_a).center()
+            self.context_menu(action_text=action_paste, position=position_dst)
+
+            # Copy
+            position_src = self.plot.channel_selection.visualItemRect(group_channel_a).center()
+            self.context_menu(action_text=action_copy, position=position_src)
+
+            group_channel_properties = QtWidgets.QApplication.instance().clipboard().text()
+
+            # Evaluate
+            self.assertEqual(channel_a_properties, group_channel_properties)
+
+        with self.subTest("FromGroup_ToChannel"):
+            position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_c).center()
+            self.context_menu(action_text=action_copy, position=position_src)
+            channel_c_properties = QtWidgets.QApplication.instance().clipboard().text()
+            self.assertNotEqual(channel_c_properties, group_channel_properties)
+
+            position_src = self.plot.channel_selection.visualItemRect(group_channel_a).center()
+            self.context_menu(action_text=action_copy, position=position_src)
+
+            # Paste
+            position_dst = self.plot.channel_selection.visualItemRect(self.plot_channel_c).center()
+            self.context_menu(action_text=action_paste, position=position_dst)
+
+            # Copy
+            position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_c).center()
+            self.context_menu(action_text=action_copy, position=position_src)
+
+            channel_c_properties = QtWidgets.QApplication.instance().clipboard().text()
+
+            # Evaluate
+            self.assertEqual(channel_c_properties, group_channel_properties)
+
+        with self.subTest("FromGroup_ToGroup"):
+            self.move_channel_to_group(src=self.plot_channel_a, dst=group_channel_a)
+
+            position_src = self.plot.channel_selection.visualItemRect(group_channel_b).center()
+            self.context_menu(action_text=action_copy, position=position_src)
+            group_channel_b_properties = QtWidgets.QApplication.instance().clipboard().text()
+
+            # Paste
+            position_dst = self.plot.channel_selection.visualItemRect(group_channel_a).center()
+            self.context_menu(action_text=action_paste, position=position_dst)
+
+            # Copy
+            position_src = self.plot.channel_selection.visualItemRect(group_channel_a).center()
+            self.context_menu(action_text=action_copy, position=position_src)
+
+            group_channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
+
+            # Evaluate
+            self.assertEqual(group_channel_a_properties, group_channel_b_properties)
 
     def test_Action_CopyChannelStructure_Channel(self):
         """
