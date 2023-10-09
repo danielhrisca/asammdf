@@ -97,6 +97,8 @@ class Signal(object):
         group_index: int = -1,
         channel_index: int = -1,
         flags: Flags = Flags.no_flags,
+        virtual_conversion: dict[str, Any] | ChannelConversionType | None = None,
+        virtual_master_conversion: dict[str, Any] | ChannelConversionType | None = None,
     ) -> None:
         if samples is None or timestamps is None or not name:
             message = (
@@ -170,6 +172,20 @@ class Signal(object):
                     conversion = from_dict(conversion)
 
             self.conversion = conversion
+
+            if self.flags & self.Flags.virtual:
+                if not isinstance(virtual_conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
+                    conversion = from_dict(virtual_conversion)
+                self.virtual_conversion = conversion
+            else:
+                self.virtual_conversion = None
+
+            if self.flags & self.Flags.virtual_master:
+                if not isinstance(virtual_master_conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
+                    conversion = from_dict(virtual_master_conversion)
+                self.virtual_master_conversion = conversion
+            else:
+                self.virtual_master_conversion = None
 
     def __repr__(self):
         return f"""<Signal {self.name}:
@@ -473,6 +489,8 @@ class Signal(object):
                 group_index=self.group_index,
                 channel_index=self.channel_index,
                 flags=self.flags,
+                virtual_conversion=self.virtual_conversion,
+                virtual_master_conversion=self.virtual_master_conversion,
             )
 
         elif start is None and stop is None:
@@ -495,6 +513,8 @@ class Signal(object):
                 group_index=self.group_index,
                 channel_index=self.channel_index,
                 flags=self.flags,
+                virtual_conversion=self.virtual_conversion,
+                virtual_master_conversion=self.virtual_master_conversion,
             )
 
         else:
@@ -518,6 +538,8 @@ class Signal(object):
                         group_index=self.group_index,
                         channel_index=self.channel_index,
                         flags=self.flags,
+                        virtual_conversion=self.virtual_conversion,
+                        virtual_master_conversion=self.virtual_master_conversion,
                     )
 
                 else:
@@ -568,6 +590,8 @@ class Signal(object):
                         group_index=self.group_index,
                         channel_index=self.channel_index,
                         flags=self.flags,
+                        virtual_conversion=self.virtual_conversion,
+                        virtual_master_conversion=self.virtual_master_conversion,
                     )
 
             elif stop is None:
@@ -590,6 +614,8 @@ class Signal(object):
                         group_index=self.group_index,
                         channel_index=self.channel_index,
                         flags=self.flags,
+                        virtual_conversion=self.virtual_conversion,
+                        virtual_master_conversion=self.virtual_master_conversion,
                     )
 
                 else:
@@ -639,6 +665,8 @@ class Signal(object):
                         group_index=self.group_index,
                         channel_index=self.channel_index,
                         flags=self.flags,
+                        virtual_conversion=self.virtual_conversion,
+                        virtual_master_conversion=self.virtual_master_conversion,
                     )
 
             else:
@@ -661,6 +689,8 @@ class Signal(object):
                         group_index=self.group_index,
                         channel_index=self.channel_index,
                         flags=self.flags,
+                        virtual_conversion=self.virtual_conversion,
+                        virtual_master_conversion=self.virtual_master_conversion,
                     )
                 else:
                     start = np.searchsorted(self.timestamps, start, side="left")
@@ -761,6 +791,8 @@ class Signal(object):
                         group_index=self.group_index,
                         channel_index=self.channel_index,
                         flags=self.flags,
+                        virtual_conversion=self.virtual_conversion,
+                        virtual_master_conversion=self.virtual_master_conversion,
                     )
 
         return result
@@ -816,6 +848,8 @@ class Signal(object):
                 group_index=self.group_index,
                 channel_index=self.channel_index,
                 flags=self.flags,
+                virtual_conversion=self.virtual_conversion,
+                virtual_master_conversion=self.virtual_master_conversion,
             )
         else:
             result = self
@@ -883,6 +917,8 @@ class Signal(object):
                 group_index=self.group_index,
                 channel_index=self.channel_index,
                 flags=self.flags,
+                virtual_conversion=self.virtual_conversion,
+                virtual_master_conversion=self.virtual_master_conversion,
             )
         else:
             # # we need to validate first otherwise we can get false invalid data
@@ -916,6 +952,8 @@ class Signal(object):
                     group_index=self.group_index,
                     channel_index=self.channel_index,
                     flags=self.flags,
+                    virtual_conversion=self.virtual_conversion,
+                    virtual_master_conversion=self.virtual_master_conversion,
                 )
 
             if len(signal.samples.shape) > 1:
@@ -1005,6 +1043,8 @@ class Signal(object):
                 group_index=self.group_index,
                 channel_index=self.channel_index,
                 flags=self.flags,
+                virtual_conversion=self.virtual_conversion,
+                virtual_master_conversion=self.virtual_master_conversion,
             )
 
     def __apply_func(self, other: Signal | NDArray[Any] | None, func_name: str) -> Signal:
@@ -1053,6 +1093,8 @@ class Signal(object):
             group_index=self.group_index,
             channel_index=self.channel_index,
             flags=self.flags,
+            virtual_conversion=self.virtual_conversion,
+            virtual_master_conversion=self.virtual_master_conversion,
         )
 
     def __pos__(self) -> Signal:
@@ -1073,6 +1115,8 @@ class Signal(object):
             source=self.source,
             encoding=self.encoding,
             flags=self.flags,
+            virtual_conversion=self.virtual_conversion,
+            virtual_master_conversion=self.virtual_master_conversion,
         )
 
     def __round__(self, n: int) -> Signal:
@@ -1090,6 +1134,8 @@ class Signal(object):
             source=self.source,
             encoding=self.encoding,
             flags=self.flags,
+            virtual_conversion=self.virtual_conversion,
+            virtual_master_conversion=self.virtual_master_conversion,
         )
 
     def __sub__(self, other: Signal | NDArray[Any] | None) -> Signal:
@@ -1169,6 +1215,8 @@ class Signal(object):
             source=self.source,
             encoding=self.encoding,
             flags=self.flags,
+            virtual_conversion=self.virtual_conversion,
+            virtual_master_conversion=self.virtual_master_conversion,
         )
 
     def __lshift__(self, other: Signal | NDArray[Any] | None) -> Signal:
@@ -1219,6 +1267,8 @@ class Signal(object):
             invalidation_bits=self.invalidation_bits,
             source=self.source,
             flags=self.flags,
+            virtual_conversion=self.virtual_conversion,
+            virtual_master_conversion=self.virtual_master_conversion,
         )
 
     def __getitem__(self, val: int) -> Any:
@@ -1255,6 +1305,8 @@ class Signal(object):
             source=self.source,
             encoding=self.encoding,
             flags=self.flags,
+            virtual_conversion=self.virtual_conversion,
+            virtual_master_conversion=self.virtual_master_conversion,
         )
 
     def physical(self) -> Signal:
@@ -1294,6 +1346,8 @@ class Signal(object):
             group_index=self.group_index,
             channel_index=self.channel_index,
             flags=self.flags,
+            virtual_conversion=self.virtual_conversion,
+            virtual_master_conversion=self.virtual_master_conversion,
         )
 
     def validate(self, copy: bool = True) -> Signal:
@@ -1330,6 +1384,8 @@ class Signal(object):
                 group_index=self.group_index,
                 channel_index=self.channel_index,
                 flags=self.flags,
+                virtual_conversion=self.virtual_conversion,
+                virtual_master_conversion=self.virtual_master_conversion,
             )
 
         if copy:
@@ -1357,6 +1413,8 @@ class Signal(object):
             group_index=self.group_index,
             channel_index=self.channel_index,
             flags=self.flags,
+            virtual_conversion=self.virtual_conversion,
+            virtual_master_conversion=self.virtual_master_conversion,
         )
 
 

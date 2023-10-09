@@ -179,7 +179,7 @@ def get_descriptions_by_uuid(mime):
 
 
 class PlotSignal(Signal):
-    def __init__(self, signal, index=0, trim_info=None, duplication=1, allow_trim=True):
+    def __init__(self, signal, index=0, trim_info=None, duplication=1, allow_trim=True, allow_nans=False):
         super().__init__(
             signal.samples,
             signal.timestamps,
@@ -232,10 +232,11 @@ class PlotSignal(Signal):
         # take out NaN values
         samples = self.samples
         if samples.dtype.kind not in "SUV":
-            nans = np.isnan(samples)
-            if np.any(nans):
-                self.samples = self.samples[~nans]
-                self.timestamps = self.timestamps[~nans]
+            if not allow_nans:
+                nans = np.isnan(samples)
+                if np.any(nans):
+                    self.samples = self.samples[~nans]
+                    self.timestamps = self.timestamps[~nans]
 
         if self.samples.dtype.byteorder not in target_byte_order:
             self.samples = self.samples.byteswap().newbyteorder()
@@ -251,12 +252,16 @@ class PlotSignal(Signal):
         if self.conversion:
             samples = self.conversion.convert(self.samples, as_bytes=True)
             if samples.dtype.kind not in "SUV":
-                nans = np.isnan(samples)
-                if np.any(nans):
-                    self.raw_samples = self.samples[~nans]
-                    self.phys_samples = samples[~nans]
-                    self.timestamps = self.timestamps[~nans]
-                    self.samples = self.samples[~nans]
+                if not allow_nans:
+                    nans = np.isnan(samples)
+                    if np.any(nans):
+                        self.raw_samples = self.samples[~nans]
+                        self.phys_samples = samples[~nans]
+                        self.timestamps = self.timestamps[~nans]
+                        self.samples = self.samples[~nans]
+                    else:
+                        self.raw_samples = self.samples
+                        self.phys_samples = samples
                 else:
                     self.raw_samples = self.samples
                     self.phys_samples = samples
@@ -5425,6 +5430,7 @@ class PlotGraphics(pg.PlotWidget):
     def scale_curve_to_pixmap(self, x, y, y_range, x_start, delta):
         if self.py:
             y_low, y_high = y_range
+
             y_scale = (np.float64(y_high) - np.float64(y_low)) / np.float64(self.py)
             x_scale = self.px
 
