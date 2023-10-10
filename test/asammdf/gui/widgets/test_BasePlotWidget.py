@@ -33,34 +33,23 @@ class TestPlotWidget(TestFileWidget):
             plot = self.plot
 
         # Select channel
-        selected_channel = None
         channel_tree = self.widget.channels_tree
         channel_tree.clearSelection()
 
-        if not channel_name and not channel_index:
-            selected_channel = channel_tree.topLevelItem(0)
-            channel_name = selected_channel.text(0)
-        elif channel_index:
-            selected_channel = channel_tree.topLevelItem(channel_index)
-            channel_name = selected_channel.text(0)
-        elif channel_name:
-            iterator = QtWidgets.QTreeWidgetItemIterator(channel_tree)
-            while iterator.value():
-                item = iterator.value()
-                if item and item.text(0) == channel_name:
-                    item.setSelected(True)
-                    selected_channel = item
-                iterator += 1
+        selected_channel = self.find_channel(channel_tree, channel_name, channel_index)
+        selected_channel.setSelected(True)
+        if not channel_name:
+            channel_name = selected_channel.text(self.Column.NAME)
 
         drag_position = channel_tree.visualItemRect(selected_channel).center()
         drop_position = plot.channel_selection.viewport().rect().center()
 
         # PreEvaluation
         DragAndDrop(
-            source_widget=channel_tree,
-            destination_widget=plot.channel_selection,
-            source_pos=drag_position,
-            destination_pos=drop_position,
+            src_widget=channel_tree,
+            dst_widget=plot.channel_selection,
+            src_pos=drag_position,
+            dst_pos=drop_position,
         )
         self.processEvents(0.05)
         plot_channel = None
@@ -73,41 +62,8 @@ class TestPlotWidget(TestFileWidget):
 
         return plot_channel
 
-    def add_channel_to_group(self, plot=None, src=None, dst=None):
-        if not plot and self.plot:
-            plot = self.plot
-        channel_selection = plot.channel_selection
-
-        drag_position = plot.channel_selection.visualItemRect(src).center()
-        drop_position = plot.channel_selection.visualItemRect(dst).center()
-
-        DragAndDrop(
-            source_widget=channel_selection,
-            destination_widget=plot.channel_selection,
-            source_pos=drag_position,
-            destination_pos=drop_position,
-        )
-        self.processEvents(0.05)
-
-    def create_window(self, window_type, channels_names=tuple(), channels_indexes=tuple()):
-        channel_tree = self.widget.channels_tree
-        channel_tree.clearSelection()
-        for channel in channels_names:
-            channel = self.find_channel(channel_tree, channel_name=channel)
-            channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
-        for channel in channels_indexes:
-            channel = self.find_channel(channel_tree, channel_index=channel)
-            channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
-
-        with mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mc_WindowSelectionDialog:
-            mc_WindowSelectionDialog.return_value.result.return_value = True
-            mc_WindowSelectionDialog.return_value.selected_type.return_value = window_type
-            # - Press PushButton "Create Window"
-            QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
-            widget_types = self.get_subwindows()
-            self.assertIn(window_type, widget_types)
-
     def context_menu(self, action_text, position=None):
+        self.processEvents()
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
             mo_action = mock.MagicMock()
             mo_action.text.return_value = action_text
@@ -127,20 +83,17 @@ class TestPlotWidget(TestFileWidget):
             while not mo_action.text.called:
                 self.processEvents(0.02)
 
-    @staticmethod
-    def find_channel(channel_tree, channel_name=None, channel_index=None):
-        selected_channel = None
-        if not channel_name and not channel_index:
-            selected_channel = channel_tree.topLevelItem(0)
-        elif channel_index:
-            selected_channel = channel_tree.topLevelItem(channel_index)
-        elif channel_name:
-            iterator = QtWidgets.QTreeWidgetItemIterator(channel_tree)
-            while iterator.value():
-                item = iterator.value()
-                if item and item.text(0) == channel_name:
-                    item.setSelected(True)
-                    selected_channel = item
-                    break
-                iterator += 1
-        return selected_channel
+    def move_channel_to_group(self, plot=None, src=None, dst=None):
+        if not plot and self.plot:
+            plot = self.plot
+
+        drag_position = plot.channel_selection.visualItemRect(src).center()
+        drop_position = plot.channel_selection.visualItemRect(dst).center()
+
+        DragAndDrop(
+            src_widget=plot.channel_selection,
+            dst_widget=plot.channel_selection,
+            src_pos=drag_position,
+            dst_pos=drop_position,
+        )
+        self.processEvents(0.05)

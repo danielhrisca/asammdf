@@ -1316,11 +1316,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             signals = []
             if self.filter_view.currentText() == "Internal file structure":
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
-
+                while item := iterator.value():
                     iterator += 1
 
                     if item.parent() is None:
@@ -1329,11 +1325,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     if item.checkState(0) == QtCore.Qt.Checked:
                         signals.append(item.text(0))
             else:
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
-
+                while item := iterator.value():
                     iterator += 1
 
                     if item.checkState(0) == QtCore.Qt.Checked:
@@ -1415,10 +1407,7 @@ MultiRasterSeparator;&
             iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
             if self.filter_view.currentText() == "Internal file structure":
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
+                while item := iterator.value():
                     iterator += 1
 
                     if item.parent() is None:
@@ -1432,11 +1421,7 @@ MultiRasterSeparator;&
                         item.setCheckState(0, QtCore.Qt.Unchecked)
 
             elif self.filter_view.currentText() == "Natural sort":
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
-
+                while item := iterator.value():
                     channel_name = item.text(0)
                     if channel_name in channels:
                         item.setCheckState(0, QtCore.Qt.Checked)

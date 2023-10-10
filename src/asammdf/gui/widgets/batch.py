@@ -1696,11 +1696,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             signals = []
             if self.filter_view.currentText() == "Internal file structure":
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
-
+                while item := iterator.value():
                     iterator += 1
 
                     if item.parent() is None:
@@ -1709,11 +1705,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     if item.checkState(0) == QtCore.Qt.Checked:
                         signals.append(item.text(0))
             else:
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
-
+                while item := iterator.value():
                     iterator += 1
 
                     if item.checkState(0) == QtCore.Qt.Checked:

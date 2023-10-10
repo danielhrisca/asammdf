@@ -292,12 +292,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         selection = set()
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-        while True:
-            item = iterator.value()
-
-            if item is None:
-                break
-
+        while item := iterator.value():
             data = tuple(item.text(i) for i in range(self.columns))
             selection.add(data)
 
@@ -321,21 +316,14 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             self.result = set()
 
             iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-            while True:
-                item = iterator.value()
-                if item is None:
-                    break
+            while item := iterator.value():
                 self.result.add(item.text(self.NameColumn))
                 iterator += 1
         else:
             self.result = {}
 
             iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-            while True:
-                item = iterator.value()
-                if item is None:
-                    break
-
+            while item := iterator.value():
                 entry = int(item.text(self.GroupColumn)), int(item.text(self.ChannelColumn))
                 name = item.text(self.NameColumn)
                 self.result[entry] = name
