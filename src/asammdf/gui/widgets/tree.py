@@ -773,7 +773,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.plot.plot.update()
 
         elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier) and key == QtCore.Qt.Key_C:
-            clipboard_text = None
             selected_items = [
                 item
                 for item in self.selectedItems()

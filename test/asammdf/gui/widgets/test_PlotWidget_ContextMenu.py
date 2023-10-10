@@ -3,13 +3,12 @@ import json
 from json import JSONDecodeError
 import re
 import sys
+from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 import unittest
 from unittest import mock
 from unittest.mock import ANY
 
 from PySide6 import QtCore, QtTest, QtWidgets
-
-from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestContextMenu(TestPlotWidget):
@@ -79,7 +78,7 @@ class TestContextMenu(TestPlotWidget):
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText, mock.patch(
-                "asammdf.gui.widgets.tree.MessageBox.warning"
+            "asammdf.gui.widgets.tree.MessageBox.warning"
         ) as mo_warning:
             mo_getText.return_value = self.id(), True
             self.context_menu(action_text="Search item")
@@ -104,7 +103,7 @@ class TestContextMenu(TestPlotWidget):
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText, mock.patch(
-                "asammdf.gui.widgets.tree.MessageBox.warning"
+            "asammdf.gui.widgets.tree.MessageBox.warning"
         ) as mo_warning:
             mo_getText.return_value = self.plot_channel_b.text(self.Column.NAME), True
             self.context_menu(action_text="Search item")
@@ -915,7 +914,6 @@ class TestContextMenu(TestPlotWidget):
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
             mo_getText.return_value = "A", True
             self.context_menu(action_text="Add channel group [Shift+Insert]")
-
 
         positions_src = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
         self.context_menu(action_text="Disable all but this", position=positions_src)
