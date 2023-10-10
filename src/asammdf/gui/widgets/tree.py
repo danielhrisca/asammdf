@@ -773,12 +773,15 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.plot.plot.update()
 
         elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier) and key == QtCore.Qt.Key_C:
-            selected_items = [item for item in self.selectedItems() if item.type() == ChannelsTreeItem.Channel]
-            if not selected_items:
-                return
-            else:
+            selected_items = [
+                item
+                for item in self.selectedItems()
+                if item.type() in (ChannelsTreeItem.Channel, ChannelsTreeItem.Group)
+            ]
+            if selected_items:
                 item = selected_items[0]
-            QtWidgets.QApplication.instance().clipboard().setText(item.get_display_properties())
+                clipboard_text = item.get_display_properties()
+                QtWidgets.QApplication.instance().clipboard().setText(clipboard_text)
 
         elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier) and key == QtCore.Qt.Key_V:
             info = QtWidgets.QApplication.instance().clipboard().text()
@@ -1930,6 +1933,10 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         return get_color_using_ranges(value, self.get_ranges(), self.signal.color, pen=pen)
 
     def get_display_properties(self):
+        if self.type() == ChannelsTreeItem.Group:
+            if self.childCount():
+                return self.child(0).get_display_properties()
+            return ""
         info = {
             "color": self.color.name(),
             "precision": self.precision,

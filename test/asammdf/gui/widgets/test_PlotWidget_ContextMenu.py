@@ -277,6 +277,204 @@ class TestContextMenu(TestPlotWidget):
 
         self.assertEqual(channel_a_properties, channel_b_properties)
 
+    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
+    def test_Action_CopyDisplayProperties_Group(self):
+        """
+        Test Scope:
+            - Ensure that first channel display properties are copied in clipboard if item selected is group item.
+        Events:
+            - Insert Empty Group
+            - Select Group
+            - Trigger 'Copy display properties' action
+            - Add items to group
+            - Open Context Menu
+            - Trigger 'Copy display properties' action
+            - Remove channel from group
+            - Open Context Menu
+            - Trigger 'Copy display properties' action
+        Evaluate:
+            - Evaluate that channel display properties are stored in clipboard in json format.
+        """
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "A", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            mo_getText.return_value = "B", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            mo_getText.return_value = "C", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+
+        group_channel_a = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
+        group_channel_b = self.plot.channel_selection.findItems("B", QtCore.Qt.MatchFlags())[0]
+        group_channel_c = self.plot.channel_selection.findItems("C", QtCore.Qt.MatchFlags())[0]
+
+        QtWidgets.QApplication.instance().clipboard().clear()
+        with self.subTest("EmptyGroup_0"):
+            position = self.plot.channel_selection.visualItemRect(group_channel_a).center()
+            self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
+            clipboard = QtWidgets.QApplication.instance().clipboard().text()
+            with self.assertRaises(JSONDecodeError):
+                json.loads(clipboard)
+
+        with self.subTest("PopulatedGroup"):
+            # Add Channels to Group
+            self.move_channel_to_group(src=self.plot_channel_a, dst=group_channel_a)
+
+            position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+            self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
+
+            clipboard = QtWidgets.QApplication.instance().clipboard().text()
+            try:
+                content = json.loads(clipboard)
+            except JSONDecodeError:
+                self.fail("Clipboard Content cannot be decoded as JSON content.")
+            else:
+                self.assertIsInstance(content, dict)
+
+        with self.subTest("EmptyGroup_1"):
+            group_channel_a.removeChild(self.plot_channel_a)
+            position = self.plot.channel_selection.visualItemRect(group_channel_a).center()
+            self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
+            clipboard = QtWidgets.QApplication.instance().clipboard().text()
+            print(clipboard)
+            with self.assertRaises(JSONDecodeError):
+                json.loads(clipboard)
+
+        with self.subTest("EmptyGroup_2"):
+            # Add Channels to Group
+            self.move_channel_to_group(src=group_channel_c, dst=group_channel_b)
+            group_channel_a.setExpanded(True)
+            group_channel_b.setExpanded(True)
+            group_channel_c.setExpanded(True)
+            self.move_channel_to_group(src=group_channel_b, dst=group_channel_a)
+            group_channel_a.setExpanded(True)
+            group_channel_b.setExpanded(True)
+            group_channel_c.setExpanded(True)
+            position = self.plot.channel_selection.visualItemRect(group_channel_a).center()
+            self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
+            clipboard = QtWidgets.QApplication.instance().clipboard().text()
+            print(clipboard)
+            with self.assertRaises(JSONDecodeError):
+                json.loads(clipboard)
+
+    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
+    def test_Action_PasteDisplayProperties_Group(self):
+        """
+        Test Scope:
+            - Ensure that channel display properties can be pasted over different channel.
+        Events:
+            - Select one channel
+            - Open Context Menu
+            - Trigger 'Copy display properties' action
+            - Select a group channel
+            - Open Context Menu
+            - Trigger 'Paste display properties' action
+            - Select group channel
+            - Open Context Menu
+            - Trigger 'Copy display properties' action
+            - Select a channel
+            - Open Context Menu
+            - Trigger 'Paste display properties' action
+        Evaluate:
+            - Evaluate that display properties are transferred from one channel to another
+        """
+        action_copy = "Copy display properties [Ctrl+Shift+C]"
+        action_paste = "Paste display properties [Ctrl+Shift+V]"
+
+        # Insert Group
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "A", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            mo_getText.return_value = "B", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            mo_getText.return_value = "C", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+
+        # Add Channels to Group
+        group_channel_a = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
+        group_channel_a.setExpanded(True)
+        group_channel_c = self.plot.channel_selection.findItems("C", QtCore.Qt.MatchFlags())[0]
+        group_channel_c.setExpanded(True)
+        self.move_channel_to_group(src=group_channel_c, dst=group_channel_a)
+        group_channel_a.setExpanded(True)
+        group_channel_c.setExpanded(True)
+        self.move_channel_to_group(src=self.plot_channel_b, dst=group_channel_c)
+
+        # Add Channels to Group
+        group_channel_b = self.plot.channel_selection.findItems("B", QtCore.Qt.MatchFlags())[0]
+        group_channel_b.setExpanded(True)
+        self.move_channel_to_group(src=self.plot_channel_d, dst=group_channel_b)
+
+        with self.subTest("FromChannel_ToGroup"):
+            position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+            self.context_menu(action_text=action_copy, position=position_src)
+
+            channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
+            channel_a_properties = json.loads(channel_a_properties)
+            del channel_a_properties["y_range"]
+
+            # Paste
+            position_dst = self.plot.channel_selection.visualItemRect(group_channel_a).center()
+            self.context_menu(action_text=action_paste, position=position_dst)
+
+            # Copy
+            position_src = self.plot.channel_selection.visualItemRect(group_channel_a).center()
+            self.context_menu(action_text=action_copy, position=position_src)
+
+            group_channel_properties = QtWidgets.QApplication.instance().clipboard().text()
+            group_channel_properties = json.loads(group_channel_properties)
+            del group_channel_properties["y_range"]
+
+            # Evaluate
+            self.assertEqual(channel_a_properties, group_channel_properties)
+
+        with self.subTest("FromGroup_ToChannel"):
+            position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_c).center()
+            self.context_menu(action_text=action_copy, position=position_src)
+            channel_c_properties = QtWidgets.QApplication.instance().clipboard().text()
+            self.assertNotEqual(channel_c_properties, group_channel_properties)
+
+            position_src = self.plot.channel_selection.visualItemRect(group_channel_a).center()
+            self.context_menu(action_text=action_copy, position=position_src)
+
+            # Paste
+            position_dst = self.plot.channel_selection.visualItemRect(self.plot_channel_c).center()
+            self.context_menu(action_text=action_paste, position=position_dst)
+
+            # Copy
+            position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_c).center()
+            self.context_menu(action_text=action_copy, position=position_src)
+
+            channel_c_properties = QtWidgets.QApplication.instance().clipboard().text()
+            channel_c_properties = json.loads(channel_c_properties)
+            del channel_c_properties["y_range"]
+
+            # Evaluate
+            self.assertEqual(channel_c_properties, group_channel_properties)
+
+        with self.subTest("FromGroup_ToGroup"):
+            self.move_channel_to_group(src=self.plot_channel_a, dst=group_channel_a)
+
+            position_src = self.plot.channel_selection.visualItemRect(group_channel_b).center()
+            self.context_menu(action_text=action_copy, position=position_src)
+            group_channel_b_properties = QtWidgets.QApplication.instance().clipboard().text()
+            group_channel_b_properties = json.loads(group_channel_b_properties)
+            del group_channel_b_properties["y_range"]
+
+            # Paste
+            position_dst = self.plot.channel_selection.visualItemRect(group_channel_a).center()
+            self.context_menu(action_text=action_paste, position=position_dst)
+
+            # Copy
+            position_src = self.plot.channel_selection.visualItemRect(group_channel_a).center()
+            self.context_menu(action_text=action_copy, position=position_src)
+
+            group_channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
+            group_channel_a_properties = json.loads(group_channel_a_properties)
+            del group_channel_a_properties["y_range"]
+
+            # Evaluate
+            self.assertEqual(group_channel_a_properties, group_channel_b_properties)
+
     def test_Action_CopyChannelStructure_Channel(self):
         """
         Test Scope:
@@ -423,7 +621,7 @@ class TestContextMenu(TestPlotWidget):
         self.assertEqual(channels_count + 1, self.plot.channel_selection.topLevelItemCount())
         self.assertEqual(2, len(self.plot.channel_selection.findItems("FirstGroup", QtCore.Qt.MatchFlags())))
 
-    def test_Action_EnableDisable_DeactivateGroups_Channel(self):
+    def test_Menu_EnableDisable_Action_DeactivateGroups_Channel(self):
         """
         Test Scope:
             - Ensure that group items can be disabled from Context Menu.
@@ -442,7 +640,7 @@ class TestContextMenu(TestPlotWidget):
         self.assertEqual(False, self.plot_channel_a.isDisabled())
 
     @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
-    def test_Action_EnableDisable_DeactivateGroups_Group(self):
+    def test_Menu_EnableDisable_Action_DeactivateGroups_Group(self):
         """
         Test Scope:
             - Ensure that group items can be disabled from Context Menu.
@@ -505,3 +703,225 @@ class TestContextMenu(TestPlotWidget):
         for child_index in range(group_a_channel.childCount()):
             child = group_a_channel.child(child_index)
             self.assertEqual(True, child.isDisabled())
+
+    def test_Menu_EnableDisable_Action_EnableAll(self):
+        """
+        Test Scope:
+            - Ensure that all channels are enabled.
+        Events:
+            - Open Context Menu
+            - Select action "Enable All" from sub-menu "Enable/disable"
+            - Disable elements
+            - Open Context Menu
+            - Select action "Enable All" from sub-menu "Enable/disable"
+        Expected:
+            - Evaluate that all items are enabled.
+        """
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "A", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+
+        # Add Channels to Group
+        group_channel = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
+        self.move_channel_to_group(src=self.plot_channel_a, dst=group_channel)
+
+        # Ensure that all items are enabled:
+        count = self.plot.channel_selection.topLevelItemCount()
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                self.assertEqual(QtCore.Qt.Checked, item.checkState(self.Column.NAME))
+
+        self.context_menu(action_text="Enable all")
+
+        # Ensure that all items are enabled:
+        count = self.plot.channel_selection.topLevelItemCount()
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                self.assertEqual(QtCore.Qt.Checked, item.checkState(self.Column.NAME))
+                # Disable items
+                item.setCheckState(self.Column.NAME, QtCore.Qt.Unchecked)
+
+        self.context_menu(action_text="Enable all")
+
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                self.assertEqual(QtCore.Qt.Checked, item.checkState(self.Column.NAME))
+
+    def test_Menu_EnableDisable_Action_DisableAll(self):
+        """
+        Test Scope:
+            - Ensure that all channels are disabled.
+        Events:
+            - Open Context Menu
+            - Select action "Disable All" from sub-menu "Enable/disable"
+            - Disable elements
+            - Open Context Menu
+            - Select action "Disable All" from sub-menu "Enable/disable"
+        Expected:
+            - Evaluate that all items are disabled.
+        """
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "A", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+
+        # Add Channels to Group
+        group_channel = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
+        self.move_channel_to_group(src=self.plot_channel_a, dst=group_channel)
+
+        # Ensure that all items are enabled
+        count = self.plot.channel_selection.topLevelItemCount()
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                self.assertEqual(QtCore.Qt.Checked, item.checkState(self.Column.NAME))
+
+        self.context_menu(action_text="Disable all")
+
+        # Ensure that all items are disabled
+        count = self.plot.channel_selection.topLevelItemCount()
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                self.assertEqual(QtCore.Qt.Unchecked, item.checkState(self.Column.NAME))
+                # Disable items
+                item.setCheckState(self.Column.NAME, QtCore.Qt.Checked)
+
+        self.context_menu(action_text="Disable all")
+
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                self.assertEqual(QtCore.Qt.Unchecked, item.checkState(self.Column.NAME))
+
+    def test_Menu_EnableDisable_Action_EnableSelected(self):
+        """
+        Test Scope:
+            - Ensure that channel selected is enabled.
+        Events:
+            - Disable all
+            - Open Context Menu
+            - Select action "Enable selected" from sub-menu "Enable/disable"
+            - Select two channel items
+            - Open Context Menu
+            - Select action "Enable selected" from sub-menu "Enable/disable"
+            - Select channel group
+            - Open Context Menu
+            - Select action "Enable selected" from sub-menu "Enable/disable"
+        Expected:
+            - Evaluate that selected items were enabled.
+        """
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "A", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+
+        # Add Channels to Group
+        group_channel = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
+        self.move_channel_to_group(src=self.plot_channel_c, dst=group_channel)
+
+        # Disable all items
+        count = self.plot.channel_selection.topLevelItemCount()
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                item.setCheckState(self.Column.NAME, QtCore.Qt.Unchecked)
+
+        self.context_menu(action_text="Enable selected")
+
+        # Ensure that all items are disabled
+        count = self.plot.channel_selection.topLevelItemCount()
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                self.assertEqual(QtCore.Qt.Unchecked, item.checkState(self.Column.NAME))
+
+        # Select two channels
+        self.plot_channel_a.setSelected(True)
+        self.plot_channel_b.setSelected(True)
+        position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
+        self.context_menu(action_text="Enable selected", position=position_src)
+
+        self.assertEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.NAME))
+        self.assertEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.NAME))
+
+        # Select group
+        position_src = self.plot.channel_selection.visualItemRect(group_channel).center()
+        self.context_menu(action_text="Enable selected", position=position_src)
+
+        self.assertEqual(QtCore.Qt.Checked, group_channel.checkState(self.Column.NAME))
+
+    def test_Menu_EnableDisable_Action_DisableSelected(self):
+        """
+        Test Scope:
+            - Ensure that channel selected is disabled.
+        Events:
+            - Disable all
+            - Open Context Menu
+            - Select action "Disable selected" from sub-menu "Enable/disable"
+            - Select two channel items
+            - Open Context Menu
+            - Select action "Disable selected" from sub-menu "Enable/disable"
+            - Select channel group
+            - Open Context Menu
+            - Select action "Disable selected" from sub-menu "Enable/disable"
+        Expected:
+            - Evaluate that selected items were disabled.
+        """
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "A", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+
+        # Add Channels to Group
+        group_channel = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
+        self.move_channel_to_group(src=self.plot_channel_c, dst=group_channel)
+
+        self.context_menu(action_text="Disable selected")
+
+        # Ensure that all items are disabled
+        count = self.plot.channel_selection.topLevelItemCount()
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info:
+                self.assertEqual(QtCore.Qt.Checked, item.checkState(self.Column.NAME))
+
+        # Select two channels
+        self.plot_channel_a.setSelected(True)
+        self.plot_channel_b.setSelected(True)
+        position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
+        self.context_menu(action_text="Disable selected", position=position_src)
+
+        self.assertEqual(QtCore.Qt.Unchecked, self.plot_channel_a.checkState(self.Column.NAME))
+        self.assertEqual(QtCore.Qt.Unchecked, self.plot_channel_b.checkState(self.Column.NAME))
+
+        # Select group
+        position_src = self.plot.channel_selection.visualItemRect(group_channel).center()
+        self.context_menu(action_text="Disable selected", position=position_src)
+
+        self.assertEqual(QtCore.Qt.Unchecked, group_channel.checkState(self.Column.NAME))
+
+    def test_Menu_EnableDisable_Action_DisableAllButThis(self):
+        """
+        Test Scope:
+            - Ensure that all channels are disabled except the item selected.
+        Events:
+            - Open Context Menu
+            - Select action "Disable all but this" from sub-menu "Enable/disable"
+        Expected:
+            - Evaluate that all channels are disabled except selected item.
+        """
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "A", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+
+        positions_src = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
+        self.context_menu(action_text="Disable all but this", position=positions_src)
+
+        # Evaluate
+        self.assertEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.NAME))
+        count = self.plot.channel_selection.topLevelItemCount()
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info and item != self.plot_channel_b:
+                self.assertEqual(QtCore.Qt.Unchecked, item.checkState(self.Column.NAME))
