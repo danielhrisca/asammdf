@@ -626,16 +626,16 @@ class TestShortcutsWith_2_Channels(TestPlotWidget):
         self.processEvents()
         old_from_to_y_channel_36 = Pixmap.search_signal_from_to_y(
             self.plot.plot.viewport().grab(), self.channel_36.color.name()
-            )
+        )
         old_from_to_y_channel_37 = Pixmap.search_signal_from_to_y(
             self.plot.plot.viewport().grab(), self.channel_37.color.name()
-            )
+        )
         old_from_to_x_channel_36 = Pixmap.search_signal_from_to_x(
             self.plot.plot.viewport().grab(), self.channel_36.color.name()
-            )
+        )
         old_from_to_x_channel_37 = Pixmap.search_signal_from_to_x(
             self.plot.plot.viewport().grab(), self.channel_37.color.name()
-            )
+        )
 
         self.plot.plot.viewport().grab().toImage().save("D:\\tmp.png")
 
