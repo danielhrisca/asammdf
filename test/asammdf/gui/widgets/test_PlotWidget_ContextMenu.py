@@ -925,3 +925,34 @@ class TestContextMenu(TestPlotWidget):
             item = self.plot.channel_selection.topLevelItem(i)
             if item.type() != item.Info and item != self.plot_channel_b:
                 self.assertEqual(QtCore.Qt.Unchecked, item.checkState(self.Column.NAME))
+
+    def test_Menu_ShowHide_Action_HideDisabledItems(self):
+        """
+        Test Scope:
+            - Ensure that item is hidden from channel selection when is disabled.
+        Events:
+            - Disable 1 channel by key Space
+            - Disable 1 channel by mouseClick on item CheckBox
+        Evaluate:
+            - Evaluate that items that are unchecked are not present anymore on channel selection
+        """
+        self.context_menu(action_text="Hide disabled items")
+
+        with self.subTest("DisableBySpace"):
+            # Select one channel
+            self.mouseClick_WidgetItem(self.plot_channel_a)
+            # Event
+            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Space)
+            # Evaluate
+            self.assertTrue(self.plot_channel_a.isHidden())
+
+        with self.subTest("DisableByClick"):
+            pos = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
+            # Magic Number to detect center of checkbox
+            pos = QtCore.QPoint(28, pos.y())
+            # Event
+            QtTest.QTest.mouseClick(
+                self.plot.channel_selection.viewport(), QtCore.Qt.LeftButton, QtCore.Qt.KeyboardModifiers(), pos
+            )
+            # Evaluate
+            self.assertTrue(self.plot_channel_b.isHidden())
