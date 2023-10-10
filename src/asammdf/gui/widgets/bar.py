@@ -216,10 +216,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
     def to_config(self):
         channels = []
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channels)
-        while 1:
-            item = iterator.value()
-            if not item:
-                break
+        while item := iterator.value():
             channels.append(item.text(0))
             iterator += 1
 

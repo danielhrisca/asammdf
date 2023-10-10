@@ -2264,6 +2264,8 @@ class Plot(QtWidgets.QWidget):
             if enabled != item.signal.enable:
                 item.signal.enable = enabled
                 self.plot.set_signal_enable(item.uuid, item.checkState(column))
+            if not enabled and self.channel_selection.hide_disabled_channels:
+                item.setHidden(True)
 
         elif column == item.CommonAxisColumn:
             if not self.locked:
