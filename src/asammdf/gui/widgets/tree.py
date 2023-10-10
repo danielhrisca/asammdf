@@ -773,12 +773,19 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.plot.plot.update()
 
         elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier) and key == QtCore.Qt.Key_C:
-            selected_items = [item for item in self.selectedItems() if item.type() == ChannelsTreeItem.Channel]
-            if not selected_items:
-                return
-            else:
+            clipboard_text = None
+            selected_items = [
+                item
+                for item in self.selectedItems()
+                if item.type() in (ChannelsTreeItem.Channel, ChannelsTreeItem.Group)
+            ]
+            if selected_items:
                 item = selected_items[0]
-            QtWidgets.QApplication.instance().clipboard().setText(item.get_display_properties())
+                if item.type() == ChannelsTreeItem.Group:
+                    item = item.child(0)
+                if item:
+                    clipboard_text = item.get_display_properties()
+                QtWidgets.QApplication.instance().clipboard().setText(clipboard_text)
 
         elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier) and key == QtCore.Qt.Key_V:
             info = QtWidgets.QApplication.instance().clipboard().text()

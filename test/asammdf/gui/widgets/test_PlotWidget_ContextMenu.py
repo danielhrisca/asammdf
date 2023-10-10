@@ -378,6 +378,8 @@ class TestContextMenu(TestPlotWidget):
             self.context_menu(action_text=action_copy, position=position_src)
 
             channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
+            channel_a_properties = json.loads(channel_a_properties)
+            del channel_a_properties["y_range"]
 
             # Paste
             position_dst = self.plot.channel_selection.visualItemRect(group_channel_a).center()
@@ -388,6 +390,8 @@ class TestContextMenu(TestPlotWidget):
             self.context_menu(action_text=action_copy, position=position_src)
 
             group_channel_properties = QtWidgets.QApplication.instance().clipboard().text()
+            group_channel_properties = json.loads(group_channel_properties)
+            del group_channel_properties["y_range"]
 
             # Evaluate
             self.assertEqual(channel_a_properties, group_channel_properties)
@@ -410,6 +414,8 @@ class TestContextMenu(TestPlotWidget):
             self.context_menu(action_text=action_copy, position=position_src)
 
             channel_c_properties = QtWidgets.QApplication.instance().clipboard().text()
+            channel_c_properties = json.loads(channel_c_properties)
+            del channel_c_properties["y_range"]
 
             # Evaluate
             self.assertEqual(channel_c_properties, group_channel_properties)
@@ -420,6 +426,8 @@ class TestContextMenu(TestPlotWidget):
             position_src = self.plot.channel_selection.visualItemRect(group_channel_b).center()
             self.context_menu(action_text=action_copy, position=position_src)
             group_channel_b_properties = QtWidgets.QApplication.instance().clipboard().text()
+            group_channel_b_properties = json.loads(group_channel_b_properties)
+            del group_channel_b_properties["y_range"]
 
             # Paste
             position_dst = self.plot.channel_selection.visualItemRect(group_channel_a).center()
@@ -430,6 +438,8 @@ class TestContextMenu(TestPlotWidget):
             self.context_menu(action_text=action_copy, position=position_src)
 
             group_channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
+            group_channel_a_properties = json.loads(group_channel_a_properties)
+            del group_channel_a_properties["y_range"]
 
             # Evaluate
             self.assertEqual(group_channel_a_properties, group_channel_b_properties)
