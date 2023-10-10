@@ -360,6 +360,30 @@ class Pixmap:
         return from_to
 
     @staticmethod
+    def search_signal_from_to_y(pixmap, color):
+        from_to = []
+        image = pixmap.toImage()
+
+        for y in range(image.height()):
+            for x in range(image.width()):
+                if QtGui.QColor(image.pixel(x, y)).name() == color:
+                    from_to.append(y)
+                    break
+            if from_to:
+                break
+        if not from_to:
+            return
+
+        for y in range(image.height(), from_to[0], -1):
+            for x in range(image.width()):
+                if QtGui.QColor(image.pixel(x, y)).name() == color:
+                    from_to.append(y)
+                    break
+            if len(from_to) == 2:
+                break
+        return from_to
+
+    @staticmethod
     def search_y_of_signal_in_x(pixmap, color):
         image = pixmap.toImage()
         line = None

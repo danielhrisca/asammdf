@@ -558,6 +558,64 @@ class TestShortcutsWith_2_Channels(TestPlotWidget):
             self.assertEqual("250", self.channel_37.text(self.Column.VALUE))
             self.assertEqual("t = 0.042657s", self.plot.cursor_info.text())
 
+    def test_Plot_Plot_Shortcut_Key_Shift_LeftRightUpDown(self):
+        """
+
+        """
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_S)
+        self.processEvents()
+        old_from_to_y_channel_36 = Pixmap.search_signal_from_to_y(
+            self.plot.plot.viewport().grab(), self.channel_36.color.name()
+            )
+        old_from_to_y_channel_37 = Pixmap.search_signal_from_to_y(
+            self.plot.plot.viewport().grab(), self.channel_37.color.name()
+            )
+        old_from_to_x_channel_36 = Pixmap.search_signal_from_to_x(
+            self.plot.plot.viewport().grab(), self.channel_36.color.name()
+            )
+        old_from_to_x_channel_37 = Pixmap.search_signal_from_to_x(
+            self.plot.plot.viewport().grab(), self.channel_37.color.name()
+            )
+
+        self.plot.plot.viewport().grab().toImage().save("D:\\tmp.png")
+
+        self.mouseClick_WidgetItem(self.channel_36)
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+Down"))
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+Left"))
+        for i in range(100):
+            self.processEvents()
+        self.mouseClick_WidgetItem(self.channel_37)
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+Up"))
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+Right"))
+        for i in range(100):
+            self.processEvents()
+
+        new_from_to_y_channel_36 = Pixmap.search_signal_from_to_y(
+            self.plot.plot.viewport().grab(), self.channel_36.color.name()
+        )
+        new_from_to_y_channel_37 = Pixmap.search_signal_from_to_y(
+            self.plot.plot.viewport().grab(), self.channel_37.color.name()
+        )
+        new_from_to_x_channel_36 = Pixmap.search_signal_from_to_x(
+            self.plot.plot.viewport().grab(), self.channel_36.color.name()
+        )
+        new_from_to_x_channel_37 = Pixmap.search_signal_from_to_x(
+            self.plot.plot.viewport().grab(), self.channel_37.color.name()
+        )
+
+        self.plot.plot.viewport().grab().toImage().save("D:\\tmp_.png")
+
+        # Evaluate
+        self.assertLess(old_from_to_y_channel_36[0], new_from_to_y_channel_36[0])
+        self.assertLess(old_from_to_y_channel_36[1], new_from_to_y_channel_36[1])
+        self.assertGreater(old_from_to_x_channel_36[0], new_from_to_x_channel_36[0])
+        self.assertGreater(old_from_to_x_channel_36[1], new_from_to_x_channel_36[1])
+
+        self.assertGreater(old_from_to_y_channel_37[0], new_from_to_y_channel_37[0])
+        self.assertGreater(old_from_to_y_channel_37[1], new_from_to_y_channel_37[1])
+        self.assertLess(old_from_to_x_channel_37[0], new_from_to_x_channel_37[0])
+        self.assertLess(old_from_to_x_channel_37[1], new_from_to_x_channel_37[1])
+
 
 class TestShortcutsWith_3_Channels(TestPlotWidget):
     def __init__(self, methodName: str = ...):
