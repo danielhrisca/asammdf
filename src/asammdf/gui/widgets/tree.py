@@ -781,10 +781,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             ]
             if selected_items:
                 item = selected_items[0]
-                if item.type() == ChannelsTreeItem.Group:
-                    item = item.child(0)
-                if item:
-                    clipboard_text = item.get_display_properties()
+                clipboard_text = item.get_display_properties()
                 QtWidgets.QApplication.instance().clipboard().setText(clipboard_text)
 
         elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier) and key == QtCore.Qt.Key_V:
@@ -1937,6 +1934,10 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         return get_color_using_ranges(value, self.get_ranges(), self.signal.color, pen=pen)
 
     def get_display_properties(self):
+        if self.type() == ChannelsTreeItem.Group:
+            if self.childCount():
+                return self.child(0).get_display_properties()
+            return
         info = {
             "color": self.color.name(),
             "precision": self.precision,

@@ -3,12 +3,13 @@ import json
 from json import JSONDecodeError
 import re
 import sys
-from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 import unittest
 from unittest import mock
 from unittest.mock import ANY
 
 from PySide6 import QtCore, QtTest, QtWidgets
+
+from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestContextMenu(TestPlotWidget):
@@ -78,7 +79,7 @@ class TestContextMenu(TestPlotWidget):
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText, mock.patch(
-            "asammdf.gui.widgets.tree.MessageBox.warning"
+                "asammdf.gui.widgets.tree.MessageBox.warning"
         ) as mo_warning:
             mo_getText.return_value = self.id(), True
             self.context_menu(action_text="Search item")
@@ -103,7 +104,7 @@ class TestContextMenu(TestPlotWidget):
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText, mock.patch(
-            "asammdf.gui.widgets.tree.MessageBox.warning"
+                "asammdf.gui.widgets.tree.MessageBox.warning"
         ) as mo_warning:
             mo_getText.return_value = self.plot_channel_b.text(self.Column.NAME), True
             self.context_menu(action_text="Search item")
@@ -298,11 +299,18 @@ class TestContextMenu(TestPlotWidget):
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
             mo_getText.return_value = "A", True
             self.context_menu(action_text="Add channel group [Shift+Insert]")
-        group_channel = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
+            mo_getText.return_value = "B", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            mo_getText.return_value = "C", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+
+        group_channel_a = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
+        group_channel_b = self.plot.channel_selection.findItems("B", QtCore.Qt.MatchFlags())[0]
+        group_channel_c = self.plot.channel_selection.findItems("C", QtCore.Qt.MatchFlags())[0]
 
         QtWidgets.QApplication.instance().clipboard().clear()
         with self.subTest("EmptyGroup_0"):
-            position = self.plot.channel_selection.visualItemRect(group_channel).center()
+            position = self.plot.channel_selection.visualItemRect(group_channel_a).center()
             self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             with self.assertRaises(JSONDecodeError):
@@ -310,7 +318,7 @@ class TestContextMenu(TestPlotWidget):
 
         with self.subTest("PopulatedGroup"):
             # Add Channels to Group
-            self.move_channel_to_group(src=self.plot_channel_a, dst=group_channel)
+            self.move_channel_to_group(src=self.plot_channel_a, dst=group_channel_a)
 
             position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
             self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
@@ -324,8 +332,25 @@ class TestContextMenu(TestPlotWidget):
                 self.assertIsInstance(content, dict)
 
         with self.subTest("EmptyGroup_1"):
-            group_channel.removeChild(self.plot_channel_a)
-            position = self.plot.channel_selection.visualItemRect(group_channel).center()
+            group_channel_a.removeChild(self.plot_channel_a)
+            position = self.plot.channel_selection.visualItemRect(group_channel_a).center()
+            self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
+            clipboard = QtWidgets.QApplication.instance().clipboard().text()
+            print(clipboard)
+            with self.assertRaises(JSONDecodeError):
+                json.loads(clipboard)
+
+        with self.subTest("EmptyGroup_2"):
+            # Add Channels to Group
+            self.move_channel_to_group(src=group_channel_c, dst=group_channel_b)
+            group_channel_a.setExpanded(True)
+            group_channel_b.setExpanded(True)
+            group_channel_c.setExpanded(True)
+            self.move_channel_to_group(src=group_channel_b, dst=group_channel_a)
+            group_channel_a.setExpanded(True)
+            group_channel_b.setExpanded(True)
+            group_channel_c.setExpanded(True)
+            position = self.plot.channel_selection.visualItemRect(group_channel_a).center()
             self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             print(clipboard)
@@ -362,11 +387,18 @@ class TestContextMenu(TestPlotWidget):
             self.context_menu(action_text="Add channel group [Shift+Insert]")
             mo_getText.return_value = "B", True
             self.context_menu(action_text="Add channel group [Shift+Insert]")
+            mo_getText.return_value = "C", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
 
         # Add Channels to Group
         group_channel_a = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
         group_channel_a.setExpanded(True)
-        self.move_channel_to_group(src=self.plot_channel_b, dst=group_channel_a)
+        group_channel_c = self.plot.channel_selection.findItems("C", QtCore.Qt.MatchFlags())[0]
+        group_channel_c.setExpanded(True)
+        self.move_channel_to_group(src=group_channel_c, dst=group_channel_a)
+        group_channel_a.setExpanded(True)
+        group_channel_c.setExpanded(True)
+        self.move_channel_to_group(src=self.plot_channel_b, dst=group_channel_c)
 
         # Add Channels to Group
         group_channel_b = self.plot.channel_selection.findItems("B", QtCore.Qt.MatchFlags())[0]
@@ -869,3 +901,29 @@ class TestContextMenu(TestPlotWidget):
         self.context_menu(action_text="Disable selected", position=position_src)
 
         self.assertEqual(QtCore.Qt.Unchecked, group_channel.checkState(self.Column.NAME))
+
+    def test_Menu_EnableDisable_Action_DisableAllButThis(self):
+        """
+        Test Scope:
+            - Ensure that all channels are disabled except the item selected.
+        Events:
+            - Open Context Menu
+            - Select action "Disable all but this" from sub-menu "Enable/disable"
+        Expected:
+            - Evaluate that all channels are disabled except selected item.
+        """
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
+            mo_getText.return_value = "A", True
+            self.context_menu(action_text="Add channel group [Shift+Insert]")
+
+
+        positions_src = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
+        self.context_menu(action_text="Disable all but this", position=positions_src)
+
+        # Evaluate
+        self.assertEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.NAME))
+        count = self.plot.channel_selection.topLevelItemCount()
+        for i in range(count):
+            item = self.plot.channel_selection.topLevelItem(i)
+            if item.type() != item.Info and item != self.plot_channel_b:
+                self.assertEqual(QtCore.Qt.Unchecked, item.checkState(self.Column.NAME))
