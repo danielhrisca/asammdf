@@ -1,7 +1,7 @@
 # -*- mode: python -*-
 import os
-import sys
 from pathlib import Path
+import sys
 
 sys.setrecursionlimit(sys.getrecursionlimit() * 5)
 

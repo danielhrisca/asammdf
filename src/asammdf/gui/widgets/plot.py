@@ -1930,11 +1930,7 @@ class Plot(QtWidgets.QWidget):
 
         enforce_y_axis = False
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-        while True:
-            item = iterator.value()
-            if item is None:
-                break
-
+        while item := iterator.value():
             if item.type() == item.Channel:
                 if item.checkState(item.CommonAxisColumn) == QtCore.Qt.Unchecked:
                     enforce_y_axis = False
@@ -2214,11 +2210,7 @@ class Plot(QtWidgets.QWidget):
                     signal.enable = False
 
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
-
+                while item := iterator.value():
                     if (
                         item.type() == item.Channel
                         and item.checkState(item.NameColumn) == QtCore.Qt.Checked
@@ -2363,11 +2355,7 @@ class Plot(QtWidgets.QWidget):
         tree = self.channel_selection
         tree.plot = None
         iterator = QtWidgets.QTreeWidgetItemIterator(tree)
-        while True:
-            item = iterator.value()
-            if item is None:
-                break
-
+        while item := iterator.value():
             item.signal = None
 
             iterator += 1
@@ -2514,11 +2502,7 @@ class Plot(QtWidgets.QWidget):
 
     def cursor_removed(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-        while True:
-            item = iterator.value()
-            if item is None:
-                break
-
+        while item := iterator.value():
             if item.type() == item.Channel and not self.plot.region:
                 self.cursor_info.update_value()
                 item.set_prefix()
@@ -2534,11 +2518,7 @@ class Plot(QtWidgets.QWidget):
 
     def curve_clicked(self, uuid):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-        while True:
-            item = iterator.value()
-            if item is None:
-                break
-
+        while item := iterator.value():
             if item.type() == item.Channel and item.uuid == uuid:
                 self.channel_selection.clearSelection()
                 self.channel_selection.setCurrentItem(item)
@@ -2894,11 +2874,7 @@ class Plot(QtWidgets.QWidget):
 
         elif key == QtCore.Qt.Key_R and modifiers == QtCore.Qt.NoModifier:
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-            while True:
-                item = iterator.value()
-                if item is None:
-                    break
-
+            while item := iterator.value():
                 if item.type() == item.Channel:
                     item.set_prefix()
                     item.set_value("")
@@ -3107,11 +3083,7 @@ class Plot(QtWidgets.QWidget):
     def range_removed(self):
         self._prev_region = None
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-        while True:
-            item = iterator.value()
-            if item is None:
-                break
-
+        while item := iterator.value():
             if item.type() == item.Channel:
                 item.set_prefix()
                 item.set_value("")
@@ -3375,10 +3347,7 @@ class Plot(QtWidgets.QWidget):
         self.range_modified()
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-        while True:
-            item = iterator.value()
-            if item is None:
-                break
+        while item := iterator.value():
             if item.type() == ChannelsTreeItem.Channel:
                 item.set_value(update=True, force=True)
 
@@ -3422,10 +3391,7 @@ class Plot(QtWidgets.QWidget):
             _visible_items = self._visible_items = {}
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
 
-            while True:
-                item = iterator.value()
-                if item is None:
-                    break
+            while item := iterator.value():
                 iterator += 1
                 if item.type() == ChannelsTreeItem.Channel:
                     _item_cache[item.uuid] = item
@@ -4688,11 +4654,7 @@ class PlotGraphics(pg.PlotWidget):
                 uuids = []
 
                 iterator = QtWidgets.QTreeWidgetItemIterator(parent.channel_selection)
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
-
+                while item := iterator.value():
                     if item.type() == ChannelsTreeItem.Channel and item.signal.enable:
                         uuids.append(item.uuid)
 

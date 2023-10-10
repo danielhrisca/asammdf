@@ -2387,10 +2387,7 @@ class WithMDIArea:
         self.set_subplots_link(self.subplots_link)
 
         iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
-        while True:
-            item = iterator.value()
-            if item is None:
-                break
+        while item := iterator.value():
             iterator += 1
 
             if item.type() == item.Group:
@@ -2585,11 +2582,7 @@ class WithMDIArea:
             wid = mdi.widget()
             if isinstance(wid, Plot):
                 iterator = QtWidgets.QTreeWidgetItemIterator(wid.channel_selection)
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
-
+                while item := iterator.value():
                     if item.type() == item.Channel:
                         if item.signal.flags & item.signal.Flags.computed:
                             if item.signal.computation["function"] in deleted:
@@ -3746,11 +3739,7 @@ class WithMDIArea:
             wid = mdi.widget()
             if isinstance(wid, Plot):
                 iterator = QtWidgets.QTreeWidgetItemIterator(wid.channel_selection)
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
-
+                while item := iterator.value():
                     if item.type() == item.Channel:
                         if item.signal.flags & item.signal.Flags.computed:
                             function = item.signal.computation["function"]

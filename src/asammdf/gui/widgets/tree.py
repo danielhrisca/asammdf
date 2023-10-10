@@ -560,10 +560,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         selection = list(self.selectedItems())
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
-        while True:
-            item = iterator.value()
-            if item is None:
-                break
+        while item := iterator.value():
             widget = self.itemWidget(item, 1)
 
             if widget:
@@ -1309,11 +1306,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             if self.details_enabled:
                 iterator = QtWidgets.QTreeWidgetItemIterator(self)
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
-
+                while item := iterator.value():
                     if item.type() == ChannelsTreeItem.Channel:
                         item.details = ChannelsTreeItem(
                             type=ChannelsTreeItem.Info,
@@ -1330,11 +1323,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             else:
                 iterator = QtWidgets.QTreeWidgetItemIterator(self)
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
-
+                while item := iterator.value():
                     if item.type() == ChannelsTreeItem.Channel:
                         if item.details:
                             item.removeChild(item.details)
@@ -1443,11 +1432,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 start_item = item or self
                 iterator = QtWidgets.QTreeWidgetItemIterator(start_item)
 
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
-
+                while item := iterator.value():
                     if (
                         item is not start_item
                         and item.type() in (ChannelsTreeItem.Channel, ChannelsTreeItem.Group)
@@ -1468,9 +1453,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 else:
                     iterator = QtWidgets.QTreeWidgetItemIterator(self)
 
-                    while True:
-                        item = iterator.value()
-                        if item is None or item is start_item:
+                    while item := iterator.value():
+                        if item is start_item:
                             break
 
                         if item.type() in (
@@ -1502,11 +1486,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             iterator += 1
 
-            while True:
-                item = iterator.value()
-                if item is None:
-                    break
-
+            while item := iterator.value():
                 if item.type() in (
                     ChannelsTreeItem.Channel,
                     ChannelsTreeItem.Group,
@@ -1519,9 +1499,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             iterator = QtWidgets.QTreeWidgetItemIterator(self)
 
-            while True:
-                item = iterator.value()
-                if item is None or item is start_item:
+            while item := iterator.value():
+                if item is start_item:
                     break
 
                 if item.type() in (
@@ -1553,10 +1532,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
     def update_channel_groups_count(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
-        while True:
-            item = iterator.value()
-            if item is None:
-                break
+        while item := iterator.value():
             if item.type() == ChannelsTreeItem.Group:
                 item.count = item.childCount()
             iterator += 1
@@ -1567,11 +1543,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         filter_computed = self.filter_computed_channels
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
-        while True:
-            item = iterator.value()
-            if item is None:
-                break
-
+        while item := iterator.value():
             hidden = False
 
             if filter_computed:
@@ -1594,11 +1566,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         tree_rect = self.viewport().rect()
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
-        while True:
-            item = iterator.value()
-            if item is None:
-                break
-
+        while item := iterator.value():
             try:
                 if item.type() == item.Channel:
                     rect = self.visualItemRect(item)
