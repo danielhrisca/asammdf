@@ -315,7 +315,7 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
             else:
                 self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
 
-    def test_Plot_Plot_Shortcut_I(self):
+    def test_Plot_Plot_Shortcut_Key_I(self):
         """
         Test Scope:
             Check if zooming is released after pressing key "I".
@@ -359,7 +359,7 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
                     break
         self.assertLess(distanceInPixels_1, distanceInPixels_2)
 
-    def test_Plot_Plot_Shortcut_O(self):
+    def test_Plot_Plot_Shortcut_Key_O(self):
         """
         Test Scope:
             Check if zooming is released after pressing key "O".
@@ -403,7 +403,7 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
                     break
         self.assertGreater(distanceInPixels_1, distanceInPixels_2)
 
-    def test_Plot_Plot_Shortcut_X(self):
+    def test_Plot_Plot_Shortcut_Key_X(self):
         """
         Test Scope:
             Check if fitting between cursors is released after pressing key "X".
@@ -440,6 +440,50 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         ...
 
     # in progress ... ...
+
+    def test_Plot_Plot_Shortcut_Ctrl_H_Ctrl_B_Ctrl_P(self):
+        """
+        Test Scope:
+            Check if values is converted to int, hex, bin after pressing combination of key "Ctrl+<H>|<B>|<P>"
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Display 1 signal on plot
+            - Press "Ctrl+H"
+            - Press "Ctrl+B"
+            - Press "Ctrl+P"
+        Evaluate:
+            - Evaluate that plot is not black
+            - Evaluate that unit is changed to Hex after pressing key "Ctrl+H"
+            - Evaluate that unit is changed to Bin after pressing key "Ctrl+B"
+            - Evaluate that unit is changed to Int after pressing key "Ctrl+P"
+        """
+        # Setup
+        Physical = self.plot.selected_channel_value.text()
+        physicalHours = int(Physical.split(" ")[0])
+        # Press "Ctrl+H"
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Ctrl+H"))
+
+        Hex = self.plot.selected_channel_value.text()
+        # Convert Hex value to Int
+        hexHours = int(Hex.split(" ")[0], 16)
+        # Evaluate
+        self.assertNotEqual(Physical, Hex)
+        self.assertIn("0x", Hex)
+        self.assertEqual(physicalHours, hexHours)
+
+        # Press "Ctrl+B"
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Ctrl+B"))
+        Bin = self.plot.selected_channel_value.text()
+        binHours = int(Bin.split(" ")[0].replace(".", ""), 2)
+        self.assertNotEqual(Physical, Bin)
+        self.assertEqual(physicalHours, binHours)
+
+        # Press "Ctrl+P"
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Ctrl+P"))
+        newPhysical = self.plot.selected_channel_value.text()
+        newPhysicalHours = int(newPhysical.split(" ")[0])
+        self.assertEqual(Physical, newPhysical)
+        self.assertEqual(physicalHours, newPhysicalHours)
 
 
 class TestShortcutsWith_2_Channels(TestPlotWidget):
@@ -560,7 +604,23 @@ class TestShortcutsWith_2_Channels(TestPlotWidget):
 
     def test_Plot_Plot_Shortcut_Key_Shift_LeftRightUpDown(self):
         """
-
+        Test Scope:
+            Check that Shift + Arrow Keys ensure moving of selected channels.
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Switch ComboBox to "Natural sort"
+            - Press PushButton "Create Window"
+            - Create plot with 2 channels
+            - Press key "S" to separate signals for better evaluation
+            - Click on first channel
+            - Press "Shift" key + arrow "Down" & "Left"
+            - Click on second channel
+            - Press "Shift" key + arrow "Up" & "Right"
+        Evaluate:
+            - Evaluate that two signals are available
+            - Evaluate that plot is not black and contain colors of all 3 channels
+            - Evaluate that first signal is shifted down & left after pressing combination "Shift+Down" & "Shift+Left"
+            - Evaluate that second signal is shifted up & right after pressing combination "Shift+Up" & "Shift+Right"
         """
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_S)
         self.processEvents()
