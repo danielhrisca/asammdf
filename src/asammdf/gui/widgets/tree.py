@@ -1936,7 +1936,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         if self.type() == ChannelsTreeItem.Group:
             if self.childCount():
                 return self.child(0).get_display_properties()
-            return
+            return ""
         info = {
             "color": self.color.name(),
             "precision": self.precision,
