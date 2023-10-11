@@ -22,6 +22,13 @@ class TestShortcutsWOChannels(TestPlotWidget):
         self.create_window(window_type="Plot")
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
         self.plot = self.widget.mdi_area.subWindowList()[0].widget()
+        # check if grid is available
+        if not self.plot.hide_axes_btn.isFlat():
+            QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
+        # hide bookmarks if it's available
+        if self.plot.show_bookmarks:
+            self.plot.toggle_bookmarks(hide=True)
+        self.processEvents()
         # pixmap is black
         self.assertTrue(Pixmap.is_black(self.plot.plot.viewport().grab()))
 
@@ -257,6 +264,10 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         # check if grid is available -> hide grid
         if not self.plot.hide_axes_btn.isFlat():
             QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
+        # hide bookmarks if it's available
+        if self.plot.show_bookmarks:
+            self.plot.toggle_bookmarks(hide=True)
+        self.processEvents()
         # pixmap is not black
         self.assertFalse(Pixmap.is_black(self.plot.plot.viewport().grab()))
 
@@ -485,6 +496,29 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         self.assertEqual(Physical, newPhysical)
         self.assertEqual(physicalHours, newPhysicalHours)
 
+    def test_Plot_Plot_Shortcut_Key_Period(self):
+        """
+
+        """
+        from_x = Pixmap.search_signal_from_to_x(self.plot.plot.viewport().grab(), self.channel_35.color.name())[0]
+        # Calculate in signal color colored pixels for midd line
+        from_y = Pixmap.search_signal_from_to_y(
+            self.plot.plot.viewport().grab(QtCore.QRect(from_x, 0, 1, self.plot.plot.height())),
+            self.channel_35.color.name()
+            )[1]
+
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_Period)
+        for i in range(10):
+            self.processEvents()
+        newNumberOfColoredPixels = Pixmap.color_map(
+            self.plot.plot.viewport().grab(
+                QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.width(), 2)
+            )
+        )[0].count(self.channel_35.color.name())
+
+        # in progress
+        ...
+
 
 class TestShortcutsWith_2_Channels(TestPlotWidget):
     def __init__(self, methodName: str = ...):
@@ -518,6 +552,10 @@ class TestShortcutsWith_2_Channels(TestPlotWidget):
         # check if grid is available -> hide grid
         if not self.plot.hide_axes_btn.isFlat():
             QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
+        # hide bookmarks if it's available
+        if self.plot.show_bookmarks:
+            self.plot.toggle_bookmarks(hide=True)
+        self.processEvents()
         # pixmap is not black
         self.assertFalse(Pixmap.is_black(self.plot.plot.viewport().grab()))
 
@@ -602,7 +640,7 @@ class TestShortcutsWith_2_Channels(TestPlotWidget):
             self.assertEqual("250", self.channel_37.text(self.Column.VALUE))
             self.assertEqual("t = 0.042657s", self.plot.cursor_info.text())
 
-    def test_Plot_Plot_Shortcut_Key_Shift_LeftRightUpDown(self):
+    def test_Plot_Plot_Shortcut_Key_Shift_Arrows(self):
         """
         Test Scope:
             Check that Shift + Arrow Keys ensure moving of selected channels.
@@ -637,17 +675,19 @@ class TestShortcutsWith_2_Channels(TestPlotWidget):
             self.plot.plot.viewport().grab(), self.channel_37.color.name()
         )
 
-        self.plot.plot.viewport().grab().toImage().save("D:\\tmp.png")
-
         self.mouseClick_WidgetItem(self.channel_36)
         QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+Down"))
+        for i in range(10):
+            self.processEvents()
         QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+Left"))
-        for i in range(100):
+        for i in range(10):
             self.processEvents()
         self.mouseClick_WidgetItem(self.channel_37)
         QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+Up"))
+        for i in range(10):
+            self.processEvents()
         QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+Right"))
-        for i in range(100):
+        for i in range(10):
             self.processEvents()
 
         new_from_to_y_channel_36 = Pixmap.search_signal_from_to_y(
@@ -662,8 +702,6 @@ class TestShortcutsWith_2_Channels(TestPlotWidget):
         new_from_to_x_channel_37 = Pixmap.search_signal_from_to_x(
             self.plot.plot.viewport().grab(), self.channel_37.color.name()
         )
-
-        self.plot.plot.viewport().grab().toImage().save("D:\\tmp_.png")
 
         # Evaluate
         self.assertLess(old_from_to_y_channel_36[0], new_from_to_y_channel_36[0])
@@ -713,6 +751,10 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
         # check if grid is available -> hide grid
         if not self.plot.hide_axes_btn.isFlat():
             QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
+        # hide bookmarks if it's available
+        if self.plot.show_bookmarks:
+            self.plot.toggle_bookmarks(hide=True)
+        self.processEvents()
         # pixmap is not black
         self.assertFalse(Pixmap.is_black(self.plot.plot.viewport().grab()))
 
@@ -979,7 +1021,8 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
 
         # case 0
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_2)
-        self.processEvents()
+        for i in range(10):
+            self.processEvents()
         # Evaluate
         self.assertTrue(Pixmap.is_black(self.plot.plot.viewport().grab()))
 
@@ -994,7 +1037,7 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
 
         # case 2
         QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
-        for i in range(200):
+        for i in range(100):
             self.processEvents()
         pixmap = self.plot.plot.viewport().grab()
         # Evaluate
