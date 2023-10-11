@@ -852,6 +852,7 @@ class TestContextMenu(TestPlotWidget):
 
         self.assertEqual(QtCore.Qt.Checked, group_channel.checkState(self.Column.NAME))
 
+    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Menu_EnableDisable_Action_DisableSelected(self):
         """
         Test Scope:
