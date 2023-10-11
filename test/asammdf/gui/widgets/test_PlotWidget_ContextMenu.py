@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import json
 from json import JSONDecodeError
+import pathlib
 import re
 import sys
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
@@ -993,3 +994,59 @@ class TestContextMenu(TestPlotWidget):
             self.assertTrue(self.plot_channel_b.isHidden())
             self.context_menu(action_text="Show disabled items")
             self.assertFalse(self.plot_channel_b.isHidden())
+
+    def test_Menu_ShowHide_Action_HideMissingItems(self):
+        """
+        Test Scope:
+            - Ensure that missing item is hidden from channel selection.
+        Events:
+            - Disable 1 channel by key Space
+            - Disable 1 channel by mouseClick on item CheckBox
+        Evaluate:
+            - Evaluate that missing items are not present anymore on channel selection
+        """
+        dspf_filepath = pathlib.Path(self.resource, "missingItems.dspf")
+        self.load_display_file(display_file=dspf_filepath)
+        self.plot = self.widget.mdi_area.subWindowList()[0].widget()
+
+        plot_channel = self.find_channel(channel_tree=self.plot.channel_selection, channel_name="1stMissingItem")
+        self.processEvents()
+
+        self.assertFalse(plot_channel.isHidden())
+
+        # Events
+        self.context_menu(action_text="Hide missing items")
+
+        # Evaluate
+        self.assertTrue(plot_channel.isHidden())
+        self.processEvents(timeout=0.01)
+
+    def test_Menu_ShowHide_Action_ShowMissingItems(self):
+        """
+        Test Scope:
+            - Ensure that missing item is visible from channel selection.
+        Events:
+            - Open Context Menu
+            - Select action: Hide missing items
+            - Disable 1 channel by key Space
+            - Disable 1 channel by mouseClick on item CheckBox
+        Evaluate:
+            - Evaluate that missing items are present anymore on channel selection
+        """
+        dspf_filepath = pathlib.Path(self.resource, "missingItems.dspf")
+        self.load_display_file(display_file=dspf_filepath)
+        self.plot = self.widget.mdi_area.subWindowList()[0].widget()
+
+        self.context_menu(action_text="Hide missing items")
+
+        plot_channel = self.find_channel(channel_tree=self.plot.channel_selection, channel_name="1stMissingItem")
+        self.processEvents()
+
+        self.assertTrue(plot_channel.isHidden())
+
+        # Events
+        self.context_menu(action_text="Show missing items")
+
+        # Evaluate
+        self.assertFalse(plot_channel.isHidden())
+        self.processEvents(timeout=0.01)

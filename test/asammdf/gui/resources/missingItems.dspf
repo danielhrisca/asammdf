@@ -1,0 +1,408 @@
+{
+  "selected_channels": [],
+  "windows": [
+    {
+      "title": "Plot 0",
+      "configuration": {
+        "channels": [
+          {
+            "type": "channel",
+            "name": "ASAM.M.SCALAR.SBYTE.LINEAR_MUL_2",
+            "unit": "m/s",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#1f77b4",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{:.3f}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              -256.0,
+              254.0
+            ],
+            "origin_uuid": "ae683e64a806"
+          },
+          {
+            "type": "channel",
+            "name": "1stMissingItem",
+            "unit": "",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#7975eb",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{:.3f}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              -256.0,
+              254.0
+            ],
+            "origin_uuid": "ae683e64a806"
+          },
+          {
+            "type": "channel",
+            "name": "ASAM.M.SCALAR.SLONG.IDENTICAL",
+            "unit": "hours",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#ff7f0e",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              0.0,
+              999.0
+            ],
+            "origin_uuid": "ae683e64a806"
+          },
+          {
+            "type": "channel",
+            "name": "ASAM.M.SCALAR.SWORD.IDENTICAL",
+            "unit": "hours",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#2ca02c",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              0.0,
+              999.0
+            ],
+            "origin_uuid": "ae683e64a806"
+          },
+          {
+            "type": "channel",
+            "name": "ASAM.M.SCALAR.UBYTE.FORM_X_PLUS_4",
+            "unit": "rpm",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#d62728",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{:.3f}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              4.0,
+              259.0
+            ],
+            "origin_uuid": "ae683e64a806"
+          },
+          {
+            "type": "channel",
+            "name": "ASAM.M.SCALAR.UBYTE.HYPERBOLIC",
+            "unit": "km/h",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#c94597",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{:.3f}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              0.00392156862745098,
+              1.0
+            ],
+            "origin_uuid": "ae683e64a806"
+          },
+          {
+            "type": "channel",
+            "name": "ASAM.M.SCALAR.UBYTE.IDENTICAL",
+            "unit": "hours",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#8c564b",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              0.0,
+              255.0
+            ],
+            "origin_uuid": "ae683e64a806"
+          },
+          {
+            "type": "channel",
+            "name": "ASAM.M.SCALAR.UBYTE.IDENTICAL.STATUS_STRING",
+            "unit": "m/s",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#e377c2",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              0.0,
+              255.0
+            ],
+            "origin_uuid": "ae683e64a806"
+          },
+          {
+            "type": "channel",
+            "name": "ASAM.M.SCALAR.UBYTE.RAT_FUNC.DIV_10",
+            "unit": "km/h",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#7f7f7f",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{:.3f}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              0.0,
+              25.5
+            ],
+            "origin_uuid": "ae683e64a806"
+          },
+          {
+            "type": "channel",
+            "name": "ASAM.M.SCALAR.UBYTE.RAT_FUNC.IDENT.STATUS_STRING",
+            "unit": "m/s",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#bcbd22",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              0.0,
+              255.0
+            ],
+            "origin_uuid": "ae683e64a806"
+          },
+          {
+            "type": "channel",
+            "name": "ASAM.M.SCALAR.UBYTE.TAB_INTP_DEFAULT_VALUE",
+            "unit": "U/  min",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#17becf",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{:.3f}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              100.0,
+              111.0
+            ],
+            "origin_uuid": "ae683e64a806"
+          },
+          {
+            "type": "channel",
+            "name": "ASAM.M.SCALAR.UBYTE.TAB_INTP_NO_DEFAULT_VALUE",
+            "unit": "U/  min",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#1f77b4",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{:.3f}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              100.0,
+              111.0
+            ],
+            "origin_uuid": "ae683e64a806"
+          },
+          {
+            "type": "channel",
+            "name": "ASAM.M.SCALAR.UBYTE.TAB_NOINTP_DEFAULT_VALUE",
+            "unit": "U/  min",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#ff7f0e",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{:.3f}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              100.0,
+              111.0
+            ],
+            "origin_uuid": "ae683e64a806"
+          },
+          {
+            "type": "channel",
+            "name": "ASAM.M.SCALAR.UBYTE.TAB_NOINTP_NO_DEFAULT_VALUE",
+            "unit": "U/  min",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#2ca02c",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{:.3f}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              100.0,
+              111.0
+            ],
+            "origin_uuid": "ae683e64a806"
+          },
+          {
+            "type": "channel",
+            "name": "ASAM.M.SCALAR.UBYTE.TAB_VERB_DEFAULT_VALUE",
+            "unit": "unknown signal type",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#d62728",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              0.0,
+              255.0
+            ],
+            "origin_uuid": "ae683e64a806"
+          },
+          {
+            "type": "channel",
+            "name": "FirstVirtualChannel",
+            "unit": "",
+            "flags": 32,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#85cf0c",
+            "computed": true,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{:.3f}",
+            "format": "phys",
+            "mode": "phys",
+            "computation": {
+              "args": {},
+              "channel_comment": "",
+              "channel_name": "FirstVirtualChannel",
+              "channel_unit": "",
+              "computation_mode": "sample_by_sample",
+              "function": "TestVirtualChannel",
+              "triggering": "triggering_on_channel",
+              "triggering_value": "MAIN_CLOCK",
+              "type": "python_function"
+            },
+            "y_range": [
+              -1.0,
+              0.0
+            ],
+            "origin_uuid": "ae683e64a806"
+          }
+        ],
+        "pattern": {},
+        "splitter": [
+          394,
+          284,
+          0
+        ],
+        "x_range": [
+          -0.7252090113273859,
+          13.152907274715773
+        ],
+        "y_axis_width": 0.0,
+        "grid": [
+          false,
+          false
+        ],
+        "cursor_precision": 6,
+        "font_size": 9,
+        "locked": false,
+        "common_axis_y_range": [
+          0.00392156862745098,
+          1.0
+        ],
+        "channels_header": [
+          394,
+          [
+            366,
+            83,
+            122,
+            35,
+            35
+          ]
+        ],
+        "hide_axes": true,
+        "hide_selected_channel_value_panel": false,
+        "focused_mode": false,
+        "delta_mode": "delta",
+        "hide_bookmarks": true
+      },
+      "geometry": [
+        0,
+        0,
+        688,
+        646
+      ],
+      "maximized": true,
+      "minimized": false,
+      "type": "Plot"
+    }
+  ],
+  "functions": {
+    "TestVirtualChannel": "def TestVirtualChannel(t=0):\n    return 1"
+  }
+}
