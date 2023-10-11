@@ -497,23 +497,19 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         self.assertEqual(physicalHours, newPhysicalHours)
 
     def test_Plot_Plot_Shortcut_Key_Period(self):
-        """
-
-        """
+        """ """
         from_x = Pixmap.search_signal_from_to_x(self.plot.plot.viewport().grab(), self.channel_35.color.name())[0]
         # Calculate in signal color colored pixels for midd line
         from_y = Pixmap.search_signal_from_to_y(
             self.plot.plot.viewport().grab(QtCore.QRect(from_x, 0, 1, self.plot.plot.height())),
-            self.channel_35.color.name()
-            )[1]
+            self.channel_35.color.name(),
+        )[1]
 
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_Period)
         for i in range(10):
             self.processEvents()
         newNumberOfColoredPixels = Pixmap.color_map(
-            self.plot.plot.viewport().grab(
-                QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.width(), 2)
-            )
+            self.plot.plot.viewport().grab(QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.width(), 2))
         )[0].count(self.channel_35.color.name())
 
         # in progress
