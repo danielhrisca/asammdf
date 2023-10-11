@@ -8,6 +8,7 @@ from unittest import mock
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
 
 
+@unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
 class TestDragAndDrop(TestPlotWidget):
     # Note: Test Plot Widget through FileWidget.
 
