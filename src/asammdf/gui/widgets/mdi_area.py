@@ -1221,7 +1221,7 @@ class WithMDIArea:
         w.layout().setSpacing(1)
 
         def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(None, "Set sub-plot title", "Title:")
+            name, ok = QtWidgets.QInputDialog.getText(self, "Set sub-plot title", "Title:")
             if ok and name:
                 mdi.setWindowTitle(name)
 
@@ -1443,7 +1443,7 @@ class WithMDIArea:
         w.layout().setSpacing(1)
 
         def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(None, "Set sub-plot title", "Title:")
+            name, ok = QtWidgets.QInputDialog.getText(self, "Set sub-plot title", "Title:")
             if ok and name:
                 mdi.setWindowTitle(name)
 
@@ -1494,7 +1494,7 @@ class WithMDIArea:
         w.layout().setSpacing(1)
 
         def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(None, "Set sub-plot title", "Title:")
+            name, ok = QtWidgets.QInputDialog.getText(self, "Set sub-plot title", "Title:")
             if ok and name:
                 mdi.setWindowTitle(name)
 
@@ -1759,7 +1759,7 @@ class WithMDIArea:
         w.layout().setSpacing(1)
 
         def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(None, "Set sub-plot title", "Title:")
+            name, ok = QtWidgets.QInputDialog.getText(self, "Set sub-plot title", "Title:")
             if ok and name:
                 mdi.setWindowTitle(name)
 
