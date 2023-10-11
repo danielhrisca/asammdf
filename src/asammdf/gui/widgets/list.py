@@ -299,7 +299,7 @@ class ListWidget(QtWidgets.QListWidget):
         elif action.text() == "Set unit":
             selected_items = self.selectedItems()
 
-            unit, ok = QtWidgets.QInputDialog.getText(None, "Set new unit", "Unit:")
+            unit, ok = QtWidgets.QInputDialog.getText(self, "Set new unit", "Unit:")
 
             if ok:
                 selected_items = self.selectedItems()
@@ -313,7 +313,7 @@ class ListWidget(QtWidgets.QListWidget):
         elif action.text() == "Set precision":
             selected_items = self.selectedItems()
 
-            precision, ok = QtWidgets.QInputDialog.getInt(None, "Set new precision (float decimals)", "Precision:")
+            precision, ok = QtWidgets.QInputDialog.getInt(self, "Set new precision (float decimals)", "Precision:")
 
             if ok and 0 <= precision <= 15:
                 for i in range(self.count()):
@@ -378,7 +378,6 @@ class ListWidget(QtWidgets.QListWidget):
 
 
 class MinimalListWidget(QtWidgets.QListWidget):
-    itemsDeleted = QtCore.Signal(list)
     itemsDeleted = QtCore.Signal(list)
     itemsPasted = QtCore.Signal()
 

@@ -1058,7 +1058,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 if not info:
                     return
                 section, ok = QtWidgets.QInputDialog.getItem(
-                    None,
+                    self,
                     "Select section",
                     "Available sections:",
                     list(info),

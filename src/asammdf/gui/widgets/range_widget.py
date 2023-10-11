@@ -87,7 +87,7 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
 
     def select_background_color(self, event=None):
         color = self.background_color_btn.palette().button().color()
-        color = QtWidgets.QColorDialog.getColor(color)
+        color = QtWidgets.QColorDialog.getColor(color, self)
         if color.isValid():
             color = color.name()
             self.background_color = color
@@ -96,7 +96,7 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
 
     def select_font_color(self, event=None):
         color = self.font_color_btn.palette().button().color()
-        color = QtWidgets.QColorDialog.getColor(color)
+        color = QtWidgets.QColorDialog.getColor(color, self)
         if color.isValid():
             color = color.name()
             self.font_color = color
