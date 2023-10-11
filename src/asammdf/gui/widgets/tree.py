@@ -698,7 +698,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 else:
                     color = QtGui.QColor("#ffffff")
 
-            color = QtWidgets.QColorDialog.getColor(color)
+            color = QtWidgets.QColorDialog.getColor(color, parent=self)
             if color.isValid():
                 for item in selected_items:
                     if item.type() != item.Info:
@@ -1225,7 +1225,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         elif action_text == "Set unit":
             selected_items = self.selectedItems()
 
-            unit, ok = QtWidgets.QInputDialog.getText(None, "Set new unit", "Unit:")
+            unit, ok = QtWidgets.QInputDialog.getText(self, "Set new unit", "Unit:")
 
             if ok:
                 for item in selected_items:
