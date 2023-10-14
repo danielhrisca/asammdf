@@ -34,7 +34,7 @@ except:
 @lru_cache(maxsize=1024)
 def polygon_and_ndarray(size):
     polygon = fn.create_qpolygonf(size)
-    ndarray = fn.ndarray_from_qpolygonf(polygon)
+    ndarray = fn.ndarray_from_qpolygonf(polygon).copy()
     return polygon, ndarray
 
 
