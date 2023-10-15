@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import io
 import sys
 from traceback import format_exc

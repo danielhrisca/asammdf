@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from PySide6 import QtCore, QtWidgets
 
 from ..ui import resource_rc

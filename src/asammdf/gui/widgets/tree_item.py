@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from time import perf_counter
 from traceback import format_exc
 

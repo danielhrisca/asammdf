@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timezone
 from functools import partial
 from hashlib import sha1
@@ -1071,12 +1070,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 channels = [name.split(";")[0] for name in info[section]]
 
             elif extension in (".cfg", ".txt"):
-                with open(file_name, "r") as infile:
+                with open(file_name) as infile:
                     info = json.load(infile)
                 channels = info.get("selected_channels", [])
 
             elif extension == ".dspf":
-                with open(file_name, "r") as infile:
+                with open(file_name) as infile:
                     info = json.load(infile)
                 channels = info.get("selected_channels", [])
 
@@ -3118,17 +3117,12 @@ MultiRasterSeparator;&
                     )
 
                     fh_block = FileHistory()
-                    fh_block.comment = """<FHcomment>
+                    fh_block.comment = f"""<FHcomment>
     <TX>Added new embedded attachment from {file_name}</TX>
-    <tool_id>{tool}</tool_id>
-    <tool_vendor>{vendor}</tool_vendor>
-    <tool_version>{version}</tool_version>
-</FHcomment>""".format(
-                        tool=tool.__tool__,
-                        vendor=tool.__vendor__,
-                        version=tool.__version__,
-                        file_name=file_name,
-                    )
+    <tool_id>{tool.__tool__}</tool_id>
+    <tool_vendor>{tool.__vendor__}</tool_vendor>
+    <tool_version>{tool.__version__}</tool_version>
+</FHcomment>"""
 
                     at_block["creator_index"] = creator_index
 

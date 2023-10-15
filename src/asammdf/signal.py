@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """ asammdf *Signal* class module for time correct signal processing """
 
 from __future__ import annotations
@@ -31,7 +30,7 @@ from .version import __version__
 logger = logging.getLogger("asammdf")
 
 
-class Signal(object):
+class Signal:
     """
     The *Signal* represents a channel described by it's samples and timestamps.
     It can perform arithmetic operations against other *Signal* or numeric types.
@@ -1244,8 +1243,7 @@ class Signal(object):
         return self.__apply_func(other, "__ne__")
 
     def __iter__(self) -> Iterator[Any]:
-        for item in (self.samples, self.timestamps, self.unit, self.name):
-            yield item
+        yield from (self.samples, self.timestamps, self.unit, self.name)
 
     def __reversed__(self) -> Iterator[tuple[int, tuple[Any, Any]]]:
         return enumerate(zip(reversed(self.samples), reversed(self.timestamps)))

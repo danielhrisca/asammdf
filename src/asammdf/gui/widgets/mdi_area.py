@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from copy import deepcopy
 from functools import partial
 import inspect
@@ -468,7 +467,7 @@ def parse_matrix_component(name):
 
 
 def load_comparison_display_file(file_name, uuids):
-    with open(file_name, "r") as infile:
+    with open(file_name) as infile:
         info = json.load(infile)
     windows = info.get("windows", [])
     plot_windows = []
@@ -1609,7 +1608,7 @@ class WithMDIArea:
                             vals = data["LIN_SyncError.BaudRate"]
                             unique = np.unique(vals).tolist()
                             for val in unique:
-                                sys.intern((f"Baudrate {val}"))
+                                sys.intern(f"Baudrate {val}")
                             vals = [f"Baudrate {val}" for val in vals.tolist()]
                             columns["Details"] = vals
 
@@ -1630,7 +1629,7 @@ class WithMDIArea:
                             vals = data["LIN_TransmissionError.BaudRate"]
                             unique = np.unique(vals).tolist()
                             for val in unique:
-                                sys.intern((f"Baudrate {val}"))
+                                sys.intern(f"Baudrate {val}")
                             vals = [f"Baudrate {val}" for val in vals.tolist()]
                             columns["Details"] = vals
 
@@ -1656,7 +1655,7 @@ class WithMDIArea:
                             vals = data["LIN_ReceiveError.BaudRate"]
                             unique = np.unique(vals).tolist()
                             for val in unique:
-                                sys.intern((f"Baudrate {val}"))
+                                sys.intern(f"Baudrate {val}")
                             vals = [f"Baudrate {val}" for val in vals.tolist()]
                             columns["Details"] = vals
 
@@ -1684,7 +1683,7 @@ class WithMDIArea:
                             vals = data["LIN_ChecksumError.Checksum"]
                             unique = np.unique(vals).tolist()
                             for val in unique:
-                                sys.intern((f"Baudrate {val}"))
+                                sys.intern(f"Baudrate {val}")
                             vals = [f"Checksum 0x{val:02X}" for val in vals.tolist()]
                             columns["Details"] = vals
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import inspect
 import json
 import math
@@ -189,7 +188,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         if file_name and Path(file_name).suffix.lower() == ".def":
             file_name = Path(file_name)
 
-            with open(file_name, "r") as infile:
+            with open(file_name) as infile:
                 info = json.load(infile)
 
             for name, definition in info.items():

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import bisect
 import json
 import os
@@ -881,7 +880,7 @@ class HeaderView(QtWidgets.QTableView):
         self.resize(self.sizeHint())
 
     def showEvent(self, a0: QtGui.QShowEvent) -> None:
-        super(HeaderView, self).showEvent(a0)
+        super().showEvent(a0)
         self.initial_size = self.size()
 
     def mouseDoubleClickEvent(self, event):

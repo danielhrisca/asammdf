@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """ common MDF file format module """
 
 from __future__ import annotations
@@ -70,9 +69,13 @@ from .blocks.v2_v3_blocks import ChannelConversion as ChannelConversionV3
 from .blocks.v2_v3_blocks import ChannelExtension
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
 from .blocks.v4_blocks import ChannelConversion as ChannelConversionV4
-from .blocks.v4_blocks import EventBlock, FileHistory, FileIdentificationBlock
+from .blocks.v4_blocks import (
+    EventBlock,
+    FileHistory,
+    FileIdentificationBlock,
+    SourceInformation,
+)
 from .blocks.v4_blocks import HeaderBlock as HeaderV4
-from .blocks.v4_blocks import SourceInformation
 from .signal import Signal
 from .types import (
     BusType,
@@ -376,7 +379,7 @@ class MDF:
 
     def __exit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> bool | None:

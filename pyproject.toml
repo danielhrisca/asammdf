@@ -13,16 +13,22 @@ extend-exclude = '''
 source = ["asammdf"]
 omit = ["*/asammdf/gui/ui/*"]
 
-
-[tool.isort]
-force_sort_within_sections = true
-order_by_type = false
-profile = "black"
-skip_glob = ["src/asammdf/gui/ui"]
-
 [tool.cibuildwheel]
 test-requires = "pytest"
 test-command = "pytest {project}/test"
 build-frontend = "build"
 archs = ["auto64"]  # only build for 64bit architectures
 skip = "pp* *_ppc64le *_s390x *-musllinux* cp312-*"  # skip pypy and irrelevant architectures
+
+[tool.ruff]
+select = [
+    "UP",  # pyupgrade
+    "I",  # isort
+]
+exclude = ["./src/asammdf/gui/ui"]
+target-version = "py38"
+
+[tool.ruff.isort]
+known-first-party = ["asammdf"]
+order-by-type = false
+force-sort-within-sections = true
