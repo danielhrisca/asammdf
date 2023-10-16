@@ -447,6 +447,8 @@ class TableModel(QtCore.QAbstractTableModel):
                 return cell.decode("utf-8", "replace")
             elif isinstance(cell, str):
                 return cell
+            elif isinstance(cell, (np.ndarray, np.record, np.recarray)):
+                return str(cell[0])
             else:
                 if np.isnan(cell):
                     return "NaN"
