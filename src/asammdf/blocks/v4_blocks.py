@@ -1765,7 +1765,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
         if self.storage:
             keys += tuple(f"cycle_count_{i}" for i in range(data_links_nr))
 
-        fmt = "<4sI{}Q2BHIiI{}Q{}d{}Q".format(self.links_nr + 2, dims_nr, sum(dim_sizes), data_links_nr)
+        fmt = f"<4sI{self.links_nr + 2}Q2BHIiI{dims_nr}Q{sum(dim_sizes)}d{data_links_nr}Q"
 
         result = pack(fmt, *[getattr(self, key) for key in keys])
         return result
