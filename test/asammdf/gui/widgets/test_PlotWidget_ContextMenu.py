@@ -1050,3 +1050,74 @@ class TestContextMenu(TestPlotWidget):
         # Evaluate
         self.assertFalse(plot_channel.isHidden())
         self.processEvents(timeout=0.01)
+
+    def test_Menu_ShowHide_Action_FilterOnlyComputedChannels(self):
+        """
+        Test Scope:
+            - Ensure that all channels are hidden from channel selection except VirtualChannels.
+        Events:
+            - Open Context Menu
+            - Select Filter Only Computed Channels
+        Evaluate:
+            - Evaluate that channels items are not present anymore on channel selection except VirtualChannels.
+        """
+        dspf_filepath = pathlib.Path(self.resource, "missingItems.dspf")
+        self.load_display_file(display_file=dspf_filepath)
+        self.plot = self.widget.mdi_area.subWindowList()[0].widget()
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.plot.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            if item:
+                self.assertFalse(item.isHidden())
+            iterator += 1
+
+        # Events
+        self.context_menu(action_text="Filter only computed channels")
+
+        # Evaluate
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.plot.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            if item and item.text(0) == "FirstVirtualChannel":
+                self.assertFalse(item.isHidden())
+            else:
+                self.assertTrue(item.isHidden())
+            iterator += 1
+
+    def test_Menu_ShowHide_Action_UnfilterComputedChannels(self):
+        """
+        Test Scope:
+            - Ensure that all channels are hidden from channel selection except VirtualChannels.
+        Events:
+            - Open Context Menu
+            - Select Filter Only Computed Channels
+        Evaluate:
+            - Evaluate that channels items are not present anymore on channel selection except VirtualChannels.
+        """
+        dspf_filepath = pathlib.Path(self.resource, "missingItems.dspf")
+        self.load_display_file(display_file=dspf_filepath)
+        self.plot = self.widget.mdi_area.subWindowList()[0].widget()
+
+        # Events
+        self.context_menu(action_text="Filter only computed channels")
+        # Evaluate
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.plot.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            if item and item.text(0) == "FirstVirtualChannel":
+                self.assertFalse(item.isHidden())
+            else:
+                self.assertTrue(item.isHidden())
+            iterator += 1
+
+        # Events
+        self.context_menu(action_text="Un-filter computed channels")
+
+        # Evaluate
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.plot.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            if item:
+                self.assertFalse(item.isHidden())
+            iterator += 1
