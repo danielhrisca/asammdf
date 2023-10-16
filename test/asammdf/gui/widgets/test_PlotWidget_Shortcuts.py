@@ -489,6 +489,8 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         self.assertNotEqual(Physical, Bin)
         self.assertEqual(physicalHours, binHours)
 
+        self.assertAlmostEqual(..., ...)
+
         # Press "Ctrl+P"
         QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Ctrl+P"))
         newPhysical = self.plot.selected_channel_value.text()
@@ -496,24 +498,45 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         self.assertEqual(Physical, newPhysical)
         self.assertEqual(physicalHours, newPhysicalHours)
 
-    def test_Plot_Plot_Shortcut_Key_Period(self):
-        """ """
-        from_x = Pixmap.search_signal_from_to_x(self.plot.plot.viewport().grab(), self.channel_35.color.name())[0]
-        # Calculate in signal color colored pixels for midd line
-        from_y = Pixmap.search_signal_from_to_y(
-            self.plot.plot.viewport().grab(QtCore.QRect(from_x, 0, 1, self.plot.plot.height())),
-            self.channel_35.color.name(),
-        )[1]
-
+    def test_Plot_Plot_Shortcut_Key_Period_0(self):
+        """
+        Test Scope:
+            Check if variable "with_dots" is created, and it's value is modifiable by pressing key "Period"
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Display 1 signal on plot
+            - Press 3 times key "Period" <<.>>
+        Evaluate:
+            - Evaluate that plot is not black
+            - Evaluate that object "self.plot" doesn't have attribute "with_dots"
+            - Evaluate that object "self.plot" have attribute "with_dots" with t's value "False"
+                    after pressing key "Period"
+            - Evaluate that attribute "with_dots" is "True" after pressing second time key "Period"
+            - Evaluate that attribute "with_dots" is "False" after pressing third time key "Period"
+        """
+        self.assertFalse(hasattr(self.plot, "with_dots"))
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_Period)
-        for i in range(10):
-            self.processEvents()
-        newNumberOfColoredPixels = Pixmap.color_map(
-            self.plot.plot.viewport().grab(QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.width(), 2))
-        )[0].count(self.channel_35.color.name())
+        self.assertFalse(self.plot.with_dots)
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_Period)
+        self.processEvents()
+        self.assertTrue(self.plot.with_dots)
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_Period)
+        self.assertFalse(self.plot.with_dots)
 
-        # in progress
-        ...
+    def test_Plot_Plot_Shortcut_Key_Period_1(self):
+        """
+        Found a bug with manual test
+        Sometimes after drag and drop over plot another channel, dots are displayed behind actual signal on plot
+        """
+
+    def test_Plot_Plot_Shortcut_Key_Ctrl_I(self):
+        """
+
+        """
+        # Press "Ctrl+I"
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Ctrl+I"))
+        self.manual_use(self.widget)
+
 
 
 class TestShortcutsWith_2_Channels(TestPlotWidget):
