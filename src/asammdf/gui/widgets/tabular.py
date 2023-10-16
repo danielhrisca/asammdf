@@ -48,6 +48,7 @@ class Tabular(TabularBase):
 
             for name_ in signals.columns:
                 col = signals[name_]
+
                 if col.dtype.kind == "O":
                     if name_.endswith("DataBytes"):
                         try:
@@ -76,10 +77,11 @@ class Tabular(TabularBase):
                         )
 
                     elif col.dtype.name != "category":
-                        try:
-                            dropped[name_] = pd.Series(csv_bytearray2hex(col), index=signals.index)
-                        except:
-                            pass
+                        if len(col) and col.dtype.kind == "u" and col.dtype.itemsize == 1:
+                            try:
+                                dropped[name_] = pd.Series(csv_bytearray2hex(col), index=signals.index)
+                            except:
+                                pass
 
                     self.signals_descr[name_] = 0
 
@@ -102,6 +104,7 @@ class Tabular(TabularBase):
                 *[name for name in names if name.endswith((".ID", ".DataBytes"))],
                 *[name for name in names if name != "timestamps" and not name.endswith((".ID", ".DataBytes"))],
             ]
+
             signals = signals[names]
 
         super().__init__(signals, ranges)
