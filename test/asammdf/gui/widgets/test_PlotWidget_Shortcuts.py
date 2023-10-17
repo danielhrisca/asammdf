@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+from unittest import mock
+
+import asammdf.gui.dialogs.messagebox
+import src.asammdf.gui.widgets.cursor
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
@@ -531,12 +535,59 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
 
     def test_Plot_Plot_Shortcut_Key_Ctrl_I(self):
         """
-
+        Test Scope:
+            Check if bookmark is created after pressing key "Ctrl+I"
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Display 1 signal on plot
+            - Mock QInputDialog object
+            - Press "Ctrl+I"
+        Evaluate:
+            - Evaluate that bookmarks are not displayed before pressing "Ctrl+I"
+            - Evaluate that bookmarks are displayed after pressing "Ctrl+I"
+                and the message of the last bookmark is the first element of the returned list of mock object
         """
-        # Press "Ctrl+I"
-        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Ctrl+I"))
-        self.manual_use(self.widget)
+        # mock for bookmark
+        with mock.patch("PySide6.QtWidgets.QInputDialog") as mo_QInputDialog:
+            mo_QInputDialog.getMultiLineText.return_value = [self.id(), True]
+            # Press "Ctrl+I"
+            QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Ctrl+I"))
+        # Evaluate
+        self.assertTrue(self.plot.show_bookmarks)
+        self.assertEqual(self.plot.plot.bookmarks[len(self.plot.plot.bookmarks)-1].message, self.id())
 
+        # question message box is called
+        ...
+
+    def test_Plot_Plot_Shortcut_Key_Alt_I(self):
+        """
+        Test Scope:
+            Check functionality of key "Ctrl+I"
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Display 1 signal on plot
+            - Mock QInputDialog object
+            - Press 3 times "Alt+I"
+        Evaluate:
+            - Evaluate that bookmarks are not displayed before pressing "Alt+I"
+            - Evaluate that bookmarks are displayed after pressing "Alt+I" first time
+            - Evaluate that bookmarks are not displayed after pressing "Alt+I" second time
+            - Evaluate that bookmarks are displayed after pressing "Alt+I" third time
+        """
+        # Evaluate
+        self.assertFalse(self.plot.show_bookmarks)
+        # Press "Al+I"
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Alt+I"))
+        # Evaluate
+        self.assertTrue(self.plot.show_bookmarks)
+        # Press "Al+I"
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Alt+I"))
+        # Evaluate
+        self.assertFalse(self.plot.show_bookmarks)
+        # Press "Al+I"
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Alt+I"))
+        # Evaluate
+        self.assertTrue(self.plot.show_bookmarks)
 
 
 class TestShortcutsWith_2_Channels(TestPlotWidget):
