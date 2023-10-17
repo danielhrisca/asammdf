@@ -9,7 +9,7 @@ import unittest
 from unittest import mock
 from unittest.mock import ANY
 
-from PySide6 import QtCore, QtTest, QtWidgets
+from PySide6 import QtCore, QtGui, QtTest, QtWidgets
 
 
 class TestContextMenu(TestPlotWidget):
@@ -1121,3 +1121,253 @@ class TestContextMenu(TestPlotWidget):
             if item:
                 self.assertFalse(item.isHidden())
             iterator += 1
+
+    def test_Action_EditYAxisScaling(self):
+        """
+        Test Scope:
+            - Ensure that action forwards the request to plot.
+        Event:
+            - Select channel
+            - Open Context Menu
+            - Select 'Edit Y axis scaling'
+        Evaluate:
+            - Evaluate that event is forwarded to plot
+        """
+        # Setup
+        position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+        with mock.patch.object(self.plot, "keyPressEvent") as mo_keyPressEvent:
+            self.context_menu(action_text="Edit Y axis scaling [Ctrl+G]", position=position)
+            mo_keyPressEvent.assert_called()
+            event = mo_keyPressEvent.call_args.args[0]
+            self.assertEqual(QtCore.QEvent.KeyPress, event.type())
+            self.assertEqual(QtCore.Qt.Key_G, event.key())
+            self.assertEqual(QtCore.Qt.ControlModifier, event.modifiers())
+
+    def test_Action_AddToCommonYAxis(self):
+        """
+        Test Scope:
+            - Ensure that action will mark as checked checkbox for Y Axis.
+        Event:
+            - Select one channel
+            - Open Context Menu
+            - Select 'Add to common Y axis'
+            - Select two channels
+            - Open Context Menu
+            - Select 'Add to common Y axis'
+        Evaluate:
+            - Evaluate that checkbox on column COMMON_AXIS is checked.
+        """
+        with self.subTest("1Channel"):
+            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
+
+            position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+            self.context_menu(action_text="Add to common Y axis", position=position)
+
+            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
+
+            self.context_menu(action_text="Add to common Y axis", position=position)
+
+            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
+
+        with self.subTest("2Channels"):
+            self.plot_channel_b.setSelected(True)
+            self.plot_channel_c.setSelected(True)
+            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
+
+            position = self.plot.channel_selection.visualItemRect(self.plot_channel_c).center()
+            self.context_menu(action_text="Add to common Y axis", position=position)
+
+            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
+            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
+
+            self.context_menu(action_text="Add to common Y axis", position=position)
+
+            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
+            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
+
+    def test_Action_RemoveFromCommonYAxis(self):
+        """
+        Test Scope:
+            - Ensure that action will mark as unchecked checkbox for Y Axis.
+        Event:
+            - Select one channel
+            - Open Context Menu
+            - Select 'Remove from common Y axis'
+            - Select two channels
+            - Open Context Menu
+            - Select 'Remove from common Y axis'
+        Evaluate:
+            - Evaluate that checkbox on column COMMON_AXIS is unchecked.
+        """
+        with self.subTest("1Channel"):
+            # Setup
+            position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+
+            # Pre-evaluation
+            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
+
+            # Event
+            self.context_menu(action_text="Remove from common Y axis", position=position)
+            # Evaluate
+            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
+
+            # Event
+            self.context_menu(action_text="Add to common Y axis", position=position)
+            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
+            self.context_menu(action_text="Remove from common Y axis", position=position)
+            # Evaluate
+            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
+
+            # Event
+            self.context_menu(action_text="Remove from common Y axis", position=position)
+            # Evaluate
+            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
+
+        with self.subTest("2Channels"):
+            # Setup
+            self.plot_channel_b.setSelected(True)
+            self.plot_channel_c.setSelected(True)
+            position_c = self.plot.channel_selection.visualItemRect(self.plot_channel_c).center()
+
+            # Pre-evaluation
+            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
+
+            # Event
+
+            self.context_menu(action_text="Remove from common Y axis", position=position_c)
+            # Evaluate
+            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
+
+            # Event
+            self.context_menu(action_text="Add to common Y axis", position=position_c)
+            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
+            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
+            self.context_menu(action_text="Remove from common Y axis", position=position)
+            # Evaluate
+            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
+
+            # Event
+            self.context_menu(action_text="Remove from common Y axis", position=position)
+            # Evaluate
+            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
+
+    def test_Action_SetColor(self):
+        """
+        Test Scope:
+            - Ensure that channel color is changed.
+        Events:
+            - Open Context Menu
+            - Select 'Set color [C]'
+            - Select 1 Channel
+            - Open Context Menu
+            - Select 'Set color [C]'
+            - Select 2 Channels
+            - Open Context Menu
+            - Select 'Set color [C]'
+        Evaluate:
+            - Evaluate that color dialog is not open if channel is not selected.
+            - Evaluate that channel color is changed.
+        """
+        action_text = "Set color [C]"
+
+        # Event
+        with self.subTest("NoChannelSelected"):
+            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QColorDialog.getColor") as mo_getColor:
+                self.context_menu(action_text=action_text)
+                mo_getColor.assert_not_called()
+
+        with self.subTest("1ChannelSelected"):
+            position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QColorDialog.getColor") as mo_getColor:
+                # Setup
+                previous_color = self.plot_channel_a.color.name()
+                color = QtGui.QColor("red")
+                color_name = color.name()
+                mo_getColor.return_value = color
+                # Event
+                self.context_menu(action_text=action_text, position=position)
+                # Evaluate
+                current_color = self.plot_channel_a.color.name()
+                mo_getColor.assert_called()
+                self.assertNotEqual(previous_color, current_color)
+                self.assertEqual(color_name, current_color)
+
+        with self.subTest("2ChannelsSelected"):
+            self.mouseClick_WidgetItem(self.plot_channel_b)
+            self.plot_channel_b.setSelected(True)
+            self.plot_channel_c.setSelected(True)
+            position = self.plot.channel_selection.visualItemRect(self.plot_channel_c).center()
+            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QColorDialog.getColor") as mo_getColor:
+                # Setup
+                previous_b_color = self.plot_channel_b.color.name()
+                previous_c_color = self.plot_channel_c.color.name()
+                color = QtGui.QColor("blue")
+                color_name = color.name()
+                mo_getColor.return_value = color
+                # Event
+                self.context_menu(action_text=action_text, position=position)
+                # Evaluate
+                current_b_color = self.plot_channel_b.color.name()
+                current_c_color = self.plot_channel_c.color.name()
+                mo_getColor.assert_called()
+                self.assertNotEqual(previous_b_color, current_b_color)
+                self.assertNotEqual(previous_c_color, current_c_color)
+                self.assertEqual(color_name, current_b_color)
+                self.assertEqual(color_name, current_c_color)
+
+    def test_Action_SetRandomColor(self):
+        """
+        Test Scope:
+            - Ensure that channel color is changed.
+        Events:
+            - Open Context Menu
+            - Select 'Set random color'
+            - Select 1 Channel
+            - Open Context Menu
+            - Select 'Set random color'
+            - Select 2 Channels
+            - Open Context Menu
+            - Select 'Set random color'
+        Evaluate:
+            - Evaluate that color dialog is not open if channel is not selected.
+            - Evaluate that channel color is changed.
+        """
+        action_text = "Set random color"
+
+        # Event
+        with self.subTest("NoChannelSelected"):
+            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QColorDialog.getColor") as mo_getColor:
+                self.context_menu(action_text=action_text)
+                mo_getColor.assert_not_called()
+
+        with self.subTest("1ChannelSelected"):
+            position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
+            # Setup
+            previous_color = self.plot_channel_a.color.name()
+            # Event
+            self.context_menu(action_text=action_text, position=position)
+            # Evaluate
+            current_color = self.plot_channel_a.color.name()
+            self.assertNotEqual(previous_color, current_color)
+
+        with self.subTest("2ChannelsSelected"):
+            self.mouseClick_WidgetItem(self.plot_channel_b)
+            self.plot_channel_b.setSelected(True)
+            self.plot_channel_c.setSelected(True)
+            position = self.plot.channel_selection.visualItemRect(self.plot_channel_c).center()
+            # Setup
+            previous_b_color = self.plot_channel_b.color.name()
+            previous_c_color = self.plot_channel_c.color.name()
+            # Event
+            self.context_menu(action_text=action_text, position=position)
+            # Evaluate
+            current_b_color = self.plot_channel_b.color.name()
+            current_c_color = self.plot_channel_c.color.name()
+            self.assertNotEqual(previous_b_color, current_b_color)
+            self.assertNotEqual(previous_c_color, current_c_color)
+            self.assertNotEqual(current_b_color, current_c_color)
