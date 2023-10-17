@@ -1029,7 +1029,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             for item in self.selectedItems():
                 if item.type() == ChannelsTreeItem.Channel:
                     while True:
-                        rgb = random.randbytes(3)
+                        rgb = os.urandom(3)
                         if 100 <= sum(rgb) <= 650:
                             break
 
