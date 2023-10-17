@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import json
 from struct import pack
 from traceback import format_exc

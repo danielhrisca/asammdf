@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # this file contains substantial amount of code from https://github.com/adamerose/PandasGUI which is licensed as MIT:
 #
@@ -616,7 +615,7 @@ class HeaderView(QtWidgets.QTableView):
         self.resize(self.sizeHint())
 
     def showEvent(self, a0: QtGui.QShowEvent) -> None:
-        super(HeaderView, self).showEvent(a0)
+        super().showEvent(a0)
         self.initial_size = self.size()
 
     def mouseDoubleClickEvent(self, event):

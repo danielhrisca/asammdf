@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import bisect
 from collections import defaultdict
 from datetime import timedelta
@@ -1142,7 +1141,7 @@ class PlotSignal(Signal):
                     visible = abs(int((stop_t - start_t) / (stop - start) * width))
 
                     if visible:
-                        visible_duplication = abs((stop_ - start_)) // visible
+                        visible_duplication = abs(stop_ - start_) // visible
                     else:
                         visible_duplication = 0
                 except:

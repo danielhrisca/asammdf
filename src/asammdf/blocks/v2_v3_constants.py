@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """ MDF v2 and v3 constants """
 import struct
 
