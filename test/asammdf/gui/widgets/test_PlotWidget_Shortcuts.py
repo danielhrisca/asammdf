@@ -445,7 +445,7 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         # Get X position of Cursor
         cursors=Pixmap.cursors_x(self.plot.plot.viewport().grab())
         # self.assertEqual(len(cursors), 2)
-        dif1 = cursors[1] - cursors[0]
+        dif1 = cursors[1]-cursors[0]
         # Search Y of intersection between signal and cursors
         QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_X)
         self.processEvents()
