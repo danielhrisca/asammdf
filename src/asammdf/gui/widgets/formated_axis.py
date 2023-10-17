@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime, timedelta, timezone
 
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -99,7 +97,7 @@ class FormatedAxis(pg.AxisItem):
                     strns.append(val)
         else:
             if self.format == "phys":
-                strns = super(FormatedAxis, self).tickStrings(values, scale, spacing)
+                strns = super().tickStrings(values, scale, spacing)
 
             elif self.format == "hex":
                 for val in values:
@@ -174,14 +172,14 @@ class FormatedAxis(pg.AxisItem):
             else:
                 units = "(x%g)" % (1.0 / self.autoSIPrefixScale)
         else:
-            units = "(%s%s)" % (self.labelUnitPrefix, self.labelUnits)
+            units = f"({self.labelUnitPrefix}{self.labelUnits})"
 
-        s = "%s %s" % (self.labelText, units)
+        s = f"{self.labelText} {units}"
         self._label_with_unit = s
 
-        style = ";".join(["%s: %s" % (k, self.labelStyle[k]) for k in self.labelStyle])
+        style = ";".join([f"{k}: {self.labelStyle[k]}" for k in self.labelStyle])
 
-        lsbl = "<span style='%s'>%s</span>" % (style, s)
+        lsbl = f"<span style='{style}'>{s}</span>"
         return lsbl
 
     def mouseDragEvent(self, event):

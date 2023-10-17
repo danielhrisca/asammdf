@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """ asammdf is a parser and editor for ASAM MDF files """
 
 import logging

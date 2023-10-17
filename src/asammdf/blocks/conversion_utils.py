@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 asammdf utility functions for channel conversions
 """
@@ -8,11 +7,11 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Union
 
+from ..types import ChannelConversionType
 from . import v2_v3_blocks as v3b
 from . import v2_v3_constants as v3c
 from . import v4_blocks as v4b
 from . import v4_constants as v4c
-from ..types import ChannelConversionType
 
 __all__ = ["conversion_transfer", "from_dict"]
 
@@ -379,7 +378,7 @@ def from_dict(conversion: dict[str, Any]) -> v4b.ChannelConversion:
     return conversion
 
 
-def to_dict(conversion: ChannelConversionType) -> Union[dict, None]:
+def to_dict(conversion: ChannelConversionType) -> dict | None:
     if not conversion:
         return None
 

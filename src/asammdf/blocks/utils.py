@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 asammdf utility functions and classes
 """
@@ -94,8 +93,6 @@ from numpy import arange, bool_, dtype, interp, where
 from numpy.typing import NDArray
 from pandas import Series
 
-from . import v2_v3_constants as v3c
-from . import v4_constants as v4c
 from ..types import (
     ChannelType,
     DataGroupType,
@@ -104,6 +101,8 @@ from ..types import (
     ReadableBufferType,
     StrPathType,
 )
+from . import v2_v3_constants as v3c
+from . import v4_constants as v4c
 
 UINT8_u = Struct("<B").unpack
 UINT16_u = Struct("<H").unpack
@@ -1119,7 +1118,7 @@ def is_file_like(obj: object) -> bool:
     return True
 
 
-class UniqueDB(object):
+class UniqueDB:
     def __init__(self) -> None:
         self._db = {}
 
@@ -1279,8 +1278,7 @@ class Group:
         self.data_blocks_info_generator = None
 
     def get_data_blocks(self) -> Iterator[DataBlockInfo]:
-        for blk in self.data_blocks:
-            yield blk
+        yield from self.data_blocks
 
         while True:
             try:
@@ -1294,8 +1292,7 @@ class Group:
         signal_data = self.signal_data[index]
         if signal_data is not None:
             signal_data, signal_generator = signal_data
-            for blk in signal_data:
-                yield blk
+            yield from signal_data
 
             while True:
                 try:
@@ -2322,7 +2319,7 @@ def load_channel_names_from_file(file_name, lab_section=""):
         channels = load_dsp(file_name, flat=True)
 
     elif extension == ".dspf":
-        with open(file_name, "r") as infile:
+        with open(file_name) as infile:
             info = json.load(infile)
 
         channels = []
@@ -2345,16 +2342,16 @@ def load_channel_names_from_file(file_name, lab_section=""):
             channels = [name.split(";")[0] for name in channels]
 
     elif extension == ".cfg":
-        with open(file_name, "r") as infile:
+        with open(file_name) as infile:
             info = json.load(infile)
         channels = info.get("selected_channels", [])
     elif extension == ".txt":
         try:
-            with open(file_name, "r") as infile:
+            with open(file_name) as infile:
                 info = json.load(infile)
             channels = info.get("selected_channels", [])
         except:
-            with open(file_name, "r") as infile:
+            with open(file_name) as infile:
                 channels = [line.strip() for line in infile.readlines()]
                 channels = [name for name in channels if name]
 
@@ -2363,7 +2360,7 @@ def load_channel_names_from_file(file_name, lab_section=""):
 
 def load_lab(file):
     sections = {}
-    with open(file, "r") as lab:
+    with open(file) as lab:
         for line in lab:
             line = line.strip()
             if not line:

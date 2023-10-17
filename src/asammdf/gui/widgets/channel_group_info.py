@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 import pandas as pd
 from PySide6 import QtCore, QtGui, QtWidgets

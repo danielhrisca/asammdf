@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """ asammdf tool module """
 
 from .version import __version__

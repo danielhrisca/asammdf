@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """ ASAM MDF version 2 file format module """
 
 from __future__ import annotations
