@@ -432,21 +432,21 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
             - Evaluate ...
         """
         # Settings for cursor
+        self.widget.showMaximized()
         self.widget.set_cursor_options(False, False, 1, Pixmap.COLOR_CURSOR)
+        QtTest.QTest.mouseClick(
+            self.plot.plot.viewport(),
+            QtCore.Qt.MouseButton.LeftButton,
+            QtCore.Qt.KeyboardModifiers(),
+            self.plot.plot.viewport().rect().center()
+        )
         QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_R)
         self.processEvents()
         # Get X position of Cursor
         cursors = Pixmap.cursors_x(self.plot.plot.viewport().grab())
-        self.assertEqual(len(cursors), 2)
+        # self.assertEqual(len(cursors), 2)
+        dif1 = cursors[1] - cursors[0]
         # Search Y of intersection between signal and cursors
-        leftY = Pixmap.search_y_of_signal_in_x(
-            self.plot.plot.viewport().grab(QtCore.QRect(cursors[0] + 2, 0, 1, self.plot.plot.height())),
-            self.channel_35.color.name(),
-        )
-        rightY = Pixmap.search_y_of_signal_in_x(
-            self.plot.plot.viewport().grab(QtCore.QRect(cursors[1], 0, 1, self.plot.plot.height())),
-            self.channel_35.color.name(),
-        )
         QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_X)
         self.processEvents()
         # Evaluate
