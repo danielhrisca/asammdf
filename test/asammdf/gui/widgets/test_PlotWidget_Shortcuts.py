@@ -1,12 +1,12 @@
 #!/usr/bin/env python
+from test.asammdf.gui.test_base import Pixmap
+from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 from unittest import mock
+
+from PySide6 import QtCore, QtGui, QtTest
 
 import asammdf.gui.dialogs.messagebox
 import src.asammdf.gui.widgets.cursor
-from test.asammdf.gui.test_base import Pixmap
-from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
-
-from PySide6 import QtCore, QtGui, QtTest
 
 
 class TestShortcutsWOChannels(TestPlotWidget):
@@ -554,7 +554,7 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
             QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Ctrl+I"))
         # Evaluate
         self.assertTrue(self.plot.show_bookmarks)
-        self.assertEqual(self.plot.plot.bookmarks[len(self.plot.plot.bookmarks)-1].message, self.id())
+        self.assertEqual(self.plot.plot.bookmarks[len(self.plot.plot.bookmarks) - 1].message, self.id())
 
         # question message box is called
         ...
