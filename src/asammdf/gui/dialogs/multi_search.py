@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 import re
 from textwrap import wrap
@@ -100,7 +99,7 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
         self.result = set()
         for i in range(count):
             text = self.selection.item(i).text()
-            file_index, channel_name = [item.strip() for item in text.split(":")]
+            file_index, channel_name = (item.strip() for item in text.split(":"))
             file_index = int(file_index) - 1
             for entry in self.channels_dbs[file_index][channel_name]:
                 self.result.add((file_index, entry))

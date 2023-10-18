@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
 import io
 import sys
 from traceback import format_exc
 
 import numpy as np
 from PySide6 import QtCore, QtWidgets
+from PySide6.QtWebEngineCore import QWebEngineSettings
 
 try:
     from pyqtlet2 import L, leaflet, MapWidget
@@ -55,6 +55,7 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         self.max_t.setText(f"{self._max:.6f}s")
 
         self.mapWidget = MapWidget()
+        self.mapWidget.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
         self.map_layout.insertWidget(0, self.mapWidget)
         self.map_layout.setStretch(0, 1)
 

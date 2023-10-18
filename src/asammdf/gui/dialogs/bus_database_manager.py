@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from PySide6 import QtCore, QtWidgets
 
 from ..widgets.bus_database_manager import BusDatabaseManager

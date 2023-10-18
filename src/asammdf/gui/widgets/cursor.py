@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import pyqtgraph as pg
 from PySide6 import QtCore, QtGui
 
