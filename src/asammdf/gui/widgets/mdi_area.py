@@ -843,6 +843,8 @@ class WithMDIArea:
                         raw=True,
                     )
 
+                    nd = []
+
                     for sig, sig_ in zip(selected_signals, uuids_signals):
                         sig.group_index = sig_["group_index"]
                         sig.channel_index = sig_["channel_index"]
@@ -859,7 +861,72 @@ class WithMDIArea:
                             sig.tooltip = f"{sig.name}\n@ {file.file_name}"
                             sig.name = f"{file_index+1}: {sig.name}"
 
-                        signals[sig.uuid] = sig
+                        if sig.samples.dtype.kind not in "SU" and (
+                            sig.samples.dtype.names or len(sig.samples.shape) > 1
+                        ):
+                            nd.append(sig)
+                        else:
+                            signals[sig.uuid] = sig
+
+                    for sig in nd:
+                        if sig.samples.dtype.names is None:
+                            shape = sig.samples.shape[1:]
+
+                            matrix_dims = [list(range(dim)) for dim in shape]
+
+                            matrix_name = sig.name
+
+                            for indexes in itertools.product(*matrix_dims):
+                                indexes_string = "".join(f"[{_index}]" for _index in indexes)
+
+                                samples = sig.samples
+                                for idx in indexes:
+                                    samples = samples[:, idx]
+                                sig_name = f"{matrix_name}{indexes_string}"
+
+                                new_sig = sig.copy()
+                                new_sig.name = sig_name
+                                new_sig.samples = samples
+                                new_sig.group_index = sig.group_index
+                                new_sig.channel_index = sig.channel_index
+                                new_sig.flags &= ~sig.Flags.computed
+                                new_sig.computation = {}
+                                new_sig.origin_uuid = sig.origin_uuid
+                                new_sig.uuid = os.urandom(6).hex()
+                                new_sig.enable = getattr(sig, "enable", True)
+
+                                signals[new_sig.uuid] = new_sig
+                        else:
+                            name = sig.samples.dtype.names[0]
+                            if name == sig.name:
+                                array_samples = sig.samples[name]
+
+                                shape = array_samples.shape[1:]
+
+                                matrix_dims = [list(range(dim)) for dim in shape]
+
+                                matrix_name = sig.name
+
+                                for indexes in itertools.product(*matrix_dims):
+                                    indexes_string = "".join(f"[{_index}]" for _index in indexes)
+
+                                    samples = array_samples
+                                    for idx in indexes:
+                                        samples = samples[:, idx]
+                                    sig_name = f"{matrix_name}{indexes_string}"
+
+                                    new_sig = sig.copy()
+                                    new_sig.name = sig_name
+                                    new_sig.samples = samples
+                                    new_sig.group_index = sig.group_index
+                                    new_sig.channel_index = sig.channel_index
+                                    new_sig.flags &= ~sig.Flags.computed
+                                    new_sig.computation = {}
+                                    new_sig.origin_uuid = sig.origin_uuid
+                                    new_sig.uuid = os.urandom(6).hex()
+                                    new_sig.enable = getattr(sig, "enable", True)
+
+                                    signals[new_sig.uuid] = new_sig
 
                 signals = {
                     key: sig
