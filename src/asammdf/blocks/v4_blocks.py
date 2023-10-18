@@ -3154,17 +3154,13 @@ class ChannelConversion(_ChannelConversionBase):
             if names:
                 name = names[0]
                 vals = values[name]
-                if (P1, P4, P5, P6) == (0, 0, 0, 1):
-                    if (P2, P3) != (1, 0):
-                        vals = values[name] * P2
-                        if P3:
-                            vals = vals + P3
+                if (P1, P3, P4, P5) == (0, 0, 0, 0):
+                    if P2 != P6:
+                        vals = vals * (P2 / P6)
 
-                elif (P3, P4, P5, P6) == (0, 0, 1, 0):
-                    if (P1, P2) != (1, 0):
-                        vals = values[name] * P1
-                        if P2:
-                            vals = vals + P2
+                elif (P2, P3, P4, P6) == (0, 0, 0, 0):
+                    if P1 != P5:
+                        vals = vals * (P1 / P5)
 
                 else:
                     X = vals
@@ -3181,16 +3177,13 @@ class ChannelConversion(_ChannelConversionBase):
 
             else:
                 X = values
-                if (P1, P4, P5, P6) == (0, 0, 0, 1):
-                    if (P2, P3) != (1, 0):
-                        values = values * P2
-                        if P3:
-                            values = values + P3
-                elif (P3, P4, P5, P6) == (0, 0, 1, 0):
-                    if (P1, P2) != (1, 0):
-                        values = values * P1
-                        if P2:
-                            values += P2
+                if (P1, P3, P4, P5) == (0, 0, 0, 0):
+                    if P2 != P6:
+                        values = values * (P2 / P6)
+
+                elif (P2, P3, P4, P6) == (0, 0, 0, 0):
+                    if P1 != P5:
+                        values = values * (P1 / P5)
                 else:
                     try:
                         values = evaluate(v4c.CONV_RAT_TEXT)
