@@ -4,10 +4,11 @@ from traceback import format_exc
 
 import numpy as np
 from PySide6 import QtCore, QtWidgets
-from PySide6.QtWebEngineCore import QWebEngineSettings
 
 try:
+    from PySide6.QtWebEngineCore import QWebEngineSettings
     from pyqtlet2 import L, leaflet, MapWidget
+
 except:
     print(format_exc())
     pass
