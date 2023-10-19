@@ -9,8 +9,8 @@ import webbrowser
 
 from natsort import natsorted
 import pyqtgraph as pg
-from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6 import __version__ as pyside6_version
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...version import __version__ as libversion
 from ..dialogs.bus_database_manager import BusDatabaseManagerDialog
