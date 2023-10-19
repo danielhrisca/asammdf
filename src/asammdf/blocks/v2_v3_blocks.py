@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """ classes that implement the blocks for MDF versions 2 and 3 """
 
 from __future__ import annotations
@@ -18,13 +17,15 @@ import dateutil
 from numexpr import evaluate
 
 try:
-    from numexpr3 import evaluate as evaluate3
+    from sympy import lambdify, symbols
+
 except:
-    evaluate3 = evaluate
+    lambdify, symbols = None, None
+
 import numpy as np
 
-from . import v2_v3_constants as v23c
 from ..version import __version__
+from . import v2_v3_constants as v23c
 from .utils import (
     escape_xml_string,
     get_fields,
@@ -225,20 +226,14 @@ class Channel:
                     if parsed_strings is None:
                         addr = self.long_name_addr
                         if addr:
-                            self.name = get_text_v3(
-                                address=addr, stream=stream, mapped=mapped
-                            )
+                            self.name = get_text_v3(address=addr, stream=stream, mapped=mapped)
                         else:
-                            self.name = self.short_name.decode("latin-1").strip(
-                                " \t\n\r\0"
-                            )
+                            self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
                         addr = self.display_name_addr
                         if addr:
                             self.display_names = {
-                                get_text_v3(
-                                    address=addr, stream=stream, mapped=mapped
-                                ): "display_name",
+                                get_text_v3(address=addr, stream=stream, mapped=mapped): "display_name",
                             }
 
                     else:
@@ -271,13 +266,9 @@ class Channel:
                     if parsed_strings is None:
                         addr = self.long_name_addr
                         if addr:
-                            self.name = get_text_v3(
-                                address=addr, stream=stream, mapped=mapped
-                            )
+                            self.name = get_text_v3(address=addr, stream=stream, mapped=mapped)
                         else:
-                            self.name = self.short_name.decode("latin-1").strip(
-                                " \t\n\r\0"
-                            )
+                            self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
                     else:
                         self.name, self.display_names = parsed_strings
@@ -360,9 +351,7 @@ class Channel:
 
                     self.source = source
 
-                self.comment = get_text_v3(
-                    address=self.comment_addr, stream=stream, mapped=mapped
-                )
+                self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
             else:
                 stream.seek(address + 2)
                 (size,) = UINT16_u(stream.read(2))
@@ -398,20 +387,14 @@ class Channel:
                     if parsed_strings is None:
                         addr = self.long_name_addr
                         if addr:
-                            self.name = get_text_v3(
-                                address=addr, stream=stream, mapped=mapped
-                            )
+                            self.name = get_text_v3(address=addr, stream=stream, mapped=mapped)
                         else:
-                            self.name = self.short_name.decode("latin-1").strip(
-                                " \t\n\r\0"
-                            )
+                            self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
                         addr = self.display_name_addr
                         if addr:
                             self.display_names = {
-                                get_text_v3(
-                                    address=addr, stream=stream, mapped=mapped
-                                ): "display_name",
+                                get_text_v3(address=addr, stream=stream, mapped=mapped): "display_name",
                             }
 
                     else:
@@ -444,13 +427,9 @@ class Channel:
                     if parsed_strings is None:
                         addr = self.long_name_addr
                         if addr:
-                            self.name = get_text_v3(
-                                address=addr, stream=stream, mapped=mapped
-                            )
+                            self.name = get_text_v3(address=addr, stream=stream, mapped=mapped)
                         else:
-                            self.name = self.short_name.decode("latin-1").strip(
-                                " \t\n\r\0"
-                            )
+                            self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
                     else:
                         self.name, self.display_names = parsed_strings
@@ -536,9 +515,7 @@ class Channel:
                         source = None
                     self.source = source
 
-                self.comment = get_text_v3(
-                    address=self.comment_addr, stream=stream, mapped=mapped
-                )
+                self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
 
             if self.id != b"CN":
                 message = f'Expected "CN" block @{hex(address)} but found "{self.id}"'
@@ -1013,9 +990,7 @@ class ChannelConversion(_ChannelConversionBase):
                     self.CANapeHiddenExtra = block[v23c.CC_LIN_BLOCK_SIZE - 4 :]
                     size = len(self.CANapeHiddenExtra)
                     nr = size // 40
-                    values = unpack_from(
-                        "<" + "d32s" * nr, block, v23c.CC_COMMON_SHORT_SIZE
-                    )
+                    values = unpack_from("<" + "d32s" * nr, block, v23c.CC_COMMON_SHORT_SIZE)
 
                     for i in range(nr):
                         (self[f"param_val_{i}"], self[f"text_{i}"]) = (
@@ -1028,11 +1003,7 @@ class ChannelConversion(_ChannelConversionBase):
 
             elif conv_type == v23c.CONVERSION_TYPE_FORMULA:
                 self.formula_field = block[v23c.CC_COMMON_SHORT_SIZE :]
-                self.formula = (
-                    self.formula_field.decode("latin-1")
-                    .strip(" \t\r\n\0")
-                    .replace("x", "X")
-                )
+                self.formula = self.formula_field.decode("latin-1").strip(" \t\r\n\0").replace("x", "X")
                 if "X1" not in self.formula:
                     self.formula = self.formula.replace("X", "X1")
 
@@ -1044,9 +1015,7 @@ class ChannelConversion(_ChannelConversionBase):
                 if block_size == v23c.MAX_UINT16:
                     stream.seek(address)
                     raw_bytes = stream.read(size)
-                    conversion = ChannelConversion(
-                        raw_bytes=raw_bytes, stream=stream, address=address
-                    )
+                    conversion = ChannelConversion(raw_bytes=raw_bytes, stream=stream, address=address)
                     conversion.block_len = size
 
                     self.update(conversion)
@@ -1084,9 +1053,7 @@ class ChannelConversion(_ChannelConversionBase):
                 if block_size == v23c.MAX_UINT16:
                     stream.seek(address)
                     raw_bytes = stream.read(size)
-                    conversion = ChannelConversion(
-                        raw_bytes=raw_bytes, stream=stream, address=address
-                    )
+                    conversion = ChannelConversion(raw_bytes=raw_bytes, stream=stream, address=address)
                     conversion.block_len = size
 
                     for attr in get_fields(conversion):
@@ -1095,9 +1062,7 @@ class ChannelConversion(_ChannelConversionBase):
                     self.referenced_blocks = conversion.referenced_blocks
 
                 else:
-                    values = unpack_from(
-                        "<" + "d32s" * nr, block, v23c.CC_COMMON_SHORT_SIZE
-                    )
+                    values = unpack_from("<" + "d32s" * nr, block, v23c.CC_COMMON_SHORT_SIZE)
 
                     for i in range(nr):
                         (self[f"param_val_{i}"], self[f"text_{i}"]) = (
@@ -1113,9 +1078,7 @@ class ChannelConversion(_ChannelConversionBase):
                 if block_size == v23c.MAX_UINT16:
                     stream.seek(address)
                     raw_bytes = stream.read(size)
-                    conversion = ChannelConversion(
-                        raw_bytes=raw_bytes, stream=stream, address=address
-                    )
+                    conversion = ChannelConversion(raw_bytes=raw_bytes, stream=stream, address=address)
                     conversion.block_len = size
 
                     for attr in get_fields(conversion):
@@ -1139,9 +1102,7 @@ class ChannelConversion(_ChannelConversionBase):
                     else:
                         self.referenced_blocks["default_addr"] = b""
 
-                    values = unpack_from(
-                        "<" + "2dI" * nr, block, v23c.CC_COMMON_SHORT_SIZE + 20
-                    )
+                    values = unpack_from("<" + "2dI" * nr, block, v23c.CC_COMMON_SHORT_SIZE + 20)
 
                     for i in range(nr):
                         (self[f"lower_{i}"], self[f"upper_{i}"], self[f"text_{i}"]) = (
@@ -1305,9 +1266,7 @@ class ChannelConversion(_ChannelConversionBase):
                     self[key] = 0
                     self.referenced_blocks[key] = kwargs[key]
             else:
-                message = (
-                    f'Conversion type "{kwargs["conversion_type"]}" not implemented'
-                )
+                message = f'Conversion type "{kwargs["conversion_type"]}" not implemented'
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1424,9 +1383,7 @@ address: {hex(self.address)}
                     lines.append(template.format(key, val))
 
             if key == "conversion_type":
-                lines[
-                    -1
-                ] += f" [{v23c.CONVERSION_TYPE_TO_STRING[self.conversion_type]}]"
+                lines[-1] += f" [{v23c.CONVERSION_TYPE_TO_STRING[self.conversion_type]}]"
             elif self.referenced_blocks and key in self.referenced_blocks:
                 val = self.referenced_blocks[key]
                 if isinstance(val, bytes):
@@ -1451,14 +1408,12 @@ address: {hex(self.address)}
             if not line:
                 metadata.append(line)
             else:
-                for wrapped_line in wrap(
-                    line, initial_indent=indent, subsequent_indent=indent, width=120
-                ):
+                for wrapped_line in wrap(line, initial_indent=indent, subsequent_indent=indent, width=120):
                     metadata.append(wrapped_line)
 
         return "\n".join(metadata)
 
-    def convert(self, values, as_object=False):
+    def convert(self, values, as_object=False, as_bytes=False, ignore_value2text_conversions=False):
         conversion_type = self.conversion_type
 
         if conversion_type == v23c.CONVERSION_TYPE_NONE:
@@ -1492,94 +1447,90 @@ address: {hex(self.address)}
                 inds2 = inds - 1
                 inds2[inds2 < 0] = 0
 
-                cond = np.abs(values - raw_vals[inds]) >= np.abs(
-                    values - raw_vals[inds2]
-                )
+                cond = np.abs(values - raw_vals[inds]) >= np.abs(values - raw_vals[inds2])
 
                 values = np.where(cond, phys[inds2], phys[inds])
 
         elif conversion_type == v23c.CONVERSION_TYPE_TABX:
-            nr = self.ref_param_nr
-            raw_vals = [self[f"param_val_{i}"] for i in range(nr)]
-            raw_vals = np.array(raw_vals)
-            phys = [self[f"text_{i}"] for i in range(nr)]
-            phys = np.array(phys)
+            if not ignore_value2text_conversions:
+                nr = self.ref_param_nr
+                raw_vals = [self[f"param_val_{i}"] for i in range(nr)]
+                raw_vals = np.array(raw_vals)
+                phys = [self[f"text_{i}"] for i in range(nr)]
+                phys = np.array(phys)
 
-            x = sorted(zip(raw_vals, phys))
-            raw_vals = np.array([e[0] for e in x], dtype="<i8")
-            phys = np.array([e[1] for e in x])
+                x = sorted(zip(raw_vals, phys))
+                raw_vals = np.array([e[0] for e in x], dtype="<i8")
+                phys = np.array([e[1] for e in x])
 
-            default = b""
+                default = b""
 
-            idx1 = np.searchsorted(raw_vals, values, side="right") - 1
-            idx2 = np.searchsorted(raw_vals, values, side="left")
+                idx1 = np.searchsorted(raw_vals, values, side="right") - 1
+                idx2 = np.searchsorted(raw_vals, values, side="left")
 
-            idx = np.argwhere(idx1 != idx2).flatten()
+                idx = np.argwhere(idx1 != idx2).flatten()
 
-            new_values = np.zeros(
-                len(values), dtype=max(phys.dtype, np.array([default]).dtype)
-            )
+                new_values = np.zeros(len(values), dtype=max(phys.dtype, np.array([default]).dtype))
 
-            new_values[idx] = default
-            idx = np.argwhere(idx1 == idx2).flatten()
-            if len(idx):
-                new_values[idx] = phys[idx1[idx]]
+                new_values[idx] = default
+                idx = np.argwhere(idx1 == idx2).flatten()
+                if len(idx):
+                    new_values[idx] = phys[idx1[idx]]
 
             values = new_values
 
         elif conversion_type == v23c.CONVERSION_TYPE_RTABX:
-            nr = self.ref_param_nr - 1
+            if not ignore_value2text_conversions:
+                nr = self.ref_param_nr - 1
 
-            phys = []
-            for i in range(nr):
-                value = self.referenced_blocks[f"text_{i}"]
-                phys.append(value)
+                phys = []
+                for i in range(nr):
+                    value = self.referenced_blocks[f"text_{i}"]
+                    phys.append(value)
 
-            phys = np.array(phys)
+                phys = np.array(phys)
 
-            default = self.referenced_blocks["default_addr"]
+                default = self.referenced_blocks["default_addr"]
 
-            if b"{X}" in default:
-                default = default.decode("latin-1").replace("{X}", "X").split('"')[1]
-                partial_conversion = True
-            else:
-                partial_conversion = False
+                if b"{X}" in default:
+                    default = default.decode("latin-1").replace("{X}", "X").split('"')[1]
+                    partial_conversion = True
+                else:
+                    partial_conversion = False
 
-            lower = np.array([self[f"lower_{i}"] for i in range(nr)])
-            upper = np.array([self[f"upper_{i}"] for i in range(nr)])
+                lower = np.array([self[f"lower_{i}"] for i in range(nr)])
+                upper = np.array([self[f"upper_{i}"] for i in range(nr)])
 
-            idx1 = np.searchsorted(lower, values, side="right") - 1
-            idx2 = np.searchsorted(upper, values, side="left")
+                idx1 = np.searchsorted(lower, values, side="right") - 1
+                idx2 = np.searchsorted(upper, values, side="left")
 
-            idx = np.argwhere(idx1 != idx2).flatten()
+                idx = np.argwhere(idx1 != idx2).flatten()
 
-            if partial_conversion and len(idx):
-                X = values[idx]
-                new_values = np.zeros(len(values), dtype=np.float64)
+                if partial_conversion and len(idx):
+                    X = values[idx]
+                    new_values = np.zeros(len(values), dtype=np.float64)
 
-                a = float(default.split("*")[0])
-                b = float(default.split("X")[-1])
-                new_values[idx] = a * X + b
-
-                idx = np.argwhere(idx1 == idx2).flatten()
-                if len(idx):
-                    new_values[idx] = np.nan
-                values = new_values
-
-            else:
-                if len(idx):
-                    new_values = np.zeros(
-                        len(values), dtype=max(phys.dtype, np.array([default]).dtype)
-                    )
-                    new_values[idx] = default
+                    a = float(default.split("*")[0])
+                    b = float(default.split("X")[-1])
+                    new_values[idx] = a * X + b
 
                     idx = np.argwhere(idx1 == idx2).flatten()
                     if len(idx):
-                        new_values[idx] = phys[idx1[idx]]
-
+                        new_values[idx] = np.nan
                     values = new_values
+
                 else:
-                    values = phys[idx1]
+                    if len(idx):
+                        new_values = np.zeros(len(values), dtype=max(phys.dtype, np.array([default]).dtype))
+                        new_values[idx] = default
+
+                        idx = np.argwhere(idx1 == idx2).flatten()
+                        if len(idx):
+                            new_values[idx] = phys[idx1[idx]]
+
+                        values = new_values
+                    else:
+                        values = phys[idx1]
 
         elif conversion_type in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):
             # pylint: disable=C0103
@@ -1614,16 +1565,13 @@ address: {hex(self.address)}
             P6 = self.P6
 
             X = values
-            if (P1, P4, P5, P6) == (0, 0, 0, 1):
-                if (P2, P3) != (1, 0):
-                    values = values * P2
-                    if P3:
-                        values += P3
-            elif (P3, P4, P5, P6) == (0, 0, 1, 0):
-                if (P1, P2) != (1, 0):
-                    values = values * P1
-                    if P2:
-                        values += P2
+            if (P1, P3, P4, P5) == (0, 0, 0, 0):
+                if P2 != P6:
+                    values = values * (P2 / P6)
+
+            elif (P2, P3, P4, P6) == (0, 0, 0, 0):
+                if P1 != P5:
+                    values = values * (P1 / P5)
             else:
                 try:
                     values = evaluate(v23c.RAT_CONV_TEXT)
@@ -1658,11 +1606,22 @@ address: {hex(self.address)}
         elif conversion_type == v23c.CONVERSION_TYPE_FORMULA:
             # pylint: disable=unused-variable,C0103
 
-            X1 = values
             try:
+                X1 = values
+                INF = np.inf
+                NaN = np.nan
                 values = evaluate(self.formula)
             except:
-                values = evaluate3(self.formula)
+                if lambdify is not None:
+                    X_symbol = symbols("X1")
+                    expr = lambdify(
+                        X_symbol,
+                        self.formula,
+                        modules=[{"INF": np.inf, "NaN": np.nan}, "numpy"],
+                        dummify=False,
+                        cse=True,
+                    )
+                    values = expr(values)
 
         return values
 
@@ -1679,9 +1638,7 @@ address: {hex(self.address)}
         if conv == v23c.CONVERSION_TYPE_NONE:
             fmt = v23c.FMT_CONVERSION_COMMON
         elif conv == v23c.CONVERSION_TYPE_FORMULA:
-            fmt = v23c.FMT_CONVERSION_FORMULA.format(
-                self.block_len - v23c.CC_COMMON_BLOCK_SIZE
-            )
+            fmt = v23c.FMT_CONVERSION_FORMULA.format(self.block_len - v23c.CC_COMMON_BLOCK_SIZE)
         elif conv == v23c.CONVERSION_TYPE_LINEAR:
             fmt = v23c.FMT_CONVERSION_LINEAR
             if not self.block_len == v23c.CC_LIN_BLOCK_SIZE:
@@ -1797,12 +1754,10 @@ class ChannelDependency:
             self.address = address = kwargs["address"]
             stream.seek(address)
 
-            (self.id, self.block_len, self.dependency_type, self.sd_nr) = unpack(
-                "<2s3H", stream.read(8)
-            )
+            (self.id, self.block_len, self.dependency_type, self.sd_nr) = unpack("<2s3H", stream.read(8))
 
             links_size = 3 * 4 * self.sd_nr
-            links = unpack("<{}I".format(3 * self.sd_nr), stream.read(links_size))
+            links = unpack(f"<{3 * self.sd_nr}I", stream.read(links_size))
 
             for i in range(self.sd_nr):
                 self[f"dg_{i}"] = links[3 * i]
@@ -1811,9 +1766,7 @@ class ChannelDependency:
 
             optional_dims_nr = (self.block_len - 8 - links_size) // 2
             if optional_dims_nr:
-                dims = unpack(
-                    f"<{optional_dims_nr}H", stream.read(optional_dims_nr * 2)
-                )
+                dims = unpack(f"<{optional_dims_nr}H", stream.read(optional_dims_nr * 2))
                 for i, dim in enumerate(dims):
                     self[f"dim_{i}"] = dim
 
@@ -1936,9 +1889,7 @@ class ChannelExtension:
         if "stream" in kwargs:
             stream = kwargs["stream"]
             try:
-                (self.id, self.block_len, self.type) = SOURCE_COMMON_uf(
-                    kwargs["raw_bytes"]
-                )
+                (self.id, self.block_len, self.type) = SOURCE_COMMON_uf(kwargs["raw_bytes"])
                 if self.type == v23c.SOURCE_ECU:
                     (
                         self.module_nr,
@@ -1961,9 +1912,7 @@ class ChannelExtension:
                 if kwargs.get("mapped", False):
                     self.address = address = kwargs["address"]
 
-                    (self.id, self.block_len, self.type) = SOURCE_COMMON_uf(
-                        stream, address
-                    )
+                    (self.id, self.block_len, self.type) = SOURCE_COMMON_uf(stream, address)
 
                     if self.type == v23c.SOURCE_ECU:
                         (
@@ -2031,15 +1980,11 @@ class ChannelExtension:
         if self.type == v23c.SOURCE_ECU:
             self.path = self.ECU_identification.decode("latin-1").strip(" \t\n\r\0")
             self.name = self.description.decode("latin-1").strip(" \t\n\r\0")
-            self.comment = (
-                f"Module number={self.module_nr} @ address={self.module_address}"
-            )
+            self.comment = f"Module number={self.module_nr} @ address={self.module_address}"
         else:
             self.path = self.sender_name.decode("latin-1").strip(" \t\n\r\0")
             self.name = self.message_name.decode("latin-1").strip(" \t\n\r\0")
-            self.comment = (
-                f"Message ID={hex(self.CAN_id)} on CAN bus {self.CAN_ch_index}"
-            )
+            self.comment = f"Message ID={hex(self.CAN_id)} on CAN bus {self.CAN_ch_index}"
 
     def to_blocks(
         self,
@@ -2281,9 +2226,7 @@ class ChannelGroup:
 
                 raise MdfException(message.format(self.id))
             if self.comment_addr:
-                self.comment = get_text_v3(
-                    address=self.comment_addr, stream=stream, mapped=mapped
-                )
+                self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
         except KeyError:
             self.address = 0
             self.id = b"CG"
@@ -2523,9 +2466,7 @@ class DataGroup:
 
                 if self.block_len == v23c.DG_POST_320_BLOCK_SIZE:
                     self.reserved0 = stream[
-                        address
-                        + v23c.DG_PRE_320_BLOCK_SIZE : address
-                        + v23c.DG_POST_320_BLOCK_SIZE
+                        address + v23c.DG_PRE_320_BLOCK_SIZE : address + v23c.DG_POST_320_BLOCK_SIZE
                     ]
             else:
                 stream.seek(address)
@@ -2652,14 +2593,8 @@ class FileIdentificationBlock:
             version = kwargs["version"]
             self.file_identification = "MDF     ".encode("latin-1")
             self.version_str = version.encode("latin-1") + b"\0" * 4
-            self.program_identification = "amdf{}".format(
-                __version__.replace(".", "")
-            ).encode("latin-1")
-            self.byte_order = (
-                v23c.BYTE_ORDER_INTEL
-                if sys.byteorder == "little"
-                else v23c.BYTE_ORDER_MOTOROLA
-            )
+            self.program_identification = "amdf{}".format(__version__.replace(".", "")).encode("latin-1")
+            self.byte_order = v23c.BYTE_ORDER_INTEL if sys.byteorder == "little" else v23c.BYTE_ORDER_MOTOROLA
             self.float_format = 0
             self.mdf_version = int(version.replace(".", ""))
             self.code_page = 0
@@ -2766,9 +2701,7 @@ class HeaderBlock:
                 )
 
             if self.id != b"HD":
-                message = (
-                    f'Expected "HD" block @{hex(self.address)} but found "{self.id}"'
-                )
+                message = f'Expected "HD" block @{hex(self.address)} but found "{self.id}"'
                 message = message.format(hex(64), self.id)
                 logger.exception(message)
                 raise MdfException(message)
@@ -2790,16 +2723,14 @@ class HeaderBlock:
                 user = getuser()
             except ModuleNotFoundError:
                 user = ""
-            self.author_field = "{:\0<32}".format(user).encode("latin-1")
+            self.author_field = f"{user:\0<32}".encode("latin-1")
             self.department_field = "{:\0<32}".format("").encode("latin-1")
             self.project_field = "{:\0<32}".format("").encode("latin-1")
             self.subject_field = "{:\0<32}".format("").encode("latin-1")
 
             if self.block_len > v23c.HEADER_COMMON_SIZE:
                 self.time_quality = 0
-                self.timer_identification = "{:\0<32}".format(
-                    "Local PC Reference Time"
-                ).encode("latin-1")
+                self.timer_identification = "{:\0<32}".format("Local PC Reference Time").encode("latin-1")
 
             self.start_time = datetime(1980, 1, 1, tzinfo=timezone.utc)
 
@@ -2835,9 +2766,7 @@ class HeaderBlock:
         if string.startswith("<HDcomment"):
             comment = string
             try:
-                comment_xml = ET.fromstring(
-                    comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
-                )
+                comment_xml = ET.fromstring(comment.replace(' xmlns="http://www.asam.net/mdf/v4"', ""))
             except ET.ParseError as e:
                 self.description = string
             else:
@@ -2960,28 +2889,18 @@ class HeaderBlock:
                     try:
                         timestamp = datetime.fromtimestamp(timestamp, tz)
                     except OverflowError:
-                        timestamp = datetime.fromtimestamp(0, tz) + timedelta(
-                            seconds=timestamp
-                        )
+                        timestamp = datetime.fromtimestamp(0, tz) + timedelta(seconds=timestamp)
                     except OSError:
                         timestamp = datetime.now(tz)
                 else:
-                    timestamp = "{} {}".format(
-                        self.date.decode("ascii"), self.time.decode("ascii")
-                    )
+                    timestamp = "{} {}".format(self.date.decode("ascii"), self.time.decode("ascii"))
 
-                    timestamp = datetime.strptime(
-                        timestamp, "%d:%m:%Y %H:%M:%S"
-                    ).astimezone(timezone.utc)
+                    timestamp = datetime.strptime(timestamp, "%d:%m:%Y %H:%M:%S").astimezone(timezone.utc)
 
             else:
-                timestamp = "{} {}".format(
-                    self.date.decode("ascii"), self.time.decode("ascii")
-                )
+                timestamp = "{} {}".format(self.date.decode("ascii"), self.time.decode("ascii"))
 
-                timestamp = datetime.strptime(
-                    timestamp, "%d:%m:%Y %H:%M:%S"
-                ).astimezone(timezone.utc)
+                timestamp = datetime.strptime(timestamp, "%d:%m:%Y %H:%M:%S").astimezone(timezone.utc)
         except:
             return datetime.now().astimezone(timezone.utc)
 
@@ -2998,9 +2917,7 @@ class HeaderBlock:
         self.date = timestamp.strftime("%d:%m:%Y").encode("ascii")
         self.time = timestamp.strftime("%H:%M:%S").encode("ascii")
         if self.block_len > v23c.HEADER_COMMON_SIZE:
-            self.tz_offset = int(
-                timestamp.tzinfo.utcoffset(timestamp).total_seconds() / 3600
-            )
+            self.tz_offset = int(timestamp.tzinfo.utcoffset(timestamp).total_seconds() / 3600)
             timestamp = int(timestamp.timestamp() * 10**9)
             self.abs_time = timestamp
 
@@ -3024,9 +2941,7 @@ class HeaderBlock:
         if self.block_len > v23c.HEADER_COMMON_SIZE:
             if self.abs_time:
                 tz_offset_sign = "-" if self.tz_offset < 0 else "+"
-                tz_information = (
-                    f"[GMT{tz_offset_sign}{abs(self.tz_offset):.2f} DST+{0:.2f}h]"
-                )
+                tz_information = f"[GMT{tz_offset_sign}{abs(self.tz_offset):.2f} DST+{0:.2f}h]"
 
         start_time = f'local time = {self.start_time.strftime("%d-%b-%Y %H:%M:%S + %fu")} {tz_information}'
         return start_time
@@ -3148,9 +3063,7 @@ class TextBlock:
             if mapped:
                 (self.id, self.block_len) = COMMON_uf(stream, address)
                 if self.id != b"TX":
-                    message = (
-                        f'Expected "TX" block @{hex(address)} but found "{self.id}"'
-                    )
+                    message = f'Expected "TX" block @{hex(address)} but found "{self.id}"'
                     logger.exception(message)
                     raise MdfException(message)
 
@@ -3159,9 +3072,7 @@ class TextBlock:
                 stream.seek(address)
                 (self.id, self.block_len) = COMMON_u(stream.read(4))
                 if self.id != b"TX":
-                    message = (
-                        f'Expected "TX" block @{hex(address)} but found "{self.id}"'
-                    )
+                    message = f'Expected "TX" block @{hex(address)} but found "{self.id}"'
                     logger.exception(message)
                     raise MdfException(message)
 
@@ -3195,11 +3106,7 @@ class TextBlock:
         return v23c.COMMON_p(self.id, self.block_len) + self.text
 
     def __repr__(self) -> str:
-        return (
-            f"TextBlock(id={self.id},"
-            f"block_len={self.block_len}, "
-            f"text={self.text})"
-        )
+        return f"TextBlock(id={self.id}," f"block_len={self.block_len}, " f"text={self.text})"
 
 
 class TriggerBlock:
@@ -3247,18 +3154,16 @@ class TriggerBlock:
             stream.seek(address)
             block = stream.read(size)
 
-            (self.id, self.block_len, self.text_addr, self.trigger_events_nr) = unpack(
-                "<2sHIH", block[:10]
-            )
+            (self.id, self.block_len, self.text_addr, self.trigger_events_nr) = unpack("<2sHIH", block[:10])
 
             nr = self.trigger_events_nr
             if nr:
-                values = unpack("<{}d".format(3 * nr), block[10:])
+                values = unpack(f"<{3 * nr}d", block[10:])
             for i in range(nr):
                 (
-                    self["trigger_{}_time".format(i)],
-                    self["trigger_{}_pretime".format(i)],
-                    self["trigger_{}_posttime".format(i)],
+                    self[f"trigger_{i}_time"],
+                    self[f"trigger_{i}_pretime"],
+                    self[f"trigger_{i}_posttime"],
                 ) = (values[i * 3], values[3 * i + 1], values[3 * i + 2])
 
             if self.text_addr:
@@ -3273,7 +3178,7 @@ class TriggerBlock:
         except KeyError:
             self.address = 0
             nr = 0
-            while "trigger_{}_time".format(nr) in kwargs:
+            while f"trigger_{nr}_time" in kwargs:
                 nr += 1
 
             self.id = b"TR"
@@ -3282,11 +3187,11 @@ class TriggerBlock:
             self.trigger_events_nr = nr
 
             for i in range(nr):
-                key = "trigger_{}_time".format(i)
+                key = f"trigger_{i}_time"
                 self[key] = kwargs[key]
-                key = "trigger_{}_pretime".format(i)
+                key = f"trigger_{i}_pretime"
                 self[key] = kwargs[key]
-                key = "trigger_{}_posttime".format(i)
+                key = f"trigger_{i}_posttime"
                 self[key] = kwargs[key]
 
     def to_blocks(self, address: int, blocks: list[Any]) -> int:
@@ -3314,13 +3219,13 @@ class TriggerBlock:
 
     def __bytes__(self) -> bytes:
         triggers_nr = self.trigger_events_nr
-        fmt = "<2sHIH{}d".format(triggers_nr * 3)
+        fmt = f"<2sHIH{triggers_nr * 3}d"
         keys = ("id", "block_len", "text_addr", "trigger_events_nr")
         for i in range(triggers_nr):
             keys += (
-                "trigger_{}_time".format(i),
-                "trigger_{}_pretime".format(i),
-                "trigger_{}_posttime".format(i),
+                f"trigger_{i}_time",
+                f"trigger_{i}_pretime",
+                f"trigger_{i}_posttime",
             )
         result = pack(fmt, *[self[key] for key in keys])
         return result

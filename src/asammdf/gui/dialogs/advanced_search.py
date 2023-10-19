@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 import re
 from traceback import format_exc
@@ -6,7 +5,7 @@ from traceback import format_exc
 from natsort import natsorted
 from PySide6 import QtCore, QtWidgets
 
-from ...blocks.utils import extract_xml_comment
+from ...blocks.utils import extract_xml_comment, timeit
 from ..ui import resource_rc
 from ..ui.search_dialog import Ui_SearchDialog
 from .messagebox import MessageBox
@@ -103,9 +102,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                 self.case_sensitivity_pattern.setCurrentText("Case sensitive")
             else:
                 self.case_sensitivity_pattern.setCurrentText("Case insensitive")
-            self.raw.setCheckState(
-                QtCore.Qt.Checked if pattern["raw"] else QtCore.Qt.Unchecked
-            )
+            self.raw.setCheckState(QtCore.Qt.Checked if pattern["raw"] else QtCore.Qt.Unchecked)
             self.name.setText(pattern["name"])
             self.ranges = pattern["ranges"]
             self.integer_format.setCurrentText(pattern.get("integer_format", "phys"))
@@ -119,6 +116,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.matches.setColumnWidth(self.SourceNameColumn, 170)
         self.matches.setColumnWidth(self.SourcePathColumn, 170)
 
+        self.setWindowFlag(QtCore.Qt.WindowMaximizeButtonHint, True)
+
         self.showMaximized()
 
     def search_text_changed(self):
@@ -126,7 +125,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         extened_search = self.extended_search.checkState() == QtCore.Qt.Checked
 
         if len(text) >= 2:
-            self.matches.setSortingEnabled(False)
+            self.matches.collapseAll()
             self.matches.clear()
 
             match_kind = self.match_kind.currentText()
@@ -154,19 +153,14 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                         # check channel group source name
 
                         if cg_source and (
-                            pattern.fullmatch(cg_source.name or "")
-                            or pattern.fullmatch(cg_source.path or "")
+                            pattern.fullmatch(cg_source.name or "") or pattern.fullmatch(cg_source.path or "")
                         ):
                             matches.update(
                                 {
                                     (group_index, channel_index): {
                                         "names": [ch.name],
-                                        "comment": extract_xml_comment(
-                                            ch.comment
-                                        ).strip(),
-                                        "unit": ch.conversion
-                                        and ch.conversion.unit
-                                        or ch.unit,
+                                        "comment": extract_xml_comment(ch.comment).strip(),
+                                        "unit": ch.conversion and ch.conversion.unit or ch.unit,
                                         "source_name": cg_source.name,
                                         "source_path": cg_source.path,
                                     }
@@ -189,18 +183,10 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                         if entry not in matches:
                                             matches[entry] = {
                                                 "names": [target],
-                                                "comment": extract_xml_comment(
-                                                    ch.comment
-                                                ).strip(),
-                                                "unit": ch.conversion
-                                                and ch.conversion.unit
-                                                or ch.unit,
-                                                "source_name": source.name
-                                                if source
-                                                else "",
-                                                "source_path": source.path
-                                                if source
-                                                else "",
+                                                "comment": extract_xml_comment(ch.comment).strip(),
+                                                "unit": ch.conversion and ch.conversion.unit or ch.unit,
+                                                "source_name": source.name if source else "",
+                                                "source_path": source.path if source else "",
                                             }
                                         else:
                                             matches[entry]["name"].append(target)
@@ -215,34 +201,22 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                         if pattern.fullmatch(target):
                                             matches[entry] = {
                                                 "names": [ch.name],
-                                                "comment": extract_xml_comment(
-                                                    ch.comment
-                                                ).strip(),
-                                                "unit": ch.conversion
-                                                and ch.conversion.unit
-                                                or ch.unit,
-                                                "source_name": source.name
-                                                if source
-                                                else "",
-                                                "source_path": source.path
-                                                if source
-                                                else "",
+                                                "comment": extract_xml_comment(ch.comment).strip(),
+                                                "unit": ch.conversion and ch.conversion.unit or ch.unit,
+                                                "source_name": source.name if source else "",
+                                                "source_path": source.path if source else "",
                                             }
                                             break
 
                 else:
-                    found_names = [
-                        name for name in self.channels_db if pattern.fullmatch(name)
-                    ]
+                    found_names = [name for name in self.channels_db if pattern.fullmatch(name)]
 
                     matches = {}
                     for name in found_names:
                         for entry in self.channels_db[name]:
                             if entry not in matches:
                                 (group_index, channel_index) = entry
-                                ch = self.mdf.groups[group_index].channels[
-                                    channel_index
-                                ]
+                                ch = self.mdf.groups[group_index].channels[channel_index]
                                 cg = self.mdf.groups[group_index].channel_group
 
                                 source = ch.source or getattr(cg, "acq_source", None)
@@ -250,9 +224,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                 matches[entry] = {
                                     "names": [],
                                     "comment": extract_xml_comment(ch.comment).strip(),
-                                    "unit": ch.conversion
-                                    and ch.conversion.unit
-                                    or ch.unit,
+                                    "unit": ch.conversion and ch.conversion.unit or ch.unit,
                                     "source_name": source.name if source else "",
                                     "source_path": source.path if source else "",
                                 }
@@ -264,10 +236,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                             else:
                                 info["names"].append(name)
 
-                matches = [
-                    (group_index, channel_index, info)
-                    for (group_index, channel_index), info in matches.items()
-                ]
+                matches = [(group_index, channel_index, info) for (group_index, channel_index), info in matches.items()]
                 matches.sort(key=lambda x: x[-1]["names"][0])
 
                 self.matches.clear()
@@ -322,12 +291,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         selection = set()
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-        while True:
-            item = iterator.value()
-
-            if item is None:
-                break
-
+        while item := iterator.value():
             data = tuple(item.text(i) for i in range(self.columns))
             selection.add(data)
 
@@ -351,24 +315,15 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             self.result = set()
 
             iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-            while True:
-                item = iterator.value()
-                if item is None:
-                    break
+            while item := iterator.value():
                 self.result.add(item.text(self.NameColumn))
                 iterator += 1
         else:
             self.result = {}
 
             iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-            while True:
-                item = iterator.value()
-                if item is None:
-                    break
-
-                entry = int(item.text(self.GroupColumn)), int(
-                    item.text(self.ChannelColumn)
-                )
+            while item := iterator.value():
+                entry = int(item.text(self.GroupColumn)), int(item.text(self.ChannelColumn))
                 name = item.text(self.NameColumn)
                 self.result[entry] = name
                 iterator += 1
@@ -379,8 +334,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.result = {
             "pattern": self.pattern.text().strip(),
             "match_type": self.pattern_match_type.currentText(),
-            "case_sensitive": self.case_sensitivity_pattern.currentText()
-            == "Case sensitive",
+            "case_sensitive": self.case_sensitivity_pattern.currentText() == "Case sensitive",
             "filter_type": self.filter_type.currentText(),
             "filter_value": self.filter_value.value(),
             "raw": self.raw.checkState() == QtCore.Qt.Checked,
@@ -390,9 +344,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         }
 
         if not self.result["pattern"]:
-            MessageBox.warning(
-                self, "Cannot apply pattern", "The pattern cannot be empty"
-            )
+            MessageBox.warning(self, "Cannot apply pattern", "The pattern cannot be empty")
             return
 
         if not self.result["name"]:
@@ -452,6 +404,9 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         root = self.selection.invisibleRootItem()
         (item.parent() or root).removeChild(item)
 
+    @QtCore.Slot(int, int, int, result=None)
     def section_resized(self, index, old_size, new_size):
-        self.selection.setColumnWidth(index, new_size)
-        self.matches.setColumnWidth(index, new_size)
+        if self.selection.columnWidth(index) != new_size:
+            self.selection.setColumnWidth(index, new_size)
+        if self.matches.columnWidth(index) != new_size:
+            self.matches.setColumnWidth(index, new_size)

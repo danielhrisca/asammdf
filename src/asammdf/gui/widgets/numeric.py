@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import bisect
 import json
 import os
@@ -125,9 +124,7 @@ class SignalOffline:
         return self.name < other.name
 
     def set_timestamp(self, timestamp):
-        if timestamp is not None and (
-            self.last_timestamp is None or self.last_timestamp != timestamp
-        ):
+        if timestamp is not None and (self.last_timestamp is None or self.last_timestamp != timestamp):
             self.last_timestamp = timestamp
 
             sig = self.signal
@@ -173,9 +170,7 @@ class OnlineBackEnd:
         self.map[signal.entry] = signal
         del self.map[old_entry]
 
-        self.numeric_viewer.dataView.ranges[
-            signal.entry
-        ] = self.numeric_viewer.dataView.ranges[old_entry]
+        self.numeric_viewer.dataView.ranges[signal.entry] = self.numeric_viewer.dataView.ranges[old_entry]
         del self.numeric_viewer.dataView.ranges[old_entry]
 
     def update(self, others=()):
@@ -227,9 +222,7 @@ class OnlineBackEnd:
         sorted_column_index = self.sorted_column_index
 
         if sorted_column_index == 0:
-            self.signals = natsorted(
-                self.signals, key=lambda x: x.name, reverse=self.sort_reversed
-            )
+            self.signals = natsorted(self.signals, key=lambda x: x.name, reverse=self.sort_reversed)
 
         elif sorted_column_index in (1, 2):
             numeric = []
@@ -260,9 +253,7 @@ class OnlineBackEnd:
             ]
 
         elif sorted_column_index == 3:
-            self.signals = natsorted(
-                self.signals, key=lambda x: x.unit, reverse=self.sort_reversed
-            )
+            self.signals = natsorted(self.signals, key=lambda x: x.unit, reverse=self.sort_reversed)
 
         self.data_changed()
 
@@ -321,10 +312,7 @@ class OfflineBackEnd:
                 self.signals.append(signal)
 
         if self.signals:
-            timestamps = {
-                id(signal.signal.timestamps): signal.signal.timestamps
-                for signal in self.signals
-            }
+            timestamps = {id(signal.signal.timestamps): signal.signal.timestamps for signal in self.signals}
             timestamps = list(timestamps.values())
             self.timebase = np.unique(np.concatenate(timestamps))
         else:
@@ -352,9 +340,7 @@ class OfflineBackEnd:
         sorted_column_index = self.sorted_column_index
 
         if sorted_column_index == 0:
-            self.signals = natsorted(
-                self.signals, key=lambda x: x.name, reverse=self.sort_reversed
-            )
+            self.signals = natsorted(self.signals, key=lambda x: x.name, reverse=self.sort_reversed)
 
         elif sorted_column_index in (1, 2):
             numeric = []
@@ -385,9 +371,7 @@ class OfflineBackEnd:
             ]
 
         elif sorted_column_index == 3:
-            self.signals = natsorted(
-                self.signals, key=lambda x: x.unit, reverse=self.sort_reversed
-            )
+            self.signals = natsorted(self.signals, key=lambda x: x.unit, reverse=self.sort_reversed)
 
         self.data_changed()
 
@@ -460,8 +444,15 @@ class TableModel(QtCore.QAbstractTableModel):
                 return "●"
             elif isinstance(cell, (bytes, np.bytes_)):
                 return cell.decode("utf-8", "replace")
+            elif isinstance(cell, str):
+                return cell
+            elif isinstance(cell, (np.ndarray, np.record, np.recarray)):
+                return str(cell[0])
             else:
-                return value_as_str(cell, signal.format, None, self.float_precision)
+                if np.isnan(cell):
+                    return "NaN"
+                else:
+                    return value_as_str(cell, signal.format, None, self.float_precision)
 
         elif role == QtCore.Qt.BackgroundRole:
             channel_ranges = self.view.ranges[signal.entry]
@@ -487,11 +478,7 @@ class TableModel(QtCore.QAbstractTableModel):
                 default_font_color=self.font_color,
             )
 
-            return (
-                new_background_color
-                if new_background_color != self.background_color
-                else None
-            )
+            return new_background_color if new_background_color != self.background_color else None
 
         elif role == QtCore.Qt.ForegroundRole:
             channel_ranges = self.view.ranges[signal.entry]
@@ -590,11 +577,7 @@ class TableModel(QtCore.QAbstractTableModel):
                 return icon
 
     def flags(self, index):
-        return (
-            QtCore.Qt.ItemIsEnabled
-            | QtCore.Qt.ItemIsSelectable
-            | QtCore.Qt.ItemIsDragEnabled
-        )
+        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled
 
     def setData(self, index, value, role=None):
         pass
@@ -662,9 +645,7 @@ class TableView(QtWidgets.QTableView):
         modifiers = event.modifiers()
 
         if key == QtCore.Qt.Key_Delete and modifiers == QtCore.Qt.NoModifier:
-            selected_items = set(
-                index.row() for index in self.selectedIndexes() if index.isValid()
-            )
+            selected_items = set(index.row() for index in self.selectedIndexes() if index.isValid())
 
             for row in reversed(list(selected_items)):
                 signal = self.backend.signals.pop(row)
@@ -673,9 +654,7 @@ class TableView(QtWidgets.QTableView):
             self.backend.update()
 
         elif key == QtCore.Qt.Key_R and modifiers == QtCore.Qt.ControlModifier:
-            selected_items = set(
-                index.row() for index in self.selectedIndexes() if index.isValid()
-            )
+            selected_items = set(index.row() for index in self.selectedIndexes() if index.isValid())
 
             if selected_items:
                 ranges = []
@@ -701,13 +680,8 @@ class TableView(QtWidgets.QTableView):
 
                     self.backend.update()
 
-        elif (
-            modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier)
-            and key == QtCore.Qt.Key_C
-        ):
-            selected_items = set(
-                index.row() for index in self.selectedIndexes() if index.isValid()
-            )
+        elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier) and key == QtCore.Qt.Key_C:
+            selected_items = set(index.row() for index in self.selectedIndexes() if index.isValid())
 
             if not selected_items:
                 return
@@ -721,21 +695,14 @@ class TableView(QtWidgets.QTableView):
                 }
 
                 for range_info in info["ranges"]:
-                    range_info["background_color"] = (
-                        range_info["background_color"].color().name()
-                    )
+                    range_info["background_color"] = range_info["background_color"].color().name()
                     range_info["font_color"] = range_info["font_color"].color().name()
 
                 QtWidgets.QApplication.instance().clipboard().setText(json.dumps(info))
 
-        elif (
-            modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier)
-            and key == QtCore.Qt.Key_V
-        ):
+        elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier) and key == QtCore.Qt.Key_V:
             info = QtWidgets.QApplication.instance().clipboard().text()
-            selected_items = set(
-                index.row() for index in self.selectedIndexes() if index.isValid()
-            )
+            selected_items = set(index.row() for index in self.selectedIndexes() if index.isValid())
 
             if not selected_items:
                 return
@@ -743,12 +710,8 @@ class TableView(QtWidgets.QTableView):
             try:
                 info = json.loads(info)
                 for range_info in info["ranges"]:
-                    range_info["background_color"] = QtGui.QBrush(
-                        QtGui.QColor(range_info["background_color"])
-                    )
-                    range_info["font_color"] = QtGui.QBrush(
-                        QtGui.QColor(range_info["font_color"])
-                    )
+                    range_info["background_color"] = QtGui.QBrush(QtGui.QColor(range_info["background_color"]))
+                    range_info["font_color"] = QtGui.QBrush(QtGui.QColor(range_info["font_color"]))
             except:
                 print(format_exc())
             else:
@@ -764,9 +727,7 @@ class TableView(QtWidgets.QTableView):
             super().keyPressEvent(event)
 
     def startDrag(self, supportedActions):
-        selected_items = [
-            index.row() for index in self.selectedIndexes() if index.isValid()
-        ]
+        selected_items = [index.row() for index in self.selectedIndexes() if index.isValid()]
 
         mimeData = QtCore.QMimeData()
 
@@ -784,9 +745,7 @@ class TableView(QtWidgets.QTableView):
 
             for range_info in ranges:
                 range_info["font_color"] = range_info["font_color"].color().name()
-                range_info["background_color"] = (
-                    range_info["background_color"].color().name()
-                )
+                range_info["background_color"] = range_info["background_color"].color().name()
 
             info = {
                 "name": signal.name,
@@ -795,9 +754,7 @@ class TableView(QtWidgets.QTableView):
                 "group_index": group_index,
                 "channel_index": channel_index,
                 "ranges": ranges,
-                "origin_uuid": str(entry[0])
-                if numeric_mode == "online"
-                else signal.signal.origin_uuid,
+                "origin_uuid": str(entry[0]) if numeric_mode == "online" else signal.signal.origin_uuid,
                 "type": "channel",
                 "uuid": os.urandom(6).hex(),
             }
@@ -833,9 +790,7 @@ class TableView(QtWidgets.QTableView):
         row = index.row()
         signal = self.backend.signals[row]
 
-        dlg = RangeEditor(
-            signal.name, signal.unit, self.ranges[signal.entry], parent=self, brush=True
-        )
+        dlg = RangeEditor(signal.name, signal.unit, self.ranges[signal.entry], parent=self, brush=True)
         dlg.exec_()
         if dlg.pressed_button == "apply":
             ranges = dlg.result
@@ -903,11 +858,7 @@ class HeaderView(QtWidgets.QTableView):
         self.viewport().installEventFilter(self)
 
         self.setIconSize(QtCore.QSize(16, 16))
-        self.setSizePolicy(
-            QtWidgets.QSizePolicy(
-                QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum
-            )
-        )
+        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum))
         self.setWordWrap(False)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -929,7 +880,7 @@ class HeaderView(QtWidgets.QTableView):
         self.resize(self.sizeHint())
 
     def showEvent(self, a0: QtGui.QShowEvent) -> None:
-        super(HeaderView, self).showEvent(a0)
+        super().showEvent(a0)
         self.initial_size = self.size()
 
     def mouseDoubleClickEvent(self, event):
@@ -1009,14 +960,10 @@ class HeaderView(QtWidgets.QTableView):
 
         if event.type() == QtCore.QEvent.MouseMove:
             if self.header_cell_being_resized is not None:
-                size = mouse_position - self.columnViewportPosition(
-                    self.header_cell_being_resized
-                )
+                size = mouse_position - self.columnViewportPosition(self.header_cell_being_resized)
                 if size > 10:
                     self.setColumnWidth(self.header_cell_being_resized, size)
-                    self.numeric_viewer.dataView.setColumnWidth(
-                        self.header_cell_being_resized, size
-                    )
+                    self.numeric_viewer.dataView.setColumnWidth(self.header_cell_being_resized, size)
 
                     self.updateGeometry()
                     self.numeric_viewer.dataView.updateGeometry()
@@ -1058,13 +1005,9 @@ class NumericViewer(QtWidgets.QWidget):
         self.gridLayout.setSpacing(0)
         self.setLayout(self.gridLayout)
 
-        self.dataView.horizontalScrollBar().valueChanged.connect(
-            self.columnHeader.horizontalScrollBar().setValue
-        )
+        self.dataView.horizontalScrollBar().valueChanged.connect(self.columnHeader.horizontalScrollBar().setValue)
 
-        self.columnHeader.horizontalScrollBar().valueChanged.connect(
-            self.dataView.horizontalScrollBar().setValue
-        )
+        self.columnHeader.horizontalScrollBar().valueChanged.connect(self.dataView.horizontalScrollBar().setValue)
 
         # self.dataView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         # self.dataView.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -1075,22 +1018,16 @@ class NumericViewer(QtWidgets.QWidget):
         # self.gridLayout.addWidget(self.dataView.verticalScrollBar(), 1, 1, 1, 1)
 
         self.dataView.verticalScrollBar().setSizePolicy(
-            QtWidgets.QSizePolicy(
-                QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Ignored
-            )
+            QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Ignored)
         )
         self.dataView.horizontalScrollBar().setSizePolicy(
-            QtWidgets.QSizePolicy(
-                QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed
-            )
+            QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
         )
 
         self.gridLayout.setColumnStretch(0, 1)
         self.gridLayout.setRowStretch(1, 1)
 
-        self.columnHeader.setSizePolicy(
-            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum
-        )
+        self.columnHeader.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
 
         self.default_row_height = 24
         self.set_styles()
@@ -1100,9 +1037,7 @@ class NumericViewer(QtWidgets.QWidget):
 
         self.columnHeader.horizontalHeader().setStretchLastSection(True)
 
-        self.columnHeader.horizontalHeader().sectionResized.connect(
-            self.update_horizontal_scroll
-        )
+        self.columnHeader.horizontalHeader().sectionResized.connect(self.update_horizontal_scroll)
 
         self.columnHeader.horizontalHeader().setMinimumSectionSize(1)
         self.dataView.horizontalHeader().setMinimumSectionSize(1)
@@ -1114,18 +1049,10 @@ class NumericViewer(QtWidgets.QWidget):
         self.dataView.verticalHeader().setMinimumSectionSize(self.default_row_height)
         self.dataView.verticalHeader().setMaximumSectionSize(self.default_row_height)
         self.dataView.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.Fixed)
-        self.columnHeader.verticalHeader().setDefaultSectionSize(
-            self.default_row_height
-        )
-        self.columnHeader.verticalHeader().setMinimumSectionSize(
-            self.default_row_height
-        )
-        self.columnHeader.verticalHeader().setMaximumSectionSize(
-            self.default_row_height
-        )
-        self.columnHeader.verticalHeader().sectionResizeMode(
-            QtWidgets.QHeaderView.Fixed
-        )
+        self.columnHeader.verticalHeader().setDefaultSectionSize(self.default_row_height)
+        self.columnHeader.verticalHeader().setMinimumSectionSize(self.default_row_height)
+        self.columnHeader.verticalHeader().setMaximumSectionSize(self.default_row_height)
+        self.columnHeader.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.Fixed)
 
     def auto_size_header(self):
         s = 0
@@ -1160,30 +1087,20 @@ class NumericViewer(QtWidgets.QWidget):
         for i in range(self.dataView.model().rowCount())[:N]:
             mi = self.dataView.model().index(i, column_index)
             text = self.dataView.model().data(mi)
-            w = (
-                self.dataView.fontMetrics()
-                .boundingRect(text.replace("\0", " "))
-                .width()
-            )
+            w = self.dataView.fontMetrics().boundingRect(text.replace("\0", " ")).width()
             width = max(width, w)
 
         for i in range(self.columnHeader.model().rowCount()):
             mi = self.columnHeader.model().index(i, column_index)
             text = self.columnHeader.model().data(mi)
-            w = (
-                self.columnHeader.fontMetrics()
-                .boundingRect(text.replace("\0", " "))
-                .width()
-            )
+            w = self.columnHeader.fontMetrics().boundingRect(text.replace("\0", " ")).width()
             width = max(width, w)
 
         padding = 20
         width += padding + extra_padding
 
         self.columnHeader.setColumnWidth(column_index, width)
-        self.dataView.setColumnWidth(
-            column_index, self.columnHeader.columnWidth(column_index)
-        )
+        self.dataView.setColumnWidth(column_index, self.columnHeader.columnWidth(column_index))
 
         self.dataView.updateGeometry()
         self.columnHeader.updateGeometry()
@@ -1245,9 +1162,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.main_layout.insertWidget(0, self.channels)
         self.main_layout.setStretch(0, 1)
 
-        self.float_precision.addItems(
-            ["Full float precision"] + [f"{i} float decimals" for i in range(16)]
-        )
+        self.float_precision.addItems(["Full float precision"] + [f"{i} float decimals" for i in range(16)])
 
         self.float_precision.currentIndexChanged.connect(self.set_float_precision)
 
@@ -1257,9 +1172,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             self._settings.setValue("numeric_format", format)
 
         if float_precision is None:
-            float_precision = self._settings.value(
-                "numeric_float_precision", -1, type=int
-            )
+            float_precision = self._settings.value("numeric_float_precision", -1, type=int)
         self.float_precision.setCurrentIndex(float_precision + 1)
 
         self.timebase = np.array([])
@@ -1269,9 +1182,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             self.add_new_channels(channels)
 
         self.channels.dataView.add_channels_request.connect(self.add_channels_request)
-        self.channels.dataView.verticalScrollBar().valueChanged.connect(
-            self.reset_visible_entries
-        )
+        self.channels.dataView.verticalScrollBar().valueChanged.connect(self.reset_visible_entries)
         self.channels.columnHeader.sorting_changed.connect(self.reset_visible_entries)
 
         self.channels.auto_size_header()
@@ -1318,9 +1229,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     ranges = copy_ranges(sig.ranges)
                     for range_info in ranges:
                         range_info["font_color"] = fn.mkBrush(range_info["font_color"])
-                        range_info["background_color"] = fn.mkBrush(
-                            range_info["background_color"]
-                        )
+                        range_info["background_color"] = fn.mkBrush(range_info["background_color"])
                     sig.ranges = ranges
 
                     self.channels.dataView.ranges[entry] = sig.ranges
@@ -1333,11 +1242,9 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     sig.computation = None
                     ranges = sig.ranges
                     exists = getattr(sig, "exists", True)
-                    sig = PlotSignal(sig, allow_trim=False)
+                    sig = PlotSignal(sig, allow_trim=False, allow_nans=True)
                     if sig.conversion:
-                        sig.phys_samples = sig.conversion.convert(
-                            sig.raw_samples, as_bytes=True
-                        )
+                        sig.phys_samples = sig.conversion.convert(sig.raw_samples, as_bytes=True)
                     sig.entry = sig.group_index, sig.channel_index
 
                     others.append(
@@ -1349,9 +1256,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
                     for range_info in ranges:
                         range_info["font_color"] = fn.mkBrush(range_info["font_color"])
-                        range_info["background_color"] = fn.mkBrush(
-                            range_info["background_color"]
-                        )
+                        range_info["background_color"] = fn.mkBrush(range_info["background_color"])
                     sig.ranges = ranges
 
                     self.channels.dataView.ranges[sig.entry] = ranges
@@ -1380,9 +1285,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
             for range_info in ranges:
                 range_info["font_color"] = range_info["font_color"].color().name()
-                range_info["background_color"] = (
-                    range_info["background_color"].color().name()
-                )
+                range_info["background_color"] = range_info["background_color"].color().name()
 
             channels.append(
                 {
@@ -1400,9 +1303,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
                 for range_info in ranges:
                     range_info["font_color"] = range_info["font_color"].color().name()
-                    range_info["background_color"] = (
-                        range_info["background_color"].color().name()
-                    )
+                    range_info["background_color"] = range_info["background_color"].color().name()
 
                 pattern["ranges"] = ranges
         else:
@@ -1521,11 +1422,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             self.timestamp_changed_signal.emit(self, stamp)
 
     def search_forward(self):
-        if (
-            self.op.currentIndex() < 0
-            or not self.target.text().strip()
-            or not self.pattern_match.text().strip()
-        ):
+        if self.op.currentIndex() < 0 or not self.target.text().strip() or not self.pattern_match.text().strip():
             self.match.setText("invalid input values")
             return
 
@@ -1542,9 +1439,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         else:
             pattern = re.compile(f"(?i){pattern}")
 
-        matches = [
-            sig for sig in self.channels.backend.signals if pattern.fullmatch(sig.name)
-        ]
+        matches = [sig for sig in self.channels.backend.signals if pattern.fullmatch(sig.name)]
 
         mode = self.match_mode.currentText()
 
@@ -1593,11 +1488,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 self.match.setText("condition not found")
 
     def search_backward(self):
-        if (
-            self.op.currentIndex() < 0
-            or not self.target.text().strip()
-            or not self.pattern_match.text().strip()
-        ):
+        if self.op.currentIndex() < 0 or not self.target.text().strip() or not self.pattern_match.text().strip():
             self.match.setText("invalid input values")
             return
 
@@ -1614,9 +1505,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         else:
             pattern = re.compile(f"(?i){pattern}")
 
-        matches = [
-            sig for sig in self.channels.backend.signals if pattern.fullmatch(sig.name)
-        ]
+        matches = [sig for sig in self.channels.backend.signals if pattern.fullmatch(sig.name)]
 
         mode = self.match_mode.currentText()
 
@@ -1681,25 +1570,13 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             else:
                 self.set_format("Physical")
             event.accept()
-        elif (
-            key == QtCore.Qt.Key_Right
-            and modifiers == QtCore.Qt.NoModifier
-            and self.mode == "offline"
-        ):
+        elif key == QtCore.Qt.Key_Right and modifiers == QtCore.Qt.NoModifier and self.mode == "offline":
             self.timestamp_slider.setValue(self.timestamp_slider.value() + 1)
 
-        elif (
-            key == QtCore.Qt.Key_Left
-            and modifiers == QtCore.Qt.NoModifier
-            and self.mode == "offline"
-        ):
+        elif key == QtCore.Qt.Key_Left and modifiers == QtCore.Qt.NoModifier and self.mode == "offline":
             self.timestamp_slider.setValue(self.timestamp_slider.value() - 1)
 
-        elif (
-            key == QtCore.Qt.Key_S
-            and modifiers == QtCore.Qt.ControlModifier
-            and self.mode == "offline"
-        ):
+        elif key == QtCore.Qt.Key_S and modifiers == QtCore.Qt.ControlModifier and self.mode == "offline":
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
                 "Select output measurement file",
@@ -1729,21 +1606,13 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                             mdf.append(sigs, common_timebase=True)
                         mdf.save(file_name, overwrite=True)
 
-        elif (
-            key == QtCore.Qt.Key_BracketLeft and modifiers == QtCore.Qt.ControlModifier
-        ):
+        elif key == QtCore.Qt.Key_BracketLeft and modifiers == QtCore.Qt.ControlModifier:
             self.decrease_font()
 
-        elif (
-            key == QtCore.Qt.Key_BracketRight and modifiers == QtCore.Qt.ControlModifier
-        ):
+        elif key == QtCore.Qt.Key_BracketRight and modifiers == QtCore.Qt.ControlModifier:
             self.increase_font()
 
-        elif (
-            key == QtCore.Qt.Key_G
-            and modifiers == QtCore.Qt.ShiftModifier
-            and self.mode == "offline"
-        ):
+        elif key == QtCore.Qt.Key_G and modifiers == QtCore.Qt.ShiftModifier and self.mode == "offline":
             value, ok = QtWidgets.QInputDialog.getDouble(
                 self,
                 "Go to time stamp",
@@ -1796,18 +1665,14 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             self.time_group.setHidden(False)
             self.search_group.setHidden(False)
             icon = QtGui.QIcon()
-            icon.addPixmap(
-                QtGui.QPixmap(":/up.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-            )
+            icon.addPixmap(QtGui.QPixmap(":/up.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
             self.toggle_controls_btn.setIcon(icon)
         else:
             self.toggle_controls_btn.setText("Show controls")
             self.time_group.setHidden(True)
             self.search_group.setHidden(True)
             icon = QtGui.QIcon()
-            icon.addPixmap(
-                QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-            )
+            icon.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
             self.toggle_controls_btn.setIcon(icon)
 
     def update_timebase(self):

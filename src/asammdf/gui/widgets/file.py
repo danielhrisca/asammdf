@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timezone
 from functools import partial
 from hashlib import sha1
@@ -119,6 +118,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     ):
         self.default_folder = kwargs.pop("default_folder", "")
         display_file = kwargs.pop("display_file", "")
+        show_progress = kwargs.pop("show_progress", True)
 
         self._progress = None
 
@@ -149,28 +149,29 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self._show_filter_tree = False
         self.line_interconnect = line_interconnect
+        if show_progress:
+            progress = QtWidgets.QProgressDialog(f'Opening "{self.file_name}"', "", 0, 100, self.parent())
 
-        progress = QtWidgets.QProgressDialog(
-            f'Opening "{self.file_name}"', "", 0, 100, self.parent()
-        )
-
-        progress.setWindowModality(QtCore.Qt.ApplicationModal)
-        progress.setCancelButton(None)
-        progress.setAutoClose(True)
-        progress.setWindowTitle("Opening measurement")
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        progress.setWindowIcon(icon)
-        progress.setMinimumWidth(600)
-        progress.show()
+            progress.setWindowModality(QtCore.Qt.ApplicationModal)
+            progress.setCancelButton(None)
+            progress.setAutoClose(True)
+            progress.setWindowTitle("Opening measurement")
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            progress.setWindowIcon(icon)
+            progress.setMinimumWidth(600)
+            progress.show()
+        else:
+            progress = None
 
         try:
-            if file_name.suffix.lower() in (".erg", ".bsig", ".dl3"):
+            if file_name.suffix.lower() in (".erg", ".bsig", ".dl3", ".tdms"):
                 extension = file_name.suffix.lower().strip(".")
-                progress.setLabelText(f"Converting from {extension} to mdf")
+                if progress:
+                    progress.setLabelText(f"Converting from {extension} to mdf")
 
                 try:
-                    from mfile import BSIG, DL3, ERG
+                    from mfile import BSIG, DL3, ERG, TDMS
                 except ImportError:
                     from cmerg import BSIG, ERG
 
@@ -178,6 +179,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     cls = ERG
                 elif file_name.suffix.lower() == ".bsig":
                     cls = BSIG
+                elif file_name.suffix.lower() == ".tdms":
+                    cls = TDMS
                 else:
                     cls = DL3
 
@@ -212,7 +215,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         self.mdf.uuid = self.uuid
                         self.mdf.original_name = file_name
                 except:
-                    progress.cancel()
+                    if progress:
+                        progress.cancel()
                     print(format_exc())
                     raise Exception(
                         "Could not load CSV. The first line must contain the channel names. The seconds line "
@@ -250,10 +254,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             channels_db_items = sorted(self.mdf.channels_db, key=lambda x: x.lower())
             self.channels_db_items = channels_db_items
 
-            progress.setLabelText("Loading graphical elements")
+            if progress:
+                progress.setLabelText("Loading graphical elements")
             QtWidgets.QApplication.processEvents()
 
-            progress.setValue(37)
+            if progress:
+                progress.setValue(37)
 
             self.channels_tree.setDragEnabled(True)
 
@@ -271,42 +277,28 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.channel_view.setCurrentIndex(-1)
             self.filter_view.setCurrentIndex(-1)
 
-            self.filter_view.setCurrentText(
-                self._settings.value("filter_view", "Internal file structure")
-            )
+            self.filter_view.setCurrentText(self._settings.value("filter_view", "Internal file structure"))
 
-            self.channel_view.currentIndexChanged.connect(
-                partial(self._update_channel_tree, widget=self.channels_tree)
-            )
-            self.filter_view.currentIndexChanged.connect(
-                partial(self._update_channel_tree, widget=self.filter_tree)
-            )
-            self.channel_view.currentTextChanged.connect(
-                partial(self._update_channel_tree, widget=self.channels_tree)
-            )
-            self.filter_view.currentTextChanged.connect(
-                partial(self._update_channel_tree, widget=self.filter_tree)
-            )
+            self.channel_view.currentIndexChanged.connect(partial(self._update_channel_tree, widget=self.channels_tree))
+            self.filter_view.currentIndexChanged.connect(partial(self._update_channel_tree, widget=self.filter_tree))
+            self.channel_view.currentTextChanged.connect(partial(self._update_channel_tree, widget=self.channels_tree))
+            self.filter_view.currentTextChanged.connect(partial(self._update_channel_tree, widget=self.filter_tree))
 
-            self.channel_view.setCurrentText(
-                self._settings.value("channels_view", "Internal file structure")
-            )
-
-            progress.setValue(70)
+            self.channel_view.setCurrentText(self._settings.value("channels_view", "Internal file structure"))
+            if progress:
+                progress.setValue(70)
             QtWidgets.QApplication.processEvents()
 
             self.raster_type_channel.toggled.connect(self.set_raster_type)
-
-            progress.setValue(90)
+            if progress:
+                progress.setValue(90)
             QtWidgets.QApplication.processEvents()
 
             self.output_options.setCurrentIndex(0)
 
             self.mdf_version.insertItems(0, SUPPORTED_VERSIONS)
             self.mdf_version.setCurrentText("4.10")
-            self.mdf_compression.insertItems(
-                0, ("no compression", "deflate", "transposed deflate")
-            )
+            self.mdf_compression.insertItems(0, ("no compression", "deflate", "transposed deflate"))
             self.mdf_compression.setCurrentText("transposed deflate")
             self.mdf_split_size.setValue(4)
 
@@ -315,16 +307,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             index = self.extract_bus_format.findText(self.mdf.version)
             if index >= 0:
                 self.extract_bus_format.setCurrentIndex(index)
-            self.extract_bus_compression.insertItems(
-                0, ("no compression", "deflate", "transposed deflate")
-            )
+            self.extract_bus_compression.insertItems(0, ("no compression", "deflate", "transposed deflate"))
             self.extract_bus_compression.setCurrentText("transposed deflate")
             self.extract_bus_btn.clicked.connect(self.extract_bus_logging)
             self.extract_bus_csv_btn.clicked.connect(self.extract_bus_csv_logging)
             self.load_can_database_btn.clicked.connect(self.load_can_database)
             self.load_lin_database_btn.clicked.connect(self.load_lin_database)
 
-            progress.setValue(99)
+            if progress:
+                progress.setValue(99)
 
             self.empty_channels.insertItems(0, ("skip", "zeros"))
             self.empty_channels_bus.insertItems(0, ("skip", "zeros"))
@@ -352,17 +343,17 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.aspects.currentChanged.connect(self.aspect_changed)
 
         except:
-            progress.setValue(100)
-            progress.deleteLater()
+            if progress:
+                progress.setValue(100)
+                progress.deleteLater()
             raise
 
         else:
-            progress.setValue(100)
-            progress.deleteLater()
+            if progress:
+                progress.setValue(100)
+                progress.deleteLater()
 
-        self.load_channel_list_btn.clicked.connect(
-            partial(self.load_channel_list, manually=True)
-        )
+        self.load_channel_list_btn.clicked.connect(partial(self.load_channel_list, manually=True))
         self.save_channel_list_btn.clicked.connect(self.save_channel_list)
         self.load_filter_list_btn.clicked.connect(self.load_filter_list)
         self.save_filter_list_btn.clicked.connect(self.save_filter_list)
@@ -385,10 +376,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if self.mdf.version >= "4.00" and self.mdf.attachments:
             for i, attachment in enumerate(self.mdf.attachments, 1):
-                if (
-                    attachment.file_name == "user_embedded_display.dspf"
-                    and attachment.mime == r"application/x-dspf"
-                ):
+                if attachment.file_name == "user_embedded_display.dspf" and attachment.mime == r"application/x-dspf":
                     hide_embedded_btn = False
 
                 att = Attachment(i - 1, self.mdf)
@@ -460,9 +448,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if hide_embedded_btn:
             self.load_embedded_channel_list_btn.setDisabled(True)
-        self.load_embedded_channel_list_btn.clicked.connect(
-            self.load_embedded_display_file
-        )
+        self.load_embedded_channel_list_btn.clicked.connect(self.load_embedded_display_file)
         self.save_embedded_channel_list_btn.clicked.connect(self.embed_display_file)
 
         if self.mdf.version >= "4.00":
@@ -473,10 +459,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.save_embedded_channel_list_btn.setEnabled(False)
 
         if self.mdf.version >= "4.00":
-            if not any(
-                group.channel_group.flags & FLAG_CG_BUS_EVENT
-                for group in self.mdf.groups
-            ):
+            if not any(group.channel_group.flags & FLAG_CG_BUS_EVENT for group in self.mdf.groups):
                 self.aspects.setTabVisible(2, False)
         else:
             self.aspects.setTabVisible(2, False)
@@ -518,18 +501,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         if display_file:
             self.load_channel_list(file_name=display_file)
         else:
-            default_display_file = self.mdf.header._common_properties.get(
-                "pr_display_file", ""
-            )
+            default_display_file = self.mdf.header._common_properties.get("pr_display_file", "")
 
             if default_display_file:
                 default_display_file = Path(default_display_file)
                 if default_display_file.exists():
                     self.load_channel_list(file_name=default_display_file)
                 else:
-                    default_display_file = (
-                        Path(self.mdf.original_name).parent / default_display_file.name
-                    )
+                    default_display_file = Path(self.mdf.original_name).parent / default_display_file.name
                     if default_display_file.exists():
                         self.load_channel_list(file_name=default_display_file)
 
@@ -633,9 +612,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                     if ico is not None:
                         icon = QtGui.QIcon()
-                        icon.addPixmap(
-                            QtGui.QPixmap(ico), QtGui.QIcon.Normal, QtGui.QIcon.Off
-                        )
+                        icon.addPixmap(QtGui.QPixmap(ico), QtGui.QIcon.Normal, QtGui.QIcon.Off)
 
                         channel_group.setIcon(0, icon)
 
@@ -659,19 +636,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 channel_group.setText(0, name)
                 channel_group.setFlags(
-                    channel_group.flags()
-                    | QtCore.Qt.ItemIsAutoTristate
-                    | QtCore.Qt.ItemIsUserCheckable
+                    channel_group.flags() | QtCore.Qt.ItemIsAutoTristate | QtCore.Qt.ItemIsUserCheckable
                 )
 
                 if group.channel_group.cycles_nr:
                     channel_group.setForeground(0, QtGui.QBrush(QtGui.QColor(GREEN)))
                 items.append(channel_group)
 
-                channels = [
-                    HelperChannel(name=ch.name, entry=(i, j))
-                    for j, ch in enumerate(group.channels)
-                ]
+                channels = [HelperChannel(name=ch.name, entry=(i, j)) for j, ch in enumerate(group.channels)]
 
                 add_children(
                     channel_group,
@@ -1085,7 +1057,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 if not info:
                     return
                 section, ok = QtWidgets.QInputDialog.getItem(
-                    None,
+                    self,
                     "Select section",
                     "Available sections:",
                     list(info),
@@ -1094,15 +1066,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 )
                 if not ok:
                     return
-                channels = info[section]
+
+                channels = [name.split(";")[0] for name in info[section]]
 
             elif extension in (".cfg", ".txt"):
-                with open(file_name, "r") as infile:
+                with open(file_name) as infile:
                     info = json.load(infile)
                 channels = info.get("selected_channels", [])
 
             elif extension == ".dspf":
-                with open(file_name, "r") as infile:
+                with open(file_name) as infile:
                     info = json.load(infile)
                 channels = info.get("selected_channels", [])
 
@@ -1114,9 +1087,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         ".mf4",
                         ".mf4z",
                     )
-                    and not self.mdf.header._common_properties.get(
-                        "pr_display_file", ""
-                    )
+                    and not self.mdf.header._common_properties.get("pr_display_file", "")
                     and manually
                 ):
                     result = MessageBox.question(
@@ -1147,9 +1118,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         suffix = original_file_name.suffix.lower()
                         if suffix == ".mf4z":
-                            with ZipFile(
-                                original_file_name, allowZip64=True
-                            ) as archive:
+                            with ZipFile(original_file_name, allowZip64=True) as archive:
                                 files = archive.namelist()
                                 if len(files) != 1:
                                     return
@@ -1165,9 +1134,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         with open(mdf_file_name, "r+b") as mdf:
                             try:
-                                header._common_properties[
-                                    "pr_display_file"
-                                ] = display_file_name
+                                header._common_properties["pr_display_file"] = display_file_name
                                 comment = TextV4(meta=True, text=header.comment)
 
                                 mdf.seek(0, 2)
@@ -1190,9 +1157,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                 return
 
                         if suffix == ".mf4z":
-                            zipped_mf4 = ZipFile(
-                                original_file_name, "w", compression=ZIP_DEFLATED
-                            )
+                            zipped_mf4 = ZipFile(original_file_name, "w", compression=ZIP_DEFLATED)
                             zipped_mf4.write(
                                 str(mdf_file_name),
                                 original_file_name.with_suffix(".mf4").name,
@@ -1277,9 +1242,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             else:
                 for window in info["windows"]:
                     if window["type"] == "Plot":
-                        for name, definition in get_functions(
-                            window["configuration"]["channels"]
-                        ).items():
+                        for name, definition in get_functions(window["configuration"]["channels"]).items():
                             if name in self.functions:
                                 if self.functions[name] != definition:
                                     new_functions[os.urandom(6).hex()] = {
@@ -1352,11 +1315,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             signals = []
             if self.filter_view.currentText() == "Internal file structure":
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
-
+                while item := iterator.value():
                     iterator += 1
 
                     if item.parent() is None:
@@ -1365,11 +1324,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     if item.checkState(0) == QtCore.Qt.Checked:
                         signals.append(item.text(0))
             else:
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
-
+                while item := iterator.value():
                     iterator += 1
 
                     if item.checkState(0) == QtCore.Qt.Checked:
@@ -1387,6 +1342,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             with open(file_name, "w") as output:
                 if suffix == ".lab":
+                    output.write(
+                        """[SETTINGS]
+Version;V1.1
+MultiRasterSeparator;&
+
+"""
+                    )
                     output.write(f"[{section_name}]\n")
                 output.write("\n".join(natsorted(signals)))
 
@@ -1431,6 +1393,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     else:
                         channels = list(info.values())[0]
 
+                    channels = [name.split(";")[0] for name in channels]
+
             else:
                 channels = load_channel_names_from_file(file_name)
 
@@ -1442,10 +1406,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
             if self.filter_view.currentText() == "Internal file structure":
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
+                while item := iterator.value():
                     iterator += 1
 
                     if item.parent() is None:
@@ -1459,11 +1420,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         item.setCheckState(0, QtCore.Qt.Unchecked)
 
             elif self.filter_view.currentText() == "Natural sort":
-                while True:
-                    item = iterator.value()
-                    if item is None:
-                        break
-
+                while item := iterator.value():
                     channel_name = item.text(0)
                     if channel_name in channels:
                         item.setCheckState(0, QtCore.Qt.Checked)
@@ -1507,9 +1464,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 if len(master_min):
                     t_min.append(master_min[0])
                 self.mdf._master_channel_cache.clear()
-                master_max = self.mdf.get_master(
-                    i, record_offset=cycles_nr - 1, record_count=1
-                )
+                master_max = self.mdf.get_master(i, record_offset=cycles_nr - 1, record_count=1)
                 if len(master_max):
                     t_max.append(master_max[0])
                 self.mdf._master_channel_cache.clear()
@@ -1520,9 +1475,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.cut_start.setRange(*time_range)
             self.cut_stop.setRange(*time_range)
 
-            self.cut_interval.setText(
-                "Cut interval ({:.6f}s - {:.6f}s)".format(*time_range)
-            )
+            self.cut_interval.setText("Cut interval ({:.6f}s - {:.6f}s)".format(*time_range))
         else:
             self.cut_start.setRange(0, 0)
             self.cut_stop.setRange(0, 0)
@@ -1745,9 +1698,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     def scramble_thread(self, progress):
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/scramble.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/scramble.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         progress.signals.setWindowIcon.emit(icon)
         progress.signals.setWindowTitle.emit("Scrambling measurement")
         progress.signals.setLabelText.emit(f'Scrambling "{self.file_name}"')
@@ -1794,9 +1745,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for i in range(count1):
                 item = self.can_database_list.item(i)
                 widget = self.can_database_list.itemWidget(item)
-                database_files["CAN"].append(
-                    (widget.database.text(), widget.bus.currentIndex())
-                )
+                database_files["CAN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         count2 = self.lin_database_list.count()
         if count2:
@@ -1804,9 +1753,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for i in range(count2):
                 item = self.lin_database_list.item(i)
                 widget = self.lin_database_list.itemWidget(item)
-                database_files["LIN"].append(
-                    (widget.database.text(), widget.bus.currentIndex())
-                )
+                database_files["LIN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         compression = self.extract_bus_compression.currentIndex()
 
@@ -1840,18 +1787,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             kwargs={},
         )
 
-    def extract_bus_logging_thread(
-        self, file_name, suffix, database_files, version, compression, progress
-    ):
+    def extract_bus_logging_thread(self, file_name, suffix, database_files, version, compression, progress):
         file_name = Path(file_name).with_suffix(suffix)
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         progress.signals.setWindowIcon.emit(icon)
         progress.signals.setWindowTitle.emit("Extract Bus logging")
-        progress.signals.setLabelText.emit(
-            f'Extracting Bus signals from "{self.file_name}"'
-        )
+        progress.signals.setLabelText.emit(f'Extracting Bus signals from "{self.file_name}"')
 
         # convert self.mdf
         result = self.mdf.extract_bus_logging(
@@ -1891,9 +1834,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
             ]
             if call_info["unknown_id_count"]:
-                message.append(
-                    f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file'
-                )
+                message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
             else:
                 message.append(f"- no unknown IDs inf the MDF4 file")
 
@@ -1909,21 +1850,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
                     except:
                         pgn, sa = msg_id
-                        message.append(
-                            f"- PGN=0x{pgn:X} SA=0x{sa:X} --> {msg_name} in <{dbc_name}>"
-                        )
+                        message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X} --> {msg_name} in <{dbc_name}>")
 
             message += [
                 "",
                 f"The following {bus} IDs were in the MDF log file, but not matched in the DBC:",
             ]
 
-            unknown_standard_can = sorted(
-                [e for e in call_info["unknown_ids"] if isinstance(e, int)]
-            )
-            unknown_j1939 = sorted(
-                [e for e in call_info["unknown_ids"] if not isinstance(e, int)]
-            )
+            unknown_standard_can = sorted([e for e in call_info["unknown_ids"] if isinstance(e, int)])
+            unknown_j1939 = sorted([e for e in call_info["unknown_ids"] if not isinstance(e, int)])
             for msg_id in unknown_standard_can:
                 message.append(f"- 0x{msg_id:X}")
 
@@ -1955,9 +1890,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for i in range(count1):
                 item = self.can_database_list.item(i)
                 widget = self.can_database_list.itemWidget(item)
-                database_files["CAN"].append(
-                    (widget.database.text(), widget.bus.currentIndex())
-                )
+                database_files["CAN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         count2 = self.lin_database_list.count()
         if count2:
@@ -1965,9 +1898,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for i in range(count2):
                 item = self.lin_database_list.item(i)
                 widget = self.lin_database_list.itemWidget(item)
-                database_files["LIN"].append(
-                    (widget.database.text(), widget.bus.currentIndex())
-                )
+                database_files["LIN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         if not (count1 + count2):
             return
@@ -1980,9 +1911,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         delimiter = self.delimiter_bus.text() or ","
         doublequote = self.doublequote_bus.checkState() == QtCore.Qt.Checked
         escapechar = self.escapechar_bus.text() or None
-        lineterminator = (
-            self.lineterminator_bus.text().replace("\\r", "\r").replace("\\n", "\n")
-        )
+        lineterminator = self.lineterminator_bus.text().replace("\\r", "\r").replace("\\n", "\n")
         quotechar = self.quotechar_bus.text() or '"'
         quoting = self.quoting_bus.currentText()
         add_units = self.add_units_bus.checkState() == QtCore.Qt.Checked
@@ -2046,9 +1975,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         icon.addPixmap(QtGui.QPixmap(":/csv.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         progress.signals.setWindowIcon.emit(icon)
         progress.signals.setWindowTitle.emit("Extract Bus logging to CSV")
-        progress.signals.setLabelText.emit(
-            f'Extracting Bus signals from "{self.file_name}"'
-        )
+        progress.signals.setLabelText.emit(f'Extracting Bus signals from "{self.file_name}"')
 
         # convert self.mdf
         result = self.mdf.extract_bus_logging(
@@ -2107,9 +2034,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
             ]
             if call_info["unknown_id_count"]:
-                message.append(
-                    f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file'
-                )
+                message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
             else:
                 message.append(f"- no unknown IDs inf the MDF4 file")
 
@@ -2125,9 +2050,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
                     except:
                         pgn, sa = msg_id
-                        message.append(
-                            f"- PGN=0x{pgn:X} SA=0x{sa:X} --> {msg_name} in <{dbc_name}>"
-                        )
+                        message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X} --> {msg_name} in <{dbc_name}>")
 
             message += [
                 "",
@@ -2149,11 +2072,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         )
 
         if file_names:
-            file_names = [
-                name
-                for name in file_names
-                if Path(name).suffix.lower() in (".arxml", ".dbc")
-            ]
+            file_names = [name for name in file_names if Path(name).suffix.lower() in (".arxml", ".dbc")]
 
         if file_names:
             for database in file_names:
@@ -2174,11 +2093,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         )
 
         if file_names:
-            file_names = [
-                name
-                for name in file_names
-                if Path(name).suffix.lower() in (".arxml", ".dbc", ".ldf")
-            ]
+            file_names = [name for name in file_names if Path(name).suffix.lower() in (".arxml", ".dbc", ".ldf")]
 
         if file_names:
             for database in file_names:
@@ -2221,9 +2136,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             elif mode == "tile horizontally":
                 self.mdi_area.tile_horizontally()
 
-        elif key == QtCore.Qt.Key_F and modifier == (
-            QtCore.Qt.ShiftModifier | QtCore.Qt.AltModifier
-        ):
+        elif key == QtCore.Qt.Key_F and modifier == (QtCore.Qt.ShiftModifier | QtCore.Qt.AltModifier):
             self.toggle_frames()
 
         elif key == QtCore.Qt.Key_L and modifier == QtCore.Qt.ShiftModifier:
@@ -2275,9 +2188,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if self.aspects.tabText(current_index) == "Modify && Export":
             if not self.raster_channel.count():
-                self.raster_channel.setSizeAdjustPolicy(
-                    QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon
-                )
+                self.raster_channel.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
                 self.raster_channel.addItems(self.channels_db_items)
                 self.raster_channel.setMinimumWidth(100)
 
@@ -2325,17 +2236,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         channel_group.setText(0, name)
 
                         channel_group.setFlags(
-                            channel_group.flags()
-                            | QtCore.Qt.ItemIsAutoTristate
-                            | QtCore.Qt.ItemIsUserCheckable
+                            channel_group.flags() | QtCore.Qt.ItemIsAutoTristate | QtCore.Qt.ItemIsUserCheckable
                         )
 
                         widget.addTopLevelItem(channel_group)
 
-                        channels = [
-                            HelperChannel(name=ch.name, entry=(i, j))
-                            for j, ch in enumerate(group.channels)
-                        ]
+                        channels = [HelperChannel(name=ch.name, entry=(i, j)) for j, ch in enumerate(group.channels)]
 
                         add_children(
                             channel_group,
@@ -2422,9 +2328,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             item.setText(0, "Program identification")
             item.setText(
                 1,
-                self.mdf.identification.program_identification.decode("ascii").strip(
-                    " \r\n\t\0"
-                ),
+                self.mdf.identification.program_identification.decode("ascii").strip(" \r\n\t\0"),
             )
             children.append(item)
 
@@ -2498,14 +2402,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     size = channel_group.samples_byte_nr * cycles
                 else:
                     if channel_group.flags & 0x1:
-                        size = channel_group.samples_byte_nr + (
-                            channel_group.invalidation_bytes_nr << 32
-                        )
+                        size = channel_group.samples_byte_nr + (channel_group.invalidation_bytes_nr << 32)
                     else:
-                        size = (
-                            channel_group.samples_byte_nr
-                            + channel_group.invalidation_bytes_nr
-                        ) * cycles
+                        size = (channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr) * cycles
 
                     if group.channel_group.acq_source:
                         source = group.channel_group.acq_source
@@ -2524,9 +2423,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         if ico is not None:
                             icon = QtGui.QIcon()
-                            icon.addPixmap(
-                                QtGui.QPixmap(ico), QtGui.QIcon.Normal, QtGui.QIcon.Off
-                            )
+                            icon.addPixmap(QtGui.QPixmap(ico), QtGui.QIcon.Normal, QtGui.QIcon.Off)
                             channel_group_item.setIcon(0, icon)
 
                 item = QtWidgets.QTreeWidgetItem()
@@ -2563,18 +2460,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             channels = QtWidgets.QTreeWidgetItem()
             channels.setText(0, "Channels")
-            channels.setText(
-                1, str(sum(len(entry) for entry in self.mdf.channels_db.values()))
-            )
+            channels.setText(1, str(sum(len(entry) for entry in self.mdf.channels_db.values())))
             children.append(channels)
 
             mdf_info.addChildren(children)
 
             self.info.expandAll()
 
-            self.info.header().setSectionResizeMode(
-                0, QtWidgets.QHeaderView.ResizeToContents
-            )
+            self.info.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
 
     def toggle_frames(self, event=None):
         self._frameless_windows = not self._frameless_windows
@@ -2603,16 +2496,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             "needs_cut": self.cut_group.isChecked(),
             "cut_start": self.cut_start.value(),
             "cut_stop": self.cut_stop.value(),
-            "cut_time_from_zero": self.cut_time_from_zero.checkState()
-            == QtCore.Qt.Checked,
+            "cut_time_from_zero": self.cut_time_from_zero.checkState() == QtCore.Qt.Checked,
             "whence": int(self.whence.checkState() == QtCore.Qt.Checked),
             "needs_resample": self.resample_group.isChecked(),
             "raster_type_step": self.raster_type_step.isChecked(),
             "raster_type_channel": self.raster_type_channel.isChecked(),
             "raster": self.raster.value(),
             "raster_channel": self.raster_channel.currentText(),
-            "resample_time_from_zero": self.resample_time_from_zero.checkState()
-            == QtCore.Qt.Checked,
+            "resample_time_from_zero": self.resample_time_from_zero.checkState() == QtCore.Qt.Checked,
             "output_format": self.output_format.currentText(),
         }
 
@@ -2628,15 +2519,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         elif output_format == "MAT":
             new = {
-                "single_time_base": self.single_time_base_mat.checkState()
-                == QtCore.Qt.Checked,
-                "time_from_zero": self.time_from_zero_mat.checkState()
-                == QtCore.Qt.Checked,
+                "single_time_base": self.single_time_base_mat.checkState() == QtCore.Qt.Checked,
+                "time_from_zero": self.time_from_zero_mat.checkState() == QtCore.Qt.Checked,
                 "time_as_date": self.time_as_date_mat.checkState() == QtCore.Qt.Checked,
-                "use_display_names": self.use_display_names_mat.checkState()
-                == QtCore.Qt.Checked,
-                "reduce_memory_usage": self.reduce_memory_usage_mat.checkState()
-                == QtCore.Qt.Checked,
+                "use_display_names": self.use_display_names_mat.checkState() == QtCore.Qt.Checked,
+                "reduce_memory_usage": self.reduce_memory_usage_mat.checkState() == QtCore.Qt.Checked,
                 "compression": self.export_compression_mat.currentText() == "enabled",
                 "empty_channels": self.empty_channels_mat.currentText(),
                 "mat_format": self.mat_format.currentText(),
@@ -2646,13 +2533,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         elif output_format == "CSV":
             new = {
-                "single_time_base": self.single_time_base_csv.checkState()
-                == QtCore.Qt.Checked,
-                "time_from_zero": self.time_from_zero_csv.checkState()
-                == QtCore.Qt.Checked,
+                "single_time_base": self.single_time_base_csv.checkState() == QtCore.Qt.Checked,
+                "time_from_zero": self.time_from_zero_csv.checkState() == QtCore.Qt.Checked,
                 "time_as_date": self.time_as_date_csv.checkState() == QtCore.Qt.Checked,
-                "use_display_names": self.use_display_names_csv.checkState()
-                == QtCore.Qt.Checked,
+                "use_display_names": self.use_display_names_csv.checkState() == QtCore.Qt.Checked,
                 "reduce_memory_usage": False,
                 "compression": False,
                 "empty_channels": self.empty_channels_csv.currentText(),
@@ -2660,9 +2544,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "delimiter": self.delimiter.text() or ",",
                 "doublequote": self.doublequote.checkState() == QtCore.Qt.Checked,
                 "escapechar": self.escapechar.text() or None,
-                "lineterminator": self.lineterminator.text()
-                .replace("\\r", "\r")
-                .replace("\\n", "\n"),
+                "lineterminator": self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n"),
                 "quotechar": self.quotechar.text() or '"',
                 "quoting": self.quoting.currentText(),
                 "mat_format": None,
@@ -2671,14 +2553,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         else:
             new = {
-                "single_time_base": self.single_time_base.checkState()
-                == QtCore.Qt.Checked,
+                "single_time_base": self.single_time_base.checkState() == QtCore.Qt.Checked,
                 "time_from_zero": self.time_from_zero.checkState() == QtCore.Qt.Checked,
                 "time_as_date": self.time_as_date.checkState() == QtCore.Qt.Checked,
-                "use_display_names": self.use_display_names.checkState()
-                == QtCore.Qt.Checked,
-                "reduce_memory_usage": self.reduce_memory_usage.checkState()
-                == QtCore.Qt.Checked,
+                "use_display_names": self.use_display_names.checkState() == QtCore.Qt.Checked,
+                "reduce_memory_usage": self.reduce_memory_usage.checkState() == QtCore.Qt.Checked,
                 "compression": self.export_compression.currentText(),
                 "empty_channels": self.empty_channels.currentText(),
                 "mat_format": None,
@@ -2784,9 +2663,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 filter = "MDF version 3 files (*.dat *.mdf)"
                 default = filter
             else:
-                filter = (
-                    "MDF version 4 files (*.mf4);;Zipped MDF version 4 files (*.mf4z)"
-                )
+                filter = "MDF version 4 files (*.mf4);;Zipped MDF version 4 files (*.mf4z)"
                 if Path(self.mdf.original_name).suffix.lower() == ".mf4z":
                     default = "Zipped MDF version 4 files (*.mf4z)"
                 else:
@@ -2840,9 +2717,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     def apply_processing_finished(self):
         self._progress = None
 
-    def apply_processing_thread(
-        self, file_name, opts, version, needs_filter, channels, progress=None
-    ):
+    def apply_processing_thread(self, file_name, opts, version, needs_filter, channels, progress=None):
         output_format = opts.output_format
 
         split_size = opts.mdf_split_size if output_format == "MDF" else 0
@@ -2854,14 +2729,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if needs_filter:
             icon = QtGui.QIcon()
-            icon.addPixmap(
-                QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-            )
+            icon.addPixmap(QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
             progress.signals.setWindowIcon.emit(icon)
             progress.signals.setWindowTitle.emit("Filtering measurement")
-            progress.signals.setLabelText.emit(
-                f'Filtering selected channels from "{self.file_name}"'
-            )
+            progress.signals.setLabelText.emit(f'Filtering selected channels from "{self.file_name}"')
 
             # filtering self.mdf
             result = self.mdf.filter(
@@ -2884,14 +2755,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if opts.needs_cut:
             icon = QtGui.QIcon()
-            icon.addPixmap(
-                QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-            )
+            icon.addPixmap(QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
             progress.signals.setWindowIcon.emit(icon)
             progress.signals.setWindowTitle.emit("Cutting measurement")
-            progress.signals.setLabelText.emit(
-                f"Cutting from {opts.cut_start}s to {opts.cut_stop}s"
-            )
+            progress.signals.setLabelText.emit(f"Cutting from {opts.cut_start}s to {opts.cut_stop}s")
 
             # cut self.mdf
             target = self.mdf.cut if mdf is None else mdf.cut
@@ -2929,9 +2796,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 message = f"Resampling to {raster}s raster"
 
             icon = QtGui.QIcon()
-            icon.addPixmap(
-                QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-            )
+            icon.addPixmap(QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
             progress.signals.setWindowIcon.emit(icon)
             progress.signals.setWindowTitle.emit("Resampling measurement")
             progress.signals.setLabelText.emit(message)
@@ -2965,9 +2830,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         if output_format == "MDF":
             if mdf is None:
                 icon = QtGui.QIcon()
-                icon.addPixmap(
-                    QtGui.QPixmap(":/convert.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-                )
+                icon.addPixmap(QtGui.QPixmap(":/convert.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
                 progress.signals.setWindowIcon.emit(icon)
                 progress.signals.setWindowTitle.emit("Converting measurement")
                 progress.signals.setLabelText.emit(
@@ -2994,9 +2857,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             # then save it
             icon = QtGui.QIcon()
-            icon.addPixmap(
-                QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-            )
+            icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
             progress.signals.setWindowIcon.emit(icon)
             progress.signals.setWindowTitle.emit("Saving measurement")
             progress.signals.setLabelText.emit(f'Saving output file "{file_name}"')
@@ -3048,21 +2909,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         else:
             icon = QtGui.QIcon()
-            icon.addPixmap(
-                QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-            )
+            icon.addPixmap(QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
             progress.signals.setWindowIcon.emit(icon)
             progress.signals.setWindowTitle.emit("Export measurement")
-            progress.signals.setLabelText.emit(
-                f"Exporting to {output_format} (be patient this might take a while)"
-            )
+            progress.signals.setLabelText.emit(f"Exporting to {output_format} (be patient this might take a while)")
 
             delimiter = self.delimiter.text() or ","
             doublequote = self.doublequote.checkState() == QtCore.Qt.Checked
             escapechar = self.escapechar.text() or None
-            lineterminator = (
-                self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n")
-            )
+            lineterminator = self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n")
             quotechar = self.quotechar.text() or '"'
             quoting = self.quoting.currentText()
             add_units = self.add_units.checkState() == QtCore.Qt.Checked
@@ -3143,10 +2998,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.selected_filter_channels.addItems(sorted(self._selected_filter))
 
     def embed_display_file(self, event=None):
-        if (
-            not self.save_embedded_channel_list_btn.isVisible()
-            or not self.save_embedded_channel_list_btn.isEnabled()
-        ):
+        if not self.save_embedded_channel_list_btn.isVisible() or not self.save_embedded_channel_list_btn.isEnabled():
             return
 
         original_file_name = Path(self.mdf.original_name)
@@ -3155,8 +3007,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             return MessageBox.warning(
                 self,
                 "Wrong file type",
-                "The display file can only be embedded in .mf4 or .mf4z files"
-                f"\n{original_file_name}",
+                "The display file can only be embedded in .mf4 or .mf4z files" f"\n{original_file_name}",
             )
 
         _password = self.mdf._password
@@ -3206,10 +3057,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 while at_addr:
                     at_block = AttachmentBlock(stream=mdf, address=at_addr)
 
-                    if (
-                        at_block.file_name == embedded_file_name
-                        and at_block.mime == mime
-                    ):
+                    if at_block.file_name == embedded_file_name and at_block.mime == mime:
                         new_at_block = AttachmentBlock(
                             data=data,
                             file_name=embedded_file_name,
@@ -3225,7 +3073,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         blocks = []
 
                         mdf.seek(0, 2)
-                        address = mdf.tell()
+                        file_end = mdf.tell()
+                        if (file_end - (at_block.address + at_block.block_len)) <= 7:
+                            address = at_block.address
+                        else:
+                            address = file_end
+
+                        mdf.seek(address)
+
                         align = address % 8
                         if align:
                             mdf.write(b"\0" * (8 - align))
@@ -3242,6 +3097,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         mdf.seek(parent.address)
                         mdf.write(bytes(parent))
+
+                        mdf.truncate(new_at_block.address + new_at_block.block_len)
 
                         break
 
@@ -3260,17 +3117,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     )
 
                     fh_block = FileHistory()
-                    fh_block.comment = """<FHcomment>
+                    fh_block.comment = f"""<FHcomment>
     <TX>Added new embedded attachment from {file_name}</TX>
-    <tool_id>{tool}</tool_id>
-    <tool_vendor>{vendor}</tool_vendor>
-    <tool_version>{version}</tool_version>
-</FHcomment>""".format(
-                        tool=tool.__tool__,
-                        vendor=tool.__vendor__,
-                        version=tool.__version__,
-                        file_name=file_name,
-                    )
+    <tool_id>{tool.__tool__}</tool_id>
+    <tool_vendor>{tool.__vendor__}</tool_vendor>
+    <tool_version>{tool.__version__}</tool_version>
+</FHcomment>"""
 
                     at_block["creator_index"] = creator_index
 
@@ -3283,8 +3135,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         mdf.write(b"\0" * (8 - align))
                         address += 8 - align
 
-                    address = at_block.to_blocks(address, blocks, {})
                     address = fh_block.to_blocks(address, blocks, {})
+                    address = at_block.to_blocks(address, blocks, {})
 
                     for block in blocks:
                         mdf.write(bytes(block))
@@ -3419,23 +3271,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.aspects.setTabVisible(4, True)
 
     def load_embedded_display_file(self, event=None):
-        if (
-            not self.load_embedded_channel_list_btn.isVisible()
-            or not self.load_embedded_channel_list_btn.isEnabled()
-        ):
+        if not self.load_embedded_channel_list_btn.isVisible() or not self.load_embedded_channel_list_btn.isEnabled():
             return
 
         for index, attachment in enumerate(self.mdf.attachments):
-            if (
-                attachment.file_name == "user_embedded_display.dspf"
-                and attachment.mime == r"application/x-dspf"
-            ):
+            if attachment.file_name == "user_embedded_display.dspf" and attachment.mime == r"application/x-dspf":
                 encryption_info = extract_encryption_information(attachment.comment)
                 password = None
-                if (
-                    encryption_info.get("encrypted", False)
-                    and self.mdf._password is None
-                ):
+                if encryption_info.get("encrypted", False) and self.mdf._password is None:
                     text, ok = QtWidgets.QInputDialog.getText(
                         self,
                         "Attachment password",
@@ -3445,9 +3288,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     if ok and text:
                         password = text
 
-                data, file_path, md5_sum = self.mdf.extract_attachment(
-                    index, password=password
-                )
+                data, file_path, md5_sum = self.mdf.extract_attachment(index, password=password)
 
                 dsp = json.loads(data.decode("utf-8", errors="replace"))
                 dsp["display_file_name"] = "user_embedded_display.dspf"

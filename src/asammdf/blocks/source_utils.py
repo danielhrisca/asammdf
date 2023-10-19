@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 asammdf utility functions for source information
 """
@@ -7,11 +6,11 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from ..types import SourceType
 from . import v2_v3_blocks as v3b
 from . import v2_v3_constants as v3c
 from . import v4_blocks as v4b
 from . import v4_constants as v4c
-from ..types import SourceType
 
 
 class Source:
@@ -34,9 +33,7 @@ class Source:
     BUS_TYPE_ETHERNET = v4c.BUS_TYPE_ETHERNET
     BUS_TYPE_USB = v4c.BUS_TYPE_USB
 
-    def __init__(
-        self, name: str, path: str, comment: str, source_type: int, bus_type: int
-    ) -> None:
+    def __init__(self, name: str, path: str, comment: str, source_type: int, bus_type: int) -> None:
         """Commons reprezentation for source information
 
         Attributes

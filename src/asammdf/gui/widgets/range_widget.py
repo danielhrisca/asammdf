@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..ui import resource_rc
@@ -69,12 +68,8 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
         self.font_color = font_color
         self.background_color = background_color
 
-        self.name.setStyleSheet(
-            f"background-color: {background_color}; color: {font_color};"
-        )
-        self.background_color_btn.setStyleSheet(
-            f"background-color: {background_color};"
-        )
+        self.name.setStyleSheet(f"background-color: {background_color}; color: {font_color};")
+        self.background_color_btn.setStyleSheet(f"background-color: {background_color};")
         self.font_color_btn.setStyleSheet(f"background-color: {font_color};")
 
     def value1_changed(self, text):
@@ -91,25 +86,21 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
 
     def select_background_color(self, event=None):
         color = self.background_color_btn.palette().button().color()
-        color = QtWidgets.QColorDialog.getColor(color)
+        color = QtWidgets.QColorDialog.getColor(color, self)
         if color.isValid():
             color = color.name()
             self.background_color = color
             self.background_color_btn.setStyleSheet(f"background-color: {color};")
-            self.name.setStyleSheet(
-                f"background-color: {self.background_color}; color: {self.font_color};"
-            )
+            self.name.setStyleSheet(f"background-color: {self.background_color}; color: {self.font_color};")
 
     def select_font_color(self, event=None):
         color = self.font_color_btn.palette().button().color()
-        color = QtWidgets.QColorDialog.getColor(color)
+        color = QtWidgets.QColorDialog.getColor(color, self)
         if color.isValid():
             color = color.name()
             self.font_color = color
             self.font_color_btn.setStyleSheet(f"background-color: {color};")
-            self.name.setStyleSheet(
-                f"background-color: {self.background_color}; color: {self.font_color};"
-            )
+            self.name.setStyleSheet(f"background-color: {self.background_color}; color: {self.font_color};")
 
     def to_dict(self, brush=False):
         value1 = self.value1.text().strip()

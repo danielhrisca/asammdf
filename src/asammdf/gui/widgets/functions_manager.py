@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import inspect
 import json
 import math
@@ -24,9 +23,7 @@ from .python_highlighter import PythonHighlighter
 
 
 class FunctionsManager(Ui_FunctionsManager, QtWidgets.QWidget):
-    def __init__(
-        self, definitions, channels=None, selected_definition="", *args, **kwargs
-    ):
+    def __init__(self, definitions, channels=None, selected_definition="", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -54,8 +51,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
 """
         )
         self.function_definition.setTabStopDistance(
-            QtGui.QFontMetricsF(self.function_definition.font()).horizontalAdvance(" ")
-            * 4
+            QtGui.QFontMetricsF(self.function_definition.font()).horizontalAdvance(" ") * 4
         )
 
         p = self.function_definition.palette()
@@ -69,15 +65,11 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
 
         self.functions_list.minimal_menu = True
         self.functions_list.all_texts = True
-        self.functions_list.placeholder_text = (
-            "Press the + button to add a new function definition"
-        )
+        self.functions_list.placeholder_text = "Press the + button to add a new function definition"
         self.functions_list.user_editable = True
         self.functions_list.setAlternatingRowColors(True)
 
-        self.functions_list.currentItemChanged.connect(
-            self.definition_selection_changed
-        )
+        self.functions_list.currentItemChanged.connect(self.definition_selection_changed)
         self.functions_list.itemsDeleted.connect(self.definitions_deleted)
 
         self.add_btn.clicked.connect(self.add_definition)
@@ -142,9 +134,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         function_source = self.function_definition.toPlainText().replace("\t", "    ")
         func, trace = generate_python_function(function_source, in_globals=_globals)
 
-        return check_generated_function(
-            func, trace, function_source, silent, parent=self
-        )
+        return check_generated_function(func, trace, function_source, silent, parent=self)
 
     def definitions_deleted(self, deleted):
         count = self.functions_list.count()
@@ -181,9 +171,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         )
 
         if file_name and Path(file_name).suffix.lower() == ".def":
-            definitions = {
-                name: info["definition"] for name, info in self.definitions.items()
-            }
+            definitions = {name: info["definition"] for name, info in self.definitions.items()}
             Path(file_name).write_text(json.dumps(definitions, indent=2))
 
     def import_definitions(self, *args):
@@ -200,7 +188,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         if file_name and Path(file_name).suffix.lower() == ".def":
             file_name = Path(file_name)
 
-            with open(file_name, "r") as infile:
+            with open(file_name) as infile:
                 info = json.load(infile)
 
             for name, definition in info.items():
@@ -234,9 +222,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         if func is not None:
             name = func.__name__
             if name in self.definitions:
-                self.definitions[name][
-                    "definition"
-                ] = self.function_definition.toPlainText()
+                self.definitions[name]["definition"] = self.function_definition.toPlainText()
 
     def store_definition(self, *args):
         ok, func = self.check_syntax(silent=True)
@@ -248,8 +234,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
                 MessageBox.information(
                     self,
                     "Invalid function name",
-                    f'The name "{name}" is already given to another function.\n'
-                    "The function names must be unique",
+                    f'The name "{name}" is already given to another function.\n' "The function names must be unique",
                 )
                 return
 

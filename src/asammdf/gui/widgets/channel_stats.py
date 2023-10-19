@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from copy import deepcopy
 
 import numpy as np
@@ -52,12 +51,8 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
             label = self.findChild(QtWidgets.QLabel, f"xunit{i}")
             label.setText(f" {self.xunit}")
 
-        self.precision.addItems(
-            ["Full float precision"] + [f"{i} float decimals" for i in range(16)]
-        )
-        self.precision.setCurrentIndex(
-            self._settings.value("stats_float_precision", 6, type=int) + 1
-        )
+        self.precision.addItems(["Full float precision"] + [f"{i} float decimals" for i in range(16)])
+        self.precision.setCurrentIndex(self._settings.value("stats_float_precision", 6, type=int) + 1)
 
         self.precision.currentIndexChanged.connect(self.set_float_precision)
 

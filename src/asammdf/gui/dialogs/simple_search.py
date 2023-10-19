@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from functools import partial
 import os
 import re
@@ -52,11 +50,7 @@ class SimpleSearch(Ui_SimpleSearchDialog, QtWidgets.QDialog):
         selection = set()
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-        while True:
-            item = iterator.value()
-            if item is None:
-                break
-
+        while item := iterator.value():
             selection.add(item.text(0))
 
             iterator += 1
@@ -117,10 +111,7 @@ class SimpleSearch(Ui_SimpleSearchDialog, QtWidgets.QDialog):
         items = set()
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-        while True:
-            item = iterator.value()
-            if item is None:
-                break
+        while item := iterator.value():
             items.add(item.text(0))
             iterator += 1
 
@@ -137,10 +128,7 @@ class SimpleSearch(Ui_SimpleSearchDialog, QtWidgets.QDialog):
     def _apply(self, event):
         self.result = set()
         iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-        while True:
-            item = iterator.value()
-            if item is None:
-                break
+        while item := iterator.value():
             self.result.add(item.text(0))
             iterator += 1
         self.close()

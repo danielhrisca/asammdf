@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 import scipy.signal as scipy_signal
@@ -59,9 +57,7 @@ class FFTWindow(Ui_FFTWindow, QtWidgets.QMainWindow):
 
         if len(self.signal) and steps:
             f = np.linspace(start_frequency, end_frequency, steps)
-            pgram = scipy_signal.lombscargle(
-                signal.timestamps, signal.samples, f * 2 * np.pi, normalize=True
-            )
+            pgram = scipy_signal.lombscargle(signal.timestamps, signal.samples, f * 2 * np.pi, normalize=True)
 
             signal = Signal(samples=pgram, timestamps=f, name=f"{self.signal.name}_FFT")
             signal.color = self.signal.color

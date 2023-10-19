@@ -1,11 +1,11 @@
 # -*- mode: python -*-
-import argparse
+import os
 from pathlib import Path
-import site
 import sys
 
-asammdf_path = Path.cwd() / "src" / "asammdf" / "gui" / "asammdfgui.py"
+sys.setrecursionlimit(sys.getrecursionlimit() * 5)
 
+asammdf_path = Path.cwd() / "src" / "asammdf" / "gui" / "asammdfgui.py"
 
 block_cipher = None
 added_files = []
@@ -13,9 +13,7 @@ added_files = []
 for root, dirs, files in os.walk(asammdf_path.parent / "ui"):
     for file in files:
         if file.lower().endswith(("ui", "png", "qrc")):
-            added_files.append(
-                (os.path.join(root, file), os.path.join("asammdf", "gui", "ui"))
-            )
+            added_files.append((os.path.join(root, file), os.path.join("asammdf", "gui", "ui")))
 
 import pyqtlet2
 
@@ -56,7 +54,6 @@ a = Analysis(
     cipher=block_cipher,
     noarchive=False,
 )
-
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 

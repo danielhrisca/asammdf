@@ -26,8 +26,7 @@ class MessageBox(QtWidgets.QMessageBox):
             )
         else:
             self.setText(
-                f"{self.original_text}\n\nThis message will be closed in {self.timeout}s\n"
-                "Abort the countdown - [F1]"
+                f"{self.original_text}\n\nThis message will be closed in {self.timeout}s\n" "Abort the countdown - [F1]"
             )
 
         if informative_text:

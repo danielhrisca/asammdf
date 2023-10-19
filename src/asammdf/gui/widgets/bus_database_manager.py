@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from pathlib import Path
 
 from PySide6 import QtCore, QtWidgets
@@ -67,11 +66,7 @@ class BusDatabaseManager(Ui_BusDatabaseManager, QtWidgets.QWidget):
         )
 
         if file_names:
-            file_names = [
-                name
-                for name in file_names
-                if Path(name).suffix.lower() in (".arxml", ".dbc")
-            ]
+            file_names = [name for name in file_names if Path(name).suffix.lower() in (".arxml", ".dbc")]
 
         if file_names:
             for database in file_names:
@@ -92,11 +87,7 @@ class BusDatabaseManager(Ui_BusDatabaseManager, QtWidgets.QWidget):
         )
 
         if file_names:
-            file_names = [
-                name
-                for name in file_names
-                if Path(name).suffix.lower() in (".arxml", ".dbc", ".ldf")
-            ]
+            file_names = [name for name in file_names if Path(name).suffix.lower() in (".arxml", ".dbc", ".ldf")]
 
         if file_names:
             for database in file_names:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 import re
 
@@ -114,9 +113,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
                 invalid_indexes = invalid_indexes[:10] + 1
                 idx = invalid_indexes[0]
                 ts = channel.timestamps[idx - 1 : idx + 2]
-                invalid.append(
-                    f"{channel.name} @ index {invalid_indexes[:10] - 1} with first time stamp error: {ts}"
-                )
+                invalid.append(f"{channel.name} @ index {invalid_indexes[:10] - 1} with first time stamp error: {ts}")
 
         if invalid:
             errors = "\n".join(invalid)
@@ -200,10 +197,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
         key = event.key()
         modifier = event.modifiers()
 
-        if (
-            key in (QtCore.Qt.Key_H, QtCore.Qt.Key_B, QtCore.Qt.Key_P)
-            and modifier == QtCore.Qt.ControlModifier
-        ):
+        if key in (QtCore.Qt.Key_H, QtCore.Qt.Key_B, QtCore.Qt.Key_P) and modifier == QtCore.Qt.ControlModifier:
             if key == QtCore.Qt.Key_H:
                 self.format_selection.setCurrentText("hex")
             elif key == QtCore.Qt.Key_B:
@@ -221,10 +215,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
     def to_config(self):
         channels = []
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channels)
-        while 1:
-            item = iterator.value()
-            if not item:
-                break
+        while item := iterator.value():
             channels.append(item.text(0))
             iterator += 1
 
@@ -237,11 +228,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
         return config
 
     def search_forward(self):
-        if (
-            self.op.currentIndex() < 0
-            or not self.target.text().strip()
-            or not self.pattern_match.text().strip()
-        ):
+        if self.op.currentIndex() < 0 or not self.target.text().strip() or not self.pattern_match.text().strip():
             self.match.setText("invalid input values")
             return
 
@@ -297,11 +284,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
                 self.match.setText("condition not found")
 
     def search_backward(self):
-        if (
-            self.op.currentIndex() < 0
-            or not self.target.text().strip()
-            or not self.pattern_match.text().strip()
-        ):
+        if self.op.currentIndex() < 0 or not self.target.text().strip() or not self.pattern_match.text().strip():
             self.match.setText("invalid input values")
             return
 

@@ -52,9 +52,7 @@ class TestATBLOCK(unittest.TestCase):
             AttachmentBlock(address=97, stream=stream)
 
     def test_bytes_compressed(self):
-        attachment = AttachmentBlock(
-            file_name=self.filename, data=self.data, embedded=True, compressed=True
-        )
+        attachment = AttachmentBlock(file_name=self.filename, data=self.data, embedded=True, compressed=True)
         attachment.comment = self.comment
 
         stream = BytesIO()
@@ -75,9 +73,7 @@ class TestATBLOCK(unittest.TestCase):
         self.assertEqual(block.extract(), self.data)
 
     def test_bytes_uncompressed(self):
-        attachment = AttachmentBlock(
-            file_name=self.filename, data=self.data, embedded=True, compressed=False
-        )
+        attachment = AttachmentBlock(file_name=self.filename, data=self.data, embedded=True, compressed=False)
         attachment.comment = self.comment
 
         stream = BytesIO()

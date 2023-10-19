@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import json
 from struct import pack
 from traceback import format_exc
@@ -73,9 +71,7 @@ class ListWidget(QtWidgets.QListWidget):
             if not selected_items:
                 return
 
-            states = [
-                self.itemWidget(item).display.checkState() for item in selected_items
-            ]
+            states = [self.itemWidget(item).display.checkState() for item in selected_items]
 
             if any(state == QtCore.Qt.Unchecked for state in states):
                 state = QtCore.Qt.Checked
@@ -90,10 +86,7 @@ class ListWidget(QtWidgets.QListWidget):
             if not selected_items:
                 return
 
-            states = [
-                self.itemWidget(item).individual_axis.checkState()
-                for item in selected_items
-            ]
+            states = [self.itemWidget(item).individual_axis.checkState() for item in selected_items]
 
             if any(state == QtCore.Qt.Unchecked for state in states):
                 state = QtCore.Qt.Checked
@@ -109,9 +102,10 @@ class ListWidget(QtWidgets.QListWidget):
                 return
             self.itemWidget(selected_items[0]).keyPressEvent(event)
 
-        elif modifiers == (
-            QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier
-        ) and key in (QtCore.Qt.Key_C, QtCore.Qt.Key_P):
+        elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier) and key in (
+            QtCore.Qt.Key_C,
+            QtCore.Qt.Key_P,
+        ):
             selected_items = self.selectedItems()
             if not selected_items:
                 return
@@ -160,9 +154,7 @@ class ListWidget(QtWidgets.QListWidget):
                 )
             )
 
-        mimeData.setData(
-            "application/octet-stream-asammdf", QtCore.QByteArray(b"".join(data))
-        )
+        mimeData.setData("application/octet-stream-asammdf", QtCore.QByteArray(b"".join(data)))
 
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)
@@ -231,9 +223,7 @@ class ListWidget(QtWidgets.QListWidget):
             return
 
         if action.text() == "Copy name (Ctrl+C)":
-            event = QtGui.QKeyEvent(
-                QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.ControlModifier
-            )
+            event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.ControlModifier)
             self.itemWidget(item).keyPressEvent(event)
 
         elif action.text() == "Copy display properties (Ctrl+Shift+C)":
@@ -307,7 +297,7 @@ class ListWidget(QtWidgets.QListWidget):
         elif action.text() == "Set unit":
             selected_items = self.selectedItems()
 
-            unit, ok = QtWidgets.QInputDialog.getText(None, "Set new unit", "Unit:")
+            unit, ok = QtWidgets.QInputDialog.getText(self, "Set new unit", "Unit:")
 
             if ok:
                 selected_items = self.selectedItems()
@@ -321,9 +311,7 @@ class ListWidget(QtWidgets.QListWidget):
         elif action.text() == "Set precision":
             selected_items = self.selectedItems()
 
-            precision, ok = QtWidgets.QInputDialog.getInt(
-                None, "Set new precision (float decimals)", "Precision:"
-            )
+            precision, ok = QtWidgets.QInputDialog.getInt(self, "Set new precision (float decimals)", "Precision:")
 
             if ok and 0 <= precision <= 15:
                 for i in range(self.count()):
@@ -363,9 +351,7 @@ class ListWidget(QtWidgets.QListWidget):
                     self.set_time_offset.emit([absolute, offset] + uuids)
 
         elif action.text() == "Delete (Del)":
-            event = QtGui.QKeyEvent(
-                QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier
-            )
+            event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier)
             self.keyPressEvent(event)
 
         elif action.text() == "Toggle details":
@@ -390,7 +376,6 @@ class ListWidget(QtWidgets.QListWidget):
 
 
 class MinimalListWidget(QtWidgets.QListWidget):
-    itemsDeleted = QtCore.Signal(list)
     itemsDeleted = QtCore.Signal(list)
     itemsPasted = QtCore.Signal()
 
@@ -481,11 +466,7 @@ class MinimalListWidget(QtWidgets.QListWidget):
                 text = ""
 
             QtWidgets.QApplication.instance().clipboard().setText(text)
-        elif (
-            key == QtCore.Qt.Key_V
-            and modifiers == QtCore.Qt.ControlModifier
-            and self.user_editable
-        ):
+        elif key == QtCore.Qt.Key_V and modifiers == QtCore.Qt.ControlModifier and self.user_editable:
             lines = QtWidgets.QApplication.instance().clipboard().text().splitlines()
             if lines:
                 try:
@@ -527,19 +508,13 @@ class MinimalListWidget(QtWidgets.QListWidget):
             return
 
         if action.text() == "Delete (Del)":
-            event = QtGui.QKeyEvent(
-                QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier
-            )
+            event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier)
             self.keyPressEvent(event)
         elif action.text() == "Copy names (Ctrl+C)":
-            event = QtGui.QKeyEvent(
-                QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.ControlModifier
-            )
+            event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.ControlModifier)
             self.keyPressEvent(event)
         elif action.text() == "Paste names (Ctrl+V)":
-            event = QtGui.QKeyEvent(
-                QtCore.QEvent.KeyPress, QtCore.Qt.Key_V, QtCore.Qt.ControlModifier
-            )
+            event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_V, QtCore.Qt.ControlModifier)
             self.keyPressEvent(event)
 
     def paintEvent(self, event):
@@ -550,8 +525,6 @@ class MinimalListWidget(QtWidgets.QListWidget):
             col = self.palette().placeholderText().color()
             painter.setPen(col)
             fm = self.fontMetrics()
-            elided_text = fm.elidedText(
-                self.placeholder_text, QtCore.Qt.ElideRight, self.viewport().width()
-            )
+            elided_text = fm.elidedText(self.placeholder_text, QtCore.Qt.ElideRight, self.viewport().width())
             painter.drawText(self.viewport().rect(), QtCore.Qt.AlignCenter, elided_text)
             painter.restore()

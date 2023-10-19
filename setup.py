@@ -118,7 +118,7 @@ setup(
             "packaging",
         ],
         "encryption": ["cryptography", "keyring"],
-        "symbolic_math": "numexpr3",
+        "symbolic_math": "sympy",
         "filesystem": "fsspec",
     },
     # If there are data files included in your packages that need to be
@@ -134,8 +134,6 @@ setup(
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.
-    entry_points={
-        "console_scripts": ["asammdf = asammdf.gui.asammdfgui:main [gui,export,decode]"]
-    },
+    entry_points={"console_scripts": ["asammdf = asammdf.gui.asammdfgui:main [gui,export,decode]"]},
     ext_modules=_get_ext_modules(),
 )

@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from PySide6 import QtCore, QtWidgets
 
 from ..ui import resource_rc
@@ -12,11 +9,7 @@ class RangeEditor(Ui_RangeDialog, QtWidgets.QDialog):
     def __init__(self, name, unit="", ranges=None, brush=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
-        self.setWindowFlags(
-            self.windowFlags()
-            | QtCore.Qt.WindowSystemMenuHint
-            | QtCore.Qt.WindowMinMaxButtonsHint
-        )
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowSystemMenuHint | QtCore.Qt.WindowMinMaxButtonsHint)
 
         self.name = name
         self.unit = unit

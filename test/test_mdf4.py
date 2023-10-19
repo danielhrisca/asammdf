@@ -94,9 +94,7 @@ class TestMDF4(unittest.TestCase):
             mime=r"text/plain",
             embedded=True,
         )
-        outfile = mdf.save(
-            Path(TestMDF4.tempdir.name) / "attachment.mf4", overwrite=True
-        )
+        outfile = mdf.save(Path(TestMDF4.tempdir.name) / "attachment.mf4", overwrite=True)
 
         with MDF(outfile) as attachment_mdf:
             data, filename, md5_sum = attachment_mdf.extract_attachment(index=0)
@@ -118,9 +116,7 @@ class TestMDF4(unittest.TestCase):
             mime=r"text/plain",
             embedded=True,
         )
-        outfile = mdf.save(
-            Path(TestMDF4.tempdir.name) / "attachment.mf4", overwrite=True
-        )
+        outfile = mdf.save(Path(TestMDF4.tempdir.name) / "attachment.mf4", overwrite=True)
 
         with MDF(outfile) as attachment_mdf:
             data, filename, md5_sum = attachment_mdf.extract_attachment(index=0)
@@ -128,6 +124,26 @@ class TestMDF4(unittest.TestCase):
             self.assertEqual(filename, Path(original_file_name))
 
         mdf.close()
+
+    def test_channel_with_boolean_array(self):
+        timestamps = np.array([0.1, 0.2, 0.3, 0.4, 0.5], dtype=np.float32)
+
+        samples = [np.ones((5, 2), dtype=np.uint8)]
+        types = [("boolean_array_channel", "(2, )<u1")]
+        record = np.core.records.fromarrays(samples, dtype=np.dtype(types))
+        boolean_array_channel = Signal(
+            record,
+            timestamps=timestamps,
+            name="boolean_array_channel",
+        )
+
+        mdf4 = MDF(version="4.10")
+        mdf4.append(signals=[boolean_array_channel])
+        # set bit count to 1 to indicate that each uint8 value is a boolean flag in boolean_array_channel
+        mdf4.groups[0].channels[1].bit_count = 1
+        signal = mdf4.select([("boolean_array_channel", 0, 1)])[0]
+
+        self.assertTrue((record == signal.samples).all())
 
 
 if __name__ == "__main__":

@@ -3,112 +3,19 @@ from test.asammdf.gui.test_base import DragAndDrop
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 from unittest import mock
 
-from PySide6 import QtCore, QtGui, QtTest, QtWidgets
+from PySide6 import QtCore, QtTest, QtWidgets
 
 
-class Pixmap:
-    COLOR_BACKGROUND = "#000000"
-    COLOR_RANGE = "#000032"
-    COLOR_CURSOR = "#e69138"
+class QMenuWrap(QtWidgets.QMenu):
+    return_action = None
 
-    @staticmethod
-    def is_black(pixmap):
-        """
-        Excepting cursor
-        """
-        cursor_x = None
-        cursor_y = None
-        cursor_color = None
-        image = pixmap.toImage()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        for y in range(image.height()):
-            for x in range(image.width()):
-                color = QtGui.QColor(image.pixel(x, y))
-                if color.name() != Pixmap.COLOR_BACKGROUND:
-                    if not cursor_x and not cursor_y and not cursor_color:
-                        cursor_x = x
-                        cursor_y = y + 1
-                        cursor_color = color
-                        continue
-                    elif cursor_x == x and cursor_y == y and cursor_color == color:
-                        cursor_y += 1
-                        continue
-                    else:
-                        return False
-        return True
-
-    @staticmethod
-    def is_colored(pixmap, color_name, x, y, width=None, height=None):
-        image = pixmap.toImage()
-
-        offset = 1
-        y = y + offset
-
-        if not width:
-            width = image.width()
-        if not height:
-            height = image.height()
-
-        for _y in range(offset, image.height()):
-            for _x in range(image.width()):
-                color = QtGui.QColor(image.pixel(_x, _y))
-                if _x < x or _y < y:
-                    continue
-                # De unde 2?
-                elif (_x > width - x) or (_y > height - y - 2):
-                    break
-                if color.name() != color_name:
-                    print(x, y, width, height)
-                    print(_x, _y, color.name())
-                    return False
-        return True
-
-    @staticmethod
-    def has_color(pixmap, color_name):
-        image = pixmap.toImage()
-
-        for y in range(image.height()):
-            for x in range(image.width()):
-                color = QtGui.QColor(image.pixel(x, y))
-                if color.name() == color_name:
-                    return True
-        return False
-
-    @staticmethod
-    def color_names(pixmap):
-        color_names = set()
-
-        image = pixmap.toImage()
-        for y in range(image.height()):
-            for x in range(image.width()):
-                color = QtGui.QColor(image.pixel(x, y))
-                color_names.add(color.name())
-        return color_names
-
-    @staticmethod
-    def cursors_x(pixmap):
-        image = pixmap.toImage()
-
-        cursors = []
-        possible_cursor = None
-
-        for x in range(image.width()):
-            count = 0
-            for y in range(image.height()):
-                color = QtGui.QColor(image.pixel(x, y))
-                # Skip Black
-                if color.name() == Pixmap.COLOR_BACKGROUND:
-                    continue
-                if not possible_cursor:
-                    possible_cursor = color.name()
-                if possible_cursor != color.name():
-                    break
-                count += 1
-            else:
-                if count == image.height() - 2:
-                    cursors.append(x)
-
-        return cursors
+    def exec(self, *args, **kwargs):
+        if not self.return_action:
+            return super().exec_(*args, **kwargs)
+        return self.return_action
 
 
 class TestPlotWidget(TestFileWidget):
@@ -121,37 +28,30 @@ class TestPlotWidget(TestFileWidget):
 
     measurement_file = str(pathlib.Path(TestFileWidget.resource, "ASAP2_Demo_V171.mf4"))
 
-    def add_channel_to_plot(self, plot, channel_name=None, channel_index=None):
+    def add_channel_to_plot(self, plot=None, channel_name=None, channel_index=None):
+        if not plot and self.plot:
+            plot = self.plot
+
         # Select channel
-        selected_channel = None
         channel_tree = self.widget.channels_tree
         channel_tree.clearSelection()
 
-        if not channel_name and not channel_index:
-            selected_channel = channel_tree.topLevelItem(0)
-            channel_name = selected_channel.text(0)
-        elif channel_index:
-            selected_channel = channel_tree.topLevelItem(channel_index)
-            channel_name = selected_channel.text(0)
-        elif channel_name:
-            iterator = QtWidgets.QTreeWidgetItemIterator(channel_tree)
-            while iterator.value():
-                item = iterator.value()
-                if item and item.text(0) == channel_name:
-                    item.setSelected(True)
-                    selected_channel = item
-                iterator += 1
+        selected_channel = self.find_channel(channel_tree, channel_name, channel_index)
+        selected_channel.setSelected(True)
+        if not channel_name:
+            channel_name = selected_channel.text(self.Column.NAME)
 
         drag_position = channel_tree.visualItemRect(selected_channel).center()
         drop_position = plot.channel_selection.viewport().rect().center()
 
         # PreEvaluation
         DragAndDrop(
-            source_widget=channel_tree,
-            destination_widget=plot.channel_selection,
-            source_pos=drag_position,
-            destination_pos=drop_position,
+            src_widget=channel_tree,
+            dst_widget=plot.channel_selection,
+            src_pos=drag_position,
+            dst_pos=drop_position,
         )
+        self.processEvents(0.05)
         plot_channel = None
         iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
         while iterator.value():
@@ -162,15 +62,38 @@ class TestPlotWidget(TestFileWidget):
 
         return plot_channel
 
-    def create_window(self, window_type):
-        with mock.patch(
-            "asammdf.gui.widgets.file.WindowSelectionDialog"
-        ) as mc_WindowSelectionDialog:
-            mc_WindowSelectionDialog.return_value.result.return_value = True
-            mc_WindowSelectionDialog.return_value.selected_type.return_value = (
-                window_type
-            )
-            # - Press PushButton "Create Window"
-            QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
-            widget_types = self.get_subwindows()
-            self.assertIn(window_type, widget_types)
+    def context_menu(self, action_text, position=None):
+        self.processEvents()
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QMenu", wraps=QMenuWrap):
+            mo_action = mock.MagicMock()
+            mo_action.text.return_value = action_text
+            QMenuWrap.return_action = mo_action
+
+            if not position:
+                QtTest.QTest.mouseClick(self.plot.channel_selection.viewport(), QtCore.Qt.MouseButton.RightButton)
+            else:
+                QtTest.QTest.mouseClick(
+                    self.plot.channel_selection.viewport(),
+                    QtCore.Qt.MouseButton.RightButton,
+                    QtCore.Qt.KeyboardModifiers(),
+                    position,
+                )
+            self.processEvents(0.01)
+
+            while not mo_action.text.called:
+                self.processEvents(0.02)
+
+    def move_channel_to_group(self, plot=None, src=None, dst=None):
+        if not plot and self.plot:
+            plot = self.plot
+
+        drag_position = plot.channel_selection.visualItemRect(src).center()
+        drop_position = plot.channel_selection.visualItemRect(dst).center()
+
+        DragAndDrop(
+            src_widget=plot.channel_selection,
+            dst_widget=plot.channel_selection,
+            src_pos=drag_position,
+            dst_pos=drop_position,
+        )
+        self.processEvents(0.05)
