@@ -431,30 +431,86 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
             - Evaluate that plot is not black
             - Evaluate ...
         """
-        # Settings for cursor
+        # Setup
         self.widget.showMaximized()
-        self.widget.set_cursor_options(False,False,1, Pixmap.COLOR_CURSOR)
+        self.processEvents()
+        # Count intersections between middle line and signal
+        firstIntersections = Pixmap.color_map(
+            self.plot.plot.viewport().grab(
+                QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.width(), 1)
+            )
+        )[0].count(self.channel_35.color.name())
+        self.assertTrue(firstIntersections)
+
+        # Setup for cursor
+        self.widget.set_cursor_options(False, False, 1, Pixmap.COLOR_CURSOR)
+        # Mouse click on a center of plot
         QtTest.QTest.mouseClick(
             self.plot.plot.viewport(),
             QtCore.Qt.MouseButton.LeftButton,
             QtCore.Qt.KeyboardModifiers(),
-            self.plot.plot.viewport().rect().center()
+            self.plot.plot.viewport().rect().center(),
         )
         QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_R)
         self.processEvents()
         # Get X position of Cursor
-        cursors=Pixmap.cursors_x(self.plot.plot.viewport().grab())
-        # self.assertEqual(len(cursors), 2)
-        dif1=  cursors[1]-cursors[0]
+        cursors = Pixmap.cursors_x(self.plot.plot.viewport().grab())
+        self.assertEqual(len(cursors), 2)
+        colors = Pixmap.color_names(self.plot.plot.viewport().grab(
+            QtCore.QRect(cursors[0] + 2, 0, 2, self.plot.plot.height())
+        ))
+        # Get new color of signal
+        color = None
+        for color in colors:
+            if color != Pixmap.COLOR_BACKGROUND and color != Pixmap.COLOR_RANGE:
+                break
+        self.assertTrue(color)
+        # Count intersection of midd line and signal between cursors
+        interCursorsIntersectionsR = Pixmap.color_map(
+            self.plot.plot.viewport().grab(
+                QtCore.QRect(cursors[0], int(self.plot.plot.height() / 2), cursors[1] - cursors[0], 1)
+            )
+        )[0].count(color)
+        self.assertTrue(interCursorsIntersectionsR)
+        # Search lines where signal start and end
+        initialStartSignalOnY = Pixmap.search_y_of_signal_in_x(self.plot.plot.viewport().grab(
+            QtCore.QRect(cursors[0] + 2, 0, 1, self.plot.plot.height())
+        ), color)
+        initialEndSignalOnY = Pixmap.search_y_of_signal_in_x(self.plot.plot.viewport().grab(
+            QtCore.QRect(cursors[1] - 1, 0, 1, self.plot.plot.height())
+        ), color)
+        self.assertTrue(initialStartSignalOnY)
+        self.assertTrue(initialEndSignalOnY)
 
-
-        # Search Y of intersection between signal and cursors
+        # Press key "X"
         QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_X)
         self.processEvents()
         # Evaluate
         pixmap = self.plot.plot.viewport().grab()
 
-    # in progress ... ...
+        # Find where signal start and end on X axes
+        from_to_x = Pixmap.search_signal_from_to_x(pixmap, self.channel_35.color.name())
+        # Search lines where signal start and end
+        finalStartSignalOnY = Pixmap.search_y_of_signal_in_x(
+            self.plot.plot.viewport().grab(QtCore.QRect(from_to_x[0], 0, 1, self.plot.plot.height())),
+            self.channel_35.color.name()
+            )
+        finalEndSignalOnY = Pixmap.search_y_of_signal_in_x(
+            self.plot.plot.viewport().grab(QtCore.QRect(from_to_x[1], 0, 1, self.plot.plot.height())),
+            self.channel_35.color.name()
+            )
+        # Evaluate
+        message = "Difference is too big"
+        precission = 0.03
+        self.assertAlmostEqual(initialStartSignalOnY/finalStartSignalOnY, 1, None, message, precission)
+        self.assertAlmostEqual(initialEndSignalOnY/finalEndSignalOnY, 1, None, message, precission)
+        # The Number of intersections between signal and midd line must be the same as in the first case
+        interCursorsIntersectionsX = Pixmap.color_map(
+            self.plot.plot.viewport().grab(
+                QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.width(), 1)
+            )
+        )[0].count(self.channel_35.color.name())
+        self.assertEqual(interCursorsIntersectionsR, interCursorsIntersectionsX)
 
     def test_Plot_Plot_Shortcut_Ctrl_H_Ctrl_B_Ctrl_P(self):
         """
@@ -894,7 +950,7 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
                 )
             )
 
-        # select first channel
+        # select the first channel
         self.mouseClick_WidgetItem(self.channel_35)
         # Press "Shift+F"
         QtTest.QTest.keySequence(self.plot.plot, QtGui.QKeySequence("Shift+F"))

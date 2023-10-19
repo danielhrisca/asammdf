@@ -290,8 +290,8 @@ class Pixmap:
     def color_map(pixmap):
         """
         return dict, where:
-            > keys is line of pixmap
-            > values is list of color names ordered by columns of pixmap
+            > keys are line of pixmap
+            > values is a list of color names ordered by columns of pixmap
         """
         color_dict = {}
         line = []
@@ -308,7 +308,6 @@ class Pixmap:
         image = pixmap.toImage()
 
         cursors = []
-        possible_cursor = None
 
         for x in range(image.width()):
             count = 0
@@ -317,14 +316,9 @@ class Pixmap:
                 # Skip Black
                 if color.name() == Pixmap.COLOR_BACKGROUND:
                     continue
-                if not possible_cursor:
-                    possible_cursor = color.name()
-                if possible_cursor != color.name():
-                    break
-                count += 1
-            else:
-                if count == image.height() - 2:
+                if color.name() == Pixmap.COLOR_CURSOR:
                     cursors.append(x)
+                    break
 
         return cursors
 
@@ -385,4 +379,5 @@ class Pixmap:
         for y in range(image.height()):
             if QtGui.QColor(image.pixel(0, y)).name() == color:
                 line = y
+                break
         return line
