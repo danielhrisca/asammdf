@@ -6,8 +6,8 @@ import numpy as np
 from PySide6 import QtCore, QtWidgets
 
 try:
-    from PySide6.QtWebEngineCore import QWebEngineSettings
     from pyqtlet2 import L, leaflet, MapWidget
+    from PySide6.QtWebEngineCore import QWebEngineSettings
 
 except:
     print(format_exc())
