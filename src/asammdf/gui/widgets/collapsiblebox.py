@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
-
 from PySide6 import QtCore, QtWidgets
 
 
 class CollapsibleBox(QtWidgets.QWidget):
     def __init__(self, title="", parent=None):
-        super(CollapsibleBox, self).__init__(parent)
+        super().__init__(parent)
 
         self.toggle_button = QtWidgets.QToolButton(text=title, checkable=True, checked=False)
         self.toggle_button.setStyleSheet("QToolButton { border: none; }")

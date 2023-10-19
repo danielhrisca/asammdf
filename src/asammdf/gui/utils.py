@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import ctypes
 from datetime import datetime
 from functools import reduce
@@ -172,7 +171,7 @@ def excepthook(exc_type, exc_value, tracebackobj):
     msg = "\n".join(sections)
 
     print("".join(traceback.format_tb(tracebackobj)))
-    print("{0}: {1}".format(exc_type, exc_value))
+    print(f"{exc_type}: {exc_value}")
 
     ErrorDialog(message=errmsg, trace=msg, title="The following error was triggered").exec_()
 

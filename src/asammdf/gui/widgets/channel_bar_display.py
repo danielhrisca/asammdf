@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 import math
 
@@ -59,8 +58,8 @@ class BarWidget(QtWidgets.QWidget):
         w = size.width()
         h = size.height()
 
-        till = int(((w / self.max) * self.value))
-        full = int(((w / self.max) * self.over))
+        till = int((w / self.max) * self.value)
+        full = int((w / self.max) * self.over)
 
         if self.value >= self.over:
             qp.setPen(QtGui.QColor(self.color))

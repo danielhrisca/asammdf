@@ -75,8 +75,6 @@ from numpy.core.records import fromarrays, fromstring
 from numpy.typing import NDArray
 from pandas import DataFrame
 
-from . import bus_logging_utils
-from . import v4_constants as v4c
 from .. import tool
 from ..signal import Signal
 from ..types import (
@@ -89,6 +87,8 @@ from ..types import (
     WritableBufferType,
 )
 from ..version import __version__
+from . import bus_logging_utils
+from . import v4_constants as v4c
 from .conversion_utils import conversion_transfer
 from .mdf_common import MDF_Common
 from .options import get_global_option

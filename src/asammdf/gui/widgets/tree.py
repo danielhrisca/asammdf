@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import date, datetime
 from enum import IntFlag
 from functools import lru_cache
@@ -12,10 +11,10 @@ import numpy as np
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from .. import utils
 from ...blocks.conversion_utils import from_dict, to_dict
 from ...blocks.utils import extract_mime_names
 from ...signal import Signal
+from .. import utils
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.conversion_editor import ConversionEditor
 from ..dialogs.messagebox import MessageBox
@@ -1030,7 +1029,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             for item in self.selectedItems():
                 if item.type() == ChannelsTreeItem.Channel:
                     while True:
-                        rgb = random.randbytes(3)
+                        rgb = os.urandom(3)
                         if 100 <= sum(rgb) <= 650:
                             break
 

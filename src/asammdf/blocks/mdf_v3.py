@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """ ASAM MDF version 3 file format module """
 
 from __future__ import annotations
@@ -44,11 +43,11 @@ from numpy.typing import NDArray
 from pandas import DataFrame
 from typing_extensions import Literal, TypedDict
 
-from . import v2_v3_constants as v23c
 from .. import tool
 from ..signal import Signal
 from ..types import ChannelsType, CompressionType, RasterType, StrPathType
 from ..version import __version__
+from . import v2_v3_constants as v23c
 from .conversion_utils import conversion_transfer
 from .cutils import get_channel_raw_bytes
 from .mdf_common import MDF_Common
@@ -1799,7 +1798,7 @@ class MDF3(MDF_Common):
                     sd_nr = len(component_samples)
                     kargs = {"sd_nr": sd_nr}
                     for i, dim in enumerate(shape[::-1]):
-                        kargs["dim_{}".format(i)] = dim
+                        kargs[f"dim_{i}"] = dim
                     parent_dep = ChannelDependency(**kargs)
                     new_gp_dep.append(parent_dep)
 

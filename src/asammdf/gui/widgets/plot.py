@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import bisect
 from collections import defaultdict
 from datetime import timedelta
@@ -14,6 +13,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import numpy as np
 import pyqtgraph as pg
 import pyqtgraph.functions as fn
+import pyqtgraph.Qt as Qt
 from PySide6 import QtCore, QtGui, QtWidgets
 
 PLOT_BUFFER_SIZE = 4000
@@ -33,8 +33,16 @@ except:
 
 @lru_cache(maxsize=1024)
 def polygon_and_ndarray(size):
-    polygon = fn.create_qpolygonf(size)
-    ndarray = fn.ndarray_from_qpolygonf(polygon).copy()
+    polygon = QtGui.QPolygonF()
+    polygon.resize(size)
+
+    nbytes = 2 * len(polygon) * 8
+    ptr = polygon.data()
+    if ptr is None:
+        ptr = 0
+    buffer = Qt.shiboken.VoidPtr(ptr, nbytes, True)
+    ndarray = np.frombuffer(buffer, np.double).reshape((-1, 2))
+
     return polygon, ndarray
 
 
@@ -58,31 +66,6 @@ def monkey_patch_pyqtgraph():
         ]
 
         return res
-
-    # fixes https://github.com/pyqtgraph/pyqtgraph/issues/2117
-    def mouseReleaseEvent(self, ev):
-        if self.mouseGrabberItem() is None:
-            if ev.button() in self.dragButtons:
-                if self.sendDragEvent(ev, final=True):
-                    ev.accept()
-                self.dragButtons.remove(ev.button())
-            else:
-                cev = [e for e in self.clickEvents if e.button() == ev.button()]
-                if cev:
-                    if self.sendClickEvent(cev[0]):
-                        ev.accept()
-                    try:
-                        self.clickEvents.remove(cev[0])
-                    except:
-                        pass
-
-        if not ev.buttons():
-            self.dragItem = None
-            self.dragButtons = []
-            self.clickEvents = []
-            self.lastDrag = None
-        QtWidgets.QGraphicsScene.mouseReleaseEvent(self, ev)
-        self.sendHoverEvents(ev)
 
     mkColor_factory = fn.mkColor
     mkBrush_factory = fn.mkBrush
@@ -123,7 +106,6 @@ def monkey_patch_pyqtgraph():
     # speed-up monkey patches
     pg.graphicsItems.ScatterPlotItem.SymbolAtlas._keys = _keys
     pg.graphicsItems.ScatterPlotItem._USE_QRECT = False
-    pg.GraphicsScene.mouseReleaseEvent = mouseReleaseEvent
 
     fn.mkBrush = mkBrush
     fn.mkColor = mkColor
@@ -1142,7 +1124,7 @@ class PlotSignal(Signal):
                     visible = abs(int((stop_t - start_t) / (stop - start) * width))
 
                     if visible:
-                        visible_duplication = abs((stop_ - start_)) // visible
+                        visible_duplication = abs(stop_ - start_) // visible
                     else:
                         visible_duplication = 0
                 except:

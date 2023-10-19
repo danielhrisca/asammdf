@@ -5,11 +5,11 @@ numpy>=1.23.0
 pandas
 typing_extensions
 isal; platform_machine == "x86_64" or platform_machine == "AMD64"
-lxml<=4.9.2
+lxml==4.9.3
 natsort 
 psutil 
-PySide6==6.2.2
-pyqtgraph==0.12.4
+PySide6==6.6.0
+pyqtgraph==0.13.3
 QtPy==2.3.1
 pyqtlet2
 pyopengl
@@ -21,8 +21,8 @@ cChardet==2.1.5
 chardet
 cryptography
 keyring
-pyinstaller<6.0; sys_platform=="win32"
+pyinstaller; sys_platform=="win32"
 pyinstaller<6.0; sys_platform=="darwin"
-pyinstaller==4.10; sys_platform=="linux"
+pyinstaller<6.0; sys_platform=="linux"
 scipy
 sympy

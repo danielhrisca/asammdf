@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """ classes that implement the blocks for MDF versions 2 and 3 """
 
 from __future__ import annotations
@@ -25,8 +24,8 @@ except:
 
 import numpy as np
 
-from . import v2_v3_constants as v23c
 from ..version import __version__
+from . import v2_v3_constants as v23c
 from .utils import (
     escape_xml_string,
     get_fields,
@@ -1566,16 +1565,13 @@ address: {hex(self.address)}
             P6 = self.P6
 
             X = values
-            if (P1, P4, P5, P6) == (0, 0, 0, 1):
-                if (P2, P3) != (1, 0):
-                    values = values * P2
-                    if P3:
-                        values += P3
-            elif (P3, P4, P5, P6) == (0, 0, 1, 0):
-                if (P1, P2) != (1, 0):
-                    values = values * P1
-                    if P2:
-                        values += P2
+            if (P1, P3, P4, P5) == (0, 0, 0, 0):
+                if P2 != P6:
+                    values = values * (P2 / P6)
+
+            elif (P2, P3, P4, P6) == (0, 0, 0, 0):
+                if P1 != P5:
+                    values = values * (P1 / P5)
             else:
                 try:
                     values = evaluate(v23c.RAT_CONV_TEXT)
@@ -1761,7 +1757,7 @@ class ChannelDependency:
             (self.id, self.block_len, self.dependency_type, self.sd_nr) = unpack("<2s3H", stream.read(8))
 
             links_size = 3 * 4 * self.sd_nr
-            links = unpack("<{}I".format(3 * self.sd_nr), stream.read(links_size))
+            links = unpack(f"<{3 * self.sd_nr}I", stream.read(links_size))
 
             for i in range(self.sd_nr):
                 self[f"dg_{i}"] = links[3 * i]
@@ -2727,7 +2723,7 @@ class HeaderBlock:
                 user = getuser()
             except ModuleNotFoundError:
                 user = ""
-            self.author_field = "{:\0<32}".format(user).encode("latin-1")
+            self.author_field = f"{user:\0<32}".encode("latin-1")
             self.department_field = "{:\0<32}".format("").encode("latin-1")
             self.project_field = "{:\0<32}".format("").encode("latin-1")
             self.subject_field = "{:\0<32}".format("").encode("latin-1")
@@ -3162,12 +3158,12 @@ class TriggerBlock:
 
             nr = self.trigger_events_nr
             if nr:
-                values = unpack("<{}d".format(3 * nr), block[10:])
+                values = unpack(f"<{3 * nr}d", block[10:])
             for i in range(nr):
                 (
-                    self["trigger_{}_time".format(i)],
-                    self["trigger_{}_pretime".format(i)],
-                    self["trigger_{}_posttime".format(i)],
+                    self[f"trigger_{i}_time"],
+                    self[f"trigger_{i}_pretime"],
+                    self[f"trigger_{i}_posttime"],
                 ) = (values[i * 3], values[3 * i + 1], values[3 * i + 2])
 
             if self.text_addr:
@@ -3182,7 +3178,7 @@ class TriggerBlock:
         except KeyError:
             self.address = 0
             nr = 0
-            while "trigger_{}_time".format(nr) in kwargs:
+            while f"trigger_{nr}_time" in kwargs:
                 nr += 1
 
             self.id = b"TR"
@@ -3191,11 +3187,11 @@ class TriggerBlock:
             self.trigger_events_nr = nr
 
             for i in range(nr):
-                key = "trigger_{}_time".format(i)
+                key = f"trigger_{i}_time"
                 self[key] = kwargs[key]
-                key = "trigger_{}_pretime".format(i)
+                key = f"trigger_{i}_pretime"
                 self[key] = kwargs[key]
-                key = "trigger_{}_posttime".format(i)
+                key = f"trigger_{i}_posttime"
                 self[key] = kwargs[key]
 
     def to_blocks(self, address: int, blocks: list[Any]) -> int:
@@ -3223,13 +3219,13 @@ class TriggerBlock:
 
     def __bytes__(self) -> bytes:
         triggers_nr = self.trigger_events_nr
-        fmt = "<2sHIH{}d".format(triggers_nr * 3)
+        fmt = f"<2sHIH{triggers_nr * 3}d"
         keys = ("id", "block_len", "text_addr", "trigger_events_nr")
         for i in range(triggers_nr):
             keys += (
-                "trigger_{}_time".format(i),
-                "trigger_{}_pretime".format(i),
-                "trigger_{}_posttime".format(i),
+                f"trigger_{i}_time",
+                f"trigger_{i}_pretime",
+                f"trigger_{i}_posttime",
             )
         result = pack(fmt, *[self[key] for key in keys])
         return result

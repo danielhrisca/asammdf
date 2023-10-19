@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 classes that implement the blocks for MDF version 4
 """
@@ -42,8 +41,8 @@ except:
 
 import numpy as np
 
-from . import v4_constants as v4c
 from ..version import __version__
+from . import v4_constants as v4c
 from .utils import (
     block_fields,
     escape_xml_string,
@@ -1766,7 +1765,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
         if self.storage:
             keys += tuple(f"cycle_count_{i}" for i in range(data_links_nr))
 
-        fmt = "<4sI{}Q2BHIiI{}Q{}d{}Q".format(self.links_nr + 2, dims_nr, sum(dim_sizes), data_links_nr)
+        fmt = f"<4sI{self.links_nr + 2}Q2BHIiI{dims_nr}Q{sum(dim_sizes)}d{data_links_nr}Q"
 
         result = pack(fmt, *[getattr(self, key) for key in keys])
         return result
@@ -3155,17 +3154,13 @@ class ChannelConversion(_ChannelConversionBase):
             if names:
                 name = names[0]
                 vals = values[name]
-                if (P1, P4, P5, P6) == (0, 0, 0, 1):
-                    if (P2, P3) != (1, 0):
-                        vals = values[name] * P2
-                        if P3:
-                            vals = vals + P3
+                if (P1, P3, P4, P5) == (0, 0, 0, 0):
+                    if P2 != P6:
+                        vals = vals * (P2 / P6)
 
-                elif (P3, P4, P5, P6) == (0, 0, 1, 0):
-                    if (P1, P2) != (1, 0):
-                        vals = values[name] * P1
-                        if P2:
-                            vals = vals + P2
+                elif (P2, P3, P4, P6) == (0, 0, 0, 0):
+                    if P1 != P5:
+                        vals = vals * (P1 / P5)
 
                 else:
                     X = vals
@@ -3182,16 +3177,13 @@ class ChannelConversion(_ChannelConversionBase):
 
             else:
                 X = values
-                if (P1, P4, P5, P6) == (0, 0, 0, 1):
-                    if (P2, P3) != (1, 0):
-                        values = values * P2
-                        if P3:
-                            values = values + P3
-                elif (P3, P4, P5, P6) == (0, 0, 1, 0):
-                    if (P1, P2) != (1, 0):
-                        values = values * P1
-                        if P2:
-                            values += P2
+                if (P1, P3, P4, P5) == (0, 0, 0, 0):
+                    if P2 != P6:
+                        values = values * (P2 / P6)
+
+                elif (P2, P3, P4, P6) == (0, 0, 0, 0):
+                    if P1 != P5:
+                        values = values * (P1 / P5)
                 else:
                     try:
                         values = evaluate(v4c.CONV_RAT_TEXT)
@@ -3851,7 +3843,7 @@ class ChannelConversion(_ChannelConversionBase):
                 phys = [
                     conv
                     if isinstance(conv, bytes)
-                    else ((f"{conv.name}=".encode("utf-8"), conv) if conv.name else (b"", conv))
+                    else ((f"{conv.name}=".encode(), conv) if conv.name else (b"", conv))
                     for conv in phys
                 ]
 
@@ -4176,20 +4168,20 @@ formula: {self.formula}
             v4c.CONVERSION_TYPE_TABI,
             v4c.CONVERSION_TYPE_TAB,
         ):
-            fmt = "<4sI{}Q2B3H{}d".format(self.links_nr + 2, self.val_param_nr + 2)
+            fmt = f"<4sI{self.links_nr + 2}Q2B3H{self.val_param_nr + 2}d"
             keys = v4c.KEYS_CONVERSION_NONE
             for i in range(self.val_param_nr // 2):
                 keys += (f"raw_{i}", f"phys_{i}")
             result = pack(fmt, *[getattr(self, key) for key in keys])
         elif self.conversion_type == v4c.CONVERSION_TYPE_RTAB:
-            fmt = "<4sI{}Q2B3H{}d".format(self.links_nr + 2, self.val_param_nr + 2)
+            fmt = f"<4sI{self.links_nr + 2}Q2B3H{self.val_param_nr + 2}d"
             keys = v4c.KEYS_CONVERSION_NONE
             for i in range(self.val_param_nr // 3):
                 keys += (f"lower_{i}", f"upper_{i}", f"phys_{i}")
             keys += ("default",)
             result = pack(fmt, *[getattr(self, key) for key in keys])
         elif self.conversion_type == v4c.CONVERSION_TYPE_TABX:
-            fmt = "<4sI{}Q2B3H{}d".format(self.links_nr + 2, self.val_param_nr + 2)
+            fmt = f"<4sI{self.links_nr + 2}Q2B3H{self.val_param_nr + 2}d"
             keys = (
                 "id",
                 "reserved0",
@@ -4214,7 +4206,7 @@ formula: {self.formula}
             keys += tuple(f"val_{i}" for i in range(self.val_param_nr))
             result = pack(fmt, *[getattr(self, key) for key in keys])
         elif self.conversion_type == v4c.CONVERSION_TYPE_RTABX:
-            fmt = "<4sI{}Q2B3H{}d".format(self.links_nr + 2, self.val_param_nr + 2)
+            fmt = f"<4sI{self.links_nr + 2}Q2B3H{self.val_param_nr + 2}d"
             keys = (
                 "id",
                 "reserved0",
@@ -4240,7 +4232,7 @@ formula: {self.formula}
                 keys += (f"lower_{i}", f"upper_{i}")
             result = pack(fmt, *[getattr(self, key) for key in keys])
         elif self.conversion_type == v4c.CONVERSION_TYPE_TTAB:
-            fmt = "<4sI{}Q2B3H{}d".format(self.links_nr + 2, self.val_param_nr + 2)
+            fmt = f"<4sI{self.links_nr + 2}Q2B3H{self.val_param_nr + 2}d"
             keys = (
                 "id",
                 "reserved0",
@@ -4265,7 +4257,7 @@ formula: {self.formula}
             keys += ("val_default",)
             result = pack(fmt, *[getattr(self, key) for key in keys])
         elif self.conversion_type == v4c.CONVERSION_TYPE_TRANS:
-            fmt = "<4sI{}Q2B3H{}d".format(self.links_nr + 2, self.val_param_nr + 2)
+            fmt = f"<4sI{self.links_nr + 2}Q2B3H{self.val_param_nr + 2}d"
             keys = (
                 "id",
                 "reserved0",
@@ -4293,7 +4285,7 @@ formula: {self.formula}
             result = pack(fmt, *[getattr(self, key) for key in keys])
 
         elif self.conversion_type == v4c.CONVERSION_TYPE_BITFIELD:
-            fmt = "<4sI{}Q2B3H2d{}Q".format(self.links_nr + 2, self.val_param_nr)
+            fmt = f"<4sI{self.links_nr + 2}Q2B3H2d{self.val_param_nr}Q"
             keys = (
                 "id",
                 "reserved0",
@@ -4400,7 +4392,7 @@ class DataBlock:
             if type not in ("DT", "SD", "RD", "DV", "DI"):
                 type = "DT"
 
-            self.id = "##{}".format(type).encode("ascii")
+            self.id = f"##{type}".encode("ascii")
             self.reserved0 = 0
             self.block_len = len(kwargs["data"]) + COMMON_SIZE
             self.links_nr = 0
@@ -4416,7 +4408,7 @@ class DataBlock:
         return v4c.COMMON_p(self.id, self.reserved0, self.block_len, self.links_nr) + self.data
 
 
-class DataZippedBlock(object):
+class DataZippedBlock:
     """*DataZippedBlock* has the following attributes, that are also available
     as dict like key-value pairs
 
@@ -4856,7 +4848,7 @@ class DataList(_DataListBase):
                 else:
                     (self.reserved1, self.data_block_nr) = unpack("<3sI", stream.read(7))
                     offsets = unpack(
-                        "<{}Q".format(self.links_nr - 1),
+                        f"<{self.links_nr - 1}Q",
                         stream.read((self.links_nr - 1) * 8),
                     )
                     for i, offset in enumerate(offsets):
@@ -4885,7 +4877,7 @@ class DataList(_DataListBase):
                 else:
                     (self.reserved1, self.data_block_nr) = unpack("<3sI", stream.read(7))
                     offsets = unpack(
-                        "<{}Q".format(self.links_nr - 1),
+                        f"<{self.links_nr - 1}Q",
                         stream.read((self.links_nr - 1) * 8),
                     )
                     for i, offset in enumerate(offsets):
@@ -5282,8 +5274,8 @@ class FileIdentificationBlock:
 
         except KeyError:
             version = kwargs.get("version", "4.00")
-            self.file_identification = "MDF     ".encode("utf-8")
-            self.version_str = "{}    ".format(version).encode("utf-8")
+            self.file_identification = b"MDF     "
+            self.version_str = f"{version}    ".encode()
             self.program_identification = "amdf{}".format(__version__.replace(".", "")).encode("utf-8")
             self.reserved0 = b"\0" * 4
             self.mdf_version = int(version.replace(".", ""))
