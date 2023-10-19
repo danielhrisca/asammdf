@@ -287,6 +287,18 @@ class Pixmap:
         return color_names
 
     @staticmethod
+    def color_names_exclude_defaults(pixmap):
+        color_names = set()
+        defaults = (Pixmap.COLOR_BACKGROUND, Pixmap.COLOR_CURSOR, Pixmap.COLOR_RANGE)
+        image = pixmap.toImage()
+        for y in range(image.height()):
+            for x in range(image.width()):
+                color = QtGui.QColor(image.pixel(x, y))
+                if color not in defaults:
+                    color_names.add(color.name())
+        return color_names
+
+    @staticmethod
     def color_map(pixmap):
         """
         return dict, where:

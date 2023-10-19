@@ -425,20 +425,41 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         Events:
             - Open 'FileWidget' with valid measurement.
             - Display 1 signal on plot
+            - Maximize window
+            - Count how many times signal intersects midd line of plot
+            - Mouse click in the middle of plot
             - Press "R"
+            - Get color of signal between cursors
+            - Get Y coordinates of signal where it intersects cursors
+            - Count how many times signal intersect midd line of plot between cursors
             - Press "X"
+            - Get Y coordinates of start and end point of signal
+            - Count how many times signal intersect midd line of plot
         Evaluate:
-            - Evaluate that plot is not black
-            - Evaluate ...
+            > Precondition
+                - Evaluate that plot is not black
+                - Evaluate that plot intersects midd line of plot
+                - Evaluate that new color of signal was found
+                - Evaluate that one row after first cursor and one row before second cursor signal exist
+                        or signal was found between cursors
+                - Evaluate that signal intersect midd line of plot between cursors
+            > Final tests
+                - Evaluate that start and end points of signal was found
+                - Evaluate lines where is situated start and end points of signal by this logic:
+                    • After zooming to range - signal slope decrease
+                    • After calculus - points can differ, but difference must be minimal, a few pixels maximum
+                    • By dividing expected values and actual values if the values not differ too much,
+                        expected result must be near 1, precision can be adjusted
+                - Evaluate that the number of intersections between signal and the midd line inner cursors are equal
+                    with number of intersections between signal and the midd line after pressing key "X"
+                - Evaluate that the signal intersect the midd line less time after pressing key "X"
         """
         # Setup
         self.widget.showMaximized()
         self.processEvents()
         # Count intersections between middle line and signal
         firstIntersections = Pixmap.color_map(
-            self.plot.plot.viewport().grab(
-                QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.width(), 1)
-            )
+            self.plot.plot.viewport().grab(QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.width(), 1))
         )[0].count(self.channel_35.color.name())
         self.assertTrue(firstIntersections)
 
@@ -456,15 +477,21 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         # Get X position of Cursor
         cursors = Pixmap.cursors_x(self.plot.plot.viewport().grab())
         self.assertEqual(len(cursors), 2)
-        colors = Pixmap.color_names(self.plot.plot.viewport().grab(
-            QtCore.QRect(cursors[0] + 2, 0, 2, self.plot.plot.height())
-        ))
-        # Get new color of signal
-        color = None
-        for color in colors:
-            if color != Pixmap.COLOR_BACKGROUND and color != Pixmap.COLOR_RANGE:
-                break
+
+        # Get a set of colors founded between cursors
+        colors = Pixmap.color_names_exclude_defaults(
+            self.plot.plot.viewport().grab(
+                QtCore.QRect(cursors[0], 0, cursors[1] - cursors[0], self.plot.plot.height())
+            )
+        )
+        # Exclude channel original color
+        if self.channel_35.color.name() in colors:
+            colors.remove(self.channel_35.color.name())
+        # caught ya
+        color = colors.pop()
+        # Evaluate if color was found
         self.assertTrue(color)
+
         # Count intersection of midd line and signal between cursors
         interCursorsIntersectionsR = Pixmap.color_map(
             self.plot.plot.viewport().grab(
@@ -472,45 +499,43 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
             )
         )[0].count(color)
         self.assertTrue(interCursorsIntersectionsR)
-        # Search lines where signal start and end
-        initialStartSignalOnY = Pixmap.search_y_of_signal_in_x(self.plot.plot.viewport().grab(
-            QtCore.QRect(cursors[0] + 2, 0, 1, self.plot.plot.height())
-        ), color)
-        initialEndSignalOnY = Pixmap.search_y_of_signal_in_x(self.plot.plot.viewport().grab(
-            QtCore.QRect(cursors[1] - 1, 0, 1, self.plot.plot.height())
-        ), color)
-        self.assertTrue(initialStartSignalOnY)
-        self.assertTrue(initialEndSignalOnY)
+        # Search lines where signal intersects cursors
+        expectedSignalStartYPoint = Pixmap.search_y_of_signal_in_x(
+            self.plot.plot.viewport().grab(QtCore.QRect(cursors[0] + 1, 0, 1, self.plot.plot.height())), color
+        )
+        expectedSignalEndYPoint = Pixmap.search_y_of_signal_in_x(
+            self.plot.plot.viewport().grab(QtCore.QRect(cursors[1] - 1, 0, 1, self.plot.plot.height())), color
+        )
+        self.assertTrue(expectedSignalStartYPoint)
+        self.assertTrue(expectedSignalEndYPoint)
 
         # Press key "X"
         QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_X)
         self.processEvents()
-        # Evaluate
-        pixmap = self.plot.plot.viewport().grab()
 
         # Find where signal start and end on X axes
-        from_to_x = Pixmap.search_signal_from_to_x(pixmap, self.channel_35.color.name())
+        from_to_x = Pixmap.search_signal_from_to_x(self.plot.plot.viewport().grab(), self.channel_35.color.name())
+        self.assertEqual(len(from_to_x), 2)
         # Search lines where signal start and end
-        finalStartSignalOnY = Pixmap.search_y_of_signal_in_x(
+        signalStartOnLine = Pixmap.search_y_of_signal_in_x(
             self.plot.plot.viewport().grab(QtCore.QRect(from_to_x[0], 0, 1, self.plot.plot.height())),
-            self.channel_35.color.name()
-            )
-        finalEndSignalOnY = Pixmap.search_y_of_signal_in_x(
+            self.channel_35.color.name(),
+        )
+        signalEndOnLine = Pixmap.search_y_of_signal_in_x(
             self.plot.plot.viewport().grab(QtCore.QRect(from_to_x[1], 0, 1, self.plot.plot.height())),
-            self.channel_35.color.name()
-            )
+            self.channel_35.color.name(),
+        )
         # Evaluate
         message = "Difference is too big"
         precission = 0.03
-        self.assertAlmostEqual(initialStartSignalOnY/finalStartSignalOnY, 1, None, message, precission)
-        self.assertAlmostEqual(initialEndSignalOnY/finalEndSignalOnY, 1, None, message, precission)
+        self.assertAlmostEqual(expectedSignalStartYPoint / signalStartOnLine, 1, None, message, precission)
+        self.assertAlmostEqual(expectedSignalEndYPoint / signalEndOnLine, 1, None, message, precission)
         # The Number of intersections between signal and midd line must be the same as in the first case
         interCursorsIntersectionsX = Pixmap.color_map(
-            self.plot.plot.viewport().grab(
-                QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.width(), 1)
-            )
+            self.plot.plot.viewport().grab(QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.width(), 1))
         )[0].count(self.channel_35.color.name())
         self.assertEqual(interCursorsIntersectionsR, interCursorsIntersectionsX)
+        self.assertLess(interCursorsIntersectionsX, firstIntersections)
 
     def test_Plot_Plot_Shortcut_Ctrl_H_Ctrl_B_Ctrl_P(self):
         """
