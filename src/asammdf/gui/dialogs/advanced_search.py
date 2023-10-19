@@ -102,7 +102,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                 self.case_sensitivity_pattern.setCurrentText("Case sensitive")
             else:
                 self.case_sensitivity_pattern.setCurrentText("Case insensitive")
-            self.raw.setCheckState(QtCore.Qt.Checked if pattern["raw"] else QtCore.Qt.Unchecked)
+            self.raw.setCheckState(QtCore.Qt.CheckState.Checked if pattern["raw"] else QtCore.Qt.CheckState.Unchecked)
             self.name.setText(pattern["name"])
             self.ranges = pattern["ranges"]
             self.integer_format.setCurrentText(pattern.get("integer_format", "phys"))
@@ -116,13 +116,13 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.matches.setColumnWidth(self.SourceNameColumn, 170)
         self.matches.setColumnWidth(self.SourcePathColumn, 170)
 
-        self.setWindowFlag(QtCore.Qt.WindowMaximizeButtonHint, True)
+        self.setWindowFlag(QtCore.Qt.WindowType.WindowMaximizeButtonHint, True)
 
         self.showMaximized()
 
     def search_text_changed(self):
         text = self.search_box.text().strip()
-        extened_search = self.extended_search.checkState() == QtCore.Qt.Checked
+        extened_search = self.extended_search.checkState() == QtCore.Qt.CheckState.Checked
 
         if len(text) >= 2:
             self.matches.collapseAll()
@@ -337,7 +337,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             "case_sensitive": self.case_sensitivity_pattern.currentText() == "Case sensitive",
             "filter_type": self.filter_type.currentText(),
             "filter_value": self.filter_value.value(),
-            "raw": self.raw.checkState() == QtCore.Qt.Checked,
+            "raw": self.raw.checkState() == QtCore.Qt.CheckState.Checked,
             "ranges": self.ranges,
             "name": self.name.text().strip(),
             "integer_format": self.integer_format.currentText(),

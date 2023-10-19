@@ -164,8 +164,8 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
 
         self.pressed_button = None
 
-        self.setWindowFlag(QtCore.Qt.WindowMinimizeButtonHint, True)
-        self.setWindowFlag(QtCore.Qt.WindowMaximizeButtonHint, True)
+        self.setWindowFlag(QtCore.Qt.WindowType.WindowMinimizeButtonHint, True)
+        self.setWindowFlag(QtCore.Qt.WindowType.WindowMaximizeButtonHint, True)
 
     def apply(self, event):
         if self.tabs.currentIndex() == 1:

@@ -61,7 +61,7 @@ class TestFileWidget(TestBase):
             mc_WindowSelectionDialog.return_value.result.return_value = True
             mc_WindowSelectionDialog.return_value.selected_type.return_value = window_type
             # - Press PushButton "Create Window"
-            QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
+            QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.MouseButton.LeftButton)
             widget_types = self.get_subwindows()
             self.assertIn(window_type, widget_types)
 

@@ -50,7 +50,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.integer_interpolation = integer_interpolation
         self.float_interpolation = float_interpolation
 
-        self.files_list.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+        self.files_list.setDragDropMode(QtWidgets.QAbstractItemView.DragDropMode.InternalMove)
 
         self.progress = None
         self.show()
@@ -208,7 +208,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         count = len(source_files)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/scramble.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/scramble.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         progress.signals.setWindowIcon.emit(icon)
         progress.signals.setWindowTitle.emit("Scrambling measurements")
 
@@ -290,7 +290,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
     def extract_bus_logging_thread(self, source_files, database_files, count, compression, version, progress):
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         progress.signals.setWindowIcon.emit(icon)
         progress.signals.setWindowTitle.emit("Extract Bus logging from measurements")
         progress.signals.setLabelText.emit(f'Extracting Bus logging from "{count}" files')
@@ -415,18 +415,18 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 widget = self.lin_database_list.itemWidget(item)
                 database_files["LIN"].append((widget.database.text(), widget.bus.currentIndex()))
 
-        single_time_base = self.single_time_base_bus.checkState() == QtCore.Qt.Checked
-        time_from_zero = self.time_from_zero_bus.checkState() == QtCore.Qt.Checked
+        single_time_base = self.single_time_base_bus.checkState() == QtCore.Qt.CheckState.Checked
+        time_from_zero = self.time_from_zero_bus.checkState() == QtCore.Qt.CheckState.Checked
         empty_channels = self.empty_channels_bus.currentText()
         raster = self.export_raster_bus.value() or None
-        time_as_date = self.bus_time_as_date.checkState() == QtCore.Qt.Checked
+        time_as_date = self.bus_time_as_date.checkState() == QtCore.Qt.CheckState.Checked
         delimiter = self.delimiter_bus.text() or ","
-        doublequote = self.doublequote_bus.checkState() == QtCore.Qt.Checked
+        doublequote = self.doublequote_bus.checkState() == QtCore.Qt.CheckState.Checked
         escapechar = self.escapechar_bus.text() or None
         lineterminator = self.lineterminator_bus.text().replace("\\r", "\r").replace("\\n", "\n")
         quotechar = self.quotechar_bus.text() or '"'
         quoting = self.quoting_bus.currentText()
-        add_units = self.add_units_bus.checkState() == QtCore.Qt.Checked
+        add_units = self.add_units_bus.checkState() == QtCore.Qt.CheckState.Checked
 
         count = self.files_list.count()
 
@@ -482,7 +482,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         progress,
     ):
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/csv.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/csv.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         progress.signals.setWindowIcon.emit(icon)
         progress.signals.setWindowTitle.emit("Extract Bus logging from measurements to CSV")
         progress.signals.setLabelText.emit(f'Extracting Bus logging from "{count}" files')
@@ -635,10 +635,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         version = self.concatenate_format.currentText()
 
-        sync = self.concatenate_sync.checkState() == QtCore.Qt.Checked
-        add_samples_origin = self.concatenate_add_samples_origin.checkState() == QtCore.Qt.Checked
+        sync = self.concatenate_sync.checkState() == QtCore.Qt.CheckState.Checked
+        add_samples_origin = self.concatenate_add_samples_origin.checkState() == QtCore.Qt.CheckState.Checked
 
-        split = self.concatenate_split.checkState() == QtCore.Qt.Checked
+        split = self.concatenate_split.checkState() == QtCore.Qt.CheckState.Checked
         if split:
             split_size = int(self.concatenate_split_size.value() * 1024 * 1024)
         else:
@@ -697,7 +697,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         progress,
     ):
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/plus.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/plus.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         progress.signals.setWindowIcon.emit(icon)
         progress.signals.setWindowTitle.emit(f"Concatenating files and saving to {version} format")
 
@@ -745,7 +745,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         progress,
     ):
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/stack.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/stack.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         progress.signals.setWindowIcon.emit(icon)
         progress.signals.setWindowTitle.emit(f"Stacking files and saving to {version} format")
 
@@ -792,10 +792,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         version = self.stack_format.currentText()
 
-        sync = self.stack_sync.checkState() == QtCore.Qt.Checked
-        add_samples_origin = self.stack_add_samples_origin.checkState() == QtCore.Qt.Checked
+        sync = self.stack_sync.checkState() == QtCore.Qt.CheckState.Checked
+        add_samples_origin = self.stack_add_samples_origin.checkState() == QtCore.Qt.CheckState.Checked
 
-        split = self.stack_split.checkState() == QtCore.Qt.Checked
+        split = self.stack_split.checkState() == QtCore.Qt.CheckState.Checked
         if split:
             split_size = int(self.stack_split_size.value() * 1024 * 1024)
         else:
@@ -900,7 +900,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 if index != 0xFFFFFFFFFFFFFFFF:
                     total += 1
 
-                if item.checkState(0) == QtCore.Qt.Checked:
+                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     if index != 0xFFFFFFFFFFFFFFFF:
                         channels.append((item.name, group, index))
                         count += 1
@@ -910,7 +910,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             while iterator.value():
                 item = iterator.value()
 
-                if item.checkState(0) == QtCore.Qt.Checked:
+                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     group, index = item.entry
                     channels.append((item.name, group, index))
                     count += 1
@@ -948,7 +948,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
     def filter_changed(self, item, column):
         name = item.text(0)
-        if item.checkState(0) == QtCore.Qt.Checked:
+        if item.checkState(0) == QtCore.Qt.CheckState.Checked:
             self._selected_filter.add(name)
         else:
             if name in self._selected_filter:
@@ -1006,7 +1006,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                             continue
 
                         if (dg_cntr, ch_cntr) in result:
-                            item.setCheckState(0, QtCore.Qt.Checked)
+                            item.setCheckState(0, QtCore.Qt.CheckState.Checked)
 
                         iterator += 1
                         ch_cntr += 1
@@ -1017,7 +1017,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     while iterator.value():
                         item = iterator.value()
 
-                        if item.checkState(0) == QtCore.Qt.Checked:
+                        if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             signals.add(item.entry)
 
                         iterator += 1
@@ -1032,7 +1032,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         ch = mdf.groups[gp_index].channels[ch_index]
                         channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
                         channel.setText(0, ch.name)
-                        channel.setCheckState(0, QtCore.Qt.Checked)
+                        channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         items.append(channel)
 
                     if len(items) < 30000:
@@ -1047,7 +1047,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         item = iterator.value()
 
                         if item.entry in result:
-                            item.setCheckState(0, QtCore.Qt.Checked)
+                            item.setCheckState(0, QtCore.Qt.CheckState.Checked)
 
                         iterator += 1
         except:
@@ -1089,7 +1089,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         item = iterator.value()
 
                         if item.entry[1] != 0xFFFFFFFFFFFFFFFF:
-                            if item.checkState(0) == QtCore.Qt.Checked:
+                            if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                                 signals.add(item.entry)
 
                         iterator += 1
@@ -1097,7 +1097,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     while iterator.value():
                         item = iterator.value()
 
-                        if item.checkState(0) == QtCore.Qt.Checked:
+                        if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             signals.add(item.entry)
 
                         iterator += 1
@@ -1114,9 +1114,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                             channel = TreeItem(entry, ch.name, origin_uuid=uuid)
                             channel.setText(0, ch.name)
                             if entry in signals:
-                                channel.setCheckState(0, QtCore.Qt.Checked)
+                                channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             else:
-                                channel.setCheckState(0, QtCore.Qt.Unchecked)
+                                channel.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
                             items.append(channel)
 
                     if len(items) < 30000:
@@ -1137,7 +1137,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         else:
                             channel_group.setText(0, f"Channel group {i}")
                         channel_group.setFlags(
-                            channel_group.flags() | QtCore.Qt.ItemIsAutoTristate | QtCore.Qt.ItemIsUserCheckable
+                            channel_group.flags()
+                            | QtCore.Qt.ItemFlag.ItemIsAutoTristate
+                            | QtCore.Qt.ItemFlag.ItemIsUserCheckable
                         )
 
                         widget.addTopLevelItem(channel_group)
@@ -1159,7 +1161,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         ch = mdf.groups[gp_index].channels[ch_index]
                         channel = TreeItem(entry, ch.name, origin_uuid=uuid)
                         channel.setText(0, ch.name)
-                        channel.setCheckState(0, QtCore.Qt.Checked)
+                        channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         items.append(channel)
 
                     if len(items) < 30000:
@@ -1177,14 +1179,14 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             "needs_cut": self.cut_group.isChecked(),
             "cut_start": self.cut_start.value(),
             "cut_stop": self.cut_stop.value(),
-            "cut_time_from_zero": self.cut_time_from_zero.checkState() == QtCore.Qt.Checked,
-            "whence": int(self.whence.checkState() == QtCore.Qt.Checked),
+            "cut_time_from_zero": self.cut_time_from_zero.checkState() == QtCore.Qt.CheckState.Checked,
+            "whence": int(self.whence.checkState() == QtCore.Qt.CheckState.Checked),
             "needs_resample": self.resample_group.isChecked(),
             "raster_type_step": self.raster_type_step.isChecked(),
             "raster_type_channel": self.raster_type_channel.isChecked(),
             "raster": self.raster.value(),
             "raster_channel": self.raster_channel.currentText(),
-            "resample_time_from_zero": self.resample_time_from_zero.checkState() == QtCore.Qt.Checked,
+            "resample_time_from_zero": self.resample_time_from_zero.checkState() == QtCore.Qt.CheckState.Checked,
             "output_format": self.output_format.currentText(),
         }
 
@@ -1194,36 +1196,36 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             new = {
                 "mdf_version": self.mdf_version.currentText(),
                 "mdf_compression": self.mdf_compression.currentIndex(),
-                "mdf_split": self.mdf_split.checkState() == QtCore.Qt.Checked,
+                "mdf_split": self.mdf_split.checkState() == QtCore.Qt.CheckState.Checked,
                 "mdf_split_size": self.mdf_split_size.value() * 1024 * 1024,
             }
 
         elif output_format == "MAT":
             new = {
-                "single_time_base": self.single_time_base_mat.checkState() == QtCore.Qt.Checked,
-                "time_from_zero": self.time_from_zero_mat.checkState() == QtCore.Qt.Checked,
-                "time_as_date": self.time_as_date_mat.checkState() == QtCore.Qt.Checked,
-                "use_display_names": self.use_display_names_mat.checkState() == QtCore.Qt.Checked,
-                "reduce_memory_usage": self.reduce_memory_usage_mat.checkState() == QtCore.Qt.Checked,
+                "single_time_base": self.single_time_base_mat.checkState() == QtCore.Qt.CheckState.Checked,
+                "time_from_zero": self.time_from_zero_mat.checkState() == QtCore.Qt.CheckState.Checked,
+                "time_as_date": self.time_as_date_mat.checkState() == QtCore.Qt.CheckState.Checked,
+                "use_display_names": self.use_display_names_mat.checkState() == QtCore.Qt.CheckState.Checked,
+                "reduce_memory_usage": self.reduce_memory_usage_mat.checkState() == QtCore.Qt.CheckState.Checked,
                 "compression": self.export_compression_mat.currentText() == "enabled",
                 "empty_channels": self.empty_channels_mat.currentText(),
                 "mat_format": self.mat_format.currentText(),
                 "oned_as": self.oned_as.currentText(),
-                "raw": self.raw_mat.checkState() == QtCore.Qt.Checked,
+                "raw": self.raw_mat.checkState() == QtCore.Qt.CheckState.Checked,
             }
 
         elif output_format == "CSV":
             new = {
-                "single_time_base": self.single_time_base_csv.checkState() == QtCore.Qt.Checked,
-                "time_from_zero": self.time_from_zero_csv.checkState() == QtCore.Qt.Checked,
-                "time_as_date": self.time_as_date_csv.checkState() == QtCore.Qt.Checked,
-                "use_display_names": self.use_display_names_csv.checkState() == QtCore.Qt.Checked,
+                "single_time_base": self.single_time_base_csv.checkState() == QtCore.Qt.CheckState.Checked,
+                "time_from_zero": self.time_from_zero_csv.checkState() == QtCore.Qt.CheckState.Checked,
+                "time_as_date": self.time_as_date_csv.checkState() == QtCore.Qt.CheckState.Checked,
+                "use_display_names": self.use_display_names_csv.checkState() == QtCore.Qt.CheckState.Checked,
                 "reduce_memory_usage": False,
                 "compression": False,
                 "empty_channels": self.empty_channels_csv.currentText(),
-                "raw": self.raw_csv.checkState() == QtCore.Qt.Checked,
+                "raw": self.raw_csv.checkState() == QtCore.Qt.CheckState.Checked,
                 "delimiter": self.delimiter.text() or ",",
-                "doublequote": self.doublequote.checkState() == QtCore.Qt.Checked,
+                "doublequote": self.doublequote.checkState() == QtCore.Qt.CheckState.Checked,
                 "escapechar": self.escapechar.text() or None,
                 "lineterminator": self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n"),
                 "quotechar": self.quotechar.text() or '"',
@@ -1234,16 +1236,16 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         else:
             new = {
-                "single_time_base": self.single_time_base.checkState() == QtCore.Qt.Checked,
-                "time_from_zero": self.time_from_zero.checkState() == QtCore.Qt.Checked,
-                "time_as_date": self.time_as_date.checkState() == QtCore.Qt.Checked,
-                "use_display_names": self.use_display_names.checkState() == QtCore.Qt.Checked,
-                "reduce_memory_usage": self.reduce_memory_usage.checkState() == QtCore.Qt.Checked,
+                "single_time_base": self.single_time_base.checkState() == QtCore.Qt.CheckState.Checked,
+                "time_from_zero": self.time_from_zero.checkState() == QtCore.Qt.CheckState.Checked,
+                "time_as_date": self.time_as_date.checkState() == QtCore.Qt.CheckState.Checked,
+                "use_display_names": self.use_display_names.checkState() == QtCore.Qt.CheckState.Checked,
+                "reduce_memory_usage": self.reduce_memory_usage.checkState() == QtCore.Qt.CheckState.Checked,
                 "compression": self.export_compression.currentText(),
                 "empty_channels": self.empty_channels.currentText(),
                 "mat_format": None,
                 "oned_as": None,
-                "raw": self.raw.checkState() == QtCore.Qt.Checked,
+                "raw": self.raw.checkState() == QtCore.Qt.CheckState.Checked,
             }
 
         options.update(new)
@@ -1384,7 +1386,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             if needs_filter:
                 icon = QtGui.QIcon()
-                icon.addPixmap(QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+                icon.addPixmap(QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
                 progress.signals.setWindowIcon.emit(icon)
                 progress.signals.setWindowTitle.emit(f"Filtering measurement {mdf_index+i} of {count}")
                 progress.signals.setLabelText.emit(f'Filtering selected channels from\n"{source_file}"')
@@ -1410,7 +1412,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             if opts.needs_cut:
                 icon = QtGui.QIcon()
-                icon.addPixmap(QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+                icon.addPixmap(QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
                 progress.signals.setWindowIcon.emit(icon)
                 progress.signals.setWindowTitle.emit(f"Cutting measurement {mdf_index+1} of {count}")
                 progress.signals.setLabelText.emit(
@@ -1450,7 +1452,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     message = f"Resampling to {raster}s raster\n{source_file}"
 
                 icon = QtGui.QIcon()
-                icon.addPixmap(QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+                icon.addPixmap(QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
                 progress.signals.setWindowIcon.emit(icon)
                 progress.signals.setWindowTitle.emit(f"Resampling measurement {mdf_index+1} of {count}")
                 progress.signals.setLabelText.emit(message)
@@ -1483,8 +1485,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     icon = QtGui.QIcon()
                     icon.addPixmap(
                         QtGui.QPixmap(":/convert.png"),
-                        QtGui.QIcon.Normal,
-                        QtGui.QIcon.Off,
+                        QtGui.QIcon.Mode.Normal,
+                        QtGui.QIcon.State.Off,
                     )
                     progress.signals.setWindowIcon.emit(icon)
                     progress.signals.setWindowTitle.emit(f"Converting measurement {mdf_index+1} of {count}")
@@ -1530,7 +1532,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                 # then save it
                 icon = QtGui.QIcon()
-                icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+                icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
                 progress.signals.setWindowIcon.emit(icon)
                 progress.signals.setWindowTitle.emit(f"Saving measurement {mdf_index+1} of {count}")
                 progress.signals.setLabelText.emit(f"Saving output file {mdf_index+1} of {count}\n{source_file}")
@@ -1547,7 +1549,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             else:
                 icon = QtGui.QIcon()
-                icon.addPixmap(QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+                icon.addPixmap(QtGui.QPixmap(":/export.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
                 progress.signals.setWindowIcon.emit(icon)
                 progress.signals.setWindowTitle.emit(f"Export measurement {mdf_index+1} of {count}")
                 progress.signals.setLabelText.emit(
@@ -1555,12 +1557,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 )
 
                 delimiter = self.delimiter.text() or ","
-                doublequote = self.doublequote.checkState() == QtCore.Qt.Checked
+                doublequote = self.doublequote.checkState() == QtCore.Qt.CheckState.Checked
                 escapechar = self.escapechar.text() or None
                 lineterminator = self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n")
                 quotechar = self.quotechar.text() or '"'
                 quoting = self.quoting.currentText()
-                add_units = self.add_units.checkState() == QtCore.Qt.Checked
+                add_units = self.add_units.checkState() == QtCore.Qt.CheckState.Checked
 
                 target = self.mdf.export if mdf is None else mdf.export
                 kwargs = {
@@ -1635,7 +1637,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.files_list.addItems(source_files)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         for row in range(count):
             self.files_list.item(row).setIcon(icon)
 
@@ -1675,7 +1677,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.files_list.addItems([item[1] for item in start_times])
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         for row in range(count):
             self.files_list.item(row).setIcon(icon)
 
@@ -1701,13 +1703,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     if item.parent() is None:
                         continue
 
-                    if item.checkState(0) == QtCore.Qt.Checked:
+                    if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                         signals.append(item.text(0))
             else:
                 while item := iterator.value():
                     iterator += 1
 
-                    if item.checkState(0) == QtCore.Qt.Checked:
+                    if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                         signals.append(item.text(0))
 
             suffix = file_name.suffix.lower()
@@ -1793,10 +1795,10 @@ MultiRasterSeparator;&
 
                     channel_name = item.text(0)
                     if channel_name in channels:
-                        item.setCheckState(0, QtCore.Qt.Checked)
+                        item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         channels.pop(channels.index(channel_name))
                     else:
-                        item.setCheckState(0, QtCore.Qt.Unchecked)
+                        item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
                     iterator += 1
             elif self.filter_view.currentText() == "Natural sort":
@@ -1805,10 +1807,10 @@ MultiRasterSeparator;&
 
                     channel_name = item.text(0)
                     if channel_name in channels:
-                        item.setCheckState(0, QtCore.Qt.Checked)
+                        item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         channels.pop(channels.index(channel_name))
                     else:
-                        item.setCheckState(0, QtCore.Qt.Unchecked)
+                        item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
                     iterator += 1
 
@@ -1833,7 +1835,7 @@ MultiRasterSeparator;&
                             entry = i, j
                             channel = TreeItem(entry, ch.name, origin_uuid=origin_uuid)
                             channel.setText(0, ch.name)
-                            channel.setCheckState(0, QtCore.Qt.Checked)
+                            channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             items.append(channel)
 
                             channels.pop(channels.index(ch.name))

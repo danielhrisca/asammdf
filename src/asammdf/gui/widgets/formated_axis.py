@@ -505,7 +505,7 @@ class FormatedAxis(pg.AxisItem):
                 painter.begin(picture)
 
                 if self.isVisible():
-                    painter.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
+                    painter.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_SourceOver)
                     if self.style["tickFont"]:
                         painter.setFont(self.style["tickFont"])
                     specs = self.generateDrawSpecs(painter)
@@ -533,7 +533,7 @@ class FormatedAxis(pg.AxisItem):
                         painter.setRenderHint(painter.RenderHint.TextAntialiasing, True)
                         painter.drawText(
                             label_rect,
-                            QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop,
+                            QtCore.Qt.AlignmentFlag.AlignHCenter | QtCore.Qt.AlignmentFlag.AlignTop,
                             self._label_with_unit,
                         )
                         painter.rotate(90)

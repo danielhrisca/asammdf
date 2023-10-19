@@ -25,7 +25,7 @@ class Attachment(Ui_Attachment, QtWidgets.QWidget):
                 self,
                 "Attachment password",
                 "The attachment is encrypted. Please provide the password:",
-                QtWidgets.QLineEdit.Password,
+                QtWidgets.QLineEdit.EchoMode.Password,
             )
             if ok and text:
                 password = text

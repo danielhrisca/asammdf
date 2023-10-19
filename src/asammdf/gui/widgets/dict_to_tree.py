@@ -38,6 +38,6 @@ class ComputedChannelInfoWindow(QMainWindow):
         self.setWindowTitle(f"Computed channel {signal.name}")
         self.setMinimumSize(600, 400)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         self.setWindowIcon(icon)

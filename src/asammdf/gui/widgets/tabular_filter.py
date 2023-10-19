@@ -144,7 +144,7 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
 
     def to_config(self):
         info = {
-            "enabled": self.enabled.checkState() == QtCore.Qt.Checked,
+            "enabled": self.enabled.checkState() == QtCore.Qt.CheckState.Checked,
             "relation": self.relation.currentText(),
             "column": self.column.currentText(),
             "op": self.op.currentText(),

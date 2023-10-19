@@ -43,7 +43,7 @@ class Bookmark(pg.InfiniteLine):
             {
                 "color": color,
                 "width": 2,
-                "style": QtCore.Qt.DashLine,
+                "style": QtCore.Qt.PenStyle.DashLine,
             }
         )
 
@@ -129,7 +129,7 @@ class Bookmark(pg.InfiniteLine):
 
             pen = self.pen
             pen.setWidth(self.line_width)
-            pen.setStyle(QtCore.Qt.DashLine)
+            pen.setStyle(QtCore.Qt.PenStyle.DashLine)
 
             paint.setPen(pen)
 
@@ -229,7 +229,7 @@ class Cursor(pg.InfiniteLine):
         self.color = color
 
         # disable mouse cursor until https://github.com/pyqtgraph/pyqtgraph/issues/2416 is fixed
-        # self.setCursor(QtCore.Qt.SplitHCursor)
+        # self.setCursor(QtCore.Qt.CursorShape.SplitHCursor)
 
         self.sigDragged.connect(self.update_mouse_cursor)
         self.sigPositionChangeFinished.connect(self.update_mouse_cursor)
@@ -263,7 +263,7 @@ class Cursor(pg.InfiniteLine):
     def update_mouse_cursor(self, obj):
         if self.moving:
             if not self._cursor_override:
-                QtGui.QGuiApplication.setOverrideCursor(QtCore.Qt.SplitHCursor)
+                QtGui.QGuiApplication.setOverrideCursor(QtCore.Qt.CursorShape.SplitHCursor)
                 self._cursor_override = True
         else:
             if self._cursor_override is not None:
@@ -281,11 +281,11 @@ class Cursor(pg.InfiniteLine):
             pen.setWidth(self.line_width)
 
             if self.mouseHovering and self.movable:
-                pen.setStyle(QtCore.Qt.DashLine)
+                pen.setStyle(QtCore.Qt.PenStyle.DashLine)
             elif not self.locked:
-                pen.setStyle(QtCore.Qt.SolidLine)
+                pen.setStyle(QtCore.Qt.PenStyle.SolidLine)
             else:
-                pen.setStyle(QtCore.Qt.DashDotDotLine)
+                pen.setStyle(QtCore.Qt.PenStyle.DashDotDotLine)
 
             paint.setPen(pen)
 
@@ -491,7 +491,7 @@ class Region(pg.LinearRegionItem):
 
             p.setBrush(self.currentBrush)
             p.setPen(pg.functions.mkPen(None))
-            p.setCompositionMode(QtGui.QPainter.CompositionMode_SourceAtop)
+            p.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_SourceAtop)
             p.drawRect(rect)
             for line in self.lines:
                 line.paint(p, *args, plot=plot, uuid=uuid)

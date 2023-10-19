@@ -23,7 +23,7 @@ class TestPushButtons(TestPlotWidget):
 
         # Press PushButton "Hide axis"
         if not self.plot.hide_axes_btn.isFlat():
-            QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.LeftButton)
+            QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
 
         # Save PixMap of clear plot
         clear_pixmap = self.plot.plot.viewport().grab()
@@ -70,16 +70,16 @@ class TestPushButtons(TestPlotWidget):
         # Event
         if self.plot.selected_channel_value.isVisible():
             # Press PushButton "Hide selected channel value panel"
-            QtTest.QTest.mouseClick(self.plot.selected_channel_value_btn, QtCore.Qt.LeftButton)
+            QtTest.QTest.mouseClick(self.plot.selected_channel_value_btn, QtCore.Qt.MouseButton.LeftButton)
         # Press PushButton "Show selected channel value panel"
-        QtTest.QTest.mouseClick(self.plot.selected_channel_value_btn, QtCore.Qt.LeftButton)
+        QtTest.QTest.mouseClick(self.plot.selected_channel_value_btn, QtCore.Qt.MouseButton.LeftButton)
         self.assertTrue(self.plot.selected_channel_value.isVisible())
 
         # Press PushButton "Hide selected channel value panel"
-        QtTest.QTest.mouseClick(self.plot.selected_channel_value_btn, QtCore.Qt.LeftButton)
+        QtTest.QTest.mouseClick(self.plot.selected_channel_value_btn, QtCore.Qt.MouseButton.LeftButton)
         self.assertFalse(self.plot.selected_channel_value.isVisible())
         # Press PushButton "Show selected channel value panel"
-        QtTest.QTest.mouseClick(self.plot.selected_channel_value_btn, QtCore.Qt.LeftButton)
+        QtTest.QTest.mouseClick(self.plot.selected_channel_value_btn, QtCore.Qt.MouseButton.LeftButton)
         self.assertTrue(self.plot.selected_channel_value.isVisible())
 
         # Select Channel
@@ -98,7 +98,7 @@ class TestPushButtons(TestPlotWidget):
         self.processEvents(0.1)
         # Send Key strokes
         for _ in range(6):
-            QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Right)
+            QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key.Key_Right)
             self.processEvents(0.1)
         self.processEvents(0.1)
 
@@ -126,7 +126,7 @@ class TestPushButtons(TestPlotWidget):
         self.processEvents(0.1)
         # Send Key strokes
         for _ in range(6):
-            QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Right)
+            QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key.Key_Right)
             self.processEvents(0.1)
         self.processEvents(0.1)
 
@@ -163,7 +163,7 @@ class TestPushButtons(TestPlotWidget):
         """
         # Events
         if not self.plot.focused_mode_btn.isFlat():
-            QtTest.QTest.mouseClick(self.plot.focused_mode_btn, QtCore.Qt.LeftButton)
+            QtTest.QTest.mouseClick(self.plot.focused_mode_btn, QtCore.Qt.MouseButton.LeftButton)
 
         channels_present_pixmap = self.plot.plot.viewport().grab()
         self.assertFalse(Pixmap.is_black(pixmap=channels_present_pixmap))
@@ -181,7 +181,7 @@ class TestPushButtons(TestPlotWidget):
         )
 
         # Press Button Focus Mode
-        QtTest.QTest.mouseClick(self.plot.focused_mode_btn, QtCore.Qt.LeftButton)
+        QtTest.QTest.mouseClick(self.plot.focused_mode_btn, QtCore.Qt.MouseButton.LeftButton)
 
         # Evaluate
         focus_mode_clear_pixmap = self.plot.plot.viewport().grab()
@@ -191,7 +191,7 @@ class TestPushButtons(TestPlotWidget):
         # Select 2nd Channel
         QtTest.QTest.mouseClick(
             self.plot.channel_selection.viewport(),
-            QtCore.Qt.LeftButton,
+            QtCore.Qt.MouseButton.LeftButton,
             QtCore.Qt.KeyboardModifiers(),
             self.plot.channel_selection.visualItemRect(self.plot_tree_channel_1).center(),
         )
@@ -250,7 +250,7 @@ class TestPushButtons(TestPlotWidget):
 
         # Event
         if not self.plot.delta_btn.isFlat():
-            QtTest.QTest.mouseClick(self.plot.delta_btn, QtCore.Qt.LeftButton)
+            QtTest.QTest.mouseClick(self.plot.delta_btn, QtCore.Qt.MouseButton.LeftButton)
             self.processEvents()
 
         # Ensure that delta char is not present on channel values
@@ -258,7 +258,7 @@ class TestPushButtons(TestPlotWidget):
         self.assertNotIn("Δ", self.plot_tree_channel_1.text(self.Column.VALUE))
 
         # Press PushButton Delta (range is not active)
-        QtTest.QTest.mouseClick(self.plot.delta_btn, QtCore.Qt.LeftButton)
+        QtTest.QTest.mouseClick(self.plot.delta_btn, QtCore.Qt.MouseButton.LeftButton)
         self.processEvents()
 
         # Ensure that delta char is not present on channel values even if button is pressed
@@ -266,7 +266,7 @@ class TestPushButtons(TestPlotWidget):
         self.assertNotIn("Δ", self.plot_tree_channel_1.text(self.Column.VALUE))
 
         # Press Key 'R' for range selection
-        QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_R)
+        QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key.Key_R)
         self.processEvents(timeout=0.01)
 
         # Ensure that delta char is present on channel values even if button is pressed
@@ -277,7 +277,7 @@ class TestPushButtons(TestPlotWidget):
         # Select channel_1
         QtTest.QTest.mouseClick(
             self.plot.channel_selection.viewport(),
-            QtCore.Qt.LeftButton,
+            QtCore.Qt.MouseButton.LeftButton,
             QtCore.Qt.KeyboardModifiers(),
             self.plot.channel_selection.visualItemRect(self.plot_tree_channel_1).center(),
         )
@@ -285,14 +285,14 @@ class TestPushButtons(TestPlotWidget):
         self.processEvents(0.1)
         # Move a little bit in center of measurement
         for _ in range(15):
-            QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Right)
+            QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key.Key_Right)
             self.processEvents(timeout=0.1)
 
         # Get current value: Ex: 'Δ = 8'. Get last number
         old_channel_0_value = int(self.plot_tree_channel_0.text(self.Column.VALUE).split(" ")[-1])
         old_channel_1_value = int(self.plot_tree_channel_1.text(self.Column.VALUE).split(" ")[-1])
         for count in range(5):
-            QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Right)
+            QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key.Key_Right)
             self.processEvents(timeout=0.1)
             # Evaluate
             channel_0_value = int(self.plot_tree_channel_0.text(self.Column.VALUE).split(" ")[-1])
@@ -303,7 +303,7 @@ class TestPushButtons(TestPlotWidget):
             old_channel_1_value = channel_1_value
 
         # Press Key 'R' for range selection
-        QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_R)
+        QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key.Key_R)
         self.processEvents(timeout=0.01)
 
         # Ensure that delta char is not present on channel values even if button is pressed
