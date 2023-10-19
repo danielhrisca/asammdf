@@ -10,6 +10,7 @@ import webbrowser
 from natsort import natsorted
 import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import __version__ as pyside6_version
 
 from ...version import __version__ as libversion
 from ..dialogs.bus_database_manager import BusDatabaseManagerDialog
@@ -1489,6 +1490,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     <p style=" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">Build information:</p>
     <ul style="margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;">
     <li style=" font-family:'MS Shell Dlg 2'; font-size:8pt;" style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">version {libversion}</li>
+    <li style=" font-family:'MS Shell Dlg 2'; font-size:8pt;" style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">PySide6 {pyside6_version}</li>
     <li style=" font-family:'MS Shell Dlg 2'; font-size:8pt;" style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">CPython {cpython}</li></ul>
     <p style="-qt-paragraph-type:empty; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p>
     <p>Copyright © 2018-2023 Daniel Hrisca</p></body></html>""",

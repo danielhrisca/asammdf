@@ -2,6 +2,7 @@
 
 import logging
 
+
 logger = logging.getLogger("asammdf")
 formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
 console = logging.StreamHandler()
