@@ -30,7 +30,7 @@ class TestTabModifyAndExport(TestFileWidget):
         # Go to Tab: "Modify & Export": Index 1
         self.widget.aspects.setCurrentIndex(1)
         # Press PushButton ScrambleTexts
-        QtTest.QTest.mouseClick(self.widget.scramble_btn, QtCore.Qt.LeftButton)
+        QtTest.QTest.mouseClick(self.widget.scramble_btn, QtCore.Qt.MouseButton.LeftButton)
 
         channels = self.widget.channels_db_items
 
@@ -80,7 +80,7 @@ class TestTabModifyAndExport(TestFileWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.filter_tree)
         while iterator.value() and count:
             item = iterator.value()
-            item.setCheckState(0, QtCore.Qt.Checked)
+            item.setCheckState(0, QtCore.Qt.CheckState.Checked)
             self.assertTrue(item.checkState(0))
             selected_channels.append(item.text(0))
             iterator += 1
@@ -99,7 +99,7 @@ class TestTabModifyAndExport(TestFileWidget):
                 "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName"
             ) as mc_getSaveFileName, mock.patch("asammdf.gui.widgets.file.setup_progress") as mo_setup_progress:
                 mc_getSaveFileName.return_value = None, None
-                QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.LeftButton)
+                QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
                 self.processEvents()
             # Evaluate
             # Progress is not created
@@ -111,7 +111,7 @@ class TestTabModifyAndExport(TestFileWidget):
             saved_file = pathlib.Path(self.test_workspace, f"{self.id()}.mf4")
             with mock.patch("asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName") as mc_getSaveFileName:
                 mc_getSaveFileName.return_value = str(saved_file), None
-                QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.LeftButton)
+                QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
                 self.processEvents()
         # Wait for thread to finish
         self.processEvents(0.1)

@@ -52,10 +52,10 @@ class ChannelGroupInfoWidget(Ui_ChannelGroupInfo, QtWidgets.QWidget):
         self._display(self.position)
 
     def wrap_changed(self):
-        if self.wrap.checkState() == QtCore.Qt.Checked:
-            self.display.setWordWrapMode(QtGui.QTextOption.WordWrap)
+        if self.wrap.checkState() == QtCore.Qt.CheckState.Checked:
+            self.display.setWordWrapMode(QtGui.QTextOption.WrapMode.WordWrap)
         else:
-            self.display.setWordWrapMode(QtGui.QTextOption.NoWrap)
+            self.display.setWordWrapMode(QtGui.QTextOption.WrapMode.NoWrap)
         self._display(self.position)
 
     def select_channel(self, row):

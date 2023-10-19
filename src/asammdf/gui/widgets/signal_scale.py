@@ -63,7 +63,7 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
         self.target_min.valueChanged.connect(self.set_target)
 
         canvas = QtGui.QPixmap(PLOT_HEIGTH + 3 * TEXT_WIDTH, PLOT_HEIGTH)
-        canvas.fill(QtCore.Qt.black)
+        canvas.fill(QtCore.Qt.GlobalColor.black)
         self.plot.setPixmap(canvas)
         self.plot.setFocus()
 
@@ -127,7 +127,7 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
         self.y_top.setText(f"{y_top:.3f}")
 
         canvas = self.plot.pixmap()
-        canvas.fill(QtCore.Qt.black)
+        canvas.fill(QtCore.Qt.GlobalColor.black)
 
         if self.samples is None:
             self.target_max.setEnabled(True)
@@ -160,7 +160,7 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
         ndarray[:, 1] = y
 
         painter = QtGui.QPainter(canvas)
-        pen = QtGui.QPen(QtCore.Qt.white)
+        pen = QtGui.QPen(QtCore.Qt.GlobalColor.white)
         painter.setPen(pen)
 
         step = PLOT_HEIGTH // 10
@@ -182,7 +182,7 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
         painter.setClipping(True)
         painter.setClipRect(QtCore.QRect(TEXT_WIDTH, 0, PLOT_HEIGTH, PLOT_HEIGTH))
 
-        pen.setStyle(QtCore.Qt.DotLine)
+        pen.setStyle(QtCore.Qt.PenStyle.DotLine)
         painter.setPen(pen)
         for i, x in enumerate(range(0, PLOT_HEIGTH + step, step)):
             painter.drawLine(0, x, PLOT_HEIGTH + 2 * TEXT_WIDTH, x)
@@ -194,7 +194,7 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
 
         pen = QtGui.QPen("#18e223")
         pen.setWidth(2)
-        pen.setStyle(QtCore.Qt.DashDotDotLine)
+        pen.setStyle(QtCore.Qt.PenStyle.DashDotDotLine)
         painter.setPen(pen)
         offset = int(PLOT_HEIGTH - self.offset.value() * PLOT_HEIGTH / 100)
         painter.drawLine(0, offset, PLOT_HEIGTH + 2 * TEXT_WIDTH, offset)
@@ -210,11 +210,11 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
         key = event.key()
         modifiers = event.modifiers()
 
-        if key == QtCore.Qt.Key_I and modifiers == QtCore.Qt.NoModifier:
+        if key == QtCore.Qt.Key.Key_I and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
             self.zoom_in()
-        elif key == QtCore.Qt.Key_O and modifiers == QtCore.Qt.NoModifier:
+        elif key == QtCore.Qt.Key.Key_O and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
             self.zoom_out()
-        elif key == QtCore.Qt.Key_F and modifiers == QtCore.Qt.NoModifier:
+        elif key == QtCore.Qt.Key.Key_F and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
             self.fit()
         else:
             super().keyPressEvent(event)

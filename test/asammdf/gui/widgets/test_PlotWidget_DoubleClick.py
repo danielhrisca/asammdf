@@ -26,10 +26,10 @@ class TestDoubleClick(TestPlotWidget):
 
         # Press PushButton 'FocusMode' - disabled (easy for evaluation)
         if not self.plot.focused_mode_btn.isFlat():
-            QtTest.QTest.mouseClick(self.plot.focused_mode_btn, QtCore.Qt.LeftButton)
+            QtTest.QTest.mouseClick(self.plot.focused_mode_btn, QtCore.Qt.MouseButton.LeftButton)
         # Press PushButton "Hide axis"
         if not self.plot.hide_axes_btn.isFlat():
-            QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.LeftButton)
+            QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
         self.processEvents()
 
     def test_ChannelSelection(self):
@@ -51,17 +51,17 @@ class TestDoubleClick(TestPlotWidget):
         plot_channel = self.add_channel_to_plot()
 
         # Pre-evaluation
-        self.assertEqual(QtCore.Qt.Checked, plot_channel.checkState(0))
+        self.assertEqual(QtCore.Qt.CheckState.Checked, plot_channel.checkState(0))
 
         # Press mouse double click on channel
         self.mouseDClick_WidgetItem(plot_channel)
 
         # Evaluate
-        self.assertEqual(QtCore.Qt.Unchecked, plot_channel.checkState(0))
+        self.assertEqual(QtCore.Qt.CheckState.Unchecked, plot_channel.checkState(0))
 
         # Press mouse double click on channel
         self.mouseDClick_WidgetItem(plot_channel)
-        self.assertEqual(QtCore.Qt.Checked, plot_channel.checkState(0))
+        self.assertEqual(QtCore.Qt.CheckState.Checked, plot_channel.checkState(0))
 
     def test_EnableDisable_Group(self):
         """
@@ -146,7 +146,7 @@ class TestDoubleClick(TestPlotWidget):
             )
 
             for _ in range(4):
-                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Down)
                 self.processEvents()
 
             # Evaluate that item is still 2nd one because
@@ -160,7 +160,7 @@ class TestDoubleClick(TestPlotWidget):
             self.processEvents()
 
             for _ in range(4):
-                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Down)
                 self.processEvents()
 
             # Evaluate that item is the one from the group
@@ -302,9 +302,9 @@ class TestDoubleClick(TestPlotWidget):
                     msg=f"Color of Channel: {channel.text(self.Column.NAME)} present on 'plot'.",
                 )
 
-            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Up)
+            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Up)
             for _ in range(4):
-                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Down)
                 self.processEvents()
 
             # Evaluate that item is still plot_channel_d
@@ -318,7 +318,7 @@ class TestDoubleClick(TestPlotWidget):
             self.processEvents()
 
             for _ in range(8):
-                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Down)
                 self.processEvents()
 
             # Evaluate that item is the one from the group C
@@ -462,9 +462,9 @@ class TestDoubleClick(TestPlotWidget):
                     msg=f"Color of Channel: {channel.text(self.Column.NAME)} present on 'plot'.",
                 )
 
-            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Up)
+            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Up)
             for _ in range(4):
-                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Down)
                 self.processEvents()
 
             # Press mouse double click on group B
@@ -472,7 +472,7 @@ class TestDoubleClick(TestPlotWidget):
             self.processEvents()
 
             for _ in range(8):
-                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Down)
                 self.processEvents()
 
             # Evaluate
@@ -613,9 +613,9 @@ class TestDoubleClick(TestPlotWidget):
                     msg=f"Color of Channel: {channel.text(self.Column.NAME)} present on 'plot'.",
                 )
 
-            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Up)
+            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Up)
             for _ in range(4):
-                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Down)
                 self.processEvents()
 
             # Press mouse double click on group B
@@ -623,7 +623,7 @@ class TestDoubleClick(TestPlotWidget):
             self.processEvents()
 
             for _ in range(8):
-                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Down)
                 self.processEvents()
 
             # Evaluate
@@ -766,9 +766,9 @@ class TestDoubleClick(TestPlotWidget):
                     msg=f"Color of Channel: {channel.text(self.Column.NAME)} present on 'plot'.",
                 )
 
-            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Up)
+            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Up)
             for _ in range(4):
-                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Down)
                 self.processEvents()
 
             # Press mouse double click on group B
@@ -795,7 +795,7 @@ class TestDoubleClick(TestPlotWidget):
             self.assertEqual(0, len(selectedItems))
 
             for _ in range(8):
-                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Down)
                 self.processEvents()
 
             # Evaluate

@@ -30,7 +30,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
-        self.setWindowFlags(QtCore.Qt.WindowMinMaxButtonsHint | self.windowFlags())
+        self.setWindowFlags(QtCore.Qt.WindowType.WindowMinMaxButtonsHint | self.windowFlags())
 
         self.mdf = mdf
         self.result = None
@@ -38,7 +38,9 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.origin_uuid = origin_uuid or (mdf.uuid if mdf else os.urandom(6).hex())
 
         self.arg_widgets = []
-        spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacer = QtWidgets.QSpacerItem(
+            20, 20, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding
+        )
         self.arg_layout.addItem(spacer, len(self.arg_widgets) + 2, 0)
         self.arg_widgets.append(spacer)
 
@@ -174,7 +176,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         func = locals()[name]
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/search.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/search.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         parameters = list(inspect.signature(func).parameters)[:-1]
         for i, arg_name in enumerate(parameters, 2):
@@ -189,7 +191,9 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
             self.arg_widgets.append((label, text_edit, button))
 
-        spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacer = QtWidgets.QSpacerItem(
+            20, 20, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding
+        )
 
         self.arg_layout.addItem(spacer, len(self.arg_widgets) + 2, 0)
         self.arg_widgets.append(spacer)
@@ -239,19 +243,19 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             PythonHighlighter(info.document())
             info.setReadOnly(True)
             info.setLineWrapMode(info.NoWrap)
-            info.setWindowFlags(QtCore.Qt.WindowMinMaxButtonsHint | info.windowFlags())
+            info.setWindowFlags(QtCore.Qt.WindowType.WindowMinMaxButtonsHint | info.windowFlags())
             info.setWindowTitle(f"{function} definition")
-            info.setWindowModality(QtCore.Qt.ApplicationModal)
+            info.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
 
             p = info.palette()
-            for active in (QtGui.QPalette.Active, QtGui.QPalette.Inactive):
-                p.setColor(active, QtGui.QPalette.Base, QtGui.QColor("#131314"))
-                p.setColor(active, QtGui.QPalette.WindowText, QtGui.QColor("#ffffff"))
-                p.setColor(active, QtGui.QPalette.Text, QtGui.QColor("#ffffff"))
+            for active in (QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorGroup.Inactive):
+                p.setColor(active, QtGui.QPalette.ColorRole.Base, QtGui.QColor("#131314"))
+                p.setColor(active, QtGui.QPalette.ColorRole.WindowText, QtGui.QColor("#ffffff"))
+                p.setColor(active, QtGui.QPalette.ColorRole.Text, QtGui.QColor("#ffffff"))
             info.setPalette(p)
 
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
             info.setWindowIcon(icon)
 
             info.show()

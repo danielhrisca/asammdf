@@ -17,9 +17,9 @@ class SearchWidget(Ui_SearchWidget, QtWidgets.QWidget):
         self.entries = []
 
         completer = QtWidgets.QCompleter(sorted_keys, self)
-        completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        completer.setModelSorting(QtWidgets.QCompleter.CaseInsensitivelySortedModel)
-        completer.setFilterMode(QtCore.Qt.MatchContains)
+        completer.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
+        completer.setModelSorting(QtWidgets.QCompleter.ModelSorting.CaseInsensitivelySortedModel)
+        completer.setFilterMode(QtCore.Qt.MatchFlag.MatchContains)
         self.search.setCompleter(completer)
 
         self.search.textChanged.connect(self.display_results)
@@ -45,9 +45,9 @@ class SearchWidget(Ui_SearchWidget, QtWidgets.QWidget):
 
     def set_search_option(self, option):
         if option == "Match start":
-            self.search.completer().setFilterMode(QtCore.Qt.MatchStartsWith)
+            self.search.completer().setFilterMode(QtCore.Qt.MatchFlag.MatchStartsWith)
         elif option == "Match contains":
-            self.search.completer().setFilterMode(QtCore.Qt.MatchContains)
+            self.search.completer().setFilterMode(QtCore.Qt.MatchFlag.MatchContains)
 
     def display_results(self, text):
         channel_name = text.strip()

@@ -286,7 +286,7 @@ class TestTabChannels(TestFileWidget):
                     if item.parent() is None:
                         iterator += 1
                         continue
-                    if item.checkState(0) == QtCore.Qt.Checked:
+                    if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                         checked_items.append(item.text(0))
                     iterator += 1
                 self.assertEqual(0, len(checked_items))
@@ -316,7 +316,7 @@ class TestTabChannels(TestFileWidget):
                     if item.parent() is None:
                         iterator += 1
                         continue
-                    if item.checkState(0) == QtCore.Qt.Checked:
+                    if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                         checked_items.append(item.text(0))
                     iterator += 1
                 self.assertEqual(0, len(checked_items))
@@ -348,7 +348,7 @@ class TestTabChannels(TestFileWidget):
                     if item.parent() is None:
                         iterator += 1
                         continue
-                    if item.checkState(0) == QtCore.Qt.Checked:
+                    if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                         checked_items.append(item.text(0))
                     iterator += 1
                 self.assertEqual(7, len(checked_items))
@@ -460,7 +460,7 @@ class TestTabChannels(TestFileWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
         while iterator.value():
             item = iterator.value()
-            item.setCheckState(0, QtCore.Qt.Unchecked)
+            item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
             self.assertFalse(item.checkState(0))
             iterator += 1
 
@@ -511,7 +511,7 @@ class TestTabChannels(TestFileWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
         while iterator.value():
             item = iterator.value()
-            item.setCheckState(0, QtCore.Qt.Checked)
+            item.setCheckState(0, QtCore.Qt.CheckState.Checked)
             self.assertTrue(item.checkState(0))
             iterator += 1
         # Press PushButton: "Clear all selected channels"
@@ -528,7 +528,7 @@ class TestTabChannels(TestFileWidget):
         self.widget.channel_view.setCurrentText("Internal file structure")
         while iterator.value():
             item = iterator.value()
-            item.setCheckState(0, QtCore.Qt.Checked)
+            item.setCheckState(0, QtCore.Qt.CheckState.Checked)
             self.assertTrue(item.checkState(0))
             iterator += 1
         # Press PushButton: "Clear all selected channels"
@@ -586,7 +586,7 @@ class TestTabChannels(TestFileWidget):
                 mc_AdvancedSearch.return_value.add_window_request = False
 
                 # - Press PushButton: "Search and select channels"
-                QtTest.QTest.mouseClick(self.widget.advanced_search_btn, QtCore.Qt.LeftButton)
+                QtTest.QTest.mouseClick(self.widget.advanced_search_btn, QtCore.Qt.MouseButton.LeftButton)
                 # Evaluate
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
                 while iterator.value():
@@ -605,13 +605,13 @@ class TestTabChannels(TestFileWidget):
                 mc_AdvancedSearch.return_value.add_window_request = False
 
                 # - Press PushButton: "Search and select channels"
-                QtTest.QTest.mouseClick(self.widget.advanced_search_btn, QtCore.Qt.LeftButton)
+                QtTest.QTest.mouseClick(self.widget.advanced_search_btn, QtCore.Qt.MouseButton.LeftButton)
                 # Evaluate
                 checked_channels = 0
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
                 while iterator.value():
                     item = iterator.value()
-                    if item.checkState(0) == QtCore.Qt.Checked:
+                    if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                         checked_channels += 1
                     iterator += 1
                 self.assertEqual(2, checked_channels)
@@ -623,7 +623,7 @@ class TestTabChannels(TestFileWidget):
             iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
             while iterator.value():
                 item = iterator.value()
-                item.setCheckState(0, QtCore.Qt.Unchecked)
+                item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
                 iterator += 1
             with mock.patch("asammdf.gui.widgets.file.AdvancedSearch") as mc_AdvancedSearch, mock.patch(
                 "asammdf.gui.widgets.file.WindowSelectionDialog"
@@ -639,13 +639,13 @@ class TestTabChannels(TestFileWidget):
                 mc_WindowSelectionDialog.return_value.disable_new_channels.return_value = False
 
                 # - Press PushButton: "Search and select channels"
-                QtTest.QTest.mouseClick(self.widget.advanced_search_btn, QtCore.Qt.LeftButton)
+                QtTest.QTest.mouseClick(self.widget.advanced_search_btn, QtCore.Qt.MouseButton.LeftButton)
                 # Evaluate
                 checked_channels = 0
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
                 while iterator.value():
                     item = iterator.value()
-                    if item.checkState(0) == QtCore.Qt.Checked:
+                    if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                         checked_channels += 1
                     iterator += 1
                 self.assertEqual(2, checked_channels)
@@ -689,7 +689,7 @@ class TestTabChannels(TestFileWidget):
             with mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mc_WindowSelectionDialog:
                 mc_WindowSelectionDialog.return_value.result.return_value = False
                 # - Press PushButton "Create Window"
-                QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
+                QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.MouseButton.LeftButton)
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
 
@@ -699,7 +699,7 @@ class TestTabChannels(TestFileWidget):
                 mc_WindowSelectionDialog.return_value.result.return_value = True
                 mc_WindowSelectionDialog.return_value.selected_type.return_value = "Plot"
                 # - Press PushButton "Create Window"
-                QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
+                QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.MouseButton.LeftButton)
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
             widget_types = self.get_subwindows()
@@ -712,9 +712,9 @@ class TestTabChannels(TestFileWidget):
                 mc_WindowSelectionDialog.return_value.selected_type.return_value = "Numeric"
                 # - Select one channel
                 channel = self.widget.channels_tree.topLevelItem(0).text(0)
-                self.widget.channels_tree.topLevelItem(0).setCheckState(0, QtCore.Qt.Checked)
+                self.widget.channels_tree.topLevelItem(0).setCheckState(0, QtCore.Qt.CheckState.Checked)
                 # - Press PushButton "Create Window"
-                QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
+                QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.MouseButton.LeftButton)
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
             widget_types = self.get_subwindows()
@@ -729,7 +729,7 @@ class TestTabChannels(TestFileWidget):
                 mc_WindowSelectionDialog.return_value.result.return_value = True
                 mc_WindowSelectionDialog.return_value.selected_type.return_value = "Tabular"
                 # - Press PushButton "Create Window"
-                QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
+                QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.MouseButton.LeftButton)
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 3)
             widget_types = self.get_subwindows()
@@ -741,7 +741,7 @@ class TestTabChannels(TestFileWidget):
                 mc_WindowSelectionDialog.return_value.result.return_value = True
                 mc_WindowSelectionDialog.return_value.selected_type.return_value = "Plot"
                 # - Press PushButton "Create Window"
-                QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.LeftButton)
+                QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.MouseButton.LeftButton)
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 4)
             widget_types = self.get_subwindows()

@@ -43,7 +43,7 @@ class MessageBox(QtWidgets.QMessageBox):
         self.timer.start(1000)
 
     def keyPressEvent(self, event):
-        if event.key() == QtCore.Qt.Key_F1:
+        if event.key() == QtCore.Qt.Key.Key_F1:
             self.timer.stop()
             self.setText(self.original_text)
         else:
@@ -78,9 +78,9 @@ class MessageBox(QtWidgets.QMessageBox):
         parent,
         title,
         text,
-        buttons=QtWidgets.QMessageBox.Ok,
-        defaultButton=QtWidgets.QMessageBox.Ok,
-        escapeButton=QtWidgets.QMessageBox.Ok,
+        buttons=QtWidgets.QMessageBox.StandardButton.Ok,
+        defaultButton=QtWidgets.QMessageBox.StandardButton.Ok,
+        escapeButton=QtWidgets.QMessageBox.StandardButton.Ok,
         timeout=DEFAULT_TIMEOUT,
     ):
         msg = cls(
@@ -101,9 +101,9 @@ class MessageBox(QtWidgets.QMessageBox):
         parent,
         title,
         text,
-        buttons=QtWidgets.QMessageBox.Ok,
-        defaultButton=QtWidgets.QMessageBox.Ok,
-        escapeButton=QtWidgets.QMessageBox.Ok,
+        buttons=QtWidgets.QMessageBox.StandardButton.Ok,
+        defaultButton=QtWidgets.QMessageBox.StandardButton.Ok,
+        escapeButton=QtWidgets.QMessageBox.StandardButton.Ok,
         timeout=DEFAULT_TIMEOUT,
     ):
         msg = cls(
@@ -125,9 +125,9 @@ class MessageBox(QtWidgets.QMessageBox):
         parent,
         title,
         text,
-        buttons=QtWidgets.QMessageBox.Ok,
-        defaultButton=QtWidgets.QMessageBox.Ok,
-        escapeButton=QtWidgets.QMessageBox.Ok,
+        buttons=QtWidgets.QMessageBox.StandardButton.Ok,
+        defaultButton=QtWidgets.QMessageBox.StandardButton.Ok,
+        escapeButton=QtWidgets.QMessageBox.StandardButton.Ok,
         timeout=DEFAULT_TIMEOUT,
     ):
         msg = cls(
@@ -148,9 +148,9 @@ class MessageBox(QtWidgets.QMessageBox):
         parent,
         title,
         text,
-        buttons=QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-        defaultButton=QtWidgets.QMessageBox.No,
-        escapeButton=QtWidgets.QMessageBox.No,
+        buttons=QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No,
+        defaultButton=QtWidgets.QMessageBox.StandardButton.No,
+        escapeButton=QtWidgets.QMessageBox.StandardButton.No,
         timeout=DEFAULT_TIMEOUT,
     ):
         msg = cls(
@@ -171,9 +171,9 @@ class MessageBox(QtWidgets.QMessageBox):
         parent,
         title,
         text,
-        buttons=QtWidgets.QMessageBox.Ok,
-        defaultButton=QtWidgets.QMessageBox.Ok,
-        escapeButton=QtWidgets.QMessageBox.Ok,
+        buttons=QtWidgets.QMessageBox.StandardButton.Ok,
+        defaultButton=QtWidgets.QMessageBox.StandardButton.Ok,
+        escapeButton=QtWidgets.QMessageBox.StandardButton.Ok,
         timeout=DEFAULT_TIMEOUT,
     ):
         msg = cls(

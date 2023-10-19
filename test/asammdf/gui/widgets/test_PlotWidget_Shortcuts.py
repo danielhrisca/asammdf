@@ -52,7 +52,7 @@ class TestShortcuts(TestPlotWidget):
 
             # Send Key strokes
             for _ in range(6):
-                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Right)
+                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key.Key_Right)
                 self.processEvents(0.1)
             self.processEvents(0.1)
 
@@ -63,7 +63,7 @@ class TestShortcuts(TestPlotWidget):
 
             # Send Key strokes
             for _ in range(5):
-                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Left)
+                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key.Key_Left)
                 self.processEvents(0.1)
             self.processEvents(0.1)
 
@@ -81,7 +81,7 @@ class TestShortcuts(TestPlotWidget):
 
             # Send Key strokes
             for _ in range(6):
-                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Right)
+                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key.Key_Right)
                 self.processEvents(0.1)
             self.processEvents(0.1)
 
@@ -92,7 +92,7 @@ class TestShortcuts(TestPlotWidget):
 
             # Send Key strokes
             for _ in range(5):
-                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Left)
+                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key.Key_Left)
                 self.processEvents(0.1)
             self.processEvents(0.1)
 
@@ -127,7 +127,7 @@ class TestShortcuts(TestPlotWidget):
 
         # Press PushButton "Hide axis"
         if not plot.hide_axes_btn.isFlat():
-            QtTest.QTest.mouseClick(plot.hide_axes_btn, QtCore.Qt.LeftButton)
+            QtTest.QTest.mouseClick(plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
 
         # Save PixMap of clear plot
         clear_pixmap = plot.plot.viewport().grab()
@@ -139,7 +139,7 @@ class TestShortcuts(TestPlotWidget):
         self.assertEqual(1, len(cursors))
 
         # Press Key 'R' for range selection
-        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_R)
+        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key.Key_R)
         self.processEvents(timeout=0.01)
 
         # Save PixMap of Range plot
@@ -180,7 +180,7 @@ class TestShortcuts(TestPlotWidget):
         )
 
         # Move Cursors
-        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_Right)
+        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key.Key_Right)
         self.processEvents(timeout=0.01)
         QtTest.QTest.keySequence(plot.plot, QtGui.QKeySequence("Ctrl+Left"))
         self.processEvents(timeout=0.01)
@@ -225,7 +225,7 @@ class TestShortcuts(TestPlotWidget):
         )
 
         # Press Key 'R' for range selection
-        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key_R)
+        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key.Key_R)
         self.processEvents(timeout=0.01)
 
         # Save PixMap of clear plot

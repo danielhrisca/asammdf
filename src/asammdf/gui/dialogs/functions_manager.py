@@ -40,7 +40,7 @@ class FunctionsManagerDialog(QtWidgets.QDialog):
         self.setObjectName("FunctionsManagerDialog")
         self.resize(404, 294)
         self.setSizeGripEnabled(True)
-        self.setWindowFlags(QtCore.Qt.Window)
+        self.setWindowFlags(QtCore.Qt.WindowType.Window)
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
         self.widget = FunctionsManager(deepcopy(definitions), channels, selected_definition)
 
@@ -48,7 +48,9 @@ class FunctionsManagerDialog(QtWidgets.QDialog):
 
         self.horLayout = QtWidgets.QHBoxLayout(self)
 
-        spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacer = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum
+        )
         self.apply_btn = QtWidgets.QPushButton("Apply")
         self.cancel_btn = QtWidgets.QPushButton("Cancel")
         self.horLayout.addSpacerItem(spacer)

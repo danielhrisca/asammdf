@@ -315,7 +315,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.destroy()
 
     def keyPressEvent(self, event):
-        if event.key() == QtCore.Qt.Key_Escape and event.modifiers() == QtCore.Qt.NoModifier:
+        if event.key() == QtCore.Qt.Key.Key_Escape and event.modifiers() == QtCore.Qt.KeyboardModifier.NoModifier:
             self.close()
         else:
             super().keyPressEvent(event)
@@ -324,12 +324,12 @@ class ProgressDialog(QtWidgets.QProgressDialog):
 def setup_progress(parent, title="", message="", icon_name="", autoclose=False):
     progress = ProgressDialog(message, "Cancel", 0, 100, parent)
 
-    progress.setWindowModality(QtCore.Qt.ApplicationModal)
+    progress.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
     progress.setCancelButton(None)
     progress.setAutoClose(autoclose)
     progress.setWindowTitle(title)
     icon = QtGui.QIcon()
-    icon.addPixmap(QtGui.QPixmap(f":/{icon_name}.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+    icon.addPixmap(QtGui.QPixmap(f":/{icon_name}.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
     progress.setWindowIcon(icon)
     progress.setMinimumWidth(600)
 

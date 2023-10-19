@@ -15,7 +15,11 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
     def __init__(self, channels_dbs, measurements, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
-        self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowSystemMenuHint | QtCore.Qt.WindowMinMaxButtonsHint)
+        self.setWindowFlags(
+            self.windowFlags()
+            | QtCore.Qt.WindowType.WindowSystemMenuHint
+            | QtCore.Qt.WindowType.WindowMinMaxButtonsHint
+        )
 
         for widget in (
             self.apply_btn,
@@ -30,7 +34,7 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
         self.channels_dbs = channels_dbs
         self.measurements = measurements
 
-        self.matches.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.matches.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
 
         self.apply_btn.clicked.connect(self._apply)
         self.add_btn.clicked.connect(self._add)
