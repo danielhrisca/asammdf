@@ -331,28 +331,6 @@ class FileTreeWidget(QtWidgets.QTreeWidget):
         self.mode = "Natural sort"
 
 
-class SearchTreeWidget(QtWidgets.QTreeWidget):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
-        self.setDragDropMode(QtWidgets.QAbstractItemView.DragDropMode.NoDragDrop)
-        self.setUniformRowHeights(True)
-
-        self.can_delete_items = False
-
-    def keyPressEvent(self, event):
-        key = event.key()
-        modifiers = event.modifiers()
-
-        if key == QtCore.Qt.Key.Key_Delete and self.can_delete_items:
-            selected_items = self.selectedItems()
-
-            root = self.invisibleRootItem()
-            for item in selected_items:
-                (item.parent() or root).removeChild(item)
-
-
 class Delegate(QtWidgets.QItemDelegate):
     def __init__(self, *args):
         super().__init__(*args)
