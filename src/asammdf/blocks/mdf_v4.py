@@ -24,7 +24,6 @@ from time import sleep
 from traceback import format_exc
 from typing import Any, overload
 from zipfile import ZIP_DEFLATED, ZipFile
-from zlib import decompress
 
 from typing_extensions import Literal
 
@@ -148,7 +147,7 @@ from .v4_blocks import (
 try:
     from isal.isal_zlib import decompress
 except ImportError:
-    pass
+    from zlib import decompress
 
 
 MASTER_CHANNELS = (v4c.CHANNEL_TYPE_MASTER, v4c.CHANNEL_TYPE_VIRTUAL_MASTER)

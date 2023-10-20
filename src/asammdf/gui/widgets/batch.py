@@ -13,7 +13,6 @@ from ...blocks.utils import (
     extract_xml_comment,
     load_channel_names_from_file,
     load_lab,
-    TERMINATED,
     timeit,
 )
 from ...blocks.v2_v3_blocks import HeaderBlock as HeaderBlockV3
