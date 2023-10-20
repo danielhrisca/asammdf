@@ -90,7 +90,7 @@ class TestUtils(unittest.TestCase):
             - Evaluate trace. (position 1)
         """
         # Event
-        result = generate_python_function(rf"def Function1(t=0):\n    return true", None)
+        result = generate_python_function(r"def Function1(t=0):\n    return true", None)
 
         # Evaluate
         self.assertIsInstance(result, tuple)
@@ -113,7 +113,7 @@ class TestUtils(unittest.TestCase):
             trace = 'The last function argument must be "t=0"'
 
             # Event
-            result = generate_python_function(f"def Function1():\n\treturn 0", None)
+            result = generate_python_function("def Function1():\n\treturn 0", None)
 
             # Evaluate
             self.assertIsInstance(result, tuple)
@@ -124,7 +124,7 @@ class TestUtils(unittest.TestCase):
             trace = 'The last function argument must be "t=0"'
 
             # Event
-            result = generate_python_function(f"def Function1(t=0, x=0):\n\treturn 0", None)
+            result = generate_python_function("def Function1(t=0, x=0):\n\treturn 0", None)
 
             # Evaluate
             self.assertIsInstance(result, tuple)
@@ -135,7 +135,7 @@ class TestUtils(unittest.TestCase):
             trace = 'The last function argument must be "t=0"'
 
             # Event
-            result = generate_python_function(f"def Function1(t=1):\n\treturn 0", None)
+            result = generate_python_function("def Function1(t=1):\n\treturn 0", None)
 
             # Evaluate
             self.assertIsInstance(result, tuple)
@@ -146,7 +146,7 @@ class TestUtils(unittest.TestCase):
             trace = 'All the arguments must have default values. The argument "channel" has no default value.'
 
             # Event
-            result = generate_python_function(f"def Function1(channel, t=0):\n\treturn 0", None)
+            result = generate_python_function("def Function1(channel, t=0):\n\treturn 0", None)
 
             # Evaluate
             self.assertIsInstance(result, tuple)
@@ -164,7 +164,7 @@ class TestUtils(unittest.TestCase):
         """
         with self.subTest(f"{self.id()}_0"):
             # Event
-            result = generate_python_function(f"def Function1(t=0):\n\treturn 0", None)
+            result = generate_python_function("def Function1(t=0):\n\treturn 0", None)
 
             # Evaluate
             self.assertIsInstance(result, tuple)
