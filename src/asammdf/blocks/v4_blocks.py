@@ -1483,15 +1483,15 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                     links = links[dims_nr * 3 :]
 
                 if self.flags & v4c.FLAG_CA_OUTPUT_QUANTITY:
-                    self[f"output_quantity_dg_addr"] = links[0]
-                    self[f"output_quantity_cg_addr"] = links[1]
-                    self[f"output_quantity_ch_addr"] = links[2]
+                    self["output_quantity_dg_addr"] = links[0]
+                    self["output_quantity_cg_addr"] = links[1]
+                    self["output_quantity_ch_addr"] = links[2]
                     links = links[3:]
 
                 if self.flags & v4c.FLAG_CA_COMPARISON_QUANTITY:
-                    self[f"comparison_quantity_dg_addr"] = links[0]
-                    self[f"comparison_quantity_cg_addr"] = links[1]
-                    self[f"comparison_quantity_ch_addr"] = links[2]
+                    self["comparison_quantity_dg_addr"] = links[0]
+                    self["comparison_quantity_cg_addr"] = links[1]
+                    self["comparison_quantity_ch_addr"] = links[2]
                     links = links[3:]
 
                 if self.flags & v4c.FLAG_CA_AXIS:
@@ -1568,15 +1568,15 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                     links = links[dims_nr * 3 :]
 
                 if self.flags & v4c.FLAG_CA_OUTPUT_QUANTITY:
-                    self[f"output_quantity_dg_addr"] = links[0]
-                    self[f"output_quantity_cg_addr"] = links[1]
-                    self[f"output_quantity_ch_addr"] = links[2]
+                    self["output_quantity_dg_addr"] = links[0]
+                    self["output_quantity_cg_addr"] = links[1]
+                    self["output_quantity_ch_addr"] = links[2]
                     links = links[3:]
 
                 if self.flags & v4c.FLAG_CA_COMPARISON_QUANTITY:
-                    self[f"comparison_quantity_dg_addr"] = links[0]
-                    self[f"comparison_quantity_cg_addr"] = links[1]
-                    self[f"comparison_quantity_ch_addr"] = links[2]
+                    self["comparison_quantity_dg_addr"] = links[0]
+                    self["comparison_quantity_cg_addr"] = links[1]
+                    self["comparison_quantity_ch_addr"] = links[2]
                     links = links[3:]
 
                 if self.flags & v4c.FLAG_CA_AXIS:
@@ -1723,16 +1723,16 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 
         if flags & v4c.FLAG_CA_OUTPUT_QUANTITY:
             keys += (
-                f"output_quantity_dg_addr",
-                f"output_quantity_cg_addr",
-                f"output_quantity_ch_addr",
+                "output_quantity_dg_addr",
+                "output_quantity_cg_addr",
+                "output_quantity_ch_addr",
             )
 
         if flags & v4c.FLAG_CA_COMPARISON_QUANTITY:
             keys += (
-                f"comparison_quantity_dg_addr",
-                f"comparison_quantity_cg_addr",
-                f"comparison_quantity_ch_addr",
+                "comparison_quantity_dg_addr",
+                "comparison_quantity_cg_addr",
+                "comparison_quantity_ch_addr",
             )
 
         if flags & v4c.FLAG_CA_AXIS:
@@ -2153,7 +2153,7 @@ comment: {self.comment}
 
                     lines[-1] += f" (= '{sep}')"
                 else:
-                    lines[-1] += f" (= <undefined>)"
+                    lines[-1] += " (= <undefined>)"
 
         for line in lines:
             if not line:

@@ -1269,8 +1269,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             progress = setup_progress(
                 parent=self,
-                title=f"Loading display windows",
-                message=f"",
+                title="Loading display windows",
+                message="",
                 icon_name="window",
             )
             progress.setRange(0, count - 1)
@@ -1838,7 +1838,7 @@ MultiRasterSeparator;&
             if call_info["unknown_id_count"]:
                 message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
             else:
-                message.append(f"- no unknown IDs inf the MDF4 file")
+                message.append("- no unknown IDs inf the MDF4 file")
 
             message += [
                 "",
@@ -2038,7 +2038,7 @@ MultiRasterSeparator;&
             if call_info["unknown_id_count"]:
                 message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
             else:
-                message.append(f"- no unknown IDs inf the MDF4 file")
+                message.append("- no unknown IDs inf the MDF4 file")
 
             message += [
                 "",
@@ -2297,7 +2297,7 @@ MultiRasterSeparator;&
                 try:
                     item.setText(1, f"{self.mdf.file_limit / 1024 / 1024:.1f} MB")
                 except:
-                    item.setText(1, f"Unknown size")
+                    item.setText(1, "Unknown size")
             children.append(item)
 
             if file_stats is not None:

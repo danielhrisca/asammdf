@@ -2767,7 +2767,7 @@ class HeaderBlock:
             comment = string
             try:
                 comment_xml = ET.fromstring(comment.replace(' xmlns="http://www.asam.net/mdf/v4"', ""))
-            except ET.ParseError as e:
+            except ET.ParseError:
                 self.description = string
             else:
                 description = comment_xml.find(".//TX")

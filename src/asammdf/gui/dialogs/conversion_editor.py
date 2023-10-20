@@ -335,13 +335,13 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
         return conversion
 
     def edit_vtt_default_conversion(self):
-        dlg = ConversionEditor(f"default", self.vtt_default_conversion, parent=self)
+        dlg = ConversionEditor("default", self.vtt_default_conversion, parent=self)
         dlg.exec_()
         if dlg.pressed_button == "apply":
             self.vtt_default_conversion = dlg.conversion()
 
     def edit_vrtt_default_conversion(self):
-        dlg = ConversionEditor(f"default", self.vrtt_default_conversion, parent=self)
+        dlg = ConversionEditor("default", self.vrtt_default_conversion, parent=self)
         dlg.exec_()
         if dlg.pressed_button == "apply":
             self.vrtt_default_conversion = dlg.conversion()

@@ -659,7 +659,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 self,
                 "Select output measurement file",
                 "",
-                f"MDF version 4 files (*.mf4 *.mf4z);;All files (*.*)",
+                "MDF version 4 files (*.mf4 *.mf4z);;All files (*.*)",
                 "MDF version 4 files (*.mf4 *.mf4z)",
             )
 
@@ -816,7 +816,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 self,
                 "Select output measurement file",
                 "",
-                f"MDF version 4 files (*.mf4 *.mf4z);;All files (*.*)",
+                "MDF version 4 files (*.mf4 *.mf4z);;All files (*.*)",
                 "MDF version 4 files (*.mf4 *.mf4z)",
             )
 

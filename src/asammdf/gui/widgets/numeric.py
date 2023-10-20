@@ -912,7 +912,7 @@ class HeaderView(QtWidgets.QTableView):
         menu.addAction(self.tr(f"{count} rows in the numeric window"))
         menu.addSeparator()
 
-        menu.addAction(self.tr(f"Automatic set columns width"))
+        menu.addAction(self.tr("Automatic set columns width"))
 
         action = menu.exec_(self.viewport().mapToGlobal(position))
 
@@ -1528,7 +1528,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         try:
             target = float(self.target.text().strip())
         except:
-            self.match.setText(f"the target must a numeric value")
+            self.match.setText("the target must a numeric value")
         else:
             if target.is_integer():
                 target = int(target)
@@ -1563,7 +1563,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 self.timestamp.setValue(timestamp)
                 self.match.setText(f"condition found for {signal_name}")
             else:
-                self.match.setText(f"condition not found")
+                self.match.setText("condition not found")
 
     def keyPressEvent(self, event):
         key = event.key()

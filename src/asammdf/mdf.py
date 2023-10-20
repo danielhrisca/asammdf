@@ -1666,7 +1666,7 @@ class MDF:
                         comment = ""
 
                     if comment:
-                        for char in f'\n\t\r\b <>\\/:"?*|':
+                        for char in '\n\t\r\b <>\\/:"?*|':
                             comment = comment.replace(char, "_")
                         group_csv_name = filename.parent / f"{filename.stem}.ChannelGroup_{i}_{comment}.csv"
                     else:

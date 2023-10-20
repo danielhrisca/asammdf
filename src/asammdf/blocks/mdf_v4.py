@@ -9496,17 +9496,17 @@ class MDF4(MDF_Common):
                                     gp_nr, ch_nr = dep.output_quantity_channel
                                     grp = self.groups[gp_nr]
                                     ch = grp.channels[ch_nr]
-                                    dep[f"output_quantity_dg_addr"] = grp.data_group.address
-                                    dep[f"output_quantity_cg_addr"] = grp.channel_group.address
-                                    dep[f"output_quantity_ch_addr"] = ch.address
+                                    dep["output_quantity_dg_addr"] = grp.data_group.address
+                                    dep["output_quantity_cg_addr"] = grp.channel_group.address
+                                    dep["output_quantity_ch_addr"] = ch.address
 
                                 if dep.comparison_quantity_channel:
                                     gp_nr, ch_nr = dep.comparison_quantity_channel
                                     grp = self.groups[gp_nr]
                                     ch = grp.channels[ch_nr]
-                                    dep[f"comparison_quantity_dg_addr"] = grp.data_group.address
-                                    dep[f"comparison_quantity_cg_addr"] = grp.channel_group.address
-                                    dep[f"comparison_quantity_ch_addr"] = ch.address
+                                    dep["comparison_quantity_dg_addr"] = grp.data_group.address
+                                    dep["comparison_quantity_cg_addr"] = grp.channel_group.address
+                                    dep["comparison_quantity_ch_addr"] = ch.address
 
                                 for i, (gp_nr, ch_nr) in enumerate(dep.axis_channels):
                                     grp = self.groups[gp_nr]
@@ -10314,7 +10314,7 @@ class MDF4(MDF_Common):
                 ):
                     try:
                         self._process_can_logging(index, group)
-                    except Exception as e:
+                    except Exception:
                         message = f"Error during CAN logging processing: {format_exc()}"
                         logger.error(message)
 

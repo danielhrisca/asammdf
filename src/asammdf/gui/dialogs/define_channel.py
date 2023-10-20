@@ -275,6 +275,6 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             else:
                 MessageBox.warning(
                     self,
-                    f"No function selected",
-                    f"Please select one of the fucntion defined in the Functions manager",
+                    "No function selected",
+                    "Please select one of the fucntion defined in the Functions manager",
                 )

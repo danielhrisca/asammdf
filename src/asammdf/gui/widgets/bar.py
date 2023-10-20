@@ -307,7 +307,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
         try:
             target = float(self.target.text().strip())
         except:
-            self.match.setText(f"the target must a numeric value")
+            self.match.setText("the target must a numeric value")
         else:
             if target.is_integer():
                 target = int(target)
@@ -339,7 +339,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
                 self.timestamp.setValue(timestamp)
                 self.match.setText(f"condition found for {signal_name}")
             else:
-                self.match.setText(f"condition not found")
+                self.match.setText("condition not found")
 
     def set_format(self, fmt):
         self.format = fmt

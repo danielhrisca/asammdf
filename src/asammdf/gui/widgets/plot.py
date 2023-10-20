@@ -4328,8 +4328,8 @@ class PlotGraphics(pg.PlotWidget):
         if not functions:
             MessageBox.warning(
                 self,
-                f"Cannot add computed channel",
-                f"There is no user defined function. Create new function using the Functions Manger (F6)",
+                "Cannot add computed channel",
+                "There is no user defined function. Create new function using the Functions Manger (F6)",
             )
             return
 
@@ -5894,7 +5894,7 @@ class CursorInfo(QtWidgets.QLabel):
         self.customContextMenuRequested.connect(self.open_menu)
 
         if precision == -1:
-            self.setToolTip(f"Cursor information uses maximum precision")
+            self.setToolTip("Cursor information uses maximum precision")
         else:
             self.setToolTip(f"Cursor information precision is set to {self.precision} decimals")
 
@@ -5974,7 +5974,7 @@ class CursorInfo(QtWidgets.QLabel):
     def set_precision(self, precision):
         self.precision = precision
         if precision == -1:
-            self.setToolTip(f"Cursor information uses maximum precision")
+            self.setToolTip("Cursor information uses maximum precision")
         else:
             self.setToolTip(f"Cursor information precision is set to {precision} decimals")
         self.update_value()
