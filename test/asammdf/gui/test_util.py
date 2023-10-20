@@ -1,12 +1,9 @@
 import inspect
 from test.asammdf.gui.resources.functions import (
     Function1,
-    Function2,
     gray2dec,
     maximum,
     rpm_to_rad_per_second,
-    UnresolvedVariable,
-    WrongDefinition,
 )
 import unittest
 
