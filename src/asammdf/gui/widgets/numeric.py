@@ -24,7 +24,6 @@ from asammdf.gui.utils import (
 from asammdf.gui.widgets.plot import PlotSignal
 
 from ...blocks.utils import extract_mime_names
-from ..ui import resource_rc
 from ..ui.numeric_offline import Ui_NumericDisplay
 from ..utils import FONT_SIZE
 

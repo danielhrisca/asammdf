@@ -5,7 +5,6 @@ import webbrowser
 import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ..ui import resource_rc
 from .plot import Plot, PlotSignal
 
 bin_ = bin

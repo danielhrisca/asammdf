@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtWidgets
 
 from ..ui.bus_database_manager import Ui_BusDatabaseManager
 from .database_item import DatabaseItem

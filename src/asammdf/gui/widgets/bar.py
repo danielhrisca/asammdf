@@ -1,13 +1,11 @@
 import os
 import re
 
-from natsort import natsorted
 import numpy as np
 from numpy import searchsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..dialogs.messagebox import MessageBox
-from ..ui import resource_rc
 from ..ui.bar import Ui_BarDisplay
 from ..utils import COLORS
 from .channel_bar_display import ChannelBarDisplay

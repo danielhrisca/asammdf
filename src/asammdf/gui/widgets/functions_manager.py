@@ -1,22 +1,17 @@
-import inspect
 import json
 import math
 import os
 from pathlib import Path
-import random
-from traceback import format_exc
 
 from natsort import natsorted
 import numpy as np
 import pandas as pd
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtGui, QtWidgets
 
 from ..dialogs.messagebox import MessageBox
 from ..ui.functions_manager import Ui_FunctionsManager
 from ..utils import (
     check_generated_function,
-    ErrorDialog,
-    FUNC_NAME,
     generate_python_function,
 )
 from .python_highlighter import PythonHighlighter

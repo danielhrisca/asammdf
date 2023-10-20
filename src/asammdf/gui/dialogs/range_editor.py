@@ -1,6 +1,5 @@
 from PySide6 import QtCore, QtWidgets
 
-from ..ui import resource_rc
 from ..ui.range_editor_dialog import Ui_RangeDialog
 from ..widgets.range_widget import RangeWidget
 

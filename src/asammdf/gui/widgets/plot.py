@@ -1,5 +1,4 @@
 import bisect
-from collections import defaultdict
 from datetime import timedelta
 from functools import lru_cache, partial, reduce
 import os
@@ -20,9 +19,9 @@ PLOT_BUFFER_SIZE = 4000
 
 from ... import tool as Tool
 from ...blocks.conversion_utils import from_dict, to_dict
-from ...blocks.utils import target_byte_order, timeit
+from ...blocks.utils import target_byte_order
 from ..dialogs.messagebox import MessageBox
-from ..utils import BLUE, FONT_SIZE, GREEN, value_as_str
+from ..utils import FONT_SIZE, value_as_str
 from .viewbox import ViewBoxWithCursor
 
 try:

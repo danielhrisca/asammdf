@@ -6,14 +6,11 @@ import os
 from pathlib import Path
 import re
 from tempfile import gettempdir
-from time import sleep
 from traceback import format_exc
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from natsort import natsorted
 import pandas as pd
-import psutil
-import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ... import tool
@@ -44,7 +41,6 @@ from ..dialogs.error_dialog import ErrorDialog
 from ..dialogs.gps_dialog import GPSDialog
 from ..dialogs.messagebox import MessageBox
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
-from ..ui import resource_rc
 from ..ui.file_widget import Ui_file_widget
 from ..utils import GREEN, HelperChannel, run_thread_with_progress, setup_progress
 from .attachment import Attachment

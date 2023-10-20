@@ -4,9 +4,7 @@ classes that implement the blocks for MDF version 4
 
 from __future__ import annotations
 
-from bisect import bisect_left, bisect_right
 from datetime import datetime, timedelta, timezone
-from functools import lru_cache
 from hashlib import md5
 import logging
 from pathlib import Path
@@ -52,7 +50,6 @@ from .utils import (
     get_text_v4,
     is_file_like,
     MdfException,
-    sanitize_xml,
     UINT8_uf,
     UINT64_u,
     UINT64_uf,

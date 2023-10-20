@@ -2,12 +2,10 @@ from functools import partial
 import inspect
 import os
 import re
-from traceback import format_exc
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...signal import Signal
-from ..ui import resource_rc
 from ..ui.define_channel_dialog import Ui_ComputedChannel
 from ..utils import computation_to_python_function
 from ..widgets.python_highlighter import PythonHighlighter

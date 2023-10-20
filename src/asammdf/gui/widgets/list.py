@@ -1,6 +1,5 @@
 import json
 from struct import pack
-from traceback import format_exc
 
 from natsort import natsorted
 from PySide6 import QtCore, QtGui, QtWidgets

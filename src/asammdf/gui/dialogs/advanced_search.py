@@ -5,8 +5,7 @@ from traceback import format_exc
 from natsort import natsorted
 from PySide6 import QtCore, QtWidgets
 
-from ...blocks.utils import extract_xml_comment, timeit
-from ..ui import resource_rc
+from ...blocks.utils import extract_xml_comment
 from ..ui.search_dialog import Ui_SearchDialog
 from .messagebox import MessageBox
 from .range_editor import RangeEditor

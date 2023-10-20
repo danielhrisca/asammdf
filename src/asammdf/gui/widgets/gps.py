@@ -1,12 +1,10 @@
-import io
-import sys
 from traceback import format_exc
 
 import numpy as np
 from PySide6 import QtCore, QtWidgets
 
 try:
-    from pyqtlet2 import L, leaflet, MapWidget
+    from pyqtlet2 import L, MapWidget
     from PySide6.QtWebEngineCore import QWebEngineSettings
 
 except:
@@ -14,7 +12,6 @@ except:
     pass
 
 
-from ..ui import resource_rc
 from ..ui.gps import Ui_GPSDisplay
 
 

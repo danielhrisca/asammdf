@@ -4,7 +4,6 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from asammdf.blocks import v4_constants as v4c
 from asammdf.blocks.conversion_utils import from_dict
 
-from ..ui import resource_rc
 from ..ui.define_conversion_dialog import Ui_ConversionDialog
 from .messagebox import MessageBox
 

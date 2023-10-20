@@ -27,7 +27,6 @@ import numpy as np
 from ..version import __version__
 from . import v2_v3_constants as v23c
 from .utils import (
-    escape_xml_string,
     get_fields,
     get_text_v3,
     MdfException,

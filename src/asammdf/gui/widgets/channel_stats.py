@@ -3,7 +3,6 @@ from copy import deepcopy
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ..ui import resource_rc
 from ..ui.channel_stats import Ui_ChannelStats
 
 MONOSPACE_FONT = None
