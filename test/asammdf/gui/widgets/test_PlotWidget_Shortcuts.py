@@ -240,7 +240,7 @@ class TestShortcutsWOChannels(TestPlotWidget):
         """
         @BUG
         Test Scope:
-            Check if error will not raised after pressing key M on empty plot.
+            Check if error will not raise after pressing key M on empty plot.
         Events:
             - Open 'FileWidget' with valid measurement.
             - Press PushButton "Create Window"
@@ -601,8 +601,13 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         self.assertEqual(Physical, newPhysical)
         self.assertEqual(physicalHours, newPhysicalHours)
 
-    def test_Plot_Plot_Shortcut_Key_Period_0(self):
+    def test_Plot_Plot_Shortcut_Key_Period(self):
         """
+        @BUG
+        Sometime dots are designed close to the original graphic, not on them.
+        The distance sometimes is too big.
+        It's happened after drag and drop new signal on plot and pres key "Period" <.>
+        @@@@@ @@@@ @@@ @@ @
         Test Scope:
             Check if variable "with_dots" is created, and it's value is modifiable by pressing key "Period"
         Events:
@@ -625,12 +630,6 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         self.assertTrue(self.plot.with_dots)
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_Period)
         self.assertFalse(self.plot.with_dots)
-
-    def test_Plot_Plot_Shortcut_Key_Period_1(self):
-        """
-        Found a bug with manual test
-        Sometimes after drag and drop over plot another channel, dots are displayed behind actual signal on plot
-        """
 
     def test_Plot_Plot_Shortcut_Key_Ctrl_I(self):
         """
@@ -687,6 +686,11 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Alt+I"))
         # Evaluate
         self.assertTrue(self.plot.show_bookmarks)
+
+    def test_Plot_Plot_Shortcut_Key_M_1_CH(self):
+        """
+
+        """
 
 
 class TestShortcutsWith_2_Channels(TestPlotWidget):
