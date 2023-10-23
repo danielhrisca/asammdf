@@ -708,11 +708,6 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         # Evaluate
         self.assertTrue(self.plot.show_bookmarks)
 
-    def test_Plot_Plot_Shortcut_Key_M_1_CH(self):
-        """
-
-        """
-
 
 class TestShortcutsWith_2_Channels(TestPlotWidget):
     def __init__(self, methodName: str = ...):
@@ -1256,3 +1251,37 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
         self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
         self.assertTrue(Pixmap.has_color(pixmap, self.channel_36.color.name()))
         self.assertTrue(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+
+    def test_Plot_Plot_Shortcut_Key_M_3_CH(self):
+        """
+
+        """
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_M)
+        self.processEvents()
+        with self.subTest("test_key_M_last_channel"):
+            self.assertEqual(self.plot.info._name, self.channel_37.name)
+            self.assertEqual(self.plot.info.color, self.channel_37.color.name())
+
+        # click on a first channel
+        with self.subTest("test_key_M_click_on_first_channel"):
+            self.mouseClick_WidgetItem(self.channel_35)
+            self.assertEqual(self.plot.info._name, self.channel_35.name)
+            self.assertEqual(self.plot.info.color, self.channel_35.color.name())
+
+        with self.subTest("test_key_M_press_key_Down_on_channel_selection"):
+            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
+            self.assertEqual(self.plot.info._name, self.channel_36.name)
+            self.assertEqual(self.plot.info.color, self.channel_36.color.name())
+
+        # delete all channels
+        with self.subTest("test_key_M_delete_all_channels"):
+            self.mouseClick_WidgetItem(self.channel_35)
+            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Delete)
+            self.mouseClick_WidgetItem(self.channel_36)
+            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Delete)
+            self.mouseClick_WidgetItem(self.channel_37)
+            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Delete)
+
+            # Not save value of the last selected channel
+            self.assertNotEqual(self.plot.info._name, self.channel_37.name)
+
