@@ -236,9 +236,8 @@ class TestShortcutsWOChannels(TestPlotWidget):
                 self.assertFalse(self.plot.plot.x_axis.grid)
                 self.assertFalse(self.plot.plot.y_axis.grid)
 
-    def test_Plot_Plot_Shortcut_Key_M_WO_Ch(self):
+    def test_Plot_Plot_Shortcut_Key_M_WO_Ch_0(self):
         """
-        @BUG
         Test Scope:
             Check if error will not raise after pressing key M on empty plot.
         Events:
@@ -249,9 +248,31 @@ class TestShortcutsWOChannels(TestPlotWidget):
         Evaluate:
             - Evaluate that Error Dialog object was not called
         """
-        with mock.patch("asammdf.gui.utils.ErrorDialog") as mo_ED:
+        # mock for ErrorDialog object
+        with mock.patch("asammdf.gui.utils.ErrorDialog") as mo_ErrorDialog:
             QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_M)
-        mo_ED.assert_not_called()
+        mo_ErrorDialog.assert_not_called()
+
+    def test_Plot_Plot_Shortcut_Key_M_WO_Ch_1(self):
+        """
+        Test Scope:
+            Check if widget "info" will change its visibility after pressing key M.
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Press PushButton "Create Window"
+            - Press Key M 2 times
+        Evaluate:
+            - Evaluate that "Info" widget is not visible by default
+            - Evaluate that "Info" widget is visible after pressing key "M" first time
+            - Evaluate that "Info" widget is not visible after pressing key "M" second time
+        """
+        self.assertFalse(self.plot.info.isVisible())
+        # press key "M"
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_M)
+        self.assertTrue(self.plot.info.isVisible())
+        # press key "M"
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_M)
+        self.assertFalse(self.plot.info.isVisible())
 
 
 class TestShortcutsWith_1_Channel(TestPlotWidget):
