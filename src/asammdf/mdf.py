@@ -4762,17 +4762,24 @@ class MDF:
         for dbc, dbc_name, bus_channel in valid_dbc_files:
             messages = {message.arbitration_id.id: message for message in dbc}
 
+            global_is_j1939 = dbc.attributes.get("ProtocolType", "").lower() == "j1939"
+
             j1939_messages = {
                 (
                     message.arbitration_id.pgn,
                     message.arbitration_id.j1939_source,
                 ): message
                 for message in dbc
-                if message.is_j1939
+                if message.is_j1939 or global_is_j1939
             }
 
             current_not_found = {
-                (message.arbitration_id.id if not message.is_j1939 else message.arbitration_id.pgn, message.name)
+                (
+                    message.arbitration_id.id
+                    if not message.is_j1939 and not global_is_j1939
+                    else message.arbitration_id.pgn,
+                    message.name,
+                )
                 for msg_id, message in messages.items()
             }
 
@@ -4851,7 +4858,7 @@ class MDF:
                                     unknown_ids[msg_id].append(True)
                                     continue
 
-                            is_j1939 = message.is_j1939
+                            is_j1939 = message.is_j1939 or global_is_j1939
                             if is_j1939:
                                 source_address = msg_id & 0xFF
                                 pgn_number = message.arbitration_id.pgn
