@@ -56,7 +56,7 @@ class LINBusTrace(TabularBase):
         self.prefix.currentIndexChanged.connect(self.prefix_changed)
 
         if prefixes:
-            self.remove_prefix.setCheckState(QtCore.Qt.Checked)
+            self.remove_prefix.setCheckState(QtCore.Qt.CheckState.Checked)
 
         self._settings = QtCore.QSettings()
         integer_mode = self._settings.value("tabular_format", "phys")

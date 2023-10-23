@@ -7,15 +7,15 @@ class CollapsibleBox(QtWidgets.QWidget):
 
         self.toggle_button = QtWidgets.QToolButton(text=title, checkable=True, checked=False)
         self.toggle_button.setStyleSheet("QToolButton { border: none; }")
-        self.toggle_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        self.toggle_button.setArrowType(QtCore.Qt.RightArrow)
+        self.toggle_button.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.toggle_button.setArrowType(QtCore.Qt.ArrowType.RightArrow)
         self.toggle_button.pressed.connect(self.on_pressed)
 
         self.toggle_animation = QtCore.QParallelAnimationGroup(self)
 
         self.content_area = QtWidgets.QScrollArea(maximumHeight=0, minimumHeight=0)
-        self.content_area.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.content_area.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.content_area.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
+        self.content_area.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
 
         lay = QtWidgets.QVBoxLayout(self)
         lay.setSpacing(0)
@@ -30,9 +30,11 @@ class CollapsibleBox(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def on_pressed(self):
         checked = self.toggle_button.isChecked()
-        self.toggle_button.setArrowType(QtCore.Qt.DownArrow if not checked else QtCore.Qt.RightArrow)
+        self.toggle_button.setArrowType(
+            QtCore.Qt.ArrowType.DownArrow if not checked else QtCore.Qt.ArrowType.RightArrow
+        )
         self.toggle_animation.setDirection(
-            QtCore.QAbstractAnimation.Forward if not checked else QtCore.QAbstractAnimation.Backward
+            QtCore.QAbstractAnimation.Direction.Forward if not checked else QtCore.QAbstractAnimation.Direction.Backward
         )
         self.toggle_animation.start()
 

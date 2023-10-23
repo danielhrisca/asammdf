@@ -152,12 +152,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         if show_progress:
             progress = QtWidgets.QProgressDialog(f'Opening "{self.file_name}"', "", 0, 100, self.parent())
 
-            progress.setWindowModality(QtCore.Qt.ApplicationModal)
+            progress.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
             progress.setCancelButton(None)
             progress.setAutoClose(True)
             progress.setWindowTitle("Opening measurement")
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
             progress.setWindowIcon(icon)
             progress.setMinimumWidth(600)
             progress.show()
@@ -267,8 +267,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.mdi_area.add_window_request.connect(self.add_window)
             self.mdi_area.open_file_request.connect(self.open_new_file.emit)
-            self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-            self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+            self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
             self.splitter.addWidget(self.mdi_area)
 
             self.channels_tree.itemDoubleClicked.connect(self.show_info)
@@ -548,7 +548,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 item = iterator.value()
 
                 if item.entry[1] != 0xFFFFFFFFFFFFFFFF:
-                    if item.checkState(0) == QtCore.Qt.Checked:
+                    if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                         signals.add(item.entry)
 
                 iterator += 1
@@ -556,7 +556,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             while iterator.value():
                 item = iterator.value()
 
-                if item.checkState(0) == QtCore.Qt.Checked:
+                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     signals.add(item.entry)
 
                 iterator += 1
@@ -574,9 +574,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     channel.setToolTip(0, f"{ch.name} @ group {i}, index {j}")
                     channel.setText(0, ch.name)
                     if entry in signals:
-                        channel.setCheckState(0, QtCore.Qt.Checked)
+                        channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                     else:
-                        channel.setCheckState(0, QtCore.Qt.Unchecked)
+                        channel.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
                     items.append(channel)
 
             if len(items) < 30000:
@@ -612,7 +612,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                     if ico is not None:
                         icon = QtGui.QIcon()
-                        icon.addPixmap(QtGui.QPixmap(ico), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+                        icon.addPixmap(QtGui.QPixmap(ico), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
                         channel_group.setIcon(0, icon)
 
@@ -636,7 +636,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 channel_group.setText(0, name)
                 channel_group.setFlags(
-                    channel_group.flags() | QtCore.Qt.ItemIsAutoTristate | QtCore.Qt.ItemIsUserCheckable
+                    channel_group.flags()
+                    | QtCore.Qt.ItemFlag.ItemIsAutoTristate
+                    | QtCore.Qt.ItemFlag.ItemIsUserCheckable
                 )
 
                 if group.channel_group.cycles_nr:
@@ -665,7 +667,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
                 channel.setToolTip(0, f"{ch.name} @ group {gp_index}, index {ch_index}")
                 channel.setText(0, ch.name)
-                channel.setCheckState(0, QtCore.Qt.Checked)
+                channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                 items.append(channel)
 
             if len(items) < 30000:
@@ -807,7 +809,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         entry = (dg_cntr, ch_cntr)
 
                         if entry in result:
-                            item.setCheckState(0, QtCore.Qt.Checked)
+                            item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             names.add((result[entry], dg_cntr, ch_cntr))
 
                         iterator += 1
@@ -819,7 +821,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     while iterator.value():
                         item = iterator.value()
 
-                        if item.checkState(0) == QtCore.Qt.Checked:
+                        if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             signals.add((item.text(0), *item.entry))
 
                         iterator += 1
@@ -836,7 +838,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         ch = self.mdf.groups[gp_index].channels[ch_index]
                         channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
                         channel.setText(0, ch.name)
-                        channel.setCheckState(0, QtCore.Qt.Checked)
+                        channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         items.append(channel)
 
                     if len(items) < 30000:
@@ -851,7 +853,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         item = iterator.value()
 
                         if item.entry in result:
-                            item.setCheckState(0, QtCore.Qt.Checked)
+                            item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             names.add((result[item.entry], *item.entry))
 
                         iterator += 1
@@ -927,7 +929,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     iterator += 1
                     continue
 
-                if item.checkState(0) == QtCore.Qt.Checked:
+                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     signals.append(item.text(0))
 
                 iterator += 1
@@ -935,7 +937,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             while iterator.value():
                 item = iterator.value()
 
-                if item.checkState(0) == QtCore.Qt.Checked:
+                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     signals.append(item.text(0))
 
                 iterator += 1
@@ -1203,10 +1205,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                     channel_name = item.text(0)
                     if channel_name in channels:
-                        item.setCheckState(0, QtCore.Qt.Checked)
+                        item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         channels.pop(channels.index(channel_name))
                     else:
-                        item.setCheckState(0, QtCore.Qt.Unchecked)
+                        item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
                     iterator += 1
             else:
@@ -1215,10 +1217,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                     channel_name = item.text(0)
                     if channel_name in channels:
-                        item.setCheckState(0, QtCore.Qt.Checked)
+                        item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         channels.pop(channels.index(channel_name))
                     else:
-                        item.setCheckState(0, QtCore.Qt.Unchecked)
+                        item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
                     iterator += 1
 
@@ -1321,13 +1323,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     if item.parent() is None:
                         continue
 
-                    if item.checkState(0) == QtCore.Qt.Checked:
+                    if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                         signals.append(item.text(0))
             else:
                 while item := iterator.value():
                     iterator += 1
 
-                    if item.checkState(0) == QtCore.Qt.Checked:
+                    if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                         signals.append(item.text(0))
 
             suffix = file_name.suffix.lower()
@@ -1414,19 +1416,19 @@ MultiRasterSeparator;&
 
                     channel_name = item.text(0)
                     if channel_name in channels:
-                        item.setCheckState(0, QtCore.Qt.Checked)
+                        item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         channels.pop(channels.index(channel_name))
                     else:
-                        item.setCheckState(0, QtCore.Qt.Unchecked)
+                        item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
             elif self.filter_view.currentText() == "Natural sort":
                 while item := iterator.value():
                     channel_name = item.text(0)
                     if channel_name in channels:
-                        item.setCheckState(0, QtCore.Qt.Checked)
+                        item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         channels.pop(channels.index(channel_name))
                     else:
-                        item.setCheckState(0, QtCore.Qt.Unchecked)
+                        item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
                     iterator += 1
 
@@ -1442,7 +1444,7 @@ MultiRasterSeparator;&
                             entry = i, j
                             channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
                             channel.setText(0, ch.name)
-                            channel.setCheckState(0, QtCore.Qt.Checked)
+                            channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             items.append(channel)
                             channels.pop(channels.index(ch.name))
 
@@ -1503,7 +1505,7 @@ MultiRasterSeparator;&
 
         while iterator.value():
             item = iterator.value()
-            item.setCheckState(0, QtCore.Qt.Unchecked)
+            item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
             if item.parent() is None:
                 item.setExpanded(False)
@@ -1519,12 +1521,12 @@ MultiRasterSeparator;&
                 if item.parent() is None:
                     item.setExpanded(False)
                 else:
-                    item.setCheckState(0, QtCore.Qt.Unchecked)
+                    item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
                 iterator += 1
         else:
             while iterator.value():
                 item = iterator.value()
-                item.setCheckState(0, QtCore.Qt.Unchecked)
+                item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
                 iterator += 1
 
     def select_all_channels(self):
@@ -1536,12 +1538,12 @@ MultiRasterSeparator;&
                 if item.parent() is None:
                     item.setExpanded(False)
                 else:
-                    item.setCheckState(0, QtCore.Qt.Checked)
+                    item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                 iterator += 1
         else:
             while iterator.value():
                 item = iterator.value()
-                item.setCheckState(0, QtCore.Qt.Checked)
+                item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                 iterator += 1
 
     def close(self):
@@ -1653,7 +1655,7 @@ MultiRasterSeparator;&
                             iterator += 1
                             continue
 
-                        if item.checkState(0) == QtCore.Qt.Checked:
+                        if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             group, index = item.entry
                             ch = self.mdf.groups[group].channels[index]
                             if not ch.component_addr:
@@ -1675,7 +1677,7 @@ MultiRasterSeparator;&
                     while iterator.value():
                         item = iterator.value()
 
-                        if item.checkState(0) == QtCore.Qt.Checked:
+                        if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             group, index = item.entry
                             ch = self.mdf.groups[group].channels[index]
                             if not ch.component_addr:
@@ -1698,7 +1700,7 @@ MultiRasterSeparator;&
 
     def scramble_thread(self, progress):
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/scramble.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/scramble.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         progress.signals.setWindowIcon.emit(icon)
         progress.signals.setWindowTitle.emit("Scrambling measurement")
         progress.signals.setLabelText.emit(f'Scrambling "{self.file_name}"')
@@ -1791,7 +1793,7 @@ MultiRasterSeparator;&
         file_name = Path(file_name).with_suffix(suffix)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         progress.signals.setWindowIcon.emit(icon)
         progress.signals.setWindowTitle.emit("Extract Bus logging")
         progress.signals.setLabelText.emit(f'Extracting Bus signals from "{self.file_name}"')
@@ -1903,18 +1905,18 @@ MultiRasterSeparator;&
         if not (count1 + count2):
             return
 
-        single_time_base = self.single_time_base_bus.checkState() == QtCore.Qt.Checked
-        time_from_zero = self.time_from_zero_bus.checkState() == QtCore.Qt.Checked
+        single_time_base = self.single_time_base_bus.checkState() == QtCore.Qt.CheckState.Checked
+        time_from_zero = self.time_from_zero_bus.checkState() == QtCore.Qt.CheckState.Checked
         empty_channels = self.empty_channels_bus.currentText()
         raster = self.export_raster_bus.value()
-        time_as_date = self.bus_time_as_date.checkState() == QtCore.Qt.Checked
+        time_as_date = self.bus_time_as_date.checkState() == QtCore.Qt.CheckState.Checked
         delimiter = self.delimiter_bus.text() or ","
-        doublequote = self.doublequote_bus.checkState() == QtCore.Qt.Checked
+        doublequote = self.doublequote_bus.checkState() == QtCore.Qt.CheckState.Checked
         escapechar = self.escapechar_bus.text() or None
         lineterminator = self.lineterminator_bus.text().replace("\\r", "\r").replace("\\n", "\n")
         quotechar = self.quotechar_bus.text() or '"'
         quoting = self.quoting_bus.currentText()
-        add_units = self.add_units_bus.checkState() == QtCore.Qt.Checked
+        add_units = self.add_units_bus.checkState() == QtCore.Qt.CheckState.Checked
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
@@ -1972,7 +1974,7 @@ MultiRasterSeparator;&
         progress,
     ):
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/csv.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/csv.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         progress.signals.setWindowIcon.emit(icon)
         progress.signals.setWindowTitle.emit("Extract Bus logging to CSV")
         progress.signals.setLabelText.emit(f'Extracting Bus signals from "{self.file_name}"')
@@ -2108,23 +2110,23 @@ MultiRasterSeparator;&
         key = event.key()
         modifier = event.modifiers()
 
-        if key == QtCore.Qt.Key_F and modifier == QtCore.Qt.ControlModifier:
+        if key == QtCore.Qt.Key.Key_F and modifier == QtCore.Qt.KeyboardModifier.ControlModifier:
             self.search()
 
-        elif key == QtCore.Qt.Key_F11:
+        elif key == QtCore.Qt.Key.Key_F11:
             self.full_screen_toggled.emit()
 
         elif (
-            key in (QtCore.Qt.Key_V, QtCore.Qt.Key_H, QtCore.Qt.Key_C, QtCore.Qt.Key_T)
-            and modifier == QtCore.Qt.ShiftModifier
+            key in (QtCore.Qt.Key.Key_V, QtCore.Qt.Key.Key_H, QtCore.Qt.Key.Key_C, QtCore.Qt.Key.Key_T)
+            and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
         ):
-            if key == QtCore.Qt.Key_V:
+            if key == QtCore.Qt.Key.Key_V:
                 mode = "tile vertically"
-            elif key == QtCore.Qt.Key_H:
+            elif key == QtCore.Qt.Key.Key_H:
                 mode = "tile horizontally"
-            elif key == QtCore.Qt.Key_C:
+            elif key == QtCore.Qt.Key.Key_C:
                 mode = "cascade"
-            elif key == QtCore.Qt.Key_T:
+            elif key == QtCore.Qt.Key.Key_T:
                 mode = "tile"
 
             if mode == "tile":
@@ -2136,10 +2138,12 @@ MultiRasterSeparator;&
             elif mode == "tile horizontally":
                 self.mdi_area.tile_horizontally()
 
-        elif key == QtCore.Qt.Key_F and modifier == (QtCore.Qt.ShiftModifier | QtCore.Qt.AltModifier):
+        elif key == QtCore.Qt.Key.Key_F and modifier == (
+            QtCore.Qt.KeyboardModifier.ShiftModifier | QtCore.Qt.KeyboardModifier.AltModifier
+        ):
             self.toggle_frames()
 
-        elif key == QtCore.Qt.Key_L and modifier == QtCore.Qt.ShiftModifier:
+        elif key == QtCore.Qt.Key.Key_L and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier:
             if self.channel_view.isVisible():
                 self._splitter_sizes = self.splitter.sizes()
 
@@ -2163,7 +2167,7 @@ MultiRasterSeparator;&
                 self.splitter.handle(0).setEnabled(True)
                 self.splitter.handle(1).setEnabled(True)
 
-        elif key == QtCore.Qt.Key_Period and modifier == QtCore.Qt.NoModifier:
+        elif key == QtCore.Qt.Key.Key_Period and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
             self.set_line_style()
 
         else:
@@ -2188,7 +2192,9 @@ MultiRasterSeparator;&
 
         if self.aspects.tabText(current_index) == "Modify && Export":
             if not self.raster_channel.count():
-                self.raster_channel.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
+                self.raster_channel.setSizeAdjustPolicy(
+                    QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+                )
                 self.raster_channel.addItems(self.channels_db_items)
                 self.raster_channel.setMinimumWidth(100)
 
@@ -2207,7 +2213,7 @@ MultiRasterSeparator;&
 
                             channel = TreeItem(entry, ch.name)
                             channel.setText(0, ch.name)
-                            channel.setCheckState(0, QtCore.Qt.Unchecked)
+                            channel.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
                             items.append(channel)
 
                     if len(items) < 30000:
@@ -2236,7 +2242,9 @@ MultiRasterSeparator;&
                         channel_group.setText(0, name)
 
                         channel_group.setFlags(
-                            channel_group.flags() | QtCore.Qt.ItemIsAutoTristate | QtCore.Qt.ItemIsUserCheckable
+                            channel_group.flags()
+                            | QtCore.Qt.ItemFlag.ItemIsAutoTristate
+                            | QtCore.Qt.ItemFlag.ItemIsUserCheckable
                         )
 
                         widget.addTopLevelItem(channel_group)
@@ -2340,7 +2348,7 @@ MultiRasterSeparator;&
             item = QtWidgets.QTreeWidgetItem()
             item.setText(0, "Measurement comment")
             item.setText(1, self.mdf.header.description)
-            item.setTextAlignment(0, QtCore.Qt.AlignTop)
+            item.setTextAlignment(0, QtCore.Qt.AlignmentFlag.AlignTop)
             children.append(item)
 
             mesaurement_attributes = QtWidgets.QTreeWidgetItem()
@@ -2351,13 +2359,13 @@ MultiRasterSeparator;&
                 if isinstance(value, dict):
                     tree = QtWidgets.QTreeWidgetItem()
                     tree.setText(0, name)
-                    tree.setTextAlignment(0, QtCore.Qt.AlignTop)
+                    tree.setTextAlignment(0, QtCore.Qt.AlignmentFlag.AlignTop)
 
                     for subname, subvalue in value.items():
                         item = QtWidgets.QTreeWidgetItem()
                         item.setText(0, subname)
                         item.setText(1, str(subvalue).strip())
-                        item.setTextAlignment(0, QtCore.Qt.AlignTop)
+                        item.setTextAlignment(0, QtCore.Qt.AlignmentFlag.AlignTop)
 
                         tree.addChild(item)
 
@@ -2367,7 +2375,7 @@ MultiRasterSeparator;&
                     item = QtWidgets.QTreeWidgetItem()
                     item.setText(0, FRIENDLY_ATRRIBUTES.get(name, name))
                     item.setText(1, str(value).strip())
-                    item.setTextAlignment(0, QtCore.Qt.AlignTop)
+                    item.setTextAlignment(0, QtCore.Qt.AlignmentFlag.AlignTop)
                     mesaurement_attributes.addChild(item)
 
             channel_groups = QtWidgets.QTreeWidgetItem()
@@ -2423,7 +2431,7 @@ MultiRasterSeparator;&
 
                         if ico is not None:
                             icon = QtGui.QIcon()
-                            icon.addPixmap(QtGui.QPixmap(ico), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+                            icon.addPixmap(QtGui.QPixmap(ico), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
                             channel_group_item.setIcon(0, icon)
 
                 item = QtWidgets.QTreeWidgetItem()
@@ -2467,16 +2475,16 @@ MultiRasterSeparator;&
 
             self.info.expandAll()
 
-            self.info.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
+            self.info.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
 
     def toggle_frames(self, event=None):
         self._frameless_windows = not self._frameless_windows
 
         for w in self.mdi_area.subWindowList():
             if self._frameless_windows:
-                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+                w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
             else:
-                w.setWindowFlags(w.windowFlags() & (~QtCore.Qt.FramelessWindowHint))
+                w.setWindowFlags(w.windowFlags() & (~QtCore.Qt.WindowType.FramelessWindowHint))
 
     def autofit_sub_plots(self):
         geometries = []
@@ -2496,14 +2504,14 @@ MultiRasterSeparator;&
             "needs_cut": self.cut_group.isChecked(),
             "cut_start": self.cut_start.value(),
             "cut_stop": self.cut_stop.value(),
-            "cut_time_from_zero": self.cut_time_from_zero.checkState() == QtCore.Qt.Checked,
-            "whence": int(self.whence.checkState() == QtCore.Qt.Checked),
+            "cut_time_from_zero": self.cut_time_from_zero.checkState() == QtCore.Qt.CheckState.Checked,
+            "whence": int(self.whence.checkState() == QtCore.Qt.CheckState.Checked),
             "needs_resample": self.resample_group.isChecked(),
             "raster_type_step": self.raster_type_step.isChecked(),
             "raster_type_channel": self.raster_type_channel.isChecked(),
             "raster": self.raster.value(),
             "raster_channel": self.raster_channel.currentText(),
-            "resample_time_from_zero": self.resample_time_from_zero.checkState() == QtCore.Qt.Checked,
+            "resample_time_from_zero": self.resample_time_from_zero.checkState() == QtCore.Qt.CheckState.Checked,
             "output_format": self.output_format.currentText(),
         }
 
@@ -2513,36 +2521,36 @@ MultiRasterSeparator;&
             new = {
                 "mdf_version": self.mdf_version.currentText(),
                 "mdf_compression": self.mdf_compression.currentIndex(),
-                "mdf_split": self.mdf_split.checkState() == QtCore.Qt.Checked,
+                "mdf_split": self.mdf_split.checkState() == QtCore.Qt.CheckState.Checked,
                 "mdf_split_size": self.mdf_split_size.value() * 1024 * 1024,
             }
 
         elif output_format == "MAT":
             new = {
-                "single_time_base": self.single_time_base_mat.checkState() == QtCore.Qt.Checked,
-                "time_from_zero": self.time_from_zero_mat.checkState() == QtCore.Qt.Checked,
-                "time_as_date": self.time_as_date_mat.checkState() == QtCore.Qt.Checked,
-                "use_display_names": self.use_display_names_mat.checkState() == QtCore.Qt.Checked,
-                "reduce_memory_usage": self.reduce_memory_usage_mat.checkState() == QtCore.Qt.Checked,
+                "single_time_base": self.single_time_base_mat.checkState() == QtCore.Qt.CheckState.Checked,
+                "time_from_zero": self.time_from_zero_mat.checkState() == QtCore.Qt.CheckState.Checked,
+                "time_as_date": self.time_as_date_mat.checkState() == QtCore.Qt.CheckState.Checked,
+                "use_display_names": self.use_display_names_mat.checkState() == QtCore.Qt.CheckState.Checked,
+                "reduce_memory_usage": self.reduce_memory_usage_mat.checkState() == QtCore.Qt.CheckState.Checked,
                 "compression": self.export_compression_mat.currentText() == "enabled",
                 "empty_channels": self.empty_channels_mat.currentText(),
                 "mat_format": self.mat_format.currentText(),
                 "oned_as": self.oned_as.currentText(),
-                "raw": self.raw_mat.checkState() == QtCore.Qt.Checked,
+                "raw": self.raw_mat.checkState() == QtCore.Qt.CheckState.Checked,
             }
 
         elif output_format == "CSV":
             new = {
-                "single_time_base": self.single_time_base_csv.checkState() == QtCore.Qt.Checked,
-                "time_from_zero": self.time_from_zero_csv.checkState() == QtCore.Qt.Checked,
-                "time_as_date": self.time_as_date_csv.checkState() == QtCore.Qt.Checked,
-                "use_display_names": self.use_display_names_csv.checkState() == QtCore.Qt.Checked,
+                "single_time_base": self.single_time_base_csv.checkState() == QtCore.Qt.CheckState.Checked,
+                "time_from_zero": self.time_from_zero_csv.checkState() == QtCore.Qt.CheckState.Checked,
+                "time_as_date": self.time_as_date_csv.checkState() == QtCore.Qt.CheckState.Checked,
+                "use_display_names": self.use_display_names_csv.checkState() == QtCore.Qt.CheckState.Checked,
                 "reduce_memory_usage": False,
                 "compression": False,
                 "empty_channels": self.empty_channels_csv.currentText(),
-                "raw": self.raw_csv.checkState() == QtCore.Qt.Checked,
+                "raw": self.raw_csv.checkState() == QtCore.Qt.CheckState.Checked,
                 "delimiter": self.delimiter.text() or ",",
-                "doublequote": self.doublequote.checkState() == QtCore.Qt.Checked,
+                "doublequote": self.doublequote.checkState() == QtCore.Qt.CheckState.Checked,
                 "escapechar": self.escapechar.text() or None,
                 "lineterminator": self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n"),
                 "quotechar": self.quotechar.text() or '"',
@@ -2553,16 +2561,16 @@ MultiRasterSeparator;&
 
         else:
             new = {
-                "single_time_base": self.single_time_base.checkState() == QtCore.Qt.Checked,
-                "time_from_zero": self.time_from_zero.checkState() == QtCore.Qt.Checked,
-                "time_as_date": self.time_as_date.checkState() == QtCore.Qt.Checked,
-                "use_display_names": self.use_display_names.checkState() == QtCore.Qt.Checked,
-                "reduce_memory_usage": self.reduce_memory_usage.checkState() == QtCore.Qt.Checked,
+                "single_time_base": self.single_time_base.checkState() == QtCore.Qt.CheckState.Checked,
+                "time_from_zero": self.time_from_zero.checkState() == QtCore.Qt.CheckState.Checked,
+                "time_as_date": self.time_as_date.checkState() == QtCore.Qt.CheckState.Checked,
+                "use_display_names": self.use_display_names.checkState() == QtCore.Qt.CheckState.Checked,
+                "reduce_memory_usage": self.reduce_memory_usage.checkState() == QtCore.Qt.CheckState.Checked,
                 "compression": self.export_compression.currentText(),
                 "empty_channels": self.empty_channels.currentText(),
                 "mat_format": None,
                 "oned_as": None,
-                "raw": self.raw.checkState() == QtCore.Qt.Checked,
+                "raw": self.raw.checkState() == QtCore.Qt.CheckState.Checked,
             }
 
         options.update(new)
@@ -2586,7 +2594,7 @@ MultiRasterSeparator;&
 
                 group, index = item.entry
 
-                if item.checkState(0) == QtCore.Qt.Checked:
+                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     if index != 0xFFFFFFFFFFFFFFFF:
                         channels.append((None, group, index))
 
@@ -2595,7 +2603,7 @@ MultiRasterSeparator;&
             while iterator.value():
                 item = iterator.value()
 
-                if item.checkState(0) == QtCore.Qt.Checked:
+                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     group, index = item.entry
                     channels.append((None, group, index))
 
@@ -2729,7 +2737,7 @@ MultiRasterSeparator;&
 
         if needs_filter:
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
             progress.signals.setWindowIcon.emit(icon)
             progress.signals.setWindowTitle.emit("Filtering measurement")
             progress.signals.setLabelText.emit(f'Filtering selected channels from "{self.file_name}"')
@@ -2755,7 +2763,7 @@ MultiRasterSeparator;&
 
         if opts.needs_cut:
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
             progress.signals.setWindowIcon.emit(icon)
             progress.signals.setWindowTitle.emit("Cutting measurement")
             progress.signals.setLabelText.emit(f"Cutting from {opts.cut_start}s to {opts.cut_stop}s")
@@ -2796,7 +2804,7 @@ MultiRasterSeparator;&
                 message = f"Resampling to {raster}s raster"
 
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
             progress.signals.setWindowIcon.emit(icon)
             progress.signals.setWindowTitle.emit("Resampling measurement")
             progress.signals.setLabelText.emit(message)
@@ -2830,7 +2838,7 @@ MultiRasterSeparator;&
         if output_format == "MDF":
             if mdf is None:
                 icon = QtGui.QIcon()
-                icon.addPixmap(QtGui.QPixmap(":/convert.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+                icon.addPixmap(QtGui.QPixmap(":/convert.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
                 progress.signals.setWindowIcon.emit(icon)
                 progress.signals.setWindowTitle.emit("Converting measurement")
                 progress.signals.setLabelText.emit(
@@ -2857,7 +2865,7 @@ MultiRasterSeparator;&
 
             # then save it
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
             progress.signals.setWindowIcon.emit(icon)
             progress.signals.setWindowTitle.emit("Saving measurement")
             progress.signals.setLabelText.emit(f'Saving output file "{file_name}"')
@@ -2909,18 +2917,18 @@ MultiRasterSeparator;&
 
         else:
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(QtGui.QPixmap(":/export.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
             progress.signals.setWindowIcon.emit(icon)
             progress.signals.setWindowTitle.emit("Export measurement")
             progress.signals.setLabelText.emit(f"Exporting to {output_format} (be patient this might take a while)")
 
             delimiter = self.delimiter.text() or ","
-            doublequote = self.doublequote.checkState() == QtCore.Qt.Checked
+            doublequote = self.doublequote.checkState() == QtCore.Qt.CheckState.Checked
             escapechar = self.escapechar.text() or None
             lineterminator = self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n")
             quotechar = self.quotechar.text() or '"'
             quoting = self.quoting.currentText()
-            add_units = self.add_units.checkState() == QtCore.Qt.Checked
+            add_units = self.add_units.checkState() == QtCore.Qt.CheckState.Checked
 
             target = self.mdf.export if mdf is None else mdf.export
             kwargs = {
@@ -2970,21 +2978,21 @@ MultiRasterSeparator;&
     def filter_changed(self, item, column):
         name = item.text(0)
         if self.filter_view.currentText() == "Internal file structure":
-            if item.checkState(0) == QtCore.Qt.Checked and item.parent() is not None:
+            if item.checkState(0) == QtCore.Qt.CheckState.Checked and item.parent() is not None:
                 self._selected_filter.add(name)
             else:
                 if name in self._selected_filter:
                     self._selected_filter.remove(name)
 
         elif self.filter_view.currentText() == "Natural sort":
-            if item.checkState(0) == QtCore.Qt.Checked:
+            if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                 self._selected_filter.add(name)
             else:
                 if name in self._selected_filter:
                     self._selected_filter.remove(name)
 
         else:
-            if item.checkState(0) == QtCore.Qt.Checked:
+            if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                 self._selected_filter.add(name)
             else:
                 if name in self._selected_filter:
@@ -3283,7 +3291,7 @@ MultiRasterSeparator;&
                         self,
                         "Attachment password",
                         "The attachment is encrypted. Please provide the password:",
-                        QtWidgets.QLineEdit.Password,
+                        QtWidgets.QLineEdit.EchoMode.Password,
                     )
                     if ok and text:
                         password = text

@@ -164,7 +164,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
                 self.channels,
                 sig.origin_uuid,
             )
-            item.setData(QtCore.Qt.UserRole, sig.name)
+            item.setData(QtCore.Qt.ItemDataRole.UserRole, sig.name)
             tooltip = getattr(sig, "tooltip", "") or sig.comment
 
             it = ChannelBarDisplay(
@@ -178,7 +178,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
                 tooltip,
                 self,
             )
-            it.setAttribute(QtCore.Qt.WA_StyledBackground)
+            it.setAttribute(QtCore.Qt.WidgetAttribute.WA_StyledBackground)
 
             if sig.computed:
                 font = QtGui.QFont()
@@ -197,17 +197,20 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
         key = event.key()
         modifier = event.modifiers()
 
-        if key in (QtCore.Qt.Key_H, QtCore.Qt.Key_B, QtCore.Qt.Key_P) and modifier == QtCore.Qt.ControlModifier:
-            if key == QtCore.Qt.Key_H:
+        if (
+            key in (QtCore.Qt.Key.Key_H, QtCore.Qt.Key.Key_B, QtCore.Qt.Key.Key_P)
+            and modifier == QtCore.Qt.KeyboardModifier.ControlModifier
+        ):
+            if key == QtCore.Qt.Key.Key_H:
                 self.format_selection.setCurrentText("hex")
-            elif key == QtCore.Qt.Key_B:
+            elif key == QtCore.Qt.Key.Key_B:
                 self.format_selection.setCurrentText("bin")
             else:
                 self.format_selection.setCurrentText("phys")
             event.accept()
-        elif key == QtCore.Qt.Key_Right and modifier == QtCore.Qt.NoModifier:
+        elif key == QtCore.Qt.Key.Key_Right and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
             self.timestamp_slider.setValue(self.timestamp_slider.value() + 1)
-        elif key == QtCore.Qt.Key_Left and modifier == QtCore.Qt.NoModifier:
+        elif key == QtCore.Qt.Key.Key_Left and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
             self.timestamp_slider.setValue(self.timestamp_slider.value() - 1)
         else:
             super().keyPressEvent(event)

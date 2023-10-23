@@ -37,7 +37,7 @@ class DependenciesDlg(QDialog):
         self.setMinimumHeight(500)
 
         icon = QIcon()
-        icon.addFile(":/asammdf.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(":/asammdf.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.setWindowIcon(icon)
 
         headers = ["package", "required", "installed", "summary", "url"]

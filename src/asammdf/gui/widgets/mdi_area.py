@@ -504,7 +504,7 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
 
     def closeEvent(self, event):
         if isinstance(self.widget(), Plot):
@@ -612,8 +612,10 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
             col = self.palette().placeholderText().color()
             painter.setPen(col)
             fm = self.fontMetrics()
-            elided_text = fm.elidedText(self.placeholder_text, QtCore.Qt.ElideRight, self.viewport().width())
-            painter.drawText(self.viewport().rect(), QtCore.Qt.AlignCenter, elided_text)
+            elided_text = fm.elidedText(
+                self.placeholder_text, QtCore.Qt.TextElideMode.ElideRight, self.viewport().width()
+            )
+            painter.drawText(self.viewport().rect(), QtCore.Qt.AlignmentFlag.AlignCenter, elided_text)
             painter.restore()
 
 
@@ -1256,13 +1258,13 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(trace)
-        trace.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        trace.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/bus_can.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/bus_can.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         sub.setWindowIcon(icon)
 
         if not self.subplots:
@@ -1282,7 +1284,7 @@ class WithMDIArea:
 
         menu = w.systemMenu()
         if self._frameless_windows:
-            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
 
         w.layout().setSpacing(1)
 
@@ -1478,13 +1480,13 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(trace)
-        trace.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        trace.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/bus_flx.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/bus_flx.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         sub.setWindowIcon(icon)
 
         if not self.subplots:
@@ -1504,7 +1506,7 @@ class WithMDIArea:
 
         menu = w.systemMenu()
         if self._frameless_windows:
-            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
 
         w.layout().setSpacing(1)
 
@@ -1536,13 +1538,13 @@ class WithMDIArea:
         gps = GPS(latitude_channel, longitude_channel)
         sub = MdiSubWindow(parent=self)
         sub.setWidget(gps)
-        gps.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        gps.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/globe.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/globe.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         sub.setWindowIcon(icon)
 
         w = self.mdi_area.addSubWindow(sub)
@@ -1555,7 +1557,7 @@ class WithMDIArea:
 
         menu = w.systemMenu()
         if self._frameless_windows:
-            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
 
         w.layout().setSpacing(1)
 
@@ -1794,13 +1796,13 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(trace)
-        trace.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        trace.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/bus_lin.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/bus_lin.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         sub.setWindowIcon(icon)
 
         if not self.subplots:
@@ -1820,7 +1822,7 @@ class WithMDIArea:
 
         menu = w.systemMenu()
         if self._frameless_windows:
-            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
 
         w.layout().setSpacing(1)
 
@@ -1997,8 +1999,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(numeric)
-        numeric.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        numeric.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -2018,7 +2020,7 @@ class WithMDIArea:
                 self.mdi_area.tileSubWindows()
 
         if self._frameless_windows:
-            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
 
         w.layout().setSpacing(1)
 
@@ -2399,8 +2401,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(plot)
-        plot.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        plot.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -2420,7 +2422,7 @@ class WithMDIArea:
                 self.mdi_area.tileSubWindows()
 
         if self._frameless_windows:
-            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
 
         w.layout().setSpacing(1)
 
@@ -2588,8 +2590,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(tabular)
-        tabular.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        tabular.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -2610,7 +2612,7 @@ class WithMDIArea:
 
         menu = w.systemMenu()
         if self._frameless_windows:
-            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
 
         w.layout().setSpacing(1)
 
@@ -2774,14 +2776,14 @@ class WithMDIArea:
 
             if w:
                 if self._frameless_windows:
-                    w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+                    w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
 
                 if pattern_info:
                     icon = QtGui.QIcon()
                     icon.addPixmap(
                         QtGui.QPixmap(":/filter.png"),
-                        QtGui.QIcon.Normal,
-                        QtGui.QIcon.Off,
+                        QtGui.QIcon.Mode.Normal,
+                        QtGui.QIcon.State.Off,
                     )
                     w.setWindowIcon(icon)
 
@@ -2887,8 +2889,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(numeric)
-        numeric.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        numeric.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -2970,8 +2972,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(gps)
-        gps.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        gps.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -3300,8 +3302,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(plot)
-        plot.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        plot.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -3496,8 +3498,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(tabular)
-        tabular.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        tabular.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -3530,7 +3532,9 @@ class WithMDIArea:
             if filter_info["column"] in available_columns:
                 tabular.add_filter()
                 filter = tabular.filters.itemWidget(tabular.filters.item(filter_count))
-                filter.enabled.setCheckState(QtCore.Qt.Checked if filter_info["enabled"] else QtCore.Qt.Unchecked)
+                filter.enabled.setCheckState(
+                    QtCore.Qt.CheckState.Checked if filter_info["enabled"] else QtCore.Qt.CheckState.Unchecked
+                )
                 filter.relation.setCurrentText(filter_info["relation"])
                 filter.column.setCurrentText(filter_info["column"])
                 filter.op.setCurrentText(filter_info["op"])
@@ -3543,7 +3547,9 @@ class WithMDIArea:
             tabular.apply_filters()
 
         tabular.time_as_date.setCheckState(
-            QtCore.Qt.Checked if window_info["configuration"]["time_as_date"] else QtCore.Qt.Unchecked
+            QtCore.Qt.CheckState.Checked
+            if window_info["configuration"]["time_as_date"]
+            else QtCore.Qt.CheckState.Unchecked
         )
         tabular.add_channels_request.connect(partial(self.add_new_channels, widget=tabular))
 
@@ -3741,9 +3747,9 @@ class WithMDIArea:
             if isinstance(wid, Plot) and wid is not widget:
                 if wid.plot.region is None:
                     event = QtGui.QKeyEvent(
-                        QtCore.QEvent.KeyPress,
-                        QtCore.Qt.Key_R,
-                        QtCore.Qt.NoModifier,
+                        QtCore.QEvent.Type.KeyPress,
+                        QtCore.Qt.Key.Key_R,
+                        QtCore.Qt.KeyboardModifier.NoModifier,
                     )
                     wid.plot.keyPressEvent(event)
                 wid.plot.region.setRegion(region)
@@ -3851,9 +3857,9 @@ class WithMDIArea:
                 if isinstance(plt, Plot) and plt is not widget:
                     if plt.plot.region is not None:
                         event = QtGui.QKeyEvent(
-                            QtCore.QEvent.KeyPress,
-                            QtCore.Qt.Key_R,
-                            QtCore.Qt.NoModifier,
+                            QtCore.QEvent.Type.KeyPress,
+                            QtCore.Qt.Key.Key_R,
+                            QtCore.Qt.KeyboardModifier.NoModifier,
                         )
                         plt.plot.keyPressEvent(event)
             self._region_source = None

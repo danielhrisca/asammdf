@@ -51,7 +51,7 @@ class BarWidget(QtWidgets.QWidget):
         qp.end()
 
     def drawWidget(self, qp):
-        font = QtGui.QFont("Serif", 7, QtGui.QFont.Light)
+        font = QtGui.QFont("Serif", 7, QtGui.QFont.Weight.Light)
         qp.setFont(font)
 
         size = self.size()
@@ -74,10 +74,10 @@ class BarWidget(QtWidgets.QWidget):
             qp.setBrush(QtGui.QColor(self.color))
             qp.drawRect(0, 0, till, h)
 
-        pen = QtGui.QPen(QtGui.QColor(20, 20, 20), 1, QtCore.Qt.SolidLine)
+        pen = QtGui.QPen(QtGui.QColor(20, 20, 20), 1, QtCore.Qt.PenStyle.SolidLine)
 
         qp.setPen(pen)
-        qp.setBrush(QtCore.Qt.NoBrush)
+        qp.setBrush(QtCore.Qt.BrushStyle.NoBrush)
         qp.drawRect(0, 0, w - 1, h - 1)
 
         for j, val in enumerate(self.ticks):
@@ -160,12 +160,12 @@ class ChannelBarDisplay(Ui_ChannelBarDisplay, QtWidgets.QWidget):
         palette = self.name.palette()
         if on:
             brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
-            brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
+            brush.setStyle(QtCore.Qt.BrushStyle.SolidPattern)
+            palette.setBrush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.Text, brush)
         else:
             brush = QtGui.QBrush(QtGui.QColor(self.color))
-            brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
+            brush.setStyle(QtCore.Qt.BrushStyle.SolidPattern)
+            palette.setBrush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.Text, brush)
 
         self.name.setPalette(palette)
 
@@ -211,8 +211,8 @@ class ChannelBarDisplay(Ui_ChannelBarDisplay, QtWidgets.QWidget):
         palette = self.name.palette()
 
         brush = QtGui.QBrush(QtGui.QColor(color))
-        brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
+        brush.setStyle(QtCore.Qt.BrushStyle.SolidPattern)
+        palette.setBrush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.Text, brush)
 
         self.name.setPalette(palette)
         self.instant_value.setPalette(palette)
@@ -227,9 +227,11 @@ class ChannelBarDisplay(Ui_ChannelBarDisplay, QtWidgets.QWidget):
     def update(self):
         width = self.name.size().width()
         if self.unit:
-            self.name.setText(self.fm.elidedText(f"{self._name} ({self.unit})", QtCore.Qt.ElideMiddle, width))
+            self.name.setText(
+                self.fm.elidedText(f"{self._name} ({self.unit})", QtCore.Qt.TextElideMode.ElideMiddle, width)
+            )
         else:
-            self.name.setText(self.fm.elidedText(self._name, QtCore.Qt.ElideMiddle, width))
+            self.name.setText(self.fm.elidedText(self._name, QtCore.Qt.TextElideMode.ElideMiddle, width))
         self.set_value(self._value, update=True)
 
     def set_value(self, value, update=False):
@@ -242,7 +244,7 @@ class ChannelBarDisplay(Ui_ChannelBarDisplay, QtWidgets.QWidget):
     def keyPressEvent(self, event):
         key = event.key()
         modifier = event.modifiers()
-        if modifier == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_C:
+        if modifier == QtCore.Qt.KeyboardModifier.ControlModifier and key == QtCore.Qt.Key.Key_C:
             QtWidgets.QApplication.instance().clipboard().setText(self._name)
 
         else:
@@ -251,16 +253,18 @@ class ChannelBarDisplay(Ui_ChannelBarDisplay, QtWidgets.QWidget):
     def resizeEvent(self, event):
         width = self.name.size().width()
         if self.unit:
-            self.name.setText(self.fm.elidedText(f"{self._name} ({self.unit})", QtCore.Qt.ElideMiddle, width))
+            self.name.setText(
+                self.fm.elidedText(f"{self._name} ({self.unit})", QtCore.Qt.TextElideMode.ElideMiddle, width)
+            )
         else:
-            self.name.setText(self.fm.elidedText(self._name, QtCore.Qt.ElideMiddle, width))
+            self.name.setText(self.fm.elidedText(self._name, QtCore.Qt.TextElideMode.ElideMiddle, width))
 
     def text(self):
         return self._name
 
     def does_not_exist(self):
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/error.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.color_btn.setIcon(icon)
         self.color_btn.setFlat(True)
         self.color_btn.clicked.disconnect()

@@ -271,7 +271,7 @@ class PlotSignal(Signal):
             color = COLORS[index % COLORS_COUNT]
         self.color = fn.mkColor(color)
         self.color_name = self.color.name()
-        self.pen = fn.mkPen(color=color, style=QtCore.Qt.SolidLine)
+        self.pen = fn.mkPen(color=color, style=QtCore.Qt.PenStyle.SolidLine)
 
         self._min = None
         self._max = None
@@ -942,7 +942,7 @@ class PlotSignal(Signal):
 
     def set_color(self, color):
         self.color = color
-        self.pen = fn.mkPen(color=color, style=QtCore.Qt.SolidLine)
+        self.pen = fn.mkPen(color=color, style=QtCore.Qt.PenStyle.SolidLine)
 
     def set_home(self, y_range=None):
         self.home = y_range or self.y_range
@@ -1434,67 +1434,67 @@ class Plot(QtWidgets.QWidget):
         menu = QtWidgets.QMenu()
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/home.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/home.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         menu.addAction(
             icon,
             "Home",
             lambda: self.plot.keyPressEvent(
                 QtGui.QKeyEvent(
-                    QtCore.QEvent.KeyPress,
-                    QtCore.Qt.Key_W,
-                    QtCore.Qt.NoModifier,
+                    QtCore.QEvent.Type.KeyPress,
+                    QtCore.Qt.Key.Key_W,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
                 )
             ),
         )
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/axis.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/axis.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         menu.addAction(
             icon,
             "Honeywell",
             lambda: self.plot.keyPressEvent(
                 QtGui.QKeyEvent(
-                    QtCore.QEvent.KeyPress,
-                    QtCore.Qt.Key_H,
-                    QtCore.Qt.NoModifier,
+                    QtCore.QEvent.Type.KeyPress,
+                    QtCore.Qt.Key.Key_H,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
                 )
             ),
         )
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         menu.addAction(
             icon,
             "Fit",
             lambda: self.plot.keyPressEvent(
                 QtGui.QKeyEvent(
-                    QtCore.QEvent.KeyPress,
-                    QtCore.Qt.Key_F,
-                    QtCore.Qt.NoModifier,
+                    QtCore.QEvent.Type.KeyPress,
+                    QtCore.Qt.Key.Key_F,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
                 )
             ),
         )
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/stack.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/stack.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         menu.addAction(
             icon,
             "Stack",
             lambda: self.plot.keyPressEvent(
                 QtGui.QKeyEvent(
-                    QtCore.QEvent.KeyPress,
-                    QtCore.Qt.Key_S,
-                    QtCore.Qt.NoModifier,
+                    QtCore.QEvent.Type.KeyPress,
+                    QtCore.Qt.Key.Key_S,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
                 )
             ),
         )
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/increase-font.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/increase-font.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         menu.addAction(icon, "Increase font", self.increase_font)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/decrease-font.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/decrease-font.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         menu.addAction(icon, "Decrease font", self.decrease_font)
 
         btn.setMenu(menu)
@@ -1505,14 +1505,14 @@ class Plot(QtWidgets.QWidget):
         btn.clicked.connect(
             lambda x: self.plot.keyPressEvent(
                 QtGui.QKeyEvent(
-                    QtCore.QEvent.KeyPress,
-                    QtCore.Qt.Key_I,
-                    QtCore.Qt.NoModifier,
+                    QtCore.QEvent.Type.KeyPress,
+                    QtCore.Qt.Key.Key_I,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
                 )
             )
         )
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/zoom-in.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/zoom-in.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         btn.setIcon(icon)
         btn.setToolTip("Zoom in")
         hbox.addWidget(btn)
@@ -1521,14 +1521,14 @@ class Plot(QtWidgets.QWidget):
         btn.clicked.connect(
             lambda x: self.plot.keyPressEvent(
                 QtGui.QKeyEvent(
-                    QtCore.QEvent.KeyPress,
-                    QtCore.Qt.Key_O,
-                    QtCore.Qt.NoModifier,
+                    QtCore.QEvent.Type.KeyPress,
+                    QtCore.Qt.Key.Key_O,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
                 )
             )
         )
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/zoom-out.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/zoom-out.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         btn.setIcon(icon)
         btn.setToolTip("Zoom out")
         hbox.addWidget(btn)
@@ -1537,7 +1537,7 @@ class Plot(QtWidgets.QWidget):
             self.undo_btn = btn = QtWidgets.QPushButton("")
             btn.clicked.connect(self.undo_zoom)
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/undo.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(QtGui.QPixmap(":/undo.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
             btn.setIcon(icon)
             btn.setToolTip("Undo zoom")
             hbox.addWidget(btn)
@@ -1546,7 +1546,7 @@ class Plot(QtWidgets.QWidget):
             self.redo_btn = btn = QtWidgets.QPushButton("")
             btn.clicked.connect(self.redo_zoom)
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/redo.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(QtGui.QPixmap(":/redo.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
             btn.setIcon(icon)
             btn.setToolTip("Redo zoom")
             hbox.addWidget(btn)
@@ -1556,7 +1556,7 @@ class Plot(QtWidgets.QWidget):
         btn.setObjectName("lock_btn")
         btn.clicked.connect(self.set_locked)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/unlocked.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/unlocked.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         btn.setIcon(icon)
         btn.setToolTip("The Y axis is unlocked. Press to lock")
         hbox.addWidget(btn)
@@ -1567,7 +1567,7 @@ class Plot(QtWidgets.QWidget):
         btn.setObjectName("hide_axes_btn")
         self.hide_axes_btn.clicked.connect(self.hide_axes)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/axis_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/axis_on.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         btn.setIcon(icon)
         btn.setToolTip("Hide axis")
         hbox.addWidget(self.hide_axes_btn)
@@ -1576,7 +1576,7 @@ class Plot(QtWidgets.QWidget):
         btn.setObjectName("selected_channel_value_btn")
         self.selected_channel_value_btn.clicked.connect(self.hide_selected_channel_value)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/number_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/number_on.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         btn.setIcon(icon)
         btn.setToolTip("Hide axis")
         hbox.addWidget(self.selected_channel_value_btn)
@@ -1585,7 +1585,7 @@ class Plot(QtWidgets.QWidget):
         btn.setObjectName("focused_mode_btn")
         self.focused_mode_btn.clicked.connect(self.toggle_focused_mode)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/focus_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/focus_on.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         btn.setIcon(icon)
         btn.setToolTip("Toggle focused mode")
         hbox.addWidget(self.focused_mode_btn)
@@ -1594,7 +1594,7 @@ class Plot(QtWidgets.QWidget):
         btn.setObjectName("delta_btn")
         self.delta_btn.clicked.connect(self.toggle_region_values_display_mode)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/delta_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/delta_on.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         btn.setIcon(icon)
         btn.setToolTip("Toggle region values display mode")
         hbox.addWidget(self.delta_btn)
@@ -1603,7 +1603,7 @@ class Plot(QtWidgets.QWidget):
         btn.setObjectName("bookmark_btn")
         btn.clicked.connect(self.toggle_bookmarks)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/bookmark_on.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/bookmark_on.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         btn.setIcon(icon)
         btn.setToolTip("Toggle bookmarks")
         hbox.addWidget(btn)
@@ -1611,7 +1611,9 @@ class Plot(QtWidgets.QWidget):
         hbox.addStretch()
 
         self.selected_channel_value = QtWidgets.QLabel("")
-        self.selected_channel_value.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.selected_channel_value.setAlignment(
+            QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter
+        )
         self.selected_channel_value.setAutoFillBackground(True)
         font = self.selected_channel_value.font()
         font.setBold(True)
@@ -1718,60 +1720,60 @@ class Plot(QtWidgets.QWidget):
             set(
                 [
                     QtCore.QKeyCombination(
-                        QtCore.Qt.NoModifier,
-                        QtCore.Qt.Key_M,
+                        QtCore.Qt.KeyboardModifier.NoModifier,
+                        QtCore.Qt.Key.Key_M,
                     ).toCombined(),
                     QtCore.QKeyCombination(
-                        QtCore.Qt.NoModifier,
-                        QtCore.Qt.Key_C,
+                        QtCore.Qt.KeyboardModifier.NoModifier,
+                        QtCore.Qt.Key.Key_C,
                     ).toCombined(),
                     QtCore.QKeyCombination(
-                        QtCore.Qt.ControlModifier,
-                        QtCore.Qt.Key_C,
+                        QtCore.Qt.KeyboardModifier.ControlModifier,
+                        QtCore.Qt.Key.Key_C,
                     ).toCombined(),
                     QtCore.QKeyCombination(
-                        QtCore.Qt.ControlModifier,
-                        QtCore.Qt.Key_B,
+                        QtCore.Qt.KeyboardModifier.ControlModifier,
+                        QtCore.Qt.Key.Key_B,
                     ).toCombined(),
                     QtCore.QKeyCombination(
-                        QtCore.Qt.ControlModifier,
-                        QtCore.Qt.Key_H,
+                        QtCore.Qt.KeyboardModifier.ControlModifier,
+                        QtCore.Qt.Key.Key_H,
                     ).toCombined(),
                     QtCore.QKeyCombination(
-                        QtCore.Qt.ControlModifier,
-                        QtCore.Qt.Key_P,
+                        QtCore.Qt.KeyboardModifier.ControlModifier,
+                        QtCore.Qt.Key.Key_P,
                     ).toCombined(),
                     QtCore.QKeyCombination(
-                        QtCore.Qt.ControlModifier,
-                        QtCore.Qt.Key_T,
+                        QtCore.Qt.KeyboardModifier.ControlModifier,
+                        QtCore.Qt.Key.Key_T,
                     ).toCombined(),
                     QtCore.QKeyCombination(
-                        QtCore.Qt.ControlModifier,
-                        QtCore.Qt.Key_G,
+                        QtCore.Qt.KeyboardModifier.ControlModifier,
+                        QtCore.Qt.Key.Key_G,
                     ).toCombined(),
                     QtCore.QKeyCombination(
-                        QtCore.Qt.NoModifier,
-                        QtCore.Qt.Key_2,
+                        QtCore.Qt.KeyboardModifier.NoModifier,
+                        QtCore.Qt.Key.Key_2,
                     ).toCombined(),
                     QtCore.QKeyCombination(
-                        QtCore.Qt.NoModifier,
-                        QtCore.Qt.Key_BracketLeft,
+                        QtCore.Qt.KeyboardModifier.NoModifier,
+                        QtCore.Qt.Key.Key_BracketLeft,
                     ).toCombined(),
                     QtCore.QKeyCombination(
-                        QtCore.Qt.NoModifier,
-                        QtCore.Qt.Key_BracketRight,
+                        QtCore.Qt.KeyboardModifier.NoModifier,
+                        QtCore.Qt.Key.Key_BracketRight,
                     ).toCombined(),
                     QtCore.QKeyCombination(
-                        QtCore.Qt.NoModifier,
-                        QtCore.Qt.Key_Backspace,
+                        QtCore.Qt.KeyboardModifier.NoModifier,
+                        QtCore.Qt.Key.Key_Backspace,
                     ).toCombined(),
                     QtCore.QKeyCombination(
-                        QtCore.Qt.ShiftModifier,
-                        QtCore.Qt.Key_Backspace,
+                        QtCore.Qt.KeyboardModifier.ShiftModifier,
+                        QtCore.Qt.Key.Key_Backspace,
                     ).toCombined(),
                     QtCore.QKeyCombination(
-                        QtCore.Qt.ShiftModifier,
-                        QtCore.Qt.Key_W,
+                        QtCore.Qt.KeyboardModifier.ShiftModifier,
+                        QtCore.Qt.Key.Key_W,
                     ).toCombined(),
                 ]
             )
@@ -1914,7 +1916,7 @@ class Plot(QtWidgets.QWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
         while item := iterator.value():
             if item.type() == item.Channel:
-                if item.checkState(item.CommonAxisColumn) == QtCore.Qt.Unchecked:
+                if item.checkState(item.CommonAxisColumn) == QtCore.Qt.CheckState.Unchecked:
                     enforce_y_axis = False
                     break
                 else:
@@ -1946,7 +1948,7 @@ class Plot(QtWidgets.QWidget):
             item = ChannelsTreeItem(
                 ChannelsTreeItem.Channel,
                 signal=sig,
-                check=QtCore.Qt.Checked if sig.enable else QtCore.Qt.Unchecked,
+                check=QtCore.Qt.CheckState.Checked if sig.enable else QtCore.Qt.CheckState.Unchecked,
                 background_color=background_color,
             )
 
@@ -2003,13 +2005,13 @@ class Plot(QtWidgets.QWidget):
                     if item.pattern:
                         item.setCheckState(
                             item.NameColumn,
-                            QtCore.Qt.Checked if info["enabled"] else QtCore.Qt.Unchecked,
+                            QtCore.Qt.CheckState.Checked if info["enabled"] else QtCore.Qt.CheckState.Unchecked,
                         )
                     else:
                         if not item.childCount():
                             item.setCheckState(
                                 item.NameColumn,
-                                QtCore.Qt.Checked if info["enabled"] else QtCore.Qt.Unchecked,
+                                QtCore.Qt.CheckState.Checked if info["enabled"] else QtCore.Qt.CheckState.Unchecked,
                             )
                     if "disabled" in info and info["disabled"]:
                         item.set_disabled(info["disabled"])
@@ -2040,7 +2042,7 @@ class Plot(QtWidgets.QWidget):
             if description:
                 individual_axis = description.get("individual_axis", False)
                 if individual_axis:
-                    item.setCheckState(item.IndividualAxisColumn, QtCore.Qt.Checked)
+                    item.setCheckState(item.IndividualAxisColumn, QtCore.Qt.CheckState.Checked)
 
                     _, idx = self.plot.signal_by_uuid(sig_uuid)
                     axis = self.plot.get_axis(idx)
@@ -2048,7 +2050,7 @@ class Plot(QtWidgets.QWidget):
                         axis.setWidth(description["individual_axis_width"])
 
                 if description.get("common_axis", False):
-                    item.setCheckState(item.CommonAxisColumn, QtCore.Qt.Checked)
+                    item.setCheckState(item.CommonAxisColumn, QtCore.Qt.CheckState.Checked)
 
                 item.precision = description.get("precision", 3)
 
@@ -2061,7 +2063,7 @@ class Plot(QtWidgets.QWidget):
                     item.name = description["user_defined_name"]
 
             if enforce_y_axis:
-                item.setCheckState(item.CommonAxisColumn, QtCore.Qt.Checked)
+                item.setCheckState(item.CommonAxisColumn, QtCore.Qt.CheckState.Checked)
 
         if update:
             self.channel_selection.update_channel_groups_count()
@@ -2115,7 +2117,7 @@ class Plot(QtWidgets.QWidget):
         channel_group = {
             "type": "group",
             "name": widget.name,
-            "enabled": item.checkState(item.NameColumn) == QtCore.Qt.Checked,
+            "enabled": item.checkState(item.NameColumn) == QtCore.Qt.CheckState.Checked,
             "pattern": pattern,
             "ranges": ranges,
             "origin_uuid": item.origin_uuid,
@@ -2140,15 +2142,15 @@ class Plot(QtWidgets.QWidget):
 
         channel["unit"] = sig.unit
         channel["flags"] = int(sig.flags)
-        channel["enabled"] = item.checkState(item.NameColumn) == QtCore.Qt.Checked
+        channel["enabled"] = item.checkState(item.NameColumn) == QtCore.Qt.CheckState.Checked
 
-        if item.checkState(item.IndividualAxisColumn) == QtCore.Qt.Checked:
+        if item.checkState(item.IndividualAxisColumn) == QtCore.Qt.CheckState.Checked:
             channel["individual_axis"] = True
             channel["individual_axis_width"] = self.plot.get_axis(idx).width()
         else:
             channel["individual_axis"] = False
 
-        channel["common_axis"] = item.checkState(item.CommonAxisColumn) == QtCore.Qt.Checked
+        channel["common_axis"] = item.checkState(item.CommonAxisColumn) == QtCore.Qt.CheckState.Checked
         channel["color"] = sig.color.name()
         channel["computed"] = bool(sig.flags & Signal.Flags.computed)
         channel["ranges"] = copy_ranges(widget.ranges)
@@ -2195,7 +2197,7 @@ class Plot(QtWidgets.QWidget):
                 while item := iterator.value():
                     if (
                         item.type() == item.Channel
-                        and item.checkState(item.NameColumn) == QtCore.Qt.Checked
+                        and item.checkState(item.NameColumn) == QtCore.Qt.CheckState.Checked
                         and not item.isDisabled()
                     ):
                         item.signal.enable = True
@@ -2211,13 +2213,13 @@ class Plot(QtWidgets.QWidget):
             palette = self.selected_channel_value.palette()
 
             brush = QtGui.QBrush(item.foreground(item.NameColumn))
-            brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.WindowText, brush)
-            palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.WindowText, brush)
+            brush.setStyle(QtCore.Qt.BrushStyle.SolidPattern)
+            palette.setBrush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.WindowText, brush)
+            palette.setBrush(QtGui.QPalette.ColorGroup.Inactive, QtGui.QPalette.ColorRole.WindowText, brush)
 
             brush = QtGui.QBrush(item.background(item.NameColumn))
-            brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Window, brush)
+            brush.setStyle(QtCore.Qt.BrushStyle.SolidPattern)
+            palette.setBrush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.Window, brush)
 
             self.selected_channel_value.setPalette(palette)
 
@@ -2227,13 +2229,13 @@ class Plot(QtWidgets.QWidget):
             metrics = QtGui.QFontMetrics(self.selected_channel_value.font())
             elided = metrics.elidedText(
                 f"{value} {unit}",
-                QtCore.Qt.ElideRight,
+                QtCore.Qt.TextElideMode.ElideRight,
                 self.selected_channel_value.width() - 10,
             )
 
             self.selected_channel_value.setText(elided)  # (f"{value} {unit}")
 
-        if QtCore.Qt.CheckStateRole not in roles:
+        if QtCore.Qt.ItemDataRole.CheckStateRole not in roles:
             return
 
         if item.type() != item.Channel or item.isDisabled():
@@ -2242,7 +2244,7 @@ class Plot(QtWidgets.QWidget):
         column = top_left.column()
 
         if column == item.NameColumn:
-            enabled = item.checkState(column) == QtCore.Qt.Checked
+            enabled = item.checkState(column) == QtCore.Qt.CheckState.Checked
             if enabled != item.signal.enable:
                 item.signal.enable = enabled
                 self.plot.set_signal_enable(item.uuid, item.checkState(column))
@@ -2251,13 +2253,13 @@ class Plot(QtWidgets.QWidget):
 
         elif column == item.CommonAxisColumn:
             if not self.locked:
-                enabled = item.checkState(column) == QtCore.Qt.Checked
+                enabled = item.checkState(column) == QtCore.Qt.CheckState.Checked
                 if enabled != item.signal.y_link:
                     item.signal.y_link = enabled
                     self.plot.set_common_axis(item.uuid, enabled)
 
         elif column == item.IndividualAxisColumn:
-            enabled = item.checkState(column) == QtCore.Qt.Checked
+            enabled = item.checkState(column) == QtCore.Qt.CheckState.Checked
             if enabled != item.signal.individual_axis:
                 self.plot.set_individual_axis(item.uuid, enabled)
 
@@ -2268,10 +2270,10 @@ class Plot(QtWidgets.QWidget):
         elif item.type() != item.Info:
             if item.type() == item.Channel:
                 if not item.isDisabled():
-                    if item.checkState(item.NameColumn) == QtCore.Qt.Checked:
-                        item.setCheckState(item.NameColumn, QtCore.Qt.Unchecked)
+                    if item.checkState(item.NameColumn) == QtCore.Qt.CheckState.Checked:
+                        item.setCheckState(item.NameColumn, QtCore.Qt.CheckState.Unchecked)
                     else:
-                        item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
+                        item.setCheckState(item.NameColumn, QtCore.Qt.CheckState.Checked)
             elif item.type() == item.Group:
                 if (
                     (Plot.item_double_click_handling == "enable/disable" and button == QtCore.Qt.MouseButton.LeftButton)
@@ -2323,9 +2325,13 @@ class Plot(QtWidgets.QWidget):
                     self.flash_curve(current, 0)
 
     def clear(self):
-        event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_A, QtCore.Qt.ControlModifier)
+        event = QtGui.QKeyEvent(
+            QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_A, QtCore.Qt.KeyboardModifier.ControlModifier
+        )
         self.channel_selection.keyPressEvent(event)
-        event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier)
+        event = QtGui.QKeyEvent(
+            QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Delete, QtCore.Qt.KeyboardModifier.NoModifier
+        )
         self.channel_selection.keyPressEvent(event)
 
     def close(self):
@@ -2405,9 +2411,9 @@ class Plot(QtWidgets.QWidget):
             palette = self.selected_channel_value.palette()
             sig, idx = self.plot.signal_by_uuid(uuid)
             brush = QtGui.QBrush(sig.color)
-            brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.WindowText, brush)
-            palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.WindowText, brush)
+            brush.setStyle(QtCore.Qt.BrushStyle.SolidPattern)
+            palette.setBrush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.WindowText, brush)
+            palette.setBrush(QtGui.QPalette.ColorGroup.Inactive, QtGui.QPalette.ColorRole.WindowText, brush)
             self.selected_channel_value.setPalette(palette)
 
             item = self.item_by_uuid(uuid)
@@ -2417,7 +2423,7 @@ class Plot(QtWidgets.QWidget):
                 metrics = QtGui.QFontMetrics(self.selected_channel_value.font())
                 elided = metrics.elidedText(
                     f"{value} {unit}",
-                    QtCore.Qt.ElideRight,
+                    QtCore.Qt.TextElideMode.ElideRight,
                     self.selected_channel_value.width() - 10,
                 )
 
@@ -2453,7 +2459,7 @@ class Plot(QtWidgets.QWidget):
                         metrics = QtGui.QFontMetrics(self.selected_channel_value.font())
                         elided = metrics.elidedText(
                             f"{value} {unit}",
-                            QtCore.Qt.ElideRight,
+                            QtCore.Qt.TextElideMode.ElideRight,
                             self.selected_channel_value.width() - 10,
                         )
 
@@ -2561,7 +2567,7 @@ class Plot(QtWidgets.QWidget):
         else:
             png = ":/axis_on.png"
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.hide_axes_btn.setIcon(icon)
 
     def hide_selected_channel_value(self, event=None, hide=None):
@@ -2583,7 +2589,7 @@ class Plot(QtWidgets.QWidget):
         else:
             png = ":/number_on.png"
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.selected_channel_value_btn.setIcon(icon)
 
     def increase_font(self):
@@ -2612,7 +2618,7 @@ class Plot(QtWidgets.QWidget):
         key = event.key()
         modifiers = event.modifiers()
 
-        if key == QtCore.Qt.Key_M and modifiers == QtCore.Qt.NoModifier:
+        if key == QtCore.Qt.Key.Key_M and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
             ch_size, plt_size, info_size = self.splitter.sizes()
 
             if self.info.isVisible():
@@ -2632,7 +2638,7 @@ class Plot(QtWidgets.QWidget):
                 stats = self.plot.get_stats(self.info_uuid)
                 self.info.set_stats(stats)
 
-        elif key == QtCore.Qt.Key_2 and modifiers == QtCore.Qt.NoModifier:
+        elif key == QtCore.Qt.Key.Key_2 and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
             self.focused_mode = not self.focused_mode
             if self.focused_mode:
                 self.focused_mode_btn.setFlat(False)
@@ -2641,18 +2647,18 @@ class Plot(QtWidgets.QWidget):
             self.channel_selection_changed(update=True)
 
         elif (
-            key in (QtCore.Qt.Key_B, QtCore.Qt.Key_H, QtCore.Qt.Key_P, QtCore.Qt.Key_T)
-            and modifiers == QtCore.Qt.ControlModifier
+            key in (QtCore.Qt.Key.Key_B, QtCore.Qt.Key.Key_H, QtCore.Qt.Key.Key_P, QtCore.Qt.Key.Key_T)
+            and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier
         ):
             selected_items = self.channel_selection.selectedItems() or [
                 self.channel_selection.topLevelItem(i) for i in range(self.channel_selection.topLevelItemCount())
             ]
 
-            if key == QtCore.Qt.Key_B:
+            if key == QtCore.Qt.Key.Key_B:
                 fmt = "bin"
-            elif key == QtCore.Qt.Key_H:
+            elif key == QtCore.Qt.Key.Key_H:
                 fmt = "hex"
-            elif key == QtCore.Qt.Key_P:
+            elif key == QtCore.Qt.Key.Key_P:
                 fmt = "phys"
             else:
                 fmt = "ascii"
@@ -2700,7 +2706,11 @@ class Plot(QtWidgets.QWidget):
             self.current_uuid_changed(self.plot.current_uuid)
             self.plot.update()
 
-        elif key in (QtCore.Qt.Key_R, QtCore.Qt.Key_S) and modifiers == QtCore.Qt.AltModifier and self._can_switch_mode:
+        elif (
+            key in (QtCore.Qt.Key.Key_R, QtCore.Qt.Key.Key_S)
+            and modifiers == QtCore.Qt.KeyboardModifier.AltModifier
+            and self._can_switch_mode
+        ):
             selected_items = self.channel_selection.selectedItems()
             if not selected_items:
                 signals = [(sig, i) for i, sig in enumerate(self.plot.signals)]
@@ -2712,13 +2722,13 @@ class Plot(QtWidgets.QWidget):
                 signals = [self.plot.signal_by_uuid(uuid) for uuid in uuids]
 
             if signals:
-                if key == QtCore.Qt.Key_R:
+                if key == QtCore.Qt.Key.Key_R:
                     mode = "raw"
-                    style = QtCore.Qt.DashLine
+                    style = QtCore.Qt.PenStyle.DashLine
 
                 else:
                     mode = "phys"
-                    style = QtCore.Qt.SolidLine
+                    style = QtCore.Qt.PenStyle.SolidLine
 
                 for signal, idx in signals:
                     if signal.mode != mode:
@@ -2775,7 +2785,7 @@ class Plot(QtWidgets.QWidget):
             if self.plot.cursor1:
                 self.plot.cursor_moved.emit(self.plot.cursor1)
 
-        elif key == QtCore.Qt.Key_I and modifiers == QtCore.Qt.ControlModifier:
+        elif key == QtCore.Qt.Key.Key_I and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
             if self.plot.cursor1:
                 position = self.plot.cursor1.value()
                 comment, submit = QtWidgets.QInputDialog.getMultiLineText(
@@ -2807,7 +2817,7 @@ class Plot(QtWidgets.QWidget):
 
                     self.update()
 
-        elif key == QtCore.Qt.Key_I and modifiers == QtCore.Qt.AltModifier:
+        elif key == QtCore.Qt.Key.Key_I and modifiers == QtCore.Qt.KeyboardModifier.AltModifier:
             self.show_bookmarks = not self.show_bookmarks
             if self.show_bookmarks:
                 self.bookmark_btn.setFlat(False)
@@ -2819,7 +2829,7 @@ class Plot(QtWidgets.QWidget):
 
             self.plot.update()
 
-        elif key == QtCore.Qt.Key_G and modifiers == QtCore.Qt.ControlModifier:
+        elif key == QtCore.Qt.Key.Key_G and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
             selected_items = [
                 item for item in self.channel_selection.selectedItems() if item.type() == ChannelsTreeItem.Channel
             ]
@@ -2856,7 +2866,7 @@ class Plot(QtWidgets.QWidget):
 
                     self.plot.update()
 
-        elif key == QtCore.Qt.Key_R and modifiers == QtCore.Qt.NoModifier:
+        elif key == QtCore.Qt.Key.Key_R and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
             while item := iterator.value():
                 if item.type() == item.Channel:
@@ -2867,26 +2877,30 @@ class Plot(QtWidgets.QWidget):
 
             self.plot.keyPressEvent(event)
 
-        elif key == QtCore.Qt.Key_C and modifiers in (
-            QtCore.Qt.NoModifier,
-            QtCore.Qt.ControlModifier,
-            QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier,
+        elif key == QtCore.Qt.Key.Key_C and modifiers in (
+            QtCore.Qt.KeyboardModifier.NoModifier,
+            QtCore.Qt.KeyboardModifier.ControlModifier,
+            QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
         ):
             self.channel_selection.keyPressEvent(event)
 
-        elif key == QtCore.Qt.Key_R and modifiers == QtCore.Qt.ControlModifier and self.can_edit_ranges:
-            self.channel_selection.keyPressEvent(event)
-
-        elif key == QtCore.Qt.Key_V and modifiers in (
-            QtCore.Qt.ControlModifier,
-            QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier,
+        elif (
+            key == QtCore.Qt.Key.Key_R
+            and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier
+            and self.can_edit_ranges
         ):
             self.channel_selection.keyPressEvent(event)
 
-        elif key == QtCore.Qt.Key_BracketLeft and modifiers == QtCore.Qt.ControlModifier:
+        elif key == QtCore.Qt.Key.Key_V and modifiers in (
+            QtCore.Qt.KeyboardModifier.ControlModifier,
+            QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+        ):
+            self.channel_selection.keyPressEvent(event)
+
+        elif key == QtCore.Qt.Key.Key_BracketLeft and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
             self.decrease_font()
 
-        elif key == QtCore.Qt.Key_BracketRight and modifiers == QtCore.Qt.ControlModifier:
+        elif key == QtCore.Qt.Key.Key_BracketRight and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
             self.increase_font()
 
         elif event.keyCombination().toCombined() in self.plot.keyboard_events:
@@ -2895,13 +2909,13 @@ class Plot(QtWidgets.QWidget):
             except:
                 print(format_exc())
 
-        elif key == QtCore.Qt.Key_Backspace:
-            if modifiers == QtCore.Qt.ShiftModifier:
+        elif key == QtCore.Qt.Key.Key_Backspace:
+            if modifiers == QtCore.Qt.KeyboardModifier.ShiftModifier:
                 self.redo_zoom()
             else:
                 self.undo_zoom()
 
-        elif key == QtCore.Qt.Key_W and modifiers == QtCore.Qt.ShiftModifier:
+        elif key == QtCore.Qt.Key.Key_W and modifiers == QtCore.Qt.KeyboardModifier.ShiftModifier:
             if self.enable_zoom_history and self.zoom_history:
                 self.zoom_history_index = 0
 
@@ -3140,7 +3154,7 @@ class Plot(QtWidgets.QWidget):
             png = ":/unlocked.png"
             self.lock_btn.setFlat(False)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.lock_btn.setToolTip(tooltip)
         self.lock_btn.setIcon(icon)
 
@@ -3155,9 +3169,9 @@ class Plot(QtWidgets.QWidget):
     def set_timestamp(self, stamp):
         if self.plot.cursor1 is None:
             event = QtGui.QKeyEvent(
-                QtCore.QEvent.KeyPress,
-                QtCore.Qt.Key_C,
-                QtCore.Qt.NoModifier,
+                QtCore.QEvent.Type.KeyPress,
+                QtCore.Qt.Key.Key_C,
+                QtCore.Qt.KeyboardModifier.NoModifier,
             )
             self.plot.keyPressEvent(event)
 
@@ -3261,9 +3275,9 @@ class Plot(QtWidgets.QWidget):
             self.show_bookmarks = hide
 
         key_event = QtGui.QKeyEvent(
-            QtCore.QEvent.KeyPress,
-            QtCore.Qt.Key_I,
-            QtCore.Qt.AltModifier,
+            QtCore.QEvent.Type.KeyPress,
+            QtCore.Qt.Key.Key_I,
+            QtCore.Qt.KeyboardModifier.AltModifier,
         )
         self.keyPressEvent(key_event)
 
@@ -3272,7 +3286,7 @@ class Plot(QtWidgets.QWidget):
         else:
             png = ":/bookmark_on.png"
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.bookmark_btn.setIcon(icon)
 
         if hide is None:
@@ -3283,7 +3297,9 @@ class Plot(QtWidgets.QWidget):
             # invert so that the key press event will set the desider focused mode
             self.focused_mode = not focused
 
-        key_event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_2, QtCore.Qt.NoModifier)
+        key_event = QtGui.QKeyEvent(
+            QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_2, QtCore.Qt.KeyboardModifier.NoModifier
+        )
         self.keyPressEvent(key_event)
 
         if focused is None:
@@ -3301,7 +3317,7 @@ class Plot(QtWidgets.QWidget):
         else:
             png = ":/focus_on.png"
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.focused_mode_btn.setIcon(icon)
 
     def toggle_region_values_display_mode(self, event=None, mode=None):
@@ -3322,7 +3338,7 @@ class Plot(QtWidgets.QWidget):
         else:
             png = ":/delta_on.png"
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.delta_btn.setIcon(icon)
 
         if mode is None:
@@ -3383,7 +3399,7 @@ class Plot(QtWidgets.QWidget):
                     if (
                         item.uuid == self.info_uuid
                         or item.exists
-                        and (item.checkState(item.NameColumn) == QtCore.Qt.Checked or item._is_visible)
+                        and (item.checkState(item.NameColumn) == QtCore.Qt.CheckState.Checked or item._is_visible)
                     ):
                         entry = (item.origin_uuid, item.signal.name, item.uuid)
                         _visible_entries.add(entry)
@@ -3481,7 +3497,7 @@ class PlotGraphics(pg.PlotWidget):
 
         self.plot_parent = plot_parent
 
-        self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
+        self.setViewportUpdateMode(QtWidgets.QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
 
         self.autoFillBackground()
 
@@ -3711,112 +3727,112 @@ class PlotGraphics(pg.PlotWidget):
         self.keyboard_events = set(
             [
                 QtCore.QKeyCombination(
-                    QtCore.Qt.NoModifier,
-                    QtCore.Qt.Key_F,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
+                    QtCore.Qt.Key.Key_F,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.ShiftModifier,
-                    QtCore.Qt.Key_F,
+                    QtCore.Qt.KeyboardModifier.ShiftModifier,
+                    QtCore.Qt.Key.Key_F,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.NoModifier,
-                    QtCore.Qt.Key_G,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
+                    QtCore.Qt.Key.Key_G,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.ShiftModifier,
-                    QtCore.Qt.Key_G,
+                    QtCore.Qt.KeyboardModifier.ShiftModifier,
+                    QtCore.Qt.Key.Key_G,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.NoModifier,
-                    QtCore.Qt.Key_I,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
+                    QtCore.Qt.Key.Key_I,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.NoModifier,
-                    QtCore.Qt.Key_O,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
+                    QtCore.Qt.Key.Key_O,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.ShiftModifier,
-                    QtCore.Qt.Key_I,
+                    QtCore.Qt.KeyboardModifier.ShiftModifier,
+                    QtCore.Qt.Key.Key_I,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.ShiftModifier,
-                    QtCore.Qt.Key_O,
+                    QtCore.Qt.KeyboardModifier.ShiftModifier,
+                    QtCore.Qt.Key.Key_O,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.NoModifier,
-                    QtCore.Qt.Key_X,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
+                    QtCore.Qt.Key.Key_X,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.NoModifier,
-                    QtCore.Qt.Key_R,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
+                    QtCore.Qt.Key.Key_R,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.ControlModifier,
-                    QtCore.Qt.Key_S,
+                    QtCore.Qt.KeyboardModifier.ControlModifier,
+                    QtCore.Qt.Key.Key_S,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.NoModifier,
-                    QtCore.Qt.Key_S,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
+                    QtCore.Qt.Key.Key_S,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.ShiftModifier,
-                    QtCore.Qt.Key_S,
+                    QtCore.Qt.KeyboardModifier.ShiftModifier,
+                    QtCore.Qt.Key.Key_S,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.NoModifier,
-                    QtCore.Qt.Key_Y,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
+                    QtCore.Qt.Key.Key_Y,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.NoModifier,
-                    QtCore.Qt.Key_Left,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
+                    QtCore.Qt.Key.Key_Left,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.NoModifier,
-                    QtCore.Qt.Key_Right,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
+                    QtCore.Qt.Key.Key_Right,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.ShiftModifier,
-                    QtCore.Qt.Key_Left,
+                    QtCore.Qt.KeyboardModifier.ShiftModifier,
+                    QtCore.Qt.Key.Key_Left,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.ShiftModifier,
-                    QtCore.Qt.Key_Right,
+                    QtCore.Qt.KeyboardModifier.ShiftModifier,
+                    QtCore.Qt.Key.Key_Right,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.ControlModifier,
-                    QtCore.Qt.Key_Left,
+                    QtCore.Qt.KeyboardModifier.ControlModifier,
+                    QtCore.Qt.Key.Key_Left,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.ControlModifier,
-                    QtCore.Qt.Key_Right,
+                    QtCore.Qt.KeyboardModifier.ControlModifier,
+                    QtCore.Qt.Key.Key_Right,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.ShiftModifier,
-                    QtCore.Qt.Key_Up,
+                    QtCore.Qt.KeyboardModifier.ShiftModifier,
+                    QtCore.Qt.Key.Key_Up,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.ShiftModifier,
-                    QtCore.Qt.Key_Down,
+                    QtCore.Qt.KeyboardModifier.ShiftModifier,
+                    QtCore.Qt.Key.Key_Down,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.ShiftModifier,
-                    QtCore.Qt.Key_PageUp,
+                    QtCore.Qt.KeyboardModifier.ShiftModifier,
+                    QtCore.Qt.Key.Key_PageUp,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.ShiftModifier,
-                    QtCore.Qt.Key_PageDown,
+                    QtCore.Qt.KeyboardModifier.ShiftModifier,
+                    QtCore.Qt.Key.Key_PageDown,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.NoModifier,
-                    QtCore.Qt.Key_H,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
+                    QtCore.Qt.Key.Key_H,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.NoModifier,
-                    QtCore.Qt.Key_W,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
+                    QtCore.Qt.Key.Key_W,
                 ).toCombined(),
                 QtCore.QKeyCombination(
-                    QtCore.Qt.NoModifier,
-                    QtCore.Qt.Key_Insert,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
+                    QtCore.Qt.Key.Key_Insert,
                 ).toCombined(),
             ]
         )
@@ -3996,7 +4012,7 @@ class PlotGraphics(pg.PlotWidget):
                 break
         else:
             if (
-                QtCore.QKeyCombination(QtCore.Qt.Key_C, QtCore.Qt.ControlModifier).toCombined()
+                QtCore.QKeyCombination(QtCore.Qt.Key.Key_C, QtCore.Qt.KeyboardModifier.ControlModifier).toCombined()
                 not in self.disabled_keys
             ):
                 if self.region is not None:
@@ -4005,7 +4021,7 @@ class PlotGraphics(pg.PlotWidget):
                     if self.region_lock is not None:
                         self.region.setRegion((self.region_lock, pos.x()))
                     else:
-                        if modifiers == QtCore.Qt.ControlModifier:
+                        if modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
                             self.region.setRegion((start, pos.x()))
                         else:
                             self.region.setRegion((pos.x(), stop))
@@ -4016,7 +4032,7 @@ class PlotGraphics(pg.PlotWidget):
                         self.cursor1.sigPositionChangeFinished.emit(self.cursor1)
 
             now = perf_counter()
-            if modifiers == QtCore.Qt.ControlModifier:
+            if modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
                 self.select_curve(x, y)
             elif now - self.last_click < 0.3:
                 self.select_curve(x, y)
@@ -4170,7 +4186,7 @@ class PlotGraphics(pg.PlotWidget):
             if self.y_axis.grid and self.y_axis.isVisible():
                 for pen, p1, p2 in self.y_axis.tickSpecs:
                     pen2 = fn.mkPen(pen)
-                    pen2.setStyle(QtCore.Qt.DashLine)
+                    pen2.setStyle(QtCore.Qt.PenStyle.DashLine)
                     y_pos = p1.y() + y_delta
                     paint.setPen(pen2)
                     paint.drawLine(
@@ -4181,7 +4197,7 @@ class PlotGraphics(pg.PlotWidget):
             if self.x_axis.grid and self.x_axis.isVisible():
                 for pen, p1, p2 in self.x_axis.tickSpecs:
                     pen2 = fn.mkPen(pen)
-                    pen2.setStyle(QtCore.Qt.DashLine)
+                    pen2.setStyle(QtCore.Qt.PenStyle.DashLine)
                     x_pos = p1.x() + x_delta
                     paint.setPen(pen2)
                     paint.drawLine(
@@ -4342,9 +4358,11 @@ class PlotGraphics(pg.PlotWidget):
             super().keyPressEvent(event)
         else:
             handled = True
-            if key == QtCore.Qt.Key_Y and modifier == QtCore.Qt.NoModifier:
+            if key == QtCore.Qt.Key.Key_Y and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
                 if self.region is None:
-                    event_ = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_R, QtCore.Qt.NoModifier)
+                    event_ = QtGui.QKeyEvent(
+                        QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_R, QtCore.Qt.KeyboardModifier.NoModifier
+                    )
                     self.keyPressEvent(event_)
 
                 if self.region_lock is not None:
@@ -4360,13 +4378,15 @@ class PlotGraphics(pg.PlotWidget):
 
                 self.update()
 
-            elif key == QtCore.Qt.Key_X and modifier == QtCore.Qt.NoModifier:
+            elif key == QtCore.Qt.Key.Key_X and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
                 if self.region is not None:
                     self.viewbox.setXRange(*self.region.getRegion(), padding=0)
-                    event_ = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_R, QtCore.Qt.NoModifier)
+                    event_ = QtGui.QKeyEvent(
+                        QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_R, QtCore.Qt.KeyboardModifier.NoModifier
+                    )
                     self.keyPressEvent(event_)
 
-            elif key == QtCore.Qt.Key_F and modifier == QtCore.Qt.NoModifier and not self.locked:
+            elif key == QtCore.Qt.Key.Key_F and modifier == QtCore.Qt.KeyboardModifier.NoModifier and not self.locked:
                 self.block_zoom_signal = True
                 if self.common_axis_items:
                     if any(
@@ -4420,7 +4440,9 @@ class PlotGraphics(pg.PlotWidget):
                 self.zoom_changed.emit(False)
                 self.update()
 
-            elif key == QtCore.Qt.Key_F and modifier == QtCore.Qt.ShiftModifier and not self.locked:
+            elif (
+                key == QtCore.Qt.Key.Key_F and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier and not self.locked
+            ):
                 self.block_zoom_signal = True
                 parent = self.parent().parent()
                 uuids = [
@@ -4460,8 +4482,8 @@ class PlotGraphics(pg.PlotWidget):
                 self.zoom_changed.emit(False)
                 self.update()
 
-            elif key == QtCore.Qt.Key_G:
-                if modifier == QtCore.Qt.NoModifier:
+            elif key == QtCore.Qt.Key.Key_G:
+                if modifier == QtCore.Qt.KeyboardModifier.NoModifier:
                     y = self.plotItem.ctrl.yGridCheck.isChecked()
                     x = self.plotItem.ctrl.xGridCheck.isChecked()
 
@@ -4474,7 +4496,7 @@ class PlotGraphics(pg.PlotWidget):
 
                     self.update()
 
-                elif modifier == QtCore.Qt.ShiftModifier:
+                elif modifier == QtCore.Qt.KeyboardModifier.ShiftModifier:
                     if self.cursor1 is not None:
                         value, ok = QtWidgets.QInputDialog.getDouble(
                             self,
@@ -4488,10 +4510,12 @@ class PlotGraphics(pg.PlotWidget):
                             self.cursor1.setPos(value)
                             self.cursor_move_finished.emit(self.cursor1)
 
-            elif key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O) and modifier == QtCore.Qt.NoModifier:
+            elif (
+                key in (QtCore.Qt.Key.Key_I, QtCore.Qt.Key.Key_O) and modifier == QtCore.Qt.KeyboardModifier.NoModifier
+            ):
                 x_range, _ = self.viewbox.viewRange()
                 delta = x_range[1] - x_range[0]
-                if key == QtCore.Qt.Key_I:
+                if key == QtCore.Qt.Key.Key_I:
                     step = -delta * 0.25
                 else:
                     step = delta * 0.5
@@ -4505,8 +4529,12 @@ class PlotGraphics(pg.PlotWidget):
 
                 self.viewbox.setXRange(x_range[0] - step, x_range[1] + step, padding=0)
 
-            elif key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O) and modifier == QtCore.Qt.ShiftModifier and not self.locked:
-                if key == QtCore.Qt.Key_I:
+            elif (
+                key in (QtCore.Qt.Key.Key_I, QtCore.Qt.Key.Key_O)
+                and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
+                and not self.locked
+            ):
+                if key == QtCore.Qt.Key.Key_I:
                     factor = 0.165
                 else:
                     factor = -0.165
@@ -4545,7 +4573,7 @@ class PlotGraphics(pg.PlotWidget):
                 self.block_zoom_signal = False
                 self.zoom_changed.emit(False)
 
-            elif key == QtCore.Qt.Key_R and modifier == QtCore.Qt.NoModifier:
+            elif key == QtCore.Qt.Key.Key_R and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
                 if self.region is None:
                     color = self.cursor1.pen.color().name()
 
@@ -4585,7 +4613,7 @@ class PlotGraphics(pg.PlotWidget):
 
                 self.update()
 
-            elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.ControlModifier:
+            elif key == QtCore.Qt.Key.Key_S and modifier == QtCore.Qt.KeyboardModifier.ControlModifier:
                 file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                     self,
                     "Select output measurement file",
@@ -4632,7 +4660,7 @@ class PlotGraphics(pg.PlotWidget):
                             else:
                                 mdf.save(file_name, overwrite=True, compression=2)
 
-            elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.NoModifier and not self.locked:
+            elif key == QtCore.Qt.Key.Key_S and modifier == QtCore.Qt.KeyboardModifier.NoModifier and not self.locked:
                 self.block_zoom_signal = True
                 parent = self.parent().parent()
                 uuids = []
@@ -4737,7 +4765,9 @@ class PlotGraphics(pg.PlotWidget):
 
                 self.update()
 
-            elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.ShiftModifier and not self.locked:
+            elif (
+                key == QtCore.Qt.Key.Key_S and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier and not self.locked
+            ):
                 self.block_zoom_signal = True
                 parent = self.parent().parent()
                 uuids = [
@@ -4840,12 +4870,12 @@ class PlotGraphics(pg.PlotWidget):
 
                 self.update()
 
-            elif key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right) and modifier in (
-                QtCore.Qt.NoModifier,
-                QtCore.Qt.ControlModifier,
+            elif key in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_Right) and modifier in (
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.KeyboardModifier.ControlModifier,
             ):
                 if self.region is None:
-                    if modifier == QtCore.Qt.ControlModifier:
+                    if modifier == QtCore.Qt.KeyboardModifier.ControlModifier:
                         increment = 20
                     else:
                         increment = 1
@@ -4855,14 +4885,14 @@ class PlotGraphics(pg.PlotWidget):
                     dim = x.size
                     if dim:
                         pos = np.searchsorted(x, pos)
-                        if key == QtCore.Qt.Key_Right:
+                        if key == QtCore.Qt.Key.Key_Right:
                             pos += increment
                         else:
                             pos -= increment
                         pos = np.clip(pos, 0, dim - increment)
                         pos = x[pos]
                     else:
-                        if key == QtCore.Qt.Key_Right:
+                        if key == QtCore.Qt.Key.Key_Right:
                             pos += increment
                         else:
                             pos -= increment
@@ -4883,7 +4913,7 @@ class PlotGraphics(pg.PlotWidget):
                     start, stop = self.region.getRegion()
 
                     if self.region_lock is None:
-                        if modifier == QtCore.Qt.ControlModifier:
+                        if modifier == QtCore.Qt.KeyboardModifier.ControlModifier:
                             pos = stop
                             second_pos = start
                         else:
@@ -4899,14 +4929,14 @@ class PlotGraphics(pg.PlotWidget):
                     dim = x.size
                     if dim:
                         pos = np.searchsorted(x, pos)
-                        if key == QtCore.Qt.Key_Right:
+                        if key == QtCore.Qt.Key.Key_Right:
                             pos += increment
                         else:
                             pos -= increment
                         pos = np.clip(pos, 0, dim - increment)
                         pos = x[pos]
                     else:
-                        if key == QtCore.Qt.Key_Right:
+                        if key == QtCore.Qt.Key.Key_Right:
                             pos += increment
                         else:
                             pos -= increment
@@ -4923,7 +4953,10 @@ class PlotGraphics(pg.PlotWidget):
                     else:
                         self.region.setRegion(tuple(sorted((second_pos, pos))))
 
-            elif key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right) and modifier == QtCore.Qt.ShiftModifier:
+            elif (
+                key in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_Right)
+                and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
+            ):
                 parent = self.parent().parent()
                 uuids = list(
                     set(
@@ -4940,7 +4973,7 @@ class PlotGraphics(pg.PlotWidget):
 
                 offset = (stop - start) / 100
 
-                if key == QtCore.Qt.Key_Left:
+                if key == QtCore.Qt.Key.Key_Left:
                     offset = -offset
 
                 self.set_time_offset([False, offset, *uuids])
@@ -4948,12 +4981,12 @@ class PlotGraphics(pg.PlotWidget):
             elif (
                 key
                 in (
-                    QtCore.Qt.Key_Up,
-                    QtCore.Qt.Key_Down,
-                    QtCore.Qt.Key_PageUp,
-                    QtCore.Qt.Key_PageDown,
+                    QtCore.Qt.Key.Key_Up,
+                    QtCore.Qt.Key.Key_Down,
+                    QtCore.Qt.Key.Key_PageUp,
+                    QtCore.Qt.Key.Key_PageDown,
                 )
-                and modifier == QtCore.Qt.ShiftModifier
+                and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
             ):
                 parent = self.parent().parent()
                 uuids = list(
@@ -4967,7 +5000,7 @@ class PlotGraphics(pg.PlotWidget):
                 if not uuids:
                     return
 
-                factor = 10 if key in (QtCore.Qt.Key_PageUp, QtCore.Qt.Key_PageDown) else 100
+                factor = 10 if key in (QtCore.Qt.Key.Key_PageUp, QtCore.Qt.Key.Key_PageDown) else 100
 
                 for uuid in uuids:
                     signal, index = self.signal_by_uuid(uuid)
@@ -4975,7 +5008,7 @@ class PlotGraphics(pg.PlotWidget):
                     bottom, top = signal.y_range
                     step = (top - bottom) / factor
 
-                    if key in (QtCore.Qt.Key_Up, QtCore.Qt.Key_PageUp):
+                    if key in (QtCore.Qt.Key.Key_Up, QtCore.Qt.Key.Key_PageUp):
                         step = -step
 
                     signal.y_range = bottom + step, top + step
@@ -4984,7 +5017,7 @@ class PlotGraphics(pg.PlotWidget):
 
                 self.update()
 
-            elif key == QtCore.Qt.Key_H and modifier == QtCore.Qt.NoModifier:
+            elif key == QtCore.Qt.Key.Key_H and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
                 start_ts, stop_ts = self.viewbox.viewRange()[0]
 
                 if len(self.all_timebase):
@@ -5023,7 +5056,7 @@ class PlotGraphics(pg.PlotWidget):
                 if self.cursor1:
                     self.cursor_moved.emit(self.cursor1)
 
-            elif key == QtCore.Qt.Key_W and modifier == QtCore.Qt.NoModifier:
+            elif key == QtCore.Qt.Key.Key_W and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
                 if len(self.all_timebase):
                     start_ts = np.amin(self.all_timebase)
                     stop_ts = np.amax(self.all_timebase)
@@ -5033,7 +5066,7 @@ class PlotGraphics(pg.PlotWidget):
                     if self.cursor1:
                         self.cursor_moved.emit(self.cursor1)
 
-            elif key == QtCore.Qt.Key_Insert and modifier == QtCore.Qt.NoModifier:
+            elif key == QtCore.Qt.Key.Key_Insert and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
                 self.insert_computation()
 
             else:
@@ -5079,7 +5112,7 @@ class PlotGraphics(pg.PlotWidget):
 
             paint = QtGui.QPainter()
             paint.begin(self._pixmap)
-            paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
+            paint.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_SourceOver)
             paint.setRenderHints(paint.RenderHint.Antialiasing, False)
 
             self.x_range, self.y_range = self.viewbox.viewRange()
@@ -5109,9 +5142,9 @@ class PlotGraphics(pg.PlotWidget):
             flash_current_signal = self.flash_current_signal
 
             if self._settings.value("curve_dots_cap_style", "square") == "square":
-                cap_style = QtCore.Qt.SquareCap
+                cap_style = QtCore.Qt.PenCapStyle.SquareCap
             else:
-                cap_style = QtCore.Qt.RoundCap
+                cap_style = QtCore.Qt.PenCapStyle.RoundCap
 
             for i, sig in enumerate(self.signals):
                 if (
@@ -5242,7 +5275,7 @@ class PlotGraphics(pg.PlotWidget):
         paint = QtGui.QPainter()
         vp = self.viewport()
         paint.begin(vp)
-        paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
+        paint.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_SourceOver)
         paint.setRenderHint(paint.RenderHint.Antialiasing, False)
 
         if self.y_axis.picture is None:
@@ -5347,7 +5380,7 @@ class PlotGraphics(pg.PlotWidget):
                 color = fn.mkColor(0x62, 0xB2, 0xE2, 50)
                 paint.setBrush(fn.mkBrush(color))
 
-                paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceAtop)
+                paint.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_SourceAtop)
                 paint.drawRect(rect)
 
         paint.end()
@@ -5360,18 +5393,18 @@ class PlotGraphics(pg.PlotWidget):
         if self.region_lock is not None:
             for i in range(2):
                 if self.region.lines[i].value() == self.region_lock:
-                    self.region.lines[i].pen.setStyle(QtCore.Qt.DashDotDotLine)
+                    self.region.lines[i].pen.setStyle(QtCore.Qt.PenStyle.DashDotDotLine)
                 else:
-                    self.region.lines[i].pen.setStyle(QtCore.Qt.SolidLine)
+                    self.region.lines[i].pen.setStyle(QtCore.Qt.PenStyle.SolidLine)
         self.range_modified_finished.emit(region)
 
     def range_modified_handler(self, region):
         if self.region_lock is not None:
             for i in range(2):
                 if self.region.lines[i].value() == self.region_lock:
-                    self.region.lines[i].pen.setStyle(QtCore.Qt.DashDotDotLine)
+                    self.region.lines[i].pen.setStyle(QtCore.Qt.PenStyle.DashDotDotLine)
                 else:
-                    self.region.lines[i].pen.setStyle(QtCore.Qt.SolidLine)
+                    self.region.lines[i].pen.setStyle(QtCore.Qt.PenStyle.SolidLine)
 
     def scale_curve_to_pixmap(self, x, y, y_range, x_start, delta):
         if self.py:
@@ -5433,9 +5466,9 @@ class PlotGraphics(pg.PlotWidget):
         sig, index = self.signal_by_uuid(uuid)
 
         if sig.mode == "raw":
-            style = QtCore.Qt.DashLine
+            style = QtCore.Qt.PenStyle.DashLine
         else:
-            style = QtCore.Qt.SolidLine
+            style = QtCore.Qt.PenStyle.SolidLine
 
         sig.pen = fn.mkPen(color=color, style=style)
 
@@ -5452,7 +5485,7 @@ class PlotGraphics(pg.PlotWidget):
     def set_common_axis(self, uuid, state):
         signal, idx = self.signal_by_uuid(uuid)
 
-        if state in (QtCore.Qt.Checked, True, 1):
+        if state in (QtCore.Qt.CheckState.Checked, True, 1):
             if not self.common_axis_items:
                 self.common_axis_y_range = signal.y_range
             else:
@@ -5543,7 +5576,7 @@ class PlotGraphics(pg.PlotWidget):
     def set_individual_axis(self, uuid, state):
         sig, index = self.signal_by_uuid(uuid)
 
-        if state in (QtCore.Qt.Checked, True, 1):
+        if state in (QtCore.Qt.CheckState.Checked, True, 1):
             if sig.enable:
                 self.get_axis(index).show()
             sig.individual_axis = True
@@ -5595,7 +5628,7 @@ class PlotGraphics(pg.PlotWidget):
     def set_signal_enable(self, uuid, state):
         signal, index = self.signal_by_uuid(uuid)
 
-        if state in (QtCore.Qt.Checked, True, 1):
+        if state in (QtCore.Qt.CheckState.Checked, True, 1):
             (start, stop), _ = self.viewbox.viewRange()
             width = self.width() - self.y_axis.width()
 
@@ -5850,10 +5883,14 @@ class CursorInfo(QtWidgets.QLabel):
         self.unit = unit
         self.plot = plot
 
-        self.setTextFormat(QtCore.Qt.RichText)
-        self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
+        self.setTextFormat(QtCore.Qt.TextFormat.RichText)
+        self.setAlignment(
+            QtCore.Qt.AlignmentFlag.AlignRight
+            | QtCore.Qt.AlignmentFlag.AlignTrailing
+            | QtCore.Qt.AlignmentFlag.AlignVCenter
+        )
 
-        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.open_menu)
 
         if precision == -1:

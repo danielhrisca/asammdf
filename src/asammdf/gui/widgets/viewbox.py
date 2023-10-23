@@ -128,23 +128,23 @@ class ViewBoxWithCursor(pg.ViewBox):
     sigZoomFinished = QtCore.Signal(object)
 
     X_zoom = QtCore.QKeyCombination(
-        QtCore.Qt.ShiftModifier,
-        QtCore.Qt.Key_Shift,
+        QtCore.Qt.KeyboardModifier.ShiftModifier,
+        QtCore.Qt.Key.Key_Shift,
     ).toCombined()
 
     Y_zoom = QtCore.QKeyCombination(
-        QtCore.Qt.AltModifier,
-        QtCore.Qt.Key_Alt,
+        QtCore.Qt.KeyboardModifier.AltModifier,
+        QtCore.Qt.Key.Key_Alt,
     ).toCombined()
 
     XY_zoom = (
         QtCore.QKeyCombination(
-            QtCore.Qt.ShiftModifier | QtCore.Qt.AltModifier,
-            QtCore.Qt.Key_Alt,
+            QtCore.Qt.KeyboardModifier.ShiftModifier | QtCore.Qt.KeyboardModifier.AltModifier,
+            QtCore.Qt.Key.Key_Alt,
         ).toCombined(),
         QtCore.QKeyCombination(
-            QtCore.Qt.ShiftModifier | QtCore.Qt.AltModifier,
-            QtCore.Qt.Key_Shift,
+            QtCore.Qt.KeyboardModifier.ShiftModifier | QtCore.Qt.KeyboardModifier.AltModifier,
+            QtCore.Qt.Key.Key_Shift,
         ).toCombined(),
     )
 

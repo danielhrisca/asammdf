@@ -123,7 +123,7 @@ class TestBase(unittest.TestCase):
             raise "Not Implemented"
         QtTest.QTest.mouseClick(
             widget.viewport(),
-            QtCore.Qt.LeftButton,
+            QtCore.Qt.MouseButton.LeftButton,
             QtCore.Qt.KeyboardModifiers(),
             widget.visualItemRect(qitem).center(),
         )
@@ -138,7 +138,7 @@ class TestBase(unittest.TestCase):
             raise "Not Implemented"
         QtTest.QTest.mouseDClick(
             widget.viewport(),
-            QtCore.Qt.LeftButton,
+            QtCore.Qt.MouseButton.LeftButton,
             QtCore.Qt.KeyboardModifiers(),
             widget.visualItemRect(qitem).center(),
         )
@@ -167,7 +167,7 @@ class DragAndDrop:
             # Release
             QtTest.QTest.mouseRelease(
                 self.widget,
-                QtCore.Qt.LeftButton,
+                QtCore.Qt.MouseButton.LeftButton,
                 QtCore.Qt.KeyboardModifiers(),
                 self.position,
             )
@@ -194,12 +194,14 @@ class DragAndDrop:
             destination_viewport = dst_widget
 
         # Press on Source Widget
-        QtTest.QTest.mousePress(source_viewport, QtCore.Qt.LeftButton, QtCore.Qt.KeyboardModifiers(), src_pos)
+        QtTest.QTest.mousePress(
+            source_viewport, QtCore.Qt.MouseButton.LeftButton, QtCore.Qt.KeyboardModifiers(), src_pos
+        )
 
         move_thread = DragAndDrop.MoveThread(widget=destination_viewport, position=dst_pos)
         move_thread.start()
 
-        src_widget.startDrag(QtCore.Qt.MoveAction)
+        src_widget.startDrag(QtCore.Qt.DropAction.MoveAction)
         QtTest.QTest.qWait(50)
 
         move_thread.wait()

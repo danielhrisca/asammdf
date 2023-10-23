@@ -432,14 +432,14 @@ class TableModel(QtCore.QAbstractTableModel):
     def rowCount(self, parent=None):
         return len(self.backend)
 
-    def data(self, index, role=QtCore.Qt.DisplayRole):
+    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
         row = index.row()
         col = index.column()
 
         signal = self.backend.signals[row]
         cell = self.backend.get_signal_value(signal, col)
 
-        if role == QtCore.Qt.DisplayRole:
+        if role == QtCore.Qt.ItemDataRole.DisplayRole:
             if cell is None:
                 return "●"
             elif isinstance(cell, (bytes, np.bytes_)):
@@ -454,7 +454,7 @@ class TableModel(QtCore.QAbstractTableModel):
                 else:
                     return value_as_str(cell, signal.format, None, self.float_precision)
 
-        elif role == QtCore.Qt.BackgroundRole:
+        elif role == QtCore.Qt.ItemDataRole.BackgroundRole:
             channel_ranges = self.view.ranges[signal.entry]
             raw_cell = self.backend.get_signal_value(signal, 1)
             scaled_cell = self.backend.get_signal_value(signal, 2)
@@ -480,7 +480,7 @@ class TableModel(QtCore.QAbstractTableModel):
 
             return new_background_color if new_background_color != self.background_color else None
 
-        elif role == QtCore.Qt.ForegroundRole:
+        elif role == QtCore.Qt.ItemDataRole.ForegroundRole:
             channel_ranges = self.view.ranges[signal.entry]
             raw_cell = self.backend.get_signal_value(signal, 1)
             scaled_cell = self.backend.get_signal_value(signal, 2)
@@ -506,13 +506,13 @@ class TableModel(QtCore.QAbstractTableModel):
 
             return new_font_color if new_font_color != self.font_color else None
 
-        elif role == QtCore.Qt.TextAlignmentRole:
+        elif role == QtCore.Qt.ItemDataRole.TextAlignmentRole:
             if col:
-                return int(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+                return int(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
             else:
-                return int(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+                return int(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
 
-        elif role == QtCore.Qt.DecorationRole:
+        elif role == QtCore.Qt.ItemDataRole.DecorationRole:
             if col == 0:
                 if not signal.exists:
                     icon = utils.ERROR_ICON
@@ -520,8 +520,8 @@ class TableModel(QtCore.QAbstractTableModel):
                         utils.ERROR_ICON = QtGui.QIcon()
                         utils.ERROR_ICON.addPixmap(
                             QtGui.QPixmap(":/error.png"),
-                            QtGui.QIcon.Normal,
-                            QtGui.QIcon.Off,
+                            QtGui.QIcon.Mode.Normal,
+                            QtGui.QIcon.State.Off,
                         )
 
                         utils.NO_ERROR_ICON = QtGui.QIcon()
@@ -533,8 +533,8 @@ class TableModel(QtCore.QAbstractTableModel):
                         utils.ERROR_ICON = QtGui.QIcon()
                         utils.ERROR_ICON.addPixmap(
                             QtGui.QPixmap(":/error.png"),
-                            QtGui.QIcon.Normal,
-                            QtGui.QIcon.Off,
+                            QtGui.QIcon.Mode.Normal,
+                            QtGui.QIcon.State.Off,
                         )
 
                         utils.NO_ERROR_ICON = QtGui.QIcon()
@@ -551,8 +551,8 @@ class TableModel(QtCore.QAbstractTableModel):
                         utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
                         utils.RANGE_INDICATOR_ICON.addPixmap(
                             QtGui.QPixmap(":/paint.png"),
-                            QtGui.QIcon.Normal,
-                            QtGui.QIcon.Off,
+                            QtGui.QIcon.Mode.Normal,
+                            QtGui.QIcon.State.Off,
                         )
 
                         utils.NO_ERROR_ICON = QtGui.QIcon()
@@ -565,8 +565,8 @@ class TableModel(QtCore.QAbstractTableModel):
                         utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
                         utils.RANGE_INDICATOR_ICON.addPixmap(
                             QtGui.QPixmap(":/paint.png"),
-                            QtGui.QIcon.Normal,
-                            QtGui.QIcon.Off,
+                            QtGui.QIcon.Mode.Normal,
+                            QtGui.QIcon.State.Off,
                         )
 
                         utils.NO_ERROR_ICON = QtGui.QIcon()
@@ -577,13 +577,17 @@ class TableModel(QtCore.QAbstractTableModel):
                 return icon
 
     def flags(self, index):
-        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsDragEnabled
+        return (
+            QtCore.Qt.ItemFlag.ItemIsEnabled
+            | QtCore.Qt.ItemFlag.ItemIsSelectable
+            | QtCore.Qt.ItemFlag.ItemIsDragEnabled
+        )
 
     def setData(self, index, value, role=None):
         pass
 
     def supportedDropActions(self) -> bool:
-        return QtCore.Qt.MoveAction | QtCore.Qt.CopyAction
+        return QtCore.Qt.DropAction.MoveAction | QtCore.Qt.DropAction.CopyAction
 
     def set_format(self, fmt, indexes):
         if fmt not in ("phys", "hex", "bin", "ascii"):
@@ -606,8 +610,8 @@ class TableView(QtWidgets.QTableView):
 
         self.ranges = {}
 
-        self._backgrund_color = self.palette().color(QtGui.QPalette.Window)
-        self._font_color = self.palette().color(QtGui.QPalette.WindowText)
+        self._backgrund_color = self.palette().color(QtGui.QPalette.ColorRole.Window)
+        self._font_color = self.palette().color(QtGui.QPalette.ColorRole.WindowText)
 
         model = TableModel(parent, self._backgrund_color, self._font_color)
         self.setModel(model)
@@ -616,17 +620,17 @@ class TableView(QtWidgets.QTableView):
         self.horizontalHeader().hide()
         self.verticalHeader().hide()
 
-        self.setHorizontalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
-        self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
+        self.setHorizontalScrollMode(QtWidgets.QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollMode.ScrollPerPixel)
 
-        self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
         self.setDragEnabled(True)
         self.setDropIndicatorShown(True)
 
         self.doubleClicked.connect(self.edit_ranges)
 
-        self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+        self.setDragDropMode(QtWidgets.QAbstractItemView.DragDropMode.InternalMove)
 
         self.double_clicked_enabled = True
 
@@ -644,7 +648,7 @@ class TableView(QtWidgets.QTableView):
         key = event.key()
         modifiers = event.modifiers()
 
-        if key == QtCore.Qt.Key_Delete and modifiers == QtCore.Qt.NoModifier:
+        if key == QtCore.Qt.Key.Key_Delete and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
             selected_items = set(index.row() for index in self.selectedIndexes() if index.isValid())
 
             for row in reversed(list(selected_items)):
@@ -653,7 +657,7 @@ class TableView(QtWidgets.QTableView):
 
             self.backend.update()
 
-        elif key == QtCore.Qt.Key_R and modifiers == QtCore.Qt.ControlModifier:
+        elif key == QtCore.Qt.Key.Key_R and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
             selected_items = set(index.row() for index in self.selectedIndexes() if index.isValid())
 
             if selected_items:
@@ -680,7 +684,10 @@ class TableView(QtWidgets.QTableView):
 
                     self.backend.update()
 
-        elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier) and key == QtCore.Qt.Key_C:
+        elif (
+            modifiers == (QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier)
+            and key == QtCore.Qt.Key.Key_C
+        ):
             selected_items = set(index.row() for index in self.selectedIndexes() if index.isValid())
 
             if not selected_items:
@@ -700,7 +707,10 @@ class TableView(QtWidgets.QTableView):
 
                 QtWidgets.QApplication.instance().clipboard().setText(json.dumps(info))
 
-        elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier) and key == QtCore.Qt.Key_V:
+        elif (
+            modifiers == (QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier)
+            and key == QtCore.Qt.Key.Key_V
+        ):
             info = QtWidgets.QApplication.instance().clipboard().text()
             selected_items = set(index.row() for index in self.selectedIndexes() if index.isValid())
 
@@ -767,7 +777,7 @@ class TableView(QtWidgets.QTableView):
 
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)
-        drag.exec(QtCore.Qt.CopyAction)
+        drag.exec(QtCore.Qt.DropAction.CopyAction)
 
     def dragEnterEvent(self, e):
         e.accept()
@@ -812,15 +822,15 @@ class HeaderModel(QtCore.QAbstractTableModel):
     def rowCount(self, parent=None):
         return 1  # 1?
 
-    def data(self, index, role=QtCore.Qt.DisplayRole):
+    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
         col = index.column()
 
         names = ["Name", "Raw", "Scaled", "Unit"]
 
-        if role == QtCore.Qt.DisplayRole:
+        if role == QtCore.Qt.ItemDataRole.DisplayRole:
             return names[col]
 
-        elif role == QtCore.Qt.DecorationRole:
+        elif role == QtCore.Qt.ItemDataRole.DecorationRole:
             if col != self.backend.sorted_column_index:
                 return
             else:
@@ -831,8 +841,8 @@ class HeaderModel(QtCore.QAbstractTableModel):
 
                 return icon
 
-        elif role == QtCore.Qt.TextAlignmentRole:
-            return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+        elif role == QtCore.Qt.ItemDataRole.TextAlignmentRole:
+            return QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter
 
     def headerData(self, section, orientation, role=None):
         pass
@@ -858,23 +868,25 @@ class HeaderView(QtWidgets.QTableView):
         self.viewport().installEventFilter(self)
 
         self.setIconSize(QtCore.QSize(16, 16))
-        self.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum))
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Maximum, QtWidgets.QSizePolicy.Policy.Maximum)
+        )
         self.setWordWrap(False)
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        self.setHorizontalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
-        self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
+        self.setHorizontalScrollMode(QtWidgets.QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollMode.ScrollPerPixel)
         font = QtGui.QFont()
         font.setBold(True)
         self.setFont(font)
 
         self.horizontalHeader().hide()
         self.verticalHeader().hide()
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_menu)
 
         self.resize(self.sizeHint())
@@ -887,7 +899,7 @@ class HeaderView(QtWidgets.QTableView):
         point = event.pos()
         ix = self.indexAt(point)
         col = ix.column()
-        if event.button() == QtCore.Qt.LeftButton:
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
             self.backend.sort_column(col)
             self.sorting_changed.emit(col)
         else:
@@ -912,10 +924,10 @@ class HeaderView(QtWidgets.QTableView):
 
     def eventFilter(self, object: QtCore.QObject, event: QtCore.QEvent):
         if event.type() in [
-            QtCore.QEvent.MouseButtonPress,
-            QtCore.QEvent.MouseButtonRelease,
-            QtCore.QEvent.MouseButtonDblClick,
-            QtCore.QEvent.MouseMove,
+            QtCore.QEvent.Type.MouseButtonPress,
+            QtCore.QEvent.Type.MouseButtonRelease,
+            QtCore.QEvent.Type.MouseButtonDblClick,
+            QtCore.QEvent.Type.MouseMove,
         ]:
             return self.manage_resizing(object, event)
 
@@ -936,29 +948,29 @@ class HeaderView(QtWidgets.QTableView):
         orthogonal_mouse_position = event.pos().y()
 
         if over_header_cell_edge(mouse_position) is not None:
-            self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.SplitHCursor))
+            self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.SplitHCursor))
 
         else:
-            self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.viewport().setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
 
-        if event.type() == QtCore.QEvent.MouseButtonPress:
+        if event.type() == QtCore.QEvent.Type.MouseButtonPress:
             if over_header_cell_edge(mouse_position) is not None:
                 self.header_cell_being_resized = over_header_cell_edge(mouse_position)
                 return True
             else:
                 self.header_cell_being_resized = None
 
-        if event.type() == QtCore.QEvent.MouseButtonRelease:
+        if event.type() == QtCore.QEvent.Type.MouseButtonRelease:
             self.header_cell_being_resized = None
             self.header_being_resized = False
 
-        if event.type() == QtCore.QEvent.MouseButtonDblClick:
+        if event.type() == QtCore.QEvent.Type.MouseButtonDblClick:
             if over_header_cell_edge(mouse_position) is not None:
                 header_index = over_header_cell_edge(mouse_position)
                 self.numeric_viewer.auto_size_column(header_index)
                 return True
 
-        if event.type() == QtCore.QEvent.MouseMove:
+        if event.type() == QtCore.QEvent.Type.MouseMove:
             if self.header_cell_being_resized is not None:
                 size = mouse_position - self.columnViewportPosition(self.header_cell_being_resized)
                 if size > 10:
@@ -1009,8 +1021,8 @@ class NumericViewer(QtWidgets.QWidget):
 
         self.columnHeader.horizontalScrollBar().valueChanged.connect(self.dataView.horizontalScrollBar().setValue)
 
-        # self.dataView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        # self.dataView.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        # self.dataView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # self.dataView.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         self.gridLayout.addWidget(self.columnHeader, 0, 0)
         self.gridLayout.addWidget(self.dataView, 1, 0)
@@ -1018,16 +1030,16 @@ class NumericViewer(QtWidgets.QWidget):
         # self.gridLayout.addWidget(self.dataView.verticalScrollBar(), 1, 1, 1, 1)
 
         self.dataView.verticalScrollBar().setSizePolicy(
-            QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Ignored)
+            QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Ignored)
         )
         self.dataView.horizontalScrollBar().setSizePolicy(
-            QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
+            QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Ignored, QtWidgets.QSizePolicy.Policy.Fixed)
         )
 
         self.gridLayout.setColumnStretch(0, 1)
         self.gridLayout.setRowStretch(1, 1)
 
-        self.columnHeader.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
+        self.columnHeader.setSizePolicy(QtWidgets.QSizePolicy.Policy.Maximum, QtWidgets.QSizePolicy.Policy.Maximum)
 
         self.default_row_height = 24
         self.set_styles()
@@ -1048,11 +1060,11 @@ class NumericViewer(QtWidgets.QWidget):
         self.dataView.verticalHeader().setDefaultSectionSize(self.default_row_height)
         self.dataView.verticalHeader().setMinimumSectionSize(self.default_row_height)
         self.dataView.verticalHeader().setMaximumSectionSize(self.default_row_height)
-        self.dataView.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.Fixed)
+        self.dataView.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Fixed)
         self.columnHeader.verticalHeader().setDefaultSectionSize(self.default_row_height)
         self.columnHeader.verticalHeader().setMinimumSectionSize(self.default_row_height)
         self.columnHeader.verticalHeader().setMaximumSectionSize(self.default_row_height)
-        self.columnHeader.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.Fixed)
+        self.columnHeader.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Fixed)
 
     def auto_size_header(self):
         s = 0
@@ -1275,7 +1287,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         selection_model = self.channels.dataView.selectionModel()
         for index in selection:
-            selection_model.select(index, QtCore.QItemSelectionModel.Select)
+            selection_model.select(index, QtCore.QItemSelectionModel.SelectionFlag.Select)
 
     def to_config(self):
         channels = []
@@ -1558,25 +1570,37 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         modifiers = event.modifiers()
 
         if (
-            key in (QtCore.Qt.Key_H, QtCore.Qt.Key_B, QtCore.Qt.Key_P, QtCore.Qt.Key_T)
-            and modifiers == QtCore.Qt.ControlModifier
+            key in (QtCore.Qt.Key.Key_H, QtCore.Qt.Key.Key_B, QtCore.Qt.Key.Key_P, QtCore.Qt.Key.Key_T)
+            and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier
         ):
-            if key == QtCore.Qt.Key_H:
+            if key == QtCore.Qt.Key.Key_H:
                 self.set_format("Hex")
-            elif key == QtCore.Qt.Key_B:
+            elif key == QtCore.Qt.Key.Key_B:
                 self.set_format("Bin")
-            elif key == QtCore.Qt.Key_T:
+            elif key == QtCore.Qt.Key.Key_T:
                 self.set_format("Ascii")
             else:
                 self.set_format("Physical")
             event.accept()
-        elif key == QtCore.Qt.Key_Right and modifiers == QtCore.Qt.NoModifier and self.mode == "offline":
+        elif (
+            key == QtCore.Qt.Key.Key_Right
+            and modifiers == QtCore.Qt.KeyboardModifier.NoModifier
+            and self.mode == "offline"
+        ):
             self.timestamp_slider.setValue(self.timestamp_slider.value() + 1)
 
-        elif key == QtCore.Qt.Key_Left and modifiers == QtCore.Qt.NoModifier and self.mode == "offline":
+        elif (
+            key == QtCore.Qt.Key.Key_Left
+            and modifiers == QtCore.Qt.KeyboardModifier.NoModifier
+            and self.mode == "offline"
+        ):
             self.timestamp_slider.setValue(self.timestamp_slider.value() - 1)
 
-        elif key == QtCore.Qt.Key_S and modifiers == QtCore.Qt.ControlModifier and self.mode == "offline":
+        elif (
+            key == QtCore.Qt.Key.Key_S
+            and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier
+            and self.mode == "offline"
+        ):
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
                 "Select output measurement file",
@@ -1606,13 +1630,17 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                             mdf.append(sigs, common_timebase=True)
                         mdf.save(file_name, overwrite=True)
 
-        elif key == QtCore.Qt.Key_BracketLeft and modifiers == QtCore.Qt.ControlModifier:
+        elif key == QtCore.Qt.Key.Key_BracketLeft and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
             self.decrease_font()
 
-        elif key == QtCore.Qt.Key_BracketRight and modifiers == QtCore.Qt.ControlModifier:
+        elif key == QtCore.Qt.Key.Key_BracketRight and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
             self.increase_font()
 
-        elif key == QtCore.Qt.Key_G and modifiers == QtCore.Qt.ShiftModifier and self.mode == "offline":
+        elif (
+            key == QtCore.Qt.Key.Key_G
+            and modifiers == QtCore.Qt.KeyboardModifier.ShiftModifier
+            and self.mode == "offline"
+        ):
             value, ok = QtWidgets.QInputDialog.getDouble(
                 self,
                 "Go to time stamp",
@@ -1665,14 +1693,14 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             self.time_group.setHidden(False)
             self.search_group.setHidden(False)
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/up.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(QtGui.QPixmap(":/up.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
             self.toggle_controls_btn.setIcon(icon)
         else:
             self.toggle_controls_btn.setText("Show controls")
             self.time_group.setHidden(True)
             self.search_group.setHidden(True)
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
             self.toggle_controls_btn.setIcon(icon)
 
     def update_timebase(self):

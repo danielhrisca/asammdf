@@ -207,7 +207,7 @@ class TestDragAndDrop(TestPlotWidget):
             if item and count < 7:
                 drag_item = item
                 item.setSelected(True)
-                item.setCheckState(0, QtCore.Qt.Checked)
+                item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                 selected_channels.append(item.text(0))
             iterator += 1
 

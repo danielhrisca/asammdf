@@ -44,7 +44,7 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
         self.trace.setReadOnly(True)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/error.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         self.setWindowIcon(icon)
 
@@ -80,7 +80,7 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
             self.close()
 
     def keyPressEvent(self, event):
-        if event.key() == QtCore.Qt.Key_F1:
+        if event.key() == QtCore.Qt.Key.Key_F1:
             self.timer.stop()
             self.status.clear()
         else:

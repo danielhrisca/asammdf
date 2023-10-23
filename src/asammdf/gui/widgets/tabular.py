@@ -131,7 +131,7 @@ class Tabular(TabularBase):
         self.prefix.currentIndexChanged.connect(self.prefix_changed)
 
         if prefixes:
-            self.remove_prefix.setCheckState(QtCore.Qt.Checked)
+            self.remove_prefix.setCheckState(QtCore.Qt.CheckState.Checked)
 
         self._settings = QtCore.QSettings()
         integer_mode = self._settings.value("tabular_format", "phys")
@@ -139,6 +139,6 @@ class Tabular(TabularBase):
         self.format_selection.setCurrentText(integer_mode)
 
         self.tree.dataView.setAcceptDrops(True)
-        self.tree.dataView.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+        self.tree.dataView.setDragDropMode(QtWidgets.QAbstractItemView.DragDropMode.InternalMove)
         self.tree.dataView.setDropIndicatorShown(True)
-        self.tree.dataView.setDefaultDropAction(QtCore.Qt.MoveAction)
+        self.tree.dataView.setDefaultDropAction(QtCore.Qt.DropAction.MoveAction)

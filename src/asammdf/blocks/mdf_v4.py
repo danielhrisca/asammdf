@@ -370,7 +370,7 @@ class MDF4(MDF_Common):
 
                 if version >= "4.10" and flags:
                     tmpdir = Path(gettempdir())
-                    self.name = tmpdir / Path(name).name
+                    self.name = tmpdir / f"{os.urandom(6).hex()}_{Path(name).name}"
                     shutil.copy(name, self.name)
                     self._file = open(self.name, "rb+")
                     self._from_filelike = False

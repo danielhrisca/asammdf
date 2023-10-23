@@ -53,7 +53,7 @@ class TestContextMenu(TestPlotWidget):
             - Ensure that there is no selected channel because
             performing Right Click for ContextMenu will clear selection of the tree.
         """
-        QtTest.QTest.keyClick(self.plot.channel_selection.viewport(), QtCore.Qt.Key_Down)
+        QtTest.QTest.keyClick(self.plot.channel_selection.viewport(), QtCore.Qt.Key.Key_Down)
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
@@ -75,7 +75,7 @@ class TestContextMenu(TestPlotWidget):
             - Ensure that selection is cleared.
             - Ensure that MessageBox informs user.
         """
-        QtTest.QTest.keyClick(self.plot.channel_selection.viewport(), QtCore.Qt.Key_Down)
+        QtTest.QTest.keyClick(self.plot.channel_selection.viewport(), QtCore.Qt.Key.Key_Down)
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText, mock.patch(
@@ -100,7 +100,7 @@ class TestContextMenu(TestPlotWidget):
         Evaluate:
             - Ensure that selection is set on the found channel.
         """
-        QtTest.QTest.keyClick(self.plot.channel_selection.viewport(), QtCore.Qt.Key_Down)
+        QtTest.QTest.keyClick(self.plot.channel_selection.viewport(), QtCore.Qt.Key.Key_Down)
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText, mock.patch(
@@ -731,7 +731,7 @@ class TestContextMenu(TestPlotWidget):
         for i in range(count):
             item = self.plot.channel_selection.topLevelItem(i)
             if item.type() != item.Info:
-                self.assertEqual(QtCore.Qt.Checked, item.checkState(self.Column.NAME))
+                self.assertEqual(QtCore.Qt.CheckState.Checked, item.checkState(self.Column.NAME))
 
         self.context_menu(action_text="Enable all")
 
@@ -740,16 +740,16 @@ class TestContextMenu(TestPlotWidget):
         for i in range(count):
             item = self.plot.channel_selection.topLevelItem(i)
             if item.type() != item.Info:
-                self.assertEqual(QtCore.Qt.Checked, item.checkState(self.Column.NAME))
+                self.assertEqual(QtCore.Qt.CheckState.Checked, item.checkState(self.Column.NAME))
                 # Disable items
-                item.setCheckState(self.Column.NAME, QtCore.Qt.Unchecked)
+                item.setCheckState(self.Column.NAME, QtCore.Qt.CheckState.Unchecked)
 
         self.context_menu(action_text="Enable all")
 
         for i in range(count):
             item = self.plot.channel_selection.topLevelItem(i)
             if item.type() != item.Info:
-                self.assertEqual(QtCore.Qt.Checked, item.checkState(self.Column.NAME))
+                self.assertEqual(QtCore.Qt.CheckState.Checked, item.checkState(self.Column.NAME))
 
     def test_Menu_EnableDisable_Action_DisableAll(self):
         """
@@ -777,7 +777,7 @@ class TestContextMenu(TestPlotWidget):
         for i in range(count):
             item = self.plot.channel_selection.topLevelItem(i)
             if item.type() != item.Info:
-                self.assertEqual(QtCore.Qt.Checked, item.checkState(self.Column.NAME))
+                self.assertEqual(QtCore.Qt.CheckState.Checked, item.checkState(self.Column.NAME))
 
         self.context_menu(action_text="Disable all")
 
@@ -786,16 +786,16 @@ class TestContextMenu(TestPlotWidget):
         for i in range(count):
             item = self.plot.channel_selection.topLevelItem(i)
             if item.type() != item.Info:
-                self.assertEqual(QtCore.Qt.Unchecked, item.checkState(self.Column.NAME))
+                self.assertEqual(QtCore.Qt.CheckState.Unchecked, item.checkState(self.Column.NAME))
                 # Disable items
-                item.setCheckState(self.Column.NAME, QtCore.Qt.Checked)
+                item.setCheckState(self.Column.NAME, QtCore.Qt.CheckState.Checked)
 
         self.context_menu(action_text="Disable all")
 
         for i in range(count):
             item = self.plot.channel_selection.topLevelItem(i)
             if item.type() != item.Info:
-                self.assertEqual(QtCore.Qt.Unchecked, item.checkState(self.Column.NAME))
+                self.assertEqual(QtCore.Qt.CheckState.Unchecked, item.checkState(self.Column.NAME))
 
     def test_Menu_EnableDisable_Action_EnableSelected(self):
         """
@@ -827,7 +827,7 @@ class TestContextMenu(TestPlotWidget):
         for i in range(count):
             item = self.plot.channel_selection.topLevelItem(i)
             if item.type() != item.Info:
-                item.setCheckState(self.Column.NAME, QtCore.Qt.Unchecked)
+                item.setCheckState(self.Column.NAME, QtCore.Qt.CheckState.Unchecked)
 
         self.context_menu(action_text="Enable selected")
 
@@ -836,7 +836,7 @@ class TestContextMenu(TestPlotWidget):
         for i in range(count):
             item = self.plot.channel_selection.topLevelItem(i)
             if item.type() != item.Info:
-                self.assertEqual(QtCore.Qt.Unchecked, item.checkState(self.Column.NAME))
+                self.assertEqual(QtCore.Qt.CheckState.Unchecked, item.checkState(self.Column.NAME))
 
         # Select two channels
         self.plot_channel_a.setSelected(True)
@@ -844,14 +844,14 @@ class TestContextMenu(TestPlotWidget):
         position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
         self.context_menu(action_text="Enable selected", position=position_src)
 
-        self.assertEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.NAME))
-        self.assertEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.NAME))
+        self.assertEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_a.checkState(self.Column.NAME))
+        self.assertEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_b.checkState(self.Column.NAME))
 
         # Select group
         position_src = self.plot.channel_selection.visualItemRect(group_channel).center()
         self.context_menu(action_text="Enable selected", position=position_src)
 
-        self.assertEqual(QtCore.Qt.Checked, group_channel.checkState(self.Column.NAME))
+        self.assertEqual(QtCore.Qt.CheckState.Checked, group_channel.checkState(self.Column.NAME))
 
     @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Menu_EnableDisable_Action_DisableSelected(self):
@@ -886,7 +886,7 @@ class TestContextMenu(TestPlotWidget):
         for i in range(count):
             item = self.plot.channel_selection.topLevelItem(i)
             if item.type() != item.Info:
-                self.assertEqual(QtCore.Qt.Checked, item.checkState(self.Column.NAME))
+                self.assertEqual(QtCore.Qt.CheckState.Checked, item.checkState(self.Column.NAME))
 
         # Select two channels
         self.plot_channel_a.setSelected(True)
@@ -894,14 +894,14 @@ class TestContextMenu(TestPlotWidget):
         position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
         self.context_menu(action_text="Disable selected", position=position_src)
 
-        self.assertEqual(QtCore.Qt.Unchecked, self.plot_channel_a.checkState(self.Column.NAME))
-        self.assertEqual(QtCore.Qt.Unchecked, self.plot_channel_b.checkState(self.Column.NAME))
+        self.assertEqual(QtCore.Qt.CheckState.Unchecked, self.plot_channel_a.checkState(self.Column.NAME))
+        self.assertEqual(QtCore.Qt.CheckState.Unchecked, self.plot_channel_b.checkState(self.Column.NAME))
 
         # Select group
         position_src = self.plot.channel_selection.visualItemRect(group_channel).center()
         self.context_menu(action_text="Disable selected", position=position_src)
 
-        self.assertEqual(QtCore.Qt.Unchecked, group_channel.checkState(self.Column.NAME))
+        self.assertEqual(QtCore.Qt.CheckState.Unchecked, group_channel.checkState(self.Column.NAME))
 
     def test_Menu_EnableDisable_Action_DisableAllButThis(self):
         """
@@ -921,12 +921,12 @@ class TestContextMenu(TestPlotWidget):
         self.context_menu(action_text="Disable all but this", position=positions_src)
 
         # Evaluate
-        self.assertEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.NAME))
+        self.assertEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_b.checkState(self.Column.NAME))
         count = self.plot.channel_selection.topLevelItemCount()
         for i in range(count):
             item = self.plot.channel_selection.topLevelItem(i)
             if item.type() != item.Info and item != self.plot_channel_b:
-                self.assertEqual(QtCore.Qt.Unchecked, item.checkState(self.Column.NAME))
+                self.assertEqual(QtCore.Qt.CheckState.Unchecked, item.checkState(self.Column.NAME))
 
     def test_Menu_ShowHide_Action_HideDisabledItems(self):
         """
@@ -944,7 +944,7 @@ class TestContextMenu(TestPlotWidget):
             # Select one channel
             self.mouseClick_WidgetItem(self.plot_channel_a)
             # Event
-            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Space)
+            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Space)
             # Evaluate
             self.assertTrue(self.plot_channel_a.isHidden())
 
@@ -954,7 +954,10 @@ class TestContextMenu(TestPlotWidget):
             pos = QtCore.QPoint(28, pos.y())
             # Event
             QtTest.QTest.mouseClick(
-                self.plot.channel_selection.viewport(), QtCore.Qt.LeftButton, QtCore.Qt.KeyboardModifiers(), pos
+                self.plot.channel_selection.viewport(),
+                QtCore.Qt.MouseButton.LeftButton,
+                QtCore.Qt.KeyboardModifiers(),
+                pos,
             )
             # Evaluate
             self.assertTrue(self.plot_channel_b.isHidden())
@@ -975,7 +978,7 @@ class TestContextMenu(TestPlotWidget):
             # Select one channel
             self.mouseClick_WidgetItem(self.plot_channel_a)
             # Event
-            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Space)
+            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Space)
             # Evaluate
             self.assertTrue(self.plot_channel_a.isHidden())
             self.context_menu(action_text="Show disabled items")
@@ -988,7 +991,10 @@ class TestContextMenu(TestPlotWidget):
             pos = QtCore.QPoint(28, pos.y())
             # Event
             QtTest.QTest.mouseClick(
-                self.plot.channel_selection.viewport(), QtCore.Qt.LeftButton, QtCore.Qt.KeyboardModifiers(), pos
+                self.plot.channel_selection.viewport(),
+                QtCore.Qt.MouseButton.LeftButton,
+                QtCore.Qt.KeyboardModifiers(),
+                pos,
             )
             # Evaluate
             self.assertTrue(self.plot_channel_b.isHidden())
@@ -1139,9 +1145,9 @@ class TestContextMenu(TestPlotWidget):
             self.context_menu(action_text="Edit Y axis scaling [Ctrl+G]", position=position)
             mo_keyPressEvent.assert_called()
             event = mo_keyPressEvent.call_args.args[0]
-            self.assertEqual(QtCore.QEvent.KeyPress, event.type())
-            self.assertEqual(QtCore.Qt.Key_G, event.key())
-            self.assertEqual(QtCore.Qt.ControlModifier, event.modifiers())
+            self.assertEqual(QtCore.QEvent.Type.KeyPress, event.type())
+            self.assertEqual(QtCore.Qt.Key.Key_G, event.key())
+            self.assertEqual(QtCore.Qt.KeyboardModifier.ControlModifier, event.modifiers())
 
     def test_Action_AddToCommonYAxis(self):
         """
@@ -1158,33 +1164,33 @@ class TestContextMenu(TestPlotWidget):
             - Evaluate that checkbox on column COMMON_AXIS is checked.
         """
         with self.subTest("1Channel"):
-            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
 
             position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
             self.context_menu(action_text="Add to common Y axis", position=position)
 
-            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
+            self.assertEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
 
             self.context_menu(action_text="Add to common Y axis", position=position)
 
-            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
+            self.assertEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
 
         with self.subTest("2Channels"):
             self.plot_channel_b.setSelected(True)
             self.plot_channel_c.setSelected(True)
-            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
-            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
 
             position = self.plot.channel_selection.visualItemRect(self.plot_channel_c).center()
             self.context_menu(action_text="Add to common Y axis", position=position)
 
-            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
-            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
+            self.assertEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
+            self.assertEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
 
             self.context_menu(action_text="Add to common Y axis", position=position)
 
-            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
-            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
+            self.assertEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
+            self.assertEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
 
     def test_Action_RemoveFromCommonYAxis(self):
         """
@@ -1205,24 +1211,24 @@ class TestContextMenu(TestPlotWidget):
             position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
 
             # Pre-evaluation
-            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
 
             # Event
             self.context_menu(action_text="Remove from common Y axis", position=position)
             # Evaluate
-            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
 
             # Event
             self.context_menu(action_text="Add to common Y axis", position=position)
-            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
+            self.assertEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
             self.context_menu(action_text="Remove from common Y axis", position=position)
             # Evaluate
-            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
 
             # Event
             self.context_menu(action_text="Remove from common Y axis", position=position)
             # Evaluate
-            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_a.checkState(self.Column.COMMON_AXIS))
 
         with self.subTest("2Channels"):
             # Setup
@@ -1231,30 +1237,30 @@ class TestContextMenu(TestPlotWidget):
             position_c = self.plot.channel_selection.visualItemRect(self.plot_channel_c).center()
 
             # Pre-evaluation
-            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
-            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
 
             # Event
 
             self.context_menu(action_text="Remove from common Y axis", position=position_c)
             # Evaluate
-            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
-            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
 
             # Event
             self.context_menu(action_text="Add to common Y axis", position=position_c)
-            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
-            self.assertEqual(QtCore.Qt.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
+            self.assertEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
+            self.assertEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
             self.context_menu(action_text="Remove from common Y axis", position=position)
             # Evaluate
-            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
-            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
 
             # Event
             self.context_menu(action_text="Remove from common Y axis", position=position)
             # Evaluate
-            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
-            self.assertNotEqual(QtCore.Qt.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_b.checkState(self.Column.COMMON_AXIS))
+            self.assertNotEqual(QtCore.Qt.CheckState.Checked, self.plot_channel_c.checkState(self.Column.COMMON_AXIS))
 
     def test_Action_SetColor(self):
         """

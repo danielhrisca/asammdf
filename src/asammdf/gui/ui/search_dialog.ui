@@ -32,7 +32,7 @@
       </attribute>
       <layout class="QGridLayout" name="gridLayout">
        <item row="2" column="0" colspan="5">
-        <widget class="QTreeWidget" name="matches">
+        <widget class="SearchTreeWidget" name="matches">
          <property name="selectionMode">
           <enum>QAbstractItemView::ExtendedSelection</enum>
          </property>
@@ -167,7 +167,7 @@
         </layout>
        </item>
        <item row="5" column="0" colspan="5">
-        <widget class="QTreeWidget" name="selection">
+        <widget class="SearchTreeWidget" name="selection">
          <property name="sortingEnabled">
           <bool>false</bool>
          </property>
@@ -547,6 +547,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>SearchTreeWidget</class>
+   <extends>QTreeWidget</extends>
+   <header>asammdf.gui.dialogs.advanced_search_helpers.h</header>
+  </customwidget>
+ </customwidgets>
  <tabstops>
   <tabstop>search_box</tabstop>
   <tabstop>match_kind</tabstop>
