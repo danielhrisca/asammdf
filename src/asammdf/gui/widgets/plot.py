@@ -2635,8 +2635,9 @@ class Plot(QtWidgets.QWidget):
                     )
                 )
 
-                stats = self.plot.get_stats(self.info_uuid)
-                self.info.set_stats(stats)
+                if self.info_uuid:
+                    stats = self.plot.get_stats(self.info_uuid)
+                    self.info.set_stats(stats)
 
         elif key == QtCore.Qt.Key.Key_2 and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
             self.focused_mode = not self.focused_mode
@@ -4294,14 +4295,17 @@ class PlotGraphics(pg.PlotWidget):
             return self.all_timebase
 
     def get_stats(self, uuid):
-        sig, index = self.signal_by_uuid(uuid)
-
-        return sig.get_stats(
-            cursor=self.cursor1.value() if self.cursor1 else None,
-            region=self.region.getRegion() if self.region else None,
-            view_region=self.viewbox.viewRange()[0],
-            precision=self._settings.value("stats_float_precision", sig.precision, type=int),
-        )
+        try:
+            sig, index = self.signal_by_uuid(uuid)
+        except KeyError:
+            return {}
+        else:
+            return sig.get_stats(
+                cursor=self.cursor1.value() if self.cursor1 else None,
+                region=self.region.getRegion() if self.region else None,
+                view_region=self.viewbox.viewRange()[0],
+                precision=self._settings.value("stats_float_precision", sig.precision, type=int),
+            )
 
     def get_timestamp_index(self, timestamp, timestamps):
         key = id(timestamps), timestamp
