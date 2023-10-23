@@ -57,6 +57,9 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
         self.precision.currentIndexChanged.connect(self.set_float_precision)
 
     def set_stats(self, stats):
+        if not stats:
+            return
+
         self._stats = deepcopy(stats)
         precision = self._settings.value("stats_float_precision", 6, type=int)
         fmt = f" {{:.{precision}f}}"
