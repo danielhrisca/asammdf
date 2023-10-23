@@ -41,6 +41,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
+        self.selection.can_delete_items = True
         self.selection.all_texts = True
 
         self.result = {}
