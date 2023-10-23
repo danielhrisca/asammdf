@@ -1651,8 +1651,8 @@ def master_using_raster(mdf: MDF_v2_v3_v4, raster: RasterType, endpoint: bool = 
             t_min = np.amin(t_min)
             t_max = np.amax(t_max)
 
-            num = float(np.float32((t_max - t_min) / raster))
-            if int(num) == num:
+            num = float(np.float64((t_max - t_min) / raster))
+            if num.is_integer():
                 master = np.linspace(t_min, t_max, int(num) + 1)
             else:
                 master = np.arange(t_min, t_max, raster)
