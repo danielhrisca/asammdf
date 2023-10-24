@@ -345,7 +345,7 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         self.processEvents()
 
         # save left and right pixel column
-        xLeftColumn=self.plot.plot.viewport().grab(
+        xLeftColumn =self.plot.plot.viewport().grab(
             QtCore.QRect(extremesOfChannel_35[0], 0, 1, self.plot.plot.height())
         )
         xRightColumn = self.plot.plot.viewport().grab(
@@ -354,16 +354,16 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         self.assertTrue(Pixmap.is_black(xLeftColumn))
         self.assertTrue(Pixmap.has_color(xRightColumn, self.channel_35.color.name()))
         # Press "W"
-        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_W )
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_W)
         self.processEvents()
         # Select all columns from left to right
-        for x in range(self.plot.plot.height() -1):
-            column =self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.height()))
+        for x in range(self.plot.plot.height() - 1):
+            column = self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.height()))
             if x < extremesOfChannel_35[0]:
-                self.assertTrue(Pixmap.is_black(column), f"column {x } is not black")
+                self.assertTrue(Pixmap.is_black(column), f"column { x } is not black")
             elif extremesOfChannel_35[0] <= x <= extremesOfChannel_35[1]:
                 self.assertTrue(
-                    Pixmap.has_color(column,self.channel_35.color.name()),
+                    Pixmap.has_color(column, self.channel_35.color.name()),
                     f"column {x} doesn't have {self.channel_35.name} color",
                 )
             else:
