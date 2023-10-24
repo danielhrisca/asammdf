@@ -330,7 +330,7 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
                 > signal is zoomed => is extended to left side => last column contain signal color
             - Evaluate that after pressing key "W" from first to last column is displayed signal
         """
-        # check if grid is available
+        # check if the grid is available
         if not self.plot.hide_axes_btn.isFlat():
             QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
 
@@ -345,11 +345,11 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         self.processEvents()
 
         # save left and right pixel column
-        xLeftColumn = self.plot.plot.viewport().grab(
-            QtCore.QRect(extremesOfChannel_35[0], 0, 1, self.plot.plot.height())
+        xLeftColumn =self.plot.plot.viewport().grab(
+            QtCore.QRect(extremesOfChannel_35[0],0, 1, self.plot.plot.height())
         )
         xRightColumn = self.plot.plot.viewport().grab(
-            QtCore.QRect(extremesOfChannel_35[1], 0, 1, self.plot.plot.height())
+            QtCore.QRect(extremesOfChannel_35[ 1 ], 0, 1, self.plot.plot.height())
         )
         self.assertTrue(Pixmap.is_black(xLeftColumn))
         self.assertTrue(Pixmap.has_color(xRightColumn, self.channel_35.color.name()))
