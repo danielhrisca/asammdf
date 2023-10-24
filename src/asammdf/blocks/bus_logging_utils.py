@@ -284,6 +284,7 @@ def extract_mux(
     include_message_name: bool = False,
     ignore_value2text_conversion: bool = True,
     is_j1939: bool = False,
+    is_extended: bool = False,
 ) -> dict[tuple[Any, ...], dict[str, ExtractedSignal]]:
     """extract multiplexed CAN signals from the raw payload
 
@@ -347,7 +348,7 @@ def extract_mux(
             pair_signals.append(signal)
 
     for pair, pair_signals in pairs.items():
-        entry = bus, message_id, original_message_id, muxer, *pair
+        entry = bus, message_id, is_extended, original_message_id, muxer, *pair
 
         extracted_signals[entry] = signals = {}
 
@@ -408,6 +409,7 @@ def extract_mux(
                         ignore_value2text_conversion=ignore_value2text_conversion,
                         raw=raw,
                         is_j1939=is_j1939,
+                        is_extended=is_extended,
                     )
                 )
 
