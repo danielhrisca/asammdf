@@ -335,7 +335,7 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
             QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
 
         # search first and last column where is displayed first signal
-        extremesOfChannel_35 =Pixmap.search_signal_from_to_x(
+        extremesOfChannel_35 = Pixmap.search_signal_from_to_x(
             self.plot.plot.viewport().grab(), self.channel_35.color.name()
         )
         # Evaluate that there are extremes of first signal
@@ -346,10 +346,10 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
 
         # save left and right pixel column
         xLeftColumn=self.plot.plot.viewport().grab(
-            QtCore.QRect(extremesOfChannel_35[0],0, 1, self.plot.plot.height())
+            QtCore.QRect(extremesOfChannel_35[0], 0, 1, self.plot.plot.height())
         )
         xRightColumn = self.plot.plot.viewport().grab(
-            QtCore.QRect(extremesOfChannel_35[ 1 ], 0, 1, self.plot.plot.height())
+            QtCore.QRect(extremesOfChannel_35[1], 0, 1, self.plot.plot.height())
         )
         self.assertTrue(Pixmap.is_black(xLeftColumn))
         self.assertTrue(Pixmap.has_color(xRightColumn, self.channel_35.color.name()))
@@ -1297,4 +1297,3 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
 
             # Not save value of the last selected channel
             self.assertNotEqual(self.plot.info._name, self.channel_37.name)
-

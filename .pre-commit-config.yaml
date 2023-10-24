@@ -5,4 +5,4 @@ repos:
         name: black_and_ruff
         entry: black_and_ruff
         language: system
-        files: .run_black_and_ruff.bat
+        files: .\run_black_and_ruff.bat
