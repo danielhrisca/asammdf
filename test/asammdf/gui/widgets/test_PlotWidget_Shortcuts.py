@@ -1321,7 +1321,6 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
 
 
 class TestShortcutsWith_3_Windows(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
