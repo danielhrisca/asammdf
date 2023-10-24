@@ -335,7 +335,7 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
             QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
 
         # search first and last column where is displayed first signal
-        extremesOfChannel_35 = Pixmap.search_signal_from_to_x(
+        extremesOfChannel_35 =Pixmap.search_signal_from_to_x(
             self.plot.plot.viewport().grab(), self.channel_35.color.name()
         )
         # Evaluate that there are extremes of first signal
@@ -345,7 +345,7 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         self.processEvents()
 
         # save left and right pixel column
-        xLeftColumn =self.plot.plot.viewport().grab(
+        xLeftColumn=self.plot.plot.viewport().grab(
             QtCore.QRect(extremesOfChannel_35[0],0, 1, self.plot.plot.height())
         )
         xRightColumn = self.plot.plot.viewport().grab(
