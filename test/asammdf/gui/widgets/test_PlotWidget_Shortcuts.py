@@ -1185,7 +1185,6 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
         """
         Test Scope:
             To check if is displayed only selected channel after pressing key "2"
-
         Events:
             - Open 'FileWidget' with valid measurement.
             - Select 3 signals and create a plot
@@ -1254,7 +1253,21 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
 
     def test_Plot_Plot_Shortcut_Key_M_3_CH(self):
         """
-
+        Test Scope:
+            To check if is displayed info about selected channel and after deleting all channels buffer is clear
+                by pressing key "M"
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Select 3 signals and create a plot
+            - Press Key "M"
+            - Select third channel
+            - Select first channel
+            - Pres key "Down"
+        Evaluate:
+            - Evaluate that displayed info is related to third channel
+            - Evaluate that displayed info is related to first channel
+            - Evaluate that displayed info is related to second channel
+            - Evaluate that buffer is clear
         """
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_M)
         self.processEvents()
