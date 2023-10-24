@@ -274,6 +274,27 @@ class TestShortcutsWOChannels(TestPlotWidget):
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_M)
         self.assertFalse(self.plot.info.isVisible())
 
+    def test_Plot_Plot_Shortcut_Key_Shift_L(self):
+        """
+        Test Scope:
+            Check if by pressing the combination of keys "Shift+L", visibility of channel list is changed
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Press "Shift+L"
+            - Press "Shift+L"
+        Evaluate:
+            - Evaluate that channel list is visible by default
+            - Evaluate that channel list is hidden after pressing first time "Shift+L"
+            - Evaluate that channel list is visible after pressing second time "Shift+L"
+        """
+        self.assertTrue(self.widget.channel_view.isVisible())
+        # Press "Shift+L"
+        QtTest.QTest.keySequence(self.widget, QtGui.QKeySequence("Shift+L"))
+        self.assertFalse(self.widget.channel_view.isVisible())
+        # Press "Shift+L"
+        QtTest.QTest.keySequence(self.widget, QtGui.QKeySequence("Shift+L"))
+        self.assertTrue(self.widget.channel_view.isVisible())
+
 
 class TestShortcutsWith_1_Channel(TestPlotWidget):
     def __init__(self, methodName: str = ...):
@@ -1297,3 +1318,35 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
 
             # Not save value of the last selected channel
             self.assertNotEqual(self.plot.info._name, self.channel_37.name)
+
+
+class TestShortcutsWith_3_Windows(TestPlotWidget):
+
+    def __init__(self, methodName: str = ...):
+        super().__init__(methodName)
+
+    def setUp(self):
+        # Open measurement file
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
+        # Switch ComboBox to "Natural sort"
+        self.widget.channel_view.setCurrentText("Natural sort")
+        # Select channels -> Press PushButton "Create Window" -> "Plot
+        self.create_window(window_type="Plot")
+        self.create_window(window_type="Plot")
+        self.create_window(window_type="Plot")
+        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 3)
+
+    def test_Plot_Plot_Shortcut_Key_Shift_C(self):
+        """
+        Test Scope:
+            Check if windows are cascaded after pressing the combination of keys "Shift+C"
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Open 3 windows
+            - Press "Shift+C"
+        Evaluate:
+            - Evaluate that windows are not cascaded by default
+            - Evaluate that windows are cascaded after pressing "Shift_C"
+        """
+        QtTest.QTest.keySequence(self.widget, QtGui.QKeySequence("Shift+C"))
+        ...
