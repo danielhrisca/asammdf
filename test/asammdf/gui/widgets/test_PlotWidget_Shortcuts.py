@@ -345,7 +345,7 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         self.processEvents()
 
         # save left and right pixel column
-        xLeftColumn =self.plot.plot.viewport().grab(
+        xLeftColumn = self.plot.plot.viewport().grab(
             QtCore.QRect(extremesOfChannel_35[0], 0, 1, self.plot.plot.height())
         )
         xRightColumn = self.plot.plot.viewport().grab(
