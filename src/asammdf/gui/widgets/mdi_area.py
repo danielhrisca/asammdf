@@ -1108,6 +1108,7 @@ class WithMDIArea:
                         "timestamps": df_index,
                         "Bus": np.full(count, "Unknown", dtype="O"),
                         "ID": np.full(count, 0xFFFFFFFF, dtype="u4"),
+                        "IDE": np.zeros(count, dtype="u1"),
                         "Direction": np.full(count, "", dtype="O"),
                         "Name": np.full(count, "", dtype="O"),
                         "Event Type": np.full(count, "CAN Frame", dtype="O"),
@@ -1143,13 +1144,16 @@ class WithMDIArea:
                         if frame_map:
                             columns["Name"] = [frame_map.get(_id, "") for _id in vals.tolist()]
 
+                        if "CAN_DataFrame.IDE" in names:
+                            columns["IDE"] = data["CAN_DataFrame.IDE"].astype("u1")
+
                         columns["DLC"] = data["CAN_DataFrame.DLC"].astype("u1")
-                        data_length = data["CAN_DataFrame.DataLength"].astype("u1").tolist()
+                        data_length = data["CAN_DataFrame.DataLength"].astype("u1")
                         columns["Data Length"] = data_length
 
                         vals = csv_bytearray2hex(
                             pd.Series(list(data["CAN_DataFrame.DataBytes"])),
-                            data_length,
+                            data_length.tolist(),
                         )
                         columns["Data Bytes"] = vals
 
@@ -1189,8 +1193,11 @@ class WithMDIArea:
                         if frame_map:
                             columns["Name"] = [frame_map.get(_id, "") for _id in vals.tolist()]
 
+                        if "CAN_RemoteFrame.IDE" in names:
+                            columns["IDE"] = data["CAN_RemoteFrame.IDE"].astype("u1")
+
                         columns["DLC"] = data["CAN_RemoteFrame.DLC"].astype("u1")
-                        data_length = data["CAN_RemoteFrame.DataLength"].astype("u1").tolist()
+                        data_length = data["CAN_RemoteFrame.DataLength"].astype("u1")
                         columns["Data Length"] = data_length
                         columns["Event Type"] = "Remote Frame"
 
@@ -1219,11 +1226,14 @@ class WithMDIArea:
                             if frame_map:
                                 columns["Name"] = [frame_map.get(_id, "") for _id in vals.tolist()]
 
+                        if "CAN_ErrorFrame.IDE" in names:
+                            columns["IDE"] = data["CAN_ErrorFrame.IDE"].astype("u1")
+
                         if "CAN_ErrorFrame.DLC" in names:
                             columns["DLC"] = data["CAN_ErrorFrame.DLC"].astype("u1")
 
                         if "CAN_ErrorFrame.DataLength" in names:
-                            columns["Data Length"] = data["CAN_ErrorFrame.DataLength"].astype("u1").tolist()
+                            columns["Data Length"] = data["CAN_ErrorFrame.DataLength"].astype("u1")
 
                         columns["Event Type"] = "Error Frame"
 

@@ -4622,7 +4622,8 @@ class MDF:
             .. versionadded:: 5.7.0
 
             .. deprecated:: 7.2.0
-                this argument is no longer used and will be removed in the future
+                this argument is no longer used and will be removed in the future. The PGNs are saved
+                separately according to the source address
 
         ignore_value2text_conversion (True): bool
             ignore value to text conversions
@@ -4630,7 +4631,7 @@ class MDF:
             .. versionadded:: 5.23.0
 
         prefix ("") : str
-            prefix that will added to the channel group names and signal names in
+            prefix that will be added to the channel group names and signal names in
             the output file
 
             .. versionadded:: 6.3.0
@@ -4759,19 +4760,28 @@ class MDF:
         unknown_ids = defaultdict(list)
 
         for dbc, dbc_name, bus_channel in valid_dbc_files:
-            is_j1939 = dbc.contains_j1939
-            if is_j1939:
-                messages = {
-                    (
-                        message.arbitration_id.pgn,
-                        message.arbitration_id.j1939_source,
-                    ): message
-                    for message in dbc
-                }
-            else:
-                messages = {message.arbitration_id.id: message for message in dbc}
+            messages = {(message.arbitration_id.id, message.arbitration_id.extended): message for message in dbc}
 
-            current_not_found_ids = {(msg_id, message.name) for msg_id, message in messages.items()}
+            global_is_j1939 = dbc.attributes.get("ProtocolType", "").lower() == "j1939"
+
+            j1939_messages = {
+                (
+                    message.arbitration_id.pgn,
+                    message.arbitration_id.j1939_source,
+                ): message
+                for message in dbc
+                if message.is_j1939 or global_is_j1939
+            }
+
+            current_not_found = {
+                (
+                    (message.arbitration_id.id, message.arbitration_id.extended)
+                    if not message.is_j1939 and not global_is_j1939
+                    else message.arbitration_id.pgn,
+                    message.name,
+                )
+                for msg_id, message in messages.items()
+            }
 
             msg_map = {}
 
@@ -4800,15 +4810,12 @@ class MDF:
                     ].astype("<u1")
 
                     msg_ids = self.get("CAN_DataFrame.ID", group=i, data=fragment).astype("<u4") & 0x1FFFFFFF
+                    try:
+                        msg_ide = self.get("CAN_DataFrame.IDE", group=i, data=fragment).samples.astype("<u1")
+                    except:
+                        msg_ide = (msg_ids & 0x80000000) >> 31
 
-                    original_ids = msg_ids.samples & 0xFF
-
-                    if is_j1939:
-                        tmp_pgn = msg_ids.samples >> 8
-                        ps = tmp_pgn & 0xFF
-                        pf = (msg_ids.samples >> 16) & 0xFF
-                        _pgn = tmp_pgn & 0x3FF00
-                        msg_ids.samples = np.where(pf >= 240, _pgn + ps, _pgn)
+                    msg_ids &= 0x1FFFFFFF
 
                     data_bytes = self.get(
                         "CAN_DataFrame.DataBytes",
@@ -4822,75 +4829,95 @@ class MDF:
                     for bus in buses:
                         if bus_channel and bus != bus_channel:
                             continue
+
                         idx = np.argwhere(bus_ids == bus).ravel()
                         bus_t = msg_ids.timestamps[idx]
                         bus_msg_ids = msg_ids.samples[idx]
+                        bus_msg_ide = msg_ide[idx]
                         bus_data_bytes = data_bytes[idx]
-                        original_msg_ids = original_ids[idx]
 
-                        if is_j1939:
-                            unique_ids = np.unique(np.core.records.fromarrays([bus_msg_ids, original_msg_ids]))
-                        else:
-                            unique_ids = np.unique(np.core.records.fromarrays([bus_msg_ids, bus_msg_ids]))
+                        tmp_pgn = bus_msg_ids >> 8
+                        ps = tmp_pgn & 0xFF
+                        pf = (bus_msg_ids >> 16) & 0xFF
+                        _pgn = tmp_pgn & 0x3FF00
+                        j1939_msg_pgns = np.where(pf >= 240, _pgn + ps, _pgn)
+                        j9193_msg_sa = bus_msg_ids & 0xFF
 
-                        total_unique_ids = total_unique_ids | set(tuple(int(e) for e in f) for f in unique_ids)
+                        unique_ids = set(zip(bus_msg_ids.tolist(), bus_msg_ide.tolist()))
 
-                        for msg_id_record in unique_ids:
-                            msg_id = int(msg_id_record[0])
-                            original_msg_id = int(msg_id_record[1])
-                            if is_j1939:
-                                key = (msg_id, original_msg_id)
-                                message = messages.get(key, None)
-                                if message is None:
-                                    for (_pgn, _sa), _msg in messages.items():
-                                        if _pgn == msg_id and _sa == 0xFE:
-                                            message = _msg
-                                            break
+                        total_unique_ids = total_unique_ids | set(unique_ids)
 
-                                if message is None:
-                                    unknown_ids[key].append(True)
+                        for msg_id, is_extended in unique_ids:
+                            message = messages.get((msg_id, is_extended), None)
+
+                            if message is None:
+                                tmp_pgn = msg_id >> 8
+                                ps = tmp_pgn & 0xFF
+                                pf = (msg_id >> 16) & 0xFF
+                                _pgn = tmp_pgn & 0x3FF00
+                                msg_pgn = _pgn + ps if pf >= 240 else _pgn
+
+                                for (_pgn, _sa), _msg in j1939_messages.items():
+                                    if _pgn == msg_pgn:
+                                        message = _msg
+                                        break
+                                else:
+                                    unknown_ids[msg_id].append(True)
                                     continue
+
+                            is_j1939 = message.is_j1939 or global_is_j1939
+                            if is_j1939:
+                                source_address = msg_id & 0xFF
+                                pgn_number = message.arbitration_id.pgn
+                                key = (pgn_number, source_address, True)
+                                found_ids[dbc_name].add((key, message.name))
+
+                                try:
+                                    current_not_found.remove((pgn_number, message.name))
+                                except KeyError:
+                                    pass
 
                             else:
-                                key = msg_id
-                                message = messages.get(key, None)
+                                key = msg_id, bool(is_extended), False
 
-                                if message is None:
-                                    unknown_ids[key].append(True)
-                                    continue
+                                found_ids[dbc_name].add((key, message.name))
+                                try:
+                                    current_not_found.remove(((msg_id, is_extended), message.name))
+                                except KeyError:
+                                    pass
 
-                            found_ids[dbc_name].add((key, message.name))
-                            try:
-                                current_not_found_ids.remove((key, message.name))
-                            except KeyError:
-                                pass
-
-                            unknown_ids[key].append(False)
+                            unknown_ids[(msg_id, is_extended)].append(False)
 
                             if is_j1939:
                                 idx = np.argwhere(
-                                    (bus_msg_ids == msg_id) & (original_msg_ids == original_msg_id)
+                                    (j1939_msg_pgns == pgn_number) & (j9193_msg_sa == source_address)
                                 ).ravel()
                             else:
-                                idx = np.argwhere(bus_msg_ids == msg_id).ravel()
+                                idx = np.argwhere((bus_msg_ids == msg_id) & (bus_msg_ide == is_extended)).ravel()
 
                             payload = bus_data_bytes[idx]
                             t = bus_t[idx]
 
-                            extracted_signals = bus_logging_utils.extract_mux(
-                                payload,
-                                message,
-                                msg_id,
-                                bus,
-                                t,
-                                original_message_id=original_msg_id if is_j1939 else None,
-                                ignore_value2text_conversion=ignore_value2text_conversion,
-                                is_j1939=is_j1939,
-                            )
+                            try:
+                                extracted_signals = bus_logging_utils.extract_mux(
+                                    payload,
+                                    message,
+                                    msg_id,
+                                    bus,
+                                    t,
+                                    original_message_id=source_address if is_j1939 else None,
+                                    ignore_value2text_conversion=ignore_value2text_conversion,
+                                    is_j1939=is_j1939,
+                                    is_extended=is_extended,
+                                )
+                            except:
+                                print(format_exc())
+                                raise
 
                             for entry, signals in extracted_signals.items():
                                 if len(next(iter(signals.values()))["samples"]) == 0:
                                     continue
+
                                 if entry not in msg_map:
                                     sigs = []
 
@@ -4915,26 +4942,29 @@ class MDF:
                                         sigs.append(sig)
 
                                     if is_j1939:
-                                        source_adddress = original_msg_id
                                         if prefix:
-                                            comment = f"{prefix}: CAN{bus} PGN=0x{msg_id:X} {message} PGN=0x{msg_id:X} SA=0x{source_adddress:X}"
+                                            comment = f"{prefix}: CAN{bus} ID=0x{msg_id:X} {message} PGN=0x{pgn_number:X} SA=0x{source_address:X}"
                                         else:
-                                            comment = f"CAN{bus} PGN=0x{msg_id:X} {message} PGN=0x{msg_id:X} SA=0x{source_adddress:X}"
-                                        acq_name = f"SourceAddress = 0x{source_adddress}"
+                                            comment = f"CAN{bus} ID=0x{msg_id:X} {message} PGN=0x{pgn_number:X} SA=0x{source_address:X}"
+                                        acq_name = f"SourceAddress = 0x{source_address}"
                                     else:
                                         if prefix:
-                                            acq_name = f"{prefix}: CAN{bus} message ID=0x{msg_id:X}"
-                                            comment = f'{prefix}: CAN{bus} - message "{message}" 0x{msg_id:X}'
+                                            acq_name = (
+                                                f"{prefix}: CAN{bus} message ID=0x{msg_id:X} EXT={bool(is_extended)}"
+                                            )
+                                            comment = f'{prefix}: CAN{bus} - message "{message}" 0x{msg_id:X} EXT={bool(is_extended)}'
                                         else:
-                                            acq_name = f"CAN{bus} message ID=0x{msg_id:X}"
-                                            comment = f"CAN{bus} - message {message} 0x{msg_id:X}"
+                                            acq_name = f"CAN{bus} message ID=0x{msg_id:X} EXT={bool(is_extended)}"
+                                            comment = (
+                                                f"CAN{bus} - message {message} 0x{msg_id:X} EXT={bool(is_extended)}"
+                                            )
 
                                     acq_source = Source(
                                         name=acq_name,
-                                        path=f"CAN{int(bus)}.CAN_DataFrame.ID=0x{message.arbitration_id.id:X}",
+                                        path=f"CAN{int(bus)}.CAN_DataFrame.ID=0x{message.arbitration_id.id:X} EXT={bool(is_extended)}",
                                         comment=f"""\
 <SIcomment>
-    <TX>CAN{bus} data frame 0x{message.arbitration_id.id:X} - {message.name}</TX>
+    <TX>CAN{bus} data frame 0x{message.arbitration_id.id:X} EXT={bool(is_extended)} - {message.name}</TX>
     <bus name="CAN{int(bus)}"/>
     <common_properties>
         <e name="ChannelNo" type="integer">{int(bus)}</e>
@@ -4998,8 +5028,8 @@ class MDF:
                         if progress.stop:
                             return TERMINATED
 
-            if current_not_found_ids:
-                not_found_ids[dbc_name] = list(current_not_found_ids)
+            if current_not_found:
+                not_found_ids[dbc_name] = list(current_not_found)
 
         unknown_ids = {msg_id for msg_id, not_found in unknown_ids.items() if all(not_found)}
 

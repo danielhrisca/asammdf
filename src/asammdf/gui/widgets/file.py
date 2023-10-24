@@ -1847,12 +1847,13 @@ MultiRasterSeparator;&
                 f"The following {bus} IDs were in the MDF log file and matched in the DBC:",
             ]
             for dbc_name, found_ids in call_info["found_ids"].items():
-                for msg_id, msg_name in sorted(found_ids):
-                    try:
-                        message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
-                    except:
-                        pgn, sa = msg_id
+                for msg_id_info, msg_name in sorted(found_ids):
+                    if msg_id_info[2]:
+                        pgn, sa = msg_id_info[:2]
                         message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X} --> {msg_name} in <{dbc_name}>")
+                    else:
+                        msg_id, extended = msg_id_info[:2]
+                        message.append(f"- 0x{msg_id:X} {extended=} --> {msg_name} in <{dbc_name}>")
 
             message += [
                 "",

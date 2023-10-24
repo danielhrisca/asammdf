@@ -1,4 +1,4 @@
-canmatrix[arxml,dbc]>=0.8
+canmatrix[arxml,dbc]>=1.0
 lz4
 numexpr
 numpy>=1.23.0
