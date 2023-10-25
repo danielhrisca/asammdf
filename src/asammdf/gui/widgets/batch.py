@@ -1381,7 +1381,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 icon = QtGui.QIcon()
                 icon.addPixmap(QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
                 progress.signals.setWindowIcon.emit(icon)
-                progress.signals.setWindowTitle.emit(f"Filtering measurement {mdf_index+i} of {count}")
+                progress.signals.setWindowTitle.emit(f"Filtering measurement {mdf_index + 1} of {count}")
                 progress.signals.setLabelText.emit(f'Filtering selected channels from\n"{source_file}"')
 
                 # filtering self.mdf

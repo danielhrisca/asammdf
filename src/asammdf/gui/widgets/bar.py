@@ -236,6 +236,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
         operator = self.op.currentText()
 
         wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
+        text = self.pattern_match.text().strip()
         pattern = text.replace("*", wildcard)
         pattern = re.escape(pattern)
         pattern = pattern.replace(wildcard, ".*")
