@@ -17,7 +17,7 @@ h5py
 fastparquet 
 hdf5storage 
 snappy 
-cChardet==2.1.5 
+faust-cchardet==2.1.19
 chardet
 cryptography
 keyring
