@@ -1477,7 +1477,7 @@ address: {hex(self.address)}
                 if len(idx):
                     new_values[idx] = phys[idx1[idx]]
 
-            values = new_values
+                values = new_values
 
         elif conversion_type == v23c.CONVERSION_TYPE_RTABX:
             if not ignore_value2text_conversions:
