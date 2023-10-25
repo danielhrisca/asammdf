@@ -1,6 +1,5 @@
 from PySide6 import QtWidgets
 
-from ..ui import resource_rc
 from ..ui.channel_info_widget import Ui_ChannelInfo
 
 

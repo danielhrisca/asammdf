@@ -46,7 +46,6 @@ from typing_extensions import Literal, TypedDict
 from .. import tool
 from ..signal import Signal
 from ..types import ChannelsType, CompressionType, RasterType, StrPathType
-from ..version import __version__
 from . import v2_v3_constants as v23c
 from .conversion_utils import conversion_transfer
 from .cutils import get_channel_raw_bytes

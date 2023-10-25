@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 
 from ..blocks.utils import plausible_timestamps
 

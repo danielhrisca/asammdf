@@ -47,7 +47,6 @@ from ...blocks.utils import (
 )
 from ...mdf import MDF
 from ..dialogs.range_editor import RangeEditor
-from ..ui import resource_rc
 from ..ui.tabular import Ui_TabularDisplay
 from ..utils import (
     copy_ranges,

@@ -105,9 +105,7 @@ class TestMDF(unittest.TestCase):
                                     equal = False
                         elif i == 4:
                             for j in range(1, 20):
-                                target = np.array(
-                                    ["Channel {} sample {}".format(j, k).encode("ascii") for k in range(cycles)]
-                                )
+                                target = np.array([f"Channel {j} sample {k}".encode("ascii") for k in range(cycles)])
                                 vals = mdf.get(group=i, index=j + 1, samples_only=True)[0]
                                 cond = np.array_equal(vals, target)
                                 if not cond:
@@ -158,13 +156,13 @@ class TestMDF(unittest.TestCase):
 
                             for j in range(1, 20):
                                 types = [
-                                    ("Channel_{}".format(j), "(2, 3)<u8"),
-                                    ("channel_{}_axis_1".format(j), "(2, )<u8"),
-                                    ("channel_{}_axis_2".format(j), "(3, )<u8"),
+                                    (f"Channel_{j}", "(2, 3)<u8"),
+                                    (f"channel_{j}_axis_1", "(2, )<u8"),
+                                    (f"channel_{j}_axis_2", "(3, )<u8"),
                                 ]
                                 types = np.dtype(types)
 
-                                vals = mdf.get("Channel_{}".format(j), group=i, samples_only=True)[0]
+                                vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
                                 target = [arr * j for arr in samples]
                                 target = np.core.records.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
@@ -177,10 +175,10 @@ class TestMDF(unittest.TestCase):
                             axis_1 = np.ones((cycles, 3), dtype=np.uint64)
 
                             for j in range(1, 20):
-                                types = [("Channel_{}".format(j), "(2, 3)<u8")]
+                                types = [(f"Channel_{j}", "(2, 3)<u8")]
                                 types = np.dtype(types)
 
-                                vals = mdf.get("Channel_{}".format(j), group=i, samples_only=True)[0]
+                                vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
                                 target = [samples * j]
                                 target = np.core.records.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
@@ -201,18 +199,18 @@ class TestMDF(unittest.TestCase):
 
                             for j in range(1, 20):
                                 types = [
-                                    ("struct_{}_channel_0".format(j), np.uint8),
-                                    ("struct_{}_channel_1".format(j), np.uint16),
-                                    ("struct_{}_channel_2".format(j), np.uint32),
-                                    ("struct_{}_channel_3".format(j), np.uint64),
-                                    ("struct_{}_channel_4".format(j), np.int8),
-                                    ("struct_{}_channel_5".format(j), np.int16),
-                                    ("struct_{}_channel_6".format(j), np.int32),
-                                    ("struct_{}_channel_7".format(j), np.int64),
+                                    (f"struct_{j}_channel_0", np.uint8),
+                                    (f"struct_{j}_channel_1", np.uint16),
+                                    (f"struct_{j}_channel_2", np.uint32),
+                                    (f"struct_{j}_channel_3", np.uint64),
+                                    (f"struct_{j}_channel_4", np.int8),
+                                    (f"struct_{j}_channel_5", np.int16),
+                                    (f"struct_{j}_channel_6", np.int32),
+                                    (f"struct_{j}_channel_7", np.int64),
                                 ]
                                 types = np.dtype(types)
 
-                                vals = mdf.get("Channel_{}".format(j), group=i, samples_only=True)[0]
+                                vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
                                 target = [arr * j for arr in samples]
                                 target = np.core.records.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
@@ -313,7 +311,7 @@ class TestMDF(unittest.TestCase):
                             elif i == 4:
                                 for j in range(1, 20):
                                     target = np.array(
-                                        ["Channel {} sample {}".format(j, k).encode("ascii") for k in range(cycles)]
+                                        [f"Channel {j} sample {k}".encode("ascii") for k in range(cycles)]
                                     )
                                     vals = mdf.get(group=i, index=j + 1, samples_only=True)[0]
                                     cond = np.array_equal(vals, target)
@@ -463,7 +461,7 @@ class TestMDF(unittest.TestCase):
                             elif i == 4:
                                 for j in range(1, 20):
                                     target = np.array(
-                                        ["Channel {} sample {}".format(j, k).encode("ascii") for k in range(cycles)]
+                                        [f"Channel {j} sample {k}".encode("ascii") for k in range(cycles)]
                                     )
                                     vals = mdf.get(group=i, index=j + 1, samples_only=True)[0]
                                     cond = np.array_equal(vals, target)
@@ -532,13 +530,13 @@ class TestMDF(unittest.TestCase):
 
                             for j in range(1, 20):
                                 types = [
-                                    ("Channel_{}".format(j), "(2, 3)<u8"),
-                                    ("channel_{}_axis_1".format(j), "(2, )<u8"),
-                                    ("channel_{}_axis_2".format(j), "(3, )<u8"),
+                                    (f"Channel_{j}", "(2, 3)<u8"),
+                                    (f"channel_{j}_axis_1", "(2, )<u8"),
+                                    (f"channel_{j}_axis_2", "(3, )<u8"),
                                 ]
                                 types = np.dtype(types)
 
-                                vals = mdf.get("Channel_{}".format(j), group=i, samples_only=True)[0]
+                                vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
                                 target = [arr * j for arr in samples]
                                 target = np.core.records.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
@@ -560,10 +558,10 @@ class TestMDF(unittest.TestCase):
                             axis_1 = np.ones((cycles, 3), dtype=np.uint64)
 
                             for j in range(1, 20):
-                                types = [("Channel_{}".format(j), "(2, 3)<u8")]
+                                types = [(f"Channel_{j}", "(2, 3)<u8")]
                                 types = np.dtype(types)
 
-                                vals = mdf.get("Channel_{}".format(j), group=i, samples_only=True)[0]
+                                vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
                                 target = [samples * j]
                                 target = np.core.records.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
@@ -584,18 +582,18 @@ class TestMDF(unittest.TestCase):
 
                             for j in range(1, 20):
                                 types = [
-                                    ("struct_{}_channel_0".format(j), np.uint8),
-                                    ("struct_{}_channel_1".format(j), np.uint16),
-                                    ("struct_{}_channel_2".format(j), np.uint32),
-                                    ("struct_{}_channel_3".format(j), np.uint64),
-                                    ("struct_{}_channel_4".format(j), np.int8),
-                                    ("struct_{}_channel_5".format(j), np.int16),
-                                    ("struct_{}_channel_6".format(j), np.int32),
-                                    ("struct_{}_channel_7".format(j), np.int64),
+                                    (f"struct_{j}_channel_0", np.uint8),
+                                    (f"struct_{j}_channel_1", np.uint16),
+                                    (f"struct_{j}_channel_2", np.uint32),
+                                    (f"struct_{j}_channel_3", np.uint64),
+                                    (f"struct_{j}_channel_4", np.int8),
+                                    (f"struct_{j}_channel_5", np.int16),
+                                    (f"struct_{j}_channel_6", np.int32),
+                                    (f"struct_{j}_channel_7", np.int64),
                                 ]
                                 types = np.dtype(types)
 
-                                vals = mdf.get("Channel_{}".format(j), group=i, samples_only=True)[0]
+                                vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
                                 target = [arr * j for arr in samples]
                                 target = np.core.records.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):

@@ -1,8 +1,7 @@
 import numpy as np
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 import scipy.signal as scipy_signal
 
-from ..ui import resource_rc
 from ..ui.fft_window import Ui_FFTWindow
 from .plot import Plot, PlotSignal, Signal
 

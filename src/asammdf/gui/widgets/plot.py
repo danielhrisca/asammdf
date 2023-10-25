@@ -1,5 +1,4 @@
 import bisect
-from collections import defaultdict
 from datetime import timedelta
 from functools import lru_cache, partial, reduce
 import os
@@ -20,9 +19,9 @@ PLOT_BUFFER_SIZE = 4000
 
 from ... import tool as Tool
 from ...blocks.conversion_utils import from_dict, to_dict
-from ...blocks.utils import target_byte_order, timeit
+from ...blocks.utils import target_byte_order
 from ..dialogs.messagebox import MessageBox
-from ..utils import BLUE, FONT_SIZE, GREEN, value_as_str
+from ..utils import FONT_SIZE, value_as_str
 from .viewbox import ViewBoxWithCursor
 
 try:
@@ -4332,8 +4331,8 @@ class PlotGraphics(pg.PlotWidget):
         if not functions:
             MessageBox.warning(
                 self,
-                f"Cannot add computed channel",
-                f"There is no user defined function. Create new function using the Functions Manger (F6)",
+                "Cannot add computed channel",
+                "There is no user defined function. Create new function using the Functions Manger (F6)",
             )
             return
 
@@ -5898,7 +5897,7 @@ class CursorInfo(QtWidgets.QLabel):
         self.customContextMenuRequested.connect(self.open_menu)
 
         if precision == -1:
-            self.setToolTip(f"Cursor information uses maximum precision")
+            self.setToolTip("Cursor information uses maximum precision")
         else:
             self.setToolTip(f"Cursor information precision is set to {self.precision} decimals")
 
@@ -5978,7 +5977,7 @@ class CursorInfo(QtWidgets.QLabel):
     def set_precision(self, precision):
         self.precision = precision
         if precision == -1:
-            self.setToolTip(f"Cursor information uses maximum precision")
+            self.setToolTip("Cursor information uses maximum precision")
         else:
             self.setToolTip(f"Cursor information precision is set to {precision} decimals")
         self.update_value()

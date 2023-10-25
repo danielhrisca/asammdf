@@ -5,7 +5,6 @@ import numpy as np
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ..ui import resource_rc
 from ..ui.signal_scale import Ui_ScaleDialog
 from ..utils import BLUE
 from .plot import PlotSignal
