@@ -1,13 +1,11 @@
 import os
 import re
 
-from natsort import natsorted
 import numpy as np
 from numpy import searchsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..dialogs.messagebox import MessageBox
-from ..ui import resource_rc
 from ..ui.bar import Ui_BarDisplay
 from ..utils import COLORS
 from .channel_bar_display import ChannelBarDisplay
@@ -307,7 +305,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
         try:
             target = float(self.target.text().strip())
         except:
-            self.match.setText(f"the target must a numeric value")
+            self.match.setText("the target must a numeric value")
         else:
             if target.is_integer():
                 target = int(target)
@@ -339,7 +337,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
                 self.timestamp.setValue(timestamp)
                 self.match.setText(f"condition found for {signal_name}")
             else:
-                self.match.setText(f"condition not found")
+                self.match.setText("condition not found")
 
     def set_format(self, fmt):
         self.format = fmt

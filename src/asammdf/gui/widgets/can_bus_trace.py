@@ -1,9 +1,8 @@
-import datetime
 import logging
 
 import dateutil.tz
 import pandas as pd
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui
 
 from .tabular_base import TabularBase
 

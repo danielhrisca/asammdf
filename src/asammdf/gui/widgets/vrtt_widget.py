@@ -1,7 +1,6 @@
 import numpy as np
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtWidgets
 
-from ..ui import resource_rc
 from ..ui.vrtt_widget import Ui_VRTT_Widget
 
 

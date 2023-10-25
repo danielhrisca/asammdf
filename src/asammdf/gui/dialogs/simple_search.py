@@ -1,11 +1,10 @@
-from functools import partial
 import os
 import re
 import sys
 from traceback import format_exc
 
 from natsort import natsorted
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtWidgets
 
 from asammdf.gui.utils import excepthook
 

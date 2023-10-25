@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import bisect
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Iterator, Sequence, Sized
+from collections.abc import Iterator, Sequence
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
@@ -20,11 +20,9 @@ from pathlib import Path
 import shutil
 import sys
 from tempfile import gettempdir, NamedTemporaryFile
-from time import sleep
 from traceback import format_exc
 from typing import Any, overload
 from zipfile import ZIP_DEFLATED, ZipFile
-from zlib import decompress
 
 from typing_extensions import Literal
 
@@ -46,10 +44,8 @@ from numpy import (
     array,
     array_equal,
     bool_,
-    bytes_,
     column_stack,
     concatenate,
-    cumsum,
     dtype,
     empty,
     fliplr,
@@ -86,7 +82,6 @@ from ..types import (
     StrPathType,
     WritableBufferType,
 )
-from ..version import __version__
 from . import bus_logging_utils
 from . import v4_constants as v4c
 from .conversion_utils import conversion_transfer
@@ -113,7 +108,6 @@ from .utils import (
     is_file_like,
     load_can_database,
     MdfException,
-    sanitize_xml,
     SignalDataBlockInfo,
     TERMINATED,
     UINT8_uf,
@@ -148,7 +142,7 @@ from .v4_blocks import (
 try:
     from isal.isal_zlib import decompress
 except ImportError:
-    pass
+    from zlib import decompress
 
 
 MASTER_CHANNELS = (v4c.CHANNEL_TYPE_MASTER, v4c.CHANNEL_TYPE_VIRTUAL_MASTER)
@@ -177,8 +171,6 @@ from .cutils import (
     extract,
     get_channel_raw_bytes,
     get_vlsd_max_sample_size,
-    get_vlsd_offsets,
-    lengths,
     sort_data_block,
 )
 
@@ -9496,17 +9488,17 @@ class MDF4(MDF_Common):
                                     gp_nr, ch_nr = dep.output_quantity_channel
                                     grp = self.groups[gp_nr]
                                     ch = grp.channels[ch_nr]
-                                    dep[f"output_quantity_dg_addr"] = grp.data_group.address
-                                    dep[f"output_quantity_cg_addr"] = grp.channel_group.address
-                                    dep[f"output_quantity_ch_addr"] = ch.address
+                                    dep["output_quantity_dg_addr"] = grp.data_group.address
+                                    dep["output_quantity_cg_addr"] = grp.channel_group.address
+                                    dep["output_quantity_ch_addr"] = ch.address
 
                                 if dep.comparison_quantity_channel:
                                     gp_nr, ch_nr = dep.comparison_quantity_channel
                                     grp = self.groups[gp_nr]
                                     ch = grp.channels[ch_nr]
-                                    dep[f"comparison_quantity_dg_addr"] = grp.data_group.address
-                                    dep[f"comparison_quantity_cg_addr"] = grp.channel_group.address
-                                    dep[f"comparison_quantity_ch_addr"] = ch.address
+                                    dep["comparison_quantity_dg_addr"] = grp.data_group.address
+                                    dep["comparison_quantity_cg_addr"] = grp.channel_group.address
+                                    dep["comparison_quantity_ch_addr"] = ch.address
 
                                 for i, (gp_nr, ch_nr) in enumerate(dep.axis_channels):
                                     grp = self.groups[gp_nr]
@@ -10314,7 +10306,7 @@ class MDF4(MDF_Common):
                 ):
                     try:
                         self._process_can_logging(index, group)
-                    except Exception as e:
+                    except Exception:
                         message = f"Error during CAN logging processing: {format_exc()}"
                         logger.error(message)
 

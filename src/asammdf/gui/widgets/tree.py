@@ -1,9 +1,8 @@
-from datetime import date, datetime
+from datetime import datetime
 from enum import IntFlag
 from functools import lru_cache
 import json
 import os
-import random
 import re
 from traceback import format_exc
 
@@ -733,7 +732,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 ranges = []
                 for item in selected_items:
                     ranges.extend(item.ranges)
-                dlg = RangeEditor(f"<selected items>", ranges=unique_ranges(ranges), parent=self)
+                dlg = RangeEditor("<selected items>", ranges=unique_ranges(ranges), parent=self)
                 dlg.exec_()
                 if dlg.pressed_button == "apply":
                     for item in selected_items:
@@ -865,8 +864,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addAction(QtGui.QIcon(":/down.png"), f"Find next {item.name}")
         menu.addSeparator()
 
-        menu.addAction(self.tr(f"Add channel group [Shift+Insert]"))
-        menu.addAction(self.tr(f"Add pattern based channel group [Ctrl+Insert]"))
+        menu.addAction(self.tr("Add channel group [Shift+Insert]"))
+        menu.addAction(self.tr("Add pattern based channel group [Ctrl+Insert]"))
         menu.addSeparator()
 
         menu.addAction(self.tr("Copy names [Ctrl+N]"))
@@ -1661,9 +1660,9 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.details_text = details or "\tSource not available"
             self.setToolTip(self.NameColumn, tooltip)
             self.setToolTip(self.ValueColumn, "")
-            self.setToolTip(self.UnitColumn, f"unit")
-            self.setToolTip(self.CommonAxisColumn, f"common axis")
-            self.setToolTip(self.IndividualAxisColumn, f"individual axis")
+            self.setToolTip(self.UnitColumn, "unit")
+            self.setToolTip(self.CommonAxisColumn, "common axis")
+            self.setToolTip(self.IndividualAxisColumn, "individual axis")
 
             self.setText(self.UnitColumn, signal.unit)
 

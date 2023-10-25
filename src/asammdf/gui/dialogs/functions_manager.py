@@ -1,6 +1,5 @@
 from copy import deepcopy
 import os
-from traceback import format_exc
 
 from PySide6 import QtCore, QtWidgets
 

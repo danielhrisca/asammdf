@@ -27,7 +27,6 @@ import numpy as np
 from ..version import __version__
 from . import v2_v3_constants as v23c
 from .utils import (
-    escape_xml_string,
     get_fields,
     get_text_v3,
     MdfException,
@@ -2767,7 +2766,7 @@ class HeaderBlock:
             comment = string
             try:
                 comment_xml = ET.fromstring(comment.replace(' xmlns="http://www.asam.net/mdf/v4"', ""))
-            except ET.ParseError as e:
+            except ET.ParseError:
                 self.description = string
             else:
                 description = comment_xml.find(".//TX")

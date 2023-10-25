@@ -1,12 +1,10 @@
 import os
 import re
 from textwrap import wrap
-from traceback import format_exc
 
 from natsort import natsorted
 from PySide6 import QtCore, QtWidgets
 
-from ..ui import resource_rc
 from ..ui.multi_search_dialog import Ui_MultiSearchDialog
 from .messagebox import MessageBox
 

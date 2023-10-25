@@ -10,7 +10,7 @@ import re
 import sys
 from textwrap import indent
 from threading import Thread
-from time import perf_counter, sleep
+from time import sleep
 import traceback
 from traceback import format_exc
 from typing import Dict, Union
@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtCore import QThreadPool, Signal
+from PySide6.QtCore import QThreadPool
 
 from ..blocks.options import FloatInterpolation, IntegerInterpolation
 from ..signal import Signal
