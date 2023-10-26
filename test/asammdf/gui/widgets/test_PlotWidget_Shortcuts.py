@@ -298,25 +298,29 @@ class TestShortcutsWOChannels(TestPlotWidget):
     def test_Plot_Plot_Shortcut_Shift_Key_C(self):
         """
         Test Scope:
-            Check if only object cascadeSubWindows() from QMdiArea module of PySide6.QtWidgets was called
+            Check if only object cascadeSubWindows() from C module of PySide6.QtWidgets was called
                 after pressing the combination of keys "Shift+C"
         Events:
             - Open 'FileWidget' with valid measurement.
+            - Mock objects from QMdiArea module
             - Press "Shift+C"
         Evaluate (0):
             - Evaluate that only cascadeSubWindows() object was called"
         """
+        # mocks
         with (
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.cascadeSubWindows") as mo_cascadeSubWindows,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tileSubWindows") as mo_tileSubWindows,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_vertically") as mo_tile_vertically,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_horizontally") as mo_tile_horizontally,
         ):
+            # Press Shift+C
             QtTest.QTest.keySequence(self.widget, QtGui.QKeySequence("Shift+C"))
-            mo_cascadeSubWindows.assert_called()
-            mo_tileSubWindows.assert_not_called()
-            mo_tile_vertically.assert_not_called()
-            mo_tile_horizontally.assert_not_called()
+        # Evaluate
+        mo_cascadeSubWindows.assert_called()
+        mo_tileSubWindows.assert_not_called()
+        mo_tile_vertically.assert_not_called()
+        mo_tile_horizontally.assert_not_called()
 
     def test_Plot_Plot_Shortcut_Shift_Key_T(self):
         """
@@ -325,21 +329,25 @@ class TestShortcutsWOChannels(TestPlotWidget):
                 after pressing the combination of keys "Shift+T"
         Events:
             - Open 'FileWidget' with valid measurement.
+            - Mock objects from QMdiArea module
             - Press "Shift+T"
         Evaluate (0):
             - Evaluate that only tileSubWindows() object was called"
         """
+        # mocks
         with (
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.cascadeSubWindows") as mo_cascadeSubWindows,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tileSubWindows") as mo_tileSubWindows,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_vertically") as mo_tile_vertically,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_horizontally") as mo_tile_horizontally,
         ):
+            # Press Shift+T
             QtTest.QTest.keySequence(self.widget, QtGui.QKeySequence("Shift+T"))
-            mo_cascadeSubWindows.assert_not_called()
-            mo_tileSubWindows.assert_called()
-            mo_tile_vertically.assert_not_called()
-            mo_tile_horizontally.assert_not_called()
+        # Evaluate
+        mo_cascadeSubWindows.assert_not_called()
+        mo_tileSubWindows.assert_called()
+        mo_tile_vertically.assert_not_called()
+        mo_tile_horizontally.assert_not_called()
 
     def test_Plot_Plot_Shortcut_Shift_Key_V(self):
         """
@@ -348,21 +356,25 @@ class TestShortcutsWOChannels(TestPlotWidget):
                 after pressing the combination of keys "Shift+V"
         Events:
             - Open 'FileWidget' with valid measurement.
+            - Mock objects from QMdiArea module
             - Press "Shift+V"
         Evaluate (0):
             - Evaluate that only tile_vertically() object was called"
         """
+        # mocks
         with (
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.cascadeSubWindows") as mo_cascadeSubWindows,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tileSubWindows") as mo_tileSubWindows,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_vertically") as mo_tile_vertically,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_horizontally") as mo_tile_horizontally,
         ):
+            # Press Shift+V
             QtTest.QTest.keySequence(self.widget, QtGui.QKeySequence("Shift+V"))
-            mo_cascadeSubWindows.assert_not_called()
-            mo_tileSubWindows.assert_not_called()
-            mo_tile_vertically.assert_called()
-            mo_tile_horizontally.assert_not_called()
+        # Evaluate
+        mo_cascadeSubWindows.assert_not_called()
+        mo_tileSubWindows.assert_not_called()
+        mo_tile_vertically.assert_called()
+        mo_tile_horizontally.assert_not_called()
 
     def test_Plot_Plot_Shortcut_Shift_Key_H(self):
         """
@@ -371,21 +383,25 @@ class TestShortcutsWOChannels(TestPlotWidget):
                 after pressing the combination of keys "Shift+H"
         Events:
             - Open 'FileWidget' with valid measurement.
+            - Mock objects from QMdiArea module
             - Press "Shift+H"
         Evaluate (0):
             - Evaluate that only tile_horizontally() object was called"
         """
+        # mocks
         with (
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.cascadeSubWindows") as mo_cascadeSubWindows,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tileSubWindows") as mo_tileSubWindows,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_vertically") as mo_tile_vertically,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_horizontally") as mo_tile_horizontally,
         ):
+            # Press Shift+H
             QtTest.QTest.keySequence(self.widget, QtGui.QKeySequence("Shift+H"))
-            mo_cascadeSubWindows.assert_not_called()
-            mo_tileSubWindows.assert_not_called()
-            mo_tile_vertically.assert_not_called()
-            mo_tile_horizontally.assert_called()
+        # Evaluate
+        mo_cascadeSubWindows.assert_not_called()
+        mo_tileSubWindows.assert_not_called()
+        mo_tile_vertically.assert_not_called()
+        mo_tile_horizontally.assert_called()
 
 
 class TestShortcutsWith_1_Channel(TestPlotWidget):
