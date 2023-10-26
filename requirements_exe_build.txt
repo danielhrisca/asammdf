@@ -21,8 +21,6 @@ faust-cchardet==2.1.19
 chardet
 cryptography
 keyring
-pyinstaller; sys_platform=="win32"
-pyinstaller<6.0; sys_platform=="darwin"
-pyinstaller<6.0; sys_platform=="linux"
+pyinstaller
 scipy
 sympy
