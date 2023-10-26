@@ -6,14 +6,11 @@ import os
 from pathlib import Path
 import re
 from tempfile import gettempdir
-from time import sleep
 from traceback import format_exc
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from natsort import natsorted
 import pandas as pd
-import psutil
-import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ... import tool
@@ -44,7 +41,6 @@ from ..dialogs.error_dialog import ErrorDialog
 from ..dialogs.gps_dialog import GPSDialog
 from ..dialogs.messagebox import MessageBox
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
-from ..ui import resource_rc
 from ..ui.file_widget import Ui_file_widget
 from ..utils import GREEN, HelperChannel, run_thread_with_progress, setup_progress
 from .attachment import Attachment
@@ -1269,8 +1265,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             progress = setup_progress(
                 parent=self,
-                title=f"Loading display windows",
-                message=f"",
+                title="Loading display windows",
+                message="",
                 icon_name="window",
             )
             progress.setRange(0, count - 1)
@@ -1838,7 +1834,7 @@ MultiRasterSeparator;&
             if call_info["unknown_id_count"]:
                 message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
             else:
-                message.append(f"- no unknown IDs inf the MDF4 file")
+                message.append("- no unknown IDs inf the MDF4 file")
 
             message += [
                 "",
@@ -2039,7 +2035,7 @@ MultiRasterSeparator;&
             if call_info["unknown_id_count"]:
                 message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
             else:
-                message.append(f"- no unknown IDs inf the MDF4 file")
+                message.append("- no unknown IDs inf the MDF4 file")
 
             message += [
                 "",
@@ -2298,7 +2294,7 @@ MultiRasterSeparator;&
                 try:
                     item.setText(1, f"{self.mdf.file_limit / 1024 / 1024:.1f} MB")
                 except:
-                    item.setText(1, f"Unknown size")
+                    item.setText(1, "Unknown size")
             children.append(item)
 
             if file_stats is not None:

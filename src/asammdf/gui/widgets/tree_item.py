@@ -1,7 +1,6 @@
 from time import perf_counter
-from traceback import format_exc
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtWidgets
 
 from ..utils import get_colors_using_ranges
 

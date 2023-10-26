@@ -17,12 +17,11 @@ import os
 from pathlib import Path
 import re
 from shutil import copy, move
-from struct import unpack
 import sys
 from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
 from types import TracebackType
-from typing import Any, overload, Type
+from typing import Any, overload
 from warnings import warn
 import xml.etree.ElementTree as ET
 import zipfile
@@ -34,7 +33,7 @@ import pandas as pd
 from typing_extensions import Literal
 
 from . import tool
-from .blocks import bus_logging_utils, utils
+from .blocks import bus_logging_utils
 from .blocks import v2_v3_constants as v23c
 from .blocks import v4_constants as v4c
 from .blocks.conversion_utils import from_dict
@@ -92,7 +91,6 @@ from .types import (
     StrOrBytesPathType,
     StrPathType,
 )
-from .version import __version__
 
 try:
     import fsspec
@@ -1666,7 +1664,7 @@ class MDF:
                         comment = ""
 
                     if comment:
-                        for char in f'\n\t\r\b <>\\/:"?*|':
+                        for char in '\n\t\r\b <>\\/:"?*|':
                             comment = comment.replace(char, "_")
                         group_csv_name = filename.parent / f"{filename.stem}.ChannelGroup_{i}_{comment}.csv"
                     else:

@@ -1,4 +1,4 @@
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 DEFAULT_TIMEOUT = 60
 

@@ -1,11 +1,7 @@
-import json
-import math
-
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..dialogs.range_editor import RangeEditor
-from ..ui import resource_rc
 from ..ui.channel_bar_display_widget import Ui_ChannelBarDisplay
 
 

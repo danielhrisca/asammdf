@@ -5,7 +5,7 @@ asammdf utility functions for channel conversions
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Any, Union
+from typing import Any
 
 from ..types import ChannelConversionType
 from . import v2_v3_blocks as v3b
@@ -147,7 +147,7 @@ def conversion_transfer(
                         conversion.referenced_blocks["default_addr"],
                         v4b.ChannelConversion,
                     ):
-                        default_addr = conversion.referenced_blocks[f"default_addr"].name.encode("latin-1")
+                        default_addr = conversion.referenced_blocks["default_addr"].name.encode("latin-1")
                     else:
                         default_addr = conversion.referenced_blocks["default_addr"]
                     new_conversion.referenced_blocks["default_addr"] = default_addr
@@ -177,7 +177,7 @@ def conversion_transfer(
                         conversion.referenced_blocks["default_addr"],
                         v4b.ChannelConversion,
                     ):
-                        default_addr = conversion.referenced_blocks[f"default_addr"].name.encode("latin-1")
+                        default_addr = conversion.referenced_blocks["default_addr"].name.encode("latin-1")
                     else:
                         default_addr = conversion.referenced_blocks["default_addr"]
                     new_conversion.referenced_blocks["default_addr"] = default_addr
@@ -345,9 +345,9 @@ def from_dict(conversion: dict[str, Any]) -> v4b.ChannelConversion:
 
         val = conversion.get("default_addr", b"")
         if isinstance(val, str):
-            conversion[f"default_addr"] = val.encode("utf-8")
+            conversion["default_addr"] = val.encode("utf-8")
         elif isinstance(val, dict):
-            conversion[f"default_addr"] = from_dict(val)
+            conversion["default_addr"] = from_dict(val)
 
         conversion["ref_param_nr"] = nr + 1
         conversion = v4b.ChannelConversion(**conversion)
@@ -367,9 +367,9 @@ def from_dict(conversion: dict[str, Any]) -> v4b.ChannelConversion:
 
         val = conversion.get("default_addr", b"")
         if isinstance(val, str):
-            conversion[f"default_addr"] = val.encode("utf-8")
+            conversion["default_addr"] = val.encode("utf-8")
         elif isinstance(val, dict):
-            conversion[f"default_addr"] = from_dict(val)
+            conversion["default_addr"] = from_dict(val)
         conversion = v4b.ChannelConversion(**conversion)
 
     else:

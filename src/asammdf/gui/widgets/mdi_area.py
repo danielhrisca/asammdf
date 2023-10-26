@@ -3,7 +3,6 @@ from functools import partial
 import inspect
 import itertools
 import json
-import math
 import os
 from pathlib import Path
 from random import randint
@@ -37,17 +36,14 @@ from ..utils import (
     computation_to_python_function,
     compute_signal,
     copy_ranges,
-    generate_python_function,
     replace_computation_dependency,
-    VARIABLE,
-    VARIABLE_GET_DATA,
 )
 from .can_bus_trace import CANBusTrace
 from .flexray_bus_trace import FlexRayBusTrace
 from .gps import GPS
 from .lin_bus_trace import LINBusTrace
 from .numeric import Numeric
-from .plot import get_descriptions_by_uuid, Plot
+from .plot import Plot
 from .tabular import Tabular
 
 COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")

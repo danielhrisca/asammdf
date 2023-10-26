@@ -1,6 +1,5 @@
 from PySide6 import QtCore, QtWidgets
 
-from ..ui import resource_rc
 from ..ui.search_widget import Ui_SearchWidget
 
 

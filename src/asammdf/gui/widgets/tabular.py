@@ -1,21 +1,15 @@
-import datetime
 import logging
-from traceback import format_exc
 
 import dateutil.tz
 import numpy as np
 import numpy.core.defchararray as npchar
 import pandas as pd
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from ...blocks.utils import (
     csv_bytearray2hex,
-    csv_int2bin,
-    csv_int2hex,
-    pandas_query_compatible,
 )
-from .tabular_base import TabularBase, TabularTreeItem
-from .tabular_filter import TabularFilter
+from .tabular_base import TabularBase
 
 logger = logging.getLogger("asammdf.gui")
 LOCAL_TIMEZONE = dateutil.tz.tzlocal()

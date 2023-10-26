@@ -4,7 +4,6 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from asammdf.blocks import v4_constants as v4c
 from asammdf.blocks.conversion_utils import from_dict
 
-from ..ui import resource_rc
 from ..ui.define_conversion_dialog import Ui_ConversionDialog
 from .messagebox import MessageBox
 
@@ -335,13 +334,13 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
         return conversion
 
     def edit_vtt_default_conversion(self):
-        dlg = ConversionEditor(f"default", self.vtt_default_conversion, parent=self)
+        dlg = ConversionEditor("default", self.vtt_default_conversion, parent=self)
         dlg.exec_()
         if dlg.pressed_button == "apply":
             self.vtt_default_conversion = dlg.conversion()
 
     def edit_vrtt_default_conversion(self):
-        dlg = ConversionEditor(f"default", self.vrtt_default_conversion, parent=self)
+        dlg = ConversionEditor("default", self.vrtt_default_conversion, parent=self)
         dlg.exec_()
         if dlg.pressed_button == "apply":
             self.vrtt_default_conversion = dlg.conversion()

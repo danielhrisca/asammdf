@@ -18,12 +18,18 @@ test-requires = "pytest"
 test-command = "pytest {project}/test"
 build-frontend = "build"
 archs = ["auto64"]  # only build for 64bit architectures
-skip = "pp* *_ppc64le *_s390x *-musllinux* cp312-*"  # skip pypy and irrelevant architectures
+skip = "pp* *_ppc64le *_s390x"  # skip pypy and irrelevant architectures
 
 [tool.ruff]
 select = [
+    "F",  # pyflakes
     "UP",  # pyupgrade
     "I",  # isort
+]
+ignore = [
+    "F401",  # unused-import
+    "F821",  # undefined-name
+    "F841",  # unused-variable
 ]
 exclude = ["./src/asammdf/gui/ui"]
 target-version = "py38"

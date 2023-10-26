@@ -2,7 +2,6 @@ import pandas as pd
 from PySide6 import QtCore, QtWidgets
 
 from ..dialogs.messagebox import MessageBox
-from ..ui import resource_rc
 from ..ui.tabular_filter import Ui_TabularFilter
 
 
