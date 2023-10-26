@@ -3,7 +3,7 @@ import re
 from traceback import format_exc
 
 from natsort import natsorted
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets, QtGui
 
 from ...blocks.utils import extract_xml_comment
 from ..ui.search_dialog import Ui_SearchDialog
@@ -30,7 +30,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         show_apply=False,
         show_pattern=True,
         apply_text="Apply",
-        add_window_text="Add window",
+        add_window_text="Add channels",
         show_search=True,
         window_title="Search & select channels",
         pattern=None,
@@ -39,6 +39,10 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
     ):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+
+        icon = QtGui.QIcon()
+        icon.addFile(":/search.png", QtCore.QSize(), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.setWindowIcon(icon)
 
         self.selection.can_delete_items = True
         self.selection.all_texts = True
