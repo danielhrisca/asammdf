@@ -403,6 +403,29 @@ class TestShortcutsWOChannels(TestPlotWidget):
         mo_tile_vertically.assert_not_called()
         mo_tile_horizontally.assert_called()
 
+    def test_Plot_Plot_Shortcut_Shift_Key_Alt_F(self):
+        """
+        Test Scope:
+            Check if sub-windows frame was toggled after pressing keys "Shift+Alt+F"
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Press twice "Shift+Alt+F"
+        Evaluate (0):
+            - Evaluate that by default sub-windows are not frameless
+            - Evaluate that sub-windows is frameless after pressing "Shift+Alt+F" first time
+            - Evaluate that sub-windows is not frameless after pressing "Shift+Alt+F" second time
+        """
+        # Evaluate
+        self.assertFalse(self.widget._frameless_windows)
+        # Press Shift+Alt+F
+        QtTest.QTest.keySequence(self.widget, QtGui.QKeySequence("Shift+Alt+F"))
+        # Evaluate
+        self.assertTrue(self.widget._frameless_windows)
+        # Press Shift+Alt+F
+        QtTest.QTest.keySequence(self.widget, QtGui.QKeySequence("Shift+Alt+F"))
+        # Evaluate
+        self.assertFalse(self.widget._frameless_windows)
+
 
 class TestShortcutsWith_1_Channel(TestPlotWidget):
     def __init__(self, methodName: str = ...):
