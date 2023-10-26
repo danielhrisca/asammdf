@@ -445,7 +445,7 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
             - Press "O"
         Evaluate:
             - Evaluate that plot is not black
-            - Evaluate that distance between first and second transition of signal in the same line is decreased
+            - Evaluate that the distance between first and second transition of signal in the same line is decreased
                 after pressing key "O"
         """
         # Select line
