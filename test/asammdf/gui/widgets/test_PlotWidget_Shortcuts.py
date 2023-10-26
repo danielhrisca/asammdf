@@ -10,7 +10,6 @@ import src.asammdf.gui.widgets.cursor
 
 
 class TestShortcutsWOChannels(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -311,7 +310,7 @@ class TestShortcutsWOChannels(TestPlotWidget):
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.cascadeSubWindows") as mo_cascadeSubWindows,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tileSubWindows") as mo_tileSubWindows,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_vertically") as mo_tile_vertically,
-            mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_horizontally") as mo_tile_horizontally
+            mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_horizontally") as mo_tile_horizontally,
         ):
             QtTest.QTest.keySequence(self.widget, QtGui.QKeySequence("Shift+C"))
             mo_cascadeSubWindows.assert_called()
@@ -334,7 +333,7 @@ class TestShortcutsWOChannels(TestPlotWidget):
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.cascadeSubWindows") as mo_cascadeSubWindows,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tileSubWindows") as mo_tileSubWindows,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_vertically") as mo_tile_vertically,
-            mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_horizontally") as mo_tile_horizontally
+            mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_horizontally") as mo_tile_horizontally,
         ):
             QtTest.QTest.keySequence(self.widget, QtGui.QKeySequence("Shift+T"))
             mo_cascadeSubWindows.assert_not_called()
@@ -357,7 +356,7 @@ class TestShortcutsWOChannels(TestPlotWidget):
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.cascadeSubWindows") as mo_cascadeSubWindows,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tileSubWindows") as mo_tileSubWindows,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_vertically") as mo_tile_vertically,
-            mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_horizontally") as mo_tile_horizontally
+            mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_horizontally") as mo_tile_horizontally,
         ):
             QtTest.QTest.keySequence(self.widget, QtGui.QKeySequence("Shift+V"))
             mo_cascadeSubWindows.assert_not_called()
@@ -380,7 +379,7 @@ class TestShortcutsWOChannels(TestPlotWidget):
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.cascadeSubWindows") as mo_cascadeSubWindows,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tileSubWindows") as mo_tileSubWindows,
             mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_vertically") as mo_tile_vertically,
-            mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_horizontally") as mo_tile_horizontally
+            mock.patch("asammdf.gui.widgets.file.MdiAreaWidget.tile_horizontally") as mo_tile_horizontally,
         ):
             QtTest.QTest.keySequence(self.widget, QtGui.QKeySequence("Shift+H"))
             mo_cascadeSubWindows.assert_not_called()
@@ -390,7 +389,6 @@ class TestShortcutsWOChannels(TestPlotWidget):
 
 
 class TestShortcutsWith_1_Channel(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -825,7 +823,6 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
 
 
 class TestShortcutsWith_2_Channels(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -1021,7 +1018,6 @@ class TestShortcutsWith_2_Channels(TestPlotWidget):
 
 
 class TestShortcutsWith_3_Channels(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -1417,7 +1413,6 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
 
 
 class TestShortcutsWith_3_Windows(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
