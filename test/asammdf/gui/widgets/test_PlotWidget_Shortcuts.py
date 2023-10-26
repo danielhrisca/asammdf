@@ -1449,4 +1449,3 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
 
             # Not save value of the last selected channel
             self.assertNotEqual(self.plot.info._name, self.channel_37.name)
-
