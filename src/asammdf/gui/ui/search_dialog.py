@@ -381,7 +381,7 @@ class Ui_SearchDialog(object):
         self.label.setText(QCoreApplication.translate("SearchDialog", "Final selection", None))
         self.cancel_btn.setText(QCoreApplication.translate("SearchDialog", "Cancel", None))
         self.apply_btn.setText(QCoreApplication.translate("SearchDialog", "Apply", None))
-        self.add_window_btn.setText(QCoreApplication.translate("SearchDialog", "Add window", None))
+        self.add_window_btn.setText(QCoreApplication.translate("SearchDialog", "Add channels", None))
         self.label_7.setText(QCoreApplication.translate("SearchDialog", "Search results", None))
         self.search_box.setInputMask("")
         self.search_box.setText("")
