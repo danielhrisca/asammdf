@@ -1450,34 +1450,3 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
             # Not save value of the last selected channel
             self.assertNotEqual(self.plot.info._name, self.channel_37.name)
 
-
-class TestShortcutsWith_3_Windows(TestPlotWidget):
-    def __init__(self, methodName: str = ...):
-        super().__init__(methodName)
-
-    def setUp(self):
-        # Open measurement file
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Switch ComboBox to "Natural sort"
-        self.widget.channel_view.setCurrentText("Natural sort")
-        # Select channels -> Press PushButton "Create Window" -> "Plot
-        self.create_window(window_type="Plot")
-        self.create_window(window_type="Plot")
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 3)
-
-    def test_Plot_Plot_Shortcut_Key_Shift_C(self):
-        """
-        Test Scope:
-            Check if windows are cascaded after pressing the combination of keys "Shift+C"
-        Events:
-            - Open 'FileWidget' with valid measurement.
-            - Open 3 windows
-            - Press "Shift+C"
-        Evaluate:
-            - Evaluate that windows are not cascaded by default
-            - Evaluate that windows are cascaded after pressing "Shift_C"
-        """
-        x = 5
-        QtTest.QTest.keySequence(self.widget, QtGui.QKeySequence("Shift+C"))
-        x = 5
