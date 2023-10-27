@@ -3,7 +3,7 @@ import re
 from traceback import format_exc
 
 from natsort import natsorted
-from PySide6 import QtCore, QtWidgets, QtGui
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...blocks.utils import extract_xml_comment
 from ..ui.search_dialog import Ui_SearchDialog
