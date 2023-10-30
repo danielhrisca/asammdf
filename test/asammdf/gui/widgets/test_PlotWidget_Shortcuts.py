@@ -1306,7 +1306,7 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
                 # Midd
                 pixmap = self.plot.plot.viewport().grab(
                     QtCore.QRect(
-                        0, int(self.plot.plot.height() / 3), self.plot.plot.width(), int(self.plot.plot.height() / 3)
+                        0, int(self.plot.plot.height() /3), self.plot.plot.width(), int(self.plot.plot.height() / 3)
                     )
                 )
                 self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
