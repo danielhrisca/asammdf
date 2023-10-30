@@ -1318,7 +1318,7 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
                         0,
                         int(self.plot.plot.height() / 3)*2,
                         self.plot.plot.width(),
-                        int(self.plot.plot.height() / 3),
+                        int(self.plot.plot.height() /3),
                     )
                 )
                 self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
