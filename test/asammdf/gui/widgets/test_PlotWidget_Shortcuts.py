@@ -1316,7 +1316,7 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
                 pixmap = self.plot.plot.viewport().grab(
                     QtCore.QRect(
                         0,
-                        int(self.plot.plot.height() / 3) * 2,
+                        int(self.plot.plot.height() / 3)*2,
                         self.plot.plot.width(),
                         int(self.plot.plot.height() / 3),
                     )

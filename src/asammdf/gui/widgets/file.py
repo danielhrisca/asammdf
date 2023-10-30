@@ -2484,7 +2484,7 @@ MultiRasterSeparator;&
                 w.setWindowFlags(w.windowFlags() & (~QtCore.Qt.WindowType.FramelessWindowHint))
 
     def autofit_sub_plots(self):
-        geometries=[]
+        geometries = []
         for window in self.mdi_area.subWindowList():
             geometry = window.geometry()
             geometries.append(geometry)
