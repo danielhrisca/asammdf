@@ -308,7 +308,7 @@ class Pixmap:
             > values is a list of color names ordered by columns of pixmap
         """
         color_dict = {}
-        line = []
+        line=[]
         image = pixmap.toImage()
         for y in range(image.height()):
             for x in range(image.width()):
