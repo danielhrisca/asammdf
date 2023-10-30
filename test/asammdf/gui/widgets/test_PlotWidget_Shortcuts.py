@@ -1445,7 +1445,7 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
             self.mouseClick_WidgetItem(self.channel_36)
             QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Delete)
             self.mouseClick_WidgetItem(self.channel_37)
-            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Delete)
+            QtTest.QTest.keyClick(self.plot.channel_selection,QtCore.Qt.Key_Delete)
 
             # Not save value of the last selected channel
             self.assertNotEqual(self.plot.info._name,self.channel_37.name)
