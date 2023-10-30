@@ -7,7 +7,6 @@ from PySide6 import QtCore, QtGui, QtTest
 
 
 class TestShortcutsWOChannels(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -426,7 +425,6 @@ class TestShortcutsWOChannels(TestPlotWidget):
 
 
 class TestShortcutsWith_1_Channel(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -861,7 +859,6 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
 
 
 class TestShortcutsWith_2_Channels(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -1056,16 +1053,13 @@ class TestShortcutsWith_2_Channels(TestPlotWidget):
         self.assertLess(old_from_to_x_channel_37[1], new_from_to_x_channel_37[1])
 
     def test_Plot_Plot_Shortcut_Key_Shift_Arrow(self):
-        """
-
-        """
+        """ """
         # with mock.patch("") as mo_:
         QtTest.QTest.keySequence(self.plot.channel_selection, QtGui.QKeySequence("Ctrl+Shift+S"))
         self.manual_use(self.widget)
 
 
 class TestShortcutsWith_3_Channels(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
