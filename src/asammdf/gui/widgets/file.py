@@ -1767,7 +1767,7 @@ MultiRasterSeparator;&
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
-            "Select output measurement file",
+            "Save as measurement file",
             "",
             f"{filter};;All files (*.*)",
             filter,
@@ -2676,7 +2676,7 @@ MultiRasterSeparator;&
 
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
-                "Select output measurement file",
+                "Save as measurement file",
                 "",
                 f"{filter};;All files (*.*)",
                 default,
