@@ -2475,7 +2475,7 @@ MultiRasterSeparator;&
             self.info.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
 
     def toggle_frames(self, event=None):
-        self._frameless_windows = not self._frameless_windows
+        self._frameless_windows=not self._frameless_windows
 
         for w in self.mdi_area.subWindowList():
             if self._frameless_windows:
@@ -2484,7 +2484,7 @@ MultiRasterSeparator;&
                 w.setWindowFlags(w.windowFlags() & (~QtCore.Qt.WindowType.FramelessWindowHint))
 
     def autofit_sub_plots(self):
-        geometries = []
+        geometries =[]
         for window in self.mdi_area.subWindowList():
             geometry = window.geometry()
             geometries.append(geometry)
