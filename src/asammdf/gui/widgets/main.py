@@ -475,13 +475,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+S"))
         plot_actions.addAction(action)
 
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        action = QtGui.QAction(icon, "{: <20}\tCtrl+Shift+S".format("Save all subplot channels"), menu)
-        action.triggered.connect(self.save_all_subplots)
-        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+S"))
-        plot_actions.addAction(action)
-
         # channel shifting
 
         channel_shift_actions = QtGui.QActionGroup(self)
