@@ -392,6 +392,6 @@ class Pixmap:
         line = None
         for y in range(image.height()):
             if QtGui.QColor(image.pixel(0, y)).name() == color:
-                line = y
+                line =y
                 break
         return line

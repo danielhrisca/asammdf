@@ -1302,23 +1302,23 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
                 )
                 self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
                 self.assertTrue(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-                self.assertTrue(Pixmap.has_color(pixmap,self.channel_37.color.name()))
+                self.assertTrue(Pixmap.has_color(pixmap, self.channel_37.color.name()))
                 # Midd
                 pixmap = self.plot.plot.viewport().grab(
                     QtCore.QRect(
-                        0, int(self.plot.plot.height()/3), self.plot.plot.width(), int(self.plot.plot.height() / 3)
+                        0, int(self.plot.plot.height() / 3), self.plot.plot.width(), int(self.plot.plot.height() / 3)
                     )
                 )
                 self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
                 self.assertTrue(Pixmap.has_color(pixmap, self.channel_36.color.name()))
                 self.assertTrue(Pixmap.has_color(pixmap, self.channel_37.color.name()))
                 # Bottom
-                pixmap=self.plot.plot.viewport().grab(
+                pixmap = self.plot.plot.viewport().grab(
                     QtCore.QRect(
                         0,
-                        int(self.plot.plot.height() / 3)*2,
+                        int(self.plot.plot.height() / 3) * 2,
                         self.plot.plot.width(),
-                        int(self.plot.plot.height()/3),
+                        int(self.plot.plot.height() / 3),
                     )
                 )
                 self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
@@ -1439,13 +1439,13 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
             self.assertEqual(self.plot.info.color, self.channel_36.color.name())
 
         # delete all channels
-        with self.subTest("test_key_M_delete_all_channels") :
+        with self.subTest("test_key_M_delete_all_channels"):
             self.mouseClick_WidgetItem(self.channel_35)
             QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Delete)
             self.mouseClick_WidgetItem(self.channel_36)
             QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Delete)
             self.mouseClick_WidgetItem(self.channel_37)
-            QtTest.QTest.keyClick(self.plot.channel_selection,QtCore.Qt.Key_Delete)
+            QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Delete)
 
             # Not save value of the last selected channel
             self.assertNotEqual(self.plot.info._name,self.channel_37.name)
