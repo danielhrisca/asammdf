@@ -3872,7 +3872,7 @@ class WithMDIArea:
 
     def save_all_subplots(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output measurement file", "", "MDF version 4 files (*.mf4)"
+            self, "Save as measurement file", "", "MDF version 4 files (*.mf4)"
         )
 
         if file_name:
