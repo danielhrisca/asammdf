@@ -1313,7 +1313,7 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
                 self.assertTrue(Pixmap.has_color(pixmap, self.channel_36.color.name()))
                 self.assertTrue(Pixmap.has_color(pixmap, self.channel_37.color.name()))
                 # Bottom
-                pixmap = self.plot.plot.viewport().grab(
+                pixmap =self.plot.plot.viewport().grab(
                     QtCore.QRect(
                         0,
                         int(self.plot.plot.height() / 3)*2,
