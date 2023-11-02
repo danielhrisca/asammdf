@@ -224,7 +224,6 @@ class Signal:
             return
 
         except:
-            print(format_exc())
             try:
                 import matplotlib.pyplot as plt
                 from matplotlib.widgets import Slider
