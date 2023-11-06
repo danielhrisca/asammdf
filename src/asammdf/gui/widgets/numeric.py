@@ -7,8 +7,8 @@ from threading import Lock
 from traceback import format_exc
 
 from natsort import natsorted
-import numpy as np
 from numpy import searchsorted
+import numpy as np
 import pyqtgraph.functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 

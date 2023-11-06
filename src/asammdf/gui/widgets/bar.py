@@ -1,8 +1,8 @@
 import os
 import re
 
-import numpy as np
 from numpy import searchsorted
+import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..dialogs.messagebox import MessageBox
