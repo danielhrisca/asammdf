@@ -28,7 +28,6 @@ select = [
 ]
 ignore = [
     "F401",  # unused-import
-    "F821",  # undefined-name
     "F841",  # unused-variable
 ]
 exclude = ["./src/asammdf/gui/ui"]
