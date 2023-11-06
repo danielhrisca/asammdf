@@ -857,26 +857,30 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             mdf = cls(file_name).export_mdf()
 
         elif suffix in (".mdf", ".mf4", ".mf4z"):
-            mdf = file_name
+            mdf = MDF(file_name)
+
+        else:
+            raise ValueError(f"Incompatible suffix '{suffix}'")
 
         return mdf
 
     def _prepare_files(self, files=None, progress=None):
-        count = self.files_list.count()
-
         if files is None:
-            files = [Path(self.files_list.item(row).text()) for row in range(count)]
+            files = [Path(self.files_list.item(row).text()) for row in range(self.files_list.count())]
 
+        count = len(files)
         progress.signals.setMaximum.emit(count)
         progress.signals.setValue.emit(0)
         progress.signals.setWindowTitle.emit("Preparing measurements")
 
+        mdf_files = []
         for i, file_name in enumerate(files):
             progress.signals.setLabelText.emit(f"Preparing the file {i+1} of {count}\n{file_name}")
-            files[i] = self._as_mdf(file_name)
+            mdf = self._as_mdf(file_name)
+            mdf_files.append(mdf)
             progress.signals.setValue.emit(i + 1)
 
-        return files
+        return mdf_files
 
     def _get_filtered_channels(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
@@ -1067,8 +1071,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 file_name = source_files[0]
 
             mdf = self._as_mdf(file_name)
-            if not isinstance(mdf, MDF):
-                mdf = MDF(mdf)
 
             try:
                 widget = self.filter_tree
@@ -1381,7 +1383,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 icon = QtGui.QIcon()
                 icon.addPixmap(QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
                 progress.signals.setWindowIcon.emit(icon)
-                progress.signals.setWindowTitle.emit(f"Filtering measurement {mdf_index+i} of {count}")
+                progress.signals.setWindowTitle.emit(f"Filtering measurement {mdf_index + 1} of {count}")
                 progress.signals.setLabelText.emit(f'Filtering selected channels from\n"{source_file}"')
 
                 # filtering self.mdf
