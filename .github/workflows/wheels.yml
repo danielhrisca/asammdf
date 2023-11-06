@@ -28,6 +28,7 @@ jobs:
           CIBW_TEST_COMMAND: "pytest {project}/test --ignore={project}/test/asammdf/gui"
         run: |
           if [ "$RUNNER_OS" == "Linux" ]; then
+             python -m pip install cython
              sudo apt update
              sudo apt-get install libegl1 libopengl0 libxml2 libxml2-dev libxslt1-dev libxslt1.1
           fi
