@@ -868,9 +868,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         )
                     ]
 
-                    dialog = WindowSelectionDialog(
-                        options=options, default=self.mdi_area.activeSubWindow().windowTitle(), parent=self
-                    )
+                    if active_window := self.mdi_area.activeSubWindow():
+                        default = active_window.windowTitle()
+                    else:
+                        default = None
+
+                    dialog = WindowSelectionDialog(options=options, default=default, parent=self)
                     dialog.setModal(True)
                     dialog.exec_()
 
