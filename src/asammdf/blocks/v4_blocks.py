@@ -2325,7 +2325,7 @@ class ChannelConversion(_ChannelConversionBase):
                 if self.id != b"##CC":
                     message = f'Expected "##CC" block @{hex(address)} but found "{self.id}"'
                     logger.exception(message)
-                    raise MdfException(message)
+                    raise MdfException(message) from None
 
                 block = stream.read(self.block_len - COMMON_SIZE)
 

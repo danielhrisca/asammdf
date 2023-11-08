@@ -176,6 +176,9 @@ class MDF3(MDF_Common):
         if not kwargs.get("__internal__", False):
             raise MdfException("Always use the MDF class; do not use the class MDF3 directly")
 
+        # bind cache to instance to avoid memory leaks
+        self.determine_max_vlsd_sample_size = lru_cache(maxsize=1024 * 1024)(self._determine_max_vlsd_sample_size)
+
         self._kwargs = kwargs
         self._password = kwargs.get("password", None)
         self.original_name = kwargs["original_name"]
@@ -3889,8 +3892,7 @@ class MDF3(MDF_Common):
     def reload_header(self):
         self.header = HeaderBlock(address=0x40, stream=self._file)
 
-    @lru_cache(maxsize=1024 * 1024)
-    def determine_max_vlsd_sample_size(self, group, index):
+    def _determine_max_vlsd_sample_size(self, group, index):
         return 0
 
 

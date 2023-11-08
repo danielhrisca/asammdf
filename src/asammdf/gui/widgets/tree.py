@@ -1603,6 +1603,9 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self.resolved_ranges = None
         self.ranges = []
 
+        # bind cache to instance to avoid memory leaks
+        self.get_color_using_ranges = lru_cache(maxsize=1024)(self._get_color_using_ranges)
+
         self._name = ""
         self._count = 0
         self._background_color = background_color
@@ -1888,8 +1891,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 child = self.child(row)
                 child.set_fmt(format)
 
-    @lru_cache(maxsize=1024)
-    def get_color_using_ranges(self, value, pen=False):
+    def _get_color_using_ranges(self, value, pen=False):
         return get_color_using_ranges(value, self.get_ranges(), self.signal.color, pen=pen)
 
     def get_display_properties(self):

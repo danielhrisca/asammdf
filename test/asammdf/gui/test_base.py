@@ -120,7 +120,7 @@ class TestBase(unittest.TestCase):
         elif isinstance(qitem, QtWidgets.QListWidgetItem):
             widget = qitem.listWidget()
         else:
-            raise "Not Implemented"
+            raise NotImplementedError
         QtTest.QTest.mouseClick(
             widget.viewport(),
             QtCore.Qt.MouseButton.LeftButton,
@@ -135,7 +135,7 @@ class TestBase(unittest.TestCase):
         elif isinstance(qitem, QtWidgets.QListWidgetItem):
             widget = qitem.listWidget()
         else:
-            raise "Not Implemented"
+            raise NotImplementedError
         QtTest.QTest.mouseDClick(
             widget.viewport(),
             QtCore.Qt.MouseButton.LeftButton,

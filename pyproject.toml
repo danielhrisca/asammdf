@@ -23,11 +23,13 @@ skip = "pp* *_ppc64le  *-musllinux* *_s390x"  # skip pypy and irrelevant archite
 
 [tool.ruff]
 select = [
+    "B",  # flake8-bugbear
     "F",  # pyflakes
     "UP",  # pyupgrade
     "I",  # isort
 ]
 ignore = [
+    "B007",  # unused-loop-control-variable
     "F401",  # unused-import
     "F841",  # unused-variable
 ]

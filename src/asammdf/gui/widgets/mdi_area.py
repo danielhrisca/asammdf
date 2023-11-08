@@ -85,11 +85,13 @@ def get_origin_uuid(item):
 def build_mime_from_config(
     items,
     mdf=None,
-    computed_origin_uuid=os.urandom(6).hex(),
+    computed_origin_uuid=None,
     default_index=NOT_FOUND,
     top=True,
     has_flags=None,
 ):
+    if computed_origin_uuid is None:
+        computed_origin_uuid = os.urandom(6).hex()
     if top:
         rename_origin_uuid(items)
 
