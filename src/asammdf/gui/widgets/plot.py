@@ -2961,8 +2961,11 @@ class Plot(QtWidgets.QWidget):
             if item.type() == item.Channel:
                 signal, i = self.plot.signal_by_uuid(item.uuid)
 
-                start_v, kind, fmt = signal.value_at_timestamp(start)
-                stop_v, kind, fmt = signal.value_at_timestamp(stop)
+                index = self.plot.get_timestamp_index(start, signal.timestamps)
+                start_v, kind, fmt = signal.value_at_index(index)
+
+                index = self.plot.get_timestamp_index(stop, signal.timestamps)
+                stop_v, kind, fmt = signal.value_at_index(index)
 
                 if self.region_values_display_mode == "delta":
                     item.set_prefix("Δ = ")
