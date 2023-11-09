@@ -982,7 +982,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             windows.append(window_config)
 
+        current_window = self.mdi_area.currentSubWindow()
+
         config["windows"] = windows
+        config["active_window"] = current_window.windowTitle() if current_window else ""
         config["functions"] = self.functions
 
         return config
@@ -1291,6 +1294,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     errors[window_title] = format_exc()
 
             progress.cancel()
+
+            active_window = info.get("active_window", "")
+            for window in self.mdi_area.subWindowList():
+                if window.windowTitle() == active_window:
+                    self.mdi_area.setActiveSubWindow(window)
+                    break
 
         self.display_file_modified.emit(Path(self.loaded_display_file[0]).name)
 
