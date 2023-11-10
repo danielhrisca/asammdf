@@ -14,6 +14,7 @@ source = ["asammdf"]
 omit = ["*/asammdf/gui/ui/*"]
 
 [tool.cibuildwheel]
+manylinux-x86_64-image = "manylinux_2_28"
 test-requires = "pytest"
 test-command = "pytest {project}/test"
 build-frontend = "build"
@@ -28,7 +29,6 @@ select = [
 ]
 ignore = [
     "F401",  # unused-import
-    "F821",  # undefined-name
     "F841",  # unused-variable
 ]
 exclude = ["./src/asammdf/gui/ui"]
