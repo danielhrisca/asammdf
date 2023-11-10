@@ -445,7 +445,7 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         # Settings for cursor
         self.widget.set_cursor_options(False, False, 1, Pixmap.COLOR_BACKGROUND)
         # channels
-        self.channel_35 = self.plot.channel_selection.topLevelItem(0)
+        self.channel_35=self.plot.channel_selection.topLevelItem(0)
         self.assertEqual(1, self.plot.channel_selection.topLevelItemCount())
         # Double-click on channels
         self.mouseDClick_WidgetItem(self.channel_35)
