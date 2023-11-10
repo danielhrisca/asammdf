@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import os.path
+
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 from unittest import mock
@@ -7,6 +9,7 @@ from PySide6 import QtCore, QtGui, QtTest
 
 
 class TestShortcutsWOChannels(TestPlotWidget):
+
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -425,6 +428,7 @@ class TestShortcutsWOChannels(TestPlotWidget):
 
 
 class TestShortcutsWith_1_Channel(TestPlotWidget):
+
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -859,6 +863,7 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
 
 
 class TestShortcutsWith_2_Channels(TestPlotWidget):
+
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -1060,6 +1065,7 @@ class TestShortcutsWith_2_Channels(TestPlotWidget):
 
 
 class TestShortcutsWith_3_Channels(TestPlotWidget):
+
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -1452,3 +1458,69 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
 
             # Not save value of the last selected channel
             self.assertNotEqual(self.plot.info._name, self.channel_37.name)
+
+    def test_Plot_Plot_Shortcut_Ctrl_Key_S(self):
+        """
+        Test Scope:
+            Check if by pressing "Ctrl+S" is saved in the new measurement file only active channels
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Select 3 signals and create a plot
+            _ Deselect last channel
+            - Mock getSaveFileName() object and set return value of this object a file path of the new measurement file
+            - Press Key "Ctrl+S"
+            - Open recently created measurement file in a new window
+        Evaluate:
+            - Evaluate that object getSaveFileName() was called after pressing combination "Ctrl+S"
+            - Evaluate that in measurement file is saved only active channels
+        """
+        self.mouseDClick_WidgetItem(self.channel_37)
+        # mock for getSaveFileName object
+        with mock.patch("asammdf.gui.widgets.plot.QtWidgets.QFileDialog.getSaveFileName") as mo_getSaveFileName:
+            file_path = os.path.join(self.test_workspace, "file.mf4")
+            mo_getSaveFileName.return_value = (file_path, "")
+            # Press Ctrl+S
+            QtTest.QTest.keySequence(self.plot.plot, QtGui.QKeySequence("Ctrl+S"))
+        # Evaluate
+        mo_getSaveFileName.assert_called()
+
+        # Open recently saved measurement file
+        self.setUpFileWidget(measurement_file=file_path, default=True)
+        # Switch ComboBox to "Natural sort"
+        self.widget.channel_view.setCurrentText("Natural sort")
+        # Evaluate
+        self.assertIn(self.channel_35.name, self.widget.channels_db_items)
+        self.assertIn(self.channel_36.name, self.widget.channels_db_items)
+        self.assertNotIn(self.channel_37.name, self.widget.channels_db_items)
+
+    def test_Plot_Plot_Shortcut_Ctrl_Key_Shift_S(self):
+        """
+        Test Scope:
+            Check if by pressing "Ctrl+Shift+S" is saved in the new measurement file all channels from mdi area
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Select 3 signals and create a plot
+            - Mock getSaveFileName() object and set return value of this object a file path of the new measurement file
+            - Press Key "Ctrl+Shift+S"
+            - Open recently created measurement file in a new window
+        Evaluate:
+            - Evaluate that object getSaveFileName() was called after pressing combination "Ctrl+Shift+S"
+            - Evaluate that in measurement file is saved all channels from mdi area
+        """
+        # mock for getSaveFileName object
+        with mock.patch("asammdf.gui.widgets.mdi_area.QtWidgets.QFileDialog.getSaveFileName") as mo_getSaveFileName:
+            file_path = os.path.join(self.test_workspace, "file.mf4")
+            mo_getSaveFileName.return_value = (file_path, "")
+            # Press Ctrl+S
+            QtTest.QTest.keySequence(self.plot.plot, QtGui.QKeySequence("Ctrl+Shift+S"))
+        # Evaluate
+        mo_getSaveFileName.assert_called()
+
+        # Open recently saved measurement file
+        self.setUpFileWidget(measurement_file=file_path, default=True)
+        # Switch ComboBox to "Natural sort"
+        self.widget.channel_view.setCurrentText("Natural sort")
+        # Evaluate
+        self.assertIn(self.channel_35.name, self.widget.channels_db_items)
+        self.assertIn(self.channel_36.name, self.widget.channels_db_items)
+        self.assertIn(self.channel_37.name, self.widget.channels_db_items)
