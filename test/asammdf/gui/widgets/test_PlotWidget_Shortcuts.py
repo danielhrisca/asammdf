@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import os.path
-
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 from unittest import mock
@@ -9,7 +8,6 @@ from PySide6 import QtCore, QtGui, QtTest
 
 
 class TestShortcutsWOChannels(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -428,7 +426,6 @@ class TestShortcutsWOChannels(TestPlotWidget):
 
 
 class TestShortcutsWith_1_Channel(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -863,7 +860,6 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
 
 
 class TestShortcutsWith_2_Channels(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -1065,7 +1061,6 @@ class TestShortcutsWith_2_Channels(TestPlotWidget):
 
 
 class TestShortcutsWith_3_Channels(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
