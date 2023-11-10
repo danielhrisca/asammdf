@@ -3883,10 +3883,10 @@ class WithMDIArea:
                     if isinstance(widget, Plot):
                         mdf.append(widget.plot.signals)
                     elif isinstance(widget, Numeric):
-                        mdf.append(list(widget.signals.values()))
+                        mdf.append([s.signal for s in widget.channels.backend.signals])
                     elif isinstance(widget, Tabular):
-                        mdf.append(widget.df)
-                mdf.save(file_name, overwrite=True)
+                        mdf.append(widget.tree.pgdf.df_unfiltered)
+                mdf.save(file_name, compression=2, overwrite=True)
 
     def file_by_uuid(self, uuid):
         try:
