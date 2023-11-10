@@ -8,7 +8,6 @@ from PySide6 import QtCore, QtGui, QtTest
 
 
 class TestShortcutsWOChannels(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -427,7 +426,6 @@ class TestShortcutsWOChannels(TestPlotWidget):
 
 
 class TestShortcutsWith_1_Channel(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -861,16 +859,13 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         self.assertTrue(self.plot.show_bookmarks)
 
     def test_Plot_Plot_Shortcut_Key_Alt_R_Alt_S(self):
-        """
-
-        """
+        """ """
         QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Alt+R"))
         self.processEvents()
         QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Alt+S"))
 
 
 class TestShortcutsWith_2_Channels(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
@@ -1072,7 +1067,6 @@ class TestShortcutsWith_2_Channels(TestPlotWidget):
 
 
 class TestShortcutsWith_3_Channels(TestPlotWidget):
-
     def __init__(self, methodName: str = ...):
         super().__init__(methodName)
 
