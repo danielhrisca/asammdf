@@ -859,10 +859,33 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
         self.assertTrue(self.plot.show_bookmarks)
 
     def test_Plot_Plot_Shortcut_Key_Alt_R_Alt_S(self):
-        """ """
+        """
+        Test Scope:
+            Check functionality of key "Alt+I" and "Alt+S"
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Display 1 signal on plot
+            - Press "Alt+R"
+            - Press "Alt+S"
+        Evaluate:
+            - Evaluate that signal mode is raw and line style is DashLine after pressing key "Alt+R"
+            - Evaluate that signal mode is phys and line style is SolidLine after pressing key "Alt+S"
+        """
+        # Press "Alt+R"
         QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Alt+R"))
-        self.processEvents()
+        # Evaluate
+        # Signal mode = raw
+        self.assertEqual(self.plot.plot.signals[0].mode, "raw")
+        # Signal line style = Dash line
+        self.assertEqual(self.plot.plot.signals[0].pen.style(), QtCore.Qt.PenStyle.DashLine)
+
+        # Press "Alt+S"
         QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Alt+S"))
+        # Evaluate
+        # Signal mode = raw
+        self.assertEqual(self.plot.plot.signals[0].mode, "phys")
+        # Signal line style = Dash line
+        self.assertEqual(self.plot.plot.signals[0].pen.style(), QtCore.Qt.PenStyle.SolidLine)
 
 
 class TestShortcutsWith_2_Channels(TestPlotWidget):
