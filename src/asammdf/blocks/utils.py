@@ -88,8 +88,8 @@ except:
 
 from canmatrix.canmatrix import CanMatrix, matrix_class
 import canmatrix.formats
-import numpy as np
 from numpy import arange, bool_, dtype, interp, where
+import numpy as np
 from numpy.typing import NDArray
 from pandas import Series
 

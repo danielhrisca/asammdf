@@ -469,7 +469,7 @@ def compute_signal(
 
                 common_timebase = []
                 for signal in signals:
-                    if isinstance(sig, (int, float)):
+                    if isinstance(signal, (int, float)):
                         continue
 
                     if len(signal):

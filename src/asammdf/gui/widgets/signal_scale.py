@@ -209,11 +209,20 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
         key = event.key()
         modifiers = event.modifiers()
 
-        if key == QtCore.Qt.Key.Key_I and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
+        if key == QtCore.Qt.Key.Key_I and modifiers in (
+            QtCore.Qt.KeyboardModifier.NoModifier,
+            QtCore.Qt.KeyboardModifier.ShiftModifier,
+        ):
             self.zoom_in()
-        elif key == QtCore.Qt.Key.Key_O and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
+        elif key == QtCore.Qt.Key.Key_O and modifiers in (
+            QtCore.Qt.KeyboardModifier.NoModifier,
+            QtCore.Qt.KeyboardModifier.ShiftModifier,
+        ):
             self.zoom_out()
-        elif key == QtCore.Qt.Key.Key_F and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
+        elif key == QtCore.Qt.Key.Key_F and modifiers in (
+            QtCore.Qt.KeyboardModifier.NoModifier,
+            QtCore.Qt.KeyboardModifier.ShiftModifier,
+        ):
             self.fit()
         else:
             super().keyPressEvent(event)
