@@ -14,8 +14,8 @@ from textwrap import wrap
 import time
 from traceback import format_exc
 from typing import Any, TYPE_CHECKING
-import xml.etree.ElementTree as ET
 from xml.dom import minidom
+import xml.etree.ElementTree as ET
 
 import dateutil.tz
 
