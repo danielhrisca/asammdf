@@ -721,14 +721,14 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
             1,
             None,
             f"Difference is too big: {expectedSignalStartYPoint / signalStartOnLine}",
-            precission
+            precission,
         )
         self.assertAlmostEqual(
             expectedSignalEndYPoint / signalEndOnLine,
             1,
             None,
             f"Difference is too big: {expectedSignalEndYPoint / signalEndOnLine}",
-            precission
+            precission,
         )
         # The Number of intersections between signal and midd line must be the same as in the first case
         interCursorsIntersectionsX = Pixmap.color_map(
