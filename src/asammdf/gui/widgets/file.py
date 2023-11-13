@@ -2515,7 +2515,7 @@ MultiRasterSeparator;&
             self.info.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
 
     def toggle_frames(self, event=None):
-        self._frameless_windows=not self._frameless_windows
+        self._frameless_windows = not self._frameless_windows
 
         for w in self.mdi_area.subWindowList():
             if self._frameless_windows:
