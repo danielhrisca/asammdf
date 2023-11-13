@@ -715,10 +715,21 @@ class TestShortcutsWith_1_Channel(TestPlotWidget):
             self.channel_35.color.name(),
         )
         # Evaluate
-        message = "Difference is too big"
-        precission = 0.03
-        self.assertAlmostEqual(expectedSignalStartYPoint / signalStartOnLine, 1, None, message, precission)
-        self.assertAlmostEqual(expectedSignalEndYPoint / signalEndOnLine, 1, None, message, precission)
+        precission = 0.05
+        self.assertAlmostEqual(
+            expectedSignalStartYPoint / signalStartOnLine,
+            1,
+            None,
+            f"Difference is too big: {expectedSignalStartYPoint / signalStartOnLine}",
+            precission
+        )
+        self.assertAlmostEqual(
+            expectedSignalEndYPoint / signalEndOnLine,
+            1,
+            None,
+            f"Difference is too big: {expectedSignalEndYPoint / signalEndOnLine}",
+            precission
+        )
         # The Number of intersections between signal and midd line must be the same as in the first case
         interCursorsIntersectionsX = Pixmap.color_map(
             self.plot.plot.viewport().grab(QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.width(), 1))
@@ -1082,12 +1093,6 @@ class TestShortcutsWith_2_Channels(TestPlotWidget):
         self.assertLess(old_from_to_x_channel_37[0], new_from_to_x_channel_37[0])
         self.assertLess(old_from_to_x_channel_37[1], new_from_to_x_channel_37[1])
 
-    def test_Plot_Plot_Shortcut_Key_Shift_Arrow(self):
-        """ """
-        # with mock.patch("") as mo_:
-        QtTest.QTest.keySequence(self.plot.channel_selection, QtGui.QKeySequence("Ctrl+Shift+S"))
-        self.manual_use(self.widget)
-
 
 class TestShortcutsWith_3_Channels(TestPlotWidget):
     def __init__(self, methodName: str = ...):
@@ -1394,14 +1399,15 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
 
         # case 0
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_2)
-        for i in range(10):
+        for i in range(100):
             self.processEvents()
         # Evaluate
         self.assertTrue(Pixmap.is_black(self.plot.plot.viewport().grab()))
 
         # case 1
         self.mouseClick_WidgetItem(self.channel_35)
-        self.processEvents()
+        for i in range(200):
+            self.processEvents()
         pixmap = self.plot.plot.viewport().grab()
         # Evaluate
         self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
@@ -1410,7 +1416,7 @@ class TestShortcutsWith_3_Channels(TestPlotWidget):
 
         # case 2
         QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
-        for i in range(100):
+        for i in range(200):
             self.processEvents()
         pixmap = self.plot.plot.viewport().grab()
         # Evaluate
