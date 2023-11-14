@@ -160,6 +160,114 @@ class TestShortcutsWOChannels(TestPlotWidget):
         clear_pixmap = self.plot.plot.viewport().grab()
         self.assertTrue(Pixmap.is_black(clear_pixmap))
 
+    def test_Plot_Plot_Shortcut_Key_Y(self):
+        """
+
+        """
+        if not self.plot.hide_axes_btn.isFlat():
+            QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.LeftButton)
+        self.widget.set_cursor_options(False, False, 1, Pixmap.COLOR_CURSOR)
+        # Save PixMap of clear plot
+        clear_pixmap = self.plot.plot.viewport().grab()
+        self.assertTrue(Pixmap.is_black(clear_pixmap))
+        # Get X position of Cursor
+        cursors = Pixmap.cursors_x(clear_pixmap)
+        # Evaluate that there is only one cursor
+        self.assertEqual(1, len(cursors))
+
+        # Press Key 'R' for range selection
+        QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Y)
+        self.processEvents(timeout=0.01)
+
+        # Save PixMap of Range plot
+        range_pixmap = self.plot.plot.viewport().grab()
+        self.assertFalse(Pixmap.is_black(range_pixmap))
+
+        # Get X position of Cursors
+        cursors = Pixmap.cursors_x(range_pixmap)
+        # Evaluate that two cursors are available
+        self.assertEqual(2, len(cursors))
+
+        # Evaluate that new rectangle with different color is present
+        self.assertTrue(
+            Pixmap.is_colored(
+                pixmap=range_pixmap,
+                color_name=Pixmap.COLOR_BACKGROUND,
+                x=0,
+                y=0,
+                width=min(cursors) - 1,
+            )
+        )
+        self.assertTrue(
+            Pixmap.is_colored(
+                pixmap=range_pixmap,
+                color_name=Pixmap.COLOR_RANGE,
+                x=min(cursors) + 1,
+                y=0,
+                width=max(cursors),
+            )
+        )
+        self.assertTrue(
+            Pixmap.is_colored(
+                pixmap=range_pixmap,
+                color_name=Pixmap.COLOR_BACKGROUND,
+                x=max(cursors) + 1,
+                y=0,
+            )
+        )
+
+        # Move Cursors
+        QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Left)
+        self.processEvents(timeout=0.01)
+        QtTest.QTest.keySequence(self.plot.plot, QtGui.QKeySequence("Ctrl+Left"))
+        self.processEvents(timeout=0.01)
+
+        # Save PixMap of Range plot
+        range_pixmap = self.plot.plot.viewport().grab()
+        self.assertFalse(Pixmap.is_black(range_pixmap))
+
+        # Get X position of Cursors
+        new_cursors = Pixmap.cursors_x(range_pixmap)
+        # Evaluate that two cursors are available
+        self.assertEqual(2, len(cursors))
+        self.assertEqual(cursors[0], new_cursors[0], "First cursor have new position after manipulation")
+        self.assertNotEqual(cursors[1], new_cursors[1], "Second cursors have same position after manipulation")
+
+        # Evaluate that new rectangle with different color is present
+        self.assertTrue(
+            Pixmap.is_colored(
+                pixmap=range_pixmap,
+                color_name=Pixmap.COLOR_BACKGROUND,
+                x=0,
+                y=0,
+                width=min(new_cursors) - 1,
+            )
+        )
+        self.assertTrue(
+            Pixmap.is_colored(
+                pixmap=range_pixmap,
+                color_name=Pixmap.COLOR_RANGE,
+                x=min(new_cursors) + 1,
+                y=0,
+                width=max(new_cursors),
+            )
+        )
+        self.assertTrue(
+            Pixmap.is_colored(
+                pixmap=range_pixmap,
+                color_name=Pixmap.COLOR_BACKGROUND,
+                x=max(new_cursors) + 1,
+                y=0,
+            )
+        )
+
+        # Press Key 'R' for range selection
+        QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_R)
+        self.processEvents(timeout=0.01)
+
+        # Save PixMap of clear plot
+        clear_pixmap = self.plot.plot.viewport().grab()
+        self.assertTrue(Pixmap.is_black(clear_pixmap))
     def test_Plot_Plot_Shortcut_Key_G(self):
         """
         Test Scope:
