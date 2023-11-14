@@ -1263,6 +1263,61 @@ class TestShortcutsWith_2_Channels(TestPlotWidget):
         self.assertLess(old_from_to_x_channel_37[0], new_from_to_x_channel_37[0])
         self.assertLess(old_from_to_x_channel_37[1], new_from_to_x_channel_37[1])
 
+    def test_Plot_Plot_Shortcut_Key_C(self):
+        """
+        Test Scope:
+            - Ensure that channel color is changed.
+        Events:
+            - Open Plot with 2 channels
+            - Mock getColor() object
+            - Press C
+            - Select 1 Channel
+            - Press C
+            - Select 2 Channels
+            - Press C
+        Evaluate:
+            - Evaluate that color dialog is not open if channel is not selected.
+            - Evaluate that channel color is changed only for selected channel
+        """
+        with self.subTest("test_WOSelectedChannel"):
+            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QColorDialog.getColor") as mo_getColor:
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_C)
+                mo_getColor.assert_not_called()
+
+        with self.subTest("test_1SelectedChannel"):
+            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QColorDialog.getColor") as mo_getColor:
+                # Setup
+                self.mouseClick_WidgetItem(self.channel_36)
+                previous_color = self.channel_36.color.name()
+                color = QtGui.QColor("magenta")
+                mo_getColor.return_value = color
+                # Event
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_C)
+                # Evaluate
+                mo_getColor.assert_called()
+                self.assertNotEqual(previous_color, self.channel_36.color.name())
+                self.assertEqual(color.name(), self.channel_36.color.name())
+
+        with self.subTest("test_2SelectedChannel"):
+            with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QColorDialog.getColor") as mo_getColor:
+                # Setup
+                # Set selected both channels
+                self.channel_36.setSelected(True)
+                self.channel_37.setSelected(True)
+                # store previous colors of channels
+                previous_ch_36_color = self.channel_36.color.name()
+                previous_ch_37_color = self.channel_37.color.name()
+                color = QtGui.QColor("cyan")
+                mo_getColor.return_value = color
+                # Event
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_C)
+                # Evaluate
+                mo_getColor.assert_called()
+                self.assertNotEqual(previous_ch_36_color, self.channel_36.color.name())
+                self.assertNotEqual(previous_ch_37_color, self.channel_37.color.name())
+                self.assertEqual(color.name(), self.channel_36.color.name())
+                self.assertEqual(color.name(), self.channel_37.color.name())
+
 
 class TestShortcutsWith_3_Channels(TestPlotWidget):
     def __init__(self, methodName: str = ...):
