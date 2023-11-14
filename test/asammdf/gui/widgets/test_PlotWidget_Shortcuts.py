@@ -151,7 +151,6 @@ class TestShortcutsWOChannels(TestPlotWidget):
                 y=0,
             )
         )
-
         # Press Key 'R' for range selection
         QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_R)
         self.processEvents(timeout=0.01)
@@ -162,7 +161,20 @@ class TestShortcutsWOChannels(TestPlotWidget):
 
     def test_Plot_Plot_Shortcut_Key_Y(self):
         """
-
+        Test Scope:
+            Check if Range Selection cursor is locked/unlocked after pressing key Y.
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Press PushButton "Create Window"
+            - Press PushButton HideAxis (easy for evaluation)
+            - Press Key R for range selection
+            - Move Cursors
+            - Press Key R for range selection
+        Evaluate:
+            - Evaluate that two cursors are available
+            - Evaluate that new rectangle with different color is present
+            - Evaluate that sum of rectangle areas is same with the one when plot is full black.
+            - Evaluate that range selection disappear.
         """
         if not self.plot.hide_axes_btn.isFlat():
             QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.LeftButton)
@@ -261,13 +273,63 @@ class TestShortcutsWOChannels(TestPlotWidget):
             )
         )
 
+        cursors = new_cursors
+        # Press Key 'R' for range selection
+        QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Y)
+        self.processEvents(timeout=0.01)
+
+        # Move Cursors
+        QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Right)
+        self.processEvents(timeout=0.01)
+        QtTest.QTest.keySequence(self.plot.plot, QtGui.QKeySequence("Ctrl+Left"))
+        self.processEvents(timeout=0.01)
+
+        # Save PixMap of Range plot
+        range_pixmap = self.plot.plot.viewport().grab()
+        self.assertFalse(Pixmap.is_black(range_pixmap))
+
+        # Get X position of Cursors
+        new_cursors = Pixmap.cursors_x(range_pixmap)
+        # Evaluate that two cursors are available
+        self.assertEqual(2, len(cursors))
+        for c in cursors:
+            self.assertNotIn(c, new_cursors, f"cursor {c} is the same")
+
+        # Evaluate that new rectangle with different color is present
+        self.assertTrue(
+            Pixmap.is_colored(
+                pixmap=range_pixmap,
+                color_name=Pixmap.COLOR_BACKGROUND,
+                x=0,
+                y=0,
+                width=min(new_cursors) - 1,
+            )
+        )
+        self.assertTrue(
+            Pixmap.is_colored(
+                pixmap=range_pixmap,
+                color_name=Pixmap.COLOR_RANGE,
+                x=min(new_cursors) + 1,
+                y=0,
+                width=max(new_cursors),
+            )
+        )
+        self.assertTrue(
+            Pixmap.is_colored(
+                pixmap=range_pixmap,
+                color_name=Pixmap.COLOR_BACKGROUND,
+                x=max(new_cursors) + 1,
+                y=0,
+            )
+        )
+
         # Press Key 'R' for range selection
         QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_R)
         self.processEvents(timeout=0.01)
-
         # Save PixMap of clear plot
         clear_pixmap = self.plot.plot.viewport().grab()
         self.assertTrue(Pixmap.is_black(clear_pixmap))
+
     def test_Plot_Plot_Shortcut_Key_G(self):
         """
         Test Scope:
