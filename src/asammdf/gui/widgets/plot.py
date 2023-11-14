@@ -4622,7 +4622,7 @@ class PlotGraphics(pg.PlotWidget):
             elif key == QtCore.Qt.Key.Key_S and modifier == QtCore.Qt.KeyboardModifier.ControlModifier:
                 file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                     self,
-                    "Select output measurement file",
+                    "Save as measurement file",
                     "",
                     "MDF version 4 files (*.mf4 *.mf4z)",
                 )

@@ -1604,7 +1604,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         ):
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
-                "Select output measurement file",
+                "Save as measurement file",
                 "",
                 "MDF version 4 files (*.mf4)",
             )
