@@ -167,7 +167,7 @@ class TestMDF(unittest.TestCase):
                                 target = np.core.records.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
                                     equal = False
-                                    1 / 0
+                                    raise Exception
 
                         elif i == 1:
                             samples = np.ones((cycles, 2, 3), dtype=np.uint64)
@@ -183,7 +183,7 @@ class TestMDF(unittest.TestCase):
                                 target = np.core.records.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
                                     equal = False
-                                    1 / 0
+                                    raise Exception
 
                         elif i == 2:
                             samples = [
@@ -217,7 +217,7 @@ class TestMDF(unittest.TestCase):
                                     equal = False
                                     print(target)
                                     print(vals)
-                                    1 / 0
+                                    raise Exception
 
                 if isinstance(inp, BytesIO):
                     inp.close()
@@ -280,14 +280,14 @@ class TestMDF(unittest.TestCase):
                                         print(v * (j - 1), len(v))
 
                                         input(outfile)
-                                        1 / 0
+                                        raise Exception
                             elif i == 1:
                                 v = np.ones(cycles, dtype=np.int64)
                                 for j in range(1, 20):
                                     vals = mdf.get(group=i, index=j, samples_only=True)[0]
                                     if not np.array_equal(vals, v * (j - 1) - 0.5):
                                         equal = False
-                                        1 / 0
+                                        raise Exception
                             elif i == 2:
                                 v = np.arange(cycles, dtype=np.int64) / 100.0
                                 form = "{} * sin(v)"
@@ -296,7 +296,7 @@ class TestMDF(unittest.TestCase):
                                     f = form.format(j - 1)
                                     if not np.array_equal(vals, numexpr.evaluate(f)):
                                         equal = False
-                                        1 / 0
+                                        raise Exception
                             elif i == 3:
                                 v = np.ones(cycles, dtype=np.int64)
                                 form = "({} * v -0.5) / 1"
@@ -307,7 +307,7 @@ class TestMDF(unittest.TestCase):
                                         equal = False
                                         target = numexpr.evaluate(f)
                                         print(i, j, vals, target, len(vals), len(target))
-                                        1 / 0
+                                        raise Exception
                             elif i == 4:
                                 for j in range(1, 20):
                                     target = np.array(
@@ -317,7 +317,7 @@ class TestMDF(unittest.TestCase):
                                     cond = np.array_equal(vals, target)
                                     if not cond:
                                         print(i, j, vals, target, len(vals), len(target))
-                                        1 / 0
+                                        raise Exception
                                     self.assertTrue(cond)
 
                             elif i == 5:
@@ -328,7 +328,7 @@ class TestMDF(unittest.TestCase):
                                     cond = np.array_equal(vals, target)
                                     if not cond:
                                         print(i, j, vals, target, len(vals), len(target))
-                                        1 / 0
+                                        raise Exception
                                     self.assertTrue(cond)
 
                             elif i == 6:
@@ -338,7 +338,7 @@ class TestMDF(unittest.TestCase):
                                     cond = np.array_equal(vals, target)
                                     if not cond:
                                         print(i, j, vals, target, len(vals), len(target))
-                                        1 / 0
+                                        raise Exception
                                     self.assertTrue(cond)
 
                     self.assertTrue(equal)
@@ -443,7 +443,8 @@ class TestMDF(unittest.TestCase):
                                 for j in range(1, 20):
                                     vals = mdf.get(group=i, index=j, samples_only=True)[0]
                                     f = form.format(j - 1)
-                                    cond = np.array_equal(vals, numexpr.evaluate(f))
+                                    target = numexpr.evaluate(f)
+                                    cond = np.array_equal(vals, target)
                                     if not cond:
                                         print(i, j, vals, target, len(vals), len(target))
                                     self.assertTrue(cond)
@@ -453,8 +454,8 @@ class TestMDF(unittest.TestCase):
                                 for j in range(1, 20):
                                     f = form.format(j - 1)
                                     vals = mdf.get(group=i, index=j, samples_only=True)[0]
-                                    cond = np.array_equal(vals, numexpr.evaluate(f))
                                     target = numexpr.evaluate(f)
+                                    cond = np.array_equal(vals, target)
                                     if not cond:
                                         print(i, j, vals, target, len(vals), len(target))
                                     self.assertTrue(cond)
@@ -550,7 +551,7 @@ class TestMDF(unittest.TestCase):
                                         target,
                                         sep="\n\n",
                                     )
-                                    1 / 0
+                                    raise Exception
 
                         elif i == 1:
                             samples = np.ones((cycles, 2, 3), dtype=np.uint64)
@@ -566,7 +567,7 @@ class TestMDF(unittest.TestCase):
                                 target = np.core.records.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
                                     equal = False
-                                    1 / 0
+                                    raise Exception
 
                         elif i == 2:
                             samples = [
@@ -598,7 +599,7 @@ class TestMDF(unittest.TestCase):
                                 target = np.core.records.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
                                     equal = False
-                                    1 / 0
+                                    raise Exception
 
             self.assertTrue(equal)
 
