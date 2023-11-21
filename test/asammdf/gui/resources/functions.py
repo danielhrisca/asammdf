@@ -1,3 +1,6 @@
+import numpy as np
+
+
 def Function1(t=0):
     sequence = range(10)
     filtered = list(filter(lambda i: i % 2, sequence))

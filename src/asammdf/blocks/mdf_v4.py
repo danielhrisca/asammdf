@@ -267,6 +267,10 @@ class MDF4(MDF_Common):
         if not kwargs.get("__internal__", False):
             raise MdfException("Always use the MDF class; do not use the class MDF4 directly")
 
+        # bind cache to instance to avoid memory leaks
+        self.determine_max_vlsd_sample_size = lru_cache(maxsize=1024 * 1024)(self._determine_max_vlsd_sample_size)
+        self.extract_attachment = lru_cache(maxsize=128)(self._extract_attachment)
+
         self._kwargs = kwargs
         self.original_name = kwargs["original_name"]
         self.groups = []
@@ -6180,8 +6184,7 @@ class MDF4(MDF_Common):
         self._dbc_cache.clear()
         self.virtual_groups.clear()
 
-    @lru_cache(maxsize=128)
-    def extract_attachment(
+    def _extract_attachment(
         self,
         index: int | None = None,
         password: str | bytes | None = None,
@@ -7765,8 +7768,7 @@ class MDF4(MDF_Common):
         else:
             return vals
 
-    @lru_cache(maxsize=1024 * 1024)
-    def determine_max_vlsd_sample_size(self, group, index):
+    def _determine_max_vlsd_sample_size(self, group, index):
         group_index = group
         channel_index = index
         group = self.groups[group]

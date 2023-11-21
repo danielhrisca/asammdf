@@ -71,12 +71,12 @@ class MDF_Common:
                     try:
                         grp = self.groups[gp_nr]
                     except IndexError:
-                        raise MdfException("Group index out of range")
+                        raise MdfException("Group index out of range") from None
 
                     try:
                         grp.channels[ch_nr]
                     except IndexError:
-                        raise MdfException(f"Channel index out of range: {(name, group, index)}")
+                        raise MdfException(f"Channel index out of range: {(name, group, index)}") from None
         else:
             if name not in self.channels_db:
                 raise MdfException(f'Channel "{name}" not found')

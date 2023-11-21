@@ -224,14 +224,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         self.mdf.append(df, units=units)
                         self.mdf.uuid = self.uuid
                         self.mdf.original_name = file_name
-                except:
+                except Exception as exc:
                     if progress:
                         progress.cancel()
                     print(format_exc())
                     raise Exception(
                         "Could not load CSV. The first line must contain the channel names. The seconds line "
                         "can optionally contain the channel units. The first column must be the time"
-                    )
+                    ) from exc
 
             else:
                 original_name = file_name
@@ -1795,7 +1795,7 @@ MultiRasterSeparator;&
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
-            "Select output measurement file",
+            "Save as measurement file",
             "",
             f"{filter};;All files (*.*)",
             filter,
@@ -2716,7 +2716,7 @@ MultiRasterSeparator;&
 
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
-                "Select output measurement file",
+                "Save as measurement file",
                 "",
                 f"{filter};;All files (*.*)",
                 default,

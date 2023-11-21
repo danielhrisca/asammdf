@@ -85,11 +85,13 @@ def get_origin_uuid(item):
 def build_mime_from_config(
     items,
     mdf=None,
-    computed_origin_uuid=os.urandom(6).hex(),
+    computed_origin_uuid=None,
     default_index=NOT_FOUND,
     top=True,
     has_flags=None,
 ):
+    if computed_origin_uuid is None:
+        computed_origin_uuid = os.urandom(6).hex()
     if top:
         rename_origin_uuid(items)
 
@@ -3872,7 +3874,7 @@ class WithMDIArea:
 
     def save_all_subplots(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output measurement file", "", "MDF version 4 files (*.mf4)"
+            self, "Save as measurement file", "", "MDF version 4 files (*.mf4)"
         )
 
         if file_name:

@@ -1696,7 +1696,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         elif key == QtCore.Qt.Key.Key_S and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
-                "Select output measurement file",
+                "Save as measurement file",
                 "",
                 "MDF version 4 files (*.mf4)",
             )
