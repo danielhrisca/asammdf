@@ -31,7 +31,7 @@ from .tree_item import TreeItem
 NOT_FOUND = 0xFFFFFFFF
 
 
-def substitude_mime_uuids(mime, uuid=None, force=False):
+def substitude_mime_uuids(mime, uuid=None, force=False, random_uuid=False):
     if not mime:
         return mime
 
@@ -43,10 +43,14 @@ def substitude_mime_uuids(mime, uuid=None, force=False):
                 item["origin_uuid"] = uuid
             new_mime.append(item)
         else:
-            item["channels"] = substitude_mime_uuids(item["channels"], uuid, force=force)
+            item["channels"] = substitude_mime_uuids(item["channels"], uuid, force=force, random_uuid=random_uuid)
             if force or item["origin_uuid"] is None:
                 item["origin_uuid"] = uuid
             new_mime.append(item)
+
+        if random_uuid:
+            item["uuid"] = os.urandom(6).hex()
+
     return new_mime
 
 
@@ -692,6 +696,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             try:
                 data = QtWidgets.QApplication.instance().clipboard().text()
                 data = json.loads(data)
+                data = substitude_mime_uuids(data, random_uuid=True)
                 self.add_channels_request.emit(data)
             except:
                 pass

@@ -37,6 +37,7 @@ import canmatrix
 from canmatrix.canmatrix import CanMatrix
 from lz4.frame import compress as lz_compress
 from lz4.frame import decompress as lz_decompress
+import numpy as np
 from numpy import (
     arange,
     argwhere,
@@ -65,7 +66,6 @@ from numpy import (
     where,
     zeros,
 )
-import numpy as np
 from numpy.core.defchararray import decode, encode
 from numpy.core.records import fromarrays, fromstring
 from numpy.typing import NDArray
