@@ -35,13 +35,14 @@ def main(measurements=None):
     monkey_patch_pyqtgraph()
     parser = _cmd_line_parser()
     args = parser.parse_args(sys.argv[1:])
+
     app = pyqtgraph.mkQApp()
     app.setOrganizationName("py-asammdf")
     app.setOrganizationDomain("py-asammdf")
     app.setApplicationName("py-asammdf")
     set_app_user_model_id("py-asammdf")
 
-    _main_window = MainWindow(args.measurements)
+    _main_window = MainWindow(measurements or args.measurements)
     app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
 
     app.exec()
