@@ -3929,7 +3929,10 @@ class MDF:
                 yield df
 
             mdf.close()
+            return
 
+        # else: channels is None
+            
         df = {}
         self._set_temporary_master(None)
 
