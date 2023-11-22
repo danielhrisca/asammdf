@@ -3932,7 +3932,7 @@ class MDF:
             return
 
         # else: channels is None
-            
+
         df = {}
         self._set_temporary_master(None)
 
