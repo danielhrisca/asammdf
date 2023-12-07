@@ -261,9 +261,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.mdf.configure(raise_on_multiple_occurrences=False)
 
-            channels_db_items = sorted(self.mdf.channels_db, key=lambda x: x.lower())
-            self.channels_db_items = channels_db_items
-
             if progress:
                 progress.setLabelText("Loading graphical elements")
             QtWidgets.QApplication.processEvents()
@@ -2219,7 +2216,7 @@ MultiRasterSeparator;&
                 self.raster_channel.setSizeAdjustPolicy(
                     QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
                 )
-                self.raster_channel.addItems(self.channels_db_items)
+                self.raster_channel.addItems(sorted(self.mdf.channels_db, key=lambda x: x.lower()))
                 self.raster_channel.setMinimumWidth(100)
 
             if not self._show_filter_tree:
