@@ -26,7 +26,7 @@ from ..utils import (
     unique_ranges,
     value_as_str,
 )
-from .tree_item import TreeItem
+from .tree_item import MinimalTreeItem, TreeItem
 
 NOT_FOUND = 0xFFFFFFFF
 
@@ -75,8 +75,7 @@ def add_children(
 
         entry = ch.entry
 
-        child = TreeItem(entry, ch.name, origin_uuid=origin_uuid)
-        child.setText(0, ch.name)
+        child = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=origin_uuid)
 
         dep = channel_dependencies[entry[1]]
         if version >= "4.00":
@@ -96,8 +95,6 @@ def add_children(
 
         if entry in signals:
             child.setCheckState(0, QtCore.Qt.CheckState.Checked)
-        else:
-            child.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
         ch.added = True
         children.append(child)

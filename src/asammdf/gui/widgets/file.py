@@ -54,7 +54,7 @@ from .numeric import Numeric
 from .plot import Plot
 from .tabular import Tabular
 from .tree import add_children
-from .tree_item import TreeItem
+from .tree_item import MinimalTreeItem
 
 
 def _process_dict(d):
@@ -583,13 +583,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 for j, ch in enumerate(group.channels):
                     entry = i, j
 
-                    channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
+                    channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
                     channel.setToolTip(0, f"{ch.name} @ group {i}, index {j}")
-                    channel.setText(0, ch.name)
+
                     if entry in signals:
                         channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
-                    else:
-                        channel.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+
                     items.append(channel)
 
             if len(items) < 30000:
@@ -604,7 +603,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for i, group in enumerate(self.mdf.groups):
                 entry = i, 0xFFFFFFFFFFFFFFFF
 
-                channel_group = TreeItem(entry, origin_uuid=self.uuid)
+                channel_group = MinimalTreeItem(entry, origin_uuid=self.uuid)
 
                 comment = extract_xml_comment(group.channel_group.comment)
 
@@ -677,9 +676,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for entry in signals:
                 gp_index, ch_index = entry
                 ch = self.mdf.groups[gp_index].channels[ch_index]
-                channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
+                channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
                 channel.setToolTip(0, f"{ch.name} @ group {gp_index}, index {ch_index}")
-                channel.setText(0, ch.name)
                 channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                 items.append(channel)
 
@@ -849,8 +847,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     for name, gp_index, ch_index in signals:
                         entry = gp_index, ch_index
                         ch = self.mdf.groups[gp_index].channels[ch_index]
-                        channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
-                        channel.setText(0, ch.name)
+                        channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
                         channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         items.append(channel)
 
@@ -1469,8 +1466,7 @@ MultiRasterSeparator;&
                     for j, ch in enumerate(gp.channels):
                         if ch.name in channels:
                             entry = i, j
-                            channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
-                            channel.setText(0, ch.name)
+                            channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
                             channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             items.append(channel)
                             channels.pop(channels.index(ch.name))
