@@ -32,7 +32,7 @@ class TestTabModifyAndExport(TestFileWidget):
         # Press PushButton ScrambleTexts
         QtTest.QTest.mouseClick(self.widget.scramble_btn, QtCore.Qt.MouseButton.LeftButton)
 
-        channels = self.widget.channels_db_items
+        channels = list(self.widget.mdf.channels_db)
 
         # Evaluate
         scrambled_filepath = pathlib.Path(self.test_workspace, "ASAP2_Demo_V171.scrambled.mf4")
@@ -44,7 +44,7 @@ class TestTabModifyAndExport(TestFileWidget):
         self.widget.deleteLater()
 
         self.setUpFileWidget(measurement_file=scrambled_filepath, default=True)
-        scrambled_channels = self.widget.channels_db_items
+        scrambled_channels = list(self.widget.mdf.channels_db)
         result = filter(lambda c: c in scrambled_channels, channels)
         self.assertFalse(any(result))
 
@@ -127,6 +127,6 @@ class TestTabModifyAndExport(TestFileWidget):
 
         self.setUpFileWidget(measurement_file=saved_file, default=True)
 
-        channels = self.widget.channels_db_items
+        channels = list(self.widget.mdf.channels_db)
         selected_channels.append("time")
         self.assertListEqual(selected_channels, list(channels))
