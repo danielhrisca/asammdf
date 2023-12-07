@@ -70,7 +70,7 @@ def add_children(
         channels_ = channels
 
     for ch in channels_:
-        if ch.added == True:
+        if ch.added:
             continue
 
         entry = ch.entry

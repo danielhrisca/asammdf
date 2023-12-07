@@ -295,6 +295,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.filter_view.currentTextChanged.connect(partial(self._update_channel_tree, widget=self.filter_tree))
 
             self.channel_view.setCurrentText(self._settings.value("channels_view", "Internal file structure"))
+
             if progress:
                 progress.setValue(70)
             QtWidgets.QApplication.processEvents()
@@ -540,13 +541,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         for widget in widgetList:
             self._update_channel_tree(widget=widget)
 
-    def _update_channel_tree(self, index=None, widget=None):
+    def _update_channel_tree(self, index=None, widget=None, force=False):
         if widget is None:
             widget = self.channels_tree
-        if widget is self.channels_tree and self.channel_view.currentIndex() == -1:
-            return
-        elif widget is self.filter_tree and (self.filter_view.currentIndex() == -1):
-            return
+        if not force:
+            if widget is self.channels_tree and self.channel_view.currentIndex() == -1:
+                return
+            elif widget is self.filter_tree and (self.filter_view.currentIndex() == -1):
+                return
 
         view = self.channel_view if widget is self.channels_tree else self.filter_view
 
@@ -571,6 +573,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 iterator += 1
 
+        widget.collapseAll()
         widget.clear()
         widget.mode = view.currentText()
 
@@ -2227,63 +2230,9 @@ MultiRasterSeparator;&
                 self._show_filter_tree = True
 
                 widget = self.filter_tree
-
                 widget.clear()
 
-                if self.filter_view.currentText() == "Natural sort":
-                    items = []
-                    for i, group in enumerate(self.mdf.groups):
-                        for j, ch in enumerate(group.channels):
-                            entry = i, j
-
-                            channel = TreeItem(entry, ch.name)
-                            channel.setText(0, ch.name)
-                            channel.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-                            items.append(channel)
-
-                    if len(items) < 30000:
-                        items = natsorted(items, key=lambda x: x.name)
-                    else:
-                        items.sort(key=lambda x: x.name)
-                    widget.addTopLevelItems(items)
-
-                elif self.filter_view.currentText() == "Internal file structure":
-                    for i, group in enumerate(self.mdf.groups):
-                        entry = i, 0xFFFFFFFFFFFFFFFF
-                        channel_group = TreeItem(entry)
-                        comment = extract_xml_comment(group.channel_group.comment)
-
-                        acq_name = getattr(group.channel_group, "acq_name", "")
-                        if acq_name:
-                            base_name = f"CG {i} {acq_name}"
-                        else:
-                            base_name = f"CG {i}"
-
-                        if comment and acq_name != comment:
-                            name = base_name + f" ({comment})"
-                        else:
-                            name = base_name
-
-                        channel_group.setText(0, name)
-
-                        channel_group.setFlags(
-                            channel_group.flags()
-                            | QtCore.Qt.ItemFlag.ItemIsAutoTristate
-                            | QtCore.Qt.ItemFlag.ItemIsUserCheckable
-                        )
-
-                        widget.addTopLevelItem(channel_group)
-
-                        channels = [HelperChannel(name=ch.name, entry=(i, j)) for j, ch in enumerate(group.channels)]
-
-                        add_children(
-                            channel_group,
-                            channels,
-                            group.channel_dependencies,
-                            set(),
-                            entries=None,
-                            version=self.mdf.version,
-                        )
+                self._update_channel_tree(current_index, widget, force=True)
 
             for w in self.mdi_area.subWindowList():
                 widget = w.widget()
