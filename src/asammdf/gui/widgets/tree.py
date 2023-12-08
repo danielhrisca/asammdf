@@ -95,6 +95,8 @@ def add_children(
 
         if entry in signals:
             child.setCheckState(0, QtCore.Qt.CheckState.Checked)
+        else:
+            child.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
         ch.added = True
         children.append(child)

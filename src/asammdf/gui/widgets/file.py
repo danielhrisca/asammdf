@@ -583,6 +583,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                     if entry in signals:
                         channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
+                    else:
+                        channel.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
                     items.append(channel)
 
@@ -817,6 +819,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         if entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             names.add((result[entry], dg_cntr, ch_cntr))
+                        else:
+                            item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
                         iterator += 1
                         ch_cntr += 1
@@ -860,6 +864,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         if item.entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             names.add((result[item.entry], *item.entry))
+                        else:
+                            item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
                         iterator += 1
 
