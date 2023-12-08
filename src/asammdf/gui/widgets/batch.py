@@ -130,7 +130,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.setAcceptDrops(True)
 
         self.files_list.model().rowsInserted.connect(self.update_channel_tree)
-        self.files_list.model().rowsRemoved.connect(self.update_channel_tree)
+        self.files_list.itemsDeleted.connect(self.update_channel_tree)
 
         self.filter_tree.itemChanged.connect(self.filter_changed)
         self._selected_filter = set()
@@ -1067,6 +1067,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
         if not count:
             self.filter_tree.clear()
+            return
+        elif self.filter_tree.topLevelItemCount():
             return
         else:
             uuid = os.urandom(6).hex()
