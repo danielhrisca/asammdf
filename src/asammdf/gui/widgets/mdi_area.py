@@ -137,7 +137,7 @@ def build_mime_from_config(
                 has_flags = "flags" in item
 
             if has_flags:
-                item["flags"] = Signal.Flags(item["flags"])
+                # item["flags"] = Signal.Flags(item["flags"])
                 item_is_computed = item["flags"] & Signal.Flags.computed
 
             else:

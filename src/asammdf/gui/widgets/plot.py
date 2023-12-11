@@ -71,12 +71,16 @@ def monkey_patch_pyqtgraph():
     mkPen_factory = fn.mkPen
 
     def mkColor(*args):
-        try:
-            return cached_mkColor_factory(*args)
-        except:
-            return mkColor_factory(*args)
+        if isinstance(args[0], QtGui.QColor):
+            return QtGui.QColor(args[0])
+        else:
+            try:
+                return cached_mkColor_factory(*args)
+            except:
+                # print(args, format_exc(), sep='\n')
+                return mkColor_factory(*args)
 
-    @lru_cache(maxsize=512)
+    @lru_cache(maxsize=2048)
     def cached_mkColor_factory(*args):
         return mkColor_factory(*args)
 
@@ -88,7 +92,7 @@ def monkey_patch_pyqtgraph():
         except:
             return mkBrush_factory(*args, **kwargs)
 
-    @lru_cache(maxsize=512)
+    @lru_cache(maxsize=2048)
     def cached_mkBrush_factory(*args, **kargs):
         return mkBrush_factory(*args, **kargs)
 
@@ -98,7 +102,7 @@ def monkey_patch_pyqtgraph():
         except:
             return mkPen_factory(*args, **kwargs)
 
-    @lru_cache(maxsize=512)
+    @lru_cache(maxsize=2048)
     def cached_mkPen_factory(*args, **kargs):
         return mkPen_factory(*args, **kargs)
 

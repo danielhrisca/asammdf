@@ -2378,7 +2378,7 @@ def load_lab(file):
     return {name: channels for name, channels in sections.items() if channels if name != "SETTINGS"}
 
 
-class SignalFlags(IntFlag):
+class SignalFlags:
     no_flags = 0x0
     user_defined_comment = 0x1
     user_defined_conversion = 0x2
