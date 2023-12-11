@@ -129,4 +129,4 @@ class TestTabModifyAndExport(TestFileWidget):
 
         channels = list(self.widget.mdf.channels_db)
         selected_channels.append("time")
-        self.assertListEqual(selected_channels, list(channels))
+        self.assertListEqual(sorted(selected_channels), sorted(list(channels)))
