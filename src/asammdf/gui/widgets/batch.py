@@ -144,13 +144,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         buses = can_databases[::2]
         dbs = can_databases[1::2]
 
-        databases["CAN"] = [(bus, database) for bus, database in zip(buses, dbs)]
+        databases["CAN"] = list(zip(buses, dbs))
 
         lin_databases = self._settings.value("lin_databases", [])
         buses = lin_databases[::2]
         dbs = lin_databases[1::2]
 
-        databases["LIN"] = [(bus, database) for bus, database in zip(buses, dbs)]
+        databases["LIN"] = list(zip(buses, dbs))
 
         for bus, database in databases["CAN"]:
             item = QtWidgets.QListWidgetItem()

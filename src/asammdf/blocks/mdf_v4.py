@@ -155,7 +155,7 @@ COMMON_SHORT_uf = v4c.COMMON_SHORT_uf
 COMMON_SHORT_u = v4c.COMMON_SHORT_u
 VALID_DATA_TYPES = v4c.VALID_DATA_TYPES
 
-EMPTY_TUPLE = tuple()
+EMPTY_TUPLE = ()
 
 # 100 extra steps for the sorting, 1 step after sorting and 1 step at finish
 SORT_STEPS = 102
@@ -8288,7 +8288,7 @@ class MDF4(MDF_Common):
 
         self._master_channel_metadata[index] = metadata
 
-        if not t.dtype == float64:
+        if t.dtype != float64:
             t = t.astype(float64)
 
         if raster and t.size:

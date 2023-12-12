@@ -504,7 +504,7 @@ def compute_signal(
                 samples = []
                 for values in zip(*signals):
                     try:
-                        current_sample = func(**{arg_name: arg_val for arg_name, arg_val in zip(names, values)})
+                        current_sample = func(**dict(zip(names, values)))
                     except:
                         current_sample = COMPUTED_FUNCTION_ERROR_VALUE
                     samples.append(current_sample)
@@ -536,7 +536,7 @@ def compute_signal(
                 names.extend(not_found)
                 signals.extend(not_found_signals)
 
-                samples = func(**{arg_name: arg_signal for arg_name, arg_signal in zip(names, signals)})
+                samples = func(**dict(zip(names, signals)))
                 if len(samples) != len(common_timebase):
                     common_timebase = common_timebase[-len(samples) :]
 

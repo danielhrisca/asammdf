@@ -120,7 +120,7 @@ TWO_UINT64_uf = Struct("<2Q").unpack_from
 BLK_COMMON_uf = Struct("<4s4xQ").unpack_from
 BLK_COMMON_u = Struct("<4s4xQ8x").unpack
 
-EMPTY_TUPLE = tuple()
+EMPTY_TUPLE = ()
 
 _xmlns_pattern = re.compile(' xmlns="[^"]*"')
 

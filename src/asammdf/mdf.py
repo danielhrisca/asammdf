@@ -4004,17 +4004,14 @@ class MDF:
                     for gp_index, channel_indexes in self.included_channels(group_index)[group_index].items()
                     for ch_index in channel_indexes
                 ]
-                signals = [
-                    signal
-                    for signal in self.select(
-                        channels,
-                        raw=True,
-                        copy_master=False,
-                        record_offset=record_offset,
-                        record_count=record_count,
-                        validate=False,
-                    )
-                ]
+                signals = self.select(
+                    channels,
+                    raw=True,
+                    copy_master=False,
+                    record_offset=record_offset,
+                    record_count=record_count,
+                    validate=False,
+                )
 
                 if not signals:
                     continue
@@ -4395,7 +4392,7 @@ class MDF:
                 if ch_index != self.masters_db.get(gp_index, None)
             ]
 
-            signals = [signal for signal in self.select(channels, raw=True, copy_master=False, validate=False)]
+            signals = self.select(channels, raw=True, copy_master=False, validate=False)
 
             if not signals:
                 continue
@@ -4791,7 +4788,7 @@ class MDF:
             for i, group in enumerate(self.groups):
                 if (
                     not group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT
-                    or not group.channel_group.acq_source.bus_type == v4c.BUS_TYPE_CAN
+                    or group.channel_group.acq_source.bus_type != v4c.BUS_TYPE_CAN
                     or not "CAN_DataFrame" in [ch.name for ch in group.channels]
                 ):
                     continue
@@ -5129,7 +5126,7 @@ class MDF:
             for i, group in enumerate(self.groups):
                 if (
                     not group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT
-                    or not group.channel_group.acq_source.bus_type == v4c.BUS_TYPE_LIN
+                    or group.channel_group.acq_source.bus_type != v4c.BUS_TYPE_LIN
                     or not "LIN_Frame" in [ch.name for ch in group.channels]
                 ):
                     continue
@@ -5171,7 +5168,7 @@ class MDF:
 
                     unique_ids = np.unique(np.core.records.fromarrays([bus_msg_ids, bus_msg_ids]))
 
-                    total_unique_ids = total_unique_ids | set(tuple(int(e) for e in f) for f in unique_ids)
+                    total_unique_ids = total_unique_ids | {tuple(int(e) for e in f) for f in unique_ids}
 
                     buses = np.unique(bus_ids)
 

@@ -426,17 +426,17 @@ class Region(pg.LinearRegionItem):
 
         # note LinearRegionItem.Horizontal and LinearRegionItem.Vertical
         # are kept for backward compatibility.
-        lineKwds = dict(
-            movable=movable,
-            bounds=bounds,
-            span=span,
-            pen=pen,
-            hoverPen=hoverPen,
-            show_circle=show_circle,
-            show_horizontal_line=show_horizontal_line,
-            line_width=line_width,
-            color=pen,
-        )
+        lineKwds = {
+            "movable": movable,
+            "bounds": bounds,
+            "span": span,
+            "pen": pen,
+            "hoverPen": hoverPen,
+            "show_circle": show_circle,
+            "show_horizontal_line": show_horizontal_line,
+            "line_width": line_width,
+            "color": pen,
+        }
 
         self.lines = [
             Cursor(QtCore.QPointF(values[0], 0), angle=90, **lineKwds),

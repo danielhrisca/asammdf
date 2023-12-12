@@ -212,7 +212,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         try:
                             float(units[0])
                         except:
-                            units = {name: unit for name, unit in zip(names, units)}
+                            units = dict(zip(names, units))
                         else:
                             csv.seek(0)
                             csv.readline()
@@ -476,13 +476,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         buses = can_databases[::2]
         dbs = can_databases[1::2]
 
-        databases["CAN"] = [(bus, database) for bus, database in zip(buses, dbs)]
+        databases["CAN"] = list(zip(buses, dbs))
 
         lin_databases = self._settings.value("lin_databases", [])
         buses = lin_databases[::2]
         dbs = lin_databases[1::2]
 
-        databases["LIN"] = [(bus, database) for bus, database in zip(buses, dbs)]
+        databases["LIN"] = list(zip(buses, dbs))
 
         for bus, database in databases["CAN"]:
             item = QtWidgets.QListWidgetItem()
@@ -836,7 +836,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         iterator += 1
 
-                    names = set((_name, *entry) for entry, _name in result.items())
+                    names = {(_name, *entry) for entry, _name in result.items()}
 
                     signals = signals | names
 
@@ -2475,9 +2475,9 @@ MultiRasterSeparator;&
             geometry = window.geometry()
             geometries.append(geometry)
 
-        if len(set((g.width(), g.x()) for g in geometries)) == 1:
+        if len({(g.width(), g.x()) for g in geometries}) == 1:
             self.mdi_area.tile_vertically()
-        elif len(set((g.height(), g.y()) for g in geometries)) == 1:
+        elif len({(g.height(), g.y()) for g in geometries}) == 1:
             self.mdi_area.tile_horizontally()
         else:
             self.mdi_area.tileSubWindows()

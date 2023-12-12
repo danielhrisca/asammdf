@@ -708,7 +708,7 @@ class TestMDF(unittest.TestCase):
 
                     selected_signals = input_file.select(channel_list)
 
-                    target_names = set(s.name for s in selected_signals)
+                    target_names = {s.name for s in selected_signals}
 
                     self.assertFalse(set(target_names) - set(channel_list))
 
