@@ -19,8 +19,6 @@ from ...blocks.v4_constants import (
     BUS_TYPE_FLEXRAY,
     BUS_TYPE_LIN,
     BUS_TYPE_USB,
-    FLAG_AT_TO_STRING,
-    FLAG_CG_BUS_EVENT,
 )
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..dialogs.advanced_search import AdvancedSearch
@@ -119,7 +117,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.empty_channels_mat.insertItems(0, ("skip", "zeros"))
         self.empty_channels_csv.insertItems(0, ("skip", "zeros"))
         try:
-            import scipy
+            import scipy  # noqa: F401
 
             self.mat_format.insertItems(0, ("4", "5", "7.3"))
         except:
@@ -1307,7 +1305,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         if output_format == "HDF5":
             try:
-                from h5py import File as HDF5
+                from h5py import File as HDF5  # noqa: F401
             except ImportError:
                 MessageBox.critical(
                     self,
@@ -1329,7 +1327,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     return
             else:
                 try:
-                    from scipy.io import savemat
+                    from scipy.io import savemat  # noqa: F401
                 except ImportError:
                     MessageBox.critical(
                         self,
@@ -1340,7 +1338,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         elif output_format == "Parquet":
             try:
-                from fastparquet import write as write_parquet
+                from fastparquet import write as write_parquet  # noqa: F401
             except ImportError:
                 MessageBox.critical(
                     self,
@@ -1374,18 +1372,18 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         if output_format == "HDF5":
             suffix = ".hdf"
-            from h5py import File as HDF5
+            from h5py import File as HDF5  # noqa: F401
 
         elif output_format == "MAT":
             suffix = ".mat"
             if opts.mat_format == "7.3":
                 from hdf5storage import savemat
             else:
-                from scipy.io import savemat
+                from scipy.io import savemat  # noqa: F401
 
         elif output_format == "Parquet":
             suffix = ".parquet"
-            from fastparquet import write as write_parquet
+            from fastparquet import write as write_parquet  # noqa: F401
 
         elif output_format == "CSV":
             suffix = ".csv"

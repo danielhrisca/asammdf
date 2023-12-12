@@ -328,7 +328,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.empty_channels_mat.insertItems(0, ("skip", "zeros"))
             self.empty_channels_csv.insertItems(0, ("skip", "zeros"))
             try:
-                import scipy
+                import scipy  # noqa: F401
 
                 self.mat_format.insertItems(0, ("4", "5", "7.3"))
             except:
@@ -2603,7 +2603,7 @@ MultiRasterSeparator;&
 
         if output_format == "HDF5":
             try:
-                from h5py import File as HDF5
+                from h5py import File as HDF5  # noqa: F401
             except ImportError:
                 MessageBox.critical(
                     self,
@@ -2625,7 +2625,7 @@ MultiRasterSeparator;&
                     return
             else:
                 try:
-                    from scipy.io import savemat
+                    from scipy.io import savemat  # noqa: F401
                 except ImportError:
                     MessageBox.critical(
                         self,
@@ -2636,7 +2636,7 @@ MultiRasterSeparator;&
 
         elif output_format == "Parquet":
             try:
-                from fastparquet import write as write_parquet
+                from fastparquet import write as write_parquet  # noqa: F401
             except ImportError:
                 MessageBox.critical(
                     self,

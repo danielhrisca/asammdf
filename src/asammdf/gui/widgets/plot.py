@@ -5984,7 +5984,7 @@ class CursorInfo(QtWidgets.QLabel):
 
 
 try:
-    import scipy
+    import scipy  # noqa: F401
 
     from .fft_window import FFTWindow
 except ImportError:

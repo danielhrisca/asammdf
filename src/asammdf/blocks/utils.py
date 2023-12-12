@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from copy import deepcopy
-from enum import IntFlag
 from functools import lru_cache
 from io import StringIO
 import json

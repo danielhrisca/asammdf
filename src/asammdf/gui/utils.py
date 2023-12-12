@@ -10,7 +10,7 @@ import re
 import sys
 from textwrap import indent
 from threading import Thread
-from time import perf_counter, sleep
+from time import sleep
 import traceback
 from traceback import format_exc
 from typing import Dict, Union

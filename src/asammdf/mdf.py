@@ -1245,7 +1245,7 @@ class MDF:
 
         if compression == "SNAPPY":
             try:
-                import snappy
+                import snappy  # noqa: F401
             except ImportError:
                 logger.warning("snappy compressor is not installed; compression will be set to GZIP")
                 compression = "GZIP"

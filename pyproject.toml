@@ -33,7 +33,6 @@ select = [
 ]
 ignore = [
     "B007",  # unused-loop-control-variable
-    "F401",  # unused-import
     "F841",  # unused-variable
     "RUF012",  # mutable-class-default
     "RUF015",  # unnecessary-iterable-allocation-for-first-element

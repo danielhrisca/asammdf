@@ -26,7 +26,7 @@ from ..utils import (
     unique_ranges,
     value_as_str,
 )
-from .tree_item import MinimalTreeItem, TreeItem
+from .tree_item import MinimalTreeItem
 
 NOT_FOUND = 0xFFFFFFFF
 
@@ -937,7 +937,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             submenu.addAction(self.tr("Set time base start offset"))
 
             try:
-                import scipy
+                import scipy  # noqa: F401
 
                 menu.addAction(self.tr("Compute FFT"))
             except ImportError:
