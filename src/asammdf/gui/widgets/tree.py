@@ -1285,7 +1285,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         if item.type() == ChannelsTreeItem.Channel:
                             uuids.append(item.uuid)
 
-                    self.set_time_offset.emit([absolute, offset] + uuids)
+                    self.set_time_offset.emit([absolute, offset, *uuids])
 
         elif action_text == "Delete [Del]":
             event = QtGui.QKeyEvent(

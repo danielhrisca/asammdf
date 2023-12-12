@@ -4443,7 +4443,7 @@ class MDF4(MDF_Common):
         acq_name: str | None = None,
         acq_source: Source | None = None,
         comment: str | None = None,
-        units: dict[str, str | bytes] = None,
+        units: dict[str, str | bytes] | None = None,
     ) -> None:
         """
         Appends a new data group from a Pandas data frame.
@@ -6927,7 +6927,7 @@ class MDF4(MDF_Common):
                 shape = (shape[0],) + shape[1:][::-1]
                 vals = vals.reshape(shape)
 
-                axes = (0,) + tuple(range(len(shape) - 1, 0, -1))
+                axes = (0, *tuple(range(len(shape) - 1, 0, -1)))
                 vals = transpose(vals, axes=axes)
 
             cycles_nr = len(vals)

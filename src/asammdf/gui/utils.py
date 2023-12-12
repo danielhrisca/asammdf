@@ -444,7 +444,7 @@ def compute_signal(
                         if found_numeric:
                             break
 
-            names = found_args + ["t"]
+            names = [*found_args, "t"]
 
             triggering = description.get("triggering", "triggering_on_all")
             if triggering == "triggering_on_all":

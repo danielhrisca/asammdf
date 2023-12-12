@@ -3535,7 +3535,7 @@ class WithMDIArea:
         w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
 
         filter_count = 0
-        available_columns = [signals.index.name] + list(signals.columns)
+        available_columns = [signals.index.name, *signals.columns]
         for filter_info in window_info["configuration"]["filters"]:
             if filter_info["column"] in available_columns:
                 tabular.add_filter()
