@@ -28,6 +28,7 @@ select = [
     "F",  # pyflakes
     "UP",  # pyupgrade
     "I",  # isort
+    "PIE",  # flake8-pie
     "RUF",  # Ruff-specific rules
 ]
 ignore = [

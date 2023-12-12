@@ -8028,7 +8028,6 @@ class MDF4(MDF_Common):
 
                         signals.append(signal)
 
-                    pass
                 else:
                     for channel_index in channels:
                         signal, invalidation_bits = self.get(

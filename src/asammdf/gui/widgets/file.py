@@ -2026,24 +2026,22 @@ MultiRasterSeparator;&
         )
 
         result = mdf.export(
-            **{
-                "fmt": "csv",
-                "filename": file_name,
-                "single_time_base": single_time_base,
-                "time_from_zero": time_from_zero,
-                "empty_channels": empty_channels,
-                "raster": raster or None,
-                "time_as_date": time_as_date,
-                "ignore_value2text_conversions": self.ignore_value2text_conversions,
-                "delimiter": delimiter,
-                "doublequote": doublequote,
-                "escapechar": escapechar,
-                "lineterminator": lineterminator,
-                "quotechar": quotechar,
-                "quoting": quoting,
-                "add_units": add_units,
-                "progress": progress,
-            }
+            fmt="csv",
+            filename=file_name,
+            single_time_base=single_time_base,
+            time_from_zero=time_from_zero,
+            empty_channels=empty_channels,
+            raster=raster or None,
+            time_as_date=time_as_date,
+            ignore_value2text_conversions=self.ignore_value2text_conversions,
+            delimiter=delimiter,
+            doublequote=doublequote,
+            escapechar=escapechar,
+            lineterminator=lineterminator,
+            quotechar=quotechar,
+            quoting=quoting,
+            add_units=add_units,
+            progress=progress,
         )
 
         if result is TERMINATED:

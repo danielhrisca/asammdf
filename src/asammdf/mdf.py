@@ -2408,7 +2408,7 @@ class MDF:
                         f"internal structure of file <{mdf.name}> is different; different channel groups count"
                     )
                 else:
-                    cg_translations = dict.fromkeys(range(0, groups_nr))
+                    cg_translations = dict.fromkeys(range(groups_nr))
 
                     make_translation = False
 
