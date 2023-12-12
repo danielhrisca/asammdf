@@ -236,7 +236,7 @@ def extract_signal(
         if bit_count not in (8, 16, 32, 64):
             vals = as_non_byte_sized_signed_int(vals, bit_count)
         else:
-            vals = vals.view(f'{">" if big_endian else "<"}i{std_size}')
+            vals = vals.view(f"i{std_size}")
 
     if not raw:
         vals = apply_conversion(vals, signal, ignore_value2text_conversion)

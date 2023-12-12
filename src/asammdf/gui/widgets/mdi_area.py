@@ -85,11 +85,13 @@ def get_origin_uuid(item):
 def build_mime_from_config(
     items,
     mdf=None,
-    computed_origin_uuid=os.urandom(6).hex(),
+    computed_origin_uuid=None,
     default_index=NOT_FOUND,
     top=True,
     has_flags=None,
 ):
+    if computed_origin_uuid is None:
+        computed_origin_uuid = os.urandom(6).hex()
     if top:
         rename_origin_uuid(items)
 
@@ -135,7 +137,7 @@ def build_mime_from_config(
                 has_flags = "flags" in item
 
             if has_flags:
-                item["flags"] = Signal.Flags(item["flags"])
+                # item["flags"] = Signal.Flags(item["flags"])
                 item_is_computed = item["flags"] & Signal.Flags.computed
 
             else:
@@ -3883,10 +3885,10 @@ class WithMDIArea:
                     if isinstance(widget, Plot):
                         mdf.append(widget.plot.signals)
                     elif isinstance(widget, Numeric):
-                        mdf.append(list(widget.signals.values()))
+                        mdf.append([s.signal for s in widget.channels.backend.signals])
                     elif isinstance(widget, Tabular):
-                        mdf.append(widget.df)
-                mdf.save(file_name, overwrite=True)
+                        mdf.append(widget.tree.pgdf.df_unfiltered)
+                mdf.save(file_name, compression=2, overwrite=True)
 
     def file_by_uuid(self, uuid):
         try:

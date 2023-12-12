@@ -88,8 +88,8 @@ except:
 
 from canmatrix.canmatrix import CanMatrix, matrix_class
 import canmatrix.formats
-from numpy import arange, bool_, dtype, interp, where
 import numpy as np
+from numpy import arange, bool_, dtype, interp, where
 from numpy.typing import NDArray
 from pandas import Series
 
@@ -2378,7 +2378,7 @@ def load_lab(file):
     return {name: channels for name, channels in sections.items() if channels if name != "SETTINGS"}
 
 
-class SignalFlags(IntFlag):
+class SignalFlags:
     no_flags = 0x0
     user_defined_comment = 0x1
     user_defined_conversion = 0x2

@@ -1,8 +1,23 @@
 from time import perf_counter
 
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from ..utils import get_colors_using_ranges
+
+
+class MinimalTreeItem(QtWidgets.QTreeWidgetItem):
+    def __init__(
+        self,
+        entry,
+        name="",
+        parent=None,
+        strings=None,
+        origin_uuid=None,
+    ):
+        super().__init__(parent, strings)
+        self.entry = entry
+        self.name = name
+        self.origin_uuid = origin_uuid
 
 
 class TreeItem(QtWidgets.QTreeWidgetItem):

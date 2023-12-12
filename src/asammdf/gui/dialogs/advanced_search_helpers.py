@@ -40,3 +40,7 @@ class SearchTreeWidget(QtWidgets.QTreeWidget):
             root = self.invisibleRootItem()
             for item in selected_items:
                 (item.parent() or root).removeChild(item)
+
+            event.accept()
+        else:
+            super().keyPressEvent(event)

@@ -512,7 +512,7 @@ class TestTabChannels(TestFileWidget):
         while iterator.value():
             item = iterator.value()
             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
-            self.assertTrue(item.checkState(0))
+            self.assertEqual(QtCore.Qt.CheckState.Checked, item.checkState(0))
             iterator += 1
         # Press PushButton: "Clear all selected channels"
         QtTest.QTest.mouseClick(self.widget.clear_channels_btn, QtCore.Qt.MouseButton.LeftButton)
@@ -521,7 +521,7 @@ class TestTabChannels(TestFileWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
         while iterator.value():
             item = iterator.value()
-            self.assertFalse(item.checkState(0))
+            self.assertEqual(QtCore.Qt.CheckState.Unchecked, item.checkState(0))
             iterator += 1
 
         # Switch ComboBox to "Internal file structure"
@@ -529,7 +529,7 @@ class TestTabChannels(TestFileWidget):
         while iterator.value():
             item = iterator.value()
             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
-            self.assertTrue(item.checkState(0))
+            self.assertEqual(QtCore.Qt.CheckState.Checked, item.checkState(0))
             iterator += 1
         # Press PushButton: "Clear all selected channels"
         QtTest.QTest.mouseClick(self.widget.clear_channels_btn, QtCore.Qt.MouseButton.LeftButton)
@@ -538,7 +538,7 @@ class TestTabChannels(TestFileWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
         while iterator.value():
             item = iterator.value()
-            self.assertFalse(item.checkState(0))
+            self.assertEqual(QtCore.Qt.CheckState.Unchecked, item.checkState(0))
             iterator += 1
 
         # Switch ComboBox to "Selected channels only"
@@ -548,7 +548,7 @@ class TestTabChannels(TestFileWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
         while iterator.value():
             item = iterator.value()
-            self.assertFalse(item.checkState(0))
+            self.assertEqual(QtCore.Qt.CheckState.Unchecked, item.checkState(0))
             iterator += 1
 
     def test_PushButton_Search(self):

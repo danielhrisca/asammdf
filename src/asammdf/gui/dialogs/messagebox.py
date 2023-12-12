@@ -10,24 +10,50 @@ class MessageBox(QtWidgets.QMessageBox):
         detailed_text = kwargs.pop("detailed_text", "")
         escapeButton = kwargs.pop("escapeButton", None)
         defaultButton = kwargs.pop("defaultButton", None)
+        markdown = kwargs.pop("markdown", False)
 
         super().__init__(*args, **kwargs)
 
         self.original_text = self.text()
+        if markdown:
+            self.setTextFormat(QtCore.Qt.MarkdownText)
 
         if defaultButton is not None:
             self.setDefaultButton(defaultButton)
 
         if self.defaultButton() is not None:
-            self.setText(
-                f"{self.original_text}\n\nThis message will be closed in {self.timeout}s\n"
-                f'Default button - [{self.defaultButton().text().strip("&")}]\n'
-                "Abort the countdown - [F1]"
-            )
+            if markdown:
+                self.setText(
+                    f"""{self.original_text}
+
+* * *
+
+This message will be closed in {self.timeout}s
+* Default button - [{self.defaultButton().text().strip('&')}]
+* Abort the countdown - [F1]"""
+                )
+            else:
+                self.setText(
+                    f"{self.original_text}\n\nThis message will be closed in {self.timeout}s\n"
+                    f'Default button - [{self.defaultButton().text().strip("&")}]\n'
+                    "Abort the countdown - [F1]"
+                )
         else:
-            self.setText(
-                f"{self.original_text}\n\nThis message will be closed in {self.timeout}s\n" "Abort the countdown - [F1]"
-            )
+            if markdown:
+                self.setText(
+                    f"""{self.original_text}
+
+* * *
+
+This message will be closed in {self.timeout}s
+* Abort the countdown - [F1]"""
+                )
+
+            else:
+                self.setText(
+                    f"{self.original_text}\n\nThis message will be closed in {self.timeout}s\n"
+                    "Abort the countdown - [F1]"
+                )
 
         if informative_text:
             self.setInformativeText(informative_text)
@@ -60,17 +86,39 @@ class MessageBox(QtWidgets.QMessageBox):
             else:
                 self.done(0)
         else:
-            if default is not None:
-                self.setText(
-                    f"{self.original_text}\n\nThis message will be closed in {self.timeout}s\n"
-                    f'Default button - [{self.defaultButton().text().strip("&")}]\n'
-                    "Abort the countdown - [F1]"
-                )
+            if self.defaultButton() is not None:
+                if self.textFormat() == QtCore.Qt.MarkdownText:
+                    self.setText(
+                        f"""{self.original_text}
+
+* * *
+
+This message will be closed in {self.timeout}s
+* Default button - [{self.defaultButton().text().strip('&')}]
+* Abort the countdown - [F1]"""
+                    )
+                else:
+                    self.setText(
+                        f"{self.original_text}\n\nThis message will be closed in {self.timeout}s\n"
+                        f'Default button - [{self.defaultButton().text().strip("&")}]\n'
+                        "Abort the countdown - [F1]"
+                    )
             else:
-                self.setText(
-                    f"{self.original_text}\n\nThis message will be closed in {self.timeout}s\n"
-                    "Abort the countdown - [F1]"
-                )
+                if self.textFormat() == QtCore.Qt.MarkdownText:
+                    self.setText(
+                        f"""{self.original_text}
+
+* * *
+
+This message will be closed in {self.timeout}s
+* Abort the countdown - [F1]"""
+                    )
+
+                else:
+                    self.setText(
+                        f"{self.original_text}\n\nThis message will be closed in {self.timeout}s\n"
+                        "Abort the countdown - [F1]"
+                    )
 
     @classmethod
     def about(
@@ -82,6 +130,7 @@ class MessageBox(QtWidgets.QMessageBox):
         defaultButton=QtWidgets.QMessageBox.StandardButton.Ok,
         escapeButton=QtWidgets.QMessageBox.StandardButton.Ok,
         timeout=DEFAULT_TIMEOUT,
+        markdown=False,
     ):
         msg = cls(
             QtWidgets.QMessageBox.Icon.NoIcon,
@@ -92,6 +141,7 @@ class MessageBox(QtWidgets.QMessageBox):
             timeout=timeout,
             defaultButton=defaultButton,
             escapeButton=escapeButton,
+            markdown=markdown,
         )
         return msg.exec()
 
@@ -105,6 +155,7 @@ class MessageBox(QtWidgets.QMessageBox):
         defaultButton=QtWidgets.QMessageBox.StandardButton.Ok,
         escapeButton=QtWidgets.QMessageBox.StandardButton.Ok,
         timeout=DEFAULT_TIMEOUT,
+        markdown=False,
     ):
         msg = cls(
             QtWidgets.QMessageBox.Icon.Critical,
@@ -115,6 +166,7 @@ class MessageBox(QtWidgets.QMessageBox):
             timeout=timeout,
             defaultButton=defaultButton,
             escapeButton=escapeButton,
+            markdown=markdown,
         )
 
         return msg.exec()
@@ -129,6 +181,7 @@ class MessageBox(QtWidgets.QMessageBox):
         defaultButton=QtWidgets.QMessageBox.StandardButton.Ok,
         escapeButton=QtWidgets.QMessageBox.StandardButton.Ok,
         timeout=DEFAULT_TIMEOUT,
+        markdown=False,
     ):
         msg = cls(
             QtWidgets.QMessageBox.Icon.Information,
@@ -139,6 +192,7 @@ class MessageBox(QtWidgets.QMessageBox):
             timeout=timeout,
             defaultButton=defaultButton,
             escapeButton=escapeButton,
+            markdown=markdown,
         )
         return msg.exec()
 
@@ -152,6 +206,7 @@ class MessageBox(QtWidgets.QMessageBox):
         defaultButton=QtWidgets.QMessageBox.StandardButton.No,
         escapeButton=QtWidgets.QMessageBox.StandardButton.No,
         timeout=DEFAULT_TIMEOUT,
+        markdown=False,
     ):
         msg = cls(
             QtWidgets.QMessageBox.Icon.Question,
@@ -162,6 +217,7 @@ class MessageBox(QtWidgets.QMessageBox):
             timeout=timeout,
             defaultButton=defaultButton,
             escapeButton=escapeButton,
+            markdown=markdown,
         )
         return msg.exec()
 
@@ -175,6 +231,7 @@ class MessageBox(QtWidgets.QMessageBox):
         defaultButton=QtWidgets.QMessageBox.StandardButton.Ok,
         escapeButton=QtWidgets.QMessageBox.StandardButton.Ok,
         timeout=DEFAULT_TIMEOUT,
+        markdown=False,
     ):
         msg = cls(
             QtWidgets.QMessageBox.Icon.Warning,
@@ -185,5 +242,6 @@ class MessageBox(QtWidgets.QMessageBox):
             timeout=timeout,
             defaultButton=defaultButton,
             escapeButton=escapeButton,
+            markdown=markdown,
         )
         return msg.exec()

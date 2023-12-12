@@ -445,13 +445,13 @@ class MDF:
                         try:
                             dg_cntr, ch_cntr = ref
                             try:
-                                (self.groups[dg_cntr].channels[ch_cntr])
+                                self.groups[dg_cntr].channels[ch_cntr]
                             except:
                                 event_valid = False
                         except TypeError:
                             dg_cntr = ref
                             try:
-                                (self.groups[dg_cntr].channel_group)
+                                self.groups[dg_cntr]
                             except:
                                 event_valid = False
                     # ignore attachments for now
@@ -3929,6 +3929,9 @@ class MDF:
                 yield df
 
             mdf.close()
+            return
+
+        # else: channels is None
 
         df = {}
         self._set_temporary_master(None)
@@ -4660,12 +4663,14 @@ class MDF:
         """
         if ignore_invalid_signals is not None:
             warn(
-                "The argument `ignore_invalid_signals` from the method `extract_bus_logging` is no longer used and will be removed in the future"
+                "The argument `ignore_invalid_signals` from the method `extract_bus_logging` is no longer used and will be removed in the future",
+                stacklevel=1,
             )
 
         if consolidated_j1939 is not None:
             warn(
-                "The argument `consolidated_j1939` from the method `extract_bus_logging` is no longer used and will be removed in the future"
+                "The argument `consolidated_j1939` from the method `extract_bus_logging` is no longer used and will be removed in the future",
+                stacklevel=1,
             )
 
         if version is None:

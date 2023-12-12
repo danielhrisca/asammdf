@@ -14,6 +14,7 @@ from textwrap import wrap
 import time
 from traceback import format_exc
 from typing import Any, TYPE_CHECKING
+from xml.dom import minidom
 import xml.etree.ElementTree as ET
 
 import dateutil.tz
@@ -2324,7 +2325,7 @@ class ChannelConversion(_ChannelConversionBase):
                 if self.id != b"##CC":
                     message = f'Expected "##CC" block @{hex(address)} but found "{self.id}"'
                     logger.exception(message)
-                    raise MdfException(message)
+                    raise MdfException(message) from None
 
                 block = stream.read(self.block_len - COMMON_SIZE)
 
@@ -5596,11 +5597,15 @@ class HeaderBlock:
 
         common_properties_to_xml(common, self._common_properties)
 
-        return (
+        comment_xml = (
             ET.tostring(root, encoding="utf8", method="xml")
             .replace(b"<?xml version='1.0' encoding='utf8'?>\n", b"")
             .decode("utf-8")
         )
+
+        comment_xml = minidom.parseString(comment_xml).toprettyxml(indent=" ")
+
+        return "\n".join(comment_xml.splitlines()[1:])
 
     @comment.setter
     def comment(self, string):

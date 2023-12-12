@@ -37,6 +37,7 @@ import canmatrix
 from canmatrix.canmatrix import CanMatrix
 from lz4.frame import compress as lz_compress
 from lz4.frame import decompress as lz_decompress
+import numpy as np
 from numpy import (
     arange,
     argwhere,
@@ -65,7 +66,6 @@ from numpy import (
     where,
     zeros,
 )
-import numpy as np
 from numpy.core.defchararray import decode, encode
 from numpy.core.records import fromarrays, fromstring
 from numpy.typing import NDArray
@@ -266,6 +266,10 @@ class MDF4(MDF_Common):
     ) -> None:
         if not kwargs.get("__internal__", False):
             raise MdfException("Always use the MDF class; do not use the class MDF4 directly")
+
+        # bind cache to instance to avoid memory leaks
+        self.determine_max_vlsd_sample_size = lru_cache(maxsize=1024 * 1024)(self._determine_max_vlsd_sample_size)
+        self.extract_attachment = lru_cache(maxsize=128)(self._extract_attachment)
 
         self._kwargs = kwargs
         self.original_name = kwargs["original_name"]
@@ -1677,10 +1681,12 @@ class MDF4(MDF_Common):
     ) -> Iterator[DataBlockInfo]:
         mapped = mapped or not is_file_like(stream)
 
-        if record_size:
-            _32_MB = 32 * 1024 * 1024 // record_size * record_size
+        if record_size > 32 * 1024 * 1024:
+            READ_CHUNK_SIZE = record_size
+        elif record_size:
+            READ_CHUNK_SIZE = 32 * 1024 * 1024 // record_size * record_size
         else:
-            _32_MB = 32 * 1024 * 1024
+            READ_CHUNK_SIZE = 32 * 1024 * 1024
 
         if mapped:
             if address:
@@ -1694,19 +1700,19 @@ class MDF4(MDF_Common):
 
                         # split the DTBLOCK into chucks of up to 32MB
                         while True:
-                            if size > _32_MB:
-                                total_size -= _32_MB
-                                size -= _32_MB
+                            if size > READ_CHUNK_SIZE:
+                                total_size -= READ_CHUNK_SIZE
+                                size -= READ_CHUNK_SIZE
 
                                 yield DataBlockInfo(
                                     address=address,
                                     block_type=v4c.DT_BLOCK,
-                                    original_size=_32_MB,
-                                    compressed_size=_32_MB,
+                                    original_size=READ_CHUNK_SIZE,
+                                    compressed_size=READ_CHUNK_SIZE,
                                     param=0,
                                     block_limit=None,
                                 )
-                                address += _32_MB
+                                address += READ_CHUNK_SIZE
                             else:
                                 if total_size < size:
                                     block_limit = total_size
@@ -1768,19 +1774,19 @@ class MDF4(MDF_Common):
 
                                     # split the DTBLOCK into chucks of up to 32MB
                                     while True:
-                                        if size > _32_MB:
-                                            total_size -= _32_MB
-                                            size -= _32_MB
+                                        if size > READ_CHUNK_SIZE:
+                                            total_size -= READ_CHUNK_SIZE
+                                            size -= READ_CHUNK_SIZE
 
                                             yield DataBlockInfo(
                                                 address=addr,
                                                 block_type=v4c.DT_BLOCK,
-                                                original_size=_32_MB,
-                                                compressed_size=_32_MB,
+                                                original_size=READ_CHUNK_SIZE,
+                                                compressed_size=READ_CHUNK_SIZE,
                                                 param=0,
                                                 block_limit=None,
                                             )
-                                            addr += _32_MB
+                                            addr += READ_CHUNK_SIZE
                                         else:
                                             if total_size < size:
                                                 block_limit = total_size
@@ -1977,19 +1983,19 @@ class MDF4(MDF_Common):
 
                         # split the DTBLOCK into chucks of up to 32MB
                         while True:
-                            if size > _32_MB:
-                                total_size -= _32_MB
-                                size -= _32_MB
+                            if size > READ_CHUNK_SIZE:
+                                total_size -= READ_CHUNK_SIZE
+                                size -= READ_CHUNK_SIZE
 
                                 yield DataBlockInfo(
                                     address=address,
                                     block_type=v4c.DT_BLOCK,
-                                    original_size=_32_MB,
-                                    compressed_size=_32_MB,
+                                    original_size=READ_CHUNK_SIZE,
+                                    compressed_size=READ_CHUNK_SIZE,
                                     param=0,
                                     block_limit=None,
                                 )
-                                address += _32_MB
+                                address += READ_CHUNK_SIZE
                             else:
                                 if total_size < size:
                                     block_limit = total_size
@@ -2054,19 +2060,19 @@ class MDF4(MDF_Common):
 
                                     # split the DTBLOCK into chucks of up to 32MB
                                     while True:
-                                        if size > _32_MB:
-                                            total_size -= _32_MB
-                                            size -= _32_MB
+                                        if size > READ_CHUNK_SIZE:
+                                            total_size -= READ_CHUNK_SIZE
+                                            size -= READ_CHUNK_SIZE
 
                                             yield DataBlockInfo(
                                                 address=addr,
                                                 block_type=v4c.DT_BLOCK,
-                                                original_size=_32_MB,
-                                                compressed_size=_32_MB,
+                                                original_size=READ_CHUNK_SIZE,
+                                                compressed_size=READ_CHUNK_SIZE,
                                                 param=0,
                                                 block_limit=None,
                                             )
-                                            addr += _32_MB
+                                            addr += READ_CHUNK_SIZE
                                         else:
                                             if total_size < size:
                                                 block_limit = total_size
@@ -6180,8 +6186,7 @@ class MDF4(MDF_Common):
         self._dbc_cache.clear()
         self.virtual_groups.clear()
 
-    @lru_cache(maxsize=128)
-    def extract_attachment(
+    def _extract_attachment(
         self,
         index: int | None = None,
         password: str | bytes | None = None,
@@ -7765,8 +7770,7 @@ class MDF4(MDF_Common):
         else:
             return vals
 
-    @lru_cache(maxsize=1024 * 1024)
-    def determine_max_vlsd_sample_size(self, group, index):
+    def _determine_max_vlsd_sample_size(self, group, index):
         group_index = group
         channel_index = index
         group = self.groups[group]

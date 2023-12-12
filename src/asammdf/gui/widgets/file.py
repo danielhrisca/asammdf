@@ -54,7 +54,7 @@ from .numeric import Numeric
 from .plot import Plot
 from .tabular import Tabular
 from .tree import add_children
-from .tree_item import TreeItem
+from .tree_item import MinimalTreeItem
 
 
 def _process_dict(d):
@@ -90,6 +90,20 @@ FRIENDLY_ATRRIBUTES = {
     "pr_test_report": "Test report",
     "pr_display_file": "Default display file",
 }
+
+
+class Delegate(QtWidgets.QStyledItemDelegate):
+    def createEditor(self, parent, option, index):
+        self.editor = QtWidgets.QPlainTextEdit(parent)
+        self.editor.setReadOnly(True)
+        return self.editor
+
+    def setEditorData(self, editor, index):
+        if editor:
+            editor.setPlainText(index.data())
+
+    def setModelData(self, editor, model, index):
+        return
 
 
 class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
@@ -210,14 +224,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         self.mdf.append(df, units=units)
                         self.mdf.uuid = self.uuid
                         self.mdf.original_name = file_name
-                except:
+                except Exception as exc:
                     if progress:
                         progress.cancel()
                     print(format_exc())
                     raise Exception(
                         "Could not load CSV. The first line must contain the channel names. The seconds line "
                         "can optionally contain the channel units. The first column must be the time"
-                    )
+                    ) from exc
 
             else:
                 original_name = file_name
@@ -247,9 +261,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.mdf.configure(raise_on_multiple_occurrences=False)
 
-            channels_db_items = sorted(self.mdf.channels_db, key=lambda x: x.lower())
-            self.channels_db_items = channels_db_items
-
             if progress:
                 progress.setLabelText("Loading graphical elements")
             QtWidgets.QApplication.processEvents()
@@ -277,10 +288,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.channel_view.currentIndexChanged.connect(partial(self._update_channel_tree, widget=self.channels_tree))
             self.filter_view.currentIndexChanged.connect(partial(self._update_channel_tree, widget=self.filter_tree))
-            self.channel_view.currentTextChanged.connect(partial(self._update_channel_tree, widget=self.channels_tree))
-            self.filter_view.currentTextChanged.connect(partial(self._update_channel_tree, widget=self.filter_tree))
 
             self.channel_view.setCurrentText(self._settings.value("channels_view", "Internal file structure"))
+
             if progress:
                 progress.setValue(70)
             QtWidgets.QApplication.processEvents()
@@ -526,13 +536,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         for widget in widgetList:
             self._update_channel_tree(widget=widget)
 
-    def _update_channel_tree(self, index=None, widget=None):
+    def _update_channel_tree(self, index=None, widget=None, force=False):
         if widget is None:
             widget = self.channels_tree
-        if widget is self.channels_tree and self.channel_view.currentIndex() == -1:
-            return
-        elif widget is self.filter_tree and (self.filter_view.currentIndex() == -1):
-            return
+        if not force:
+            if widget is self.channels_tree and self.channel_view.currentIndex() == -1:
+                return
+            elif widget is self.filter_tree and (self.filter_view.currentIndex() == -1):
+                return
 
         view = self.channel_view if widget is self.channels_tree else self.filter_view
 
@@ -557,6 +568,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 iterator += 1
 
+        widget.collapseAll()
         widget.clear()
         widget.mode = view.currentText()
 
@@ -566,13 +578,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 for j, ch in enumerate(group.channels):
                     entry = i, j
 
-                    channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
+                    channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
                     channel.setToolTip(0, f"{ch.name} @ group {i}, index {j}")
-                    channel.setText(0, ch.name)
+
                     if entry in signals:
                         channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                     else:
                         channel.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+
                     items.append(channel)
 
             if len(items) < 30000:
@@ -587,7 +600,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for i, group in enumerate(self.mdf.groups):
                 entry = i, 0xFFFFFFFFFFFFFFFF
 
-                channel_group = TreeItem(entry, origin_uuid=self.uuid)
+                channel_group = MinimalTreeItem(entry, origin_uuid=self.uuid)
 
                 comment = extract_xml_comment(group.channel_group.comment)
 
@@ -660,9 +673,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for entry in signals:
                 gp_index, ch_index = entry
                 ch = self.mdf.groups[gp_index].channels[ch_index]
-                channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
+                channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
                 channel.setToolTip(0, f"{ch.name} @ group {gp_index}, index {ch_index}")
-                channel.setText(0, ch.name)
                 channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                 items.append(channel)
 
@@ -807,6 +819,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         if entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             names.add((result[entry], dg_cntr, ch_cntr))
+                        else:
+                            item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
                         iterator += 1
                         ch_cntr += 1
@@ -832,8 +846,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     for name, gp_index, ch_index in signals:
                         entry = gp_index, ch_index
                         ch = self.mdf.groups[gp_index].channels[ch_index]
-                        channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
-                        channel.setText(0, ch.name)
+                        channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
                         channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         items.append(channel)
 
@@ -851,6 +864,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         if item.entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             names.add((result[item.entry], *item.entry))
+                        else:
+                            item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
                         iterator += 1
 
@@ -1452,8 +1467,7 @@ MultiRasterSeparator;&
                     for j, ch in enumerate(gp.channels):
                         if ch.name in channels:
                             entry = i, j
-                            channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
-                            channel.setText(0, ch.name)
+                            channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
                             channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             items.append(channel)
                             channels.pop(channels.index(ch.name))
@@ -2206,70 +2220,16 @@ MultiRasterSeparator;&
                 self.raster_channel.setSizeAdjustPolicy(
                     QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
                 )
-                self.raster_channel.addItems(self.channels_db_items)
+                self.raster_channel.addItems(sorted(self.mdf.channels_db, key=lambda x: x.lower()))
                 self.raster_channel.setMinimumWidth(100)
 
             if not self._show_filter_tree:
                 self._show_filter_tree = True
 
                 widget = self.filter_tree
-
                 widget.clear()
 
-                if self.filter_view.currentText() == "Natural sort":
-                    items = []
-                    for i, group in enumerate(self.mdf.groups):
-                        for j, ch in enumerate(group.channels):
-                            entry = i, j
-
-                            channel = TreeItem(entry, ch.name)
-                            channel.setText(0, ch.name)
-                            channel.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-                            items.append(channel)
-
-                    if len(items) < 30000:
-                        items = natsorted(items, key=lambda x: x.name)
-                    else:
-                        items.sort(key=lambda x: x.name)
-                    widget.addTopLevelItems(items)
-
-                elif self.filter_view.currentText() == "Internal file structure":
-                    for i, group in enumerate(self.mdf.groups):
-                        entry = i, 0xFFFFFFFFFFFFFFFF
-                        channel_group = TreeItem(entry)
-                        comment = extract_xml_comment(group.channel_group.comment)
-
-                        acq_name = getattr(group.channel_group, "acq_name", "")
-                        if acq_name:
-                            base_name = f"CG {i} {acq_name}"
-                        else:
-                            base_name = f"CG {i}"
-
-                        if comment and acq_name != comment:
-                            name = base_name + f" ({comment})"
-                        else:
-                            name = base_name
-
-                        channel_group.setText(0, name)
-
-                        channel_group.setFlags(
-                            channel_group.flags()
-                            | QtCore.Qt.ItemFlag.ItemIsAutoTristate
-                            | QtCore.Qt.ItemFlag.ItemIsUserCheckable
-                        )
-
-                        widget.addTopLevelItem(channel_group)
-
-                        channels = [HelperChannel(name=ch.name, entry=(i, j)) for j, ch in enumerate(group.channels)]
-
-                        add_children(
-                            channel_group,
-                            channels,
-                            group.channel_dependencies,
-                            set(),
-                            entries=None,
-                            version=self.mdf.version,
-                        )
+                self._update_channel_tree(current_index, widget, force=True)
 
             for w in self.mdi_area.subWindowList():
                 widget = w.widget()
@@ -2282,7 +2242,8 @@ MultiRasterSeparator;&
 
         elif self.aspects.tabText(current_index) == "Info":
             self.info.clear()
-            # self.mdf.reload_header()
+            self.info.setItemDelegate(Delegate(self.info))
+
             # info tab
             try:
                 file_stats = os.stat(self.mdf.original_name)
@@ -2298,9 +2259,11 @@ MultiRasterSeparator;&
             item = QtWidgets.QTreeWidgetItem()
             item.setText(0, "Path")
             item.setText(1, str(self.mdf.original_name))
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
             children.append(item)
 
             item = QtWidgets.QTreeWidgetItem()
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
             item.setText(0, "Size")
             if file_stats is not None:
                 item.setText(1, f"{file_stats.st_size / 1024 / 1024:.1f} MB")
@@ -2316,6 +2279,7 @@ MultiRasterSeparator;&
             else:
                 date_ = datetime.now(timezone.utc)
             item = QtWidgets.QTreeWidgetItem()
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
             item.setText(0, "Created")
             item.setText(1, date_.strftime("%d-%b-%Y %H:%M:%S"))
             children.append(item)
@@ -2325,6 +2289,7 @@ MultiRasterSeparator;&
             else:
                 date_ = datetime.now(timezone.utc)
             item = QtWidgets.QTreeWidgetItem()
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
             item.setText(0, "Last modified")
             item.setText(1, date_.strftime("%d-%b-%Y %H:%M:%S"))
             children.append(item)
@@ -2339,11 +2304,13 @@ MultiRasterSeparator;&
             children = []
 
             item = QtWidgets.QTreeWidgetItem()
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
             item.setText(0, "Version")
             item.setText(1, self.mdf.version)
             children.append(item)
 
             item = QtWidgets.QTreeWidgetItem()
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
             item.setText(0, "Program identification")
             item.setText(
                 1,
@@ -2352,11 +2319,13 @@ MultiRasterSeparator;&
             children.append(item)
 
             item = QtWidgets.QTreeWidgetItem()
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
             item.setText(0, "Measurement start time")
             item.setText(1, self.mdf.header.start_time_string())
             children.append(item)
 
             item = QtWidgets.QTreeWidgetItem()
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
             item.setText(0, "Measurement comment")
             item.setText(1, self.mdf.header.description)
             item.setTextAlignment(0, QtCore.Qt.AlignmentFlag.AlignTop)
@@ -2369,11 +2338,13 @@ MultiRasterSeparator;&
             for name, value in self.mdf.header._common_properties.items():
                 if isinstance(value, dict):
                     tree = QtWidgets.QTreeWidgetItem()
+                    tree.setFlags(tree.flags() | QtCore.Qt.ItemIsEditable)
                     tree.setText(0, name)
                     tree.setTextAlignment(0, QtCore.Qt.AlignmentFlag.AlignTop)
 
                     for subname, subvalue in value.items():
                         item = QtWidgets.QTreeWidgetItem()
+                        item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
                         item.setText(0, subname)
                         item.setText(1, str(subvalue).strip())
                         item.setTextAlignment(0, QtCore.Qt.AlignmentFlag.AlignTop)
@@ -2384,6 +2355,7 @@ MultiRasterSeparator;&
 
                 else:
                     item = QtWidgets.QTreeWidgetItem()
+                    item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
                     item.setText(0, FRIENDLY_ATRRIBUTES.get(name, name))
                     item.setText(1, str(value).strip())
                     item.setTextAlignment(0, QtCore.Qt.AlignmentFlag.AlignTop)

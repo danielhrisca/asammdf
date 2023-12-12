@@ -26,12 +26,12 @@ from ..utils import (
     unique_ranges,
     value_as_str,
 )
-from .tree_item import TreeItem
+from .tree_item import MinimalTreeItem, TreeItem
 
 NOT_FOUND = 0xFFFFFFFF
 
 
-def substitude_mime_uuids(mime, uuid=None, force=False):
+def substitude_mime_uuids(mime, uuid=None, force=False, random_uuid=False):
     if not mime:
         return mime
 
@@ -43,10 +43,14 @@ def substitude_mime_uuids(mime, uuid=None, force=False):
                 item["origin_uuid"] = uuid
             new_mime.append(item)
         else:
-            item["channels"] = substitude_mime_uuids(item["channels"], uuid, force=force)
+            item["channels"] = substitude_mime_uuids(item["channels"], uuid, force=force, random_uuid=random_uuid)
             if force or item["origin_uuid"] is None:
                 item["origin_uuid"] = uuid
             new_mime.append(item)
+
+        if random_uuid:
+            item["uuid"] = os.urandom(6).hex()
+
     return new_mime
 
 
@@ -66,13 +70,12 @@ def add_children(
         channels_ = channels
 
     for ch in channels_:
-        if ch.added == True:
+        if ch.added:
             continue
 
         entry = ch.entry
 
-        child = TreeItem(entry, ch.name, origin_uuid=origin_uuid)
-        child.setText(0, ch.name)
+        child = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=origin_uuid)
 
         dep = channel_dependencies[entry[1]]
         if version >= "4.00":
@@ -692,6 +695,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             try:
                 data = QtWidgets.QApplication.instance().clipboard().text()
                 data = json.loads(data)
+                data = substitude_mime_uuids(data, random_uuid=True)
                 self.add_channels_request.emit(data)
             except:
                 pass
@@ -1603,6 +1607,9 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self.resolved_ranges = None
         self.ranges = []
 
+        # bind cache to instance to avoid memory leaks
+        self.get_color_using_ranges = lru_cache(maxsize=1024)(self._get_color_using_ranges)
+
         self._name = ""
         self._count = 0
         self._background_color = background_color
@@ -1888,8 +1895,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 child = self.child(row)
                 child.set_fmt(format)
 
-    @lru_cache(maxsize=1024)
-    def get_color_using_ranges(self, value, pen=False):
+    def _get_color_using_ranges(self, value, pen=False):
         return get_color_using_ranges(value, self.get_ranges(), self.signal.color, pen=pen)
 
     def get_display_properties(self):

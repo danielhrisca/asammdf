@@ -10,7 +10,7 @@ import re
 import sys
 from textwrap import indent
 from threading import Thread
-from time import sleep
+from time import perf_counter, sleep
 import traceback
 from traceback import format_exc
 from typing import Dict, Union
@@ -184,7 +184,7 @@ def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progr
     thr.start()
 
     while widget.progress is None and thr.is_alive():
-        sleep(0.1)
+        sleep(0.02)
 
     while thr.is_alive():
         if progress and not progress.wasCanceled():
