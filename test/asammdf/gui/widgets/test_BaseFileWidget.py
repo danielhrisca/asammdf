@@ -47,7 +47,7 @@ class TestFileWidget(TestBase):
         self.widget.showNormal()
         self.processEvents()
 
-    def create_window(self, window_type, channels_names=tuple(), channels_indexes=tuple()):
+    def create_window(self, window_type, channels_names=(), channels_indexes=()):
         channel_tree = self.widget.channels_tree
         channel_tree.clearSelection()
         for channel in channels_names:
@@ -83,12 +83,7 @@ class TestFileWidget(TestBase):
         return selected_channel
 
     def get_subwindows(self):
-        widget_types = sorted(
-            map(
-                lambda w: w.widget().__class__.__name__,
-                self.widget.mdi_area.subWindowList(),
-            )
-        )
+        widget_types = sorted(w.widget().__class__.__name__ for w in self.widget.mdi_area.subWindowList())
         return widget_types
 
     def load_display_file(self, display_file):

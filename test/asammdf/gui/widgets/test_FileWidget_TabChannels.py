@@ -418,12 +418,7 @@ class TestTabChannels(TestFileWidget):
         # Event
         self.load_display_file(display_file=saved_dspf)
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
-        widget_types = set(
-            map(
-                lambda w: w.widget().__class__.__name__,
-                self.widget.mdi_area.subWindowList(),
-            )
-        )
+        widget_types = {w.widget().__class__.__name__ for w in self.widget.mdi_area.subWindowList()}
         self.assertSetEqual({"Plot"}, widget_types)
 
     def test_PushButton_SelectAll(self):

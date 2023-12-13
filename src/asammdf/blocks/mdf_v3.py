@@ -3009,7 +3009,7 @@ class MDF3(MDF_Common):
                     size = byte_size
 
                     vals_dtype = vals.dtype.kind
-                    if vals_dtype not in "ui" and (bit_offset or not bits == size * 8):
+                    if vals_dtype not in "ui" and (bit_offset or bits != size * 8):
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
                     else:
                         dtype_ = vals.dtype
@@ -3285,7 +3285,7 @@ class MDF3(MDF_Common):
                     if time_b:
                         t += time_b
 
-        if not t.dtype == float64:
+        if t.dtype != float64:
             t = t.astype(float64)
 
         self._master_channel_metadata[index] = metadata

@@ -82,9 +82,9 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
 
     def _add(self, event):
         count = self.selection.count()
-        names = set(self.selection.item(i).text() for i in range(count))
+        names = {self.selection.item(i).text() for i in range(count)}
 
-        to_add = set(item.text() for item in self.matches.selectedItems())
+        to_add = {item.text() for item in self.matches.selectedItems()}
 
         names = names | to_add
 

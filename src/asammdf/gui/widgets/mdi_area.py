@@ -698,7 +698,7 @@ class WithMDIArea:
 
                 entries = get_flatten_entries_from_mime(mime_data)
 
-                uuids = set(entry["origin_uuid"] for entry in entries)
+                uuids = {entry["origin_uuid"] for entry in entries}
                 for uuid in uuids:
                     if self.file_by_uuid(uuid):
                         break
@@ -710,7 +710,7 @@ class WithMDIArea:
 
                 computed = [entry for entry in entries if (entry["group_index"], entry["channel_index"]) == (-1, -1)]
 
-                uuids = set(entry["origin_uuid"] for entry in entries)
+                uuids = {entry["origin_uuid"] for entry in entries}
 
             if isinstance(widget, Tabular):
                 dfs = []
@@ -1874,7 +1874,7 @@ class WithMDIArea:
         else:
             flatten_entries = get_flatten_entries_from_mime(names)
 
-            uuids = set(entry["origin_uuid"] for entry in flatten_entries)
+            uuids = {entry["origin_uuid"] for entry in flatten_entries}
 
             for uuid in uuids:
                 if self.file_by_uuid(uuid):
@@ -1884,12 +1884,12 @@ class WithMDIArea:
                 flatten_entries = get_flatten_entries_from_mime(names)
 
             signals_ = [
-                entry for entry in flatten_entries if tuple((entry["group_index"], entry["channel_index"])) != (-1, -1)
+                entry for entry in flatten_entries if (entry["group_index"], entry["channel_index"]) != (-1, -1)
             ]
 
         signals_ = natsorted(signals_)
 
-        uuids = set(entry["origin_uuid"] for entry in signals_)
+        uuids = {entry["origin_uuid"] for entry in signals_}
 
         signals = []
 
@@ -2071,7 +2071,7 @@ class WithMDIArea:
             mime_data = signals
 
         flatten_entries = get_flatten_entries_from_mime(mime_data)
-        uuids = set(entry["origin_uuid"] for entry in flatten_entries)
+        uuids = {entry["origin_uuid"] for entry in flatten_entries}
 
         for uuid in uuids:
             if self.file_by_uuid(uuid):
@@ -2101,7 +2101,7 @@ class WithMDIArea:
             if (entry["group_index"], entry["channel_index"]) == (-1, -1)
         }
 
-        uuids = set(entry["origin_uuid"] for entry in signals_.values())
+        uuids = {entry["origin_uuid"] for entry in signals_.values()}
 
         signals = {}
 
@@ -2503,7 +2503,7 @@ class WithMDIArea:
         else:
             flatten_entries = get_flatten_entries_from_mime(names)
 
-            uuids = set(entry["origin_uuid"] for entry in flatten_entries)
+            uuids = {entry["origin_uuid"] for entry in flatten_entries}
 
             for uuid in uuids:
                 if self.file_by_uuid(uuid):
@@ -2515,12 +2515,12 @@ class WithMDIArea:
             signals_ = [
                 entry
                 for entry in flatten_entries
-                if tuple((entry["group_index"], entry["channel_index"])) != (NOT_FOUND, NOT_FOUND)
+                if (entry["group_index"], entry["channel_index"]) != (NOT_FOUND, NOT_FOUND)
             ]
 
         signals_ = natsorted(signals_)
 
-        uuids = set(entry["origin_uuid"] for entry in signals_)
+        uuids = {entry["origin_uuid"] for entry in signals_}
 
         dfs = []
         ranges = {}
@@ -2876,8 +2876,8 @@ class WithMDIArea:
 
             signals = natsorted(signals, key=lambda x: x.name)
 
-            found = set(sig.name for sig in signals)
-            required = set(description["name"] for description in required)
+            found = {sig.name for sig in signals}
+            required = {description["name"] for description in required}
             not_found = [Signal([], [], name=name) for name in sorted(required - found)]
             uuid = os.urandom(6).hex()
             for sig in not_found:
@@ -2941,7 +2941,7 @@ class WithMDIArea:
 
         sections_width = window_info["configuration"].get("header_sections_width", [])
         if sections_width:
-            sections_width = reversed([(i, width) for i, width in enumerate(sections_width)])
+            sections_width = reversed(list(enumerate(sections_width)))
             for column_index, width in sections_width:
                 numeric.channels.columnHeader.setColumnWidth(column_index, width)
                 numeric.channels.dataView.setColumnWidth(
@@ -3127,7 +3127,7 @@ class WithMDIArea:
 
                     plot_signals[sig_uuid] = signal
 
-            measured_signals.update({name: sig for name, sig in new_matrix_signals.items()})
+            measured_signals.update(new_matrix_signals)
 
             if measured_signals:
                 all_timebase = np.unique(np.concatenate([sig.timestamps for sig in measured_signals.values()]))
@@ -3536,7 +3536,7 @@ class WithMDIArea:
         w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
 
         filter_count = 0
-        available_columns = [signals.index.name] + list(signals.columns)
+        available_columns = [signals.index.name, *signals.columns]
         for filter_info in window_info["configuration"]["filters"]:
             if filter_info["column"] in available_columns:
                 tabular.add_filter()
@@ -3786,7 +3786,7 @@ class WithMDIArea:
         for info in new_functions:
             self.functions[info["name"]] = info["definition"]
 
-        new = set(info["name"] for info in new_functions)
+        new = {info["name"] for info in new_functions}
 
         # changed definitions
         translation = {}
