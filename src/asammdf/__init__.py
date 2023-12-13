@@ -22,7 +22,7 @@ from .signal import Signal
 from .version import __version__
 
 try:
-    from .blocks import cutils
+    from .blocks import cutils  # noqa: F401
 
     __cextension__ = True
 except ImportError:

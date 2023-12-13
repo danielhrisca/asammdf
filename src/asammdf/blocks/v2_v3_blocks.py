@@ -985,7 +985,7 @@ class ChannelConversion(_ChannelConversionBase):
 
             if conv_type == v23c.CONVERSION_TYPE_LINEAR:
                 (self.b, self.a) = unpack_from("<2d", block, v23c.CC_COMMON_SHORT_SIZE)
-                if not size == v23c.CC_LIN_BLOCK_SIZE:
+                if size != v23c.CC_LIN_BLOCK_SIZE:
                     self.CANapeHiddenExtra = block[v23c.CC_LIN_BLOCK_SIZE - 4 :]
                     size = len(self.CANapeHiddenExtra)
                     nr = size // 40
@@ -1151,7 +1151,7 @@ class ChannelConversion(_ChannelConversionBase):
                 self.ref_param_nr = 2
                 self.b = kwargs.get("b", 0)
                 self.a = kwargs.get("a", 1)
-                if not self.block_len == v23c.CC_LIN_BLOCK_SIZE:
+                if self.block_len != v23c.CC_LIN_BLOCK_SIZE:
                     self.CANapeHiddenExtra = kwargs["CANapeHiddenExtra"]
 
             elif kwargs["conversion_type"] in (
@@ -1323,7 +1323,7 @@ class ChannelConversion(_ChannelConversionBase):
             keys = v23c.KEYS_CONVERSION_FORMULA
         elif conv == v23c.CONVERSION_TYPE_LINEAR:
             keys = v23c.KEYS_CONVERSION_LINEAR
-            if not self.block_len == v23c.CC_LIN_BLOCK_SIZE:
+            if self.block_len != v23c.CC_LIN_BLOCK_SIZE:
                 keys += ("CANapeHiddenExtra",)
 
                 nr = self.ref_param_nr
@@ -1640,7 +1640,7 @@ address: {hex(self.address)}
             fmt = v23c.FMT_CONVERSION_FORMULA.format(self.block_len - v23c.CC_COMMON_BLOCK_SIZE)
         elif conv == v23c.CONVERSION_TYPE_LINEAR:
             fmt = v23c.FMT_CONVERSION_LINEAR
-            if not self.block_len == v23c.CC_LIN_BLOCK_SIZE:
+            if self.block_len != v23c.CC_LIN_BLOCK_SIZE:
                 fmt += f"{self.block_len - v23c.CC_LIN_BLOCK_SIZE}s"
         elif conv in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):
             fmt = v23c.FMT_CONVERSION_POLY_RAT
@@ -1662,7 +1662,7 @@ address: {hex(self.address)}
             keys = v23c.KEYS_CONVERSION_FORMULA
         elif conv == v23c.CONVERSION_TYPE_LINEAR:
             keys = v23c.KEYS_CONVERSION_LINEAR
-            if not self.block_len == v23c.CC_LIN_BLOCK_SIZE:
+            if self.block_len != v23c.CC_LIN_BLOCK_SIZE:
                 keys += ("CANapeHiddenExtra",)
         elif conv in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):
             keys = v23c.KEYS_CONVERSION_POLY_RAT

@@ -133,7 +133,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
 
     def definitions_deleted(self, deleted):
         count = self.functions_list.count()
-        names = set(self.functions_list.item(row).text() for row in range(count))
+        names = {self.functions_list.item(row).text() for row in range(count)}
 
         deleted = [name for name in self.definitions if name not in names]
 

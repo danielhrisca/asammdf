@@ -155,7 +155,7 @@ COMMON_SHORT_uf = v4c.COMMON_SHORT_uf
 COMMON_SHORT_u = v4c.COMMON_SHORT_u
 VALID_DATA_TYPES = v4c.VALID_DATA_TYPES
 
-EMPTY_TUPLE = tuple()
+EMPTY_TUPLE = ()
 
 # 100 extra steps for the sorting, 1 step after sorting and 1 step at finish
 SORT_STEPS = 102
@@ -4443,7 +4443,7 @@ class MDF4(MDF_Common):
         acq_name: str | None = None,
         acq_source: Source | None = None,
         comment: str | None = None,
-        units: dict[str, str | bytes] = None,
+        units: dict[str, str | bytes] | None = None,
     ) -> None:
         """
         Appends a new data group from a Pandas data frame.
@@ -6927,7 +6927,7 @@ class MDF4(MDF_Common):
                 shape = (shape[0],) + shape[1:][::-1]
                 vals = vals.reshape(shape)
 
-                axes = (0,) + tuple(range(len(shape) - 1, 0, -1))
+                axes = (0, *reversed(range(1, len(shape))))
                 vals = transpose(vals, axes=axes)
 
             cycles_nr = len(vals)
@@ -8028,7 +8028,6 @@ class MDF4(MDF_Common):
 
                         signals.append(signal)
 
-                    pass
                 else:
                     for channel_index in channels:
                         signal, invalidation_bits = self.get(
@@ -8288,7 +8287,7 @@ class MDF4(MDF_Common):
 
         self._master_channel_metadata[index] = metadata
 
-        if not t.dtype == float64:
+        if t.dtype != float64:
             t = t.astype(float64)
 
         if raster and t.size:

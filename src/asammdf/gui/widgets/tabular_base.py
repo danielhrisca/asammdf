@@ -462,7 +462,7 @@ class DataTableView(QtWidgets.QTableView):
         modifiers = event.modifiers()
 
         if key == QtCore.Qt.Key.Key_R and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
-            selected_items = set(index.column() for index in self.selectedIndexes() if index.isValid())
+            selected_items = {index.column() for index in self.selectedIndexes() if index.isValid()}
 
             if selected_items:
                 ranges = []
@@ -1454,10 +1454,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         signals.set_index(index, inplace=True)
         dropped = {}
 
-        ranges = {
-            name: channel_ranges
-            for name, channel_ranges in zip(self.tree.pgdf.df_unfiltered.columns, self.ranges.values())
-        }
+        ranges = dict(zip(self.tree.pgdf.df_unfiltered.columns, self.ranges.values()))
 
         for name_ in signals.columns:
             col = signals[name_]

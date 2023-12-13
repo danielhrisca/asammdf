@@ -9,7 +9,6 @@ try:
 
 except:
     print(format_exc())
-    pass
 
 
 from ..ui.gps import Ui_GPSDisplay
