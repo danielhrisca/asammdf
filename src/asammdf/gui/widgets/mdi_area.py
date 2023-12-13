@@ -621,7 +621,8 @@ class WithMDIArea:
     windows_modified = QtCore.Signal()
     load_plot_x_range = False
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, comparison=False, *args, **kwargs):
+        self.comparison = comparison
         self._cursor_source = None
         self._region_source = None
         self._splitter_source = None

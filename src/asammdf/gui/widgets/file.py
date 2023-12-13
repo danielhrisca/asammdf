@@ -135,7 +135,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.loaded_display_file = Path(""), b""
 
         super(Ui_file_widget, self).__init__(*args, **kwargs)
-        WithMDIArea.__init__(self)
+        WithMDIArea.__init__(self, comparison=False)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
         self.uuid = os.urandom(6).hex()

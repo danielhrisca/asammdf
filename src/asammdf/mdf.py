@@ -2905,7 +2905,7 @@ class MDF:
         for i in self.virtual_groups:
             yield self.get_group(
                 i,
-                raster=None,
+                raster=raster,
                 time_from_zero=time_from_zero,
                 empty_channels=empty_channels,
                 keep_arrays=keep_arrays,
