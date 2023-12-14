@@ -114,7 +114,7 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
         for k, group in enumerate(
             (
                 self.cursor_group,
-                # self.range_group,
+                self.region_group,
                 self.visible_group,
                 self.overall_group,
             )
