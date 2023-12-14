@@ -2305,6 +2305,7 @@ class Plot(QtWidgets.QWidget):
 
         if not count:
             self.info_uuid = None
+            self.info.set_stats(None)
             self.selected_channel_value.setText("")
             self.close_request.emit()
 

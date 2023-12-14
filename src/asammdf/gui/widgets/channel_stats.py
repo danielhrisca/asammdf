@@ -57,6 +57,7 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
 
     def set_stats(self, stats):
         if not stats:
+            self.clear()
             return
 
         self._stats = deepcopy(stats)
