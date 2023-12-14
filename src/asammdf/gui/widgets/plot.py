@@ -4058,7 +4058,6 @@ class PlotGraphics(pg.PlotWidget):
                 elif count == 1:
                     new_timebase = timebases[0]
                 else:
-                    print("LEEEEEEEEEEEEEEEE", len(timebases), [len(t) for t in timebases], sep="\n")
                     try:
                         new_timebase = np.unique(np.concatenate(timebases))
                     except MemoryError:
