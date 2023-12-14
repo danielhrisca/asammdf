@@ -1349,7 +1349,7 @@ class Signal:
         )
 
     def validate(self, copy: bool = True) -> Signal:
-        """appply invalidation bits if they are available for this signal
+        """apply invalidation bits if they are available for this signal
 
         Parameters
         ----------
@@ -1364,27 +1364,30 @@ class Signal:
 
         else:
             idx = np.nonzero(~self.invalidation_bits)[0]
-            signal = Signal(
-                self.samples[idx],
-                self.timestamps[idx],
-                self.unit,
-                self.name,
-                self.conversion,
-                self.comment,
-                self.raw,
-                self.master_metadata,
-                self.display_names,
-                self.attachment,
-                self.source,
-                self.bit_count,
-                invalidation_bits=None,
-                encoding=self.encoding,
-                group_index=self.group_index,
-                channel_index=self.channel_index,
-                flags=self.flags,
-                virtual_conversion=self.virtual_conversion,
-                virtual_master_conversion=self.virtual_master_conversion,
-            )
+            if len(idx) == len(self.samples):
+                signal = self
+            else:
+                signal = Signal(
+                    self.samples[idx],
+                    self.timestamps[idx],
+                    self.unit,
+                    self.name,
+                    self.conversion,
+                    self.comment,
+                    self.raw,
+                    self.master_metadata,
+                    self.display_names,
+                    self.attachment,
+                    self.source,
+                    self.bit_count,
+                    invalidation_bits=None,
+                    encoding=self.encoding,
+                    group_index=self.group_index,
+                    channel_index=self.channel_index,
+                    flags=self.flags,
+                    virtual_conversion=self.virtual_conversion,
+                    virtual_master_conversion=self.virtual_master_conversion,
+                )
 
         if copy:
             signal = signal.copy()
