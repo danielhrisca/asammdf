@@ -327,7 +327,63 @@
       <attribute name="title">
        <string>Pattern definition</string>
       </attribute>
-      <layout class="QGridLayout" name="gridLayout_3" rowstretch="0,0,0,0,1,0,0,0,0,0,0" columnstretch="0,0,0,1,0">
+      <layout class="QGridLayout" name="gridLayout_3" rowstretch="0,0,0,0,1,0,0,0,0,0,0" columnstretch="0,0,0,1,0,0">
+       <item row="2" column="2">
+        <widget class="QComboBox" name="pattern_match_type">
+         <item>
+          <property name="text">
+           <string>Wildcard</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Regex</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Pattern</string>
+         </property>
+        </widget>
+       </item>
+       <item row="10" column="1">
+        <widget class="QPushButton" name="cancel_pattern_btn">
+         <property name="text">
+          <string>Cancel</string>
+         </property>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/erase.png</normaloff>:/erase.png</iconset>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="1">
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>254</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="7" column="2">
+        <widget class="QPushButton" name="define_ranges_btn">
+         <property name="text">
+          <string>Define ranges</string>
+         </property>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/range.png</normaloff>:/range.png</iconset>
+         </property>
+        </widget>
+       </item>
        <item row="1" column="2">
         <widget class="QLineEdit" name="pattern">
          <property name="minimumSize">
@@ -341,17 +397,48 @@
          </property>
         </widget>
        </item>
-       <item row="6" column="2">
-        <widget class="QCheckBox" name="raw">
-         <property name="text">
-          <string>Asses the raw channel values</string>
+       <item row="5" column="2">
+        <widget class="QDoubleSpinBox" name="filter_value">
+         <property name="decimals">
+          <number>6</number>
+         </property>
+         <property name="minimum">
+          <double>-9999999999999999635896294965248.000000000000000</double>
+         </property>
+         <property name="maximum">
+          <double>999999999999999983222784.000000000000000</double>
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
-        <widget class="QLabel" name="label_2">
+       <item row="10" column="5">
+        <widget class="QPushButton" name="apply_pattern_btn">
          <property name="text">
-          <string>Pattern</string>
+          <string>Apply</string>
+         </property>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/checkmark.png</normaloff>:/checkmark.png</iconset>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="2">
+        <widget class="QComboBox" name="case_sensitivity_pattern">
+         <item>
+          <property name="text">
+           <string>Case insensitive</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Case sensitive</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item row="6" column="2">
+        <widget class="QCheckBox" name="raw">
+         <property name="text">
+          <string>Use the raw channel values</string>
          </property>
         </widget>
        </item>
@@ -362,48 +449,14 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="1">
-        <widget class="QLabel" name="label_3">
+       <item row="5" column="1">
+        <widget class="QLabel" name="label_4">
          <property name="text">
-          <string>Filter type</string>
+          <string>Filter value</string>
          </property>
         </widget>
        </item>
-       <item row="0" column="2">
-        <widget class="QLineEdit" name="name"/>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLabel" name="label_6">
-         <property name="text">
-          <string>Name</string>
-         </property>
-        </widget>
-       </item>
-       <item row="8" column="2">
-        <widget class="QComboBox" name="integer_format">
-         <item>
-          <property name="text">
-           <string>phys</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>bin</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>hex</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>ascii</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item row="10" column="3">
+       <item row="10" column="4">
         <spacer name="horizontalSpacer_3">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
@@ -415,6 +468,13 @@
           </size>
          </property>
         </spacer>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>Match type</string>
+         </property>
+        </widget>
        </item>
        <item row="4" column="2">
         <widget class="QComboBox" name="filter_type">
@@ -440,105 +500,57 @@
          </item>
         </widget>
        </item>
-       <item row="10" column="1">
-        <widget class="QPushButton" name="cancel_pattern_btn">
+       <item row="0" column="1">
+        <widget class="QLabel" name="label_6">
          <property name="text">
-          <string>Cancel</string>
-         </property>
-         <property name="icon">
-          <iconset resource="resource.qrc">
-           <normaloff>:/erase.png</normaloff>:/erase.png</iconset>
+          <string>Name</string>
          </property>
         </widget>
        </item>
-       <item row="7" column="2">
-        <widget class="QPushButton" name="define_ranges_btn">
-         <property name="text">
-          <string>Define ranges</string>
-         </property>
-         <property name="icon">
-          <iconset resource="resource.qrc">
-           <normaloff>:/range.png</normaloff>:/range.png</iconset>
-         </property>
-        </widget>
+       <item row="0" column="2">
+        <widget class="QLineEdit" name="name"/>
        </item>
-       <item row="5" column="2">
-        <widget class="QDoubleSpinBox" name="filter_value">
-         <property name="decimals">
-          <number>6</number>
-         </property>
-         <property name="minimum">
-          <double>-9999999999999999635896294965248.000000000000000</double>
-         </property>
-         <property name="maximum">
-          <double>999999999999999983222784.000000000000000</double>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="1">
-        <widget class="QLabel" name="label_4">
-         <property name="text">
-          <string>Filter value</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QLabel" name="label_5">
-         <property name="text">
-          <string>Match type</string>
-         </property>
-        </widget>
-       </item>
-       <item row="9" column="1">
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>254</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="2" column="2">
-        <widget class="QComboBox" name="pattern_match_type">
+       <item row="8" column="2">
+        <widget class="QComboBox" name="integer_format">
          <item>
           <property name="text">
-           <string>Wildcard</string>
+           <string>phys</string>
           </property>
          </item>
          <item>
           <property name="text">
-           <string>Regex</string>
+           <string>bin</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>hex</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>ascii</string>
           </property>
          </item>
         </widget>
        </item>
-       <item row="10" column="4">
-        <widget class="QPushButton" name="apply_pattern_btn">
+       <item row="4" column="1">
+        <widget class="QLabel" name="label_3">
          <property name="text">
-          <string>Apply</string>
-         </property>
-         <property name="icon">
-          <iconset resource="resource.qrc">
-           <normaloff>:/checkmark.png</normaloff>:/checkmark.png</iconset>
+          <string>Filter type</string>
          </property>
         </widget>
        </item>
-       <item row="3" column="2">
-        <widget class="QComboBox" name="case_sensitivity_pattern">
-         <item>
+       <item row="0" column="3" rowspan="10" colspan="3">
+        <widget class="QTreeWidget" name="pattern_matches">
+         <property name="sortingEnabled">
+          <bool>true</bool>
+         </property>
+         <column>
           <property name="text">
-           <string>Case insensitive</string>
+           <string>Channels matching the name pattern</string>
           </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Case sensitive</string>
-          </property>
-         </item>
+         </column>
         </widget>
        </item>
       </layout>
@@ -565,7 +577,6 @@
   <tabstop>add_window_btn</tabstop>
   <tabstop>apply_btn</tabstop>
   <tabstop>cancel_btn</tabstop>
-  <tabstop>tabs</tabstop>
   <tabstop>name</tabstop>
   <tabstop>pattern</tabstop>
   <tabstop>pattern_match_type</tabstop>

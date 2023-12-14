@@ -122,6 +122,11 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         self.setWindowFlag(QtCore.Qt.WindowType.WindowMaximizeButtonHint, True)
 
+        self.pattern.editingFinished.connect(self.update_pattern_matches)
+        self.case_sensitivity_pattern.currentIndexChanged.connect(self.update_pattern_matches)
+        self.pattern_match_type.currentIndexChanged.connect(self.update_pattern_matches)
+        self.update_pattern_matches()
+
         self.showMaximized()
 
     def search_text_changed(self):
@@ -414,3 +419,37 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             self.selection.setColumnWidth(index, new_size)
         if self.matches.columnWidth(index) != new_size:
             self.matches.setColumnWidth(index, new_size)
+
+    def update_pattern_matches(self, *args):
+        self.pattern_matches.clear()
+
+        if not self.channels_db:
+            return
+
+        pattern = self.pattern.text().strip()
+        case_sensitive = self.case_sensitivity_pattern.currentText() == "Case sensitive"
+        match_type = self.pattern_match_type.currentText()
+
+        if match_type == "Wildcard":
+            wild = f"__{os.urandom(3).hex()}WILDCARD{os.urandom(3).hex()}__"
+            pattern = pattern.replace("*", wild)
+            pattern = re.escape(pattern)
+            pattern = pattern.replace(wild, ".*")
+
+        if case_sensitive:
+            pattern = re.compile(pattern)
+        else:
+            pattern = re.compile(f"(?i){pattern}")
+
+        matches = {}
+
+        for name, entries in self.channels_db.items():
+            if pattern.fullmatch(name):
+                for entry in entries:
+                    if entry in matches:
+                        continue
+                    matches[entry] = name
+
+        items = [QtWidgets.QTreeWidgetItem([name]) for entry, name in matches.items()]
+
+        self.pattern_matches.addTopLevelItems(items)

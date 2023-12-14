@@ -29,7 +29,7 @@ from .plot import Plot
 class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def __init__(self, files=None, *args, **kwargs):
         super(Ui_PyMDFMainWindow, self).__init__(*args, **kwargs)
-        WithMDIArea.__init__(self)
+        WithMDIArea.__init__(self, comparison=True)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
         self._settings.setValue("current_theme", self._settings.value("theme", "Light"))

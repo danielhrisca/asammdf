@@ -1320,6 +1320,7 @@ class Plot(QtWidgets.QWidget):
     splitter_moved = QtCore.Signal(object, int)
     pattern_group_added = QtCore.Signal(object, object)
     verify_bookmarks = QtCore.Signal(list, object)
+    x_range_changed_signal = QtCore.Signal(object, object)
 
     item_double_click_handling = "enable/disable"
     dynamic_columns_width = True
@@ -1366,6 +1367,7 @@ class Plot(QtWidgets.QWidget):
         self.info_uuid = None
 
         self._can_switch_mode = True
+        self._inhibit_x_range_changed_signal = False
         self._inhibit_timestamp_signals = False
         self._inhibit_timestamp_signals_timer = QtCore.QTimer()
         self._inhibit_timestamp_signals_timer.setSingleShot(True)
@@ -1719,69 +1721,64 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.itemExpanded.connect(self.update_current_values)
         self.channel_selection.verticalScrollBar().valueChanged.connect(self.update_current_values)
 
-        self.keyboard_events = (
-            set(
-                [
-                    QtCore.QKeyCombination(
-                        QtCore.Qt.KeyboardModifier.NoModifier,
-                        QtCore.Qt.Key.Key_M,
-                    ).toCombined(),
-                    QtCore.QKeyCombination(
-                        QtCore.Qt.KeyboardModifier.NoModifier,
-                        QtCore.Qt.Key.Key_C,
-                    ).toCombined(),
-                    QtCore.QKeyCombination(
-                        QtCore.Qt.KeyboardModifier.ControlModifier,
-                        QtCore.Qt.Key.Key_C,
-                    ).toCombined(),
-                    QtCore.QKeyCombination(
-                        QtCore.Qt.KeyboardModifier.ControlModifier,
-                        QtCore.Qt.Key.Key_B,
-                    ).toCombined(),
-                    QtCore.QKeyCombination(
-                        QtCore.Qt.KeyboardModifier.ControlModifier,
-                        QtCore.Qt.Key.Key_H,
-                    ).toCombined(),
-                    QtCore.QKeyCombination(
-                        QtCore.Qt.KeyboardModifier.ControlModifier,
-                        QtCore.Qt.Key.Key_P,
-                    ).toCombined(),
-                    QtCore.QKeyCombination(
-                        QtCore.Qt.KeyboardModifier.ControlModifier,
-                        QtCore.Qt.Key.Key_T,
-                    ).toCombined(),
-                    QtCore.QKeyCombination(
-                        QtCore.Qt.KeyboardModifier.ControlModifier,
-                        QtCore.Qt.Key.Key_G,
-                    ).toCombined(),
-                    QtCore.QKeyCombination(
-                        QtCore.Qt.KeyboardModifier.NoModifier,
-                        QtCore.Qt.Key.Key_2,
-                    ).toCombined(),
-                    QtCore.QKeyCombination(
-                        QtCore.Qt.KeyboardModifier.NoModifier,
-                        QtCore.Qt.Key.Key_BracketLeft,
-                    ).toCombined(),
-                    QtCore.QKeyCombination(
-                        QtCore.Qt.KeyboardModifier.NoModifier,
-                        QtCore.Qt.Key.Key_BracketRight,
-                    ).toCombined(),
-                    QtCore.QKeyCombination(
-                        QtCore.Qt.KeyboardModifier.NoModifier,
-                        QtCore.Qt.Key.Key_Backspace,
-                    ).toCombined(),
-                    QtCore.QKeyCombination(
-                        QtCore.Qt.KeyboardModifier.ShiftModifier,
-                        QtCore.Qt.Key.Key_Backspace,
-                    ).toCombined(),
-                    QtCore.QKeyCombination(
-                        QtCore.Qt.KeyboardModifier.ShiftModifier,
-                        QtCore.Qt.Key.Key_W,
-                    ).toCombined(),
-                ]
-            )
-            | self.plot.keyboard_events
-        )
+        self.keyboard_events = {
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_M,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_C,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+                QtCore.Qt.Key.Key_C,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+                QtCore.Qt.Key.Key_B,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+                QtCore.Qt.Key.Key_H,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+                QtCore.Qt.Key.Key_P,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+                QtCore.Qt.Key.Key_T,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+                QtCore.Qt.Key.Key_G,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_2,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_BracketLeft,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_BracketRight,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_Backspace,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_Backspace,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_W,
+            ).toCombined(),
+        } | self.plot.keyboard_events
 
         self.splitter.splitterMoved.connect(self.set_splitter)
 
@@ -1894,7 +1891,7 @@ class Plot(QtWidgets.QWidget):
                 if samples.dtype.kind not in "SUV" and np.all(np.isnan(samples)):
                     invalid.append(channel.name)
                 elif channel.conversion:
-                    samples = channel.physical().samples
+                    samples = channel.physical(copy=False).samples
                     if samples.dtype.kind not in "SUV" and np.all(np.isnan(samples)):
                         invalid.append(channel.name)
                     else:
@@ -3428,6 +3425,9 @@ class Plot(QtWidgets.QWidget):
             stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
+        if not self._inhibit_x_range_changed_signal:
+            self.x_range_changed_signal.emit(self, self.plot.viewbox.viewRange()[0])
+
     def zoom_changed(self, inplace=False):
         if self.enable_zoom_history and self.plot.signals and not self.plot.block_zoom_signal:
             snapshot = {
@@ -3518,6 +3518,7 @@ class PlotGraphics(pg.PlotWidget):
 
         self._can_trim = True
         self._can_paint = True
+        self._can_compute_all_timebase = True
         self._can_paint_global = True
         self.mdf = mdf
 
@@ -3731,118 +3732,116 @@ class PlotGraphics(pg.PlotWidget):
 
         self.viewbox.sigXRangeChanged.connect(self.xrange_changed.emit)
 
-        self.keyboard_events = set(
-            [
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.NoModifier,
-                    QtCore.Qt.Key.Key_F,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.ShiftModifier,
-                    QtCore.Qt.Key.Key_F,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.NoModifier,
-                    QtCore.Qt.Key.Key_G,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.ShiftModifier,
-                    QtCore.Qt.Key.Key_G,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.NoModifier,
-                    QtCore.Qt.Key.Key_I,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.NoModifier,
-                    QtCore.Qt.Key.Key_O,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.ShiftModifier,
-                    QtCore.Qt.Key.Key_I,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.ShiftModifier,
-                    QtCore.Qt.Key.Key_O,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.NoModifier,
-                    QtCore.Qt.Key.Key_X,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.NoModifier,
-                    QtCore.Qt.Key.Key_R,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.ControlModifier,
-                    QtCore.Qt.Key.Key_S,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.NoModifier,
-                    QtCore.Qt.Key.Key_S,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.ShiftModifier,
-                    QtCore.Qt.Key.Key_S,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.NoModifier,
-                    QtCore.Qt.Key.Key_Y,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.NoModifier,
-                    QtCore.Qt.Key.Key_Left,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.NoModifier,
-                    QtCore.Qt.Key.Key_Right,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.ShiftModifier,
-                    QtCore.Qt.Key.Key_Left,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.ShiftModifier,
-                    QtCore.Qt.Key.Key_Right,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.ControlModifier,
-                    QtCore.Qt.Key.Key_Left,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.ControlModifier,
-                    QtCore.Qt.Key.Key_Right,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.ShiftModifier,
-                    QtCore.Qt.Key.Key_Up,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.ShiftModifier,
-                    QtCore.Qt.Key.Key_Down,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.ShiftModifier,
-                    QtCore.Qt.Key.Key_PageUp,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.ShiftModifier,
-                    QtCore.Qt.Key.Key_PageDown,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.NoModifier,
-                    QtCore.Qt.Key.Key_H,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.NoModifier,
-                    QtCore.Qt.Key.Key_W,
-                ).toCombined(),
-                QtCore.QKeyCombination(
-                    QtCore.Qt.KeyboardModifier.NoModifier,
-                    QtCore.Qt.Key.Key_Insert,
-                ).toCombined(),
-            ]
-        )
+        self.keyboard_events = {
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_F,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_F,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_G,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_G,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_I,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_O,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_I,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_O,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_X,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_R,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+                QtCore.Qt.Key.Key_S,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_S,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_S,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_Y,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_Left,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_Right,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_Left,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_Right,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+                QtCore.Qt.Key.Key_Left,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+                QtCore.Qt.Key.Key_Right,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_Up,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_Down,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_PageUp,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_PageDown,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_H,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_W,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.NoModifier,
+                QtCore.Qt.Key.Key_Insert,
+            ).toCombined(),
+        }
 
         events = events or []
 
@@ -4051,26 +4050,27 @@ class PlotGraphics(pg.PlotWidget):
         super().close()
 
     def _compute_all_timebase(self):
-        if self._timebase_db:
-            stamps = {id(sig.timestamps): sig.timestamps for sig in self.signals}
+        if self._can_compute_all_timebase:
+            if self._timebase_db:
+                stamps = {id(sig.timestamps): sig.timestamps for sig in self.signals}
 
-            timebases = [timestamps for id_, timestamps in stamps.items() if id_ in self._timebase_db]
+                timebases = [timestamps for id_, timestamps in stamps.items() if id_ in self._timebase_db]
 
-            count = len(timebases)
+                count = len(timebases)
 
-            if count == 0:
-                new_timebase = np.array([])
-            elif count == 1:
-                new_timebase = timebases[0]
+                if count == 0:
+                    new_timebase = np.array([])
+                elif count == 1:
+                    new_timebase = timebases[0]
+                else:
+                    try:
+                        new_timebase = np.unique(np.concatenate(timebases))
+                    except MemoryError:
+                        new_timebase = reduce(np.union1d, timebases)
+
+                self.all_timebase = self.timebase = new_timebase
             else:
-                try:
-                    new_timebase = np.unique(np.concatenate(timebases))
-                except MemoryError:
-                    new_timebase = reduce(np.union1d, timebases)
-
-            self.all_timebase = self.timebase = new_timebase
-        else:
-            self.all_timebase = self.timebase = np.array([])
+                self.all_timebase = self.timebase = np.array([])
 
     def _cursor_moved(self, event):
         pos = self.plot_item.vb.mapSceneToView(event.scenePos()).x()
@@ -4969,11 +4969,11 @@ class PlotGraphics(pg.PlotWidget):
             ):
                 parent = self.parent().parent()
                 uuids = list(
-                    set(
+                    {
                         item.uuid
                         for item in parent.channel_selection.selectedItems()
                         if item.type() == ChannelsTreeItem.Channel
-                    )
+                    }
                 )
 
                 if not uuids:
@@ -5000,11 +5000,11 @@ class PlotGraphics(pg.PlotWidget):
             ):
                 parent = self.parent().parent()
                 uuids = list(
-                    set(
+                    {
                         item.uuid
                         for item in parent.channel_selection.selectedItems()
                         if item.type() == ChannelsTreeItem.Channel
-                    )
+                    }
                 )
 
                 if not uuids:
@@ -5991,7 +5991,7 @@ class CursorInfo(QtWidgets.QLabel):
 
 
 try:
-    import scipy
+    import scipy  # noqa: F401
 
     from .fft_window import FFTWindow
 except ImportError:

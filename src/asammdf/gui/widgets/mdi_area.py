@@ -238,10 +238,10 @@ def extract_signals_using_pattern(mdf, pattern_info, ignore_value2text_conversio
                 if not size:
                     continue
 
-                target = np.ones(size) * filter_value
+                target = np.full(size, filter_value)
 
                 if not raw:
-                    samples = sig.physical().samples
+                    samples = sig.physical(copy=False).samples
                 else:
                     samples = sig.samples
 
@@ -621,7 +621,8 @@ class WithMDIArea:
     windows_modified = QtCore.Signal()
     load_plot_x_range = False
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, comparison=False, *args, **kwargs):
+        self.comparison = comparison
         self._cursor_source = None
         self._region_source = None
         self._splitter_source = None
@@ -697,7 +698,7 @@ class WithMDIArea:
 
                 entries = get_flatten_entries_from_mime(mime_data)
 
-                uuids = set(entry["origin_uuid"] for entry in entries)
+                uuids = {entry["origin_uuid"] for entry in entries}
                 for uuid in uuids:
                     if self.file_by_uuid(uuid):
                         break
@@ -709,7 +710,7 @@ class WithMDIArea:
 
                 computed = [entry for entry in entries if (entry["group_index"], entry["channel_index"]) == (-1, -1)]
 
-                uuids = set(entry["origin_uuid"] for entry in entries)
+                uuids = {entry["origin_uuid"] for entry in entries}
 
             if isinstance(widget, Tabular):
                 dfs = []
@@ -969,10 +970,16 @@ class WithMDIArea:
 
                     required_channels.update(measured_signals)
 
-                    required_channels = {key: sig.physical() for key, sig in required_channels.items()}
+                    required_channels = {key: sig.physical(copy=False) for key, sig in required_channels.items()}
 
                     if required_channels:
-                        all_timebase = np.unique(np.concatenate([sig.timestamps for sig in required_channels.values()]))
+                        all_timebase = np.unique(
+                            np.concatenate(
+                                list(
+                                    {id(sig.timestamps): sig.timestamps for sig in required_channels.values()}.values()
+                                )
+                            )
+                        )
                     else:
                         all_timebase = []
 
@@ -1873,7 +1880,7 @@ class WithMDIArea:
         else:
             flatten_entries = get_flatten_entries_from_mime(names)
 
-            uuids = set(entry["origin_uuid"] for entry in flatten_entries)
+            uuids = {entry["origin_uuid"] for entry in flatten_entries}
 
             for uuid in uuids:
                 if self.file_by_uuid(uuid):
@@ -1883,12 +1890,12 @@ class WithMDIArea:
                 flatten_entries = get_flatten_entries_from_mime(names)
 
             signals_ = [
-                entry for entry in flatten_entries if tuple((entry["group_index"], entry["channel_index"])) != (-1, -1)
+                entry for entry in flatten_entries if (entry["group_index"], entry["channel_index"]) != (-1, -1)
             ]
 
         signals_ = natsorted(signals_)
 
-        uuids = set(entry["origin_uuid"] for entry in signals_)
+        uuids = {entry["origin_uuid"] for entry in signals_}
 
         signals = []
 
@@ -2070,7 +2077,7 @@ class WithMDIArea:
             mime_data = signals
 
         flatten_entries = get_flatten_entries_from_mime(mime_data)
-        uuids = set(entry["origin_uuid"] for entry in flatten_entries)
+        uuids = {entry["origin_uuid"] for entry in flatten_entries}
 
         for uuid in uuids:
             if self.file_by_uuid(uuid):
@@ -2100,7 +2107,7 @@ class WithMDIArea:
             if (entry["group_index"], entry["channel_index"]) == (-1, -1)
         }
 
-        uuids = set(entry["origin_uuid"] for entry in signals_.values())
+        uuids = {entry["origin_uuid"] for entry in signals_.values()}
 
         signals = {}
 
@@ -2262,7 +2269,11 @@ class WithMDIArea:
         if computed:
             measured_signals = {sig.uuid: sig for sig in signals.values()}
             if measured_signals:
-                all_timebase = np.unique(np.concatenate([sig.timestamps for sig in measured_signals.values()]))
+                all_timebase = np.unique(
+                    np.concatenate(
+                        list({id(sig.timestamps): sig.timestamps for sig in measured_signals.values()}.values())
+                    )
+                )
             else:
                 all_timebase = []
 
@@ -2502,7 +2513,7 @@ class WithMDIArea:
         else:
             flatten_entries = get_flatten_entries_from_mime(names)
 
-            uuids = set(entry["origin_uuid"] for entry in flatten_entries)
+            uuids = {entry["origin_uuid"] for entry in flatten_entries}
 
             for uuid in uuids:
                 if self.file_by_uuid(uuid):
@@ -2514,12 +2525,12 @@ class WithMDIArea:
             signals_ = [
                 entry
                 for entry in flatten_entries
-                if tuple((entry["group_index"], entry["channel_index"])) != (NOT_FOUND, NOT_FOUND)
+                if (entry["group_index"], entry["channel_index"]) != (NOT_FOUND, NOT_FOUND)
             ]
 
         signals_ = natsorted(signals_)
 
-        uuids = set(entry["origin_uuid"] for entry in signals_)
+        uuids = {entry["origin_uuid"] for entry in signals_}
 
         dfs = []
         ranges = {}
@@ -2682,11 +2693,15 @@ class WithMDIArea:
         }
 
         if required_channels:
-            all_timebase = np.unique(np.concatenate([sig.timestamps for sig in required_channels.values()]))
+            all_timebase = np.unique(
+                np.concatenate(
+                    list({id(sig.timestamps): sig.timestamps for sig in required_channels.values()}.values())
+                )
+            )
         else:
             all_timebase = []
 
-        required_channels = {key: sig.physical() for key, sig in required_channels.items()}
+        required_channels = {key: sig.physical(copy=False) for key, sig in required_channels.items()}
 
         computation = channel["computation"]
 
@@ -2875,8 +2890,8 @@ class WithMDIArea:
 
             signals = natsorted(signals, key=lambda x: x.name)
 
-            found = set(sig.name for sig in signals)
-            required = set(description["name"] for description in required)
+            found = {sig.name for sig in signals}
+            required = {description["name"] for description in required}
             not_found = [Signal([], [], name=name) for name in sorted(required - found)]
             uuid = os.urandom(6).hex()
             for sig in not_found:
@@ -2940,7 +2955,7 @@ class WithMDIArea:
 
         sections_width = window_info["configuration"].get("header_sections_width", [])
         if sections_width:
-            sections_width = reversed([(i, width) for i, width in enumerate(sections_width)])
+            sections_width = reversed(list(enumerate(sections_width)))
             for column_index, width in sections_width:
                 numeric.channels.columnHeader.setColumnWidth(column_index, width)
                 numeric.channels.dataView.setColumnWidth(
@@ -3126,10 +3141,14 @@ class WithMDIArea:
 
                     plot_signals[sig_uuid] = signal
 
-            measured_signals.update({name: sig for name, sig in new_matrix_signals.items()})
+            measured_signals.update(new_matrix_signals)
 
             if measured_signals:
-                all_timebase = np.unique(np.concatenate([sig.timestamps for sig in measured_signals.values()]))
+                all_timebase = np.unique(
+                    np.concatenate(
+                        list({id(sig.timestamps): sig.timestamps for sig in measured_signals.values()}.values())
+                    )
+                )
             else:
                 all_timebase = []
 
@@ -3155,7 +3174,7 @@ class WithMDIArea:
 
             required_channels.update(measured_signals)
 
-            required_channels = {key: sig.physical() for key, sig in required_channels.items()}
+            required_channels = {key: sig.physical(copy=False) for key, sig in required_channels.items()}
 
             for sig_uuid, channel in computed.items():
                 computation = channel["computation"]
@@ -3300,6 +3319,8 @@ class WithMDIArea:
             owner=self,
         )
 
+        plot.plot._can_compute_all_timebase = False
+
         plot.pattern_group_added.connect(self.add_pattern_group)
         plot.verify_bookmarks.connect(self.verify_bookmarks)
         plot.pattern = pattern_info
@@ -3415,7 +3436,19 @@ class WithMDIArea:
         plot.toggle_focused_mode(focused=window_info["configuration"].get("focused_mode", False))
         plot.toggle_region_values_display_mode(mode=window_info["configuration"].get("delta_mode", "value"))
 
-        plot.plot._can_paint_global = True
+        plot_graphics = plot.plot
+
+        plot_graphics._can_paint_global = True
+        plot_graphics._can_compute_all_timebase = True
+
+        plot_graphics._compute_all_timebase()
+
+        if len(plot_graphics.all_timebase) and plot_graphics.cursor1 is not None:
+            plot_graphics.cursor1.set_value(plot_graphics.all_timebase[0])
+
+        plot_graphics.viewbox._matrixNeedsUpdate = True
+        plot_graphics.viewbox.updateMatrix()
+
         plot.update()
         plot.channel_selection.refresh()
         plot.set_initial_zoom()
@@ -3535,7 +3568,7 @@ class WithMDIArea:
         w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
 
         filter_count = 0
-        available_columns = [signals.index.name] + list(signals.columns)
+        available_columns = [signals.index.name, *signals.columns]
         for filter_info in window_info["configuration"]["filters"]:
             if filter_info["column"] in available_columns:
                 tabular.add_filter()
@@ -3677,15 +3710,11 @@ class WithMDIArea:
 
     def set_subplots_link(self, subplots_link):
         self.subplots_link = subplots_link
-        viewbox = None
         if subplots_link:
             for i, mdi in enumerate(self.mdi_area.subWindowList()):
                 widget = mdi.widget()
                 if isinstance(widget, Plot):
-                    if viewbox is None:
-                        viewbox = widget.plot.viewbox
-                    else:
-                        widget.plot.viewbox.setXLink(viewbox)
+                    widget.x_range_changed_signal.connect(self.set_x_range)
                     widget.cursor_moved_signal.connect(self.set_cursor)
                     widget.region_removed_signal.connect(self.remove_region)
                     widget.region_moved_signal.connect(self.set_region)
@@ -3696,9 +3725,12 @@ class WithMDIArea:
             for mdi in self.mdi_area.subWindowList():
                 widget = mdi.widget()
                 if isinstance(widget, Plot):
-                    widget.plot.viewbox.setXLink(None)
                     try:
                         widget.cursor_moved_signal.disconnect(self.set_cursor)
+                    except:
+                        pass
+                    try:
+                        widget.x_range_changed_signal.disconnect(self.set_x_range)
                     except:
                         pass
                     try:
@@ -3736,6 +3768,17 @@ class WithMDIArea:
             wid = mdi.widget()
             if wid is not widget:
                 wid.set_timestamp(pos)
+
+    def set_x_range(self, widget, x_range):
+        if not self.subplots_link:
+            return
+
+        for mdi in self.mdi_area.subWindowList():
+            wid = mdi.widget()
+            if wid is not widget and isinstance(wid, Plot):
+                wid._inhibit_x_range_changed_signal = True
+                wid.plot.viewbox.setXRange(*x_range, update=True)
+                wid._inhibit_x_range_changed_signal = False
 
     def set_region(self, widget, region):
         if not self.subplots_link:
@@ -3785,7 +3828,7 @@ class WithMDIArea:
         for info in new_functions:
             self.functions[info["name"]] = info["definition"]
 
-        new = set(info["name"] for info in new_functions)
+        new = {info["name"] for info in new_functions}
 
         # changed definitions
         translation = {}

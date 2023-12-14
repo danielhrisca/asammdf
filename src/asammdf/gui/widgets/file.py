@@ -135,7 +135,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.loaded_display_file = Path(""), b""
 
         super(Ui_file_widget, self).__init__(*args, **kwargs)
-        WithMDIArea.__init__(self)
+        WithMDIArea.__init__(self, comparison=False)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
         self.uuid = os.urandom(6).hex()
@@ -212,7 +212,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         try:
                             float(units[0])
                         except:
-                            units = {name: unit for name, unit in zip(names, units)}
+                            units = dict(zip(names, units))
                         else:
                             csv.seek(0)
                             csv.readline()
@@ -328,7 +328,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.empty_channels_mat.insertItems(0, ("skip", "zeros"))
             self.empty_channels_csv.insertItems(0, ("skip", "zeros"))
             try:
-                import scipy
+                import scipy  # noqa: F401
 
                 self.mat_format.insertItems(0, ("4", "5", "7.3"))
             except:
@@ -476,13 +476,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         buses = can_databases[::2]
         dbs = can_databases[1::2]
 
-        databases["CAN"] = [(bus, database) for bus, database in zip(buses, dbs)]
+        databases["CAN"] = list(zip(buses, dbs))
 
         lin_databases = self._settings.value("lin_databases", [])
         buses = lin_databases[::2]
         dbs = lin_databases[1::2]
 
-        databases["LIN"] = [(bus, database) for bus, database in zip(buses, dbs)]
+        databases["LIN"] = list(zip(buses, dbs))
 
         for bus, database in databases["CAN"]:
             item = QtWidgets.QListWidgetItem()
@@ -836,7 +836,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         iterator += 1
 
-                    names = set((_name, *entry) for entry, _name in result.items())
+                    names = {(_name, *entry) for entry, _name in result.items()}
 
                     signals = signals | names
 
@@ -2026,24 +2026,22 @@ MultiRasterSeparator;&
         )
 
         result = mdf.export(
-            **{
-                "fmt": "csv",
-                "filename": file_name,
-                "single_time_base": single_time_base,
-                "time_from_zero": time_from_zero,
-                "empty_channels": empty_channels,
-                "raster": raster or None,
-                "time_as_date": time_as_date,
-                "ignore_value2text_conversions": self.ignore_value2text_conversions,
-                "delimiter": delimiter,
-                "doublequote": doublequote,
-                "escapechar": escapechar,
-                "lineterminator": lineterminator,
-                "quotechar": quotechar,
-                "quoting": quoting,
-                "add_units": add_units,
-                "progress": progress,
-            }
+            fmt="csv",
+            filename=file_name,
+            single_time_base=single_time_base,
+            time_from_zero=time_from_zero,
+            empty_channels=empty_channels,
+            raster=raster or None,
+            time_as_date=time_as_date,
+            ignore_value2text_conversions=self.ignore_value2text_conversions,
+            delimiter=delimiter,
+            doublequote=doublequote,
+            escapechar=escapechar,
+            lineterminator=lineterminator,
+            quotechar=quotechar,
+            quoting=quoting,
+            add_units=add_units,
+            progress=progress,
         )
 
         if result is TERMINATED:
@@ -2475,9 +2473,9 @@ MultiRasterSeparator;&
             geometry = window.geometry()
             geometries.append(geometry)
 
-        if len(set((g.width(), g.x()) for g in geometries)) == 1:
+        if len({(g.width(), g.x()) for g in geometries}) == 1:
             self.mdi_area.tile_vertically()
-        elif len(set((g.height(), g.y()) for g in geometries)) == 1:
+        elif len({(g.height(), g.y()) for g in geometries}) == 1:
             self.mdi_area.tile_horizontally()
         else:
             self.mdi_area.tileSubWindows()
@@ -2605,7 +2603,7 @@ MultiRasterSeparator;&
 
         if output_format == "HDF5":
             try:
-                from h5py import File as HDF5
+                from h5py import File as HDF5  # noqa: F401
             except ImportError:
                 MessageBox.critical(
                     self,
@@ -2627,7 +2625,7 @@ MultiRasterSeparator;&
                     return
             else:
                 try:
-                    from scipy.io import savemat
+                    from scipy.io import savemat  # noqa: F401
                 except ImportError:
                     MessageBox.critical(
                         self,
@@ -2638,7 +2636,7 @@ MultiRasterSeparator;&
 
         elif output_format == "Parquet":
             try:
-                from fastparquet import write as write_parquet
+                from fastparquet import write as write_parquet  # noqa: F401
             except ImportError:
                 MessageBox.critical(
                     self,

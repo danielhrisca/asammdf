@@ -594,7 +594,7 @@ class TableModel(QtCore.QAbstractTableModel):
 
         self.format = fmt
 
-        rows = set(index.row() for index in indexes)
+        rows = {index.row() for index in indexes}
 
         self.backend.set_format(fmt, rows)
 
@@ -648,7 +648,7 @@ class TableView(QtWidgets.QTableView):
         modifiers = event.modifiers()
 
         if key == QtCore.Qt.Key.Key_Delete and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
-            selected_items = set(index.row() for index in self.selectedIndexes() if index.isValid())
+            selected_items = {index.row() for index in self.selectedIndexes() if index.isValid()}
 
             for row in reversed(list(selected_items)):
                 signal = self.backend.signals.pop(row)
@@ -657,7 +657,7 @@ class TableView(QtWidgets.QTableView):
             self.backend.update()
 
         elif key == QtCore.Qt.Key.Key_R and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
-            selected_items = set(index.row() for index in self.selectedIndexes() if index.isValid())
+            selected_items = {index.row() for index in self.selectedIndexes() if index.isValid()}
 
             if selected_items:
                 ranges = []
@@ -687,7 +687,7 @@ class TableView(QtWidgets.QTableView):
             modifiers == (QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier)
             and key == QtCore.Qt.Key.Key_C
         ):
-            selected_items = set(index.row() for index in self.selectedIndexes() if index.isValid())
+            selected_items = {index.row() for index in self.selectedIndexes() if index.isValid()}
 
             if not selected_items:
                 return
@@ -711,7 +711,7 @@ class TableView(QtWidgets.QTableView):
             and key == QtCore.Qt.Key.Key_V
         ):
             info = QtWidgets.QApplication.instance().clipboard().text()
-            selected_items = set(index.row() for index in self.selectedIndexes() if index.isValid())
+            selected_items = {index.row() for index in self.selectedIndexes() if index.isValid()}
 
             if not selected_items:
                 return

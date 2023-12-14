@@ -351,7 +351,7 @@ class ListWidget(QtWidgets.QListWidget):
                         widget = self.itemWidget(item)
                         if item in selected_items:
                             uuids.append(widget.uuid)
-                    self.set_time_offset.emit([absolute, offset] + uuids)
+                    self.set_time_offset.emit([absolute, offset, *uuids])
 
         elif action.text() == "Delete (Del)":
             event = QtGui.QKeyEvent(

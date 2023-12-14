@@ -1281,7 +1281,7 @@ class Signal:
         Parameters
         ----------
         np_type : np.dtype
-            new numpy dtye
+            new numpy dtype
 
         Returns
         -------
@@ -1307,9 +1307,16 @@ class Signal:
             virtual_master_conversion=self.virtual_master_conversion,
         )
 
-    def physical(self) -> Signal:
+    def physical(self, copy: bool = True) -> Signal:
         """
         get the physical samples values
+
+        Parameters
+        ----------
+        copy : bool
+            copy the samples and timestamps in the returned Signal
+
+            .. versionadded:: 7.4.0
 
         Returns
         -------
@@ -1319,7 +1326,10 @@ class Signal:
         """
 
         if not self.raw or self.conversion is None:
-            samples = self.samples.copy()
+            if copy:
+                samples = self.samples.copy()
+            else:
+                samples = self.samples
             encoding = None
         else:
             samples = self.conversion.convert(self.samples)
@@ -1330,7 +1340,7 @@ class Signal:
 
         return Signal(
             samples,
-            self.timestamps.copy(),
+            self.timestamps.copy() if copy else self.timestamps,
             unit=self.unit,
             name=self.name,
             conversion=None,
@@ -1349,7 +1359,7 @@ class Signal:
         )
 
     def validate(self, copy: bool = True) -> Signal:
-        """appply invalidation bits if they are available for this signal
+        """apply invalidation bits if they are available for this signal
 
         Parameters
         ----------
@@ -1364,27 +1374,30 @@ class Signal:
 
         else:
             idx = np.nonzero(~self.invalidation_bits)[0]
-            signal = Signal(
-                self.samples[idx],
-                self.timestamps[idx],
-                self.unit,
-                self.name,
-                self.conversion,
-                self.comment,
-                self.raw,
-                self.master_metadata,
-                self.display_names,
-                self.attachment,
-                self.source,
-                self.bit_count,
-                invalidation_bits=None,
-                encoding=self.encoding,
-                group_index=self.group_index,
-                channel_index=self.channel_index,
-                flags=self.flags,
-                virtual_conversion=self.virtual_conversion,
-                virtual_master_conversion=self.virtual_master_conversion,
-            )
+            if len(idx) == len(self.samples):
+                signal = self
+            else:
+                signal = Signal(
+                    self.samples[idx],
+                    self.timestamps[idx],
+                    self.unit,
+                    self.name,
+                    self.conversion,
+                    self.comment,
+                    self.raw,
+                    self.master_metadata,
+                    self.display_names,
+                    self.attachment,
+                    self.source,
+                    self.bit_count,
+                    invalidation_bits=None,
+                    encoding=self.encoding,
+                    group_index=self.group_index,
+                    channel_index=self.channel_index,
+                    flags=self.flags,
+                    virtual_conversion=self.virtual_conversion,
+                    virtual_master_conversion=self.virtual_master_conversion,
+                )
 
         if copy:
             signal = signal.copy()
