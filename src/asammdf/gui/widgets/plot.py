@@ -3513,6 +3513,7 @@ class PlotGraphics(pg.PlotWidget):
 
         self._can_trim = True
         self._can_paint = True
+        self._can_compute_all_timebase = True
         self._can_paint_global = True
         self.mdf = mdf
 
@@ -4044,26 +4045,28 @@ class PlotGraphics(pg.PlotWidget):
         super().close()
 
     def _compute_all_timebase(self):
-        if self._timebase_db:
-            stamps = {id(sig.timestamps): sig.timestamps for sig in self.signals}
+        if self._can_compute_all_timebase:
+            if self._timebase_db:
+                stamps = {id(sig.timestamps): sig.timestamps for sig in self.signals}
 
-            timebases = [timestamps for id_, timestamps in stamps.items() if id_ in self._timebase_db]
+                timebases = [timestamps for id_, timestamps in stamps.items() if id_ in self._timebase_db]
 
-            count = len(timebases)
+                count = len(timebases)
 
-            if count == 0:
-                new_timebase = np.array([])
-            elif count == 1:
-                new_timebase = timebases[0]
+                if count == 0:
+                    new_timebase = np.array([])
+                elif count == 1:
+                    new_timebase = timebases[0]
+                else:
+                    print("LEEEEEEEEEEEEEEEE", len(timebases), [len(t) for t in timebases], sep="\n")
+                    try:
+                        new_timebase = np.unique(np.concatenate(timebases))
+                    except MemoryError:
+                        new_timebase = reduce(np.union1d, timebases)
+
+                self.all_timebase = self.timebase = new_timebase
             else:
-                try:
-                    new_timebase = np.unique(np.concatenate(timebases))
-                except MemoryError:
-                    new_timebase = reduce(np.union1d, timebases)
-
-            self.all_timebase = self.timebase = new_timebase
-        else:
-            self.all_timebase = self.timebase = np.array([])
+                self.all_timebase = self.timebase = np.array([])
 
     def _cursor_moved(self, event):
         pos = self.plot_item.vb.mapSceneToView(event.scenePos()).x()

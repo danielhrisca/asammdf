@@ -238,7 +238,7 @@ def extract_signals_using_pattern(mdf, pattern_info, ignore_value2text_conversio
                 if not size:
                     continue
 
-                target = np.ones(size) * filter_value
+                target = np.full(size, filter_value)
 
                 if not raw:
                     samples = sig.physical().samples
@@ -3301,6 +3301,8 @@ class WithMDIArea:
             owner=self,
         )
 
+        plot.plot._can_compute_all_timebase = False
+
         plot.pattern_group_added.connect(self.add_pattern_group)
         plot.verify_bookmarks.connect(self.verify_bookmarks)
         plot.pattern = pattern_info
@@ -3416,7 +3418,19 @@ class WithMDIArea:
         plot.toggle_focused_mode(focused=window_info["configuration"].get("focused_mode", False))
         plot.toggle_region_values_display_mode(mode=window_info["configuration"].get("delta_mode", "value"))
 
-        plot.plot._can_paint_global = True
+        plot_graphics = plot.plot
+
+        plot_graphics._can_paint_global = True
+        plot_graphics._can_compute_all_timebase = True
+
+        plot_graphics._compute_all_timebase()
+
+        if len(plot_graphics.all_timebase) and plot_graphics.cursor1 is not None:
+            plot_graphics.cursor1.set_value(plot_graphics.all_timebase[0])
+
+        plot_graphics.viewbox._matrixNeedsUpdate = True
+        plot_graphics.viewbox.updateMatrix()
+
         plot.update()
         plot.channel_selection.refresh()
         plot.set_initial_zoom()

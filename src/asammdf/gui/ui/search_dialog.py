@@ -56,6 +56,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QSpacerItem,
     QTabWidget,
+    QTreeWidget,
     QTreeWidgetItem,
     QWidget,
 )
@@ -203,54 +204,86 @@ class Ui_SearchDialog(object):
         self.tab_2.setObjectName("tab_2")
         self.gridLayout_3 = QGridLayout(self.tab_2)
         self.gridLayout_3.setObjectName("gridLayout_3")
-        self.pattern = QLineEdit(self.tab_2)
-        self.pattern.setObjectName("pattern")
-        self.pattern.setMinimumSize(QSize(300, 0))
+        self.pattern_match_type = QComboBox(self.tab_2)
+        self.pattern_match_type.addItem("")
+        self.pattern_match_type.addItem("")
+        self.pattern_match_type.setObjectName("pattern_match_type")
 
-        self.gridLayout_3.addWidget(self.pattern, 1, 2, 1, 1)
-
-        self.raw = QCheckBox(self.tab_2)
-        self.raw.setObjectName("raw")
-
-        self.gridLayout_3.addWidget(self.raw, 6, 2, 1, 1)
+        self.gridLayout_3.addWidget(self.pattern_match_type, 2, 2, 1, 1)
 
         self.label_2 = QLabel(self.tab_2)
         self.label_2.setObjectName("label_2")
 
         self.gridLayout_3.addWidget(self.label_2, 1, 1, 1, 1)
 
+        self.cancel_pattern_btn = QPushButton(self.tab_2)
+        self.cancel_pattern_btn.setObjectName("cancel_pattern_btn")
+        self.cancel_pattern_btn.setIcon(icon1)
+
+        self.gridLayout_3.addWidget(self.cancel_pattern_btn, 10, 1, 1, 1)
+
+        self.verticalSpacer = QSpacerItem(20, 254, QSizePolicy.Minimum, QSizePolicy.Expanding)
+
+        self.gridLayout_3.addItem(self.verticalSpacer, 9, 1, 1, 1)
+
+        self.define_ranges_btn = QPushButton(self.tab_2)
+        self.define_ranges_btn.setObjectName("define_ranges_btn")
+        icon5 = QIcon()
+        icon5.addFile(":/range.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.define_ranges_btn.setIcon(icon5)
+
+        self.gridLayout_3.addWidget(self.define_ranges_btn, 7, 2, 1, 1)
+
+        self.pattern = QLineEdit(self.tab_2)
+        self.pattern.setObjectName("pattern")
+        self.pattern.setMinimumSize(QSize(300, 0))
+
+        self.gridLayout_3.addWidget(self.pattern, 1, 2, 1, 1)
+
+        self.filter_value = QDoubleSpinBox(self.tab_2)
+        self.filter_value.setObjectName("filter_value")
+        self.filter_value.setDecimals(6)
+        self.filter_value.setMinimum(-9999999999999999635896294965248.000000000000000)
+        self.filter_value.setMaximum(999999999999999983222784.000000000000000)
+
+        self.gridLayout_3.addWidget(self.filter_value, 5, 2, 1, 1)
+
+        self.apply_pattern_btn = QPushButton(self.tab_2)
+        self.apply_pattern_btn.setObjectName("apply_pattern_btn")
+        self.apply_pattern_btn.setIcon(icon2)
+
+        self.gridLayout_3.addWidget(self.apply_pattern_btn, 10, 5, 1, 1)
+
+        self.case_sensitivity_pattern = QComboBox(self.tab_2)
+        self.case_sensitivity_pattern.addItem("")
+        self.case_sensitivity_pattern.addItem("")
+        self.case_sensitivity_pattern.setObjectName("case_sensitivity_pattern")
+
+        self.gridLayout_3.addWidget(self.case_sensitivity_pattern, 3, 2, 1, 1)
+
+        self.raw = QCheckBox(self.tab_2)
+        self.raw.setObjectName("raw")
+
+        self.gridLayout_3.addWidget(self.raw, 6, 2, 1, 1)
+
         self.label_9 = QLabel(self.tab_2)
         self.label_9.setObjectName("label_9")
 
         self.gridLayout_3.addWidget(self.label_9, 8, 1, 1, 1)
 
-        self.label_3 = QLabel(self.tab_2)
-        self.label_3.setObjectName("label_3")
+        self.label_4 = QLabel(self.tab_2)
+        self.label_4.setObjectName("label_4")
 
-        self.gridLayout_3.addWidget(self.label_3, 4, 1, 1, 1)
-
-        self.name = QLineEdit(self.tab_2)
-        self.name.setObjectName("name")
-
-        self.gridLayout_3.addWidget(self.name, 0, 2, 1, 1)
-
-        self.label_6 = QLabel(self.tab_2)
-        self.label_6.setObjectName("label_6")
-
-        self.gridLayout_3.addWidget(self.label_6, 0, 1, 1, 1)
-
-        self.integer_format = QComboBox(self.tab_2)
-        self.integer_format.addItem("")
-        self.integer_format.addItem("")
-        self.integer_format.addItem("")
-        self.integer_format.addItem("")
-        self.integer_format.setObjectName("integer_format")
-
-        self.gridLayout_3.addWidget(self.integer_format, 8, 2, 1, 1)
+        self.gridLayout_3.addWidget(self.label_4, 5, 1, 1, 1)
 
         self.horizontalSpacer_3 = QSpacerItem(282, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
-        self.gridLayout_3.addItem(self.horizontalSpacer_3, 10, 3, 1, 1)
+        self.gridLayout_3.addItem(self.horizontalSpacer_3, 10, 4, 1, 1)
+
+        self.label_5 = QLabel(self.tab_2)
+        self.label_5.setObjectName("label_5")
+
+        self.gridLayout_3.addWidget(self.label_5, 2, 1, 1, 1)
 
         self.filter_type = QComboBox(self.tab_2)
         self.filter_type.addItem("")
@@ -261,61 +294,35 @@ class Ui_SearchDialog(object):
 
         self.gridLayout_3.addWidget(self.filter_type, 4, 2, 1, 1)
 
-        self.cancel_pattern_btn = QPushButton(self.tab_2)
-        self.cancel_pattern_btn.setObjectName("cancel_pattern_btn")
-        self.cancel_pattern_btn.setIcon(icon1)
+        self.label_6 = QLabel(self.tab_2)
+        self.label_6.setObjectName("label_6")
 
-        self.gridLayout_3.addWidget(self.cancel_pattern_btn, 10, 1, 1, 1)
+        self.gridLayout_3.addWidget(self.label_6, 0, 1, 1, 1)
 
-        self.define_ranges_btn = QPushButton(self.tab_2)
-        self.define_ranges_btn.setObjectName("define_ranges_btn")
-        icon5 = QIcon()
-        icon5.addFile(":/range.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.define_ranges_btn.setIcon(icon5)
+        self.name = QLineEdit(self.tab_2)
+        self.name.setObjectName("name")
 
-        self.gridLayout_3.addWidget(self.define_ranges_btn, 7, 2, 1, 1)
+        self.gridLayout_3.addWidget(self.name, 0, 2, 1, 1)
 
-        self.filter_value = QDoubleSpinBox(self.tab_2)
-        self.filter_value.setObjectName("filter_value")
-        self.filter_value.setDecimals(6)
-        self.filter_value.setMinimum(-9999999999999999635896294965248.000000000000000)
-        self.filter_value.setMaximum(999999999999999983222784.000000000000000)
+        self.integer_format = QComboBox(self.tab_2)
+        self.integer_format.addItem("")
+        self.integer_format.addItem("")
+        self.integer_format.addItem("")
+        self.integer_format.addItem("")
+        self.integer_format.setObjectName("integer_format")
 
-        self.gridLayout_3.addWidget(self.filter_value, 5, 2, 1, 1)
+        self.gridLayout_3.addWidget(self.integer_format, 8, 2, 1, 1)
 
-        self.label_4 = QLabel(self.tab_2)
-        self.label_4.setObjectName("label_4")
+        self.label_3 = QLabel(self.tab_2)
+        self.label_3.setObjectName("label_3")
 
-        self.gridLayout_3.addWidget(self.label_4, 5, 1, 1, 1)
+        self.gridLayout_3.addWidget(self.label_3, 4, 1, 1, 1)
 
-        self.label_5 = QLabel(self.tab_2)
-        self.label_5.setObjectName("label_5")
+        self.pattern_matches = QTreeWidget(self.tab_2)
+        self.pattern_matches.setObjectName("pattern_matches")
+        self.pattern_matches.setSortingEnabled(True)
 
-        self.gridLayout_3.addWidget(self.label_5, 2, 1, 1, 1)
-
-        self.verticalSpacer = QSpacerItem(20, 254, QSizePolicy.Minimum, QSizePolicy.Expanding)
-
-        self.gridLayout_3.addItem(self.verticalSpacer, 9, 1, 1, 1)
-
-        self.pattern_match_type = QComboBox(self.tab_2)
-        self.pattern_match_type.addItem("")
-        self.pattern_match_type.addItem("")
-        self.pattern_match_type.setObjectName("pattern_match_type")
-
-        self.gridLayout_3.addWidget(self.pattern_match_type, 2, 2, 1, 1)
-
-        self.apply_pattern_btn = QPushButton(self.tab_2)
-        self.apply_pattern_btn.setObjectName("apply_pattern_btn")
-        self.apply_pattern_btn.setIcon(icon2)
-
-        self.gridLayout_3.addWidget(self.apply_pattern_btn, 10, 4, 1, 1)
-
-        self.case_sensitivity_pattern = QComboBox(self.tab_2)
-        self.case_sensitivity_pattern.addItem("")
-        self.case_sensitivity_pattern.addItem("")
-        self.case_sensitivity_pattern.setObjectName("case_sensitivity_pattern")
-
-        self.gridLayout_3.addWidget(self.case_sensitivity_pattern, 3, 2, 1, 1)
+        self.gridLayout_3.addWidget(self.pattern_matches, 0, 3, 10, 3)
 
         self.gridLayout_3.setRowStretch(4, 1)
         self.gridLayout_3.setColumnStretch(3, 1)
@@ -332,8 +339,7 @@ class Ui_SearchDialog(object):
         QWidget.setTabOrder(self.selection, self.add_window_btn)
         QWidget.setTabOrder(self.add_window_btn, self.apply_btn)
         QWidget.setTabOrder(self.apply_btn, self.cancel_btn)
-        QWidget.setTabOrder(self.cancel_btn, self.tabs)
-        QWidget.setTabOrder(self.tabs, self.name)
+        QWidget.setTabOrder(self.cancel_btn, self.name)
         QWidget.setTabOrder(self.name, self.pattern)
         QWidget.setTabOrder(self.pattern, self.pattern_match_type)
         QWidget.setTabOrder(self.pattern_match_type, self.case_sensitivity_pattern)
@@ -381,7 +387,7 @@ class Ui_SearchDialog(object):
         self.label.setText(QCoreApplication.translate("SearchDialog", "Final selection", None))
         self.cancel_btn.setText(QCoreApplication.translate("SearchDialog", "Cancel", None))
         self.apply_btn.setText(QCoreApplication.translate("SearchDialog", "Apply", None))
-        self.add_window_btn.setText(QCoreApplication.translate("SearchDialog", "Add channels", None))
+        self.add_window_btn.setText(QCoreApplication.translate("SearchDialog", "Add window", None))
         self.label_7.setText(QCoreApplication.translate("SearchDialog", "Search results", None))
         self.search_box.setInputMask("")
         self.search_box.setText("")
@@ -390,35 +396,39 @@ class Ui_SearchDialog(object):
         self.case_sensitivity.setItemText(1, QCoreApplication.translate("SearchDialog", "Case sensitive", None))
 
         self.tabs.setTabText(self.tabs.indexOf(self.tab), QCoreApplication.translate("SearchDialog", "Search", None))
-        self.pattern.setPlaceholderText(QCoreApplication.translate("SearchDialog", "channel name pattern", None))
-        self.raw.setText(QCoreApplication.translate("SearchDialog", "Asses the raw channel values", None))
-        self.label_2.setText(QCoreApplication.translate("SearchDialog", "Pattern", None))
-        self.label_9.setText(QCoreApplication.translate("SearchDialog", "Integer format", None))
-        self.label_3.setText(QCoreApplication.translate("SearchDialog", "Filter type", None))
-        self.label_6.setText(QCoreApplication.translate("SearchDialog", "Name", None))
-        self.integer_format.setItemText(0, QCoreApplication.translate("SearchDialog", "phys", None))
-        self.integer_format.setItemText(1, QCoreApplication.translate("SearchDialog", "bin", None))
-        self.integer_format.setItemText(2, QCoreApplication.translate("SearchDialog", "hex", None))
-        self.integer_format.setItemText(3, QCoreApplication.translate("SearchDialog", "ascii", None))
-
-        self.filter_type.setItemText(0, QCoreApplication.translate("SearchDialog", "Unspecified", None))
-        self.filter_type.setItemText(1, QCoreApplication.translate("SearchDialog", "Contains", None))
-        self.filter_type.setItemText(2, QCoreApplication.translate("SearchDialog", "Do not contain", None))
-        self.filter_type.setItemText(3, QCoreApplication.translate("SearchDialog", "Constant", None))
-
-        self.cancel_pattern_btn.setText(QCoreApplication.translate("SearchDialog", "Cancel", None))
-        self.define_ranges_btn.setText(QCoreApplication.translate("SearchDialog", "Define ranges", None))
-        self.label_4.setText(QCoreApplication.translate("SearchDialog", "Filter value", None))
-        self.label_5.setText(QCoreApplication.translate("SearchDialog", "Match type", None))
         self.pattern_match_type.setItemText(0, QCoreApplication.translate("SearchDialog", "Wildcard", None))
         self.pattern_match_type.setItemText(1, QCoreApplication.translate("SearchDialog", "Regex", None))
 
+        self.label_2.setText(QCoreApplication.translate("SearchDialog", "Pattern", None))
+        self.cancel_pattern_btn.setText(QCoreApplication.translate("SearchDialog", "Cancel", None))
+        self.define_ranges_btn.setText(QCoreApplication.translate("SearchDialog", "Define ranges", None))
+        self.pattern.setPlaceholderText(QCoreApplication.translate("SearchDialog", "channel name pattern", None))
         self.apply_pattern_btn.setText(QCoreApplication.translate("SearchDialog", "Apply", None))
         self.case_sensitivity_pattern.setItemText(
             0, QCoreApplication.translate("SearchDialog", "Case insensitive", None)
         )
         self.case_sensitivity_pattern.setItemText(1, QCoreApplication.translate("SearchDialog", "Case sensitive", None))
 
+        self.raw.setText(QCoreApplication.translate("SearchDialog", "Use the raw channel values", None))
+        self.label_9.setText(QCoreApplication.translate("SearchDialog", "Integer format", None))
+        self.label_4.setText(QCoreApplication.translate("SearchDialog", "Filter value", None))
+        self.label_5.setText(QCoreApplication.translate("SearchDialog", "Match type", None))
+        self.filter_type.setItemText(0, QCoreApplication.translate("SearchDialog", "Unspecified", None))
+        self.filter_type.setItemText(1, QCoreApplication.translate("SearchDialog", "Contains", None))
+        self.filter_type.setItemText(2, QCoreApplication.translate("SearchDialog", "Do not contain", None))
+        self.filter_type.setItemText(3, QCoreApplication.translate("SearchDialog", "Constant", None))
+
+        self.label_6.setText(QCoreApplication.translate("SearchDialog", "Name", None))
+        self.integer_format.setItemText(0, QCoreApplication.translate("SearchDialog", "phys", None))
+        self.integer_format.setItemText(1, QCoreApplication.translate("SearchDialog", "bin", None))
+        self.integer_format.setItemText(2, QCoreApplication.translate("SearchDialog", "hex", None))
+        self.integer_format.setItemText(3, QCoreApplication.translate("SearchDialog", "ascii", None))
+
+        self.label_3.setText(QCoreApplication.translate("SearchDialog", "Filter type", None))
+        ___qtreewidgetitem2 = self.pattern_matches.headerItem()
+        ___qtreewidgetitem2.setText(
+            0, QCoreApplication.translate("SearchDialog", "Channels matching the name pattern", None)
+        )
         self.tabs.setTabText(
             self.tabs.indexOf(self.tab_2), QCoreApplication.translate("SearchDialog", "Pattern definition", None)
         )

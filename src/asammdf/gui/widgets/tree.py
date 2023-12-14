@@ -1367,10 +1367,15 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         elif action_text == "Edit group":
             if item.pattern:
+                mdf = None
+                if self.plot:
+                    if hasattr(self.plot, "mdf"):
+                        mdf = self.plot.mdf
+
                 pattern = dict(item.pattern)
                 pattern["ranges"] = copy_ranges(item.ranges)
                 dlg = AdvancedSearch(
-                    None,
+                    mdf,
                     show_add_window=False,
                     show_apply=True,
                     show_search=False,
