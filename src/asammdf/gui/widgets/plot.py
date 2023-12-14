@@ -1889,7 +1889,7 @@ class Plot(QtWidgets.QWidget):
                 if samples.dtype.kind not in "SUV" and np.all(np.isnan(samples)):
                     invalid.append(channel.name)
                 elif channel.conversion:
-                    samples = channel.physical().samples
+                    samples = channel.physical(copy=False).samples
                     if samples.dtype.kind not in "SUV" and np.all(np.isnan(samples)):
                         invalid.append(channel.name)
                     else:

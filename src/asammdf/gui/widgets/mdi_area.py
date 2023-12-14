@@ -241,7 +241,7 @@ def extract_signals_using_pattern(mdf, pattern_info, ignore_value2text_conversio
                 target = np.full(size, filter_value)
 
                 if not raw:
-                    samples = sig.physical().samples
+                    samples = sig.physical(copy=False).samples
                 else:
                     samples = sig.samples
 
@@ -970,10 +970,16 @@ class WithMDIArea:
 
                     required_channels.update(measured_signals)
 
-                    required_channels = {key: sig.physical() for key, sig in required_channels.items()}
+                    required_channels = {key: sig.physical(copy=False) for key, sig in required_channels.items()}
 
                     if required_channels:
-                        all_timebase = np.unique(np.concatenate([sig.timestamps for sig in required_channels.values()]))
+                        all_timebase = np.unique(
+                            np.concatenate(
+                                list(
+                                    {id(sig.timestamps): sig.timestamps for sig in required_channels.values()}.values()
+                                )
+                            )
+                        )
                     else:
                         all_timebase = []
 
@@ -2263,7 +2269,11 @@ class WithMDIArea:
         if computed:
             measured_signals = {sig.uuid: sig for sig in signals.values()}
             if measured_signals:
-                all_timebase = np.unique(np.concatenate([sig.timestamps for sig in measured_signals.values()]))
+                all_timebase = np.unique(
+                    np.concatenate(
+                        list({id(sig.timestamps): sig.timestamps for sig in measured_signals.values()}.values())
+                    )
+                )
             else:
                 all_timebase = []
 
@@ -2683,11 +2693,15 @@ class WithMDIArea:
         }
 
         if required_channels:
-            all_timebase = np.unique(np.concatenate([sig.timestamps for sig in required_channels.values()]))
+            all_timebase = np.unique(
+                np.concatenate(
+                    list({id(sig.timestamps): sig.timestamps for sig in required_channels.values()}.values())
+                )
+            )
         else:
             all_timebase = []
 
-        required_channels = {key: sig.physical() for key, sig in required_channels.items()}
+        required_channels = {key: sig.physical(copy=False) for key, sig in required_channels.items()}
 
         computation = channel["computation"]
 
@@ -3130,7 +3144,11 @@ class WithMDIArea:
             measured_signals.update(new_matrix_signals)
 
             if measured_signals:
-                all_timebase = np.unique(np.concatenate([sig.timestamps for sig in measured_signals.values()]))
+                all_timebase = np.unique(
+                    np.concatenate(
+                        list({id(sig.timestamps): sig.timestamps for sig in measured_signals.values()}.values())
+                    )
+                )
             else:
                 all_timebase = []
 
@@ -3156,7 +3174,7 @@ class WithMDIArea:
 
             required_channels.update(measured_signals)
 
-            required_channels = {key: sig.physical() for key, sig in required_channels.items()}
+            required_channels = {key: sig.physical(copy=False) for key, sig in required_channels.items()}
 
             for sig_uuid, channel in computed.items():
                 computation = channel["computation"]

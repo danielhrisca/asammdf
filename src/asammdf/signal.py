@@ -1281,7 +1281,7 @@ class Signal:
         Parameters
         ----------
         np_type : np.dtype
-            new numpy dtye
+            new numpy dtype
 
         Returns
         -------
@@ -1307,9 +1307,16 @@ class Signal:
             virtual_master_conversion=self.virtual_master_conversion,
         )
 
-    def physical(self) -> Signal:
+    def physical(self, copy: bool = True) -> Signal:
         """
         get the physical samples values
+
+        Parameters
+        ----------
+        copy : bool
+            copy the samples and timestamps in the returned Signal
+
+            .. versionadded:: 7.4.0
 
         Returns
         -------
@@ -1319,7 +1326,10 @@ class Signal:
         """
 
         if not self.raw or self.conversion is None:
-            samples = self.samples.copy()
+            if copy:
+                samples = self.samples.copy()
+            else:
+                samples = self.samples
             encoding = None
         else:
             samples = self.conversion.convert(self.samples)
@@ -1330,7 +1340,7 @@ class Signal:
 
         return Signal(
             samples,
-            self.timestamps.copy(),
+            self.timestamps.copy() if copy else self.timestamps,
             unit=self.unit,
             name=self.name,
             conversion=None,
