@@ -3710,15 +3710,11 @@ class WithMDIArea:
 
     def set_subplots_link(self, subplots_link):
         self.subplots_link = subplots_link
-        viewbox = None
         if subplots_link:
             for i, mdi in enumerate(self.mdi_area.subWindowList()):
                 widget = mdi.widget()
                 if isinstance(widget, Plot):
-                    if viewbox is None:
-                        viewbox = widget.plot.viewbox
-                    else:
-                        widget.plot.viewbox.setXLink(viewbox)
+                    widget.x_range_changed_signal.connect(self.set_x_range)
                     widget.cursor_moved_signal.connect(self.set_cursor)
                     widget.region_removed_signal.connect(self.remove_region)
                     widget.region_moved_signal.connect(self.set_region)
@@ -3729,9 +3725,12 @@ class WithMDIArea:
             for mdi in self.mdi_area.subWindowList():
                 widget = mdi.widget()
                 if isinstance(widget, Plot):
-                    widget.plot.viewbox.setXLink(None)
                     try:
                         widget.cursor_moved_signal.disconnect(self.set_cursor)
+                    except:
+                        pass
+                    try:
+                        widget.x_range_changed_signal.disconnect(self.set_x_range)
                     except:
                         pass
                     try:
@@ -3769,6 +3768,17 @@ class WithMDIArea:
             wid = mdi.widget()
             if wid is not widget:
                 wid.set_timestamp(pos)
+
+    def set_x_range(self, widget, x_range):
+        if not self.subplots_link:
+            return
+
+        for mdi in self.mdi_area.subWindowList():
+            wid = mdi.widget()
+            if wid is not widget and isinstance(wid, Plot):
+                wid._inhibit_x_range_changed_signal = True
+                wid.plot.viewbox.setXRange(*x_range, update=True)
+                wid._inhibit_x_range_changed_signal = False
 
     def set_region(self, widget, region):
         if not self.subplots_link:

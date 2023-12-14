@@ -123,6 +123,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.setWindowFlag(QtCore.Qt.WindowType.WindowMaximizeButtonHint, True)
 
         self.pattern.editingFinished.connect(self.update_pattern_matches)
+        self.case_sensitivity_pattern.currentIndexChanged.connect(self.update_pattern_matches)
+        self.pattern_match_type.currentIndexChanged.connect(self.update_pattern_matches)
         self.update_pattern_matches()
 
         self.showMaximized()

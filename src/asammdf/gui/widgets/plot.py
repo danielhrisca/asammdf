@@ -1320,6 +1320,7 @@ class Plot(QtWidgets.QWidget):
     splitter_moved = QtCore.Signal(object, int)
     pattern_group_added = QtCore.Signal(object, object)
     verify_bookmarks = QtCore.Signal(list, object)
+    x_range_changed_signal = QtCore.Signal(object, object)
 
     item_double_click_handling = "enable/disable"
     dynamic_columns_width = True
@@ -1366,6 +1367,7 @@ class Plot(QtWidgets.QWidget):
         self.info_uuid = None
 
         self._can_switch_mode = True
+        self._inhibit_x_range_changed_signal = False
         self._inhibit_timestamp_signals = False
         self._inhibit_timestamp_signals_timer = QtCore.QTimer()
         self._inhibit_timestamp_signals_timer.setSingleShot(True)
@@ -3422,6 +3424,9 @@ class Plot(QtWidgets.QWidget):
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
+
+        if not self._inhibit_x_range_changed_signal:
+            self.x_range_changed_signal.emit(self, self.plot.viewbox.viewRange()[0])
 
     def zoom_changed(self, inplace=False):
         if self.enable_zoom_history and self.plot.signals and not self.plot.block_zoom_signal:
