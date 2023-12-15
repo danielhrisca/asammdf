@@ -2181,12 +2181,21 @@ class Plot(QtWidgets.QWidget):
         return channel
 
     def channel_selection_changed(self, update=False):
+        def set_focused(item):
+            if item.type() == item.Channel:
+                item.signal.enable = True
+
+            elif item.type() == item.Group:
+                for i in range(item.childCount()):
+                    set_focused(item.child(i))
+
         if self.focused_mode:
             for signal in self.plot.signals:
                 signal.enable = False
+
             for item in self.channel_selection.selectedItems():
-                if item.type() == item.Channel:
-                    item.signal.enable = True
+                set_focused(item)
+
             self.plot.update()
         else:
             if update:
