@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from pathlib import Path
 
 import numpy as np
@@ -44,10 +43,10 @@ def generate_test_file(tmpdir, version="4.10"):
         sig = Signal(
             np.ones(cycles, dtype=np.uint64) * i,
             t,
-            name="Channel_{}".format(i),
-            unit="unit_{}".format(i),
+            name=f"Channel_{i}",
+            unit=f"unit_{i}",
             conversion=None,
-            comment="Unsigned int 16bit channel {}".format(i),
+            comment=f"Unsigned int 16bit channel {i}",
             raw=True,
         )
         sigs.append(sig)
@@ -64,10 +63,10 @@ def generate_test_file(tmpdir, version="4.10"):
         sig = Signal(
             np.ones(cycles, dtype=np.int64),
             t,
-            name="Channel_{}".format(i),
-            unit="unit_{}".format(i),
+            name=f"Channel_{i}",
+            unit=f"unit_{i}",
             conversion=cls(**conversion),
-            comment="Signed 16bit channel {} with linear conversion".format(i),
+            comment=f"Signed 16bit channel {i} with linear conversion",
             raw=True,
         )
         sigs.append(sig)
@@ -78,15 +77,15 @@ def generate_test_file(tmpdir, version="4.10"):
     for i in range(channels_count):
         conversion = {
             "conversion_type": v4c.CONVERSION_TYPE_ALG if version >= "4.00" else v3c.CONVERSION_TYPE_FORMULA,
-            "formula": "{} * sin(X)".format(i),
+            "formula": f"{i} * sin(X)",
         }
         sig = Signal(
             np.arange(cycles, dtype=np.int32) / 100.0,
             t,
-            name="Channel_{}".format(i),
-            unit="unit_{}".format(i),
+            name=f"Channel_{i}",
+            unit=f"unit_{i}",
             conversion=cls(**conversion),
-            comment="Sinus channel {} with algebraic conversion".format(i),
+            comment=f"Sinus channel {i} with algebraic conversion",
             raw=True,
         )
         sigs.append(sig)
@@ -107,10 +106,10 @@ def generate_test_file(tmpdir, version="4.10"):
         sig = Signal(
             np.ones(cycles, dtype=np.int64),
             t,
-            name="Channel_{}".format(i),
-            unit="unit_{}".format(i),
+            name=f"Channel_{i}",
+            unit=f"unit_{i}",
             conversion=cls(**conversion),
-            comment="Channel {} with rational conversion".format(i),
+            comment=f"Channel {i} with rational conversion",
             raw=True,
         )
         sigs.append(sig)
@@ -120,13 +119,13 @@ def generate_test_file(tmpdir, version="4.10"):
     sigs = []
     encoding = "latin-1" if version < "4.00" else "utf-8"
     for i in range(channels_count):
-        sig = ["Channel {} sample {}".format(i, j).encode(encoding) for j in range(cycles)]
+        sig = [f"Channel {i} sample {j}".encode(encoding) for j in range(cycles)]
         sig = Signal(
             np.array(sig),
             t,
-            name="Channel_{}".format(i),
-            unit="unit_{}".format(i),
-            comment="String channel {}".format(i),
+            name=f"Channel_{i}",
+            unit=f"unit_{i}",
+            comment=f"String channel {i}",
             raw=True,
             encoding=encoding,
         )
@@ -140,9 +139,9 @@ def generate_test_file(tmpdir, version="4.10"):
         sig = Signal(
             ones * i,
             t,
-            name="Channel_{}".format(i),
-            unit="unit_{}".format(i),
-            comment="Byte array channel {}".format(i),
+            name=f"Channel_{i}",
+            unit=f"unit_{i}",
+            comment=f"Byte array channel {i}",
             raw=True,
         )
         sigs.append(sig)
@@ -153,24 +152,24 @@ def generate_test_file(tmpdir, version="4.10"):
     ones = np.ones(cycles, dtype=np.uint64)
     conversion = {
         "raw": np.arange(255, dtype=np.float64),
-        "phys": np.array(["Value {}".format(i).encode("ascii") for i in range(255)]),
+        "phys": np.array([f"Value {i}".encode("ascii") for i in range(255)]),
         "conversion_type": v4c.CONVERSION_TYPE_TABX if version >= "4.00" else v3c.CONVERSION_TYPE_TABX,
         "links_nr": 260,
         "ref_param_nr": 255,
     }
 
     for i in range(255):
-        conversion["val_{}".format(i)] = conversion["param_val_{}".format(i)] = conversion["raw"][i]
-        conversion["text_{}".format(i)] = conversion["phys"][i]
-    conversion["text_{}".format(255)] = "Default"
+        conversion[f"val_{i}"] = conversion[f"param_val_{i}"] = conversion["raw"][i]
+        conversion[f"text_{i}"] = conversion["phys"][i]
+    conversion[f"text_{255}"] = "Default"
 
     for i in range(channels_count):
         sig = Signal(
             ones * i,
             t,
-            name="Channel_{}".format(i),
-            unit="unit_{}".format(i),
-            comment="Value to text channel {}".format(i),
+            name=f"Channel_{i}",
+            unit=f"unit_{i}",
+            comment=f"Value to text channel {i}",
             conversion=cls(**conversion),
             raw=True,
         )
@@ -201,18 +200,18 @@ def generate_arrays_test_file(tmpdir):
         ]
 
         types = [
-            ("Channel_{}".format(i), "(2, 3)<u8"),
-            ("channel_{}_axis_1".format(i), "(2, )<u8"),
-            ("channel_{}_axis_2".format(i), "(3, )<u8"),
+            (f"Channel_{i}", "(2, 3)<u8"),
+            (f"channel_{i}_axis_1", "(2, )<u8"),
+            (f"channel_{i}_axis_2", "(3, )<u8"),
         ]
 
         sig = Signal(
             np.core.records.fromarrays(samples, dtype=np.dtype(types)),
             t,
-            name="Channel_{}".format(i),
-            unit="unit_{}".format(i),
+            name=f"Channel_{i}",
+            unit=f"unit_{i}",
             conversion=None,
-            comment="Array channel {}".format(i),
+            comment=f"Array channel {i}",
             raw=True,
         )
         sigs.append(sig)
@@ -223,15 +222,15 @@ def generate_arrays_test_file(tmpdir):
     for i in range(array_channels_count):
         samples = [np.ones((cycles, 2, 3), dtype=np.uint64) * i]
 
-        types = [("Channel_{}".format(i), "(2, 3)<u8")]
+        types = [(f"Channel_{i}", "(2, 3)<u8")]
 
         sig = Signal(
             np.core.records.fromarrays(samples, dtype=np.dtype(types)),
             t,
-            name="Channel_{}".format(i),
-            unit="unit_{}".format(i),
+            name=f"Channel_{i}",
+            unit=f"unit_{i}",
             conversion=None,
-            comment="Array channel {} with default axis".format(i),
+            comment=f"Array channel {i} with default axis",
             raw=True,
         )
         sigs.append(sig)
@@ -252,23 +251,23 @@ def generate_arrays_test_file(tmpdir):
         ]
 
         types = [
-            ("struct_{}_channel_0".format(i), np.uint8),
-            ("struct_{}_channel_1".format(i), np.uint16),
-            ("struct_{}_channel_2".format(i), np.uint32),
-            ("struct_{}_channel_3".format(i), np.uint64),
-            ("struct_{}_channel_4".format(i), np.int8),
-            ("struct_{}_channel_5".format(i), np.int16),
-            ("struct_{}_channel_6".format(i), np.int32),
-            ("struct_{}_channel_7".format(i), np.int64),
+            (f"struct_{i}_channel_0", np.uint8),
+            (f"struct_{i}_channel_1", np.uint16),
+            (f"struct_{i}_channel_2", np.uint32),
+            (f"struct_{i}_channel_3", np.uint64),
+            (f"struct_{i}_channel_4", np.int8),
+            (f"struct_{i}_channel_5", np.int16),
+            (f"struct_{i}_channel_6", np.int32),
+            (f"struct_{i}_channel_7", np.int64),
         ]
 
         sig = Signal(
             np.core.records.fromarrays(samples, dtype=np.dtype(types)),
             t,
-            name="Channel_{}".format(i),
-            unit="unit_{}".format(i),
+            name=f"Channel_{i}",
+            unit=f"unit_{i}",
             conversion=None,
-            comment="Structure channel composition {}".format(i),
+            comment=f"Structure channel composition {i}",
             raw=True,
         )
         sigs.append(sig)

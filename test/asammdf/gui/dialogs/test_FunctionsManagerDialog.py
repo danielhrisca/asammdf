@@ -220,7 +220,7 @@ class TestPushButtons(TestBase):
 
         # Evaluate
         self.assertTrue(saved_file.exists())
-        with open(saved_file, "r") as fpr:
+        with open(saved_file) as fpr:
             content = json.load(fpr)
             self.assertDictEqual(content, {"Function1": "def Function1(t=0):\n    return 0"})
 
@@ -328,7 +328,7 @@ class TestPushButtons(TestBase):
 
         # Evaluate
         self.assertTrue(saved_file.exists())
-        with open(saved_file, "r") as fpr:
+        with open(saved_file) as fpr:
             content = json.load(fpr)
             self.assertIn(maximum.__name__, content)
             self.assertIn(content["maximum"], source)
