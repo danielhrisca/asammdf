@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Iterator
 import logging
 from textwrap import fill
-from traceback import format_exc
 from typing import Any
 
 import numpy as np
