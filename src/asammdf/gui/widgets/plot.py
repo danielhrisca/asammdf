@@ -5291,8 +5291,7 @@ class PlotGraphics(pg.PlotWidget):
                             pen.setWidth(pen_width)
 
                             paint.setPen(pen)
-                            pp = self.generatePath(x, y)
-                            paint.drawPath(pp)
+                            paint.drawPath(self.generatePath(x, y))
 
                             curve.opts["connect"] = default_connect
 

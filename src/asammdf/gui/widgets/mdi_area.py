@@ -3773,11 +3773,20 @@ class WithMDIArea:
         if not self.subplots_link:
             return
 
+        if not isinstance(x_range, (tuple, list)):
+            return
+
+        if not len(x_range) == 2:
+            return
+
+        if np.any(np.isnan(x_range)) or not np.all(np.isfinite(x_range)):
+            return
+
         for mdi in self.mdi_area.subWindowList():
             wid = mdi.widget()
             if wid is not widget and isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = True
-                wid.plot.viewbox.setXRange(*x_range, update=True)
+                wid.plot.viewbox.setXRange(*x_range, padding=0, update=True)
                 wid._inhibit_x_range_changed_signal = False
 
     def set_region(self, widget, region):
