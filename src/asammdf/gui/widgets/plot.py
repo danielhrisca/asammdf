@@ -19,12 +19,11 @@ PLOT_BUFFER_SIZE = 4000
 
 from ... import tool as Tool
 from ...blocks.conversion_utils import from_dict, to_dict
+from ...blocks.cutils import get_idx_with_edges, positions
 from ...blocks.utils import target_byte_order
 from ..dialogs.messagebox import MessageBox
 from ..utils import FONT_SIZE, value_as_str
 from .viewbox import ViewBoxWithCursor
-
-from ...blocks.cutils import positions, get_idx_with_edges
 
 
 @lru_cache(maxsize=1024)
@@ -4251,7 +4250,6 @@ class PlotGraphics(pg.PlotWidget):
             self.edit_channel_request.emit(computed_channel, item)
 
     def generatePath(self, x, y, sig=None):
-        print(["GENERATE", x, y, sig])
         if sig is None or sig.path is None:
             if x is None or len(x) == 0 or y is None or len(y) == 0:
                 path = QtGui.QPainterPath()
@@ -4261,8 +4259,6 @@ class PlotGraphics(pg.PlotWidget):
                 sig.path = path
         else:
             path = sig.path
-
-        print(path, id(path))
 
         return path
 
@@ -5165,6 +5161,10 @@ class PlotGraphics(pg.PlotWidget):
             else:
                 cap_style = QtCore.Qt.PenCapStyle.RoundCap
 
+            curve = self._curve
+            step_mode = self.line_interconnect
+            default_connect = curve.opts["connect"]
+
             for i, sig in enumerate(self.signals):
                 if (
                     not sig.enable
@@ -5173,9 +5173,6 @@ class PlotGraphics(pg.PlotWidget):
                     and sig.uuid == self.current_uuid
                 ):
                     continue
-
-                print("==========\n" * 2)
-                print(sig.name)
 
                 y = sig.plot_samples
                 x = sig.plot_timestamps
@@ -5216,7 +5213,6 @@ class PlotGraphics(pg.PlotWidget):
 
                 if ranges:
                     for range_info in ranges:
-                        print(range_info)
                         val = range_info["value1"]
                         if val is not None and isinstance(val, float):
                             op = range_info["op1"]
@@ -5264,35 +5260,43 @@ class PlotGraphics(pg.PlotWidget):
                             if not np.any(idx):
                                 continue
 
-                            idx_with_edges = get_idx_with_edges(idx)
+                            if step_mode == "right":
+                                idx_with_edges = get_idx_with_edges(idx)
+                                _connect = "finite"
+                                y = sig.plot_samples.astype("f8")
+                                y[~idx_with_edges] = np.inf
+                                x = sig.plot_timestamps
 
-                            print(idx, idx_with_edges, sep="\n")
+                            elif step_mode == "":
+                                last = idx[-1]
+                                idx_with_edges = np.roll(idx, -1)
+                                idx_with_edges[-1] = last
+                                _connect = idx_with_edges.view("u1")
+                                y = sig.plot_samples.astype("f8")
+                                x = sig.plot_timestamps
 
-                            y = sig.plot_samples.astype("f8")
-                            y[~idx_with_edges] = np.inf
-                            x = sig.plot_timestamps
+                            if step_mode == "left":
+                                idx_with_edges = np.repeat(get_idx_with_edges(idx), 2)
+                                idx_with_edges = np.insert(idx_with_edges, 0, idx_with_edges[0])
+                                _connect = idx_with_edges[:-1].view("u1")
+                                y = sig.plot_samples.astype("f8")
+                                x = sig.plot_timestamps
 
-                            print(len(x), len(y))
+                            curve.opts["connect"] = _connect
 
                             x, y = self.scale_curve_to_pixmap(x, y, y_range=sig.y_range, x_start=x_start, delta=delta)
-
-                            print(x.tolist(), y.tolist())
 
                             color = range_info["font_color"]
                             pen = fn.mkPen(color.name())
                             pen.setWidth(pen_width)
 
                             paint.setPen(pen)
-                            print("gen", x, y, sep="\n")
                             pp = self.generatePath(x, y)
-                            print(pp)
-                            print("draw")
-                            pp.clear()
-                            del pp
-                            # paint.drawPath(pp)
-                            print("dots")
+                            paint.drawPath(pp)
 
-                            if with_dots and 0:
+                            curve.opts["connect"] = default_connect
+
+                            if with_dots:
                                 y = sig.plot_samples.astype("f8")
                                 y[~idx] = np.inf
 
@@ -5317,7 +5321,7 @@ class PlotGraphics(pg.PlotWidget):
                                 arr[:, 1] = y
                                 paint.drawPoints(poly)
                                 paint.setRenderHints(paint.RenderHint.Antialiasing, False)
-                            print("done\n")
+
             paint.end()
 
         paint = QtGui.QPainter()

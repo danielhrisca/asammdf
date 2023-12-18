@@ -253,6 +253,8 @@ static PyObject* extract(PyObject* self, PyObject* args)
             descr->elsize = max;
 
             vals = (PyArrayObject *) PyArray_Zeros(1, dims, descr, 0);
+
+            Py_XDECREF(descr);
             
             if (offsets == Py_None) {
 
@@ -273,9 +275,9 @@ static PyObject* extract(PyObject* self, PyObject* args)
                     size = calc_size(&buf[offset]);
                     memcpy(addr2, &buf[offset+4], size);
                 }
+                Py_XDECREF(offsets_list);
             }
         }
-        Py_XDECREF(offsets_list);
     }
 
     return (PyObject *) vals;
@@ -353,8 +355,7 @@ static PyObject* get_vlsd_max_sample_size(PyObject* self, PyObject* args)
 {
     int i = 0;
     Py_ssize_t count = 0;
-    PyObject* data, * offsets, * result;
-    npy_intp dim[1];
+    PyObject* data, * offsets;
     unsigned long long max_size = 0;
     unsigned long vlsd_size = 0;
     char* inptr=NULL, *data_end=NULL, *current_position=NULL;
@@ -368,7 +369,7 @@ static PyObject* get_vlsd_max_sample_size(PyObject* self, PyObject* args)
     }
     else
     {
-        offsets_array = (unsigned long long*)PyArray_GETPTR1(offsets, 0);
+        offsets_array = (unsigned long long*)PyArray_GETPTR1((PyArrayObject *)offsets, 0);
         inptr = PyBytes_AsString(data);
         data_end = inptr + PyBytes_GET_SIZE(data);
 
@@ -395,15 +396,15 @@ void positions_char(PyObject* samples, PyObject* timestamps, PyObject* plot_samp
     long* outdata;
     int pos_min = 0, pos_max = 0;
     
-    indata = (char*)PyArray_GETPTR1(samples, 0);
-    outdata = (long*)PyArray_GETPTR1(result, 0);
+    indata = (char*)PyArray_GETPTR1((PyArrayObject *)samples, 0);
+    outdata = (long*)PyArray_GETPTR1((PyArrayObject *)result, 0);
 
     char * ps;
     double tmin, tmax, * ts, *pt;
 
-    ps = (char*)PyArray_GETPTR1(plot_samples, 0);
-    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
-    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+    ps = (char*)PyArray_GETPTR1((PyArrayObject *)plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
     int current_pos = 0, stop_index=count-1;
     for (int i = 0; i < (int)count; i++) {
@@ -465,15 +466,15 @@ void positions_short(PyObject* samples, PyObject* timestamps, PyObject* plot_sam
     long* outdata;
     int pos_min = 0, pos_max = 0;
 
-    indata = (short*)PyArray_GETPTR1(samples, 0);
-    outdata = (long*)PyArray_GETPTR1(result, 0);
+    indata = (short*)PyArray_GETPTR1((PyArrayObject *)samples, 0);
+    outdata = (long*)PyArray_GETPTR1((PyArrayObject *)result, 0);
 
     short * ps;
     double tmin, tmax, * ts, *pt;
 
-    ps = (short*)PyArray_GETPTR1(plot_samples, 0);
-    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
-    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+    ps = (short*)PyArray_GETPTR1((PyArrayObject *)plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
     int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
@@ -535,15 +536,15 @@ void positions_long(PyObject* samples, PyObject* timestamps, PyObject* plot_samp
     long* outdata;
     int pos_min = 0, pos_max = 0;
 
-    indata = (long*)PyArray_GETPTR1(samples, 0);
-    outdata = (long*)PyArray_GETPTR1(result, 0);
+    indata = (long*)PyArray_GETPTR1((PyArrayObject *)samples, 0);
+    outdata = (long*)PyArray_GETPTR1((PyArrayObject *)result, 0);
 
     long * ps;
     double tmin, tmax, * ts, *pt;
 
-    ps = (long*)PyArray_GETPTR1(plot_samples, 0);
-    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
-    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+    ps = (long*)PyArray_GETPTR1((PyArrayObject *)plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
     int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
@@ -605,15 +606,15 @@ void positions_long_long(PyObject* samples, PyObject* timestamps, PyObject* plot
     long* outdata;
     int pos_min = 0, pos_max = 0;
 
-    indata = (long long*)PyArray_GETPTR1(samples, 0);
-    outdata = (long*)PyArray_GETPTR1(result, 0);
+    indata = (long long*)PyArray_GETPTR1((PyArrayObject *)samples, 0);
+    outdata = (long*)PyArray_GETPTR1((PyArrayObject *)result, 0);
 
     long long * ps;
     double tmin, tmax, * ts, * pt;
 
-    ps = (long long*)PyArray_GETPTR1(plot_samples, 0);
-    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
-    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+    ps = (long long*)PyArray_GETPTR1((PyArrayObject *)plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
     int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
@@ -675,15 +676,15 @@ void positions_unsigned_char(PyObject* samples, PyObject* timestamps, PyObject* 
     long* outdata;
     int pos_min = 0, pos_max = 0;
 
-    indata = (unsigned char*)PyArray_GETPTR1(samples, 0);
-    outdata = (long*)PyArray_GETPTR1(result, 0);
+    indata = (unsigned char*)PyArray_GETPTR1((PyArrayObject *)samples, 0);
+    outdata = (long*)PyArray_GETPTR1((PyArrayObject *)result, 0);
 
     unsigned char* ps;
     double tmin, tmax, * ts, * pt;
 
-    ps = (unsigned char*)PyArray_GETPTR1(plot_samples, 0);
-    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
-    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+    ps = (unsigned char*)PyArray_GETPTR1((PyArrayObject *)plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
     int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
@@ -745,15 +746,15 @@ void positions_unsigned_short(PyObject* samples, PyObject* timestamps, PyObject*
     long* outdata;
     int pos_min = 0, pos_max = 0;
 
-    indata = (unsigned short *)PyArray_GETPTR1(samples, 0);
-    outdata = (long*)PyArray_GETPTR1(result, 0);
+    indata = (unsigned short *)PyArray_GETPTR1((PyArrayObject *)samples, 0);
+    outdata = (long*)PyArray_GETPTR1((PyArrayObject *)result, 0);
 
     unsigned short* ps;
     double tmin, tmax, * ts, * pt;
 
-    ps = (unsigned short*)PyArray_GETPTR1(plot_samples, 0);
-    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
-    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+    ps = (unsigned short*)PyArray_GETPTR1((PyArrayObject *)plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
     int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
@@ -815,15 +816,15 @@ void positions_unsigned_long(PyObject* samples, PyObject* timestamps, PyObject* 
     long* outdata;
     int pos_min = 0, pos_max = 0;
 
-    indata = (unsigned long*)PyArray_GETPTR1(samples, 0);
-    outdata = (long*)PyArray_GETPTR1(result, 0);
+    indata = (unsigned long*)PyArray_GETPTR1((PyArrayObject *)samples, 0);
+    outdata = (long*)PyArray_GETPTR1((PyArrayObject *)result, 0);
 
     unsigned long* ps;
     double tmin, tmax, * ts, * pt;
 
-    ps = (unsigned long*)PyArray_GETPTR1(plot_samples, 0);
-    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
-    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+    ps = (unsigned long*)PyArray_GETPTR1((PyArrayObject *)plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
     int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
@@ -885,15 +886,15 @@ void positions_unsigned_long_long(PyObject* samples, PyObject* timestamps, PyObj
     long* outdata;
     int pos_min = 0, pos_max = 0;
 
-    indata = (unsigned long long *)PyArray_GETPTR1(samples, 0);
-    outdata = (long*)PyArray_GETPTR1(result, 0);
+    indata = (unsigned long long *)PyArray_GETPTR1((PyArrayObject *)samples, 0);
+    outdata = (long*)PyArray_GETPTR1((PyArrayObject *)result, 0);
 
     unsigned long long* ps;
     double tmin, tmax, * ts, * pt;
 
-    ps = (unsigned long long*)PyArray_GETPTR1(plot_samples, 0);
-    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
-    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+    ps = (unsigned long long*)PyArray_GETPTR1((PyArrayObject *)plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
     int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
@@ -955,15 +956,15 @@ void positions_float(PyObject* samples, PyObject* timestamps, PyObject* plot_sam
     long* outdata= NULL;
     int pos_min = 0, pos_max = 0;
 
-    indata = (float*)PyArray_GETPTR1(samples, 0);
-    outdata = (long*)PyArray_GETPTR1(result, 0);
+    indata = (float*)PyArray_GETPTR1((PyArrayObject *)samples, 0);
+    outdata = (long*)PyArray_GETPTR1((PyArrayObject *)result, 0);
 
     float* ps;
     double tmin, tmax, * ts, * pt;
 
-    ps = (float*)PyArray_GETPTR1(plot_samples, 0);
-    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
-    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+    ps = (float*)PyArray_GETPTR1((PyArrayObject *)plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
     int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
@@ -1021,19 +1022,19 @@ void positions_float(PyObject* samples, PyObject* timestamps, PyObject* plot_sam
 
 void positions_double(PyObject* samples, PyObject* timestamps, PyObject* plot_samples, PyObject* plot_timestamps, PyObject* result, long step, long count, long last)
 {
-    double min, max, val, * indata=NULL;
+    double min, max, * indata=NULL;
     long* outdata = NULL;
     int pos_min = 0, pos_max = 0;
 
-    indata = (double*)PyArray_GETPTR1(samples, 0);
-    outdata = (long*)PyArray_GETPTR1(result, 0);
+    indata = (double*)PyArray_GETPTR1((PyArrayObject *)samples, 0);
+    outdata = (long*)PyArray_GETPTR1((PyArrayObject *)result, 0);
 
     double* ps = NULL;
     double tmin, tmax, * ts = NULL, * pt = NULL;
 
-    ps = (double*)PyArray_GETPTR1(plot_samples, 0);
-    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
-    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+    ps = (double*)PyArray_GETPTR1((PyArrayObject *)plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
     int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
@@ -1255,9 +1256,8 @@ static PyObject* data_block_from_arrays(PyObject* self, PyObject* args)
 static PyObject* get_idx_with_edges(PyObject* self, PyObject* args)
 {
     int i = 0;
-    PyObject *idx;
-    PyArrayObject *result;
-    PyArray_Descr *descr;
+    PyObject *idx=NULL;
+    PyArrayObject *result=NULL;
 
     uint8_t *out_array, * idx_array, previous=1, current=0;
 
@@ -1269,24 +1269,26 @@ static PyObject* get_idx_with_edges(PyObject* self, PyObject* args)
     else
     {
         npy_intp dims[1], count;
-        count = PyArray_SIZE(idx);
-        dims[0] = count;
-        descr = PyArray_DescrFromType(NPY_BOOL);
-        
-        result = (PyArrayObject *) PyArray_Zeros(1, dims, descr, 0);
+        count = PyArray_SIZE((PyArrayObject *)idx);
+        dims[0] = count;   
+        result = PyArray_ZEROS(1, dims, NPY_BOOL, 0);
 
-        idx_array = (uint8_t *)PyArray_GETPTR1(idx, 0);
+        idx_array = (uint8_t *)PyArray_GETPTR1((PyArrayObject *)idx, 0);
         out_array = (uint8_t *)PyArray_GETPTR1(result, 0);
 
         for (i = 0; i < count; i++, idx_array++, out_array++)
         {
             current = *idx_array;
             if (current) {
-                if (current != previous) *(out_array-1) = 1;
+                if (current != previous) {
+                    *(out_array-1) = 1;
+                }
                 *out_array = 1;
             }
             else {
-                if (current != previous) *(out_array-1) = 0;
+                if (current != previous && i) {
+                    *(out_array-1) = 0;
+                }
             }
             previous = current;
         }
