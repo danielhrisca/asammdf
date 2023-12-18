@@ -253,8 +253,6 @@ static PyObject* extract(PyObject* self, PyObject* args)
             descr->elsize = max;
 
             vals = (PyArrayObject *) PyArray_Zeros(1, dims, descr, 0);
-
-            Py_XDECREF(descr);
             
             if (offsets == Py_None) {
 
