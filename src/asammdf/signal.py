@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Iterator
 import logging
 from textwrap import fill
-from traceback import format_exc
 from typing import Any
 
 import numpy as np
@@ -224,7 +223,6 @@ class Signal:
             return
 
         except:
-            print(format_exc())
             try:
                 import matplotlib.pyplot as plt
                 from matplotlib.widgets import Slider
