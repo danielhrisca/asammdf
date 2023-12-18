@@ -3929,291 +3929,284 @@ class MDF:
                 yield df
 
             mdf.close()
-            return
-
-        # else: channels is None
-
-        df = {}
-        self._set_temporary_master(None)
-
-        masters = {index: self.get_master(index) for index in self.virtual_groups}
-
-        if raster is not None:
-            try:
-                raster = float(raster)
-                assert raster > 0
-            except (TypeError, ValueError):
-                if isinstance(raster, str):
-                    raster = self.get(raster, raw=True, ignore_invalidation_bits=True).timestamps
-                else:
-                    raster = np.array(raster)
-            else:
-                raster = master_using_raster(self, raster)
-            master = raster
         else:
-            if masters:
-                master = reduce(np.union1d, masters.values())
-            else:
-                master = np.array([], dtype="<f4")
-
-        master_ = master
-        channel_count = sum(len(gp.channels) - 1 for gp in self.groups) + 1
-        # approximation with all float64 dtype
-        itemsize = channel_count * 8
-        # use 200MB DataFrame chunks
-        chunk_count = chunk_ram_size // itemsize or 1
-
-        chunks, r = divmod(len(master), chunk_count)
-        if r:
-            chunks += 1
-
-        for i in range(chunks):
-            master = master_[chunk_count * i : chunk_count * (i + 1)]
-            start = master[0]
-            end = master[-1]
+            # channels is None
 
             df = {}
             self._set_temporary_master(None)
 
-            used_names = UniqueDB()
-            used_names.get_unique_name("timestamps")
+            masters = {index: self.get_master(index) for index in self.virtual_groups}
 
-            groups_nr = len(self.virtual_groups)
-
-            if progress is not None:
-                if callable(progress):
-                    progress(0, groups_nr)
+            if raster is not None:
+                try:
+                    raster = float(raster)
+                    assert raster > 0
+                except (TypeError, ValueError):
+                    if isinstance(raster, str):
+                        raster = self.get(raster, raw=True, ignore_invalidation_bits=True).timestamps
+                    else:
+                        raster = np.array(raster)
                 else:
-                    progress.signals.setValue.emit(0)
-                    progress.signals.setMaximum.emit(groups_nr)
+                    raster = master_using_raster(self, raster)
+                master = raster
+            else:
+                if masters:
+                    master = reduce(np.union1d, masters.values())
+                else:
+                    master = np.array([], dtype="<f4")
 
-                    if progress.stop:
-                        return TERMINATED
+            master_ = master
+            channel_count = sum(len(gp.channels) - 1 for gp in self.groups) + 1
+            # approximation with all float64 dtype
+            itemsize = channel_count * 8
+            # use 200MB DataFrame chunks
+            chunk_count = chunk_ram_size // itemsize or 1
 
-            for group_index, virtual_group in self.virtual_groups.items():
-                group_cycles = virtual_group.cycles_nr
-                if group_cycles == 0 and empty_channels == "skip":
-                    continue
+            chunks, r = divmod(len(master), chunk_count)
+            if r:
+                chunks += 1
 
-                record_offset = max(np.searchsorted(masters[group_index], start).flatten()[0] - 1, 0)
-                stop = np.searchsorted(masters[group_index], end).flatten()[0]
-                record_count = min(stop - record_offset + 1, group_cycles)
+            for i in range(chunks):
+                master = master_[chunk_count * i : chunk_count * (i + 1)]
+                start = master[0]
+                end = master[-1]
 
-                channels = [
-                    (None, gp_index, ch_index)
-                    for gp_index, channel_indexes in self.included_channels(group_index)[group_index].items()
-                    for ch_index in channel_indexes
-                ]
-                signals = self.select(
-                    channels,
-                    raw=True,
-                    copy_master=False,
-                    record_offset=record_offset,
-                    record_count=record_count,
-                    validate=False,
-                )
+                df = {}
+                self._set_temporary_master(None)
 
-                if not signals:
-                    continue
+                used_names = UniqueDB()
+                used_names.get_unique_name("timestamps")
 
-                group_master = signals[0].timestamps
+                groups_nr = len(self.virtual_groups)
 
-                for sig in signals:
-                    if len(sig) == 0:
-                        if empty_channels == "zeros":
-                            sig.samples = np.zeros(
-                                len(master) if virtual_group.cycles_nr == 0 else virtual_group.cycles_nr,
-                                dtype=sig.samples.dtype,
-                            )
-                            sig.timestamps = master if virtual_group.cycles_nr == 0 else group_master
+                if progress is not None:
+                    if callable(progress):
+                        progress(0, groups_nr)
+                    else:
+                        progress.signals.setValue.emit(0)
+                        progress.signals.setMaximum.emit(groups_nr)
 
-                if not raw:
-                    for signal in signals:
-                        conversion = signal.conversion
-                        if conversion:
-                            samples = conversion.convert(
-                                signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
-                            )
-                            signal.samples = samples
+                for group_index, virtual_group in self.virtual_groups.items():
+                    group_cycles = virtual_group.cycles_nr
+                    if group_cycles == 0 and empty_channels == "skip":
+                        continue
 
-                        signal.raw = False
-                        signal.conversion = None
-                        if signal.samples.dtype.kind == "S":
-                            signal.encoding = "utf-8" if self.version >= "4.00" else "latin-1"
+                    record_offset = max(np.searchsorted(masters[group_index], start).flatten()[0] - 1, 0)
+                    stop = np.searchsorted(masters[group_index], end).flatten()[0]
+                    record_count = min(stop - record_offset + 1, group_cycles)
 
-                for s_index, sig in enumerate(signals):
-                    sig = sig.validate(copy=False)
-
-                    if len(sig) == 0:
-                        if empty_channels == "zeros":
-                            sig.samples = np.zeros(
-                                len(master) if virtual_group.cycles_nr == 0 else virtual_group.cycles_nr,
-                                dtype=sig.samples.dtype,
-                            )
-                            sig.timestamps = master if virtual_group.cycles_nr == 0 else group_master
-
-                    signals[s_index] = sig
-
-                if use_interpolation:
-                    same_master = np.array_equal(master, group_master)
-
-                    if not same_master and interpolate_outwards_with_nan:
-                        idx = np.argwhere((master >= group_master[0]) & (master <= group_master[-1])).flatten()
-
-                    cycles = len(group_master)
-
-                    signals = [
-                        signal.interp(
-                            master,
-                            integer_interpolation_mode=self._integer_interpolation,
-                            float_interpolation_mode=self._float_interpolation,
-                        )
-                        if not same_master or len(signal) != cycles
-                        else signal
-                        for signal in signals
+                    channels = [
+                        (None, gp_index, ch_index)
+                        for gp_index, channel_indexes in self.included_channels(group_index)[group_index].items()
+                        for ch_index in channel_indexes
                     ]
+                    signals = self.select(
+                        channels,
+                        raw=True,
+                        copy_master=False,
+                        record_offset=record_offset,
+                        record_count=record_count,
+                        validate=False,
+                    )
 
-                    if not same_master and interpolate_outwards_with_nan:
-                        for sig in signals:
-                            sig.timestamps = sig.timestamps[idx]
-                            sig.samples = sig.samples[idx]
+                    if not signals:
+                        continue
 
-                    group_master = master
+                    group_master = signals[0].timestamps
 
-                signals = [sig for sig in signals if len(sig)]
-
-                if signals:
-                    diffs = np.diff(group_master, prepend=-np.inf) > 0
-
-                    if group_master.dtype.byteorder not in target_byte_order:
-                        group_master = group_master.byteswap().newbyteorder()
-
-                    if np.all(diffs):
-                        index = pd.Index(group_master, tupleize_cols=False)
-
-                    else:
-                        idx = np.argwhere(diffs).flatten()
-                        group_master = group_master[idx]
-
-                        index = pd.Index(group_master, tupleize_cols=False)
-
-                        for sig in signals:
-                            sig.samples = sig.samples[idx]
-                            sig.timestamps = sig.timestamps[idx]
-
-                size = len(index)
-                for k, sig in enumerate(signals):
-                    if sig.timestamps.dtype.byteorder not in target_byte_order:
-                        sig.timestamps = sig.timestamps.byteswap().newbyteorder()
-
-                    sig_index = index if len(sig) == size else pd.Index(sig.timestamps, tupleize_cols=False)
-
-                    # byte arrays
-                    if len(sig.samples.shape) > 1:
-                        if use_display_names:
-                            channel_name = list(sig.display_names)[0] if sig.display_names else sig.name
-                        else:
-                            channel_name = sig.name
-
-                        channel_name = used_names.get_unique_name(channel_name)
-
-                        if sig.samples.dtype.byteorder not in target_byte_order:
-                            sig.samples = sig.samples.byteswap().newbyteorder()
-
-                        df[channel_name] = pd.Series(
-                            list(sig.samples),
-                            index=sig_index,
-                        )
-
-                    # arrays and structures
-                    elif sig.samples.dtype.names:
-                        for name, series in components(
-                            sig.samples,
-                            sig.name,
-                            used_names,
-                            master=sig_index,
-                            only_basenames=only_basenames,
-                        ):
-                            df[name] = series
-
-                    # scalars
-                    else:
-                        if use_display_names:
-                            channel_name = list(sig.display_names)[0] if sig.display_names else sig.name
-                        else:
-                            channel_name = sig.name
-
-                        channel_name = used_names.get_unique_name(channel_name)
-
-                        if reduce_memory_usage and sig.samples.dtype.kind in "SU":
-                            unique = np.unique(sig.samples)
-
-                            if sig.samples.dtype.byteorder not in target_byte_order:
-                                sig.samples = sig.samples.byteswap().newbyteorder()
-
-                            if len(sig.samples) / len(unique) >= 2:
-                                df[channel_name] = pd.Series(
-                                    sig.samples,
-                                    index=sig_index,
-                                    dtype="category",
+                    for sig in signals:
+                        if len(sig) == 0:
+                            if empty_channels == "zeros":
+                                sig.samples = np.zeros(
+                                    len(master) if virtual_group.cycles_nr == 0 else virtual_group.cycles_nr,
+                                    dtype=sig.samples.dtype,
                                 )
+                                sig.timestamps = master if virtual_group.cycles_nr == 0 else group_master
+
+                    if not raw:
+                        for signal in signals:
+                            conversion = signal.conversion
+                            if conversion:
+                                samples = conversion.convert(
+                                    signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
+                                )
+                                signal.samples = samples
+
+                            signal.raw = False
+                            signal.conversion = None
+                            if signal.samples.dtype.kind == "S":
+                                signal.encoding = "utf-8" if self.version >= "4.00" else "latin-1"
+
+                    for s_index, sig in enumerate(signals):
+                        sig = sig.validate(copy=False)
+
+                        if len(sig) == 0:
+                            if empty_channels == "zeros":
+                                sig.samples = np.zeros(
+                                    len(master) if virtual_group.cycles_nr == 0 else virtual_group.cycles_nr,
+                                    dtype=sig.samples.dtype,
+                                )
+                                sig.timestamps = master if virtual_group.cycles_nr == 0 else group_master
+
+                        signals[s_index] = sig
+
+                    if use_interpolation:
+                        same_master = np.array_equal(master, group_master)
+
+                        if not same_master and interpolate_outwards_with_nan:
+                            idx = np.argwhere((master >= group_master[0]) & (master <= group_master[-1])).flatten()
+
+                        cycles = len(group_master)
+
+                        signals = [
+                            signal.interp(
+                                master,
+                                integer_interpolation_mode=self._integer_interpolation,
+                                float_interpolation_mode=self._float_interpolation,
+                            )
+                            if not same_master or len(signal) != cycles
+                            else signal
+                            for signal in signals
+                        ]
+
+                        if not same_master and interpolate_outwards_with_nan:
+                            for sig in signals:
+                                sig.timestamps = sig.timestamps[idx]
+                                sig.samples = sig.samples[idx]
+
+                        group_master = master
+
+                    signals = [sig for sig in signals if len(sig)]
+
+                    if signals:
+                        diffs = np.diff(group_master, prepend=-np.inf) > 0
+
+                        if group_master.dtype.byteorder not in target_byte_order:
+                            group_master = group_master.byteswap().newbyteorder()
+
+                        if np.all(diffs):
+                            index = pd.Index(group_master, tupleize_cols=False)
+
+                        else:
+                            idx = np.argwhere(diffs).flatten()
+                            group_master = group_master[idx]
+
+                            index = pd.Index(group_master, tupleize_cols=False)
+
+                            for sig in signals:
+                                sig.samples = sig.samples[idx]
+                                sig.timestamps = sig.timestamps[idx]
+
+                    size = len(index)
+                    for k, sig in enumerate(signals):
+                        if sig.timestamps.dtype.byteorder not in target_byte_order:
+                            sig.timestamps = sig.timestamps.byteswap().newbyteorder()
+
+                        sig_index = index if len(sig) == size else pd.Index(sig.timestamps, tupleize_cols=False)
+
+                        # byte arrays
+                        if len(sig.samples.shape) > 1:
+                            if use_display_names:
+                                channel_name = list(sig.display_names)[0] if sig.display_names else sig.name
                             else:
-                                df[channel_name] = pd.Series(
-                                    sig.samples,
-                                    index=sig_index,
-                                    fastpath=True,
-                                )
-                        else:
-                            if reduce_memory_usage:
-                                sig.samples = downcast(sig.samples)
+                                channel_name = sig.name
+
+                            channel_name = used_names.get_unique_name(channel_name)
 
                             if sig.samples.dtype.byteorder not in target_byte_order:
                                 sig.samples = sig.samples.byteswap().newbyteorder()
 
                             df[channel_name] = pd.Series(
-                                sig.samples,
+                                list(sig.samples),
                                 index=sig_index,
-                                fastpath=True,
                             )
 
-                if progress is not None:
-                    if callable(progress):
-                        progress(group_index + 1, groups_nr)
+                        # arrays and structures
+                        elif sig.samples.dtype.names:
+                            for name, series in components(
+                                sig.samples,
+                                sig.name,
+                                used_names,
+                                master=sig_index,
+                                only_basenames=only_basenames,
+                            ):
+                                df[name] = series
+
+                        # scalars
+                        else:
+                            if use_display_names:
+                                channel_name = list(sig.display_names)[0] if sig.display_names else sig.name
+                            else:
+                                channel_name = sig.name
+
+                            channel_name = used_names.get_unique_name(channel_name)
+
+                            if reduce_memory_usage and sig.samples.dtype.kind in "SU":
+                                unique = np.unique(sig.samples)
+
+                                if sig.samples.dtype.byteorder not in target_byte_order:
+                                    sig.samples = sig.samples.byteswap().newbyteorder()
+
+                                if len(sig.samples) / len(unique) >= 2:
+                                    df[channel_name] = pd.Series(
+                                        sig.samples,
+                                        index=sig_index,
+                                        dtype="category",
+                                    )
+                                else:
+                                    df[channel_name] = pd.Series(
+                                        sig.samples,
+                                        index=sig_index,
+                                        fastpath=True,
+                                    )
+                            else:
+                                if reduce_memory_usage:
+                                    sig.samples = downcast(sig.samples)
+
+                                if sig.samples.dtype.byteorder not in target_byte_order:
+                                    sig.samples = sig.samples.byteswap().newbyteorder()
+
+                                df[channel_name] = pd.Series(
+                                    sig.samples,
+                                    index=sig_index,
+                                    fastpath=True,
+                                )
+
+                    if progress is not None:
+                        if callable(progress):
+                            progress(group_index + 1, groups_nr)
+                        else:
+                            progress.signals.setValue.emit(group_index + 1)
+
+                strings, nonstrings = {}, {}
+
+                for col, series in df.items():
+                    if series.dtype.kind == "S":
+                        strings[col] = series
                     else:
-                        progress.signals.setValue.emit(group_index + 1)
+                        nonstrings[col] = series
 
-                        if progress.stop:
-                            return TERMINATED
+                if numeric_1D_only:
+                    nonstrings = {col: series for col, series in nonstrings.items() if series.dtype.kind in "uif"}
+                    strings = {}
 
-            strings, nonstrings = {}, {}
+                df = pd.DataFrame(nonstrings, index=master)
 
-            for col, series in df.items():
-                if series.dtype.kind == "S":
-                    strings[col] = series
-                else:
-                    nonstrings[col] = series
+                if strings:
+                    df_strings = pd.DataFrame(strings, index=master)
+                    df = pd.concat([df, df_strings], axis=1)
 
-            if numeric_1D_only:
-                nonstrings = {col: series for col, series in nonstrings.items() if series.dtype.kind in "uif"}
-                strings = {}
+                df.index.name = "timestamps"
 
-            df = pd.DataFrame(nonstrings, index=master)
+                if time_as_date:
+                    delta = pd.to_timedelta(df.index, unit="s")
 
-            if strings:
-                df_strings = pd.DataFrame(strings, index=master)
-                df = pd.concat([df, df_strings], axis=1)
+                    new_index = self.header.start_time + delta
+                    df.set_index(new_index, inplace=True)
+                elif time_from_zero and len(master):
+                    df.set_index(df.index - df.index[0], inplace=True)
 
-            df.index.name = "timestamps"
-
-            if time_as_date:
-                delta = pd.to_timedelta(df.index, unit="s")
-
-                new_index = self.header.start_time + delta
-                df.set_index(new_index, inplace=True)
-            elif time_from_zero and len(master):
-                df.set_index(df.index - df.index[0], inplace=True)
-
-            yield df
+                yield df
 
     def to_dataframe(
         self,
