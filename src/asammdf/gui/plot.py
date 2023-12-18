@@ -6,7 +6,6 @@ from ..blocks.utils import plausible_timestamps
 try:
     os.environ["QT_API"] = "pyside6"
     os.environ["PYQTGRAPH_QT_LIB"] = "PySide6"
-    os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
 
     from PySide6 import QtWidgets
 

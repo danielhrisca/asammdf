@@ -6,6 +6,7 @@
 #include "numpy/ndarrayobject.h"
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <time.h>
 
 #define PY_PRINTF(o) \
@@ -1251,6 +1252,49 @@ static PyObject* data_block_from_arrays(PyObject* self, PyObject* args)
     }
 }
 
+static PyObject* get_idx_with_edges(PyObject* self, PyObject* args)
+{
+    int i = 0;
+    PyObject *idx;
+    PyArrayObject *result;
+    PyArray_Descr *descr;
+
+    uint8_t *out_array, * idx_array, previous=1, current=0;
+
+
+    if (!PyArg_ParseTuple(args, "O", &idx))
+    {
+        return 0;
+    }
+    else
+    {
+        npy_intp dims[1], count;
+        count = PyArray_SIZE(idx);
+        dims[0] = count;
+        descr = PyArray_DescrFromType(NPY_BOOL);
+        
+        result = (PyArrayObject *) PyArray_Zeros(1, dims, descr, 0);
+
+        idx_array = (uint8_t *)PyArray_GETPTR1(idx, 0);
+        out_array = (uint8_t *)PyArray_GETPTR1(result, 0);
+
+        for (i = 0; i < count; i++, idx_array++, out_array++)
+        {
+            current = *idx_array;
+            if (current) {
+                if (current != previous) *(out_array-1) = 1;
+                *out_array = 1;
+            }
+            else {
+                if (current != previous) *(out_array-1) = 0;
+            }
+            previous = current;
+        }
+    }
+
+    return (PyObject *) result;
+}
+
 
 // Our Module's Function Definition struct
 // We require this `NULL` to signal the end of our method
@@ -1265,6 +1309,8 @@ static PyMethodDef myMethods[] =
     { "positions", positions, METH_VARARGS, "positions" },
     { "get_channel_raw_bytes", get_channel_raw_bytes, METH_VARARGS, "get_channel_raw_bytes" },
     { "data_block_from_arrays", data_block_from_arrays, METH_VARARGS, "data_block_from_arrays" },
+    { "get_idx_with_edges", get_idx_with_edges, METH_VARARGS, "get_idx_with_edges" },
+    
     
     { NULL, NULL, 0, NULL }
 };
