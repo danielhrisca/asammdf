@@ -187,7 +187,7 @@ def extract_signals_using_pattern(mdf, pattern_info, ignore_value2text_conversio
         if as_names:
             return set()
         else:
-            return dict()
+            return {}
 
     pattern = pattern_info["pattern"]
     match_type = pattern_info["match_type"]
