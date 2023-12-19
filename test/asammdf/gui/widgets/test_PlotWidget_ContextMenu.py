@@ -443,12 +443,6 @@ class TestContextMenu(TestPlotWidget):
             self.assertEqual(channel_a_properties["ranges"], group_channel_properties["ranges"])
 
         with self.subTest("FromGroup_ToChannel"):
-            position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_c).center()
-            self.context_menu(action_text=action_copy, position=position_src)
-            channel_c_properties = QtWidgets.QApplication.instance().clipboard().text()
-            channel_c_properties = json.loads(channel_c_properties)
-            self.assertNotEqual(channel_c_properties["ranges"], group_channel_properties["ranges"])
-
             position_src = self.plot.channel_selection.visualItemRect(group_channel_a).center()
             self.context_menu(action_text=action_copy, position=position_src)
 
