@@ -4,7 +4,6 @@ from functools import lru_cache
 import json
 import os
 import re
-from traceback import format_exc
 
 import numpy as np
 from pyqtgraph import functions as fn
@@ -774,41 +773,41 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if not selected_items:
                 return
 
-            try:
-                info = json.loads(info)
+            info = json.loads(info)
+            if info["type"] == "channel":
                 info["color"] = fn.mkColor(info["color"])
-            except:
-                print(format_exc())
-            else:
+
                 for item in selected_items:
-                    try:
-                        item.color = info["color"]
-                        item.precision = info["precision"]
-                        item.format = info["format"]
+                    item.color = info["color"]
+                    item.precision = info["precision"]
+                    item.format = info["format"]
 
-                        item.setCheckState(
-                            self.IndividualAxisColumn,
-                            QtCore.Qt.CheckState.Checked if info["individual_axis"] else QtCore.Qt.CheckState.Unchecked,
-                        )
-                        item.setCheckState(
-                            self.CommonAxisColumn,
-                            QtCore.Qt.CheckState.Checked if info["ylink"] else QtCore.Qt.CheckState.Unchecked,
-                        )
+                    item.setCheckState(
+                        self.IndividualAxisColumn,
+                        QtCore.Qt.CheckState.Checked if info["individual_axis"] else QtCore.Qt.CheckState.Unchecked,
+                    )
+                    item.setCheckState(
+                        self.CommonAxisColumn,
+                        QtCore.Qt.CheckState.Checked if info["ylink"] else QtCore.Qt.CheckState.Unchecked,
+                    )
 
-                        if item.type() == ChannelsTreeItem.Channel:
-                            plot = item.treeWidget().plot.plot
-                            sig, index = plot.signal_by_uuid(item.uuid)
-                            sig.y_range = info["y_range"]
+                    if item.type() == ChannelsTreeItem.Channel:
+                        plot = item.treeWidget().plot.plot
+                        sig, index = plot.signal_by_uuid(item.uuid)
+                        sig.y_range = info["y_range"]
 
-                            item.set_ranges(info["ranges"])
+                        item.set_ranges(info["ranges"])
 
-                            if "conversion" in info:
-                                item.set_conversion(from_dict(info["conversion"]))
-                        elif item.type() == ChannelsTreeItem.Group:
-                            item.set_ranges(info["ranges"])
+                        if "conversion" in info:
+                            item.set_conversion(from_dict(info["conversion"]))
 
-                    except:
-                        print(format_exc())
+                    elif item.type() == ChannelsTreeItem.Group:
+                        item.set_ranges(info["ranges"])
+
+            elif info["type"] == "group":
+                for item in selected_items:
+                    if item.type() in (ChannelsTreeItem.Channel, ChannelsTreeItem.Group):
+                        item.set_ranges(info["ranges"])
 
         elif modifiers == QtCore.Qt.KeyboardModifier.ShiftModifier and key in (
             QtCore.Qt.Key.Key_Up,
@@ -1905,30 +1904,34 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
     def get_display_properties(self):
         if self.type() == ChannelsTreeItem.Group:
-            if self.childCount():
-                return self.child(0).get_display_properties()
-            return ""
-        info = {
-            "color": self.color.name(),
-            "precision": self.precision,
-            "ylink": self.checkState(self.CommonAxisColumn) == QtCore.Qt.CheckState.Checked,
-            "individual_axis": self.checkState(self.IndividualAxisColumn) == QtCore.Qt.CheckState.Checked,
-            "format": self.format,
-            "ranges": copy_ranges(self.ranges),
-        }
+            info = {
+                "type": "group",
+                "ranges": copy_ranges(self.ranges),
+            }
 
-        if self.signal.flags & Signal.Flags.user_defined_conversion:
-            info["conversion"] = to_dict(self.signal.conversion)
+        elif self.type() == ChannelsTreeItem.Channel:
+            info = {
+                "type": "channel",
+                "color": self.color.name(),
+                "precision": self.precision,
+                "ylink": self.checkState(self.CommonAxisColumn) == QtCore.Qt.CheckState.Checked,
+                "individual_axis": self.checkState(self.IndividualAxisColumn) == QtCore.Qt.CheckState.Checked,
+                "format": self.format,
+                "ranges": copy_ranges(self.ranges),
+            }
+
+            if self.signal.flags & Signal.Flags.user_defined_conversion:
+                info["conversion"] = to_dict(self.signal.conversion)
+
+            plot = self.treeWidget().plot.plot
+
+            sig, index = plot.signal_by_uuid(self.uuid)
+
+            info["y_range"] = tuple(float(e) for e in sig.y_range)
 
         for range_info in info["ranges"]:
             range_info["background_color"] = range_info["background_color"].name()
             range_info["font_color"] = range_info["font_color"].name()
-
-        plot = self.treeWidget().plot.plot
-
-        sig, index = plot.signal_by_uuid(self.uuid)
-
-        info["y_range"] = tuple(float(e) for e in sig.y_range)
 
         return json.dumps(info)
 
