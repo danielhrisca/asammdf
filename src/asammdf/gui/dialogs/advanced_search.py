@@ -125,6 +125,9 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.pattern.editingFinished.connect(self.update_pattern_matches)
         self.case_sensitivity_pattern.currentIndexChanged.connect(self.update_pattern_matches)
         self.pattern_match_type.currentIndexChanged.connect(self.update_pattern_matches)
+        self.filter_type.currentIndexChanged.connect(self.update_pattern_matches)
+        self.filter_value.valueChanged.connect(self.update_pattern_matches)
+        self.raw.stateChanged.connect(self.update_pattern_matches)
         self.update_pattern_matches()
 
         self.showMaximized()
@@ -421,35 +424,30 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             self.matches.setColumnWidth(index, new_size)
 
     def update_pattern_matches(self, *args):
+        from ..widgets.mdi_area import extract_signals_using_pattern
+
         self.pattern_matches.clear()
 
         if not self.channels_db:
             return
 
-        pattern = self.pattern.text().strip()
-        case_sensitive = self.case_sensitivity_pattern.currentText() == "Case sensitive"
-        match_type = self.pattern_match_type.currentText()
+        pattern_info = {
+            "pattern": self.pattern.text().strip(),
+            "case_sensitive": self.case_sensitivity_pattern.currentText() == "Case sensitive",
+            "match_type": self.pattern_match_type.currentText(),
+            "filter_value": self.filter_value.value(),
+            "filter_type": self.filter_type.currentText(),
+            "raw": self.raw.isChecked(),
+            "integer_format": self.integer_format.currentText(),
+        }
 
-        if match_type == "Wildcard":
-            wild = f"__{os.urandom(3).hex()}WILDCARD{os.urandom(3).hex()}__"
-            pattern = pattern.replace("*", wild)
-            pattern = re.escape(pattern)
-            pattern = pattern.replace(wild, ".*")
+        signals = extract_signals_using_pattern(
+            mdf=self.mdf or None,
+            pattern_info=pattern_info,
+            ignore_value2text_conversions=True,
+            as_names=True,
+        )
 
-        if case_sensitive:
-            pattern = re.compile(pattern)
-        else:
-            pattern = re.compile(f"(?i){pattern}")
-
-        matches = {}
-
-        for name, entries in self.channels_db.items():
-            if pattern.fullmatch(name):
-                for entry in entries:
-                    if entry in matches:
-                        continue
-                    matches[entry] = name
-
-        items = [QtWidgets.QTreeWidgetItem([name]) for entry, name in matches.items()]
+        items = [QtWidgets.QTreeWidgetItem([name]) for name in signals]
 
         self.pattern_matches.addTopLevelItems(items)

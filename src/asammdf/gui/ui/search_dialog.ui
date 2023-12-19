@@ -548,7 +548,7 @@
          </property>
          <column>
           <property name="text">
-           <string>Channels matching the name pattern</string>
+           <string>Channels matching the pattern conditions</string>
           </property>
          </column>
         </widget>

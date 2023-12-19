@@ -164,6 +164,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             for widget in widgets:
                 self.arg_layout.removeWidget(widget)
                 widget.setParent(None)
+                widget.deleteLater()
 
         self.arg_layout.removeItem(self.arg_widgets[-1])
 

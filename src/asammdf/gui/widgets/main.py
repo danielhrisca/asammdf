@@ -1245,6 +1245,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         if widget:
             widget.close()
             widget.setParent(None)
+            widget.deleteLater()
 
         if self.files.count():
             self.files.setCurrentIndex(0)

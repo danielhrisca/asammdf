@@ -1135,6 +1135,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             self.mdi_area.removeSubWindow(window)
                             widget.setParent(None)
                             widget.close()
+                            widget.deleteLater()
                             window.close()
 
                         suffix = original_file_name.suffix.lower()
@@ -2865,6 +2866,7 @@ MultiRasterSeparator;&
                     self.mdi_area.removeSubWindow(window)
                     widget.setParent(None)
                     widget.close()
+                    widget.deleteLater()
                     window.close()
 
             result = mdf.save(
@@ -3016,6 +3018,7 @@ MultiRasterSeparator;&
             self.mdi_area.removeSubWindow(window)
             widget.setParent(None)
             widget.close()
+            widget.deleteLater()
             window.close()
 
         suffix = original_file_name.suffix.lower()

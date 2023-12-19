@@ -152,6 +152,7 @@ class ViewBoxWithCursor(pg.ViewBox):
         super().__init__(*args, **kwargs)
 
         self.menu.setParent(None)
+        self.menu.deleteLater()
         self.menu = None
         self.menu = ViewBoxMenu(self)
 

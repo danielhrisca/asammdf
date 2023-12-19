@@ -427,7 +427,7 @@ class Ui_SearchDialog(object):
         self.label_3.setText(QCoreApplication.translate("SearchDialog", "Filter type", None))
         ___qtreewidgetitem2 = self.pattern_matches.headerItem()
         ___qtreewidgetitem2.setText(
-            0, QCoreApplication.translate("SearchDialog", "Channels matching the name pattern", None)
+            0, QCoreApplication.translate("SearchDialog", "Channels matching the pattern conditions", None)
         )
         self.tabs.setTabText(
             self.tabs.indexOf(self.tab_2), QCoreApplication.translate("SearchDialog", "Pattern definition", None)

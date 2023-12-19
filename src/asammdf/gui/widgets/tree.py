@@ -578,7 +578,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         elif key == QtCore.Qt.Key.Key_Insert and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
             dlg = AdvancedSearch(
-                None,
+                self.plot.mdf if self.plot else None,
                 show_add_window=False,
                 show_apply=True,
                 show_search=False,

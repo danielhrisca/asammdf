@@ -4620,6 +4620,7 @@ class PlotGraphics(pg.PlotWidget):
                     self.region_lock = None
                     self.region.setParent(None)
                     self.region.hide()
+                    self.region.deleteLater()
                     self.region = None
                     self.range_removed.emit()
 

@@ -182,7 +182,13 @@ def build_mime_from_config(
     return mime, descriptions, found, not_found, computed
 
 
-def extract_signals_using_pattern(mdf, pattern_info, ignore_value2text_conversions, uuid):
+def extract_signals_using_pattern(mdf, pattern_info, ignore_value2text_conversions, uuid=None, as_names=False):
+    if not mdf:
+        if as_names:
+            return set()
+        else:
+            return dict()
+
     pattern = pattern_info["pattern"]
     match_type = pattern_info["match_type"]
     case_sensitive = pattern_info.get("case_sensitive", False)
@@ -217,6 +223,9 @@ def extract_signals_using_pattern(mdf, pattern_info, ignore_value2text_conversio
         print(format_exc())
         signals = []
     else:
+        if as_names and filter_type == "Unspecified":
+            return {match[0] for match in matches}
+
         psignals = mdf.select(
             matches,
             ignore_value2text_conversions=ignore_value2text_conversions,
@@ -273,7 +282,10 @@ def extract_signals_using_pattern(mdf, pattern_info, ignore_value2text_conversio
         sig.ranges = []
         output_signals[uuid] = sig
 
-    return output_signals
+    if as_names:
+        return {sig.name for sig in signals}
+    else:
+        return output_signals
 
 
 def generate_window_title(mdi, window_name="", title=""):
@@ -2657,6 +2669,7 @@ class WithMDIArea:
             self.mdi_area.removeSubWindow(window)
             widget.setParent(None)
             window.close()
+            widget.deleteLater()
             widget.close()
 
     def delete_functions(self, deleted_functions):
@@ -4024,6 +4037,7 @@ class WithMDIArea:
             self.mdi_area.removeSubWindow(window)
             widget.setParent(None)
             widget.close()
+            widget.deleteLater()
             window.close()
 
         suffix = original_file_name.suffix.lower()
