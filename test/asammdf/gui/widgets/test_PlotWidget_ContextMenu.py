@@ -427,7 +427,6 @@ class TestContextMenu(TestPlotWidget):
 
             channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
             channel_a_properties = json.loads(channel_a_properties)
-            del channel_a_properties["y_range"]
 
             # Paste
             position_dst = self.plot.channel_selection.visualItemRect(group_channel_a).center()
@@ -447,6 +446,7 @@ class TestContextMenu(TestPlotWidget):
             position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_c).center()
             self.context_menu(action_text=action_copy, position=position_src)
             channel_c_properties = QtWidgets.QApplication.instance().clipboard().text()
+            channel_c_properties = json.loads(channel_c_properties)
             self.assertNotEqual(channel_c_properties["ranges"], group_channel_properties["ranges"])
 
             position_src = self.plot.channel_selection.visualItemRect(group_channel_a).center()

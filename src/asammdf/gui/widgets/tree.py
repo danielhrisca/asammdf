@@ -2114,17 +2114,18 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 child.set_disabled(disabled, preserve_subgroup_state=False)
 
     def set_fmt(self, fmt):
-        if self.kind in "SUV":
-            self.fmt = "{}"
-        elif self.kind == "f":
-            self.fmt = f"{{:.{self.precision}f}}"
-        else:
-            if fmt == "hex":
-                self.fmt = "0x{:x}"
-            elif fmt == "bin":
-                self.fmt = "0b{:b}"
-            elif fmt == "phys":
+        if self.type() == self.Channel:
+            if self.kind in "SUV":
                 self.fmt = "{}"
+            elif self.kind == "f":
+                self.fmt = f"{{:.{self.precision}f}}"
+            else:
+                if fmt == "hex":
+                    self.fmt = "0x{:x}"
+                elif fmt == "bin":
+                    self.fmt = "0b{:b}"
+                elif fmt == "phys":
+                    self.fmt = "{}"
 
     def set_pattern(self, pattern):
         if pattern:
