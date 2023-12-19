@@ -313,8 +313,13 @@ class TestContextMenu(TestPlotWidget):
             position = self.plot.channel_selection.visualItemRect(group_channel_a).center()
             self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
-            with self.assertRaises(JSONDecodeError):
-                json.loads(clipboard)
+            try:
+                content = json.loads(clipboard)
+            except JSONDecodeError:
+                self.fail("Clipboard Content cannot be decoded as JSON content.")
+            else:
+                self.assertIsInstance(content, dict)
+                self.assertTrue(content["type"] == "group")
 
         with self.subTest("PopulatedGroup"):
             # Add Channels to Group
@@ -330,6 +335,7 @@ class TestContextMenu(TestPlotWidget):
                 self.fail("Clipboard Content cannot be decoded as JSON content.")
             else:
                 self.assertIsInstance(content, dict)
+                self.assertTrue(content["type"] == "channel")
 
         with self.subTest("EmptyGroup_1"):
             group_channel_a.removeChild(self.plot_channel_a)
@@ -337,8 +343,13 @@ class TestContextMenu(TestPlotWidget):
             self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             print(clipboard)
-            with self.assertRaises(JSONDecodeError):
-                json.loads(clipboard)
+            try:
+                content = json.loads(clipboard)
+            except JSONDecodeError:
+                self.fail("Clipboard Content cannot be decoded as JSON content.")
+            else:
+                self.assertIsInstance(content, dict)
+                self.assertTrue(content["type"] == "group")
 
         with self.subTest("EmptyGroup_2"):
             # Add Channels to Group
@@ -354,8 +365,13 @@ class TestContextMenu(TestPlotWidget):
             self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             print(clipboard)
-            with self.assertRaises(JSONDecodeError):
-                json.loads(clipboard)
+            try:
+                content = json.loads(clipboard)
+            except JSONDecodeError:
+                self.fail("Clipboard Content cannot be decoded as JSON content.")
+            else:
+                self.assertIsInstance(content, dict)
+                self.assertTrue(content["type"] == "group")
 
     @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Action_PasteDisplayProperties_Group(self):
@@ -423,16 +439,15 @@ class TestContextMenu(TestPlotWidget):
 
             group_channel_properties = QtWidgets.QApplication.instance().clipboard().text()
             group_channel_properties = json.loads(group_channel_properties)
-            del group_channel_properties["y_range"]
 
             # Evaluate
-            self.assertEqual(channel_a_properties, group_channel_properties)
+            self.assertEqual(channel_a_properties["ranges"], group_channel_properties["ranges"])
 
         with self.subTest("FromGroup_ToChannel"):
             position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_c).center()
             self.context_menu(action_text=action_copy, position=position_src)
             channel_c_properties = QtWidgets.QApplication.instance().clipboard().text()
-            self.assertNotEqual(channel_c_properties, group_channel_properties)
+            self.assertNotEqual(channel_c_properties["ranges"], group_channel_properties["ranges"])
 
             position_src = self.plot.channel_selection.visualItemRect(group_channel_a).center()
             self.context_menu(action_text=action_copy, position=position_src)
@@ -447,10 +462,9 @@ class TestContextMenu(TestPlotWidget):
 
             channel_c_properties = QtWidgets.QApplication.instance().clipboard().text()
             channel_c_properties = json.loads(channel_c_properties)
-            del channel_c_properties["y_range"]
 
             # Evaluate
-            self.assertEqual(channel_c_properties, group_channel_properties)
+            self.assertEqual(channel_c_properties["ranges"], group_channel_properties["ranges"])
 
         with self.subTest("FromGroup_ToGroup"):
             self.move_channel_to_group(src=self.plot_channel_a, dst=group_channel_a)
@@ -459,7 +473,6 @@ class TestContextMenu(TestPlotWidget):
             self.context_menu(action_text=action_copy, position=position_src)
             group_channel_b_properties = QtWidgets.QApplication.instance().clipboard().text()
             group_channel_b_properties = json.loads(group_channel_b_properties)
-            del group_channel_b_properties["y_range"]
 
             # Paste
             position_dst = self.plot.channel_selection.visualItemRect(group_channel_a).center()
@@ -471,7 +484,6 @@ class TestContextMenu(TestPlotWidget):
 
             group_channel_a_properties = QtWidgets.QApplication.instance().clipboard().text()
             group_channel_a_properties = json.loads(group_channel_a_properties)
-            del group_channel_a_properties["y_range"]
 
             # Evaluate
             self.assertEqual(group_channel_a_properties, group_channel_b_properties)
