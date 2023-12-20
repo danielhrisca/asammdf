@@ -57,6 +57,7 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
 
     def set_stats(self, stats):
         if not stats:
+            self.clear()
             return
 
         self._stats = deepcopy(stats)
@@ -113,7 +114,7 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
         for k, group in enumerate(
             (
                 self.cursor_group,
-                self.range_group,
+                self.region_group,
                 self.visible_group,
                 self.overall_group,
             )
