@@ -185,7 +185,7 @@ def build_mime_from_config(
 def extract_signals_using_pattern(
     mdf, channels_db, pattern_info, ignore_value2text_conversions, uuid=None, as_names=False
 ):
-    if not mdf:
+    if not mdf and not channels_db:
         if as_names:
             return set()
         else:
