@@ -37,6 +37,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         *args,
         **kwargs,
     ):
+        channels_db = kwargs.pop("channels_db", None)
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -53,7 +54,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             self.channels_db = mdf.channels_db
             self.mdf = mdf
         else:
-            self.mdf = self.channels_db = None
+            self.mdf = None
+            self.channels_db = channels_db
 
         self.apply_btn.clicked.connect(self._apply)
         self.add_btn.clicked.connect(self._add)
@@ -442,7 +444,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         }
 
         signals = extract_signals_using_pattern(
-            mdf=self.mdf or None,
+            mdf=self.mdf,
+            channels_db=self.channels_db,
             pattern_info=pattern_info,
             ignore_value2text_conversions=True,
             as_names=True,

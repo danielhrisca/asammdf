@@ -576,14 +576,22 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.update_channel_groups_count()
 
         elif key == QtCore.Qt.Key.Key_Insert and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
+            if hasattr(self.plot.owner, "mdf"):
+                mdf = self.plot.owner.mdf
+                channels_db = None
+            else:
+                mdf = None
+                channels_db = self.plot.owner.channels_db
+
             dlg = AdvancedSearch(
-                self.plot.mdf if self.plot else None,
+                mdf=mdf,
                 show_add_window=False,
                 show_apply=True,
                 show_search=False,
                 show_pattern=True,
                 window_title="Add pattern based group",
                 parent=self,
+                channels_db=channels_db,
             )
             dlg.setModal(True)
             dlg.exec_()

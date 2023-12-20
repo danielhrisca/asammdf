@@ -182,12 +182,17 @@ def build_mime_from_config(
     return mime, descriptions, found, not_found, computed
 
 
-def extract_signals_using_pattern(mdf, pattern_info, ignore_value2text_conversions, uuid=None, as_names=False):
+def extract_signals_using_pattern(
+    mdf, channels_db, pattern_info, ignore_value2text_conversions, uuid=None, as_names=False
+):
     if not mdf:
         if as_names:
             return set()
         else:
             return {}
+
+    elif not channels_db:
+        channels_db = mdf.channels_db
 
     pattern = pattern_info["pattern"]
     match_type = pattern_info["match_type"]
@@ -211,7 +216,7 @@ def extract_signals_using_pattern(mdf, pattern_info, ignore_value2text_conversio
 
         matches = {}
 
-        for name, entries in mdf.channels_db.items():
+        for name, entries in channels_db.items():
             if pattern.fullmatch(name):
                 for entry in entries:
                     if entry in matches:
@@ -223,7 +228,7 @@ def extract_signals_using_pattern(mdf, pattern_info, ignore_value2text_conversio
         print(format_exc())
         signals = []
     else:
-        if as_names and filter_type == "Unspecified":
+        if (as_names and filter_type == "Unspecified") or not mdf:
             return {match[0] for match in matches}
 
         psignals = mdf.select(
@@ -650,10 +655,11 @@ class WithMDIArea:
 
     def add_pattern_group(self, plot, group):
         signals = extract_signals_using_pattern(
-            self.mdf,
-            group.pattern,
-            self.ignore_value2text_conversions,
-            self.uuid,
+            mdf=self.mdf,
+            channels_db=None,
+            pattern_info=group.pattern,
+            ignore_value2text_conversions=self.ignore_value2text_conversions,
+            uuid=self.uuid,
         )
 
         signals = {
@@ -1973,10 +1979,11 @@ class WithMDIArea:
 
                 signals.extend(
                     extract_signals_using_pattern(
-                        file.mdf,
-                        pattern_group["pattern"],
-                        file.ignore_value2text_conversions,
-                        file.uuid,
+                        mdf=file.mdf,
+                        channels_db=None,
+                        pattern_info=pattern_group["pattern"],
+                        ignore_value2text_conversions=file.ignore_value2text_conversions,
+                        uuid=file.uuid,
                     ).values()
                 )
 
@@ -2581,10 +2588,11 @@ class WithMDIArea:
                     [
                         (sig.name, sig.group_index, sig.channel_index)
                         for sig in extract_signals_using_pattern(
-                            file.mdf,
-                            pattern_group["pattern"],
-                            file.ignore_value2text_conversions,
-                            file.uuid,
+                            mdf=file.mdf,
+                            channels_db=None,
+                            pattern_info=pattern_group["pattern"],
+                            ignore_value2text_conversions=file.ignore_value2text_conversions,
+                            uuid=file.uuid,
                         ).values()
                     ]
                 )
@@ -2835,10 +2843,11 @@ class WithMDIArea:
         pattern_info = window_info["configuration"].get("pattern", {})
         if pattern_info:
             signals = extract_signals_using_pattern(
-                self.mdf,
-                pattern_info,
-                self.ignore_value2text_conversions,
-                self.uuid,
+                mdf=self.mdf,
+                channels_db=None,
+                pattern_info=pattern_info,
+                ignore_value2text_conversions=self.ignore_value2text_conversions,
+                uuid=self.uuid,
             )
 
             signals = list(signals.values())
@@ -3054,10 +3063,11 @@ class WithMDIArea:
         pattern_info = window_info["configuration"].get("pattern", {})
         if pattern_info:
             plot_signals = extract_signals_using_pattern(
-                self.mdf,
-                pattern_info,
-                self.ignore_value2text_conversions,
-                self.uuid,
+                mdf=self.mdf,
+                channels_db=None,
+                pattern_info=pattern_info,
+                ignore_value2text_conversions=self.ignore_value2text_conversions,
+                uuid=self.uuid,
             )
 
             mime_data = None
@@ -3479,10 +3489,11 @@ class WithMDIArea:
             found_signals = []
 
             signals_ = extract_signals_using_pattern(
-                self.mdf,
-                pattern_info,
-                self.ignore_value2text_conversions,
-                self.uuid,
+                mdf=self.mdf,
+                channels_db=None,
+                pattern_info=pattern_info,
+                ignore_value2text_conversions=self.ignore_value2text_conversions,
+                uuid=self.uuid,
             ).values()
 
             try:
