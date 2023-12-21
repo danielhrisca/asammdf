@@ -1,12 +1,8 @@
 import logging
-import os
 
 from ..blocks.utils import plausible_timestamps
 
 try:
-    os.environ["QT_API"] = "pyside6"
-    os.environ["PYQTGRAPH_QT_LIB"] = "PySide6"
-
     from PySide6 import QtWidgets
 
     from .widgets.plot_standalone import PlotWindow
