@@ -53,45 +53,45 @@ class PythonHighlighter(QtGui.QSyntaxHighlighter):
 
     # Python operators
     operators = [
-        "=",
+        r"=",
         # Comparison
-        "==",
+        r"==",
         "!=",
         "<",
         "<=",
         ">",
         ">=",
         # Arithmetic
-        "\+",
+        r"\+",
         "-",
-        "\*",
+        r"\*",
         "/",
         "//",
-        "\%",
-        "\*\*",
+        r"\%",
+        r"\*\*",
         # In-place
-        "\+=",
+        r"\+=",
         "-=",
-        "\*=",
+        r"\*=",
         "/=",
-        "\%=",
+        r"\%=",
         # Bitwise
-        "\^",
-        "\|",
-        "\&",
-        "\~",
+        r"\^",
+        r"\|",
+        r"\&",
+        r"\~",
         ">>",
         "<<",
     ]
 
     # Python braces
     braces = [
-        "\{",
-        "\}",
-        "\(",
-        "\)",
-        "\[",
-        "\]",
+        r"\{",
+        r"\}",
+        r"\(",
+        r"\)",
+        r"\[",
+        r"\]",
     ]
 
     def __init__(self, parent: QtGui.QTextDocument) -> None:
