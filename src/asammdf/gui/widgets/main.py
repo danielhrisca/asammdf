@@ -1254,6 +1254,10 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         count = self.files.count()
         for i in range(count):
             self.files.widget(i).close()
+        if self.fullscreen:
+            widget, index = self.fullscreen
+            widget.close()
+            widget.deleteLater()
         event.accept()
 
     def dragEnterEvent(self, e):
