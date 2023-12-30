@@ -6074,7 +6074,6 @@ class MDF4(MDF_Common):
 """
         else:
             hash_sum_encrypted = hash_sum
-            comment = comment
 
         if hash_sum_encrypted in self._attachments_cache:
             return self._attachments_cache[hash_sum]

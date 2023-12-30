@@ -1184,6 +1184,7 @@ def cut_video_stream(stream: bytes, start: float, end: float, fmt: str) -> bytes
                     f"{out_file}",
                 ],
                 capture_output=True,
+                check=False,
             )
         except FileNotFoundError:
             result = stream
@@ -1214,6 +1215,7 @@ def get_video_stream_duration(stream: bytes) -> float | None:
                     f"{in_file}",
                 ],
                 capture_output=True,
+                check=False,
             )
             result = float(result.stdout)
         except FileNotFoundError:
