@@ -2009,7 +2009,7 @@ class Plot(QtWidgets.QWidget):
                                 item.NameColumn,
                                 QtCore.Qt.CheckState.Checked if info["enabled"] else QtCore.Qt.CheckState.Unchecked,
                             )
-                    if "disabled" in info and info["disabled"]:
+                    if info.get("disabled", False):
                         item.set_disabled(info["disabled"])
 
                 self.channel_selection.blockSignals(False)
