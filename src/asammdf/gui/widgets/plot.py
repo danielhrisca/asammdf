@@ -2625,6 +2625,7 @@ class Plot(QtWidgets.QWidget):
         modifiers = event.modifiers()
 
         if key == QtCore.Qt.Key.Key_M and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
+            event.accept()
             ch_size, plt_size, info_size = self.splitter.sizes()
 
             if self.info.isVisible():
@@ -2652,6 +2653,8 @@ class Plot(QtWidgets.QWidget):
             else:
                 self.focused_mode_btn.setFlat(True)
             self.channel_selection_changed(update=True)
+
+            event.accept()
 
         elif (
             key in (QtCore.Qt.Key.Key_B, QtCore.Qt.Key.Key_H, QtCore.Qt.Key.Key_P, QtCore.Qt.Key.Key_T)
@@ -2712,6 +2715,8 @@ class Plot(QtWidgets.QWidget):
 
             self.current_uuid_changed(self.plot.current_uuid)
             self.plot.update()
+
+            event.accept()
 
         elif (
             key in (QtCore.Qt.Key.Key_R, QtCore.Qt.Key.Key_S)
@@ -2792,6 +2797,8 @@ class Plot(QtWidgets.QWidget):
             if self.plot.cursor1:
                 self.plot.cursor_moved.emit(self.plot.cursor1)
 
+            event.accept()
+
         elif key == QtCore.Qt.Key.Key_I and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
             if self.plot.cursor1:
                 position = self.plot.cursor1.value()
@@ -2824,6 +2831,8 @@ class Plot(QtWidgets.QWidget):
 
                     self.update()
 
+            event.accept()
+
         elif key == QtCore.Qt.Key.Key_I and modifiers == QtCore.Qt.KeyboardModifier.AltModifier:
             self.show_bookmarks = not self.show_bookmarks
             if self.show_bookmarks:
@@ -2835,6 +2844,7 @@ class Plot(QtWidgets.QWidget):
                 bookmark.visible = self.show_bookmarks
 
             self.plot.update()
+            event.accept()
 
         elif key == QtCore.Qt.Key.Key_G and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
             selected_items = [
@@ -2872,6 +2882,8 @@ class Plot(QtWidgets.QWidget):
                     self.zoom_changed()
 
                     self.plot.update()
+
+            event.accept()
 
         elif key == QtCore.Qt.Key.Key_R and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
@@ -2922,6 +2934,8 @@ class Plot(QtWidgets.QWidget):
             else:
                 self.undo_zoom()
 
+            event.accept()
+
         elif key == QtCore.Qt.Key.Key_W and modifiers == QtCore.Qt.KeyboardModifier.ShiftModifier:
             if self.enable_zoom_history and self.zoom_history:
                 self.zoom_history_index = 0
@@ -2946,8 +2960,9 @@ class Plot(QtWidgets.QWidget):
 
                 self.plot.block_zoom_signal = False
 
+            event.accept()
         else:
-            super().keyPressEvent(event)
+            event.ignore()
 
     def mousePressEvent(self, event):
         self.clicked.emit()
@@ -5090,7 +5105,10 @@ class PlotGraphics(pg.PlotWidget):
                 handled = False
 
             if not handled:
+                event.ignore()
                 self.parent().keyPressEvent(event)
+            else:
+                event.accept()
 
     def open_scale_editor(self, uuid):
         uuid = uuid or self.current_uuid

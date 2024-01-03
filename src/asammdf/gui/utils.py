@@ -316,6 +316,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Escape and event.modifiers() == QtCore.Qt.KeyboardModifier.NoModifier:
+            event.accept()
             self.close()
         else:
             super().keyPressEvent(event)

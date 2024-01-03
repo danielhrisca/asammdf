@@ -79,6 +79,7 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
         if event.key() == QtCore.Qt.Key.Key_F1:
             self.timer.stop()
             self.status.clear()
+            event.accept()
         else:
             super().keyPressEvent(event)
 

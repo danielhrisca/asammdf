@@ -72,6 +72,7 @@ This message will be closed in {self.timeout}s
         if event.key() == QtCore.Qt.Key.Key_F1:
             self.timer.stop()
             self.setText(self.original_text)
+            event.accept()
         else:
             super().keyPressEvent(event)
 

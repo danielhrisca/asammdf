@@ -462,6 +462,7 @@ class DataTableView(QtWidgets.QTableView):
         modifiers = event.modifiers()
 
         if key == QtCore.Qt.Key.Key_R and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
+            event.accept()
             selected_items = {index.column() for index in self.selectedIndexes() if index.isValid()}
 
             if selected_items:
@@ -1681,6 +1682,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             key in (QtCore.Qt.Key.Key_H, QtCore.Qt.Key.Key_B, QtCore.Qt.Key.Key_P)
             and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier
         ):
+            event.accept()
             if key == QtCore.Qt.Key.Key_H:
                 self.format_selection.setCurrentText("hex")
             elif key == QtCore.Qt.Key.Key_B:
@@ -1688,9 +1690,8 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             else:
                 self.format_selection.setCurrentText("phys")
 
-            event.accept()
-
         elif key == QtCore.Qt.Key.Key_S and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
+            event.accept()
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
                 "Save as measurement file",
@@ -1704,12 +1705,15 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                     mdf.save(file_name, overwrite=True)
 
         elif key == QtCore.Qt.Key.Key_BracketLeft and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
+            event.accept()
             self.decrease_font()
 
         elif key == QtCore.Qt.Key.Key_BracketRight and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
+            event.accept()
             self.increase_font()
 
         elif key == QtCore.Qt.Key.Key_G and modifiers == QtCore.Qt.KeyboardModifier.ShiftModifier:
+            event.accept()
             value, ok = QtWidgets.QInputDialog.getDouble(
                 self,
                 "Go to time stamp",
@@ -2037,16 +2041,18 @@ class DataFrameViewer(QtWidgets.QWidget):
         QtWidgets.QWidget.keyPressEvent(self, event)
         mods = event.modifiers()
 
-        # Ctrl+C
         if event.key() == Qt.Key.Key_C and (mods & Qt.KeyboardModifier.ControlModifier):
+            event.accept()
             self.copy(header=True)
-        # Ctrl+Shift+C
+
         elif (
             event.key() == Qt.Key.Key_C
             and (mods & Qt.KeyboardModifier.ShiftModifier)
             and (mods & Qt.KeyboardModifier.ControlModifier)
         ):
+            event.accept()
             self.copy(header=True)
+
         else:
             self.dataView.keyPressEvent(event)
 

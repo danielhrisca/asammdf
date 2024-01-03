@@ -648,6 +648,7 @@ class TableView(QtWidgets.QTableView):
         modifiers = event.modifiers()
 
         if key == QtCore.Qt.Key.Key_Delete and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
+            event.accept()
             selected_items = {index.row() for index in self.selectedIndexes() if index.isValid()}
 
             for row in reversed(list(selected_items)):
@@ -657,6 +658,8 @@ class TableView(QtWidgets.QTableView):
             self.backend.update()
 
         elif key == QtCore.Qt.Key.Key_R and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
+            event.accept()
+
             selected_items = {index.row() for index in self.selectedIndexes() if index.isValid()}
 
             if selected_items:
@@ -687,6 +690,8 @@ class TableView(QtWidgets.QTableView):
             modifiers == (QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier)
             and key == QtCore.Qt.Key.Key_C
         ):
+            event.accept()
+
             selected_items = {index.row() for index in self.selectedIndexes() if index.isValid()}
 
             if not selected_items:
@@ -710,6 +715,8 @@ class TableView(QtWidgets.QTableView):
             modifiers == (QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier)
             and key == QtCore.Qt.Key.Key_V
         ):
+            event.accept()
+
             info = QtWidgets.QApplication.instance().clipboard().text()
             selected_items = {index.row() for index in self.selectedIndexes() if index.isValid()}
 
@@ -1574,6 +1581,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             key in (QtCore.Qt.Key.Key_H, QtCore.Qt.Key.Key_B, QtCore.Qt.Key.Key_P, QtCore.Qt.Key.Key_T)
             and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier
         ):
+            event.accept()
+
             if key == QtCore.Qt.Key.Key_H:
                 self.set_format("Hex")
             elif key == QtCore.Qt.Key.Key_B:
@@ -1582,12 +1591,13 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 self.set_format("Ascii")
             else:
                 self.set_format("Physical")
-            event.accept()
+
         elif (
             key == QtCore.Qt.Key.Key_Right
             and modifiers == QtCore.Qt.KeyboardModifier.NoModifier
             and self.mode == "offline"
         ):
+            event.accept()
             self.timestamp_slider.setValue(self.timestamp_slider.value() + 1)
 
         elif (
@@ -1595,6 +1605,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             and modifiers == QtCore.Qt.KeyboardModifier.NoModifier
             and self.mode == "offline"
         ):
+            event.accept()
             self.timestamp_slider.setValue(self.timestamp_slider.value() - 1)
 
         elif (
@@ -1602,6 +1613,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier
             and self.mode == "offline"
         ):
+            event.accept()
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
                 "Save as measurement file",
@@ -1632,9 +1644,11 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                         mdf.save(file_name, overwrite=True)
 
         elif key == QtCore.Qt.Key.Key_BracketLeft and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
+            event.accept()
             self.decrease_font()
 
         elif key == QtCore.Qt.Key.Key_BracketRight and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
+            event.accept()
             self.increase_font()
 
         elif (
@@ -1642,6 +1656,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             and modifiers == QtCore.Qt.KeyboardModifier.ShiftModifier
             and self.mode == "offline"
         ):
+            event.accept()
+
             value, ok = QtWidgets.QInputDialog.getDouble(
                 self,
                 "Go to time stamp",

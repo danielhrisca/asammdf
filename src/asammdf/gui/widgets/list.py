@@ -64,8 +64,10 @@ class ListWidget(QtWidgets.QListWidget):
                 self.takeItem(row)
             if deleted:
                 self.itemsDeleted.emit(deleted)
+            event.accept()
 
         elif key == QtCore.Qt.Key.Key_Space and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
+            event.accept()
             selected_items = self.selectedItems()
             if not selected_items:
                 return
@@ -81,6 +83,7 @@ class ListWidget(QtWidgets.QListWidget):
                 wid.display.setCheckState(state)
 
         elif key == QtCore.Qt.Key.Key_Space and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
+            event.accept()
             selected_items = self.selectedItems()
             if not selected_items:
                 return
@@ -98,7 +101,9 @@ class ListWidget(QtWidgets.QListWidget):
         elif modifiers == QtCore.Qt.KeyboardModifier.ControlModifier and key == QtCore.Qt.Key.Key_C:
             selected_items = self.selectedItems()
             if not selected_items:
+                event.accept()
                 return
+
             self.itemWidget(selected_items[0]).keyPressEvent(event)
 
         elif modifiers == (
@@ -109,12 +114,12 @@ class ListWidget(QtWidgets.QListWidget):
         ):
             selected_items = self.selectedItems()
             if not selected_items:
+                event.accept()
                 return
             self.itemWidget(selected_items[0]).keyPressEvent(event)
 
         else:
             super().keyPressEvent(event)
-            self.parent().keyPressEvent(event)
 
     def startDrag(self, supportedActions):
         selected_items = self.selectedItems()
@@ -457,6 +462,8 @@ class MinimalListWidget(QtWidgets.QListWidget):
             if deleted:
                 self.itemsDeleted.emit(deleted)
 
+            event.accept()
+
         elif key == QtCore.Qt.Key.Key_C and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
             text = []
             for item in self.selectedItems():
@@ -471,6 +478,8 @@ class MinimalListWidget(QtWidgets.QListWidget):
                 text = ""
 
             QtWidgets.QApplication.instance().clipboard().setText(text)
+            event.accept()
+
         elif (
             key == QtCore.Qt.Key.Key_V
             and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier
@@ -483,6 +492,7 @@ class MinimalListWidget(QtWidgets.QListWidget):
                     self.itemsPasted.emit()
                 except:
                     pass
+            event.accept()
         else:
             super().keyPressEvent(event)
 

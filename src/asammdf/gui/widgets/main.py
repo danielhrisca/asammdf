@@ -1318,6 +1318,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             if self.files.count() and self.stackedWidget.currentIndex() == 0:
                 self.files.currentWidget().keyPressEvent(event)
             elif self.files.count() and self.stackedWidget.currentIndex() == 2:
+                event.accept()
                 count = self.files.count()
                 channels_dbs = [self.files.widget(i).mdf.channels_db for i in range(count)]
                 measurements = [str(self.files.widget(i).mdf.name) for i in range(count)]
@@ -1362,6 +1363,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         elif key == QtCore.Qt.Key.Key_F11:
             self.toggle_fullscreen()
+            event.accept()
 
         elif key in (QtCore.Qt.Key.Key_F2, QtCore.Qt.Key.Key_F3, QtCore.Qt.Key.Key_F4):
             if self.files.count() and self.stackedWidget.currentIndex() == 0:
@@ -1372,6 +1374,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 elif key == QtCore.Qt.Key.Key_F4:
                     window_type = "Tabular"
                 self.files.currentWidget()._create_window(None, window_type)
+            event.accept()
 
         else:
             super().keyPressEvent(event)

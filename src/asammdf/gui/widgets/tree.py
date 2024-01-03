@@ -217,6 +217,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
     def keyPressEvent(self, event):
         key = event.key()
         if key == QtCore.Qt.Key.Key_Space:
+            event.accept()
             selected_items = self.selectedItems()
             if not selected_items:
                 return
@@ -557,6 +558,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         modifiers = event.modifiers()
 
         if key == QtCore.Qt.Key.Key_Delete and self.can_delete_items:
+            event.accept()
             selected_items = self.selectedItems()
             deleted = list(set(get_data(self.plot, selected_items, uuids_only=True)))
 
@@ -576,6 +578,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.update_channel_groups_count()
 
         elif key == QtCore.Qt.Key.Key_Insert and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
+            event.accept()
             if hasattr(self.plot.owner, "mdf"):
                 mdf = self.plot.owner.mdf
                 channels_db = None
@@ -631,6 +634,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 self.update_channel_groups_count()
 
         elif key == QtCore.Qt.Key.Key_Insert and modifiers == QtCore.Qt.KeyboardModifier.ShiftModifier:
+            event.accept()
             text, ok = QtWidgets.QInputDialog.getText(self, "Channel group name", "New channel group name:")
             if ok:
                 group = ChannelsTreeItem(ChannelsTreeItem.Group, name=text)
@@ -652,6 +656,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 self.update_channel_groups_count()
 
         elif key == QtCore.Qt.Key.Key_Space:
+            event.accept()
             selected_items = self.selectedItems()
             if not selected_items:
                 return
@@ -675,6 +680,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         item.setHidden(True)
 
         elif modifiers == QtCore.Qt.KeyboardModifier.NoModifier and key == QtCore.Qt.Key.Key_C:
+            event.accept()
             selected_items = self.selectedItems()
             if not selected_items:
                 return
@@ -693,12 +699,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         item.color = color
 
         elif modifiers == QtCore.Qt.KeyboardModifier.ControlModifier and key == QtCore.Qt.Key.Key_C:
+            event.accept()
             selected_items = validate_drag_items(self.invisibleRootItem(), self.selectedItems(), [])
             data = get_data(self.plot, selected_items, uuids_only=False)
             data = substitude_mime_uuids(data, None, force=True)
             QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data))
 
         elif modifiers == QtCore.Qt.KeyboardModifier.ControlModifier and key == QtCore.Qt.Key.Key_V:
+            event.accept()
             try:
                 data = QtWidgets.QApplication.instance().clipboard().text()
                 data = json.loads(data)
@@ -708,6 +716,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 pass
 
         elif modifiers == QtCore.Qt.KeyboardModifier.ControlModifier and key == QtCore.Qt.Key.Key_N:
+            event.accept()
             selected_items = self.selectedItems()
             if not selected_items:
                 return
@@ -717,6 +726,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             QtWidgets.QApplication.instance().clipboard().setText(text)
 
         elif modifiers == QtCore.Qt.KeyboardModifier.ControlModifier and key == QtCore.Qt.Key.Key_R:
+            event.accept()
             selected_items = self.selectedItems()
             if not selected_items:
                 return
@@ -762,6 +772,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             modifiers == (QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier)
             and key == QtCore.Qt.Key.Key_C
         ):
+            event.accept()
             selected_items = [
                 item
                 for item in self.selectedItems()
@@ -776,6 +787,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             modifiers == (QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier)
             and key == QtCore.Qt.Key.Key_V
         ):
+            event.accept()
             info = QtWidgets.QApplication.instance().clipboard().text()
             selected_items = self.selectedItems()
             if not selected_items:

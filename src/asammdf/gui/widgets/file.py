@@ -2136,9 +2136,11 @@ MultiRasterSeparator;&
 
         if key == QtCore.Qt.Key.Key_F and modifier == QtCore.Qt.KeyboardModifier.ControlModifier:
             self.search()
+            event.accept()
 
         elif key == QtCore.Qt.Key.Key_F11:
             self.full_screen_toggled.emit()
+            event.accept()
 
         elif (
             key in (QtCore.Qt.Key.Key_V, QtCore.Qt.Key.Key_H, QtCore.Qt.Key.Key_C, QtCore.Qt.Key.Key_T)
@@ -2162,10 +2164,13 @@ MultiRasterSeparator;&
             elif mode == "tile horizontally":
                 self.mdi_area.tile_horizontally()
 
+            event.accept()
+
         elif key == QtCore.Qt.Key.Key_F and modifier == (
             QtCore.Qt.KeyboardModifier.ShiftModifier | QtCore.Qt.KeyboardModifier.AltModifier
         ):
             self.toggle_frames()
+            event.accept()
 
         elif key == QtCore.Qt.Key.Key_L and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier:
             if self.channel_view.isVisible():
@@ -2190,9 +2195,11 @@ MultiRasterSeparator;&
                 self.splitter.setSizes(self._splitter_sizes)
                 self.splitter.handle(0).setEnabled(True)
                 self.splitter.handle(1).setEnabled(True)
+            event.accept()
 
         elif key == QtCore.Qt.Key.Key_Period and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
             self.set_line_style()
+            event.accept()
 
         else:
             widget = self.get_current_widget()
