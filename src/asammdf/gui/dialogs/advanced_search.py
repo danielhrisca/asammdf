@@ -174,7 +174,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                     (group_index, channel_index): {
                                         "names": [ch.name],
                                         "comment": extract_xml_comment(ch.comment).strip(),
-                                        "unit": ch.conversion and ch.conversion.unit or ch.unit,
+                                        "unit": ch.conversion.unit if ch.conversion else ch.unit,
                                         "source_name": cg_source.name,
                                         "source_path": cg_source.path,
                                     }
@@ -198,7 +198,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                             matches[entry] = {
                                                 "names": [target],
                                                 "comment": extract_xml_comment(ch.comment).strip(),
-                                                "unit": ch.conversion and ch.conversion.unit or ch.unit,
+                                                "unit": ch.conversion.unit if ch.conversion else ch.unit,
                                                 "source_name": source.name if source else "",
                                                 "source_path": source.path if source else "",
                                             }
@@ -216,7 +216,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                             matches[entry] = {
                                                 "names": [ch.name],
                                                 "comment": extract_xml_comment(ch.comment).strip(),
-                                                "unit": ch.conversion and ch.conversion.unit or ch.unit,
+                                                "unit": ch.conversion.unit if ch.conversion else ch.unit,
                                                 "source_name": source.name if source else "",
                                                 "source_path": source.path if source else "",
                                             }
@@ -238,7 +238,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                 matches[entry] = {
                                     "names": [],
                                     "comment": extract_xml_comment(ch.comment).strip(),
-                                    "unit": ch.conversion and ch.conversion.unit or ch.unit,
+                                    "unit": ch.conversion.unit if ch.conversion else ch.unit,
                                     "source_name": source.name if source else "",
                                     "source_path": source.path if source else "",
                                 }
