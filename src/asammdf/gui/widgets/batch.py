@@ -845,6 +845,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             try:
                 from mfile import BSIG, DL3, ERG, TDMS
             except ImportError:
+                print(format_exc())
                 from cmerg import BSIG, ERG
 
             if suffix == ".erg":
@@ -857,6 +858,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 cls = DL3
 
             mdf = cls(file_name).export_mdf()
+            mdf.original_name = file_name
 
         elif suffix in (".mdf", ".mf4", ".mf4z"):
             mdf = MDF(file_name)
@@ -878,7 +880,11 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         mdf_files = []
         for i, file_name in enumerate(files):
             progress.signals.setLabelText.emit(f"Preparing the file {i+1} of {count}\n{file_name}")
-            mdf = self._as_mdf(file_name)
+            try:
+                mdf = self._as_mdf(file_name)
+            except:
+                print(format_exc())
+                mdf = None
             mdf_files.append(mdf)
             progress.signals.setValue.emit(i + 1)
 
@@ -1400,7 +1406,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             output_folder = None
 
         try:
-            root = Path(os.path.commonprefix(source_files)).parent
+            root = Path(os.path.commonpath(source_files))
 
         except ValueError:
             root = None
@@ -1413,6 +1419,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         files = self._prepare_files(list(source_files), progress)
 
         for mdf_index, (mdf_file, source_file) in enumerate(zip(files, source_files)):
+            if mdf_file is None:
+                continue
+
             mdf_file.configure(
                 read_fragment_size=split_size,
                 integer_interpolation=self.integer_interpolation,
@@ -1557,7 +1566,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     if root is None:
                         file_name = output_folder / Path(mdf_file.original_name).name
                     else:
-                        file_name = output_folder / Path(mdf_file.name).relative_to(root)
+                        file_name = output_folder / Path(mdf_file.original_name).relative_to(root)
 
                     if not file_name.parent.exists():
                         os.makedirs(file_name.parent, exist_ok=True)
