@@ -195,8 +195,12 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
         pen.setWidth(2)
         pen.setStyle(QtCore.Qt.PenStyle.DashDotDotLine)
         painter.setPen(pen)
-        offset = int(PLOT_HEIGTH - self.offset.value() * PLOT_HEIGTH / 100)
-        painter.drawLine(0, offset, PLOT_HEIGTH + 2 * TEXT_WIDTH, offset)
+        offset = PLOT_HEIGTH - self.offset.value() * PLOT_HEIGTH / 100
+
+        p1 = QtCore.QPointF(0.0, offset)
+        p2 = QtCore.QPointF(float(PLOT_HEIGTH + 2 * TEXT_WIDTH), offset)
+
+        painter.drawLine(p1, p2)
 
         painter.end()
 
