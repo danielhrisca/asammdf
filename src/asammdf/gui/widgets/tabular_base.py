@@ -1384,25 +1384,17 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                 nan = np.nan
 
                 if op in (">", ">=", "<", "<="):
-                    filters.append(column_name)
-                    filters.append(op)
-                    filters.append("@nan")
+                    filters.extend((column_name, op, "@nan"))
                 elif op == "!=":
-                    filters.append(column_name)
-                    filters.append("==")
-                    filters.append(column_name)
+                    filters.extend((column_name, "==", column_name))
                 elif op == "==":
-                    filters.append(column_name)
-                    filters.append("!=")
-                    filters.append(column_name)
+                    filters.extend((column_name, "!=", column_name))
             else:
                 if column_name == "timestamps" and df["timestamps"].dtype.kind == "M":
                     ts = pd.Timestamp(target, tz=LOCAL_TIMEZONE)
                     ts = ts.tz_convert("UTC").to_datetime64()
 
-                    filters.append(column_name)
-                    filters.append(op)
-                    filters.append("@ts")
+                    filters.extend((column_name, op, "@ts"))
 
                 elif is_byte_array:
                     target = str(target).replace(" ", "").strip('"')
@@ -1411,14 +1403,10 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                         df[f"{column_name}__as__bytes"] = pd.Series([bytes(s) for s in df[column_name]], index=df.index)
                     val = bytes.fromhex(target)
 
-                    filters.append(f"{column_name}__as__bytes")
-                    filters.append(op)
-                    filters.append("@val")
+                    filters.extend((f"{column_name}__as__bytes", op, "@val"))
 
                 else:
-                    filters.append(column_name)
-                    filters.append(op)
-                    filters.append(str(target))
+                    filters.extend((column_name, op, str(target)))
 
         if filters:
             try:

@@ -1329,8 +1329,7 @@ class ChannelConversion(_ChannelConversionBase):
                 nr = self.ref_param_nr
                 new_keys = []
                 for i in range(nr):
-                    new_keys.append(f"param_val_{i}")
-                    new_keys.append(f"text_{i}")
+                    new_keys.extend((f"param_val_{i}", f"text_{i}"))
                 keys += tuple(new_keys)
 
         elif conv in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):

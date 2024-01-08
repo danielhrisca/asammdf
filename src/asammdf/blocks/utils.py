@@ -664,17 +664,17 @@ def fmt_to_datatype_v3(fmt: dtype[Any], shape: tuple[int, ...], array: bool = Fa
             size *= dim
     else:
         if kind == "u":
-            if byteorder in "<":
+            if byteorder == "<":
                 data_type = v3c.DATA_TYPE_UNSIGNED_INTEL
             else:
                 data_type = v3c.DATA_TYPE_UNSIGNED_MOTOROLA
         elif kind == "i":
-            if byteorder in "<":
+            if byteorder == "<":
                 data_type = v3c.DATA_TYPE_SIGNED_INTEL
             else:
                 data_type = v3c.DATA_TYPE_SIGNED_MOTOROLA
         elif kind == "f":
-            if byteorder in "<":
+            if byteorder == "<":
                 if size == 32:
                     data_type = v3c.DATA_TYPE_FLOAT
                 else:
