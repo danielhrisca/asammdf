@@ -988,8 +988,6 @@ class WithMDIArea:
 
                     required_channels.update(measured_signals)
 
-                    required_channels = {key: sig.physical(copy=False) for key, sig in required_channels.items()}
-
                     if required_channels:
                         all_timebase = np.unique(
                             np.concatenate(
@@ -2722,8 +2720,6 @@ class WithMDIArea:
         else:
             all_timebase = []
 
-        required_channels = {key: sig.physical(copy=False) for key, sig in required_channels.items()}
-
         computation = channel["computation"]
 
         signal = compute_signal(
@@ -3196,8 +3192,6 @@ class WithMDIArea:
             }
 
             required_channels.update(measured_signals)
-
-            required_channels = {key: sig.physical(copy=False) for key, sig in required_channels.items()}
 
             for sig_uuid, channel in computed.items():
                 computation = channel["computation"]

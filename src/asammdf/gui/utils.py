@@ -388,6 +388,16 @@ def compute_signal(
     all_timebase,
     functions,
 ):
+    required_channels = {}
+    for key, sig in measured_signals.items():
+        signal = sig.physical(copy=False)
+        if signal.samples.dtype.kind in "fui":
+            required_channels[key] = signal
+        else:
+            required_channels[key] = sig
+
+    measured_signals = required_channels
+
     type_ = description["type"]
 
     try:
