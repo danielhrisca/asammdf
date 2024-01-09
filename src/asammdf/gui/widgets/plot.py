@@ -133,7 +133,8 @@ float64 = np.float64
 
 
 def simple_min(a, b):
-    if b != b:
+    if b != b:  # noqa: PLR0124
+        # b is NaN
         return a
     if a <= b:
         return a
@@ -141,7 +142,8 @@ def simple_min(a, b):
 
 
 def simple_max(a, b):
-    if b != b:
+    if b != b:  # noqa: PLR0124
+        # b is NaN
         return a
     if a <= b:
         return b
@@ -4458,9 +4460,11 @@ class PlotGraphics(pg.PlotWidget):
                             else:
                                 min_, max_ = 0, 1
 
-                        if min_ != min_:
+                        if min_ != min_:  # noqa: PLR0124
+                            # min_ is NaN
                             min_ = 0
-                        if max_ != max_:
+                        if max_ != max_:  # noqa: PLR0124
+                            # max_ is NaN
                             max_ = 1
 
                         signal.y_range = min_, max_
@@ -4501,9 +4505,11 @@ class PlotGraphics(pg.PlotWidget):
                         else:
                             min_, max_ = 0, 1
 
-                        if min_ != min_:
+                        if min_ != min_:  # noqa: PLR0124
+                            # min_ is NaN
                             min_ = 0
-                        if max_ != max_:
+                        if max_ != max_:  # noqa: PLR0124
+                            # max is NaN
                             max_ = 1
 
                         signal.y_range = min_, max_

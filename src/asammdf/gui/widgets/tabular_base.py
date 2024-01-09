@@ -1379,10 +1379,8 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             column_name = pandas_query_compatible(column_name)
             op = filter.op.currentText()
 
-            if target != target:
-                # here we have NaN
-                nan = np.nan
-
+            if target != target:  # noqa: PLR0124
+                # target is NaN
                 if op in (">", ">=", "<", "<="):
                     filters.extend((column_name, op, "@nan"))
                 elif op == "!=":
