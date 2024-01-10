@@ -4082,7 +4082,7 @@ class MDF:
                         diffs = np.diff(group_master, prepend=-np.inf) > 0
 
                         if group_master.dtype.byteorder not in target_byte_order:
-                            group_master = group_master.byteswap().newbyteorder()
+                            group_master = group_master.view(group_master.dtype.newbyteorder())
 
                         if np.all(diffs):
                             index = pd.Index(group_master, tupleize_cols=False)
@@ -4100,7 +4100,7 @@ class MDF:
                     size = len(index)
                     for k, sig in enumerate(signals):
                         if sig.timestamps.dtype.byteorder not in target_byte_order:
-                            sig.timestamps = sig.timestamps.byteswap().newbyteorder()
+                            sig.timestamps = sig.timestamps.view(sig.timestamps.dtype.newbyteorder())
 
                         sig_index = index if len(sig) == size else pd.Index(sig.timestamps, tupleize_cols=False)
 
@@ -4114,7 +4114,7 @@ class MDF:
                             channel_name = used_names.get_unique_name(channel_name)
 
                             if sig.samples.dtype.byteorder not in target_byte_order:
-                                sig.samples = sig.samples.byteswap().newbyteorder()
+                                sig.samples = sig.samples.view(sig.samples.dtype.newbyteorder())
 
                             df[channel_name] = pd.Series(
                                 list(sig.samples),
@@ -4145,7 +4145,7 @@ class MDF:
                                 unique = np.unique(sig.samples)
 
                                 if sig.samples.dtype.byteorder not in target_byte_order:
-                                    sig.samples = sig.samples.byteswap().newbyteorder()
+                                    sig.samples = sig.samples.view(sig.samples.dtype.newbyteorder())
 
                                 if len(sig.samples) / len(unique) >= 2:
                                     df[channel_name] = pd.Series(
@@ -4164,7 +4164,7 @@ class MDF:
                                     sig.samples = downcast(sig.samples)
 
                                 if sig.samples.dtype.byteorder not in target_byte_order:
-                                    sig.samples = sig.samples.byteswap().newbyteorder()
+                                    sig.samples = sig.samples.view(sig.samples.dtype.newbyteorder())
 
                                 df[channel_name] = pd.Series(
                                     sig.samples,
@@ -4458,7 +4458,7 @@ class MDF:
                 signals = [sig for sig in signals if len(sig)]
 
             if group_master.dtype.byteorder not in target_byte_order:
-                group_master = group_master.byteswap().newbyteorder()
+                ggroup_master = group_master.view(group_master.dtype.newbyteorder())
 
             if signals:
                 diffs = np.diff(group_master, prepend=-np.inf) > 0
@@ -4480,7 +4480,7 @@ class MDF:
             size = len(index)
             for k, sig in enumerate(signals):
                 if sig.timestamps.dtype.byteorder not in target_byte_order:
-                    sig.timestamps = sig.timestamps.byteswap().newbyteorder()
+                    sig.timestamps = sig.timestamps.view(sig.timestamps.dtype.newbyteorder())
 
                 sig_index = index if len(sig) == size else pd.Index(sig.timestamps, tupleize_cols=False)
 
@@ -4494,7 +4494,7 @@ class MDF:
                     channel_name = used_names.get_unique_name(channel_name)
 
                     if sig.samples.dtype.byteorder not in target_byte_order:
-                        sig.samples = sig.samples.byteswap().newbyteorder()
+                        sig.samples = sig.samples.view(sig.samples.dtype.newbyteorder())
 
                     df[channel_name] = pd.Series(
                         list(sig.samples),
@@ -4526,7 +4526,7 @@ class MDF:
                             sig.samples = downcast(sig.samples)
 
                     if sig.samples.dtype.byteorder not in target_byte_order:
-                        sig.samples = sig.samples.byteswap().newbyteorder()
+                        sig.samples = sig.samples.view(sig.samples.dtype.newbyteorder())
 
                     df[channel_name] = pd.Series(sig.samples, index=sig_index, fastpath=True)
 

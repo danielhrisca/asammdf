@@ -220,10 +220,10 @@ class PlotSignal(Signal):
                     self.timestamps = self.timestamps[~nans]
 
         if self.samples.dtype.byteorder not in target_byte_order:
-            self.samples = self.samples.byteswap().newbyteorder()
+            self.samples = self.samples.view(self.samples.dtype.newbyteorder())
 
         if self.timestamps.dtype.byteorder not in target_byte_order:
-            self.timestamps = self.timestamps.byteswap().newbyteorder()
+            self.timestamps = self.timestamps.view(self.timestamps.dtype.newbyteorder())
 
         if self.timestamps.dtype != float64:
             self.timestamps = self.timestamps.astype(float64)
