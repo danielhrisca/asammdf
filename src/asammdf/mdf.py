@@ -5159,7 +5159,7 @@ class MDF:
                     bus_data_bytes = data_bytes
                     original_msg_ids = original_ids
 
-                    unique_ids = np.unique(np.core.records.fromarrays([bus_msg_ids, bus_msg_ids]))
+                    unique_ids = np.unique(np.rec.fromarrays([bus_msg_ids, bus_msg_ids]))
 
                     total_unique_ids = total_unique_ids | {tuple(int(e) for e in f) for f in unique_ids}
 

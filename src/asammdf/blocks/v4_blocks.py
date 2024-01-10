@@ -3129,7 +3129,7 @@ class ChannelConversion(_ChannelConversionBase):
                     vals = vals * a
                     if b:
                         vals += b
-                    values = np.core.records.fromarrays(
+                    values = np.rec.fromarrays(
                         [vals] + [values[name] for name in names[1:]],
                         dtype=[(name, vals.dtype, vals.shape[1:])]
                         + [(name, values[name].dtype, values[name].shape[1:]) for name in names[1:]],
@@ -3167,7 +3167,7 @@ class ChannelConversion(_ChannelConversionBase):
                     except TypeError:
                         vals = (P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)
 
-                values = np.core.records.fromarrays(
+                values = np.rec.fromarrays(
                     [vals] + [values[name] for name in names[1:]],
                     dtype=[(name, vals.dtype, vals.shape[1:])]
                     + [(name, values[name].dtype, values[name].shape[1:]) for name in names[1:]],
@@ -3349,7 +3349,7 @@ class ChannelConversion(_ChannelConversionBase):
                     ret = ret.astype(bytes)
 
                 ret = ret.reshape(shape)
-                values = np.core.records.fromarrays(
+                values = np.rec.fromarrays(
                     [ret] + [values[name] for name in names[1:]],
                     dtype=[(name, ret.dtype, ret.shape[1:])]
                     + [(name, values[name].dtype, values[name].shape[1:]) for name in names[1:]],
@@ -3521,7 +3521,7 @@ class ChannelConversion(_ChannelConversionBase):
                     ret = np.array(ret, dtype=bytes)
 
                 ret = ret.reshape(shape)
-                values = np.core.records.fromarrays(
+                values = np.rec.fromarrays(
                     [ret] + [values[name] for name in names[1:]],
                     dtype=[(name, ret.dtype, ret.shape[1:])]
                     + [(name, values[name].dtype, values[name].shape[1:]) for name in names[1:]],
