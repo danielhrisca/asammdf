@@ -3585,6 +3585,8 @@ class WithMDIArea:
 
         w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
 
+        mode = tabular.format_selection.currentText()
+
         filter_count = 0
         available_columns = [signals.index.name, *signals.columns]
         for filter_info in window_info["configuration"]["filters"]:
@@ -3597,7 +3599,12 @@ class WithMDIArea:
                 filter.relation.setCurrentText(filter_info["relation"])
                 filter.column.setCurrentText(filter_info["column"])
                 filter.op.setCurrentText(filter_info["op"])
-                filter.target.setText(str(filter_info["target"]).strip('"'))
+                if mode == "phys":
+                    filter.target.setText(str(filter_info["target"]).strip('"'))
+                elif mode == "hex":
+                    filter.target.setText(hex(filter_info["target"]).strip('"'))
+                elif mode == "bin":
+                    filter.target.setText(bin(filter_info["target"]).strip('"'))
                 filter.validate_target()
 
                 filter_count += 1
