@@ -138,7 +138,11 @@ class Bookmark(pg.InfiniteLine):
             rect = plot.viewbox.sceneBoundingRect()
             delta = rect.x()
             height = rect.height()
-            width = rect.x() + rect.width()
+
+            px, py = plot.px, plot.py
+
+            plot.px = (plot.x_range[1] - plot.x_range[0]) / rect.width()
+            plot.py = rect.height()
 
             x, y = plot.scale_curve_to_pixmap(
                 position,
@@ -190,6 +194,8 @@ class Bookmark(pg.InfiniteLine):
 
                 pix = QtGui.QPixmap(":/erase.png").scaled(16, 16)
                 paint.drawPixmap(QtCore.QPointF(rect.x() + rect.width() - 17, rect.y() + 1), pix)
+
+            plot.px, plot.py = px, py
 
     def set_value(self, value):
         self.setPos(value)
@@ -296,6 +302,11 @@ class Cursor(pg.InfiniteLine):
             height = rect.height()
             width = rect.x() + rect.width()
 
+            px, py = plot.px, plot.py
+
+            plot.px = (plot.x_range[1] - plot.x_range[0]) / rect.width()
+            plot.py = rect.height()
+
             if not self.show_circle and not self.show_horizontal_line or not uuid:
                 x, y = plot.scale_curve_to_pixmap(
                     position,
@@ -355,6 +366,8 @@ class Cursor(pg.InfiniteLine):
                         delta=delta,
                     )
                     paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
+
+            plot.px, plot.py = px, py
 
     def _computeBoundingRect(self):
         # br = UIGraphicsItem.boundingRect(self)
@@ -467,6 +480,11 @@ class Region(pg.LinearRegionItem):
             delta = rect.x()
             height = rect.height()
 
+            px, py = plot.px, plot.py
+
+            plot.px = (plot.x_range[1] - plot.x_range[0]) / rect.width()
+            plot.py = rect.height()
+
             x1, y1 = plot.scale_curve_to_pixmap(
                 self.lines[0].value(),
                 0,
@@ -495,3 +513,5 @@ class Region(pg.LinearRegionItem):
             p.drawRect(rect)
             for line in self.lines:
                 line.paint(p, *args, plot=plot, uuid=uuid)
+
+            plot.px, plot.py = px, py

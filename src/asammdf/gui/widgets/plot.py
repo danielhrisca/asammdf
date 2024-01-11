@@ -4206,6 +4206,7 @@ class PlotGraphics(pg.PlotWidget):
         super().dragEnterEvent(e)
 
     def draw_grids(self, paint, event_rect):
+        ratio = self.devicePixelRatio()
         if self.y_axis.grid or self.x_axis.grid:
             rect = self.viewbox.sceneBoundingRect()
             y_delta = rect.y()
@@ -4215,7 +4216,7 @@ class PlotGraphics(pg.PlotWidget):
                 for pen, p1, p2 in self.y_axis.tickSpecs:
                     pen2 = fn.mkPen(pen)
                     pen2.setStyle(QtCore.Qt.PenStyle.DashLine)
-                    y_pos = p1.y() + y_delta
+                    y_pos = p1.y() / ratio + y_delta
                     paint.setPen(pen2)
                     paint.drawLine(
                         QtCore.QPointF(0, y_pos),
@@ -4226,7 +4227,7 @@ class PlotGraphics(pg.PlotWidget):
                 for pen, p1, p2 in self.x_axis.tickSpecs:
                     pen2 = fn.mkPen(pen)
                     pen2.setStyle(QtCore.Qt.PenStyle.DashLine)
-                    x_pos = p1.x() + x_delta
+                    x_pos = p1.x() / ratio + x_delta
                     paint.setPen(pen2)
                     paint.drawLine(
                         QtCore.QPointF(x_pos, 0),
@@ -4515,15 +4516,23 @@ class PlotGraphics(pg.PlotWidget):
 
             elif key == QtCore.Qt.Key.Key_G:
                 if modifier == QtCore.Qt.KeyboardModifier.NoModifier:
-                    y = self.plotItem.ctrl.yGridCheck.isChecked()
-                    x = self.plotItem.ctrl.xGridCheck.isChecked()
+                    y = self.y_axis.grid
+                    x = self.x_axis.grid
+                    # y = self.plotItem.ctrl.yGridCheck.isChecked()
+                    # x = self.plotItem.ctrl.xGridCheck.isChecked()
 
                     if x and y:
-                        self.plotItem.showGrid(x=False, y=False)
+                        self.y_axis.grid = False
+                        self.x_axis.grid = False
                     elif x:
-                        self.plotItem.showGrid(x=True, y=True)
+                        self.y_axis.grid = True
+                        self.x_axis.grid = True
                     else:
-                        self.plotItem.showGrid(x=True, y=False)
+                        self.y_axis.grid = False
+                        self.x_axis.grid = True
+
+                    self.x_axis.picture = None
+                    self.y_axis.picture = None
 
                     self.update()
 
@@ -5142,7 +5151,9 @@ class PlotGraphics(pg.PlotWidget):
         super().paintEvent(ev)
 
         if self._pixmap is None:
-            self._pixmap = QtGui.QPixmap(event_rect.width(), event_rect.height())
+            ratio = self.devicePixelRatio()
+
+            self._pixmap = QtGui.QPixmap(int(event_rect.width() * ratio), int(event_rect.height() * ratio))
             self._pixmap.fill(self.backgroundBrush().color())
 
             paint = QtGui.QPainter()
@@ -5153,15 +5164,13 @@ class PlotGraphics(pg.PlotWidget):
             self.x_range, self.y_range = self.viewbox.viewRange()
 
             rect = self.viewbox.sceneBoundingRect()
+            rect.setSize(rect.size() * ratio)
+            rect.moveTo(rect.topLeft() * ratio)
 
             self.px = (self.x_range[1] - self.x_range[0]) / rect.width()
             self.py = rect.height()
 
             with_dots = self.with_dots
-
-            self.auto_clip_rect(paint)
-
-            rect = self.viewbox.sceneBoundingRect()
 
             delta = rect.x()
             x_start = self.x_range[0]
@@ -5343,6 +5352,8 @@ class PlotGraphics(pg.PlotWidget):
 
             paint.end()
 
+            self._pixmap.setDevicePixelRatio(self.devicePixelRatio())
+
         paint = QtGui.QPainter()
         vp = self.viewport()
         paint.begin(vp)
@@ -5354,30 +5365,55 @@ class PlotGraphics(pg.PlotWidget):
         if self.x_axis.picture is None:
             self.x_axis.paint(paint, None, None)
 
+        ratio = self.devicePixelRatio()
+
+        r = self.y_axis.boundingRect()
+        r.setSize(self.y_axis.picture.size())
+        r.moveTo(r.topLeft() * ratio)
         paint.drawPixmap(
             self.y_axis.sceneBoundingRect(),
             self.y_axis.picture,
-            self.y_axis.boundingRect(),
+            r,
         )
+
+        r = self.x_axis.boundingRect()
+        r.setSize(self.x_axis.picture.size())
+        r.moveTo(r.topLeft() * ratio)
         paint.drawPixmap(
             self.x_axis.sceneBoundingRect(),
             self.x_axis.picture,
-            self.x_axis.boundingRect(),
+            r,
         )
 
         for ax in self.axes:
             if isinstance(ax, FormatedAxis) and ax.isVisible():
                 if ax.picture is None:
                     ax.paint(paint, None, None)
+
+                r = ax.boundingRect()
+                r.setSize(ax.picture.size())
+                r.moveTo(r.topLeft() * ratio)
+
                 paint.drawPixmap(
                     ax.sceneBoundingRect(),
                     ax.picture,
-                    ax.boundingRect(),
+                    r,
                 )
 
-        self.auto_clip_rect(paint)
+        r = self.viewbox.sceneBoundingRect()
+        r.setLeft(r.left() + 5)
+        r.setSize(r.size() * ratio)
+        r.moveTo(r.topLeft() * ratio)
 
-        paint.drawPixmap(event_rect, self._pixmap, event_rect)
+        t = self.viewbox.sceneBoundingRect()
+        t = self.viewbox.sceneBoundingRect()
+        t.setLeft(t.left() + 5)
+
+        paint.setClipping(False)
+        paint.drawPixmap(t.toRect(), self._pixmap, r.toRect())
+        paint.setClipping(True)
+
+        self.auto_clip_rect(paint)
 
         self.draw_grids(paint, event_rect)
 
