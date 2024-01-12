@@ -4,7 +4,6 @@ import sys
 
 os.environ["QT_API"] = "pyside6"
 os.environ["PYQTGRAPH_QT_LIB"] = "PySide6"
-os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
 os.environ["PYSIDE6_OPTION_PYTHON_ENUM"] = "2"
 
 alternative_sitepacakges = os.environ.get("ASAMMDF_PYTHONPATH", "")

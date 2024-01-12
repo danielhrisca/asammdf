@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from traceback import format_exc
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -492,13 +493,40 @@ class FormatedAxis(pg.AxisItem):
 
                     event.accept()
 
+    def drawPicture(self, p, axisSpec, tickSpecs, textSpecs, ratio=1.0):
+        p.setRenderHint(p.RenderHint.Antialiasing, False)
+        p.setRenderHint(p.RenderHint.TextAntialiasing, True)
+
+        ## draw long line along axis
+        pen, p1, p2 = axisSpec
+        p.setPen(pen)
+        p.drawLine(p1, p2)
+        # p.translate(0.5,0)  ## resolves some damn pixel ambiguity
+
+        ## draw ticks
+        for pen, p1, p2 in tickSpecs:
+            p.setPen(pen)
+            p.drawLine(p1, p2)
+
+        # Draw all text
+        if self.style["tickFont"] is not None:
+            p.setFont(self.style["tickFont"])
+        p.setPen(self.textPen())
+        bounding = self.boundingRect().toAlignedRect()
+        bounding.setSize(bounding.size() * ratio)
+        bounding.moveTo(bounding.topLeft() * ratio)
+        p.setClipRect(bounding)
+        for rect, flags, text in textSpecs:
+            p.drawText(rect, int(flags), text)
+
     def paint(self, p, opt, widget):
         rect = self.boundingRect()
 
         width = rect.width()
+        ratio = widget.devicePixelRatio() if widget else 1.0
         if self.picture is None:
             try:
-                picture = QtGui.QPixmap(width, rect.height())
+                picture = QtGui.QPixmap(int(width * ratio), int(rect.height() * ratio))
                 picture.fill(self.background)
 
                 painter = QtGui.QPainter()
@@ -508,26 +536,31 @@ class FormatedAxis(pg.AxisItem):
                     painter.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_SourceOver)
                     if self.style["tickFont"]:
                         painter.setFont(self.style["tickFont"])
-                    specs = self.generateDrawSpecs(painter)
+                    specs = self.generateDrawSpecs(painter, ratio)
 
                     if specs is not None:
-                        self.drawPicture(painter, *specs)
+                        self.drawPicture(painter, *specs, ratio)
 
                     if self.minus is not None:
                         painter.drawPixmap(
-                            QtCore.QPoint(int(rect.x()) + 5, 6),
-                            self.minus.pixmap.scaled(BUTTON_SIZE, BUTTON_SIZE),
+                            QtCore.QPoint(int(rect.x() * ratio) + 5 * ratio, 6 * ratio),
+                            self.minus.pixmap.scaled(BUTTON_SIZE * ratio, BUTTON_SIZE * ratio),
                         )
                         painter.drawPixmap(
-                            QtCore.QPoint(int(rect.x()) + 5, 27),
-                            self.plus.pixmap.scaled(BUTTON_SIZE, BUTTON_SIZE),
+                            QtCore.QPoint((int(rect.x()) + 5) * ratio, 27 * ratio),
+                            self.plus.pixmap.scaled(BUTTON_SIZE * ratio, BUTTON_SIZE * ratio),
                         )
 
                     if self.orientation in ("left", "right"):
                         painter.setPen(self._pen)
 
-                        label_rect = QtCore.QRectF(1, 1, rect.height() - (28 + BUTTON_SIZE), rect.width())
-                        painter.translate(rect.bottomLeft())
+                        label_rect = QtCore.QRectF(
+                            1 * ratio,
+                            1 * ratio,
+                            rect.height() * ratio - (28 + BUTTON_SIZE) * ratio,
+                            rect.width() * ratio,
+                        )
+                        painter.translate(rect.bottomLeft() * ratio)
                         painter.rotate(-90)
 
                         painter.setRenderHint(painter.RenderHint.TextAntialiasing, True)
@@ -539,11 +572,17 @@ class FormatedAxis(pg.AxisItem):
                         painter.rotate(90)
                         painter.resetTransform()
 
+            except:
+                print(format_exc())
+
             finally:
                 painter.end()
+
+            picture.setDevicePixelRatio(widget.devicePixelRatio() if widget else 1.0)
+
             self.picture = picture
 
-    def generateDrawSpecs(self, p):
+    def generateDrawSpecs(self, p, ratio):
         """
         Calls tickValues() and tickStrings() to determine where and how ticks should
         be drawn, then generates from this a set of drawing commands to be
@@ -803,5 +842,24 @@ class FormatedAxis(pg.AxisItem):
         self._updateMaxTextSize(lastTextSize2)
 
         self.tickSpecs = tickSpecs
+
+        axisSpec = (
+            axisSpec[0],
+            axisSpec[1] * ratio,
+            axisSpec[2] * ratio,
+        )
+
+        bounds.setSize(bounds.size() * ratio)
+
+        for spec in textSpecs:
+            spec[0].setSize(spec[0].size() * ratio)
+            spec[0].moveTo(spec[0].topLeft() * ratio)
+
+        for i, spec in enumerate(tickSpecs):
+            tickSpecs[i] = (
+                spec[0],
+                spec[1] * ratio,
+                spec[2] * ratio,
+            )
 
         return (axisSpec, tickSpecs, textSpecs)
