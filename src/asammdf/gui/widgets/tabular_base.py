@@ -1381,8 +1381,9 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
             if target != target:  # noqa: PLR0124
                 # target is NaN
+                _nan = np.nan  # used in pandas query
                 if op in (">", ">=", "<", "<="):
-                    filters.extend((column_name, op, "@nan"))
+                    filters.extend((column_name, op, "@_nan"))
                 elif op == "!=":
                     filters.extend((column_name, "==", column_name))
                 elif op == "==":
@@ -1390,18 +1391,18 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             else:
                 if column_name == "timestamps" and df["timestamps"].dtype.kind == "M":
                     ts = pd.Timestamp(target, tz=LOCAL_TIMEZONE)
-                    ts = ts.tz_convert("UTC").to_datetime64()
+                    _ts = ts.tz_convert("UTC").to_datetime64()  # used in pandas query
 
-                    filters.extend((column_name, op, "@ts"))
+                    filters.extend((column_name, op, "@_ts"))
 
                 elif is_byte_array:
                     target = str(target).replace(" ", "").strip('"')
 
                     if f"{column_name}__as__bytes" not in df.columns:
                         df[f"{column_name}__as__bytes"] = pd.Series([bytes(s) for s in df[column_name]], index=df.index)
-                    val = bytes.fromhex(target)
+                    _val = bytes.fromhex(target)  # used in pandas query
 
-                    filters.extend((f"{column_name}__as__bytes", op, "@val"))
+                    filters.extend((f"{column_name}__as__bytes", op, "@_val"))
 
                 else:
                     filters.extend((column_name, op, str(target)))
