@@ -7989,7 +7989,7 @@ class MDF4(MDF_Common):
             if group_index == index:
                 master_index = idx
 
-        encodings = {group_index: [None] for groups_index in groups}
+        encodings = {group_index: [None] for group_index in groups}
 
         self._set_temporary_master(None)
         idx = 0
