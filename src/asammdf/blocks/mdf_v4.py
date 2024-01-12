@@ -6590,7 +6590,7 @@ class MDF4(MDF_Common):
             if name is None:
                 name = channel.name
 
-            unit = conversion.unit if conversion else channel.unit
+            unit = (conversion and conversion.unit) or channel.unit
 
             comment = channel.comment
 
