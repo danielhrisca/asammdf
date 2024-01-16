@@ -385,7 +385,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 if attachment.file_name == "user_embedded_display.dspf" and attachment.mime == r"application/x-dspf":
                     hide_embedded_btn = False
 
-                att = Attachment(i - 1, self.mdf)
+                att = Attachment(i - 1, self)
                 att.number.setText(f"{i}.")
 
                 fields = []
