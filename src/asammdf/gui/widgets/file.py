@@ -1007,10 +1007,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     def save_channel_list(self, event=None, file_name=None):
         if file_name is None:
+            if self.loaded_display_file[0].is_file():
+                dir = str(self.loaded_display_file[0])
+            else:
+                dir = self.default_folder
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
                 "Select output display file",
-                self.default_folder,
+                dir,
                 "Display files (*.dspf)",
             )
 
