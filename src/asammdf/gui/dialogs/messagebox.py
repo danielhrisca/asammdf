@@ -16,7 +16,7 @@ class MessageBox(QtWidgets.QMessageBox):
 
         self.original_text = self.text()
         if markdown:
-            self.setTextFormat(QtCore.Qt.MarkdownText)
+            self.setTextFormat(QtCore.Qt.TextFormat.MarkdownText)
 
         if defaultButton is not None:
             self.setDefaultButton(defaultButton)
@@ -88,7 +88,7 @@ This message will be closed in {self.timeout}s
                 self.done(0)
         else:
             if self.defaultButton() is not None:
-                if self.textFormat() == QtCore.Qt.MarkdownText:
+                if self.textFormat() == QtCore.Qt.TextFormat.MarkdownText:
                     self.setText(
                         f"""{self.original_text}
 
@@ -105,7 +105,7 @@ This message will be closed in {self.timeout}s
                         "Abort the countdown - [F1]"
                     )
             else:
-                if self.textFormat() == QtCore.Qt.MarkdownText:
+                if self.textFormat() == QtCore.Qt.TextFormat.MarkdownText:
                     self.setText(
                         f"""{self.original_text}
 

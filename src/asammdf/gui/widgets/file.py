@@ -2265,11 +2265,11 @@ MultiRasterSeparator;&
             item = QtWidgets.QTreeWidgetItem()
             item.setText(0, "Path")
             item.setText(1, str(self.mdf.original_name))
-            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
+            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
             children.append(item)
 
             item = QtWidgets.QTreeWidgetItem()
-            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
+            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
             item.setText(0, "Size")
             if file_stats is not None:
                 item.setText(1, f"{file_stats.st_size / 1024 / 1024:.1f} MB")
@@ -2285,7 +2285,7 @@ MultiRasterSeparator;&
             else:
                 date_ = datetime.now(timezone.utc)
             item = QtWidgets.QTreeWidgetItem()
-            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
+            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
             item.setText(0, "Created")
             item.setText(1, date_.strftime("%d-%b-%Y %H:%M:%S"))
             children.append(item)
@@ -2295,7 +2295,7 @@ MultiRasterSeparator;&
             else:
                 date_ = datetime.now(timezone.utc)
             item = QtWidgets.QTreeWidgetItem()
-            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
+            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
             item.setText(0, "Last modified")
             item.setText(1, date_.strftime("%d-%b-%Y %H:%M:%S"))
             children.append(item)
@@ -2310,13 +2310,13 @@ MultiRasterSeparator;&
             children = []
 
             item = QtWidgets.QTreeWidgetItem()
-            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
+            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
             item.setText(0, "Version")
             item.setText(1, self.mdf.version)
             children.append(item)
 
             item = QtWidgets.QTreeWidgetItem()
-            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
+            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
             item.setText(0, "Program identification")
             item.setText(
                 1,
@@ -2325,13 +2325,13 @@ MultiRasterSeparator;&
             children.append(item)
 
             item = QtWidgets.QTreeWidgetItem()
-            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
+            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
             item.setText(0, "Measurement start time")
             item.setText(1, self.mdf.header.start_time_string())
             children.append(item)
 
             item = QtWidgets.QTreeWidgetItem()
-            item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
+            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
             item.setText(0, "Measurement comment")
             item.setText(1, self.mdf.header.description)
             item.setTextAlignment(0, QtCore.Qt.AlignmentFlag.AlignTop)
@@ -2344,13 +2344,13 @@ MultiRasterSeparator;&
             for name, value in self.mdf.header._common_properties.items():
                 if isinstance(value, dict):
                     tree = QtWidgets.QTreeWidgetItem()
-                    tree.setFlags(tree.flags() | QtCore.Qt.ItemIsEditable)
+                    tree.setFlags(tree.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
                     tree.setText(0, name)
                     tree.setTextAlignment(0, QtCore.Qt.AlignmentFlag.AlignTop)
 
                     for subname, subvalue in value.items():
                         item = QtWidgets.QTreeWidgetItem()
-                        item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
+                        item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
                         item.setText(0, subname)
                         item.setText(1, str(subvalue).strip())
                         item.setTextAlignment(0, QtCore.Qt.AlignmentFlag.AlignTop)
@@ -2361,7 +2361,7 @@ MultiRasterSeparator;&
 
                 else:
                     item = QtWidgets.QTreeWidgetItem()
-                    item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
+                    item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
                     item.setText(0, FRIENDLY_ATRRIBUTES.get(name, name))
                     item.setText(1, str(value).strip())
                     item.setTextAlignment(0, QtCore.Qt.AlignmentFlag.AlignTop)

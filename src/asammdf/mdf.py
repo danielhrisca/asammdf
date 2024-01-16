@@ -2285,7 +2285,7 @@ class MDF:
                 oldest = min(timestamps)
 
             offsets = [(timestamp - oldest).total_seconds() for timestamp in timestamps]
-            offsets = [offset if offset > 0 else 0 for offset in offsets]
+            offsets = [max(0, offset) for offset in offsets]
 
         else:
             file = files[0]
@@ -4098,7 +4098,7 @@ class MDF:
                                 sig.timestamps = sig.timestamps[idx]
 
                     size = len(index)
-                    for k, sig in enumerate(signals):
+                    for sig in signals:
                         if sig.timestamps.dtype.byteorder not in target_byte_order:
                             sig.timestamps = sig.timestamps.view(sig.timestamps.dtype.newbyteorder())
 
@@ -4478,7 +4478,7 @@ class MDF:
                 index = pd.Index(group_master, tupleize_cols=False)
 
             size = len(index)
-            for k, sig in enumerate(signals):
+            for sig in signals:
                 if sig.timestamps.dtype.byteorder not in target_byte_order:
                     sig.timestamps = sig.timestamps.view(sig.timestamps.dtype.newbyteorder())
 
@@ -4789,7 +4789,7 @@ class MDF:
                 self._prepare_record(group)
                 data = self._load_data(group, optimize_read=False)
 
-                for fragment_index, fragment in enumerate(data):
+                for fragment in data:
                     self._set_temporary_master(None)
                     self._set_temporary_master(self.get_master(i, data=fragment))
 
@@ -5127,7 +5127,7 @@ class MDF:
                 self._prepare_record(group)
                 data = self._load_data(group, optimize_read=False)
 
-                for fragment_index, fragment in enumerate(data):
+                for fragment in data:
                     self._set_temporary_master(None)
                     self._set_temporary_master(self.get_master(i, data=fragment))
 

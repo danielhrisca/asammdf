@@ -1009,8 +1009,7 @@ def value_as_bin(value, dtype):
 
     nibles = []
     for byte in byte_string:
-        nibles.append(f"{byte >> 4:04b}")
-        nibles.append(f"{byte & 0xf:04b}")
+        nibles.extend((f"{byte >> 4:04b}", f"{byte & 0xf:04b}"))
 
     return ".".join(nibles)
 
