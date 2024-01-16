@@ -47,16 +47,13 @@ class TestPlotShortcuts(TestPlotWidget):
     def test_Plot_Plot_Shortcut_Key_2(self):
         """
         Test Scope:
-            Check if widget "info" will change its visibility after pressing key M.
+            ...
         Events:
             - Open 'FileWidget' with valid measurement.
             - Press PushButton "Create Window"
-            - Press Key M 2 times
+            - Press Key 2
         Evaluate:
-            - Evaluate that "Info" widget is not visible by default
-            - Evaluate that "Info" widget is visible after pressing key "M" first time
-            - Evaluate that "Info" widget is not visible after pressing key "M" second time
-            - Evaluate that setSizes() methot was called 2 times
+            -
         """
         # Setup
         previous_focused_mode_btn = self.plot.focused_mode_btn.isFlat()
@@ -114,24 +111,14 @@ class TestPlotShortcuts(TestPlotWidget):
     def test_Plot_Plot_Shortcut_Key_R(self):
         """
         Test Scope:
-            Check if color range is triggered after pressing key Ctrl+R
+            Check R
         Events:
             - Open 'FileWidget' with valid measurement.
             - Display 1 signal on plot
             - Select signal
-            - Press "Ctrl+R" -> ser ranges from 0 to half of y value and colors green and red -> apply
-            - Click on unchanged color part of signal on plot
-            - Click on changed color part of signal on plot
+            - Press "R"
         Evaluate:
-            - Evaluate that plot is not black
-            - Evaluate that plot selected channel value has channel color
-            - Evaluate RangeEditor object was called
-            - Evaluate that signal was separated in 2 parts, second half red
-            - Evaluate that plot selected channel value area has red and green colors
-            - Evaluate that after clicking on part that not enter in ranges, plot selected channel value area become
-                    normal
-            - Evaluate that after clicking on signal where it's fit in selected limits, colors of plot selected
-                    channel value area will be changed
+            -
         """
         # Setup
         # Adds one channel to plot
@@ -146,24 +133,14 @@ class TestPlotShortcuts(TestPlotWidget):
     def test_Plot_Plot_Shortcut_Key_Ctrl_R(self):
         """
         Test Scope:
-            Check if color range is triggered after pressing key Ctrl+R
+            Check Ctrl+R
         Events:
             - Open 'FileWidget' with valid measurement.
             - Display 1 signal on plot
             - Select signal
-            - Press "Ctrl+R" -> ser ranges from 0 to half of y value and colors green and red -> apply
-            - Click on unchanged color part of signal on plot
-            - Click on changed color part of signal on plot
+            - Press "Ctrl+R"
         Evaluate:
-            - Evaluate that plot is not black
-            - Evaluate that plot selected channel value has channel color
-            - Evaluate RangeEditor object was called
-            - Evaluate that signal was separated in 2 parts, second half red
-            - Evaluate that plot selected channel value area has red and green colors
-            - Evaluate that after clicking on part that not enter in ranges, plot selected channel value area become
-                    normal
-            - Evaluate that after clicking on signal where it's fit in selected limits, colors of plot selected
-                    channel value area will be changed
+            -
         """
         # Setup
         # Adds one channel to plot
@@ -183,8 +160,8 @@ class TestPlotShortcuts(TestPlotWidget):
             - Press "Alt+R"
             - Press "Alt+S"
         Evaluate:
-            - Evaluate that signal mode is raw and line style is DashLine after pressing key "Alt+R"
-            - Evaluate that signal mode is phys and line style is SolidLine after pressing key "Alt+S"
+            - Evaluate that signal mode is raw and after pressing key "Alt+R"
+            - Evaluate that signal mode is phys after pressing key "Alt+S"
         """
         # Adds one channel to plot
         self.widget.add_new_channels([self.widget.channels_tree.topLevelItem(35).name], self.plot)
@@ -267,18 +244,11 @@ class TestPlotShortcuts(TestPlotWidget):
     def test_Plot_Plot_Shortcut_Keys_C__Ctrl_C__Ctrl_Shift_C(self):
         """
         Test Scope:
-            - Ensure that channel color is changed.
+            -
         Events:
-            - Open Plot with 2 channels
-            - Mock getColor() object
-            - Press C
-            - Select 1 Channel
-            - Press C
-            - Select 2 Channels
-            - Press C
+            -
         Evaluate:
-            - Evaluate that color dialog is not open if channel is not selected.
-            - Evaluate that channel color is changed only for selected channel
+            -
         """
 
         with mock.patch("asammdf.gui.widgets.plot.ChannelsTreeWidget.keyPressEvent") as mo_keyPressEvent:
@@ -299,3 +269,103 @@ class TestPlotShortcuts(TestPlotWidget):
                 QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+Shift+C"))
                 # Evaluate
                 mo_keyPressEvent.assert_called()
+
+    def test_Plot_Plot_Shortcut_Keys_Ctrl_V__Ctrl_Shift_V(self):
+        """
+        ...
+        """
+        # Setup
+        # Adds one channel to plot
+        self.widget.add_new_channels([self.widget.channels_tree.topLevelItem(35).name], self.plot)
+        self.processEvents()
+        with mock.patch("asammdf.gui.widgets.plot.ChannelsTreeWidget.keyPressEvent") as mo_keyPressEvent:
+            with self.subTest("test_Ctrl_V"):
+                # Event
+                QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+V"))
+                # Evaluate
+                mo_keyPressEvent.assert_called()
+
+            with self.subTest("test_Ctrl_Shift_V"):
+                # Event
+                QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+Shift+V"))
+                # Evaluate
+                mo_keyPressEvent.assert_called()
+
+    def test_Plot_Plot_Shortcut_Key_Ctrl_BracketLeft(self):
+        """
+        ...
+        """
+        # Setup
+        # Adds one channel to plot
+        self.widget.add_new_channels([self.widget.channels_tree.topLevelItem(35).name], self.plot)
+        self.processEvents()
+        initial_size = self.plot.font().pointSize()
+        with mock.patch("asammdf.gui.widgets.plot.ChannelsTreeWidget.set_font_size") as mo_set_font_size:
+            with mock.patch.object(self.plot.plot, "y_axis"):
+                with mock.patch.object(self.plot.plot, "x_axis"):
+                    # Event
+                    QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+["))
+        # Evaluate
+        self.assertEqual(initial_size, self.plot.font().pointSize() + 1)
+
+    def test_Plot_Plot_Shortcut_Key_Ctrl_BracketRight(self):
+        """
+        ...
+        """
+        # Setup
+        # Adds one channel to plot
+        self.widget.add_new_channels([self.widget.channels_tree.topLevelItem(35).name], self.plot)
+        self.processEvents()
+        initial_size = self.plot.font().pointSize()
+        with mock.patch("asammdf.gui.widgets.plot.ChannelsTreeWidget.set_font_size") as mo_set_font_size:
+            with mock.patch.object(self.plot.plot, "y_axis"):
+                with mock.patch.object(self.plot.plot, "x_axis"):
+                    # Event
+                    QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+]"))
+        # Evaluate
+        self.assertEqual(initial_size, self.plot.font().pointSize() - 1)
+
+    def test_Plot_Plot_Shortcut_Key_Backspace(self):
+        """
+        ...
+        """
+        # Setup
+        # Adds one channel to plot
+        self.widget.add_new_channels([self.widget.channels_tree.topLevelItem(35).name], self.plot)
+        self.processEvents()
+        with mock.patch.object(self.plot, "undo_zoom") as mo_undo_zoom:
+            # Event
+            QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_Backspace)
+        # Evaluate
+        mo_undo_zoom.assert_called()
+
+    def test_Plot_Plot_Shortcut_Key_Shift_Backspace(self):
+        """
+        ...
+        """
+        # Setup
+        # Adds one channel to plot
+        self.widget.add_new_channels([self.widget.channels_tree.topLevelItem(35).name], self.plot)
+        self.processEvents()
+        with mock.patch.object(self.plot, "redo_zoom") as mo_redo_zoom:
+            # Event
+            QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence(QtGui.Qt.SHIFT + QtGui.Qt.Key_Backspace))
+        # Evaluate
+        mo_redo_zoom.assert_called()
+
+    def test_Plot_Plot_Shortcut_Key_Shift_W(self):
+        """
+        ...
+        """
+        # Setup
+        # Adds one channel to plot
+        self.widget.add_new_channels([self.widget.channels_tree.topLevelItem(35).name], self.plot)
+        self.processEvents()
+        with mock.patch.object(self.plot.plot, "set_y_range") as mo_set_y_range:
+            with mock.patch.object(self.plot.plot, "viewbox") as mo_viewbox:
+                # Event
+                QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence(QtGui.Qt.SHIFT + QtGui.Qt.Key_W))
+        # Evaluate
+        mo_set_y_range.assert_called()
+        mo_viewbox.setXRange.assert_called()
+        self.assertFalse(self.plot.undo_btn.isEnabled())
