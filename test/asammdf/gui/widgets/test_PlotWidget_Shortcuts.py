@@ -1,233 +1,300 @@
 #!/usr/bin/env python
-from test.asammdf.gui.test_base import Pixmap
+
+from asammdf.gui.widgets.formated_axis import FormatedAxis as FA
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
+from unittest import mock
 
 from PySide6 import QtCore, QtGui, QtTest
 
 
-class TestShortcuts(TestPlotWidget):
-    def test_Plot_Plot_Shortcut_Key_LeftRight(self):
-        """
-        Test Scope:
-            Check that Arrow Keys: Left & Right ensure navigation on channels evolution.
-            Ensure that navigation is working.
-        Events:
-            - Open 'FileWidget' with valid measurement.
-            - Switch ComboBox to "Natural sort"
-            - Press PushButton "Create Window"
-            - Drag and Drop channels from FileWidget.channels_tree to Plot.channels_selection:
-                # First
-                - ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL
-                # Second
-                - ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL
-            - Send KeyClick Right 5 times
-            - Send KeyClick Left 4 times
-        Evaluate:
-            - Evaluate values from `Value` column on Plot.channels_selection
-            - Evaluate timestamp label
-        """
-        # Event
+class TestPlotShortcuts(TestPlotWidget):
+    def setUp(self):
+        # Open measurement file
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Switch ComboBox to "Natural sort"
         self.widget.channel_view.setCurrentText("Natural sort")
-
+        # Select channels -> Press PushButton "Create Window" -> "Plot"
         self.create_window(window_type="Plot")
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+        self.plot = self.widget.mdi_area.subWindowList()[0].widget()
 
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
-        channel_selection = plot.channel_selection
-        channel_14 = self.add_channel_to_plot(plot=plot, channel_name="ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL")
-        channel_15 = self.add_channel_to_plot(plot=plot, channel_name="ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL")
-        self.assertEqual(2, plot.channel_selection.topLevelItemCount())
+    def test_Plot_Plot_Shortcut_Key_M(self):
+        """
+        Test Scope:
+            Check if widget "info" will change its visibility after pressing key M.
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Press PushButton "Create Window"
+            - Press Key M 2 times
+        Evaluate:
+            - Evaluate that "Info" widget is not visible by default
+            - Evaluate that "Info" widget is visible after pressing key "M" first time
+            - Evaluate that "Info" widget is not visible after pressing key "M" second time
+            - Evaluate that setSizes() method was called 2 times
+        """
+        expected_mo_call_count = 2
+        # At start Statistics is hidden
+        self.assertFalse(self.plot.info.isVisible())
+        with mock.patch("asammdf.gui.widgets.plot.QtWidgets.QSplitter.setSizes") as mo_setSizes:
+            # press key "M"
+            QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_M)
+            self.assertTrue(self.plot.info.isVisible())
+            # press key "M"
+            QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_M)
+            self.assertFalse(self.plot.info.isVisible())
+        self.assertEqual(mo_setSizes.call_count, expected_mo_call_count)
 
-        # Case 0:
-        with self.subTest("test_Plot_Plot_Shortcut_Key_LeftRight_0"):
-            # Select channel: ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL
-            self.mouseClick_WidgetItem(channel_15)
-            plot.plot.setFocus()
-            self.processEvents(0.1)
+    def test_Plot_Plot_Shortcut_Key_2(self):
+        """
+        Test Scope:
+            Check if widget "info" will change its visibility after pressing key M.
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Press PushButton "Create Window"
+            - Press Key M 2 times
+        Evaluate:
+            - Evaluate that "Info" widget is not visible by default
+            - Evaluate that "Info" widget is visible after pressing key "M" first time
+            - Evaluate that "Info" widget is not visible after pressing key "M" second time
+            - Evaluate that setSizes() methot was called 2 times
+        """
+        # Setup
+        previous_focused_mode_btn = self.plot.focused_mode_btn.isFlat()
+        # Press 2
+        QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_2)
+        self.assertNotEqual(previous_focused_mode_btn, self.plot.focused_mode_btn.isFlat())
 
-            self.assertEqual("25", channel_14.text(self.Column.VALUE))
-            self.assertEqual("244", channel_15.text(self.Column.VALUE))
+        # Update
+        previous_focused_mode_btn = self.plot.focused_mode_btn.isFlat()
+        # Press 2
+        QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_2)
+        self.assertNotEqual(previous_focused_mode_btn, self.plot.focused_mode_btn.isFlat())
 
-            # Send Key strokes
-            for _ in range(6):
-                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key.Key_Right)
-                self.processEvents(0.1)
-            self.processEvents(0.1)
-
-            # Evaluate
-            self.assertEqual("8", channel_14.text(self.Column.VALUE))
-            self.assertEqual("6", channel_15.text(self.Column.VALUE))
-            self.assertEqual("t = 0.082657s", plot.cursor_info.text())
-
-            # Send Key strokes
-            for _ in range(5):
-                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key.Key_Left)
-                self.processEvents(0.1)
-            self.processEvents(0.1)
-
-            # Evaluate
-            self.assertEqual("21", channel_14.text(self.Column.VALUE))
-            self.assertEqual("247", channel_15.text(self.Column.VALUE))
-            self.assertEqual("t = 0.032657s", plot.cursor_info.text())
-
-        # Case 1:
-        with self.subTest("test_Plot_Plot_Shortcut_Key_LeftRight_1"):
-            # Select channel: ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL
-            self.mouseClick_WidgetItem(channel_15)
-            plot.plot.setFocus()
-            self.processEvents(0.1)
-
-            # Send Key strokes
-            for _ in range(6):
-                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key.Key_Right)
-                self.processEvents(0.1)
-            self.processEvents(0.1)
-
-            # Evaluate
-            self.assertEqual("5", channel_14.text(self.Column.VALUE))
-            self.assertEqual("9", channel_15.text(self.Column.VALUE))
-            self.assertEqual("t = 0.092657s", plot.cursor_info.text())
-
-            # Send Key strokes
-            for _ in range(5):
-                QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key.Key_Left)
-                self.processEvents(0.1)
-            self.processEvents(0.1)
-
-            # Evaluate
-            self.assertEqual("18", channel_14.text(self.Column.VALUE))
-            self.assertEqual("250", channel_15.text(self.Column.VALUE))
-            self.assertEqual("t = 0.042657s", plot.cursor_info.text())
+    def test_Plot_Plot_Shortcut_Keys_Ctrl_B__Ctrl_H__Ctrl_P__Ctrl_T(self):
+        """
+        Test Scope:
+            Check if values is converted to int, hex, bin after pressing combination of key "Ctrl+<H>|<B>|<P>"
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Display 1 signal on plot
+            - Press "Ctrl+H"
+            - Press "Ctrl+B"
+            - Press "Ctrl+P"
+        Evaluate:
+            - Evaluate that plot is not black
+            - Evaluate that unit is changed to Hex after pressing key "Ctrl+H"
+            - Evaluate that unit is changed to Bin after pressing key "Ctrl+B"
+            - Evaluate that unit is changed to Int after pressing key "Ctrl+P"
+        """
+        # Setup
+        # Adds one channel to plot
+        self.widget.add_new_channels([self.widget.channels_tree.topLevelItem(35).name], self.plot)
+        self.processEvents()
+        # mock...
+        with mock.patch("asammdf.gui.widgets.plot.Plot.item_by_uuid"):
+            with mock.patch("asammdf.gui.widgets.plot.PlotGraphics.get_axis", autospec=FA) as mo_get_axis:
+                with self.subTest("test_Ctrl_B"):
+                    QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+B"))
+                    self.assertEqual(self.plot.channel_selection.topLevelItem(0).format, "bin")
+                    self.assertEqual(mo_get_axis.return_value.format, "bin")
+                with self.subTest("test_Ctrl_H"):
+                    QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+H"))
+                    self.assertEqual(self.plot.channel_selection.topLevelItem(0).format, "hex")
+                    self.assertEqual(mo_get_axis.return_value.format, "hex")
+                with self.subTest("test_Ctrl_P"):
+                    QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+P"))
+                    self.assertEqual(self.plot.channel_selection.topLevelItem(0).format, "phys")
+                    self.assertEqual(mo_get_axis.return_value.format, "phys")
+                with self.subTest("test_Ctrl_T"):
+                    QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+T"))
+                    self.assertEqual(self.plot.channel_selection.topLevelItem(0).format, "ascii")
+                    self.assertEqual(mo_get_axis.return_value.format, "ascii")
 
     def test_Plot_Plot_Shortcut_Key_R(self):
         """
         Test Scope:
-            Check if Range Selection rectangle is painted over the plot.
+            Check if color range is triggered after pressing key Ctrl+R
         Events:
             - Open 'FileWidget' with valid measurement.
-            - Press PushButton "Create Window"
-            - Press PushButton HideAxis (easy for evaluation)
-            - Press Key R for range selection
-            - Move Cursors
-            - Press Key R for range selection
+            - Display 1 signal on plot
+            - Select signal
+            - Press "Ctrl+R" -> ser ranges from 0 to half of y value and colors green and red -> apply
+            - Click on unchanged color part of signal on plot
+            - Click on changed color part of signal on plot
         Evaluate:
-            - Evaluate that two cursors are available
-            - Evaluate that new rectangle with different color is present
-            - Evaluate that sum of rectangle areas is same with the one when plot is full black.
-            - Evaluate that range selection disappear.
+            - Evaluate that plot is not black
+            - Evaluate that plot selected channel value has channel color
+            - Evaluate RangeEditor object was called
+            - Evaluate that signal was separated in 2 parts, second half red
+            - Evaluate that plot selected channel value area has red and green colors
+            - Evaluate that after clicking on part that not enter in ranges, plot selected channel value area become
+                    normal
+            - Evaluate that after clicking on signal where it's fit in selected limits, colors of plot selected
+                    channel value area will be changed
         """
-        # Event
-        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
-        # Press PushButton "Create Window"
-        self.create_window(window_type="Plot")
-        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-        plot = self.widget.mdi_area.subWindowList()[0].widget()
+        # Setup
+        # Adds one channel to plot
+        self.widget.add_new_channels([self.widget.channels_tree.topLevelItem(35).name], self.plot)
+        self.processEvents()
+        with mock.patch("asammdf.gui.widgets.tree.ChannelsTreeItem.set_prefix") as mo_set_prefix:
+            with mock.patch("asammdf.gui.widgets.tree.ChannelsTreeItem.set_value") as mo_set_value:
+                QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_R)
+        mo_set_prefix.assert_called()
+        mo_set_value.assert_called()
 
-        # Press PushButton "Hide axis"
-        if not plot.hide_axes_btn.isFlat():
-            QtTest.QTest.mouseClick(plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
+    def test_Plot_Plot_Shortcut_Key_Ctrl_R(self):
+        """
+        Test Scope:
+            Check if color range is triggered after pressing key Ctrl+R
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Display 1 signal on plot
+            - Select signal
+            - Press "Ctrl+R" -> ser ranges from 0 to half of y value and colors green and red -> apply
+            - Click on unchanged color part of signal on plot
+            - Click on changed color part of signal on plot
+        Evaluate:
+            - Evaluate that plot is not black
+            - Evaluate that plot selected channel value has channel color
+            - Evaluate RangeEditor object was called
+            - Evaluate that signal was separated in 2 parts, second half red
+            - Evaluate that plot selected channel value area has red and green colors
+            - Evaluate that after clicking on part that not enter in ranges, plot selected channel value area become
+                    normal
+            - Evaluate that after clicking on signal where it's fit in selected limits, colors of plot selected
+                    channel value area will be changed
+        """
+        # Setup
+        # Adds one channel to plot
+        self.widget.add_new_channels([self.widget.channels_tree.topLevelItem(35).name], self.plot)
+        self.processEvents()
+        with mock.patch("asammdf.gui.widgets.tree.ChannelsTreeWidget.keyPressEvent") as mo_keyPressEvent:
+            QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+R"))
+        mo_keyPressEvent.assert_called()
 
-        # Save PixMap of clear plot
-        clear_pixmap = plot.plot.viewport().grab()
-        self.assertTrue(Pixmap.is_black(clear_pixmap))
+    def test_Plot_Plot_Shortcut_Keys_Alt_R__Alt_S(self):
+        """
+        Test Scope:
+            Check functionality of key "Alt+I" and "Alt+S"
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Display 1 signal on plot
+            - Press "Alt+R"
+            - Press "Alt+S"
+        Evaluate:
+            - Evaluate that signal mode is raw and line style is DashLine after pressing key "Alt+R"
+            - Evaluate that signal mode is phys and line style is SolidLine after pressing key "Alt+S"
+        """
+        # Adds one channel to plot
+        self.widget.add_new_channels([self.widget.channels_tree.topLevelItem(35).name], self.plot)
+        self.processEvents()
 
-        # Get X position of Cursor
-        cursors = Pixmap.cursors_x(clear_pixmap)
-        # Evaluate that there is only one cursor
-        self.assertEqual(1, len(cursors))
+        with mock.patch.object(self.plot.plot, "viewbox"):
+            with mock.patch.object(self.plot.plot, "update"):
+                with mock.patch.object(self.plot.plot, "get_axis") as mo_get_axis:
+                    # Event
+                    # Press "Alt+R"
+                    QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Alt+R"))
+                    # Evaluate
+                    with self.subTest("test_key_Alt_R"):
+                        # Signal mode = raw
+                        self.assertEqual(mo_get_axis.return_value.mode, "raw")
+                        self.assertIsNone(mo_get_axis.return_value.picture)
+                        mo_get_axis.return_value.update.assert_called()
 
-        # Press Key 'R' for range selection
-        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key.Key_R)
-        self.processEvents(timeout=0.01)
+                    # Event
+                    # Press "Alt+S"
+                    QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Alt+S"))
+                    with self.subTest("test_key_Alt_S"):
+                        # Signal mode = phys
+                        self.assertEqual(mo_get_axis.return_value.mode, "phys")
+                        self.assertIsNone(mo_get_axis.return_value.picture)
+                        mo_get_axis.return_value.update.assert_called()
 
-        # Save PixMap of Range plot
-        range_pixmap = plot.plot.viewport().grab()
-        self.assertFalse(Pixmap.is_black(range_pixmap))
+        # Final evaluation
+        self.assertEqual(mo_get_axis.return_value.update.call_count, 2)
+        self.assertEqual(mo_get_axis.call_count, 6)
 
-        # Get X position of Cursors
-        cursors = Pixmap.cursors_x(range_pixmap)
-        # Evaluate that two cursors are available
-        self.assertEqual(2, len(cursors))
+    def test_Plot_Plot_Shortcut_Key_Ctrl_I(self):
+        """
+        ...
+        """
+        with mock.patch("asammdf.gui.widgets.plot.QtWidgets.QInputDialog.getMultiLineText") as mo_getMultiLineText:
+            mo_getMultiLineText.return_value = self.id(), True
+            with mock.patch.object(self.plot.plot, "bookmarks") as mo_bookmarks:
+                with mock.patch("asammdf.gui.widgets.plot.Bookmark") as mo_Bookmark:
+                    with mock.patch.object(self.plot.plot, "viewbox") as mo_viewbox:
+                        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Ctrl+I"))
 
-        # Evaluate that new rectangle with different color is present
-        self.assertTrue(
-            Pixmap.is_colored(
-                pixmap=range_pixmap,
-                color_name=Pixmap.COLOR_BACKGROUND,
-                x=0,
-                y=0,
-                width=min(cursors) - 1,
-            )
-        )
-        self.assertTrue(
-            Pixmap.is_colored(
-                pixmap=range_pixmap,
-                color_name=Pixmap.COLOR_RANGE,
-                x=min(cursors) + 1,
-                y=0,
-                width=max(cursors),
-            )
-        )
-        self.assertTrue(
-            Pixmap.is_colored(
-                pixmap=range_pixmap,
-                color_name=Pixmap.COLOR_BACKGROUND,
-                x=max(cursors) + 1,
-                y=0,
-            )
-        )
+        mo_bookmarks.append.assert_called_with(mo_Bookmark.return_value)
+        mo_viewbox.addItem.assert_called_with(mo_bookmarks.__getitem__())
+        self.assertEqual(mo_Bookmark.call_args[1]["message"], self.id())
+        mo_getMultiLineText.assert_called()
 
-        # Move Cursors
-        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key.Key_Right)
-        self.processEvents(timeout=0.01)
-        QtTest.QTest.keySequence(plot.plot, QtGui.QKeySequence("Ctrl+Left"))
-        self.processEvents(timeout=0.01)
+    def test_Plot_Plot_Shortcut_Key_Alt_I(self):
+        """
+        ...
+        """
+        bookmark_btn_previous_state = self.plot.bookmark_btn.isFlat()
+        QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Alt+I"))  # ToDo is unittest???
+        self.assertEqual(self.plot.bookmark_btn.isFlat(), not bookmark_btn_previous_state)
 
-        # Save PixMap of Range plot
-        range_pixmap = plot.plot.viewport().grab()
-        self.assertFalse(Pixmap.is_black(range_pixmap))
+    def test_Plot_Plot_Shortcut_Key_Ctrl_G(self):
+        """
+        ...
+        """
+        offset = 10.0
+        scale = 100.0
+        y_bottom = -offset * scale / 100
+        expected_y_range = (y_bottom, y_bottom + scale)
+        # Adds one channel to plot
+        self.widget.add_new_channels([self.widget.channels_tree.topLevelItem(35).name], self.plot)
+        self.processEvents()
+        self.plot.channel_selection.topLevelItem(0).setSelected(True)
+        self.processEvents()
+        with mock.patch("asammdf.gui.widgets.plot.ScaleDialog") as mo_ScaleDialog:
+            mo_ScaleDialog.return_value.exec.return_value = True
+            mo_ScaleDialog.return_value.offset.value.return_value = offset
+            mo_ScaleDialog.return_value.scaling.value.return_value = scale
 
-        # Get X position of Cursors
-        new_cursors = Pixmap.cursors_x(range_pixmap)
-        # Evaluate that two cursors are available
-        self.assertEqual(2, len(cursors))
-        for c in cursors:
-            self.assertNotIn(c, new_cursors)
+            QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+G"))
 
-        # Evaluate that new rectangle with different color is present
-        self.assertTrue(
-            Pixmap.is_colored(
-                pixmap=range_pixmap,
-                color_name=Pixmap.COLOR_BACKGROUND,
-                x=0,
-                y=0,
-                width=min(new_cursors) - 1,
-            )
-        )
-        self.assertTrue(
-            Pixmap.is_colored(
-                pixmap=range_pixmap,
-                color_name=Pixmap.COLOR_RANGE,
-                x=min(new_cursors) + 1,
-                y=0,
-                width=max(new_cursors),
-            )
-        )
-        self.assertTrue(
-            Pixmap.is_colored(
-                pixmap=range_pixmap,
-                color_name=Pixmap.COLOR_BACKGROUND,
-                x=max(new_cursors) + 1,
-                y=0,
-            )
-        )
+        x = 5
+        mo_ScaleDialog.return_value.exec.assert_called()
+        self.assertTupleEqual(self.plot.plot.signals[0].y_range, expected_y_range)
 
-        # Press Key 'R' for range selection
-        QtTest.QTest.keyClick(plot.plot, QtCore.Qt.Key.Key_R)
-        self.processEvents(timeout=0.01)
+    def test_Plot_Plot_Shortcut_Keys_C__Ctrl_C__Ctrl_Shift_C(self):
+        """
+        Test Scope:
+            - Ensure that channel color is changed.
+        Events:
+            - Open Plot with 2 channels
+            - Mock getColor() object
+            - Press C
+            - Select 1 Channel
+            - Press C
+            - Select 2 Channels
+            - Press C
+        Evaluate:
+            - Evaluate that color dialog is not open if channel is not selected.
+            - Evaluate that channel color is changed only for selected channel
+        """
 
-        # Save PixMap of clear plot
-        clear_pixmap = plot.plot.viewport().grab()
-        self.assertTrue(Pixmap.is_black(clear_pixmap))
+        with mock.patch("asammdf.gui.widgets.plot.ChannelsTreeWidget.keyPressEvent") as mo_keyPressEvent:
+            with self.subTest("test_Key_C"):
+                # Event
+                QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_C)
+                # Evaluate
+                mo_keyPressEvent.assert_called()
+
+            with self.subTest("test_Ctrl_C"):
+                # Event
+                QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+C"))
+                # Evaluate
+                mo_keyPressEvent.assert_called()
+
+            with self.subTest("test_Ctrl_Shift_C"):
+                # Event
+                QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+Shift+C"))
+                # Evaluate
+                mo_keyPressEvent.assert_called()
