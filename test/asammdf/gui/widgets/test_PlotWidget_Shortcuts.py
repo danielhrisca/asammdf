@@ -92,9 +92,8 @@ class TestPlotShortcuts(TestPlotWidget):
         self.processEvents()
         # mock...
         with mock.patch("asammdf.gui.widgets.plot.Plot.item_by_uuid"):
-            with mock.patch(
-                "asammdf.gui.widgets.plot.PlotGraphics.get_axis", autospec=FA, _spec_as_istance=True
-            ) as mo_get_axis:
+            with mock.patch("asammdf.gui.widgets.plot.PlotGraphics.get_axis") as mo_get_axis:
+                mo_get_axis.return_value.mock_add_spec(FA)
                 with self.subTest("test_Ctrl_B"):
                     QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+B"))
                     self.assertEqual(self.plot.channel_selection.topLevelItem(0).format, "bin")
