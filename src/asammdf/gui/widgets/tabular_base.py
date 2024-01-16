@@ -1379,46 +1379,33 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             column_name = pandas_query_compatible(column_name)
             op = filter.op.currentText()
 
-            if target != target:
-                # here we have NaN
-                nan = np.nan
-
+            if target != target:  # noqa: PLR0124
+                # target is NaN
+                _nan = np.nan  # used in pandas query
                 if op in (">", ">=", "<", "<="):
-                    filters.append(column_name)
-                    filters.append(op)
-                    filters.append("@nan")
+                    filters.extend((column_name, op, "@_nan"))
                 elif op == "!=":
-                    filters.append(column_name)
-                    filters.append("==")
-                    filters.append(column_name)
+                    filters.extend((column_name, "==", column_name))
                 elif op == "==":
-                    filters.append(column_name)
-                    filters.append("!=")
-                    filters.append(column_name)
+                    filters.extend((column_name, "!=", column_name))
             else:
                 if column_name == "timestamps" and df["timestamps"].dtype.kind == "M":
                     ts = pd.Timestamp(target, tz=LOCAL_TIMEZONE)
-                    ts = ts.tz_convert("UTC").to_datetime64()
+                    _ts = ts.tz_convert("UTC").to_datetime64()  # used in pandas query
 
-                    filters.append(column_name)
-                    filters.append(op)
-                    filters.append("@ts")
+                    filters.extend((column_name, op, "@_ts"))
 
                 elif is_byte_array:
                     target = str(target).replace(" ", "").strip('"')
 
                     if f"{column_name}__as__bytes" not in df.columns:
                         df[f"{column_name}__as__bytes"] = pd.Series([bytes(s) for s in df[column_name]], index=df.index)
-                    val = bytes.fromhex(target)
+                    _val = bytes.fromhex(target)  # used in pandas query
 
-                    filters.append(f"{column_name}__as__bytes")
-                    filters.append(op)
-                    filters.append("@val")
+                    filters.extend((f"{column_name}__as__bytes", op, "@_val"))
 
                 else:
-                    filters.append(column_name)
-                    filters.append(op)
-                    filters.append(str(target))
+                    filters.extend((column_name, op, str(target)))
 
         if filters:
             try:

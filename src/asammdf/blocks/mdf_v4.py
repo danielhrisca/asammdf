@@ -5693,15 +5693,13 @@ class MDF4(MDF_Common):
                             if size % 2:
                                 size += 1
                                 elem = elem + b"\0"
-                            data.append(UINT32_p(size))
-                            data.append(elem)
+                            data.extend((UINT32_p(size), elem))
                             off += size + 4
                     else:
                         for elem in signal:
                             offsets.append(off)
                             size = len(elem)
-                            data.append(UINT32_p(size))
-                            data.append(elem)
+                            data.extend((UINT32_p(size), elem))
                             off += size + 4
 
                     offsets = array(offsets, dtype=uint64)
@@ -6074,7 +6072,6 @@ class MDF4(MDF_Common):
 """
         else:
             hash_sum_encrypted = hash_sum
-            comment = comment
 
         if hash_sum_encrypted in self._attachments_cache:
             return self._attachments_cache[hash_sum]
@@ -6593,7 +6590,7 @@ class MDF4(MDF_Common):
             if name is None:
                 name = channel.name
 
-            unit = conversion and conversion.unit or channel.unit
+            unit = (conversion and conversion.unit) or channel.unit
 
             comment = channel.comment
 
@@ -7621,22 +7618,16 @@ class MDF4(MDF_Common):
                 )
                 vals = vals.view(types)
 
-                arrays = []
-                arrays.append(vals["ms"])
-                # bit 6 and 7 of minutes are reserved
-                arrays.append(vals["min"] & 0x3F)
-                # only firt 4 bits of hour are used
-                arrays.append(vals["hour"] & 0xF)
-                # the first 4 bits are the day number
-                arrays.append(vals["day"] & 0xF)
-                # bit 6 and 7 of month are reserved
-                arrays.append(vals["month"] & 0x3F)
-                # bit 7 of year is reserved
-                arrays.append(vals["year"] & 0x7F)
-                # add summer or standard time information for hour
-                arrays.append((vals["hour"] & 0x80) >> 7)
-                # add day of week information
-                arrays.append((vals["day"] & 0xF0) >> 4)
+                arrays = [
+                    vals["ms"],
+                    vals["min"] & 0x3F,  # bit 6 and 7 of minutes are reserved
+                    vals["hour"] & 0xF,  # only first 4 bits of hour are used
+                    vals["day"] & 0xF,  # the first 4 bits are the day number
+                    vals["month"] & 0x3F,  # bit 6 and 7 of month are reserved
+                    vals["year"] & 0x7F,  # bit 7 of year is reserved
+                    (vals["hour"] & 0x80) >> 7,  # add summer or standard time information for hour
+                    (vals["day"] & 0xF0) >> 4,  # add day of week information
+                ]
 
                 names = [
                     "ms",
@@ -10330,7 +10321,7 @@ class MDF4(MDF_Common):
 
         dbc = None
 
-        for i, channel in enumerate(channels):
+        for channel in channels:
             if channel.name == "CAN_DataFrame":
                 attachment_addr = channel.attachment
 
@@ -10357,7 +10348,7 @@ class MDF4(MDF_Common):
             self._prepare_record(group)
             data = self._load_data(group, record_offset=0, record_count=1)
 
-            for fragment_index, fragment in enumerate(data):
+            for fragment in data:
                 self._set_temporary_master(None)
                 self._set_temporary_master(self.get_master(group_index, data=fragment))
 
@@ -10397,7 +10388,7 @@ class MDF4(MDF_Common):
             self._prepare_record(group)
             data = self._load_data(group, optimize_read=False)
 
-            for fragment_index, fragment in enumerate(data):
+            for fragment in data:
                 self._set_temporary_master(None)
                 self._set_temporary_master(self.get_master(group_index, data=fragment))
 
@@ -10453,7 +10444,7 @@ class MDF4(MDF_Common):
             self._prepare_record(group)
             data = self._load_data(group, optimize_read=False)
 
-            for fragment_index, fragment in enumerate(data):
+            for fragment in data:
                 self._set_temporary_master(None)
                 self._set_temporary_master(self.get_master(group_index, data=fragment))
 
@@ -10582,7 +10573,7 @@ class MDF4(MDF_Common):
 
         dbc = None
 
-        for i, channel in enumerate(channels):
+        for channel in channels:
             if channel.name == "LIN_Frame":
                 attachment_addr = channel.attachment
                 if attachment_addr is not None:
@@ -10611,7 +10602,7 @@ class MDF4(MDF_Common):
             self._prepare_record(group)
             data = self._load_data(group, optimize_read=False)
 
-            for fragment_index, fragment in enumerate(data):
+            for fragment in data:
                 self._set_temporary_master(None)
                 self._set_temporary_master(self.get_master(group_index, data=fragment))
 
@@ -10644,7 +10635,7 @@ class MDF4(MDF_Common):
             self._prepare_record(group)
             data = self._load_data(group, optimize_read=False)
 
-            for fragment_index, fragment in enumerate(data):
+            for fragment in data:
                 self._set_temporary_master(None)
                 self._set_temporary_master(self.get_master(group_index, data=fragment))
 

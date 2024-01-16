@@ -517,7 +517,7 @@ class MDF3(MDF_Common):
 
             record = []
 
-            for idx, new_ch in enumerate(channels):
+            for new_ch in channels:
                 start_offset = new_ch.start_offset
                 try:
                     additional_byte_offset = new_ch.additional_byte_offset
