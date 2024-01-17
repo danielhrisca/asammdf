@@ -4840,7 +4840,7 @@ class MDF:
 
                         total_unique_ids = total_unique_ids | set(unique_ids)
 
-                        for msg_id, is_extended in unique_ids:
+                        for msg_id, is_extended in sorted(unique_ids):
                             message = messages.get((msg_id, is_extended), None)
 
                             if message is None:
@@ -5169,7 +5169,7 @@ class MDF:
                         if bus_channel and bus != bus_channel:
                             continue
 
-                        for msg_id_record in unique_ids:
+                        for msg_id_record in sorted(unique_ids.tolist()):
                             msg_id = int(msg_id_record[0])
                             original_msg_id = int(msg_id_record[1])
                             message = messages.get(msg_id, None)
