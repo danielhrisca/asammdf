@@ -3656,11 +3656,11 @@ class WithMDIArea:
         sections_width = window_info["configuration"].get("header_sections_width", [])
         if sections_width:
             for i, width in enumerate(sections_width):
-                widget.tree.header().resizeSection(i, width)
+                widget.tree.columnHeader.setColumnWidth(i, width)
+                widget.tree.dataView.setColumnWidth(i, width)
 
-        scroll = widget.tree.horizontalScrollBar()
-        if scroll:
-            scroll.setValue(scroll.minimum())
+            widget.tree.dataView.updateGeometry()
+            widget.tree.columnHeader.updateGeometry()
 
         return None, False
 
@@ -3679,11 +3679,11 @@ class WithMDIArea:
         sections_width = window_info["configuration"].get("header_sections_width", [])
         if sections_width:
             for i, width in enumerate(sections_width):
-                widget.tree.header().resizeSection(i, width)
+                widget.tree.columnHeader.setColumnWidth(i, width)
+                widget.tree.dataView.setColumnWidth(i, width)
 
-        scroll = widget.tree.horizontalScrollBar()
-        if scroll:
-            scroll.setValue(scroll.minimum())
+            widget.tree.dataView.updateGeometry()
+            widget.tree.columnHeader.updateGeometry()
 
         return None, False
 
@@ -3702,11 +3702,11 @@ class WithMDIArea:
         sections_width = window_info["configuration"].get("header_sections_width", [])
         if sections_width:
             for i, width in enumerate(sections_width):
-                widget.tree.header().resizeSection(i, width)
+                widget.tree.columnHeader.setColumnWidth(i, width)
+                widget.tree.dataView.setColumnWidth(i, width)
 
-        scroll = widget.tree.horizontalScrollBar()
-        if scroll:
-            scroll.setValue(scroll.minimum())
+            widget.tree.dataView.updateGeometry()
+            widget.tree.columnHeader.updateGeometry()
 
         return None, False
 
