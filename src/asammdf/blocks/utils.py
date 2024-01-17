@@ -1389,7 +1389,7 @@ def components(
 
         values = channel[name]
         if values.dtype.byteorder not in target_byte_order:
-            values = values.view(values.dtype.newbyteorder())
+            values = values.byteswap().view(values.dtype.newbyteorder())
 
         if len(values.shape) > 1:
             values = Series(
@@ -1408,7 +1408,7 @@ def components(
             values = channel[name]
 
             if values.dtype.byteorder not in target_byte_order:
-                values = values.view(values.dtype.newbyteorder())
+                values = values.byteswap().view(values.dtype.newbyteorder())
 
             if not only_basenames:
                 axis_name = unique_names.get_unique_name(f"{name_}.{name}")
@@ -1444,7 +1444,7 @@ def components(
 
             else:
                 if values.dtype.byteorder not in target_byte_order:
-                    values = values.view(values.dtype.newbyteorder())
+                    values = values.byteswap().view(values.dtype.newbyteorder())
 
                 if not only_basenames:
                     name_ = unique_names.get_unique_name(

@@ -1011,6 +1011,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 dir = str(self.loaded_display_file[0])
             else:
                 dir = self.default_folder
+
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
                 "Select output display file",

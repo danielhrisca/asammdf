@@ -2487,6 +2487,7 @@ class WithMDIArea:
         plot.edit_channel_request.connect(partial(self.edit_channel, widget=plot))
 
         plot.show_properties.connect(self._show_info)
+
         plot.add_new_channels(signals, mime_data)
         self.set_subplots_link(self.subplots_link)
 
