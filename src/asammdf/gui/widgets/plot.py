@@ -5567,6 +5567,10 @@ class PlotGraphics(pg.PlotWidget):
             if val == "n.a.":
                 continue
 
+            ratio = self.devicePixelRatio()
+            x = x * ratio
+            val = val * ratio
+
             x_val, y_val = self.scale_curve_to_pixmap(x, val, y_range=sig.y_range, x_start=x_start, delta=delta)
 
             candidates.append((abs(y_val - y), sig.uuid))
