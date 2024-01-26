@@ -144,6 +144,11 @@ class TestBase(unittest.TestCase):
         )
         self.processEvents(0.5)
 
+    def avoid_blinking_issue(self, w):
+        self.processEvents(0.01)
+        # To avoid blinking issue, click on a center of widget
+        QtTest.QTest.mouseClick(w, QtCore.Qt.MouseButton.LeftButton, QtCore.Qt.KeyboardModifiers(), w.rect().center())
+
 
 class DragAndDrop:
     _previous_position = None
@@ -267,13 +272,22 @@ class Pixmap:
         return True
 
     @staticmethod
-    def has_color(pixmap, color_name):
+    def has_color(pixmap, signal_color):
+        """
+        Return True if Pixmap has selected color
+        """
         image = pixmap.toImage()
-
+        if not isinstance(signal_color, str):
+            if hasattr(signal_color, "color"):
+                signal_color = signal_color.color.name()
+            elif hasattr(signal_color, "name"):
+                signal_color = signal_color.name()
+            else:
+                raise SyntaxError(f"Object {signal_color} doesn't have the attribute <<color>> or <<name()>>")
         for y in range(image.height()):
             for x in range(image.width()):
                 color = QtGui.QColor(image.pixel(x, y))
-                if color.name() == color_name:
+                if color.name() == signal_color:
                     return True
         return False
 
@@ -289,11 +303,39 @@ class Pixmap:
         return color_names
 
     @staticmethod
+    def color_names_exclude_defaults(pixmap):
+        color_names = set()
+        defaults = (Pixmap.COLOR_BACKGROUND, Pixmap.COLOR_CURSOR, Pixmap.COLOR_RANGE)
+        image = pixmap.toImage()
+        for y in range(image.height()):
+            for x in range(image.width()):
+                color = QtGui.QColor(image.pixel(x, y))
+                if color not in defaults:
+                    color_names.add(color.name())
+        return color_names
+
+    @staticmethod
+    def color_map(pixmap):
+        """
+        return dict, where:
+            > keys are line of pixmap
+            > values is a list of color names ordered by columns of pixmap
+        """
+        color_dict = {}
+        line = []
+        image = pixmap.toImage()
+        for y in range(image.height()):
+            for x in range(image.width()):
+                line.append(QtGui.QColor(image.pixel(x, y)).name())
+            color_dict[y] = line
+            line = []
+        return color_dict
+
+    @staticmethod
     def cursors_x(pixmap):
         image = pixmap.toImage()
 
         cursors = []
-        possible_cursor = None
 
         for x in range(image.width()):
             count = 0
@@ -302,13 +344,87 @@ class Pixmap:
                 # Skip Black
                 if color.name() == Pixmap.COLOR_BACKGROUND:
                     continue
-                if not possible_cursor:
-                    possible_cursor = color.name()
-                if possible_cursor != color.name():
-                    break
-                count += 1
-            else:
-                if count == image.height() - 2:
-                    cursors.append(x)
+                if color.name() == Pixmap.COLOR_CURSOR:
+                    count += 1
+            if count >= image.height() / 2 - 1:  # For Y shortcut tests, one cursor is a discontinuous line
+                cursors.append(x)
 
         return cursors
+
+    @staticmethod
+    def search_signal_extremes_by_ax(pixmap, signal_color, ax: str):
+        """
+        Return column where signal start and end
+        If ax = Y: Return a list with extremes of signal by 0Y axes
+        If ax = X: Return a list with extremes of signal by 0X axes
+        """
+        if not isinstance(signal_color, str):
+            if hasattr(signal_color, "color"):
+                signal_color = signal_color.color.name()
+            elif hasattr(signal_color, "name"):
+                signal_color = signal_color.name()
+            else:
+                raise SyntaxError(f"Object {signal_color} doesn't have the attribute <<color>> or <<name()>>")
+        from_to = []
+        image = pixmap.toImage()
+        if ax == "x" or ax == "X":
+            for x in range(image.width()):
+                for y in range(image.height()):
+                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                        from_to.append(x)
+                        break
+                if from_to:
+                    break
+            if not from_to:
+                return
+            for x in range(image.width(), from_to[0], -1):
+                for y in range(image.height()):
+                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                        from_to.append(x)
+                        break
+                if len(from_to) == 2:
+                    break
+            return from_to
+
+        elif ax == "y" or ax == "Y":
+            for y in range(image.height()):
+                for x in range(image.width()):
+                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                        from_to.append(y)
+                        break
+                if from_to:
+                    break
+            if not from_to:
+                return
+
+            for y in range(image.height(), from_to[0], -1):
+                for x in range(image.width()):
+                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                        from_to.append(y)
+                        break
+                if len(from_to) == 2:
+                    break
+            return from_to
+
+    @staticmethod
+    def search_y_of_signal_in_column(pixmap_column, signal_color):
+        """
+        Return the first pixel line number where the signal color was found.
+        """
+        image = pixmap_column.toImage()
+        if image.width() > 1:
+            raise TypeError(f"<<{image.width()} != 1>>. Please check pixmap width!")
+        if not isinstance(signal_color, str):
+            if hasattr(signal_color, "color"):
+                signal_color = signal_color.color.name()
+            elif hasattr(signal_color, "name"):
+                signal_color = signal_color.name()
+            else:
+                raise SyntaxError(f"Object {signal_color} doesn't have the attribute <<color>> or <<name()>>")
+
+        line = None
+        for y in range(image.height()):
+            if QtGui.QColor(image.pixel(0, y)).name() == signal_color:
+                line = y
+                break
+        return line
