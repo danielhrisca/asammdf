@@ -48,14 +48,12 @@ from numpy import (
     concatenate,
     dtype,
     empty,
-    fliplr,
     float32,
     float64,
     frombuffer,
     full,
     linspace,
     nonzero,
-    packbits,
     searchsorted,
     transpose,
     uint8,
@@ -3530,7 +3528,7 @@ class MDF4(MDF_Common):
 
             gp.channel_group.invalidation_bytes_nr = invalidation_bytes_nr
 
-            inval_bits = fliplr(packbits(array(inval_bits).T).reshape((cycles_nr, invalidation_bytes_nr)))
+            inval_bits = np.fliplr(np.packbits(array(inval_bits).T).reshape((cycles_nr, invalidation_bytes_nr)))
 
             if self.version < "4.20":
                 fields.append((inval_bits.tobytes(), invalidation_bytes_nr))
@@ -5764,7 +5762,7 @@ class MDF4(MDF_Common):
 
             gp.channel_group.invalidation_bytes_nr = invalidation_bytes_nr
 
-            inval_bits = fliplr(packbits(array(inval_bits).T).reshape((cycles_nr, invalidation_bytes_nr)))
+            inval_bits = np.fliplr(np.packbits(array(inval_bits).T).reshape((cycles_nr, invalidation_bytes_nr)))
 
             if self.version < "4.20":
                 fields.append((inval_bits.tobytes(), invalidation_bytes_nr))

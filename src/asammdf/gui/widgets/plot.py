@@ -222,10 +222,10 @@ class PlotSignal(Signal):
                     self.timestamps = self.timestamps[~nans]
 
         if self.samples.dtype.byteorder not in target_byte_order:
-            self.samples = self.samples.view(self.samples.dtype.newbyteorder())
+            self.samples = self.samples.byteswap().view(self.samples.dtype.newbyteorder())
 
         if self.timestamps.dtype.byteorder not in target_byte_order:
-            self.timestamps = self.timestamps.view(self.timestamps.dtype.newbyteorder())
+            self.timestamps = self.timestamps.byteswap().view(self.timestamps.dtype.n())
 
         if self.timestamps.dtype != float64:
             self.timestamps = self.timestamps.astype(float64)
@@ -5566,6 +5566,10 @@ class PlotGraphics(pg.PlotWidget):
 
             if val == "n.a.":
                 continue
+
+            ratio = self.devicePixelRatio()
+            x = x * ratio
+            val = val * ratio
 
             x_val, y_val = self.scale_curve_to_pixmap(x, val, y_range=sig.y_range, x_start=x_start, delta=delta)
 

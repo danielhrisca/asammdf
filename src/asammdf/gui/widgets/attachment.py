@@ -7,19 +7,19 @@ from ..ui.attachment import Ui_Attachment
 
 
 class Attachment(Ui_Attachment, QtWidgets.QWidget):
-    def __init__(self, index, mdf, *args, **kwargs):
+    def __init__(self, index, file, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
         self.extract_btn.clicked.connect(self.extract)
-        self.mdf = mdf
+        self.file = file
         self.index = index
 
     def extract(self, event=None):
-        attachment = self.mdf.attachments[self.index]
+        attachment = self.file.mdf.attachments[self.index]
         encryption_info = extract_encryption_information(attachment.comment)
         password = None
-        if encryption_info.get("encrypted", False) and self.mdf._password is None:
+        if encryption_info.get("encrypted", False) and self.file.mdf._password is None:
             text, ok = QtWidgets.QInputDialog.getText(
                 self,
                 "Attachment password",
@@ -29,7 +29,7 @@ class Attachment(Ui_Attachment, QtWidgets.QWidget):
             if ok and text:
                 password = text
 
-        data, file_path, md5_sum = self.mdf.extract_attachment(self.index, password=password)
+        data, file_path, md5_sum = self.file.mdf.extract_attachment(self.index, password=password)
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,

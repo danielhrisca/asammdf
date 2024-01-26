@@ -2487,6 +2487,7 @@ class WithMDIArea:
         plot.edit_channel_request.connect(partial(self.edit_channel, widget=plot))
 
         plot.show_properties.connect(self._show_info)
+
         plot.add_new_channels(signals, mime_data)
         self.set_subplots_link(self.subplots_link)
 
@@ -3655,11 +3656,11 @@ class WithMDIArea:
         sections_width = window_info["configuration"].get("header_sections_width", [])
         if sections_width:
             for i, width in enumerate(sections_width):
-                widget.tree.header().resizeSection(i, width)
+                widget.tree.columnHeader.setColumnWidth(i, width)
+                widget.tree.dataView.setColumnWidth(i, width)
 
-        scroll = widget.tree.horizontalScrollBar()
-        if scroll:
-            scroll.setValue(scroll.minimum())
+            widget.tree.dataView.updateGeometry()
+            widget.tree.columnHeader.updateGeometry()
 
         return None, False
 
@@ -3678,11 +3679,11 @@ class WithMDIArea:
         sections_width = window_info["configuration"].get("header_sections_width", [])
         if sections_width:
             for i, width in enumerate(sections_width):
-                widget.tree.header().resizeSection(i, width)
+                widget.tree.columnHeader.setColumnWidth(i, width)
+                widget.tree.dataView.setColumnWidth(i, width)
 
-        scroll = widget.tree.horizontalScrollBar()
-        if scroll:
-            scroll.setValue(scroll.minimum())
+            widget.tree.dataView.updateGeometry()
+            widget.tree.columnHeader.updateGeometry()
 
         return None, False
 
@@ -3701,11 +3702,11 @@ class WithMDIArea:
         sections_width = window_info["configuration"].get("header_sections_width", [])
         if sections_width:
             for i, width in enumerate(sections_width):
-                widget.tree.header().resizeSection(i, width)
+                widget.tree.columnHeader.setColumnWidth(i, width)
+                widget.tree.dataView.setColumnWidth(i, width)
 
-        scroll = widget.tree.horizontalScrollBar()
-        if scroll:
-            scroll.setValue(scroll.minimum())
+            widget.tree.dataView.updateGeometry()
+            widget.tree.columnHeader.updateGeometry()
 
         return None, False
 
