@@ -3839,9 +3839,11 @@ class ChannelConversion(_ChannelConversionBase):
                 masks = np.array([self[f"mask_{i}"] for i in range(nr)], dtype="u8")
 
                 phys = [
-                    conv
-                    if isinstance(conv, bytes)
-                    else ((f"{conv.name}=".encode(), conv) if conv.name else (b"", conv))
+                    (
+                        conv
+                        if isinstance(conv, bytes)
+                        else ((f"{conv.name}=".encode(), conv) if conv.name else (b"", conv))
+                    )
                     for conv in phys
                 ]
 

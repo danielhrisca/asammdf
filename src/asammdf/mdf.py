@@ -2103,8 +2103,7 @@ class MDF:
         raster: float | None = ...,
         samples_only: Literal[False] = ...,
         raw: bool = ...,
-    ) -> Iterator[Signal]:
-        ...
+    ) -> Iterator[Signal]: ...
 
     @overload
     def iter_get(
@@ -2115,8 +2114,7 @@ class MDF:
         raster: float | None = ...,
         samples_only: Literal[True] = ...,
         raw: bool = ...,
-    ) -> Iterator[tuple[NDArray[Any], NDArray[Any] | None]]:
-        ...
+    ) -> Iterator[tuple[NDArray[Any], NDArray[Any] | None]]: ...
 
     def iter_get(
         self,
@@ -2768,9 +2766,9 @@ class MDF:
 
                 if dg_cntr is not None:
                     for index in range(dg_cntr, len(stacked.groups)):
-                        stacked.groups[
-                            index
-                        ].channel_group.comment = f'stacked from channel group {i} of "{mdf.name.parent}"'
+                        stacked.groups[index].channel_group.comment = (
+                            f'stacked from channel group {i} of "{mdf.name.parent}"'
+                        )
 
             if progress is not None:
                 if callable(progress):
@@ -4059,13 +4057,15 @@ class MDF:
                         cycles = len(group_master)
 
                         signals = [
-                            signal.interp(
-                                master,
-                                integer_interpolation_mode=self._integer_interpolation,
-                                float_interpolation_mode=self._float_interpolation,
+                            (
+                                signal.interp(
+                                    master,
+                                    integer_interpolation_mode=self._integer_interpolation,
+                                    float_interpolation_mode=self._float_interpolation,
+                                )
+                                if not same_master or len(signal) != cycles
+                                else signal
                             )
-                            if not same_master or len(signal) != cycles
-                            else signal
                             for signal in signals
                         ]
 
@@ -4437,13 +4437,15 @@ class MDF:
                 cycles = len(group_master)
 
                 signals = [
-                    signal.interp(
-                        master,
-                        integer_interpolation_mode=self._integer_interpolation,
-                        float_interpolation_mode=self._float_interpolation,
+                    (
+                        signal.interp(
+                            master,
+                            integer_interpolation_mode=self._integer_interpolation,
+                            float_interpolation_mode=self._float_interpolation,
+                        )
+                        if not same_master or len(signal) != cycles
+                        else signal
                     )
-                    if not same_master or len(signal) != cycles
-                    else signal
                     for signal in signals
                 ]
 
@@ -4768,9 +4770,11 @@ class MDF:
 
             current_not_found = {
                 (
-                    (message.arbitration_id.id, message.arbitration_id.extended)
-                    if not message.is_j1939 and not global_is_j1939
-                    else message.arbitration_id.pgn,
+                    (
+                        (message.arbitration_id.id, message.arbitration_id.extended)
+                        if not message.is_j1939 and not global_is_j1939
+                        else message.arbitration_id.pgn
+                    ),
                     message.name,
                 )
                 for msg_id, message in messages.items()

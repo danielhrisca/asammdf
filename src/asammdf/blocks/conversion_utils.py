@@ -309,9 +309,11 @@ def from_dict(conversion: dict[str, Any]) -> v4b.ChannelConversion:
                     "conversion_type": v4c.CONVERSION_TYPE_RTABX,
                     f"upper_{nr}": conversion[f"upper_{nr}"],
                     f"lower_{nr}": conversion[f"lower_{nr}"],
-                    f"text_{nr}": conversion[f"text_{nr}"]
-                    if isinstance(conversion[f"text_{nr}"], bytes)
-                    else conversion[f"text_{nr}"].encode("utf-8"),
+                    f"text_{nr}": (
+                        conversion[f"text_{nr}"]
+                        if isinstance(conversion[f"text_{nr}"], bytes)
+                        else conversion[f"text_{nr}"].encode("utf-8")
+                    ),
                     "default": b"",
                 }
                 conversion[f"text_{nr}"] = from_dict(partial_conversion)

@@ -3266,9 +3266,11 @@ class Plot(QtWidgets.QWidget):
             pattern["ranges"] = ranges
 
         config = {
-            "channels": item_to_config(self.channel_selection, self.channel_selection.invisibleRootItem())
-            if not self.pattern
-            else [],
+            "channels": (
+                item_to_config(self.channel_selection, self.channel_selection.invisibleRootItem())
+                if not self.pattern
+                else []
+            ),
             "pattern": pattern,
             "splitter": [int(e) for e in self.splitter.sizes()[:2]]
             + [

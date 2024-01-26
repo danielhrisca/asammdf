@@ -1,4 +1,5 @@
 """ MDF v4 constants """
+
 import re
 import struct
 import sys

@@ -1,6 +1,7 @@
 """
 benchmark asammdf vs mdfreader
 """
+
 import argparse
 from io import StringIO
 import multiprocessing

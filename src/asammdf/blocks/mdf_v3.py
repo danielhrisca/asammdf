@@ -2710,8 +2710,7 @@ class MDF3(MDF_Common):
         record_offset: int = ...,
         record_count: int | None = ...,
         skip_channel_validation: bool = ...,
-    ) -> Signal:
-        ...
+    ) -> Signal: ...
 
     @overload
     def get(
@@ -2727,8 +2726,7 @@ class MDF3(MDF_Common):
         record_offset: int = ...,
         record_count: int | None = ...,
         skip_channel_validation: bool = ...,
-    ) -> tuple[NDArray[Any], None]:
-        ...
+    ) -> tuple[NDArray[Any], None]: ...
 
     def get(
         self,
