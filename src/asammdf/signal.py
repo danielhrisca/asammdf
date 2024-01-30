@@ -411,10 +411,12 @@ class Signal:
         start: float | None = None,
         stop: float | None = None,
         include_ends: bool = True,
-        integer_interpolation_mode: IntInterpolationModeType
-        | IntegerInterpolation = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
-        float_interpolation_mode: FloatInterpolationModeType
-        | FloatInterpolation = FloatInterpolation.LINEAR_INTERPOLATION,
+        integer_interpolation_mode: (
+            IntInterpolationModeType | IntegerInterpolation
+        ) = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
+        float_interpolation_mode: (
+            FloatInterpolationModeType | FloatInterpolation
+        ) = FloatInterpolation.LINEAR_INTERPOLATION,
     ) -> Signal:
         """
         Cuts the signal according to the *start* and *stop* values, by using
@@ -856,10 +858,12 @@ class Signal:
     def interp(
         self,
         new_timestamps: NDArray[Any],
-        integer_interpolation_mode: IntInterpolationModeType
-        | IntegerInterpolation = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
-        float_interpolation_mode: FloatInterpolationModeType
-        | FloatInterpolation = FloatInterpolation.LINEAR_INTERPOLATION,
+        integer_interpolation_mode: (
+            IntInterpolationModeType | IntegerInterpolation
+        ) = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
+        float_interpolation_mode: (
+            FloatInterpolationModeType | FloatInterpolation
+        ) = FloatInterpolation.LINEAR_INTERPOLATION,
     ) -> Signal:
         """returns a new *Signal* interpolated using the *new_timestamps*
 

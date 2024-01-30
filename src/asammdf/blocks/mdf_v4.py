@@ -4744,7 +4744,15 @@ class MDF4(MDF_Common):
         invalidation_bytes_nr: int,
         inval_bits: list[NDArray[Any]],
         inval_cntr: int,
-    ) -> tuple[int, int, int, tuple[int, int], list[NDArray[Any]], list[tuple[str, dtype[Any], tuple[int, ...]]], int,]:
+    ) -> tuple[
+        int,
+        int,
+        int,
+        tuple[int, int],
+        list[NDArray[Any]],
+        list[tuple[str, dtype[Any], tuple[int, ...]]],
+        int,
+    ]:
         si_map = self._si_map
 
         fields = []
@@ -5163,7 +5171,14 @@ class MDF4(MDF_Common):
         dg_cntr: int,
         ch_cntr: int,
         defined_texts: dict[str, int],
-    ) -> tuple[int, int, int, tuple[int, int], list[NDArray[Any]], list[tuple[str, dtype[Any], tuple[int, ...]]],]:
+    ) -> tuple[
+        int,
+        int,
+        int,
+        tuple[int, int],
+        list[NDArray[Any]],
+        list[tuple[str, dtype[Any], tuple[int, ...]]],
+    ]:
         si_map = self._si_map
 
         fields = []
@@ -6307,8 +6322,7 @@ class MDF4(MDF_Common):
         record_offset: int = ...,
         record_count: int | None = ...,
         skip_channel_validation: bool = ...,
-    ) -> Signal:
-        ...
+    ) -> Signal: ...
 
     @overload
     def get(
@@ -6324,8 +6338,7 @@ class MDF4(MDF_Common):
         record_offset: int = ...,
         record_count: int | None = ...,
         skip_channel_validation: bool = ...,
-    ) -> tuple[NDArray[Any], NDArray[Any]]:
-        ...
+    ) -> tuple[NDArray[Any], NDArray[Any]]: ...
 
     def get(
         self,

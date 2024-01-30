@@ -359,12 +359,16 @@ def get_data_function(signals, fill_0_for_missing_computation_channels):
                 signals[name]
                 .interp(
                     [t],
-                    integer_interpolation_mode=IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE
-                    if not interpolated
-                    else IntegerInterpolation.LINEAR_INTERPOLATION,
-                    float_interpolation_mode=FloatInterpolation.REPEAT_PREVIOUS_SAMPLE
-                    if not interpolated
-                    else FloatInterpolation.LINEAR_INTERPOLATION,
+                    integer_interpolation_mode=(
+                        IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE
+                        if not interpolated
+                        else IntegerInterpolation.LINEAR_INTERPOLATION
+                    ),
+                    float_interpolation_mode=(
+                        FloatInterpolation.REPEAT_PREVIOUS_SAMPLE
+                        if not interpolated
+                        else FloatInterpolation.LINEAR_INTERPOLATION
+                    ),
                 )
                 .samples
             )

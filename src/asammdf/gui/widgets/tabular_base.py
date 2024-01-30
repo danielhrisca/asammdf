@@ -1541,9 +1541,11 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             "sorted": True,
             "channels": list(self.tree.pgdf.df_unfiltered.columns) if not self.pattern else [],
             "filtered": bool(self.query.toPlainText()),
-            "filters": [self.filters.itemWidget(self.filters.item(i)).to_config() for i in range(count)]
-            if not self.pattern
-            else [],
+            "filters": (
+                [self.filters.itemWidget(self.filters.item(i)).to_config() for i in range(count)]
+                if not self.pattern
+                else []
+            ),
             "time_as_date": self.time_as_date.checkState() == QtCore.Qt.CheckState.Checked,
             "pattern": pattern,
             "format": self.format,

@@ -1,4 +1,5 @@
 """ MDF v2 and v3 constants """
+
 import struct
 
 # byte order

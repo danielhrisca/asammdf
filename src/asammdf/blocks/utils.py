@@ -242,8 +242,7 @@ def get_text_v3(
     stream: ReadableBufferType,
     mapped: bool = ...,
     decode: Literal[True] = ...,
-) -> str:
-    ...
+) -> str: ...
 
 
 @overload
@@ -252,8 +251,7 @@ def get_text_v3(
     stream: ReadableBufferType,
     mapped: bool = ...,
     decode: Literal[False] = ...,
-) -> bytes:
-    ...
+) -> bytes: ...
 
 
 def get_text_v3(address: int, stream: ReadableBufferType, mapped: bool = False, decode: bool = True) -> str | bytes:
@@ -310,8 +308,7 @@ def get_text_v4(
     stream: ReadableBufferType,
     mapped: bool = ...,
     decode: Literal[True] = ...,
-) -> str:
-    ...
+) -> str: ...
 
 
 @overload
@@ -320,8 +317,7 @@ def get_text_v4(
     stream: ReadableBufferType,
     mapped: bool = ...,
     decode: Literal[False] = ...,
-) -> bytes:
-    ...
+) -> bytes: ...
 
 
 def get_text_v4(address: int, stream: ReadableBufferType, mapped: bool = False, decode: bool = True) -> str | bytes:

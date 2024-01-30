@@ -3266,9 +3266,11 @@ class Plot(QtWidgets.QWidget):
             pattern["ranges"] = ranges
 
         config = {
-            "channels": item_to_config(self.channel_selection, self.channel_selection.invisibleRootItem())
-            if not self.pattern
-            else [],
+            "channels": (
+                item_to_config(self.channel_selection, self.channel_selection.invisibleRootItem())
+                if not self.pattern
+                else []
+            ),
             "pattern": pattern,
             "splitter": [int(e) for e in self.splitter.sizes()[:2]]
             + [
@@ -5554,8 +5556,15 @@ class PlotGraphics(pg.PlotWidget):
         return x, y
 
     def select_curve(self, x, y):
-        delta = self.viewbox.sceneBoundingRect().x()
-        x_start = self.viewbox.viewRange()[0][0]
+        ratio = self.devicePixelRatio()
+        rect = self.viewbox.sceneBoundingRect()
+        rect.setSize(rect.size() * ratio)
+        rect.moveTo(rect.topLeft() * ratio)
+
+        delta = rect.x()
+        x_start = self.x_range[0]
+
+        y = y * ratio
 
         candidates = []
         for sig in self.signals:
@@ -5566,10 +5575,6 @@ class PlotGraphics(pg.PlotWidget):
 
             if val == "n.a.":
                 continue
-
-            ratio = self.devicePixelRatio()
-            x = x * ratio
-            val = val * ratio
 
             x_val, y_val = self.scale_curve_to_pixmap(x, val, y_range=sig.y_range, x_start=x_start, delta=delta)
 
