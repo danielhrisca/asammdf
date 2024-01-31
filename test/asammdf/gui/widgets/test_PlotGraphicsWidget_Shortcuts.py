@@ -97,11 +97,8 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
 
         for _, ch in enumerate(channels):
             self.widget.add_new_channels([self.widget.channels_tree.topLevelItem(ch).name], self.plot)
-
             # channels
             self.channels.append(self.plot.channel_selection.topLevelItem(_))
-            # Double-click on channels -> to add channels to plot
-            self.mouseDClick_WidgetItem(self.channels[_])
 
         self.assertEqual(len(channels), self.plot.channel_selection.topLevelItemCount())
         self.processEvents()
@@ -490,6 +487,8 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         # Press "Shift+F"
         QtTest.QTest.keySequence(self.plot.plot, QtGui.QKeySequence("Shift+F"))
         self.avoid_blinking_issue(self.plot.channel_selection)
+        for _ in range(50):
+            self.processEvents()
         # Evaluate
         with self.subTest("test_shortcut_Shift_F"):
             # First line

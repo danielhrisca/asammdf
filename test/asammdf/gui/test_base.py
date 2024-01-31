@@ -272,22 +272,22 @@ class Pixmap:
         return True
 
     @staticmethod
-    def has_color(pixmap, signal_color):
+    def has_color(pixmap, color_name):
         """
         Return True if Pixmap has selected color
         """
         image = pixmap.toImage()
-        if not isinstance(signal_color, str):
-            if hasattr(signal_color, "color"):
-                signal_color = signal_color.color.name()
-            elif hasattr(signal_color, "name"):
-                signal_color = signal_color.name()
+        if not isinstance(color_name, str):
+            if hasattr(color_name, "color"):
+                color_name = color_name.color.name()
+            elif hasattr(color_name, "name"):
+                color_name = color_name.name()
             else:
-                raise SyntaxError(f"Object {signal_color} doesn't have the attribute <<color>> or <<name()>>")
+                raise SyntaxError(f"Object {color_name} doesn't have the attribute <<color>> or <<name()>>")
         for y in range(image.height()):
             for x in range(image.width()):
                 color = QtGui.QColor(image.pixel(x, y))
-                if color.name() == signal_color:
+                if color.name() == color_name:
                     return True
         return False
 
