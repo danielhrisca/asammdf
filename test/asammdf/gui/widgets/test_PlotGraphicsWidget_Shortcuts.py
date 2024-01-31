@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import os
 
 from asammdf.gui.widgets.formated_axis import FormatedAxis as FA
 from test.asammdf.gui.test_base import Pixmap
@@ -936,3 +937,361 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         # Save PixMap of clear plot
         clear_pixmap = self.plot.plot.viewport().grab()
         self.assertTrue(Pixmap.is_black(clear_pixmap))
+
+    def test_Plot_Plot_Shortcut_Key_LeftRight(self):
+        """
+        Test Scope:
+            Check that Arrow Keys: Left & Right ensure navigation on channels evolution.
+            Ensure that navigation is working.
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Switch ComboBox to "Natural sort"
+            - Press PushButton "Create Window"
+            - Drag and Drop channels from FileWidget.channels_tree to self.plot.channels_selection:
+                # First
+                - ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL
+                # Second
+                - ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL
+            - Send KeyClick Right 5 times
+            - Send KeyClick Left 4 times
+        Evaluate:
+            - Evaluate values from `Value` column on self.plot.channels_selection
+            - Evaluate timestamp label
+        """
+        self.addChannelsToPlot([36, 37])
+        self.channel_36 = self.channels[0]
+        self.channel_37 = self.channels[1]
+
+        # Case 0:
+        with self.subTest("test_Plot_Plot_Shortcut_Key_LeftRight_0"):
+            # Select channel: ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL
+            self.mouseClick_WidgetItem(self.channel_37)
+            self.plot.plot.setFocus()
+            self.processEvents(0.1)
+
+            self.assertEqual("25", self.channel_36.text(self.Column.VALUE))
+            self.assertEqual("244", self.channel_37.text(self.Column.VALUE))
+
+            # Send Key strokes
+            for _ in range(6):
+                QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Right)
+                self.processEvents(0.1)
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertEqual("8", self.channel_36.text(self.Column.VALUE))
+            self.assertEqual("6", self.channel_37.text(self.Column.VALUE))
+            self.assertEqual("t = 0.082657s", self.plot.cursor_info.text())
+
+            # Send Key strokes
+            for _ in range(5):
+                QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Left)
+                self.processEvents(0.1)
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertEqual("21", self.channel_36.text(self.Column.VALUE))
+            self.assertEqual("247", self.channel_37.text(self.Column.VALUE))
+            self.assertEqual("t = 0.032657s", self.plot.cursor_info.text())
+
+        # Case 1:
+        with self.subTest("test_Plot_Plot_Shortcut_Key_LeftRight_1"):
+            # Select channel: ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL
+            self.mouseClick_WidgetItem(self.channel_37)
+            self.plot.plot.setFocus()
+            self.processEvents(0.1)
+
+            # Send Key strokes
+            for _ in range(6):
+                QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Right)
+                self.processEvents(0.1)
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertEqual("5", self.channel_36.text(self.Column.VALUE))
+            self.assertEqual("9", self.channel_37.text(self.Column.VALUE))
+            self.assertEqual("t = 0.092657s", self.plot.cursor_info.text())
+
+            # Send Key strokes
+            for _ in range(5):
+                QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_Left)
+                self.processEvents(0.1)
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertEqual("18", self.channel_36.text(self.Column.VALUE))
+            self.assertEqual("250", self.channel_37.text(self.Column.VALUE))
+            self.assertEqual("t = 0.042657s", self.plot.cursor_info.text())
+
+    def test_Plot_Plot_Shortcut_Key_Shift_Arrows(self):
+        """
+        Test Scope:
+            Check that Shift + Arrow Keys ensure moving of selected channels.
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Switch ComboBox to "Natural sort"
+            - Press PushButton "Create Window"
+            - Create plot with 2 channels
+            - Press key "S" to separate signals for better evaluation
+            - Click on first channel
+            - Press "Shift" key + arrow "Down" & "Left"
+            - Click on second channel
+            - Press "Shift" key + arrow "Up" & "Right"
+        Evaluate:
+            - Evaluate that two signals are available
+            - Evaluate that plot is not black and contain colors of all 3 channels
+            - Evaluate that first signal is shifted down & left after pressing combination "Shift+Down" & "Shift+Left"
+            - Evaluate that second signal is shifted up & right after pressing combination "Shift+Up" & "Shift+Right"
+        """
+        self.addChannelsToPlot([36, 37])
+        self.channel_36 = self.channels[0]
+        self.channel_37 = self.channels[1]
+
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_S)
+        self.processEvents(0.01)
+        old_from_to_y_channel_36 = Pixmap.search_signal_extremes_by_ax(
+            self.plot.plot.viewport().grab(), self.channel_36.color.name(), "y"
+        )
+        old_from_to_y_channel_37 = Pixmap.search_signal_extremes_by_ax(
+            self.plot.plot.viewport().grab(), self.channel_37.color.name(), "y"
+        )
+        old_from_to_x_channel_36 = Pixmap.search_signal_extremes_by_ax(
+            self.plot.plot.viewport().grab(), self.channel_36.color.name(), "x"
+        )
+        old_from_to_x_channel_37 = Pixmap.search_signal_extremes_by_ax(
+            self.plot.plot.viewport().grab(), self.channel_37.color.name(), "x"
+        )
+
+        self.mouseClick_WidgetItem(self.channel_36)
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+Down"))
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+Left"))
+        self.mouseClick_WidgetItem(self.channel_37)
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+Up"))
+        QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+Right"))
+
+        self.avoid_blinking_issue(self.plot.channel_selection)
+
+        new_from_to_y_channel_36 = Pixmap.search_signal_extremes_by_ax(
+            self.plot.plot.viewport().grab(), self.channel_36.color.name(), "y"
+        )
+        new_from_to_y_channel_37 = Pixmap.search_signal_extremes_by_ax(
+            self.plot.plot.viewport().grab(), self.channel_37.color.name(), "y"
+        )
+        new_from_to_x_channel_36 = Pixmap.search_signal_extremes_by_ax(
+            self.plot.plot.viewport().grab(), self.channel_36.color.name(), "x"
+        )
+        new_from_to_x_channel_37 = Pixmap.search_signal_extremes_by_ax(
+            self.plot.plot.viewport().grab(), self.channel_37.color.name(), "x"
+        )
+
+        # Evaluate
+        self.assertLess(old_from_to_y_channel_36[0], new_from_to_y_channel_36[0])
+        self.assertLess(old_from_to_y_channel_36[1], new_from_to_y_channel_36[1])
+        self.assertGreater(old_from_to_x_channel_36[0], new_from_to_x_channel_36[0])
+        self.assertGreater(old_from_to_x_channel_36[1], new_from_to_x_channel_36[1])
+
+        self.assertGreater(old_from_to_y_channel_37[0], new_from_to_y_channel_37[0])
+        self.assertGreater(old_from_to_y_channel_37[1], new_from_to_y_channel_37[1])
+        self.assertLess(old_from_to_x_channel_37[0], new_from_to_x_channel_37[0])
+        self.assertLess(old_from_to_x_channel_37[1], new_from_to_x_channel_37[1])
+
+    def test_Plot_Plot_Shortcut_Key_H(self):
+        """
+        Test Scope:
+            Check if honeywell is the same every time key "H" is pressed.
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Display 1 signal on plot
+            - Select signal
+            - Press "H"
+            - Press "O"
+            - Press "H"
+        Evaluate:
+            - Evaluate that plot is not black
+            - Evaluate that the range of x-axis was changed after pressing key "H"
+            - Evaluate that the range of x-axis was changed after pressing key "O"
+            - Evaluate that the range of x-axis is same after pressing key "H" second time
+                    with range of x-axis after pressing key "H" first time
+        """
+        delta_x_range = self.plot.plot.x_range[1] - self.plot.plot.x_range[0]
+        # Press "H"
+        QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_H)
+        self.avoid_blinking_issue(self.plot.channel_selection)
+        delta_x_honey_range = self.plot.plot.x_range[1] - self.plot.plot.x_range[0]
+
+        # Evaluate
+        self.assertNotEqual(delta_x_range, delta_x_honey_range)
+
+        # Press "O"
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_O)
+        self.processEvents()
+
+        # Evaluate
+        self.assertNotEqual(delta_x_honey_range, self.plot.plot.x_range[1] - self.plot.plot.x_range[0])
+
+        # Press H
+        QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_H)
+        self.avoid_blinking_issue(self.plot.channel_selection)
+
+        # Evaluate
+        self.assertEqual(delta_x_honey_range, self.plot.plot.x_range[1] - self.plot.plot.x_range[0])
+
+    def test_Plot_Plot_Shortcut_Key_W(self):
+        """
+        Check if the signal is fitted properly after pressing key "W".
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Create a plot window and load 2 signals
+            - Press key "I"
+            - Press key "W"
+        Evaluate:
+            - Evaluate that window is created
+            - Evaluate that there is at least one column with first signal color
+            - Evaluate first and last columns where is first signal:
+                > first column after pressing "I" is full black => signal colors are not there
+                > signal is zoomed => is extended to left side => last column contain signal color
+            - Evaluate that after pressing key "W" from first to last column is displayed signal
+        """
+        self.addChannelsToPlot([35])
+        self.channel_35 = self.channels[0]
+
+        # check if the grid is available
+        if not self.plot.hide_axes_btn.isFlat():
+            QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
+
+        # search first and last column where is displayed first signal
+        extremesOfChannel_35 = Pixmap.search_signal_extremes_by_ax(
+            self.plot.plot.viewport().grab(), self.channel_35.color.name(), "x"
+        )
+        # Evaluate that there are extremes of first signal
+        self.assertTrue(extremesOfChannel_35)
+        # Press "I"
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_I)
+        self.processEvents()
+
+        # save left and right pixel column
+        xLeftColumn = self.plot.plot.viewport().grab(
+            QtCore.QRect(extremesOfChannel_35[0], 0, 1, self.plot.plot.height())
+        )
+        xRightColumn = self.plot.plot.viewport().grab(
+            QtCore.QRect(extremesOfChannel_35[1], 0, 1, self.plot.plot.height())
+        )
+        self.assertTrue(Pixmap.is_black(xLeftColumn))
+        self.assertTrue(Pixmap.has_color(xRightColumn, self.channel_35.color.name()))
+        # Press "W"
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_W)
+        self.processEvents()
+        # Select all columns from left to right
+        for x in range(self.plot.plot.height() - 1):
+            column = self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.height()))
+            if x < extremesOfChannel_35[0] - 1:
+                self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
+            elif extremesOfChannel_35[0] <= x <= extremesOfChannel_35[1]:
+                self.assertTrue(
+                    Pixmap.has_color(column, self.channel_35.color.name()),
+                    f"column {x} doesn't have {self.channel_35.name} color",
+                )
+            else:
+                self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
+
+    def test_Plot_Plot_Shortcut_Key_Insert(self):
+        """
+        Test Scope:
+            Check Insert key shortcut action
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Press Insert with preconditions:
+                > There is no user defined functon
+                > There is user defined functon, button Cancel or "X" was pressed
+                > There is user defined function, button Apply was pressed
+        Evaluate:
+            - Evaluate that channel selection area is empty
+        Evaluate (0):
+            - Evaluate that warning message box was triggered after pressing key insert
+            - Evaluate displayed warning message
+            - Evaluate that channel selection area is empty
+        Evaluate (1):
+            - Evaluate that channel selection area is empty
+            - Evaluate that DefineChannel object was called
+        Evaluate (2):
+            - Evaluate that there is one channel in channel selection area
+            - Evaluate that the name of this channel is correct
+            - Evaluate that DefineChannel object was called
+        """
+        # Evaluate precondition
+        self.assertEqual(0, self.plot.channel_selection.topLevelItemCount())
+
+        with self.subTest("_0_test_warning_no_user_function_defined"):
+            warnings_msgs = [
+                "Cannot add computed channel",
+                "There is no user defined function. Create new function using the Functions Manger (F6)",
+            ]
+            # mock for warning message box
+            with mock.patch("asammdf.gui.widgets.plot.MessageBox.warning") as mo_waring:
+                # Press key Insert
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Insert)
+            # Evaluate
+            self.assertEqual(0, self.plot.channel_selection.topLevelItemCount())
+            mo_waring.assert_called()
+            for w in warnings_msgs:
+                self.assertIn(w, mo_waring.call_args.args)
+
+        with self.subTest("-1_test_cancel_dlg_with_user_function_defined"):
+            file_name = "test_insert_cfg.dspf"
+            file_path = os.path.join(self.resource, file_name)
+            self.load_display_file(file_path)
+            self.plot = self.widget.mdi_area.subWindowList()[0].widget()
+            with mock.patch("asammdf.gui.widgets.plot.DefineChannel") as mo_DefineChannel:
+                # Press key Insert
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Insert)
+
+            # Evaluate
+            self.assertEqual(0, self.plot.channel_selection.topLevelItemCount())
+            mo_DefineChannel.assert_called()
+
+        with self.subTest("_2_test_apply_dlg_with_user_function_defined"):
+            file_name = "test_insert_cfg.dspf"
+            file_path = os.path.join(self.resource, file_name)
+            self.load_display_file(file_path)
+            self.plot = self.widget.mdi_area.subWindowList()[0].widget()
+            computed_channel = {
+                "type": "channel",
+                "common_axis": False,
+                "individual_axis": False,
+                "enabled": True,
+                "mode": "phys",
+                "fmt": "{:.3f}",
+                "format": "phys",
+                "precision": 3,
+                "flags": 0,
+                "ranges": [],
+                "unit": "",
+                "computed": True,
+                "color": "#994380",
+                "uuid": "525ad72a531a",
+                "origin_uuid": "812d7b792168",
+                "group_index": -1,
+                "channel_index": -1,
+                "name": self.id(),
+                "computation": {
+                    "args": {},
+                    "type": "python_function",
+                    "definition": "",
+                    "channel_name": "Function_728d4a149b44",
+                    "function": "Function1",
+                    "channel_unit": "",
+                    "channel_comment": "",
+                    "triggering": "triggering_on_all",
+                    "triggering_value": "all",
+                    "computation_mode": "sample_by_sample",
+                },
+            }
+            with mock.patch("asammdf.gui.widgets.plot.DefineChannel") as mo_DefineChannel:
+                mo_DefineChannel.return_value.result = computed_channel
+                # Press key Insert
+                QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Insert)
+
+            # Evaluate
+            self.assertEqual(1, self.plot.channel_selection.topLevelItemCount())
+            self.assertEqual(self.plot.channel_selection.topLevelItem(0).name, self.id())
+            mo_DefineChannel.assert_called()
