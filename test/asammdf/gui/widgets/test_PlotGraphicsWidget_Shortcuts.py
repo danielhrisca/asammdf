@@ -104,7 +104,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         self.assertEqual(len(channels), self.plot.channel_selection.topLevelItemCount())
         self.processEvents()
 
-    def test_Plot_Plot_Shortcut_Key_Y(self):
+    def test_Plot_PlotGraphics_Shortcut_Key_Y(self):
         """
         Test Scope:
             Check if Range Selection cursor is locked/unlocked after pressing key Y.
@@ -277,7 +277,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         clear_pixmap = self.plot.plot.viewport().grab()
         self.assertTrue(Pixmap.is_black(clear_pixmap))
 
-    def test_Plot_Plot_Shortcut_Key_X(self):
+    def test_Plot_PlotGraphics_Shortcut_Key_X(self):
         """
         Test Scope:
             Check if fitting between cursors is released after pressing key "X".
@@ -411,7 +411,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         self.assertEqual(interCursorsIntersectionsR, interCursorsIntersectionsX)
         self.assertLess(interCursorsIntersectionsX, firstIntersections)
 
-    def test_Plot_Plot_Shortcut_Key_S_ShiftS_ShiftF_F(self):
+    def test_Plot_PlotGraphics_Shortcut_Key_S_ShiftS_ShiftF_F(self):
         """
         Test Scope:
             To check if:
@@ -651,7 +651,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
                     )
                 )
 
-    def test_Plot_Plot_Shortcut_Key_G(self):
+    def test_Plot_PlotGraphics_Shortcut_Key_G(self):
         """
         Test Scope:
             Check if grid is created properly after pressing key "G".
@@ -725,7 +725,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
                 self.assertFalse(self.plot.plot.x_axis.grid)
                 self.assertFalse(self.plot.plot.y_axis.grid)
 
-    def test_Plot_Plot_Shortcut_Key_I(self):
+    def test_Plot_PlotGraphics_Shortcut_Key_I(self):
         """
         Test Scope:
             Check if zooming is released after pressing key "I".
@@ -772,7 +772,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
                     break
         self.assertLess(distanceInPixels_1, distanceInPixels_2)
 
-    def test_Plot_Plot_Shortcut_Key_O(self):
+    def test_Plot_PlotGraphics_Shortcut_Key_O(self):
         """
         Test Scope:
             Check if zooming is released after pressing key "O".
@@ -818,7 +818,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
                     break
         self.assertGreater(distanceInPixels_1, distanceInPixels_2)
 
-    def test_Plot_Plot_Shortcut_Key_R(self):
+    def test_Plot_PlotGraphics_Shortcut_Key_R(self):
         """
         Test Scope:
             Check if Range Selection rectangle is painted over the self.plot.
@@ -938,7 +938,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         clear_pixmap = self.plot.plot.viewport().grab()
         self.assertTrue(Pixmap.is_black(clear_pixmap))
 
-    def test_Plot_Plot_Shortcut_Key_LeftRight(self):
+    def test_Plot_PlotGraphics_Shortcut_Key_LeftRight(self):
         """
         Test Scope:
             Check that Arrow Keys: Left & Right ensure navigation on channels evolution.
@@ -1023,7 +1023,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             self.assertEqual("250", self.channel_37.text(self.Column.VALUE))
             self.assertEqual("t = 0.042657s", self.plot.cursor_info.text())
 
-    def test_Plot_Plot_Shortcut_Key_Shift_Arrows(self):
+    def test_Plot_PlotGraphics_Shortcut_Key_Shift_Arrows(self):
         """
         Test Scope:
             Check that Shift + Arrow Keys ensure moving of selected channels.
@@ -1095,7 +1095,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         self.assertLess(old_from_to_x_channel_37[0], new_from_to_x_channel_37[0])
         self.assertLess(old_from_to_x_channel_37[1], new_from_to_x_channel_37[1])
 
-    def test_Plot_Plot_Shortcut_Key_H(self):
+    def test_Plot_PlotGraphics_Shortcut_Key_H(self):
         """
         Test Scope:
             Check if honeywell is the same every time key "H" is pressed.
@@ -1136,7 +1136,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         # Evaluate
         self.assertEqual(delta_x_honey_range, self.plot.plot.x_range[1] - self.plot.plot.x_range[0])
 
-    def test_Plot_Plot_Shortcut_Key_W(self):
+    def test_Plot_PlotGraphics_Shortcut_Key_W(self):
         """
         Check if the signal is fitted properly after pressing key "W".
         Events:
@@ -1194,7 +1194,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             else:
                 self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
 
-    def test_Plot_Plot_Shortcut_Key_Insert(self):
+    def test_Plot_PlotGraphics_Shortcut_Key_Insert(self):
         """
         Test Scope:
             Check Insert key shortcut action
