@@ -1,6 +1,7 @@
 import bisect
 from datetime import timedelta
 from functools import lru_cache, partial, reduce
+from math import ceil
 import os
 from pathlib import Path
 from tempfile import gettempdir
@@ -999,13 +1000,13 @@ class PlotSignal(Signal):
                 else:
                     stop_ = np.searchsorted(sig_timestamps, stop_t, side="right")
 
-                if stop == start:
+                if stop_ == start_:
                     visible_duplication = 0
                 else:
-                    visible = int((stop_t - start_t) / (stop - start) * width)
+                    visible = ceil((stop_t - start_t) / (stop - start) * width)
 
                     if visible:
-                        visible_duplication = (stop_ - start_) // visible
+                        visible_duplication = (stop_ - start_) // abs(visible)
                     else:
                         visible_duplication = 0
 
@@ -2551,8 +2552,9 @@ class Plot(QtWidgets.QWidget):
                 super().dropEvent(e)
 
     def flash_curve(self, item, column):
-        self.plot.flash_current_signal = 6
-        self.plot.update()
+        if self.plot.cursor1:
+            self.plot.flash_current_signal = 6
+            self.plot.update()
 
     def hide_axes(self, event=None, hide=None):
         if hide is None:
@@ -4432,14 +4434,14 @@ class PlotGraphics(pg.PlotWidget):
                     ):
                         common_min = np.nanmin(
                             [
-                                np.nanmin(self.signal_by_uuid(uuid)[0].plot_samples)
+                                self.signal_by_uuid(uuid)[0].min
                                 for uuid in self.common_axis_items
                                 if len(self.signal_by_uuid(uuid)[0].plot_samples)
                             ]
                         )
                         common_max = np.nanmax(
                             [
-                                np.nanmax(self.signal_by_uuid(uuid)[0].plot_samples)
+                                self.signal_by_uuid(uuid)[0].max
                                 for uuid in self.common_axis_items
                                 if len(self.signal_by_uuid(uuid)[0].plot_samples)
                             ]
@@ -4453,12 +4455,9 @@ class PlotGraphics(pg.PlotWidget):
                             min_ = common_min
                             max_ = common_max
                         else:
-                            samples = signal.plot_samples[np.isfinite(signal.plot_samples)]
+                            samples = signal.plot_samples
                             if len(samples):
-                                min_, max_ = (
-                                    np.nanmin(samples),
-                                    np.nanmax(samples),
-                                )
+                                min_, max_ = signal.min, signal.max
                             else:
                                 min_, max_ = 0, 1
 
@@ -4498,12 +4497,9 @@ class PlotGraphics(pg.PlotWidget):
                         continue
 
                     if len(signal.plot_samples):
-                        samples = signal.plot_samples[np.isfinite(signal.plot_samples)]
+                        samples = signal.plot_samples
                         if len(samples):
-                            min_, max_ = (
-                                np.nanmin(samples),
-                                np.nanmax(samples),
-                            )
+                            min_, max_ = signal.min, signal.max
                         else:
                             min_, max_ = 0, 1
 
@@ -4734,14 +4730,14 @@ class PlotGraphics(pg.PlotWidget):
 
                     common_min_ = np.nanmin(
                         [
-                            np.nanmin(self.signal_by_uuid(uuid)[0].plot_samples)
+                            self.signal_by_uuid(uuid)[0].min
                             for uuid in self.common_axis_items
                             if len(self.signal_by_uuid(uuid)[0].plot_samples) and self.signal_by_uuid(uuid)[0].enable
                         ]
                     )
                     common_max_ = np.nanmax(
                         [
-                            np.nanmax(self.signal_by_uuid(uuid)[0].plot_samples)
+                            self.signal_by_uuid(uuid)[0].max
                             for uuid in self.common_axis_items
                             if len(self.signal_by_uuid(uuid)[0].plot_samples) and self.signal_by_uuid(uuid)[0].enable
                         ]
@@ -4849,7 +4845,7 @@ class PlotGraphics(pg.PlotWidget):
 
                                 min_ = np.nanmin(
                                     [
-                                        np.nanmin(self.signal_by_uuid(uuid)[0].plot_samples)
+                                        self.signal_by_uuid(uuid)[0].min
                                         for uuid in self.common_axis_items
                                         if uuid in uuids_set
                                         and len(self.signal_by_uuid(uuid)[0].plot_samples)
@@ -4858,7 +4854,7 @@ class PlotGraphics(pg.PlotWidget):
                                 )
                                 max_ = np.nanmax(
                                     [
-                                        np.nanmax(self.signal_by_uuid(uuid)[0].plot_samples)
+                                        self.signal_by_uuid(uuid)[0].max
                                         for uuid in self.common_axis_items
                                         if uuid in uuids_set
                                         and len(self.signal_by_uuid(uuid)[0].plot_samples)
@@ -5161,11 +5157,11 @@ class PlotGraphics(pg.PlotWidget):
         if self._pixmap is None:
             ratio = self.devicePixelRatio()
 
-            self._pixmap = QtGui.QPixmap(int(event_rect.width() * ratio), int(event_rect.height() * ratio))
-            self._pixmap.fill(self.backgroundBrush().color())
+            _pixmap = QtGui.QPixmap(int(event_rect.width() * ratio), int(event_rect.height() * ratio))
+            _pixmap.fill(self.backgroundBrush().color())
 
             paint = QtGui.QPainter()
-            paint.begin(self._pixmap)
+            paint.begin(_pixmap)
             paint.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_SourceOver)
             paint.setRenderHints(paint.RenderHint.Antialiasing, False)
 
@@ -5360,7 +5356,9 @@ class PlotGraphics(pg.PlotWidget):
 
             paint.end()
 
-            self._pixmap.setDevicePixelRatio(self.devicePixelRatio())
+            _pixmap.setDevicePixelRatio(self.devicePixelRatio())
+        else:
+            _pixmap = self._pixmap
 
         paint = QtGui.QPainter()
         vp = self.viewport()
@@ -5418,7 +5416,7 @@ class PlotGraphics(pg.PlotWidget):
         t.setLeft(t.left() + 5)
 
         paint.setClipping(False)
-        paint.drawPixmap(t.toRect(), self._pixmap, r.toRect())
+        paint.drawPixmap(t.toRect(), _pixmap, r.toRect())
         paint.setClipping(True)
 
         self.auto_clip_rect(paint)
@@ -5500,7 +5498,10 @@ class PlotGraphics(pg.PlotWidget):
 
         paint.end()
 
-        if self.flash_current_signal > 0:
+        if self._pixmap is None:
+            self._pixmap = _pixmap
+
+        if self.cursor1 and self.flash_current_signal > 0:
             self.flash_current_signal -= 1
             self.flash_curve_timer.start(50)
 
@@ -5776,6 +5777,9 @@ class PlotGraphics(pg.PlotWidget):
             except:
                 pass
 
+        for sig in self.signals:
+            sig.path = None
+
         self._enable_timer.start(50)
 
     def set_time_offset(self, info):
@@ -5926,7 +5930,7 @@ class PlotGraphics(pg.PlotWidget):
     def value_at_cursor(self, uuid=None):
         uuid = uuid or self.current_uuid
 
-        if uuid is None:
+        if not uuid:
             y, sig_y_bottom, sig_y_top = "n.a.", 0, 1
         elif self.cursor1:
             if not self.cursor1.isVisible():
@@ -5942,12 +5946,14 @@ class PlotGraphics(pg.PlotWidget):
         else:
             sig, idx = self.signal_by_uuid(uuid)
             sig_y_bottom, sig_y_top = sig.y_range
-            if not sig.current_position:
-                return "n.a.", sig_y_bottom, sig_y_top
+
+            if not len(sig):
+                y = "n.a."
             else:
-                y = sig._phys_samples[sig.current_position - 1]
+                y = sig.phys_samples[-1]
+
                 if y.dtype.kind not in "uif":
-                    y = sig._raw_samples[sig.current_position - 1]
+                    y = sig.raw_samples[-1]
 
         return y, sig_y_bottom, sig_y_top
 
