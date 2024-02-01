@@ -518,6 +518,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     if default_display_file.exists():
                         self.load_channel_list(file_name=default_display_file)
 
+        self.restore_export_setttings()
+        self.connect_export_updates()
+
     def sizeHint(self):
         return QtCore.QSize(1, 1)
 
@@ -3298,3 +3301,138 @@ MultiRasterSeparator;&
                 dsp["display_file_name"] = "user_embedded_display.dspf"
 
                 self.load_channel_list(file_name=dsp)
+
+    def connect_export_updates(self):
+        self.output_format.currentTextChanged.connect(self.store_export_setttings)
+
+        self.mdf_version.currentTextChanged.connect(self.store_export_setttings)
+        self.mdf_compression.currentTextChanged.connect(self.store_export_setttings)
+        self.mdf_split.stateChanged.connect(self.store_export_setttings)
+        self.mdf_split_size.valueChanged.connect(self.store_export_setttings)
+
+        self.single_time_base.stateChanged.connect(self.store_export_setttings)
+        self.time_from_zero.stateChanged.connect(self.store_export_setttings)
+        self.time_as_date.stateChanged.connect(self.store_export_setttings)
+        self.raw.stateChanged.connect(self.store_export_setttings)
+        self.use_display_names.stateChanged.connect(self.store_export_setttings)
+        self.reduce_memory_usage.stateChanged.connect(self.store_export_setttings)
+        self.export_compression.currentTextChanged.connect(self.store_export_setttings)
+        self.empty_channels.currentTextChanged.connect(self.store_export_setttings)
+
+        self.single_time_base_csv.stateChanged.connect(self.store_export_setttings)
+        self.time_from_zero_csv.stateChanged.connect(self.store_export_setttings)
+        self.time_as_date_csv.stateChanged.connect(self.store_export_setttings)
+        self.raw_csv.stateChanged.connect(self.store_export_setttings)
+        self.add_units.stateChanged.connect(self.store_export_setttings)
+        self.doublequote.stateChanged.connect(self.store_export_setttings)
+        self.use_display_names_csv.stateChanged.connect(self.store_export_setttings)
+        self.empty_channels_csv.currentTextChanged.connect(self.store_export_setttings)
+        self.delimiter.editingFinished.connect(self.store_export_setttings)
+        self.escapechar.editingFinished.connect(self.store_export_setttings)
+        self.lineterminator.editingFinished.connect(self.store_export_setttings)
+        self.quotechar.editingFinished.connect(self.store_export_setttings)
+        self.quoting.currentTextChanged.connect(self.store_export_setttings)
+
+        self.single_time_base_mat.stateChanged.connect(self.store_export_setttings)
+        self.time_from_zero_mat.stateChanged.connect(self.store_export_setttings)
+        self.time_as_date_mat.stateChanged.connect(self.store_export_setttings)
+        self.raw_mat.stateChanged.connect(self.store_export_setttings)
+        self.use_display_names_mat.stateChanged.connect(self.store_export_setttings)
+        self.reduce_memory_usage_mat.stateChanged.connect(self.store_export_setttings)
+        self.empty_channels_mat.currentTextChanged.connect(self.store_export_setttings)
+        self.export_compression_mat.currentTextChanged.connect(self.store_export_setttings)
+        self.mat_format.currentTextChanged.connect(self.store_export_setttings)
+        self.oned_as.currentTextChanged.connect(self.store_export_setttings)
+
+    def restore_export_setttings(self):
+        self.output_format.setCurrentText(self._settings.value("export", "MDF"))
+
+        self.mdf_version.setCurrentText(self._settings.setValue("export/MDF/version", "4.10"))
+        self.mdf_compression.setCurrentText(self._settings.value("export/MDF/compression", "transposed deflate"))
+        self.mdf_split.setChecked(self._settings.value("export/MDF/split_data_blocks", True, type=bool))
+        self.mdf_split_size.setValue(self._settings.value("export/MDF/split_size", 4, type=int))
+
+        self.single_time_base.setChecked(self._settings.value("export/HDF5/single_time_base", False, type=bool))
+        self.time_from_zero.setChecked(self._settings.value("export/HDF5/time_from_zero", False, type=bool))
+        self.time_as_date.setChecked(self._settings.value("export/HDF5/time_as_date", False, type=bool))
+        self.raw.setChecked(self._settings.value("export/HDF5/raw", False, type=bool))
+        self.use_display_names.setChecked(self._settings.value("export/HDF5/use_display_names", False, type=bool))
+        self.reduce_memory_usage.setChecked(self._settings.value("export/HDF5/reduce_memory_usage", False, type=bool))
+        self.export_compression.setCurrentText(self._settings.value("export/HDF5/export_compression", "gzip"))
+        self.empty_channels.setCurrentText(self._settings.value("export/HDF5/empty_channels", "skip"))
+
+        self.single_time_base_csv.setChecked(self._settings.value("export/CSV/single_time_base_csv", False, type=bool))
+        self.time_from_zero_csv.setChecked(self._settings.value("export/CSV/time_from_zero_csv", False, type=bool))
+        self.time_as_date_csv.setChecked(self._settings.value("export/CSV/time_as_date_csv", False, type=bool))
+        self.raw_csv.setChecked(self._settings.value("export/CSV/raw_csv", False, type=bool))
+        self.add_units.setChecked(self._settings.value("export/CSV/add_units", False, type=bool))
+        self.doublequote.setChecked(self._settings.value("export/CSV/doublequote", False, type=bool))
+        self.use_display_names_csv.setChecked(
+            self._settings.value("export/CSV/use_display_names_csv", False, type=bool)
+        )
+        self.empty_channels_csv.setCurrentText(self._settings.value("export/CSV/empty_channels_csv", "skip"))
+        self.delimiter.setText(self._settings.value("export/CSV/delimiter", ","))
+        self.escapechar.setText(self._settings.value("export/CSV/escapechar", ""))
+        self.lineterminator.setText(self._settings.value("export/CSV/lineterminator", r"\r\n"))
+        self.quotechar.setText(self._settings.value("export/CSV/quotechar", '"'))
+        self.quoting.setCurrentText(self._settings.value("export/CSV/quoting", "MINIMAL"))
+
+        self.single_time_base_mat.setChecked(self._settings.value("export/MAT/single_time_base_mat", False, type=bool))
+        self.time_from_zero_mat.setChecked(self._settings.value("export/MAT/time_from_zero_mat", False, type=bool))
+        self.time_as_date_mat.setChecked(self._settings.value("export/MAT/time_as_date_mat", False, type=bool))
+        self.raw_mat.setChecked(self._settings.value("export/MAT/raw_mat", False, type=bool))
+        self.use_display_names_mat.setChecked(
+            self._settings.value("export/MAT/use_display_names_mat", False, type=bool)
+        )
+        self.reduce_memory_usage_mat.setChecked(
+            self._settings.value("export/MAT/reduce_memory_usage_mat", False, type=bool)
+        )
+        self.empty_channels_mat.setCurrentText(self._settings.value("export/MAT/empty_channels_mat", "skip"))
+        self.export_compression_mat.setCurrentText(self._settings.value("export/MAT/export_compression_mat", "enabled"))
+        self.mat_format.setCurrentText(self._settings.value("export/MAT/mat_format", "4"))
+        self.oned_as.setCurrentText(self._settings.value("export/MAT/oned_as", "row"))
+
+    def store_export_setttings(self, *args):
+        try:
+            self._settings.setValue("export", self.output_format.currentText())
+
+            self._settings.setValue("export/MDF/version", self.mdf_version.currentText())
+            self._settings.setValue("export/MDF/compression", self.mdf_compression.currentText())
+            self._settings.setValue("export/MDF/split_data_blocks", self.mdf_split.isChecked())
+            self._settings.setValue("export/MDF/split_size", self.mdf_split_size.value())
+
+            self._settings.setValue("export/HDF5/single_time_base", self.single_time_base.isChecked())
+            self._settings.setValue("export/HDF5/time_from_zero", self.time_from_zero.isChecked())
+            self._settings.setValue("export/HDF5/time_as_date", self.time_as_date.isChecked())
+            self._settings.setValue("export/HDF5/raw", self.raw.isChecked())
+            self._settings.setValue("export/HDF5/use_display_names", self.use_display_names.isChecked())
+            self._settings.setValue("export/HDF5/reduce_memory_usage", self.reduce_memory_usage.isChecked())
+            self._settings.setValue("export/HDF5/export_compression", self.export_compression.currentText())
+            self._settings.setValue("export/HDF5/empty_channels", self.empty_channels.currentText())
+
+            self._settings.setValue("export/CSV/single_time_base_csv", self.single_time_base_csv.isChecked())
+            self._settings.setValue("export/CSV/time_from_zero_csv", self.time_from_zero_csv.isChecked())
+            self._settings.setValue("export/CSV/time_as_date_csv", self.time_as_date_csv.isChecked())
+            self._settings.setValue("export/CSV/raw_csv", self.raw_csv.isChecked())
+            self._settings.setValue("export/CSV/add_units", self.add_units.isChecked())
+            self._settings.setValue("export/CSV/doublequote", self.doublequote.isChecked())
+            self._settings.setValue("export/CSV/use_display_names_csv", self.use_display_names_csv.isChecked())
+            self._settings.setValue("export/CSV/empty_channels_csv", self.empty_channels_csv.currentText())
+            self._settings.setValue("export/CSV/delimiter", self.delimiter.text())
+            self._settings.setValue("export/CSV/escapechar", self.escapechar.text())
+            self._settings.setValue("export/CSV/lineterminator", self.lineterminator.text())
+            self._settings.setValue("export/CSV/quotechar", self.quotechar.text())
+            self._settings.setValue("export/CSV/quoting", self.quoting.currentText())
+
+            self._settings.setValue("export/MAT/single_time_base_mat", self.single_time_base_mat.isChecked())
+            self._settings.setValue("export/MAT/time_from_zero_mat", self.time_from_zero_mat.isChecked())
+            self._settings.setValue("export/MAT/time_as_date_mat", self.time_as_date_mat.isChecked())
+            self._settings.setValue("export/MAT/raw_mat", self.raw_mat.isChecked())
+            self._settings.setValue("export/MAT/use_display_names_mat", self.use_display_names_mat.isChecked())
+            self._settings.setValue("export/MAT/reduce_memory_usage_mat", self.reduce_memory_usage_mat.isChecked())
+            self._settings.setValue("export/MAT/empty_channels_mat", self.empty_channels_mat.currentText())
+            self._settings.setValue("export/MAT/export_compression_mat", self.export_compression_mat.currentText())
+            self._settings.setValue("export/MAT/mat_format", self.mat_format.currentText())
+            self._settings.setValue("export/MAT/oned_as", self.oned_as.currentText())
+        except:
+            print(format_exc())

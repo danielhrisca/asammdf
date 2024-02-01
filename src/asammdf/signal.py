@@ -122,7 +122,7 @@ class Signal:
                             continue
                     else:
                         samples = encode(samples, encodings[0], errors="ignore")
-                elif kind == 'O':
+                elif kind == "O":
                     samples = samples.astype(bytes)
 
             if not isinstance(timestamps, np.ndarray):
