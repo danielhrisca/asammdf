@@ -132,6 +132,8 @@ This message will be closed in {self.timeout}s
         escapeButton=QtWidgets.QMessageBox.StandardButton.Ok,
         timeout=DEFAULT_TIMEOUT,
         markdown=False,
+        informative_text="",
+        detailed_text="",
     ):
         msg = cls(
             QtWidgets.QMessageBox.Icon.NoIcon,
@@ -143,6 +145,8 @@ This message will be closed in {self.timeout}s
             defaultButton=defaultButton,
             escapeButton=escapeButton,
             markdown=markdown,
+            informative_text=informative_text,
+            detailed_text=detailed_text,
         )
         return msg.exec()
 
@@ -157,6 +161,8 @@ This message will be closed in {self.timeout}s
         escapeButton=QtWidgets.QMessageBox.StandardButton.Ok,
         timeout=DEFAULT_TIMEOUT,
         markdown=False,
+            informative_text="",
+            detailed_text="",
     ):
         msg = cls(
             QtWidgets.QMessageBox.Icon.Critical,
@@ -168,6 +174,8 @@ This message will be closed in {self.timeout}s
             defaultButton=defaultButton,
             escapeButton=escapeButton,
             markdown=markdown,
+            informative_text=informative_text,
+            detailed_text=detailed_text,
         )
 
         return msg.exec()
@@ -183,6 +191,8 @@ This message will be closed in {self.timeout}s
         escapeButton=QtWidgets.QMessageBox.StandardButton.Ok,
         timeout=DEFAULT_TIMEOUT,
         markdown=False,
+            informative_text="",
+            detailed_text="",
     ):
         msg = cls(
             QtWidgets.QMessageBox.Icon.Information,
@@ -194,6 +204,8 @@ This message will be closed in {self.timeout}s
             defaultButton=defaultButton,
             escapeButton=escapeButton,
             markdown=markdown,
+            informative_text=informative_text,
+            detailed_text=detailed_text,
         )
         return msg.exec()
 
@@ -208,6 +220,8 @@ This message will be closed in {self.timeout}s
         escapeButton=QtWidgets.QMessageBox.StandardButton.No,
         timeout=DEFAULT_TIMEOUT,
         markdown=False,
+            informative_text="",
+            detailed_text="",
     ):
         msg = cls(
             QtWidgets.QMessageBox.Icon.Question,
@@ -219,6 +233,8 @@ This message will be closed in {self.timeout}s
             defaultButton=defaultButton,
             escapeButton=escapeButton,
             markdown=markdown,
+            informative_text=informative_text,
+            detailed_text=detailed_text,
         )
         return msg.exec()
 
@@ -233,6 +249,8 @@ This message will be closed in {self.timeout}s
         escapeButton=QtWidgets.QMessageBox.StandardButton.Ok,
         timeout=DEFAULT_TIMEOUT,
         markdown=False,
+            informative_text="",
+            detailed_text="",
     ):
         msg = cls(
             QtWidgets.QMessageBox.Icon.Warning,
@@ -244,5 +262,7 @@ This message will be closed in {self.timeout}s
             defaultButton=defaultButton,
             escapeButton=escapeButton,
             markdown=markdown,
+            informative_text=informative_text,
+            detailed_text=detailed_text,
         )
         return msg.exec()
