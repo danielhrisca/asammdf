@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python\
+
 import os
 
-from asammdf.gui.widgets.formated_axis import FormatedAxis as FA
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 from unittest import mock
@@ -29,40 +29,71 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         ...
         """
         with self.subTest("test_Y"):
-            if self.plot.region_lock is None:
-                QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_Y)
-                self.assertIsNotNone(self.plot.region_lock)
-                self.assertFalse(self.plot.region.movable)
-                self.assertFalse(self.plot.region.lines[0].movable)
-                self.assertTrue(self.plot.region.lines[0].locked)
+            self.plot.region_lock = None
+            QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_Y)
+            self.assertIsNotNone(self.plot.region_lock)
+            self.assertFalse(self.plot.region.movable)
+            self.assertFalse(self.plot.region.lines[0].movable)
+            self.assertTrue(self.plot.region.lines[0].locked)
 
-                QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_Y)
-                self.assertIsNone(self.plot.region_lock)
-                self.assertTrue(self.plot.region.movable)
-                self.assertTrue(self.plot.region.lines[0].movable)
-                self.assertFalse(self.plot.region.lines[0].locked)
+            self.plot.region_lock = 0.01
+            QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_Y)
+            self.assertIsNone(self.plot.region_lock)
+            self.assertTrue(self.plot.region.movable)
+            self.assertTrue(self.plot.region.lines[0].movable)
+            self.assertFalse(self.plot.region.lines[0].locked)
 
-            else:
-                QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_Y)
-                self.assertIsNone(self.plot.region_lock)
-                self.assertTrue(self.plot.region.movable)
-                self.assertTrue(self.plot.region.lines[0].movable)
-                self.assertFalse(self.plot.region.lines[0].locked)
+        with self.subTest("test_X_R"):
+            with mock.patch.object(self.plot.viewbox, "setXRange") as mo_setXRange:
+                self.plot.region = None
+                QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_X)
+                mo_setXRange.assert_not_called()
 
-                QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_Y)
-                self.assertIsNotNone(self.plot.region_lock)
-                self.assertFalse(self.plot.region.movable)
-                self.assertFalse(self.plot.region.lines[0].movable)
-                self.assertTrue(self.plot.region.lines[0].locked)
+                self.assertIsNone(self.plot.region)
+                QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_R)
+                self.assertIsNotNone(self.plot.region)
 
-        with self.subTest("test_X"):
-            ...
+                QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_X)
+                mo_setXRange.assert_called()
+                self.assertIsNone(self.plot.region)
+
+        with self.subTest("test_F"):
+            with mock.patch.object(self.plot.viewbox, "setYRange") as mo_setYRange:
+                QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_F)
+                mo_setYRange.assert_called_with(0, 255, padding=0)
+
+        with self.subTest("test_Shift_F"):
+            with mock.patch.object(self.plot.viewbox, "setYRange") as mo_setYRange:
+                QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Shift+F"))
+                mo_setYRange.assert_not_called()
+                self.mouseClick_WidgetItem(self.w.channel_selection.topLevelItem(0))
+                QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Shift+F"))
+                mo_setYRange.assert_called_with(0, 255, padding=0)
+
+        with self.subTest("test_G_Shift_G"):
+            self.plot.y_axis.grid = True
+            self.plot.x_axis.grid = True
+            QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_G)
+            self.assertFalse(self.plot.y_axis.grid or self.plot.x_axis.grid)
+
+            self.plot.x_axis.grid = True
+            QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_G)
+            self.assertTrue(self.plot.y_axis.grid and self.plot.x_axis.grid)
+
+            self.plot.y_axis.grid = True
+            self.plot.x_axis.grid = False
+            QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_G)
+            self.assertTrue(self.plot.x_axis.grid)
+            self.assertFalse(self.plot.y_axis.grid)
+            with mock.patch("asammdf.gui.widgets.plot.QtWidgets.QInputDialog.getDouble") as mo_getDouble:
+                expected_pos = 0.5
+                mo_getDouble.return_value = expected_pos, True
+                QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Shift+G"))
+                mo_getDouble.assert_called()
+                self.assertAlmostEqual(self.plot.cursor1.getPos()[0], expected_pos, delta=0.001)
 
 
 class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
-    def __init__(self, methodName: str = ...):
-        super().__init__(methodName)
-
     def setUp(self):
         # Open measurement file
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
@@ -86,6 +117,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         if self.plot.show_bookmarks:
             self.plot.toggle_bookmarks(hide=True)
         self.processEvents()
+        self.plot.plot.cursor1.show_circle = False
         # pixmap is not black
         self.assertTrue(Pixmap.is_black(self.plot.plot.viewport().grab()))
 
@@ -126,7 +158,6 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         self.widget.set_cursor_options(False, False, 1, Pixmap.COLOR_CURSOR)
         # Save PixMap of clear plot
         clear_pixmap = self.plot.plot.viewport().grab()
-        clear_pixmap.save("D:\\huletdadagsautuai.png")
 
         self.assertTrue(Pixmap.is_black(clear_pixmap))
         # Get X position of Cursor
@@ -609,7 +640,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_F)
             self.avoid_blinking_issue(self.plot.channel_selection)
             # Evaluate
-            with self.subTest("test_shortcut_S"):
+            with self.subTest("test_shortcut_F"):
                 # First line
                 self.assertTrue(
                     Pixmap.is_black(self.plot.plot.viewport().grab(QtCore.QRect(0, 0, self.plot.plot.width(), 1)))
@@ -650,6 +681,54 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
                         )
                     )
                 )
+                # deselect all channels
+                for channel in self.channels:
+                    self.mouseDClick_WidgetItem(channel)
+
+                # search if all channels is fitted into extremes
+                self.mouseDClick_WidgetItem(self.channel_35)
+                extremes = Pixmap.search_signal_extremes_by_ax(
+                    self.plot.plot.viewport().grab(), self.channel_35.color.name(), ax="x"
+                )
+                for x in range(self.plot.plot.height() - 1):
+                    column = self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.height()))
+                    if x < extremes[0] - 1:
+                        self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
+                    elif extremes[0] <= x <= extremes[1]:
+                        self.assertTrue(
+                            Pixmap.has_color(column, self.channel_35.color.name()),
+                            f"column {x} doesn't have color of channel 35",
+                        )
+                    else:
+                        self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
+
+                self.mouseDClick_WidgetItem(self.channel_35)
+                self.mouseDClick_WidgetItem(self.channel_36)
+                for x in range(self.plot.plot.height() - 1):
+                    column = self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.height()))
+                    if x < extremes[0] - 1:
+                        self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
+                    elif extremes[0] <= x <= extremes[1]:
+                        self.assertTrue(
+                            Pixmap.has_color(column, self.channel_36.color.name()),
+                            f"column {x} doesn't have color of channel 36",
+                        )
+                    else:
+                        self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
+
+                self.mouseDClick_WidgetItem(self.channel_37)
+                self.mouseDClick_WidgetItem(self.channel_36)
+                for x in range(self.plot.plot.height() - 1):
+                    column = self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.height()))
+                    if x < extremes[0] - 1:
+                        self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
+                    elif extremes[0] <= x <= extremes[1]:
+                        self.assertTrue(
+                            Pixmap.has_color(column, self.channel_37.color.name()),
+                            f"column {x} doesn't have color of channel 37",
+                        )
+                    else:
+                        self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
 
     def test_Plot_PlotGraphics_Shortcut_Key_G(self):
         """
@@ -674,17 +753,17 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         if not self.plot.plot.x_axis.grid and not self.plot.plot.y_axis.grid:
             with self.subTest("test_shortcut_key_G_no_grid_displayed"):
                 # press key "G"
-                QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_G)
+                QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_G)
                 self.processEvents()
                 self.assertTrue(self.plot.plot.x_axis.grid)
                 self.assertFalse(self.plot.plot.y_axis.grid)
                 # press key "G"
-                QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_G)
+                QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_G)
                 self.processEvents()
                 self.assertTrue(self.plot.plot.x_axis.grid)
                 self.assertTrue(self.plot.plot.y_axis.grid)
                 # press key "G"
-                QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_G)
+                QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_G)
                 self.processEvents()
                 self.assertFalse(self.plot.plot.x_axis.grid)
                 self.assertFalse(self.plot.plot.y_axis.grid)
@@ -1159,9 +1238,13 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         if not self.plot.hide_axes_btn.isFlat():
             QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
 
+        # Press "W"
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_W)
+        self.processEvents(0.01)
+
         # search first and last column where is displayed first signal
         extremesOfChannel_35 = Pixmap.search_signal_extremes_by_ax(
-            self.plot.plot.viewport().grab(), self.channel_35.color.name(), "x"
+            self.plot.plot.viewport().grab(), self.channel_35.color.name(), ax="x"
         )
         # Evaluate that there are extremes of first signal
         self.assertTrue(extremesOfChannel_35)
@@ -1236,7 +1319,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             for w in warnings_msgs:
                 self.assertIn(w, mo_waring.call_args.args)
 
-        with self.subTest("-1_test_cancel_dlg_with_user_function_defined"):
+        with self.subTest("_1_test_cancel_dlg_with_user_function_defined"):
             file_name = "test_insert_cfg.dspf"
             file_path = os.path.join(self.resource, file_name)
             self.load_display_file(file_path)
@@ -1246,7 +1329,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
                 QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Insert)
 
             # Evaluate
-            self.assertEqual(0, self.plot.channel_selection.topLevelItemCount())
+            self.assertEqual(1, self.plot.channel_selection.topLevelItemCount())
             mo_DefineChannel.assert_called()
 
         with self.subTest("_2_test_apply_dlg_with_user_function_defined"):
@@ -1292,6 +1375,6 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
                 QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Insert)
 
             # Evaluate
-            self.assertEqual(1, self.plot.channel_selection.topLevelItemCount())
-            self.assertEqual(self.plot.channel_selection.topLevelItem(0).name, self.id())
+            self.assertEqual(2, self.plot.channel_selection.topLevelItemCount())
+            self.assertEqual(self.plot.channel_selection.topLevelItem(1).name, self.id())
             mo_DefineChannel.assert_called()
