@@ -5162,7 +5162,8 @@ class PlotGraphics(pg.PlotWidget):
             ratio = self.devicePixelRatio()
 
             _pixmap = QtGui.QPixmap(int(event_rect.width() * ratio), int(event_rect.height() * ratio))
-            _pixmap.fill(self.backgroundBrush().color())
+            # _pixmap.fill(self.backgroundBrush().color())
+            _pixmap.fill(QtCore.Qt.transparent)
 
             paint = QtGui.QPainter()
             paint.begin(_pixmap)
@@ -5418,13 +5419,12 @@ class PlotGraphics(pg.PlotWidget):
         t = self.viewbox.sceneBoundingRect()
         t.setLeft(t.left() + 5)
 
+        self.auto_clip_rect(paint)
+        self.draw_grids(paint, event_rect)
+
         paint.setClipping(False)
         paint.drawPixmap(t.toRect(), _pixmap, r.toRect())
         paint.setClipping(True)
-
-        self.auto_clip_rect(paint)
-
-        self.draw_grids(paint, event_rect)
 
         if self.zoom is None:
             if self.cursor1 is not None and self.cursor1.isVisible():
