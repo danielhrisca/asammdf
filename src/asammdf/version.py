@@ -1,3 +1,3 @@
 """ asammdf version module """
 
-__version__ = "7.4.0"
+__version__ = "7.4.2.dev1"

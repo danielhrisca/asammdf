@@ -22,6 +22,10 @@ archs = ["auto64"]  # only build for 64bit architectures
 skip = "pp* *_ppc64le  *-musllinux* *_s390x"  # skip pypy and irrelevant architectures
 
 [tool.ruff]
+target-version = "py38"
+exclude = ["./src/asammdf/gui/ui"]
+
+[tool.ruff.lint]
 select = [
     "B",  # flake8-bugbear
     "C4",  # flake8-comprehensions
@@ -44,10 +48,8 @@ ignore = [
     "RUF012",  # mutable-class-default
     "RUF015",  # unnecessary-iterable-allocation-for-first-element
 ]
-exclude = ["./src/asammdf/gui/ui"]
-target-version = "py38"
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["asammdf"]
 order-by-type = false
 force-sort-within-sections = true

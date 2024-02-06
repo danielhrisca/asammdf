@@ -108,7 +108,8 @@ class Signal:
         else:
             if not isinstance(samples, np.ndarray):
                 samples = np.array(samples)
-                if samples.dtype.kind == "U":
+                kind = samples.dtype.kind
+                if kind == "U":
                     if encoding is None:
                         encodings = ["utf-8", "latin-1"]
                     else:
@@ -121,6 +122,8 @@ class Signal:
                             continue
                     else:
                         samples = encode(samples, encodings[0], errors="ignore")
+                elif kind == "O":
+                    samples = samples.astype(bytes)
 
             if not isinstance(timestamps, np.ndarray):
                 timestamps = np.array(timestamps, dtype=np.float64)
