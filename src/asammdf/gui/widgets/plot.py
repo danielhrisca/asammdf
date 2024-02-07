@@ -4468,6 +4468,9 @@ class PlotGraphics(pg.PlotWidget):
                             # max_ is NaN
                             max_ = 1
 
+                        delta = 0.01 * (max_ - min_)
+                        min_, max_ = min_ - delta, max_ + delta
+
                         signal.y_range = min_, max_
 
                         if signal.uuid == self.current_uuid:
@@ -4510,6 +4513,9 @@ class PlotGraphics(pg.PlotWidget):
                             # max is NaN
                             max_ = 1
 
+                        delta = 0.01 * (max_ - min_)
+                        min_, max_ = min_ - delta, max_ + delta
+
                         signal.y_range = min_, max_
                         if signal.uuid == self.current_uuid:
                             self.viewbox.setYRange(min_, max_, padding=0)
@@ -4522,8 +4528,6 @@ class PlotGraphics(pg.PlotWidget):
                 if modifier == QtCore.Qt.KeyboardModifier.NoModifier:
                     y = self.y_axis.grid
                     x = self.x_axis.grid
-                    # y = self.plotItem.ctrl.yGridCheck.isChecked()
-                    # x = self.plotItem.ctrl.xGridCheck.isChecked()
 
                     if x and y:
                         self.y_axis.grid = False
@@ -5158,7 +5162,8 @@ class PlotGraphics(pg.PlotWidget):
             ratio = self.devicePixelRatio()
 
             _pixmap = QtGui.QPixmap(int(event_rect.width() * ratio), int(event_rect.height() * ratio))
-            _pixmap.fill(self.backgroundBrush().color())
+            # _pixmap.fill(self.backgroundBrush().color())
+            _pixmap.fill(QtCore.Qt.transparent)
 
             paint = QtGui.QPainter()
             paint.begin(_pixmap)
@@ -5412,16 +5417,14 @@ class PlotGraphics(pg.PlotWidget):
         r.moveTo(r.topLeft() * ratio)
 
         t = self.viewbox.sceneBoundingRect()
-        t = self.viewbox.sceneBoundingRect()
         t.setLeft(t.left() + 5)
+
+        self.auto_clip_rect(paint)
+        self.draw_grids(paint, event_rect)
 
         paint.setClipping(False)
         paint.drawPixmap(t.toRect(), _pixmap, r.toRect())
         paint.setClipping(True)
-
-        self.auto_clip_rect(paint)
-
-        self.draw_grids(paint, event_rect)
 
         if self.zoom is None:
             if self.cursor1 is not None and self.cursor1.isVisible():
@@ -5437,7 +5440,13 @@ class PlotGraphics(pg.PlotWidget):
         else:
             p1, p2, zoom_mode = self.zoom
 
+            old_px, old_py = self.px, self.py
+
             rect = self.viewbox.sceneBoundingRect()
+
+            self.px = (self.x_range[1] - self.x_range[0]) / rect.width()
+            self.py = rect.height()
+
             delta = rect.x()
             height = rect.height()
             width = rect.width()
@@ -5495,6 +5504,8 @@ class PlotGraphics(pg.PlotWidget):
 
                 paint.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_SourceAtop)
                 paint.drawRect(rect)
+
+            self.px, self.py = old_px, old_py
 
         paint.end()
 

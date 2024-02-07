@@ -231,8 +231,9 @@ class FormatedAxis(pg.AxisItem):
 
     def mouseClickEvent(self, event):
         if event.button() == QtCore.Qt.MouseButton.RightButton:
-            event.accept()
-            self.raiseContextMenu(event)
+            if self.sceneBoundingRect().contains(event.scenePos()):
+                event.accept()
+                self.raiseContextMenu(event)
         else:
             lv = self.linkedView()
             if lv is None:
@@ -307,7 +308,10 @@ class FormatedAxis(pg.AxisItem):
         low, high = self.range
 
         if self.orientation in ("left", "right"):
-            axis = "Y"
+            if self.linked_signal is None:
+                axis = f"{self.linked_signal.name} Y"
+            else:
+                axis = "Y"
         else:
             axis = "X"
 
@@ -360,7 +364,7 @@ class FormatedAxis(pg.AxisItem):
             else:
                 self.setRange(lower.value(), upper.value())
 
-        elif action.text() == "Edit Y axis scaling":
+        elif action.text() == f"Edit {axis} axis scaling":
             self.scale_editor_requested.emit(self.uuid)
 
     def set_font_size(self, size):
