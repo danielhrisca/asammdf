@@ -499,8 +499,10 @@ class TestPlotShortcuts_Functionality(TestPlotWidget):
         self.mouseClick_WidgetItem(self.channel_35)
         # Evaluate
         self.assertTrue(Pixmap.has_color(self.plot.selected_channel_value.grab(), self.channel_35.color.name()))
-
+        # ToDo
+        samples = self.channel_35.signal.samples
         y_range = self.plot.plot.y_axis.range[1] - self.plot.plot.y_axis.range[0]
+        red_range = y_range * 0.4  # magic number
         green = QtGui.QColor.fromRgbF(0.000000, 1.000000, 0.000000, 1.000000).name()
         red = QtGui.QColor.fromRgbF(1.000000, 0.000000, 0.000000, 1.000000).name()
 
@@ -511,7 +513,7 @@ class TestPlotShortcuts_Functionality(TestPlotWidget):
                 "op1": "<=",
                 "op2": "<=",
                 "value1": 0.0,
-                "value2": y_range / 2,
+                "value2": red_range,
             }
         ]
         # Click on channel
@@ -531,8 +533,8 @@ class TestPlotShortcuts_Functionality(TestPlotWidget):
             self.processEvents()
         self.avoid_blinking_issue(self.plot.channel_selection)
 
-        h = self.plot.plot.height()
-        # self.plot.plot.grab(QtCore.QRect(0, 0, self.plot.plot.width(), int(h / 2) - 2)).save("D:\\fck.png")
+        h = red_range * self.plot.plot.height() / y_range
+
         self.assertFalse(
             Pixmap.has_color(self.plot.plot.grab(QtCore.QRect(0, 0, self.plot.plot.width(), int(h / 2) - 2)), red)
         )

@@ -8,7 +8,7 @@ from unittest import mock
 from PySide6 import QtGui, QtTest, QtWidgets
 
 
-class TestShortcutsWOChannelsF(TestPlotWidget):
+class TestShortcuts(TestPlotWidget):
     def setUp(self):
         self.mw = MainWindow()
         self.mw.showNormal()
@@ -38,7 +38,7 @@ class TestShortcutsWOChannelsF(TestPlotWidget):
         if self.mw:
             self.destroyMW()
 
-    def test_Plot_Plot_Shortcut_Key_F11(self):
+    def test_Shortcut_Key_F11(self):
         """
         Events:
             - MainWindow is open by test "setUp" method
@@ -70,7 +70,7 @@ class TestShortcutsWOChannelsF(TestPlotWidget):
             if isinstance(widget, FileWidget):
                 self.assertFalse(widget.isVisible())
 
-    def test_Plot_Plot_Shortcut_Ctrl_Key_O(self):
+    def test_Shortcut_Ctrl_Key_O(self):
         """
         Events:
             - MainWindow is open by test "setUp" method
@@ -85,7 +85,7 @@ class TestShortcutsWOChannelsF(TestPlotWidget):
         self.openFile(None)
         self.assertEqual(self.mw.files.count(), 1)
 
-    def test_Plot_Plot_Shortcut_Key_F6(self):
+    def test_Shortcut_Key_F6(self):
         """
         Events:
             - MainWindow is open by test "setUp" method
