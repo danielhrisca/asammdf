@@ -4779,7 +4779,7 @@ class MDF4(MDF_Common):
             else:
                 suffix = "dbc"
             if suffix == "a2l":
-                mime = "applciation/A2L"
+                mime = "application/A2L"
             else:
                 mime = f"application/x-{suffix}"
             attachment_index = self.attach(at_data, at_name, hash_sum=hash_sum, mime=mime)
