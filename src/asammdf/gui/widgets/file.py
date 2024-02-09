@@ -13,6 +13,8 @@ from natsort import natsorted
 import pandas as pd
 from PySide6 import QtCore, QtGui, QtWidgets
 
+import asammdf.mdf as mdf_module
+
 from ... import tool
 from ...blocks.utils import (
     extract_encryption_information,
@@ -33,7 +35,6 @@ from ...blocks.v4_constants import (
     FLAG_AT_TO_STRING,
     FLAG_CG_BUS_EVENT,
 )
-from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
@@ -207,7 +208,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 mdf_path = meas_file.export_mdf().save(out_file.with_suffix(".tmp.mf4"))
                 meas_file.close()
-                self.mdf = MDF(mdf_path)
+                self.mdf = mdf_module.MDF(mdf_path)
                 self.mdf.original_name = file_name
                 self.mdf.uuid = self.uuid
 
@@ -228,7 +229,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         df = pd.read_csv(csv, header=None, names=names)
                         df.set_index(df[names[0]], inplace=True)
-                        self.mdf = MDF()
+                        self.mdf = mdf_module.MDF()
                         self.mdf.append(df, units=units)
                         self.mdf.uuid = self.uuid
                         self.mdf.original_name = file_name
@@ -244,7 +245,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             else:
                 original_name = file_name
 
-                target = MDF
+                target = mdf_module.MDF
                 kwargs = {
                     "name": file_name,
                     "callback": self.update_progress,
@@ -310,13 +311,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.output_options.setCurrentIndex(0)
 
-            self.mdf_version.insertItems(0, SUPPORTED_VERSIONS)
+            self.mdf_version.insertItems(0, mdf_module.SUPPORTED_VERSIONS)
             self.mdf_version.setCurrentText("4.10")
             self.mdf_compression.insertItems(0, ("no compression", "deflate", "transposed deflate"))
             self.mdf_compression.setCurrentText("transposed deflate")
             self.mdf_split_size.setValue(4)
 
-            self.extract_bus_format.insertItems(0, SUPPORTED_VERSIONS)
+            self.extract_bus_format.insertItems(0, mdf_module.SUPPORTED_VERSIONS)
             self.extract_bus_format.setCurrentText("4.10")
             index = self.extract_bus_format.findText(self.mdf.version)
             if index >= 0:
@@ -1204,7 +1205,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             zipped_mf4.close()
                             mdf_file_name.unlink()
 
-                        self.mdf = MDF(
+                        self.mdf = mdf_module.MDF(
                             name=original_file_name,
                             callback=self.update_progress,
                             password=_password,
@@ -1747,7 +1748,7 @@ MultiRasterSeparator;&
         progress.signals.setLabelText.emit(f'Scrambling "{self.file_name}"')
 
         # scrambling self.mdf
-        MDF.scramble(name=self.file_name, progress=progress)
+        mdf_module.MDF.scramble(name=self.file_name, progress=progress)
 
     def scramble_finished(self):
         if self._progress.error is None and self._progress.result is not TERMINATED:
@@ -2905,7 +2906,7 @@ MultiRasterSeparator;&
             if handle_overwrite:
                 original_name = file_name
 
-                self.mdf = MDF(
+                self.mdf = mdf_module.MDF(
                     name=file_name,
                     password=_password,
                     use_display_names=True,
@@ -3198,7 +3199,7 @@ MultiRasterSeparator;&
             zipped_mf4.close()
             file_name.unlink()
 
-        self.mdf = MDF(
+        self.mdf = mdf_module.MDF(
             name=original_file_name,
             callback=self.update_progress,
             password=_password,

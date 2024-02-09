@@ -17,6 +17,8 @@ import numpy as np
 import pandas as pd
 from PySide6 import QtCore, QtGui, QtWidgets
 
+import asammdf.mdf as mdf_module
+
 from ...blocks import v4_constants as v4c
 from ...blocks.conversion_utils import from_dict
 from ...blocks.utils import (
@@ -27,7 +29,6 @@ from ...blocks.utils import (
     MdfException,
 )
 from ...blocks.v4_blocks import EventBlock, HeaderBlock
-from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.messagebox import MessageBox
@@ -3956,7 +3957,7 @@ class WithMDIArea:
         )
 
         if file_name:
-            with MDF() as mdf:
+            with mdf_module.MDF() as mdf:
                 for mdi in self.mdi_area.subWindowList():
                     widget = mdi.widget()
 
@@ -4142,7 +4143,7 @@ class WithMDIArea:
             zipped_mf4.close()
             file_name.unlink()
 
-        self.mdf = MDF(
+        self.mdf = mdf_module.MDF(
             name=original_file_name,
             callback=self.update_progress,
             password=_password,

@@ -112,8 +112,9 @@ def monkey_patch_pyqtgraph():
     fn.mkPen = mkPen
 
 
+import asammdf.mdf as mdf_module
+
 from ...blocks.utils import extract_mime_names
-from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.define_channel import DefineChannel
 from ..utils import COLORS, COLORS_COUNT, copy_ranges
@@ -4673,7 +4674,7 @@ class PlotGraphics(pg.PlotWidget):
                 if file_name:
                     signals = [signal for signal in self.signals if signal.enable]
                     if signals:
-                        with MDF() as mdf:
+                        with mdf_module.MDF() as mdf:
                             groups = {}
                             for sig in signals:
                                 id_ = id(sig.timestamps)
