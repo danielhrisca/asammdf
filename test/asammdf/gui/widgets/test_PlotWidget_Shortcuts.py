@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-import asammdf.gui.widgets.plot
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 from unittest import mock
 
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
+
+import asammdf.gui.widgets.plot
 
 
 class TestPlotShortcuts(TestPlotWidget):

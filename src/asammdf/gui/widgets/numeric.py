@@ -12,7 +12,6 @@ from numpy import searchsorted
 import pyqtgraph.functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from asammdf import MDF
 from asammdf.gui import utils
 from asammdf.gui.dialogs.range_editor import RangeEditor
 from asammdf.gui.utils import (
@@ -22,6 +21,7 @@ from asammdf.gui.utils import (
     value_as_str,
 )
 from asammdf.gui.widgets.plot import PlotSignal
+import asammdf.mdf as mdf_module
 
 from ...blocks.utils import extract_mime_names
 from ..ui.numeric_offline import Ui_NumericDisplay
@@ -1624,7 +1624,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             if file_name:
                 signals = [signal for signal in self.signals if signal.enable]
                 if signals:
-                    with MDF() as mdf:
+                    with mdf_module.MDF() as mdf:
                         groups = {}
                         for sig in signals:
                             id_ = id(sig.timestamps)

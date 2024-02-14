@@ -6,6 +6,8 @@ from traceback import format_exc
 from natsort import natsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 
+import asammdf.mdf as mdf_module
+
 from ...blocks.utils import (
     extract_xml_comment,
     load_channel_names_from_file,
@@ -20,7 +22,6 @@ from ...blocks.v4_constants import (
     BUS_TYPE_LIN,
     BUS_TYPE_USB,
 )
-from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.messagebox import MessageBox
 from ..ui.batch_widget import Ui_batch_widget
@@ -69,7 +70,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.extract_bus_format,
             self.mdf_version,
         ):
-            widget.insertItems(0, SUPPORTED_VERSIONS)
+            widget.insertItems(0, mdf_module.SUPPORTED_VERSIONS)
             widget.setCurrentText("4.10")
 
         for widget in (
@@ -216,7 +217,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         for i, source_file in enumerate(source_files):
             progress.signals.setLabelText.emit(f"Scrambling file {i+1} of {count}\n{source_file}")
 
-            result = MDF.scramble(name=source_file, progress=progress)
+            result = mdf_module.MDF.scramble(name=source_file, progress=progress)
             if result is TERMINATED:
                 return
 
@@ -305,8 +306,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         for i, (file, source_file) in enumerate(zip(files, source_files)):
             progress.signals.setLabelText.emit(f"Extracting Bus logging from file {i+1} of {count}\n{source_file}")
 
-            if not isinstance(file, MDF):
-                mdf = MDF(file)
+            if not isinstance(file, mdf_module.MDF):
+                mdf = mdf_module.MDF(file)
             else:
                 mdf = file
 
@@ -494,8 +495,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         for i, (file, source_file) in enumerate(zip(files, source_files)):
             progress.signals.setLabelText.emit(f"Extracting Bus logging from file {i+1} of {count}")
 
-            if not isinstance(file, MDF):
-                mdf = MDF(file)
+            if not isinstance(file, mdf_module.MDF):
+                mdf = mdf_module.MDF(file)
             else:
                 mdf = file
 
@@ -703,7 +704,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         files = self._prepare_files(source_files, progress)
 
-        result = MDF.concatenate(
+        result = mdf_module.MDF.concatenate(
             files=files,
             version=version,
             sync=sync,
@@ -751,7 +752,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         files = self._prepare_files(source_files, progress)
 
-        result = MDF.stack(
+        result = mdf_module.MDF.stack(
             files=files,
             version=version,
             sync=sync,
@@ -864,7 +865,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             mdf.original_name = file_name
 
         elif suffix in (".mdf", ".mf4", ".mf4z"):
-            mdf = MDF(file_name)
+            mdf = mdf_module.MDF(file_name)
 
         else:
             raise ValueError(f"Incompatible suffix '{suffix}'")
@@ -939,7 +940,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         if not self.files_list.count():
             return
 
-        with MDF(self.files_list.item(0).text()) as mdf:
+        with mdf_module.MDF(self.files_list.item(0).text()) as mdf:
             dlg = AdvancedSearch(
                 mdf,
                 show_add_window=False,

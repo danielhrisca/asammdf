@@ -40,12 +40,13 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 Qt = QtCore.Qt
 
+import asammdf.mdf as mdf_module
+
 from ...blocks.utils import (
     csv_bytearray2hex,
     extract_mime_names,
     pandas_query_compatible,
 )
-from ...mdf import MDF
 from ..dialogs.range_editor import RangeEditor
 from ..ui.tabular import Ui_TabularDisplay
 from ..utils import (
@@ -1689,7 +1690,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             )
 
             if file_name:
-                with MDF() as mdf:
+                with mdf_module.MDF() as mdf:
                     mdf.append(self.tree.pgdf.df_unfiltered)
                     mdf.save(file_name, overwrite=True)
 

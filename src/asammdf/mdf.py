@@ -33,13 +33,10 @@ import pandas as pd
 from typing_extensions import Literal
 
 from . import tool
-from .blocks import bus_logging_utils
+from .blocks import bus_logging_utils, mdf_v2, mdf_v3, mdf_v4
 from .blocks import v2_v3_constants as v23c
 from .blocks import v4_constants as v4c
 from .blocks.conversion_utils import from_dict
-from .blocks.mdf_v2 import MDF2
-from .blocks.mdf_v3 import MDF3
-from .blocks.mdf_v4 import MDF4
 from .blocks.options import FloatInterpolation, IntegerInterpolation
 from .blocks.source_utils import Source
 from .blocks.utils import (
@@ -330,11 +327,11 @@ class MDF:
             kwargs["__internal__"] = True
 
             if version in MDF3_VERSIONS:
-                self._mdf = MDF3(name, channels=channels, **kwargs)
+                self._mdf = mdf_v3.MDF3(name, channels=channels, **kwargs)
             elif version in MDF4_VERSIONS:
-                self._mdf = MDF4(name, channels=channels, **kwargs)
+                self._mdf = mdf_v4.MDF4(name, channels=channels, **kwargs)
             elif version in MDF2_VERSIONS:
-                self._mdf = MDF2(name, channels=channels, **kwargs)
+                self._mdf = mdf_v2.MDF2(name, channels=channels, **kwargs)
             else:
                 message = f'"{name}" is not a supported MDF file; "{version}" file version was found'
                 raise MdfException(message)
@@ -344,11 +341,11 @@ class MDF:
             kwargs["__internal__"] = True
             version = validate_version_argument(version)
             if version in MDF2_VERSIONS:
-                self._mdf = MDF3(version=version, **kwargs)
+                self._mdf = mdf_v2.MDF2(version=version, **kwargs)
             elif version in MDF3_VERSIONS:
-                self._mdf = MDF3(version=version, **kwargs)
+                self._mdf = mdf_v3.MDF3(version=version, **kwargs)
             elif version in MDF4_VERSIONS:
-                self._mdf = MDF4(version=version, **kwargs)
+                self._mdf = mdf_v4.MDF4(version=version, **kwargs)
             else:
                 message = (
                     f'"{version}" is not a supported MDF file version; ' f"Supported versions are {SUPPORTED_VERSIONS}"

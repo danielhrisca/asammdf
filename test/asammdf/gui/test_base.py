@@ -367,7 +367,7 @@ class Pixmap:
                 raise SyntaxError(f"Object {signal_color} doesn't have the attribute <<color>> or <<name()>>")
         from_to = []
         image = pixmap.toImage()
-        if ax == "x" or ax == "X":
+        if ax in ("x", "X"):
             for x in range(image.width()):
                 for y in range(image.height()):
                     if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
@@ -386,7 +386,7 @@ class Pixmap:
                     break
             return from_to
 
-        elif ax == "y" or ax == "Y":
+        elif ax in ("y", "Y"):
             for y in range(image.height()):
                 for x in range(image.width()):
                     if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
