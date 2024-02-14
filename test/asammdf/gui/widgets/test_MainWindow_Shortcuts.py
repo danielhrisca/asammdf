@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
-from asammdf.gui.widgets.file import FileWidget
-from asammdf.gui.widgets.main import MainWindow
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 from unittest import mock
 
 from PySide6 import QtGui, QtTest, QtWidgets
+
+from asammdf.gui.widgets.file import FileWidget
+from asammdf.gui.widgets.main import MainWindow
 
 
 class TestShortcuts(TestPlotWidget):
