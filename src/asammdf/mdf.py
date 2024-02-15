@@ -4803,7 +4803,7 @@ class MDF:
                         0
                     ].astype("<u1")
 
-                    msg_ids = self.get("CAN_DataFrame.ID", group=i, data=fragment).astype("<u4") & 0x1FFFFFFF
+                    msg_ids = self.get("CAN_DataFrame.ID", group=i, data=fragment).astype("<u4")
                     try:
                         msg_ide = self.get("CAN_DataFrame.IDE", group=i, data=fragment).samples.astype("<u1")
                     except:
