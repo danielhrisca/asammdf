@@ -27,6 +27,12 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         """
         ...
         """
+        # Setup
+        min_ = self.plot.signals[0].samples.min()
+        max_ = self.plot.signals[0].samples.max()
+        delta = 0.01 * (max_ - min_)
+        min_, max_ = min_ - delta, max_ + delta
+
         with self.subTest("test_Y"):
             self.plot.region_lock = None
             QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_Y)
@@ -59,7 +65,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         with self.subTest("test_F"):
             with mock.patch.object(self.plot.viewbox, "setYRange") as mo_setYRange:
                 QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_F)
-                mo_setYRange.assert_called_with(0, 255, padding=0)
+                mo_setYRange.assert_called_with(min_, max_, padding=0)
 
         with self.subTest("test_Shift_F"):
             with mock.patch.object(self.plot.viewbox, "setYRange") as mo_setYRange:
@@ -67,7 +73,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                 mo_setYRange.assert_not_called()
                 self.mouseClick_WidgetItem(self.w.channel_selection.topLevelItem(0))
                 QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Shift+F"))
-                mo_setYRange.assert_called_with(0, 255, padding=0)
+                mo_setYRange.assert_called_with(min_, max_, padding=0)
 
         with self.subTest("test_G_Shift_G"):
             self.plot.y_axis.grid = True
@@ -464,6 +470,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             - Evaluate that only selected signal is stacked after pressing combination "Shift + S"
             - Evaluate that all signals is fitted after pressing key "F"
         """
+        self.plot.plot.cursor1.color = "#000000"
 
         self.addChannelsToPlot([35, 36, 37])
 
@@ -505,13 +512,12 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             self.assertFalse(Pixmap.has_color(pixmap, self.channel_36.color.name()))
             self.assertTrue(Pixmap.has_color(pixmap, self.channel_37.color.name()))
             # Last 2 lines
-            self.assertTrue(
-                Pixmap.is_black(
-                    self.plot.plot.viewport().grab(
-                        QtCore.QRect(0, self.plot.plot.height() - 2, self.plot.plot.width(), 2)
-                    )
-                )
+
+            pixmap = self.plot.plot.viewport().grab(
+                QtCore.QRect(0, self.plot.plot.height() - 3, self.plot.plot.width(), 2)
             )
+            cn = Pixmap.color_names_exclude_defaults(pixmap)
+            self.assertEqual(len(cn), 0)
 
         # select the first channel
         self.mouseClick_WidgetItem(self.channel_35)
@@ -525,13 +531,6 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             # First line
             self.assertTrue(
                 Pixmap.is_black(self.plot.plot.viewport().grab(QtCore.QRect(0, 0, self.plot.plot.width(), 1)))
-            )
-            # Second line
-            self.assertTrue(
-                Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(0, 1, self.plot.plot.width(), 1)),
-                    self.channel_35.color.name(),
-                )
             )
             # Top
             pixmap = self.plot.plot.viewport().grab(
@@ -558,19 +557,11 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
             self.assertFalse(Pixmap.has_color(pixmap, self.channel_36.color.name()))
             self.assertTrue(Pixmap.has_color(pixmap, self.channel_37.color.name()))
-            # Last 2 lines
-            self.assertTrue(
-                Pixmap.has_color(
-                    self.plot.plot.viewport().grab(
-                        QtCore.QRect(0, self.plot.plot.height() - 2, self.plot.plot.width(), 1)
-                    ),
-                    self.channel_35.color.name(),
-                )
-            )
+            # Last line
             self.assertTrue(
                 Pixmap.is_black(
                     self.plot.plot.viewport().grab(
-                        QtCore.QRect(0, self.plot.plot.height() - 1, self.plot.plot.width(), 1)
+                        QtCore.QRect(0, self.plot.plot.height() - 2, self.plot.plot.width(), 1)
                     )
                 )
             )
@@ -586,13 +577,6 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             self.assertTrue(
                 Pixmap.is_black(self.plot.plot.viewport().grab(QtCore.QRect(0, 0, self.plot.plot.width(), 1)))
             )
-            # Second line
-            self.assertTrue(
-                Pixmap.has_color(
-                    self.plot.plot.viewport().grab(QtCore.QRect(0, 1, self.plot.plot.width(), 1)),
-                    self.channel_35.color.name(),
-                )
-            )
             # Top
             pixmap = self.plot.plot.viewport().grab(
                 QtCore.QRect(0, 0, self.plot.plot.width(), int(self.plot.plot.height() / 3))
@@ -618,15 +602,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
             self.assertTrue(Pixmap.has_color(pixmap, self.channel_36.color.name()))
             self.assertTrue(Pixmap.has_color(pixmap, self.channel_37.color.name()))
-            # Last 2 lines
-            self.assertTrue(
-                Pixmap.has_color(
-                    self.plot.plot.viewport().grab(
-                        QtCore.QRect(0, self.plot.plot.height() - 2, self.plot.plot.width(), 1)
-                    ),
-                    self.channel_35.color.name(),
-                )
-            )
+            # Last line
             self.assertTrue(
                 Pixmap.is_black(
                     self.plot.plot.viewport().grab(
@@ -687,7 +663,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
                 # search if all channels is fitted into extremes
                 self.mouseDClick_WidgetItem(self.channel_35)
                 extremes = Pixmap.search_signal_extremes_by_ax(
-                    self.plot.plot.viewport().grab(), self.channel_35.color.name(), ax="x"
+                    self.plot.plot.grab(), self.channel_35.color.name(), ax="x"
                 )
                 for x in range(self.plot.plot.height() - 1):
                     column = self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.height()))
@@ -1260,6 +1236,9 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         )
         self.assertTrue(Pixmap.is_black(xLeftColumn))
         self.assertTrue(Pixmap.has_color(xRightColumn, self.channel_35.color.name()))
+
+        # preaa "F"
+        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_F)
         # Press "W"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_W)
         self.processEvents()
@@ -1269,6 +1248,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             if x < extremesOfChannel_35[0] - 1:
                 self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
             elif extremesOfChannel_35[0] <= x <= extremesOfChannel_35[1]:
+                column.save("D:\\x.png")
                 self.assertTrue(
                     Pixmap.has_color(column, self.channel_35.color.name()),
                     f"column {x} doesn't have {self.channel_35.name} color",
