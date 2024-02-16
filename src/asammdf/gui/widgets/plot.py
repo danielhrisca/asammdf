@@ -5932,7 +5932,8 @@ class PlotGraphics(pg.PlotWidget):
 
     def update(self, *args, pixmap=None, **kwargs):
         self._pixmap = pixmap
-        self.viewbox.update()
+        if self.viewbox:
+            self.viewbox.update()
 
     def update_views(self):
         geometry = self.viewbox.sceneBoundingRect()
