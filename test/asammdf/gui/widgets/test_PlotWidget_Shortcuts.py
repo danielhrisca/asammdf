@@ -157,7 +157,6 @@ class TestPlotShortcuts(TestPlotWidget):
 
                 QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+G"))
 
-            x = 5
             mo_ScaleDialog.return_value.exec.assert_called()
             self.assertTupleEqual(self.plot.plot.signals[0].y_range, expected_y_range)
 
@@ -201,7 +200,7 @@ class TestPlotShortcuts(TestPlotWidget):
             self.widget.add_new_channels([self.widget.channels_tree.topLevelItem(35).name], self.plot)
             self.processEvents()
             initial_size = self.plot.font().pointSize()
-            with mock.patch("asammdf.gui.widgets.plot.ChannelsTreeWidget.set_font_size") as mo_set_font_size:
+            with mock.patch("asammdf.gui.widgets.plot.ChannelsTreeWidget.set_font_size"):
                 with mock.patch.object(self.plot.plot, "y_axis"):
                     with mock.patch.object(self.plot.plot, "x_axis"):
                         # Event
@@ -215,7 +214,7 @@ class TestPlotShortcuts(TestPlotWidget):
             self.widget.add_new_channels([self.widget.channels_tree.topLevelItem(35).name], self.plot)
             self.processEvents()
             initial_size = self.plot.font().pointSize()
-            with mock.patch("asammdf.gui.widgets.plot.ChannelsTreeWidget.set_font_size") as mo_set_font_size:
+            with mock.patch("asammdf.gui.widgets.plot.ChannelsTreeWidget.set_font_size"):
                 with mock.patch.object(self.plot.plot, "y_axis"):
                     with mock.patch.object(self.plot.plot, "x_axis"):
                         # Event
@@ -429,52 +428,52 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
 
         Evaluate:
             - Evaluate that plot is not black
-            - Evaluate that unit is changed to Hex after pressing key "Ctrl+H"
-            - Evaluate that unit is changed to Bin after pressing key "Ctrl+B"
+            - Evaluate that unit is changed to hex after pressing key "Ctrl+H"
+            - Evaluate that unit is changed to bin after pressing key "Ctrl+B"
             - Evaluate that unit is changed to Int after pressing key "Ctrl+P"
         """
-        Physical = self.plot.selected_channel_value.text()
-        physicalHours = int(Physical.split(" ")[0])
+        physical = self.plot.selected_channel_value.text()
+        physical_hours = int(physical.split(" ")[0])
         # Press "Ctrl+B"
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+B"))
-        Bin = self.plot.selected_channel_value.text()
-        binHours = int(Bin.split(" ")[0].replace(".", ""), 2)
+        bin_ = self.plot.selected_channel_value.text()
+        bin_hours = int(bin_.split(" ")[0].replace(".", ""), 2)
 
         # Evaluate
-        self.assertNotEqual(Physical, Bin)
-        self.assertEqual(physicalHours, binHours)
+        self.assertNotEqual(physical, bin_)
+        self.assertEqual(physical_hours, bin_hours)
 
         # Press "Ctrl+H"
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+H"))
-        Hex = self.plot.selected_channel_value.text()
-        # Convert Hex value to Int
-        hexHours = int(Hex.split(" ")[0], 16)
+        hex_ = self.plot.selected_channel_value.text()
+        # Convert hex value to Int
+        hex_hours = int(hex_.split(" ")[0], 16)
 
         # Evaluate
-        self.assertNotEqual(Physical, Hex)
-        self.assertIn("0x", Hex)
-        self.assertEqual(physicalHours, hexHours)
+        self.assertNotEqual(physical, hex_)
+        self.assertIn("0x", hex_)
+        self.assertEqual(physical_hours, hex_hours)
 
         # Press "Ctrl+P"
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+P"))
-        newPhysical = self.plot.selected_channel_value.text()
-        newPhysicalHours = int(newPhysical.split(" ")[0])
+        new_physical = self.plot.selected_channel_value.text()
+        new_physical_hours = int(new_physical.split(" ")[0])
 
         # Evaluate
-        self.assertEqual(Physical, newPhysical)
-        self.assertEqual(physicalHours, newPhysicalHours)
+        self.assertEqual(physical, new_physical)
+        self.assertEqual(physical_hours, new_physical_hours)
 
         # Press "Ctrl+P"
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+T"))
-        asciiValue = self.plot.selected_channel_value.text()
-        asciiInt = ascii(asciiValue.split(" ")[0])
-        asciiInt = asciiInt.split("'")[1]
-        asciiInt = "0" + asciiInt.split("\\")[1]
-        asciiInt = int(asciiInt, 16)
+        ascii_value = self.plot.selected_channel_value.text()
+        ascii_int = ascii(ascii_value.split(" ")[0])
+        ascii_int = ascii_int.split("'")[1]
+        ascii_int = "0" + ascii_int.split("\\")[1]
+        ascii_int = int(ascii_int, 16)
 
         # Evaluate
-        self.assertNotEqual(Physical, asciiValue)
-        self.assertEqual(physicalHours, asciiInt)
+        self.assertNotEqual(physical, ascii_value)
+        self.assertEqual(physical_hours, ascii_int)
 
     def test_Plot_Plot_Shortcut_Ctrl_Key_R(self):
         """
@@ -769,10 +768,6 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         with self.subTest("test_2SelectedChannel"):
             with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QColorDialog.getColor") as mo_getColor:
                 # Setup
-                # store previous colors of channels
-                previous_ch_35_color = self.channel_35.color.name()
-                previous_ch_36_color = self.channel_36.color.name()
-                previous_ch_37_color = self.channel_37.color.name()
                 color = QtGui.QColor("black")
                 mo_getColor.return_value = color
                 # Set selected both channels
@@ -822,7 +817,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         original_origin_uuid = self.channel_35.origin_uuid
         original_signal = self.channel_35.signal
         replica = self.plot.channel_selection.topLevelItem(1)
-        # Evaluate channels esential attributes
+        # Evaluate channels essential attributes
         self.assertEqual(original_name, replica.name)
         self.assertEqual(original_color_name, replica.color.name())
         self.assertEqual(original_origin_uuid, replica.origin_uuid)
@@ -848,7 +843,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         self.assertEqual(1, self.plot.channel_selection.topLevelItemCount())
 
         replica = self.plot.channel_selection.topLevelItem(0)
-        # Evaluate channels esential attributes
+        # Evaluate channels essential attributes
         self.assertEqual(original_name, replica.name)
         self.assertEqual(original_color_name, replica.color.name())
         self.assertEqual(original_origin_uuid, replica.origin_uuid)
@@ -890,13 +885,13 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         """
         tests for Ctrl+[ and Ctrl+]
         """
-        fontSize = self.plot.font().pointSize()
+        font_size = self.plot.font().pointSize()
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+]"))
-        self.assertLess(fontSize, self.plot.font().pointSize())
+        self.assertLess(font_size, self.plot.font().pointSize())
 
-        fontSize = self.plot.font().pointSize()
+        font_size = self.plot.font().pointSize()
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+["))
-        self.assertGreater(fontSize, self.plot.font().pointSize())
+        self.assertGreater(font_size, self.plot.font().pointSize())
 
     def test_Plot_Plot_Shortcut_Key_Backspace_and_Shift_Backspace_Shift_W(self):
         """
@@ -910,18 +905,18 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         self.processEvents()
 
         # Select line
-        yMiddLine = self.plot.plot.viewport().grab(
+        y_midd_line = self.plot.plot.viewport().grab(
             QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.viewport().width(), 1)
         )
-        colorMap = Pixmap.color_map(yMiddLine)
-        distanceInPixels_0 = 0
+        color_map = Pixmap.color_map(y_midd_line)
+        distance_in_pixels_0 = 0
         # Find distance between first and second signal transit trough midd line
-        for i, x in enumerate(colorMap[0]):
+        for i, x in enumerate(color_map[0]):
             if x == self.channel_35.color.name():
-                distanceInPixels_0 = i - distanceInPixels_0
-                if distanceInPixels_0 != i:
+                distance_in_pixels_0 = i - distance_in_pixels_0
+                if distance_in_pixels_0 != i:
                     break
-        self.assertGreater(distanceInPixels_0, 0)
+        self.assertGreater(distance_in_pixels_0, 0)
 
         # Press "O"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_O)
@@ -929,73 +924,73 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         self.processEvents()
 
         # Select line
-        yMiddLine = self.plot.plot.viewport().grab(
+        y_midd_line = self.plot.plot.viewport().grab(
             QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.viewport().width(), 1)
         )
-        colorMap = Pixmap.color_map(yMiddLine)
-        distanceInPixels_1 = 0
+        color_map = Pixmap.color_map(y_midd_line)
+        distance_in_pixels_1 = 0
         # Find distance between first and second signal transit trough midd line
-        for i, x in enumerate(colorMap[0]):
+        for i, x in enumerate(color_map[0]):
             if x == self.channel_35.color.name():
-                distanceInPixels_1 = i - distanceInPixels_1
-                if distanceInPixels_1 != i:
+                distance_in_pixels_1 = i - distance_in_pixels_1
+                if distance_in_pixels_1 != i:
                     break
-        self.assertGreater(distanceInPixels_1, 0)
+        self.assertGreater(distance_in_pixels_1, 0)
 
         # Press "O"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_O)
         self.processEvents()
         # Select line
-        yMiddLine = self.plot.plot.viewport().grab(
+        y_midd_line = self.plot.plot.viewport().grab(
             QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.viewport().width(), 1)
         )
-        colorMap = Pixmap.color_map(yMiddLine)
-        distanceInPixels_2 = 0
+        color_map = Pixmap.color_map(y_midd_line)
+        distance_in_pixels_2 = 0
         # Find distance between first and second signal transit trough midd line
-        for i, x in enumerate(colorMap[0]):
+        for i, x in enumerate(color_map[0]):
             if x == self.channel_35.color.name():
-                distanceInPixels_2 = i - distanceInPixels_2
-                if distanceInPixels_2 != i:
+                distance_in_pixels_2 = i - distance_in_pixels_2
+                if distance_in_pixels_2 != i:
                     break
-        self.assertGreater(distanceInPixels_1, distanceInPixels_2)
+        self.assertGreater(distance_in_pixels_1, distance_in_pixels_2)
 
         # click on Backspace
         QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_Backspace)
 
         self.processEvents()
         # Select line
-        yMiddLine = self.plot.plot.viewport().grab(
+        y_midd_line = self.plot.plot.viewport().grab(
             QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.viewport().width(), 1)
         )
-        colorMap = Pixmap.color_map(yMiddLine)
-        distanceInPixels_3 = 0
+        color_map = Pixmap.color_map(y_midd_line)
+        distance_in_pixels_3 = 0
         # Find distance between first and second signal transit trough midd line
-        for i, x in enumerate(colorMap[0]):
+        for i, x in enumerate(color_map[0]):
             if x == self.channel_35.color.name():
-                distanceInPixels_3 = i - distanceInPixels_3
-                if distanceInPixels_3 != i:
+                distance_in_pixels_3 = i - distance_in_pixels_3
+                if distance_in_pixels_3 != i:
                     break
 
-        self.assertEqual(distanceInPixels_1, distanceInPixels_3)
+        self.assertEqual(distance_in_pixels_1, distance_in_pixels_3)
 
         # click on Shift + Backspace
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence(QtGui.Qt.SHIFT + QtGui.Qt.Key_Backspace))
 
         self.processEvents()
         # Select line
-        yMiddLine = self.plot.plot.viewport().grab(
+        y_midd_line = self.plot.plot.viewport().grab(
             QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.viewport().width(), 1)
         )
-        colorMap = Pixmap.color_map(yMiddLine)
-        distanceInPixels_3 = 0
+        color_map = Pixmap.color_map(y_midd_line)
+        distance_in_pixels_3 = 0
         # Find distance between first and second signal transit trough midd line
-        for i, x in enumerate(colorMap[0]):
+        for i, x in enumerate(color_map[0]):
             if x == self.channel_35.color.name():
-                distanceInPixels_3 = i - distanceInPixels_3
-                if distanceInPixels_3 != i:
+                distance_in_pixels_3 = i - distance_in_pixels_3
+                if distance_in_pixels_3 != i:
                     break
 
-        self.assertEqual(distanceInPixels_2, distanceInPixels_3)
+        self.assertEqual(distance_in_pixels_2, distance_in_pixels_3)
 
         # Press "O"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_O)
@@ -1004,15 +999,15 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         self.processEvents()
 
         # Select line
-        yMiddLine = self.plot.plot.viewport().grab(
+        y_midd_line = self.plot.plot.viewport().grab(
             QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.viewport().width(), 1)
         )
-        colorMap = Pixmap.color_map(yMiddLine)
-        distanceInPixels_3 = 0
+        color_map = Pixmap.color_map(y_midd_line)
+        distance_in_pixels_3 = 0
         # Find distance between first and second signal transit trough midd line
-        for i, x in enumerate(colorMap[0]):
+        for i, x in enumerate(color_map[0]):
             if x == self.channel_35.color.name():
-                distanceInPixels_3 = i - distanceInPixels_3
-                if distanceInPixels_3 != i:
+                distance_in_pixels_3 = i - distance_in_pixels_3
+                if distance_in_pixels_3 != i:
                     break
-        self.assertEqual(distanceInPixels_0, distanceInPixels_3)
+        self.assertEqual(distance_in_pixels_0, distance_in_pixels_3)

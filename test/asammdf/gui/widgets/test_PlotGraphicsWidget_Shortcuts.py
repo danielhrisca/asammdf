@@ -98,7 +98,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                 self.assertAlmostEqual(self.plot.cursor1.getPos()[0], expected_pos, delta=0.001)
 
 
-class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
+class TestPlotGraphicsShortcutsFunctionality(TestPlotWidget):
     def setUp(self):
         # Open measurement file
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
@@ -126,20 +126,9 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         # pixmap is not black
         self.assertTrue(Pixmap.is_black(self.plot.plot.viewport().grab()))
 
-    def addChannelsToPlot(self, channels: list):
-        """
-        add channels from a list with channels indexes
-        """
-        if channels:
-            self.channels = []
-
-        for _, ch in enumerate(channels):
-            self.widget.add_new_channels([self.widget.channels_tree.topLevelItem(ch).name], self.plot)
-            # channels
-            self.channels.append(self.plot.channel_selection.topLevelItem(_))
-
-        self.assertEqual(len(channels), self.plot.channel_selection.topLevelItemCount())
-        self.processEvents()
+    def tearDown(self):
+        if self.widget:
+            self.widget.destroy()
 
     def test_Plot_PlotGraphics_Shortcut_Key_Y(self):
         """
@@ -357,10 +346,10 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         self.processEvents()
 
         # Count intersections between middle line and signal
-        firstIntersections = Pixmap.color_map(
+        first_intersections = Pixmap.color_map(
             self.plot.plot.viewport().grab(QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.width(), 1))
         )[0].count(channel_color)
-        self.assertTrue(firstIntersections)
+        self.assertTrue(first_intersections)
 
         # Setup for cursor
         self.widget.set_cursor_options(False, False, 1, Pixmap.COLOR_CURSOR)
@@ -392,21 +381,21 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         self.assertTrue(color)
 
         # Count intersection of midd line and signal between cursors
-        interCursorsIntersectionsR = Pixmap.color_map(
+        inter_cursors_intersections_r = Pixmap.color_map(
             self.plot.plot.viewport().grab(
                 QtCore.QRect(cursors[0], int(self.plot.plot.height() / 2), cursors[1] - cursors[0], 1)
             )
         )[0].count(color)
-        self.assertTrue(interCursorsIntersectionsR)
+        self.assertTrue(inter_cursors_intersections_r)
         # Search lines where signal intersects cursors
-        expectedSignalStartYPoint = Pixmap.search_y_of_signal_in_column(
+        expected_signal_start_y_point = Pixmap.search_y_of_signal_in_column(
             self.plot.plot.viewport().grab(QtCore.QRect(cursors[0] + 2, 0, 1, self.plot.plot.height())), color
         )
-        expectedSignalEndYPoint = Pixmap.search_y_of_signal_in_column(
+        expected_signal_end_y_point = Pixmap.search_y_of_signal_in_column(
             self.plot.plot.viewport().grab(QtCore.QRect(cursors[1] - 2, 0, 1, self.plot.plot.height())), color
         )
-        self.assertTrue(expectedSignalStartYPoint)
-        self.assertTrue(expectedSignalEndYPoint)
+        self.assertTrue(expected_signal_start_y_point)
+        self.assertTrue(expected_signal_end_y_point)
 
         # Press key "X"
         QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_X)
@@ -416,36 +405,36 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         from_to_x = Pixmap.search_signal_extremes_by_ax(self.plot.plot.viewport().grab(), channel_color, "x")
         self.assertEqual(len(from_to_x), 2)
         # Search lines where signal start and end
-        signalStartOnLine = Pixmap.search_y_of_signal_in_column(
+        signal_start_on_line = Pixmap.search_y_of_signal_in_column(
             self.plot.plot.viewport().grab(QtCore.QRect(from_to_x[0], 0, 1, self.plot.plot.height())),
             channel_color,
         )
-        signalEndOnLine = Pixmap.search_y_of_signal_in_column(
+        signal_end_on_line = Pixmap.search_y_of_signal_in_column(
             self.plot.plot.viewport().grab(QtCore.QRect(from_to_x[1], 0, 1, self.plot.plot.height())),
             channel_color,
         )
         # Evaluate
-        precission = 0.1  # for displays with smaller resolution
+        precision = 0.1  # for displays with smaller resolution
         self.assertAlmostEqual(
-            expectedSignalStartYPoint / signalStartOnLine,
+            expected_signal_start_y_point / signal_start_on_line,
             1,
-            msg=f"Difference is too big: {expectedSignalStartYPoint} / {signalStartOnLine} = "
-            f"{expectedSignalStartYPoint / signalStartOnLine}",
-            delta=precission,
+            msg=f"Difference is too big: {expected_signal_start_y_point} / {signal_start_on_line} = "
+                f"{expected_signal_start_y_point / signal_start_on_line}",
+            delta=precision,
         )
         self.assertAlmostEqual(
-            expectedSignalEndYPoint / signalEndOnLine,
+            expected_signal_end_y_point / signal_end_on_line,
             1,
-            msg=f"Difference is too big: {expectedSignalEndYPoint} / {signalEndOnLine} = "
-            f"{expectedSignalEndYPoint / signalEndOnLine}",
-            delta=precission,
+            msg=f"Difference is too big: {expected_signal_end_y_point} / {signal_end_on_line} = "
+                f"{expected_signal_end_y_point / signal_end_on_line}",
+            delta=precision,
         )
         # The Number of intersections between signal and midd line must be the same as in the first case
-        interCursorsIntersectionsX = Pixmap.color_map(
+        inter_cursors_intersections_x = Pixmap.color_map(
             self.plot.plot.viewport().grab(QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.width(), 1))
         )[0].count(channel_color)
-        self.assertEqual(interCursorsIntersectionsR, interCursorsIntersectionsX)
-        self.assertLess(interCursorsIntersectionsX, firstIntersections)
+        self.assertEqual(inter_cursors_intersections_r, inter_cursors_intersections_x)
+        self.assertLess(inter_cursors_intersections_x, first_intersections)
 
     def test_Plot_PlotGraphics_Shortcut_Key_S_ShiftS_ShiftF_F(self):
         """
@@ -474,9 +463,9 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
 
         self.addChannelsToPlot([35, 36, 37])
 
-        self.channel_35 = self.channels[0]
-        self.channel_36 = self.channels[1]
-        self.channel_37 = self.channels[2]
+        channel_35 = self.channels[0]
+        channel_36 = self.channels[1]
+        channel_37 = self.channels[2]
         # Press "S"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_S)
         self.processEvents()
@@ -490,27 +479,27 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             pixmap = self.plot.plot.viewport().grab(
                 QtCore.QRect(0, 0, self.plot.plot.width(), int(self.plot.plot.height() / 3))
             )
-            self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
+            self.assertFalse(Pixmap.has_color(pixmap, channel_36.color.name()))
+            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
             # Midd
             pixmap = self.plot.plot.viewport().grab(
                 QtCore.QRect(
                     0, int(self.plot.plot.height() / 3), self.plot.plot.width(), int(self.plot.plot.height() / 3)
                 )
             )
-            self.assertFalse(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+            self.assertFalse(Pixmap.has_color(pixmap, channel_35.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
+            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
             # Bottom
             pixmap = self.plot.plot.viewport().grab(
                 QtCore.QRect(
                     0, int(self.plot.plot.height() / 3) * 2, self.plot.plot.width(), int(self.plot.plot.height() / 3)
                 )
             )
-            self.assertFalse(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+            self.assertFalse(Pixmap.has_color(pixmap, channel_35.color.name()))
+            self.assertFalse(Pixmap.has_color(pixmap, channel_36.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
             # Last 2 lines
 
             pixmap = self.plot.plot.viewport().grab(
@@ -520,7 +509,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             self.assertEqual(len(cn), 0)
 
         # select the first channel
-        self.mouseClick_WidgetItem(self.channel_35)
+        self.mouseClick_WidgetItem(channel_35)
         # Press "Shift+F"
         QtTest.QTest.keySequence(self.plot.plot, QtGui.QKeySequence("Shift+F"))
         self.avoid_blinking_issue(self.plot.channel_selection)
@@ -536,27 +525,27 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             pixmap = self.plot.plot.viewport().grab(
                 QtCore.QRect(0, 0, self.plot.plot.width(), int(self.plot.plot.height() / 3))
             )
-            self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
+            self.assertFalse(Pixmap.has_color(pixmap, channel_36.color.name()))
+            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
             # Midd
             pixmap = self.plot.plot.viewport().grab(
                 QtCore.QRect(
                     0, int(self.plot.plot.height() / 3), self.plot.plot.width(), int(self.plot.plot.height() / 3)
                 )
             )
-            self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
+            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
             # Bottom
             pixmap = self.plot.plot.viewport().grab(
                 QtCore.QRect(
                     0, int(self.plot.plot.height() / 3) * 2, self.plot.plot.width(), int(self.plot.plot.height() / 3)
                 )
             )
-            self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
+            self.assertFalse(Pixmap.has_color(pixmap, channel_36.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
             # Last line
             self.assertTrue(
                 Pixmap.is_black(
@@ -567,7 +556,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             )
 
         # select second channel
-        self.mouseClick_WidgetItem(self.channel_36)
+        self.mouseClick_WidgetItem(channel_36)
         # Press "Shift+F"
         QtTest.QTest.keySequence(self.plot.plot, QtGui.QKeySequence("Shift+S"))
         self.avoid_blinking_issue(self.plot.channel_selection)
@@ -581,27 +570,27 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             pixmap = self.plot.plot.viewport().grab(
                 QtCore.QRect(0, 0, self.plot.plot.width(), int(self.plot.plot.height() / 3))
             )
-            self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
+            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
             # Midd
             pixmap = self.plot.plot.viewport().grab(
                 QtCore.QRect(
                     0, int(self.plot.plot.height() / 3), self.plot.plot.width(), int(self.plot.plot.height() / 3)
                 )
             )
-            self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
+            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
             # Bottom
             pixmap = self.plot.plot.viewport().grab(
                 QtCore.QRect(
                     0, int(self.plot.plot.height() / 3) * 2, self.plot.plot.width(), int(self.plot.plot.height() / 3)
                 )
             )
-            self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
             # Last line
             self.assertTrue(
                 Pixmap.is_black(
@@ -624,18 +613,18 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
                 pixmap = self.plot.plot.viewport().grab(
                     QtCore.QRect(0, 0, self.plot.plot.width(), int(self.plot.plot.height() / 3))
                 )
-                self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-                self.assertTrue(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-                self.assertTrue(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+                self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
+                self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
+                self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
                 # Midd
                 pixmap = self.plot.plot.viewport().grab(
                     QtCore.QRect(
                         0, int(self.plot.plot.height() / 3), self.plot.plot.width(), int(self.plot.plot.height() / 3)
                     )
                 )
-                self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-                self.assertTrue(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-                self.assertTrue(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+                self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
+                self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
+                self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
                 # Bottom
                 pixmap = self.plot.plot.viewport().grab(
                     QtCore.QRect(
@@ -645,9 +634,9 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
                         int(self.plot.plot.height() / 3),
                     )
                 )
-                self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-                self.assertTrue(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-                self.assertTrue(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+                self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
+                self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
+                self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
                 # Last line
                 self.assertTrue(
                     Pixmap.is_black(
@@ -661,45 +650,43 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
                     self.mouseDClick_WidgetItem(channel)
 
                 # search if all channels is fitted into extremes
-                self.mouseDClick_WidgetItem(self.channel_35)
-                extremes = Pixmap.search_signal_extremes_by_ax(
-                    self.plot.plot.grab(), self.channel_35.color.name(), ax="x"
-                )
+                self.mouseDClick_WidgetItem(channel_35)
+                extremes = Pixmap.search_signal_extremes_by_ax(self.plot.plot.grab(), channel_35.color.name(), ax="x")
                 for x in range(self.plot.plot.height() - 1):
                     column = self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.height()))
                     if x < extremes[0] - 1:
                         self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
                     elif extremes[0] <= x <= extremes[1]:
                         self.assertTrue(
-                            Pixmap.has_color(column, self.channel_35.color.name()),
+                            Pixmap.has_color(column, channel_35.color.name()),
                             f"column {x} doesn't have color of channel 35",
                         )
                     else:
                         self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
 
-                self.mouseDClick_WidgetItem(self.channel_35)
-                self.mouseDClick_WidgetItem(self.channel_36)
+                self.mouseDClick_WidgetItem(channel_35)
+                self.mouseDClick_WidgetItem(channel_36)
                 for x in range(self.plot.plot.height() - 1):
                     column = self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.height()))
                     if x < extremes[0] - 1:
                         self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
                     elif extremes[0] <= x <= extremes[1]:
                         self.assertTrue(
-                            Pixmap.has_color(column, self.channel_36.color.name()),
+                            Pixmap.has_color(column, channel_36.color.name()),
                             f"column {x} doesn't have color of channel 36",
                         )
                     else:
                         self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
 
-                self.mouseDClick_WidgetItem(self.channel_37)
-                self.mouseDClick_WidgetItem(self.channel_36)
+                self.mouseDClick_WidgetItem(channel_37)
+                self.mouseDClick_WidgetItem(channel_36)
                 for x in range(self.plot.plot.height() - 1):
                     column = self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.height()))
                     if x < extremes[0] - 1:
                         self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
                     elif extremes[0] <= x <= extremes[1]:
                         self.assertTrue(
-                            Pixmap.has_color(column, self.channel_37.color.name()),
+                            Pixmap.has_color(column, channel_37.color.name()),
                             f"column {x} doesn't have color of channel 37",
                         )
                     else:
@@ -793,38 +780,38 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             - Evaluate that distance between first and second transition of signal in the same line is increased
                 after pressing key "I"
         """
-        self.addChannelsToPlot([35])
-        self.channel_35 = self.channels[0]
+        self.assertIsNotNone(self.addChannelsToPlot([35]))
+        channel_35 = self.channels[0]
 
         # Select line
-        yMiddLine = self.plot.plot.viewport().grab(
+        y_midd_line = self.plot.plot.viewport().grab(
             QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.viewport().width(), 1)
         )
-        colorMap = Pixmap.color_map(yMiddLine)
-        distanceInPixels_1 = 0
+        color_map = Pixmap.color_map(y_midd_line)
+        distance_in_pixels_1 = 0
         # Find distance between first and second signal transit trough midd line
-        for i, x in enumerate(colorMap[0]):
-            if x == self.channel_35.color.name():
-                distanceInPixels_1 = i - distanceInPixels_1
-                if distanceInPixels_1 != i:
+        for i, x in enumerate(color_map[0]):
+            if x == channel_35.color.name():
+                distance_in_pixels_1 = i - distance_in_pixels_1
+                if distance_in_pixels_1 != i:
                     break
-        self.assertTrue(distanceInPixels_1)
+        self.assertTrue(distance_in_pixels_1)
         # Press "I"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_I)
         self.processEvents()
         # Select line
-        yMiddLine = self.plot.plot.viewport().grab(
+        y_midd_line = self.plot.plot.viewport().grab(
             QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.viewport().width(), 1)
         )
-        colorMap = Pixmap.color_map(yMiddLine)
-        distanceInPixels_2 = 0
+        color_map = Pixmap.color_map(y_midd_line)
+        distance_in_pixels_2 = 0
         # Find distance between first and second signal transit trough midd line
-        for i, x in enumerate(colorMap[0]):
-            if x == self.channel_35.color.name():
-                distanceInPixels_2 = i - distanceInPixels_2
-                if distanceInPixels_2 != i:
+        for i, x in enumerate(color_map[0]):
+            if x == channel_35.color.name():
+                distance_in_pixels_2 = i - distance_in_pixels_2
+                if distance_in_pixels_2 != i:
                     break
-        self.assertLess(distanceInPixels_1, distanceInPixels_2)
+        self.assertLess(distance_in_pixels_1, distance_in_pixels_2)
 
     def test_Plot_PlotGraphics_Shortcut_Key_O(self):
         """
@@ -841,36 +828,36 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
                 after pressing key "O"
         """
         self.addChannelsToPlot([35])
-        self.channel_35 = self.channels[0]
+        channel_35 = self.channels[0]
         # Select line
-        yMiddLine = self.plot.plot.viewport().grab(
+        y_midd_line = self.plot.plot.viewport().grab(
             QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.viewport().width(), 1)
         )
-        colorMap = Pixmap.color_map(yMiddLine)
-        distanceInPixels_1 = 0
+        color_map = Pixmap.color_map(y_midd_line)
+        distance_in_pixels_1 = 0
         # Find distance between first and second signal transit trough midd line
-        for i, x in enumerate(colorMap[0]):
-            if x == self.channel_35.color.name():
-                distanceInPixels_1 = i - distanceInPixels_1
-                if distanceInPixels_1 != i:
+        for i, x in enumerate(color_map[0]):
+            if x == channel_35.color.name():
+                distance_in_pixels_1 = i - distance_in_pixels_1
+                if distance_in_pixels_1 != i:
                     break
-        self.assertTrue(distanceInPixels_1)
+        self.assertTrue(distance_in_pixels_1)
         # Press "I"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_O)
         self.processEvents()
         # Select line
-        yMiddLine = self.plot.plot.viewport().grab(
+        y_midd_line = self.plot.plot.viewport().grab(
             QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.viewport().width(), 1)
         )
-        colorMap = Pixmap.color_map(yMiddLine)
-        distanceInPixels_2 = 0
+        color_map = Pixmap.color_map(y_midd_line)
+        distance_in_pixels_2 = 0
         # Find distance between first and second signal transit trough midd line
-        for i, x in enumerate(colorMap[0]):
-            if x == self.channel_35.color.name():
-                distanceInPixels_2 = i - distanceInPixels_2
-                if distanceInPixels_2 != i:
+        for i, x in enumerate(color_map[0]):
+            if x == channel_35.color.name():
+                distance_in_pixels_2 = i - distance_in_pixels_2
+                if distance_in_pixels_2 != i:
                     break
-        self.assertGreater(distanceInPixels_1, distanceInPixels_2)
+        self.assertGreater(distance_in_pixels_1, distance_in_pixels_2)
 
     def test_Plot_PlotGraphics_Shortcut_Key_R(self):
         """
@@ -1013,18 +1000,18 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             - Evaluate timestamp label
         """
         self.addChannelsToPlot([36, 37])
-        self.channel_36 = self.channels[0]
-        self.channel_37 = self.channels[1]
+        channel_36 = self.channels[0]
+        channel_37 = self.channels[1]
 
         # Case 0:
         with self.subTest("test_Plot_Plot_Shortcut_Key_LeftRight_0"):
             # Select channel: ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL
-            self.mouseClick_WidgetItem(self.channel_37)
+            self.mouseClick_WidgetItem(channel_37)
             self.plot.plot.setFocus()
             self.processEvents(0.1)
 
-            self.assertEqual("25", self.channel_36.text(self.Column.VALUE))
-            self.assertEqual("244", self.channel_37.text(self.Column.VALUE))
+            self.assertEqual("25", channel_36.text(self.Column.VALUE))
+            self.assertEqual("244", channel_37.text(self.Column.VALUE))
 
             # Send Key strokes
             for _ in range(6):
@@ -1033,8 +1020,8 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             self.processEvents(0.1)
 
             # Evaluate
-            self.assertEqual("8", self.channel_36.text(self.Column.VALUE))
-            self.assertEqual("6", self.channel_37.text(self.Column.VALUE))
+            self.assertEqual("8", channel_36.text(self.Column.VALUE))
+            self.assertEqual("6", channel_37.text(self.Column.VALUE))
             self.assertEqual("t = 0.082657s", self.plot.cursor_info.text())
 
             # Send Key strokes
@@ -1044,14 +1031,14 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             self.processEvents(0.1)
 
             # Evaluate
-            self.assertEqual("21", self.channel_36.text(self.Column.VALUE))
-            self.assertEqual("247", self.channel_37.text(self.Column.VALUE))
+            self.assertEqual("21", channel_36.text(self.Column.VALUE))
+            self.assertEqual("247", channel_37.text(self.Column.VALUE))
             self.assertEqual("t = 0.032657s", self.plot.cursor_info.text())
 
         # Case 1:
         with self.subTest("test_Plot_Plot_Shortcut_Key_LeftRight_1"):
             # Select channel: ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL
-            self.mouseClick_WidgetItem(self.channel_37)
+            self.mouseClick_WidgetItem(channel_37)
             self.plot.plot.setFocus()
             self.processEvents(0.1)
 
@@ -1062,8 +1049,8 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             self.processEvents(0.1)
 
             # Evaluate
-            self.assertEqual("5", self.channel_36.text(self.Column.VALUE))
-            self.assertEqual("9", self.channel_37.text(self.Column.VALUE))
+            self.assertEqual("5", channel_36.text(self.Column.VALUE))
+            self.assertEqual("9", channel_37.text(self.Column.VALUE))
             self.assertEqual("t = 0.092657s", self.plot.cursor_info.text())
 
             # Send Key strokes
@@ -1073,8 +1060,8 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             self.processEvents(0.1)
 
             # Evaluate
-            self.assertEqual("18", self.channel_36.text(self.Column.VALUE))
-            self.assertEqual("250", self.channel_37.text(self.Column.VALUE))
+            self.assertEqual("18", channel_36.text(self.Column.VALUE))
+            self.assertEqual("250", channel_37.text(self.Column.VALUE))
             self.assertEqual("t = 0.042657s", self.plot.cursor_info.text())
 
     def test_Plot_PlotGraphics_Shortcut_Key_Shift_Arrows(self):
@@ -1098,44 +1085,44 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             - Evaluate that second signal is shifted up & right after pressing combination "Shift+Up" & "Shift+Right"
         """
         self.addChannelsToPlot([36, 37])
-        self.channel_36 = self.channels[0]
-        self.channel_37 = self.channels[1]
+        channel_36 = self.channels[0]
+        channel_37 = self.channels[1]
 
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_S)
         self.processEvents(0.01)
         old_from_to_y_channel_36 = Pixmap.search_signal_extremes_by_ax(
-            self.plot.plot.viewport().grab(), self.channel_36.color.name(), "y"
+            self.plot.plot.viewport().grab(), channel_36.color.name(), "y"
         )
         old_from_to_y_channel_37 = Pixmap.search_signal_extremes_by_ax(
-            self.plot.plot.viewport().grab(), self.channel_37.color.name(), "y"
+            self.plot.plot.viewport().grab(), channel_37.color.name(), "y"
         )
         old_from_to_x_channel_36 = Pixmap.search_signal_extremes_by_ax(
-            self.plot.plot.viewport().grab(), self.channel_36.color.name(), "x"
+            self.plot.plot.viewport().grab(), channel_36.color.name(), "x"
         )
         old_from_to_x_channel_37 = Pixmap.search_signal_extremes_by_ax(
-            self.plot.plot.viewport().grab(), self.channel_37.color.name(), "x"
+            self.plot.plot.viewport().grab(), channel_37.color.name(), "x"
         )
 
-        self.mouseClick_WidgetItem(self.channel_36)
+        self.mouseClick_WidgetItem(channel_36)
         QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+Down"))
         QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+Left"))
-        self.mouseClick_WidgetItem(self.channel_37)
+        self.mouseClick_WidgetItem(channel_37)
         QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+Up"))
         QtTest.QTest.keySequence(self.plot.plot.viewport(), QtGui.QKeySequence("Shift+Right"))
 
         self.avoid_blinking_issue(self.plot.channel_selection)
 
         new_from_to_y_channel_36 = Pixmap.search_signal_extremes_by_ax(
-            self.plot.plot.viewport().grab(), self.channel_36.color.name(), "y"
+            self.plot.plot.viewport().grab(), channel_36.color.name(), "y"
         )
         new_from_to_y_channel_37 = Pixmap.search_signal_extremes_by_ax(
-            self.plot.plot.viewport().grab(), self.channel_37.color.name(), "y"
+            self.plot.plot.viewport().grab(), channel_37.color.name(), "y"
         )
         new_from_to_x_channel_36 = Pixmap.search_signal_extremes_by_ax(
-            self.plot.plot.viewport().grab(), self.channel_36.color.name(), "x"
+            self.plot.plot.viewport().grab(), channel_36.color.name(), "x"
         )
         new_from_to_x_channel_37 = Pixmap.search_signal_extremes_by_ax(
-            self.plot.plot.viewport().grab(), self.channel_37.color.name(), "x"
+            self.plot.plot.viewport().grab(), channel_37.color.name(), "x"
         )
 
         # Evaluate
@@ -1207,7 +1194,7 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
             - Evaluate that after pressing key "W" from first to last column is displayed signal
         """
         self.addChannelsToPlot([35])
-        self.channel_35 = self.channels[0]
+        channel_35 = self.channels[0]
 
         # check if the grid is available
         if not self.plot.hide_axes_btn.isFlat():
@@ -1218,26 +1205,26 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         self.processEvents(0.01)
 
         # search first and last column where is displayed first signal
-        extremesOfChannel_35 = Pixmap.search_signal_extremes_by_ax(
-            self.plot.plot.viewport().grab(), self.channel_35.color.name(), ax="x"
+        extremes_of_channel_35 = Pixmap.search_signal_extremes_by_ax(
+            self.plot.plot.viewport().grab(), channel_35.color.name(), ax="x"
         )
         # Evaluate that there are extremes of first signal
-        self.assertTrue(extremesOfChannel_35)
+        self.assertTrue(extremes_of_channel_35)
         # Press "I"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_I)
         self.processEvents()
 
         # save left and right pixel column
-        xLeftColumn = self.plot.plot.viewport().grab(
-            QtCore.QRect(extremesOfChannel_35[0], 0, 1, self.plot.plot.height())
+        x_left_column = self.plot.plot.viewport().grab(
+            QtCore.QRect(extremes_of_channel_35[0], 0, 1, self.plot.plot.height())
         )
-        xRightColumn = self.plot.plot.viewport().grab(
-            QtCore.QRect(extremesOfChannel_35[1], 0, 1, self.plot.plot.height())
+        x_right_column = self.plot.plot.viewport().grab(
+            QtCore.QRect(extremes_of_channel_35[1], 0, 1, self.plot.plot.height())
         )
-        self.assertTrue(Pixmap.is_black(xLeftColumn))
-        self.assertTrue(Pixmap.has_color(xRightColumn, self.channel_35.color.name()))
+        self.assertTrue(Pixmap.is_black(x_left_column))
+        self.assertTrue(Pixmap.has_color(x_right_column, channel_35.color.name()))
 
-        # preaa "F"
+        # press "F"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_F)
         # Press "W"
         QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_W)
@@ -1245,13 +1232,13 @@ class TestPlotGraphicsShortcuts_Functionality(TestPlotWidget):
         # Select all columns from left to right
         for x in range(self.plot.plot.height() - 1):
             column = self.plot.plot.viewport().grab(QtCore.QRect(x, 0, 1, self.plot.plot.height()))
-            if x < extremesOfChannel_35[0] - 1:
+            if x < extremes_of_channel_35[0] - 1:
                 self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
-            elif extremesOfChannel_35[0] <= x <= extremesOfChannel_35[1]:
+            elif extremes_of_channel_35[0] <= x <= extremes_of_channel_35[1]:
                 column.save("D:\\x.png")
                 self.assertTrue(
-                    Pixmap.has_color(column, self.channel_35.color.name()),
-                    f"column {x} doesn't have {self.channel_35.name} color",
+                    Pixmap.has_color(column, channel_35.color.name()),
+                    f"column {x} doesn't have {channel_35.name} color",
                 )
             else:
                 self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")

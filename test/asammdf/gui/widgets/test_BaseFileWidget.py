@@ -82,6 +82,58 @@ class TestFileWidget(TestBase):
                 iterator += 1
         return selected_channel
 
+    def addChannelsToPlot(self, channels_list: list, widget=None):
+        """
+        Add channels to the widget from a list using channels indexes or channels names
+        Add channels to the list <self.channels>
+
+        Parameters
+            channel_list: a list with existent channels names and indexes;  \n
+            widget: the widget where the channels will be inserted.
+
+        Returns
+            None: if one channel or widget not exist;   \n
+            self.channels: if all channels was found.
+        """
+        if widget is None:
+            windows_list = self.widget.mdi_area.subWindowList()
+            if len(windows_list) > 0:
+                widget = windows_list[0].widget()
+            else:
+                return
+        else:
+            windows_list = self.widget.mdi_area.subWindowList()
+            if len(windows_list) > 0:
+                if widget not in [w.widget() for w in windows_list]:
+                    return
+            else:
+                return
+        channel_tree = self.widget.channels_tree
+        self.channels = None
+        if not isinstance(channels_list, list):
+            return
+        channels = []
+        for channel in channels_list:
+            found_channel = None
+            if isinstance(channel, int):
+                found_channel = self.find_channel(channel_tree=channel_tree, channel_index=channel)
+            elif isinstance(channel, str):
+                found_channel = self.find_channel(channel_tree=channel_tree, channel_name=channel)
+            if found_channel is not None:
+                channels.append(found_channel)
+        self.assertEqual(len(channels_list), len(channels), msg="Not all channels from given list was found!")
+
+        channel_selection = widget.channel_selection
+        # add channels to channel selection
+        self.widget.add_new_channels([channel.name for channel in channels], widget)
+        # channels
+        self.channels = [channel_selection.topLevelItem(_) for _ in range(channel_selection.topLevelItemCount())]
+
+        self.assertEqual(len(self.channels), channel_selection.topLevelItemCount())
+        self.processEvents()
+
+        return self.channels
+
     def get_subwindows(self):
         widget_types = sorted(w.widget().__class__.__name__ for w in self.widget.mdi_area.subWindowList())
         return widget_types
