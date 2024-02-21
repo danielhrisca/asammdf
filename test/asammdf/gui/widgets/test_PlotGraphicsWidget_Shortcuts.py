@@ -419,14 +419,14 @@ class TestPlotGraphicsShortcutsFunctionality(TestPlotWidget):
             expected_signal_start_y_point / signal_start_on_line,
             1,
             msg=f"Difference is too big: {expected_signal_start_y_point} / {signal_start_on_line} = "
-                f"{expected_signal_start_y_point / signal_start_on_line}",
+            f"{expected_signal_start_y_point / signal_start_on_line}",
             delta=precision,
         )
         self.assertAlmostEqual(
             expected_signal_end_y_point / signal_end_on_line,
             1,
             msg=f"Difference is too big: {expected_signal_end_y_point} / {signal_end_on_line} = "
-                f"{expected_signal_end_y_point / signal_end_on_line}",
+            f"{expected_signal_end_y_point / signal_end_on_line}",
             delta=precision,
         )
         # The Number of intersections between signal and midd line must be the same as in the first case
