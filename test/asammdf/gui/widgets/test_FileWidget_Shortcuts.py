@@ -4,7 +4,7 @@ import pathlib
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 from unittest import mock
 
-from PySide6 import QtGui, QtTest
+from PySide6 import QtCore, QtGui, QtTest
 
 
 class TestFileWidgetShortcuts(TestFileWidget):
@@ -14,7 +14,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
         # Open measurement file
         self.setUpFileWidget(measurement_file=measurement_file, default=True)
 
-    def test_Plot_Plot_Shortcut_Key_Shift_Alt_F(self):
+    def test_FileWidget_Shortcut_Key_Shift_Alt_F(self):
         """
         Test Scope:
             Check if sub-windows frame was toggled after pressing keys "Shift+Alt+F"
@@ -37,7 +37,9 @@ class TestFileWidgetShortcuts(TestFileWidget):
         # Evaluate
         self.assertFalse(self.widget._frameless_windows)
 
-    def test_Plot_Plot_Shortcut_Shift_Key_V(self):
+    def test_FileWidget_Shortcut_Key_Shift_Alt_F11(self): ...
+
+    def test_FileWidget_Shortcut_Shift_Key_V(self):
         """
         Test Scope:
             Check if only object tile_vertically() from QMdiArea module of PySide6.QtWidgets was called
@@ -56,7 +58,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
         # Evaluate
         mo_tile_vertically.assert_called()
 
-    def test_Plot_Plot_Shortcut_Shift_Key_H(self):
+    def test_FileWidget_Shortcut_Shift_Key_H(self):
         """
         Test Scope:
             Check if only object tile_horizontally() from QMdiArea module of PySide6.QtWidgets was called
@@ -75,7 +77,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
         # Evaluate
         mo_tile_horizontally.assert_called()
 
-    def test_Plot_Plot_Shortcut_Shift_Key_C(self):
+    def test_FileWidget_Shortcut_Shift_Key_C(self):
         """
         Test Scope:
             Check if only object cascadeSubWindows() from C module of PySide6.QtWidgets was called
@@ -94,7 +96,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
         # Evaluate
         mo_cascadeSubWindows.assert_called()
 
-    def test_Plot_Plot_Shortcut_Shift_Key_T(self):
+    def test_FileWidget_Shortcut_Shift_Key_T(self):
         """
         Test Scope:
             Check if only object tileSubWindows() from QMdiArea module of PySide6.QtWidgets was called
@@ -113,7 +115,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
         # Evaluate
         mo_tileSubWindows.assert_called()
 
-    def test_Plot_Plot_Shortcut_Key_Shift_L(self):
+    def test_FileWidget_Shortcut_Key_Shift_L(self):
         """
         Test Scope:
             Check if by pressing the combination of keys "Shift+L", visibility of channel list is changed
@@ -133,3 +135,21 @@ class TestFileWidgetShortcuts(TestFileWidget):
         # Press "Shift+L"
         QtTest.QTest.keySequence(self.widget, QtGui.QKeySequence("Shift+L"))
         self.assertTrue(self.widget.channel_view.isVisible())
+
+    def test_FileWidget_Shortcut_Key_Period(self):
+        """
+        Test Scope:
+            Check if set_line_style method is called after pressing key Period
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Mock set_line_style() object
+            - Press key "Period" <<.>>
+        Evaluate:
+            - Evaluate that mock object was called
+        """
+        with mock.patch.object(self.widget, "set_line_style") as mo_set_line_style:
+            # Event
+            QtTest.QTest.keyClick(self.widget, QtCore.Qt.Key_Period)
+
+        # Evaluate
+        mo_set_line_style.assert_called()
