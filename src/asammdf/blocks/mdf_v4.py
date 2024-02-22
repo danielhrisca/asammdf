@@ -17,6 +17,7 @@ from math import ceil, floor
 import mmap
 import os
 from pathlib import Path
+import re
 import shutil
 import sys
 from tempfile import gettempdir, NamedTemporaryFile
@@ -1095,13 +1096,25 @@ class MDF4(MDF_Common):
                                     index %= factor
                                 return coords
 
-                            channels_to_copy = channels[index:]
-                            for elem_id in range(total_elem):
-                                for cn_id, cn_block in enumerate(channels_to_copy):
+                            def _get_name_with_indices(ch_name: str, ch_parent_name: str, indices: list[int]) -> str:
+                                coords = "[" + "][".join(str(coord) for coord in indices) + "]"
+                                m = re.match(ch_parent_name, ch_name)
+                                n = re.search(r"\[\d+\]", ch_name)
+                                if m:
+                                    name = ch_name[: m.end()] + coords + ch_name[m.end() :]
+                                elif n:
+                                    name = ch_name[: n.start()] + coords + ch_name[n.start() :]
+                                else:
+                                    name = ch_name + coords
+                                return name
+
+                            ch_len = len(channels)
+                            for elem_id in range(1, total_elem):
+                                for cn_id in range(index, ch_len):
                                     nd_coords = _get_nd_coords(elem_id, multipliers)
 
                                     # copy composition block
-                                    new_block = deepcopy(cn_block)
+                                    new_block = deepcopy(channels[cn_id])
 
                                     # update byte offset & position of invalidation bit
                                     byte_offset = bit_offset = 0
@@ -1114,18 +1127,17 @@ class MDF4(MDF_Common):
                                     new_block.pos_invalidation_bit += bit_offset
 
                                     # update channel name
-                                    new_block.name += "[" + "][".join(str(coord) for coord in nd_coords) + "]"
+                                    new_block.name = _get_name_with_indices(new_block.name, channel.name, nd_coords)
 
                                     # append to channel list
                                     channels.append(new_block)
-                                    ch_cntr += 1
 
                                     # update channel dependencies
-                                    if dependencies[index + cn_id] is not None:
+                                    if dependencies[cn_id] is not None:
                                         deps = []
-                                        for dep in dependencies[index + cn_id]:
+                                        for dep in dependencies[cn_id]:
                                             if not isinstance(dep, ChannelArrayBlock):
-                                                dep_entry = (dep[0], dep[1] + len(channels_to_copy) * (elem_id + 1))
+                                                dep_entry = (dep[0], dep[1] + (ch_len - index) * elem_id)
                                                 deps.append(dep_entry)
                                         dependencies.append(deps)
                                     else:
@@ -1134,6 +1146,17 @@ class MDF4(MDF_Common):
                                     # update channels db
                                     entry = (dg_cntr, ch_cntr)
                                     self.channels_db.add(new_block.name, entry)
+                                    ch_cntr += 1
+
+                            # modify channels' names found recursively in-place
+                            orig_name = channel.name
+                            for cn_id in range(index, ch_len):
+                                nd_coords = _get_nd_coords(0, multipliers)
+                                name = _get_name_with_indices(channels[cn_id].name, orig_name, nd_coords)
+                                entry = self.channels_db.pop(channels[cn_id].name)
+                                channels[cn_id].name = name
+                                # original channel entry will only contain single source tuple
+                                self.channels_db.add(name, entry[0])
 
                             break
 
