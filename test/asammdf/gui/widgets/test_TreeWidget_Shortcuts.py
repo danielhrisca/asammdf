@@ -185,11 +185,40 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
 
     def test_ChannelsTreeWidget_Shortcut_Shift_Key_Space(self):
         """
+            - Add few channels to plot
+            - Click on channels -> press key Space
 
+            Evaluate
+                - Click on space must change check state of selected channel
         Returns
         -------
 
         """
+        self.assertIsNotNone(self.addChannelsToPlot([10, 11, 12, 13]))
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.ctw)
+        while item := iterator.value():
+            self.assertEqual(item.checkState(0), QtCore.Qt.CheckState.Checked)
+            iterator += 1
+        # Select click on first item -> press key space
+        self.mouseClick_WidgetItem(self.ctw.topLevelItem(0))
+        QtTest.QTest.keyClick(self.ctw, QtCore.Qt.Key_Space)
+
+        self.assertEqual(self.ctw.topLevelItem(0).checkState(0), QtCore.Qt.CheckState.Unchecked)
+
+        for _ in range(1, self.ctw.topLevelItemCount()):
+            self.mouseClick_WidgetItem(self.ctw.topLevelItem(_))
+            QtTest.QTest.keyClick(self.ctw, QtCore.Qt.Key_Space)
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.ctw)
+        while item := iterator.value():
+            self.assertEqual(item.checkState(0), QtCore.Qt.CheckState.Unchecked)
+            iterator += 1
+
+        # Select click on first item -> press key space
+        self.mouseClick_WidgetItem(self.ctw.topLevelItem(0))
+        QtTest.QTest.keyClick(self.ctw, QtCore.Qt.Key_Space)
+        self.assertEqual(self.ctw.topLevelItem(0).checkState(0), QtCore.Qt.CheckState.Checked)
 
     def test_Plot_Channel_Selection_Shortcut_Key_C(self):
         """
@@ -303,7 +332,6 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         }
         clipboard_data = json.dumps([d])
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QApplication.instance") as mo_instance:
-            # Evaluate that now is three channels available
             mo_instance.return_value.clipboard.return_value.text.return_value = clipboard_data
             # Press Ctrl+C -> Ctrl+V
             QtTest.QTest.keySequence(self.ctw, QtGui.QKeySequence("Ctrl+V"))
@@ -314,39 +342,47 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         self.assertEqual(self.ctw.topLevelItem(0).name, self.id())
         self.assertEqual(self.ctw.topLevelItem(0).color.name(), color)
 
-    def test_Plot_Channel_Selection_Shortcut_Ctrl_Key_Shift_C_Shift_V(self):
+    def test_Plot_Channel_Selection_Shortcut_Ctrl_Key_Shift_C(self):
         """
-        Test Scope:
-            Check if only display properties of selected channels is copied on another channel
-                by shortcuts "Ctrl+ShiftC"->"Ctrl+Shift+V"
-        Events:
-            - Open 'FileWidget' with valid measurement.
-            - Select 2 signals and create a plot
-            - Click on first channel
-            - Press key Ctrl+Shift+C
-            - Click on second channel
-            - Press key Ctrl+Shift+V
-        Evaluate:
-            - Evaluate that names and colors are different for both channels
-            - Evaluate that after pressing shortcuts combination, names are different,
-                but colors are the same for both channels
+        ...
         """
-        # ToDo separate C - V
+        self.assertIsNotNone(self.addChannelsToPlot([10]))
+        # Evaluate precondition
+        ch_0_display_properties = self.ctw.topLevelItem(0).get_display_properties()
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QApplication.instance") as mo_instance:
+            # Click on first channel
+            self.mouseClick_WidgetItem(self.channels[0])
+            # Press Ctrl+Shift+C
+            QtTest.QTest.keySequence(self.ctw, QtGui.QKeySequence("Ctrl+Shift+C"))
+        # Evaluate
+        mo_instance.return_value.clipboard.return_value.setText.assert_called_with(ch_0_display_properties)
+
+    def test_Plot_Channel_Selection_Shortcut_Ctrl_Key_Shift_V(self):
+        """
+        - Add 2 channels to plot
+        - Set clipboard text = display_properties of first channel
+        - Click on item -> Press Ctrl+V
+
+        Evaluate
+            - display_properties of both channels must be equal
+        """
         self.assertIsNotNone(self.addChannelsToPlot([10, 11]))
         # Evaluate precondition
-        self.assertNotEqual(self.channels[0].name, self.channels[1].name)
-        self.assertNotEqual(self.channels[0].color.name(), self.channels[1].color.name())
+        ch_0_display_properties = self.ctw.topLevelItem(0).get_display_properties()
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QApplication.instance") as mo_instance:
+            mo_instance.return_value.clipboard.return_value.text.return_value = self.ctw.topLevelItem(
+                0
+            ).get_display_properties()
 
-        # Click on channel 36
-        self.mouseClick_WidgetItem(self.channels[0])
-        # Press Ctrl+Shift+C
-        QtTest.QTest.keySequence(self.ctw, QtGui.QKeySequence("Ctrl+Shift+C"))
-        self.mouseClick_WidgetItem(self.channels[1])
-        QtTest.QTest.keySequence(self.ctw, QtGui.QKeySequence("Ctrl+Shift+V"))
-
+            # Click on first channel
+            self.mouseClick_WidgetItem(self.channels[1])
+            # Press Ctrl+Shift+C
+            QtTest.QTest.keySequence(self.ctw, QtGui.QKeySequence("Ctrl+Shift+V"))
         # Evaluate
-        self.assertNotEqual(self.channels[0].name, self.channels[1].name)
-        self.assertEqual(self.channels[0].color.name(), self.channels[1].color.name())
+        mo_instance.return_value.clipboard.return_value.text.assert_called()
+        self.assertEqual(
+            self.ctw.topLevelItem(0).get_display_properties(), self.ctw.topLevelItem(1).get_display_properties()
+        )
 
     def test_ChannelsTreeWidget_Shortcut_Ctrl_Key_N(self):
         """
@@ -355,30 +391,27 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         -------
 
         """
+        self.assertIsNotNone(self.addChannelsToPlot([10, 11, 12, 13]))
+        expected_cb_all_items_call = ""
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.ctw)
+        while item := iterator.value():
+            expected_cb_all_items_call += "\n" + item.name
+            iterator += 1
+        expected_cb_all_items_call = expected_cb_all_items_call.split("\n", 1)[1]
 
-    def test_ChannelsTreeWidget_Shortcut_Ctrl_Key_R(self):
-        """
-        Test Scope:
-            Check if color range is triggered after pressing key Ctrl+R
-        Events:
-            - Open 'FileWidget' with valid measurement.
-            - Display 1 signal on plot
-            - Select signal
-            - Press "Ctrl+R" -> ser ranges from 0 to half of y value and colors green and red -> apply
-            - Click on unchanged color part of signal on plot
-            - Click on changed color part of signal on plot
-        Evaluate:
-            - Evaluate that plot is not black
-            - Evaluate that plot selected channel value has channel color
-            - Evaluate RangeEditor object was called
-            - Evaluate that signal was separated in 2 parts, second half red
-            - Evaluate that plot selected channel value area has red and green colors
-            - Evaluate that after clicking on part that not enter in ranges, plot selected channel value area become
-                    normal
-            - Evaluate that after clicking on signal where it's fit in selected limits, colors of plot selected
-                    channel value area will be changed
-        """
-        self.assertIsNotNone(self.addChannelsToPlot([10]))
-        # Setup
+        channel_0 = self.ctw.topLevelItem(0)
+        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QApplication.instance") as mo_instance:
+            # Select click on first item -> press key Ctrl+N
+            self.mouseClick_WidgetItem(channel_0)
+            QtTest.QTest.keySequence(self.ctw, QtGui.QKeySequence("Ctrl+N"))
+            # Evaluate
+            mo_instance.return_value.clipboard.return_value.setText.assert_called_with(self.ctw.topLevelItem(0).name)
 
-    # ToDO 2 tests, 1x selected items & nx selected items
+            # Select all items
+            QtTest.QTest.keySequence(self.ctw, QtGui.QKeySequence("Ctrl+A"))
+            #  Press key Ctrl+N
+            QtTest.QTest.keySequence(self.ctw, QtGui.QKeySequence("Ctrl+N"))
+            # Evaluate
+            mo_instance.return_value.clipboard.return_value.setText.assert_called_with(expected_cb_all_items_call)
+
+    # def test_ChannelsTreeWidget_Shortcut_Ctrl_Key_R(self) tested in <test_PlotWidget_Shortcut.py>
