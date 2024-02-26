@@ -745,7 +745,8 @@ class MDF4(MDF_Common):
             if len(channels) == 1 and channels[0].dtype_fmt.itemsize == grp.channel_group.samples_byte_nr:
                 grp.single_channel_dtype = channels[0].dtype_fmt
 
-        self._process_bus_logging()
+        if self._kwargs.get("process_bus_logging", True):
+            self._process_bus_logging()
 
         # read events
         addr = self.header.first_event_addr

@@ -131,6 +131,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         display_file = kwargs.pop("display_file", "")
         database_file = kwargs.pop("database_file", None)
         show_progress = kwargs.pop("show_progress", True)
+        process_bus_logging = kwargs.pop("process_bus_logging", True)
 
         self._progress = None
 
@@ -208,7 +209,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 mdf_path = meas_file.export_mdf().save(out_file.with_suffix(".tmp.mf4"))
                 meas_file.close()
-                self.mdf = mdf_module.MDF(mdf_path)
+                self.mdf = mdf_module.MDF(mdf_path, process_bus_logging=process_bus_logging)
                 self.mdf.original_name = file_name
                 self.mdf.uuid = self.uuid
 
@@ -251,6 +252,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     "callback": self.update_progress,
                     "password": password,
                     "use_display_names": True,
+                    "process_bus_logging": process_bus_logging,
                 }
 
                 self.mdf = run_thread_with_progress(
@@ -2486,11 +2488,21 @@ MultiRasterSeparator;&
     def toggle_frames(self, event=None):
         self._frameless_windows = not self._frameless_windows
 
+        for window in self.mdi_area.subWindowList():
+            wid = window.widget()
+            if isinstance(wid, Plot):
+                wid._inhibit_x_range_changed_signal = True
+
         for w in self.mdi_area.subWindowList():
             if self._frameless_windows:
                 w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
             else:
                 w.setWindowFlags(w.windowFlags() & (~QtCore.Qt.WindowType.FramelessWindowHint))
+
+        for window in self.mdi_area.subWindowList():
+            wid = window.widget()
+            if isinstance(wid, Plot):
+                wid._inhibit_x_range_changed_signal = True
 
     def autofit_sub_plots(self):
         geometries = []
