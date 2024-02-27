@@ -1030,7 +1030,7 @@ class MDF4(MDF_Common):
                     )
 
                     first_dep = ca_block = ChannelArrayBlock(address=component_addr, stream=stream, mapped=mapped)
-                    ca_list = [first_dep]
+                    dependencies[index] = [first_dep]
 
                     while ca_block.composition_addr:
                         stream.seek(ca_block.composition_addr)
@@ -1041,11 +1041,10 @@ class MDF4(MDF_Common):
                                 stream=stream,
                                 mapped=mapped,
                             )
-                            ca_list.append(ca_block)
+                            dependencies[index].append(ca_block)
 
                         elif channel.data_type == v4c.DATA_TYPE_BYTEARRAY:
                             # read CA-CN nested structure
-                            dependencies[index] = ca_list[:]
                             (
                                 ch_cntr,
                                 ret_composition,
@@ -1060,6 +1059,7 @@ class MDF4(MDF_Common):
                                 mapped=mapped,
                             )
 
+                            ca_cnt = len(dependencies[index])
                             if ret_composition:
                                 dependencies[index].extend(ret_composition)
 
@@ -1068,7 +1068,7 @@ class MDF4(MDF_Common):
                             dimensions = []
                             total_elem = 1
 
-                            for ca_blck in ca_list:
+                            for ca_blck in dependencies[index][:ca_cnt]:
                                 # only consider CN templates
                                 if ca_blck.ca_type != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
                                     logger.warning("Only CN template arrays are supported")
