@@ -793,7 +793,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if not selected_items:
                 return
 
-            info = json.loads(info)
+            try:
+                info = json.loads(info)
+            except:
+                return
+
             if info["type"] == "channel":
                 info["color"] = fn.mkColor(info["color"])
 

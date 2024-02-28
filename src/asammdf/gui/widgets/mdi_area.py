@@ -3851,7 +3851,6 @@ class WithMDIArea:
                 wid.set_timestamp(pos)
 
     def set_x_range(self, widget, x_range):
-        print("SET X RANGE", widget, x_range)
         if not self.subplots_link:
             return
 
