@@ -833,11 +833,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         if entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             names.add((result[entry], dg_cntr, ch_cntr))
-                        else:
-                            item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
                         iterator += 1
                         ch_cntr += 1
+
                 elif view.currentText() == "Selected channels only":
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
 
@@ -869,6 +868,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     else:
                         items.sort(key=lambda x: x.name)
                     widget.addTopLevelItems(items)
+                    for item in items:
+                        self.filter_changed(item)
 
                 else:
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
@@ -878,8 +879,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         if item.entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             names.add((result[item.entry], *item.entry))
-                        else:
-                            item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
                         iterator += 1
 
