@@ -565,8 +565,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         signals = set()
 
         if widget.mode == "Internal file structure":
-            while iterator.value():
-                item = iterator.value()
+            while item := iterator.value():
 
                 if item.entry[1] != 0xFFFFFFFFFFFFFFFF:
                     if item.checkState(0) == QtCore.Qt.CheckState.Checked:
@@ -574,8 +573,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 iterator += 1
         else:
-            while iterator.value():
-                item = iterator.value()
+            while item := iterator.value():
 
                 if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     signals.add(item.entry)
@@ -820,8 +818,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     dg_cntr = -1
                     ch_cntr = 0
 
-                    while iterator.value():
-                        item = iterator.value()
+                    while item := iterator.value():
                         if item.parent() is None:
                             iterator += 1
                             dg_cntr += 1
@@ -841,8 +838,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
 
                     signals = set()
-                    while iterator.value():
-                        item = iterator.value()
+                    while item := iterator.value():
 
                         if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             signals.add((item.text(0), *item.entry))
@@ -854,6 +850,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     signals = signals | names
 
                     widget.clear()
+                    self._selected_filter = {e[0] for e in signals}
 
                     items = []
                     for name, gp_index, ch_index in signals:
@@ -868,13 +865,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     else:
                         items.sort(key=lambda x: x.name)
                     widget.addTopLevelItems(items)
-                    for item in items:
-                        self.filter_changed(item)
+
+                    self.update_selected_filter_channels()
 
                 else:
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
-                    while iterator.value():
-                        item = iterator.value()
+                    while item := iterator.value():
 
                         if item.entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
@@ -952,8 +948,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         signals = []
         if self.channel_view.currentText() == "Internal file structure":
-            while iterator.value():
-                item = iterator.value()
+            while item := iterator.value():
                 if item.parent() is None:
                     iterator += 1
                     continue
@@ -963,8 +958,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 iterator += 1
         else:
-            while iterator.value():
-                item = iterator.value()
+            while item := iterator.value():
 
                 if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     signals.append(item.text(0))
@@ -1235,8 +1229,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
             if self.channel_view.currentText() == "Internal file structure":
-                while iterator.value():
-                    item = iterator.value()
+                while item := iterator.value():
                     if item.parent() is None:
                         iterator += 1
                         continue
@@ -1250,8 +1243,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                     iterator += 1
             else:
-                while iterator.value():
-                    item = iterator.value()
+                while item := iterator.value():
 
                     channel_name = item.text(0)
                     if channel_name in channels:
@@ -1546,8 +1538,7 @@ MultiRasterSeparator;&
     def clear_filter(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
-        while iterator.value():
-            item = iterator.value()
+        while item := iterator.value():
             item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
             if item.parent() is None:
@@ -1559,16 +1550,14 @@ MultiRasterSeparator;&
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
         if self.channel_view.currentIndex() == 1:
-            while iterator.value():
-                item = iterator.value()
+            while item := iterator.value():
                 if item.parent() is None:
                     item.setExpanded(False)
                 else:
                     item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
                 iterator += 1
         else:
-            while iterator.value():
-                item = iterator.value()
+            while item := iterator.value():
                 item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
                 iterator += 1
 
@@ -1576,16 +1565,14 @@ MultiRasterSeparator;&
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
         if self.channel_view.currentIndex() == 1:
-            while iterator.value():
-                item = iterator.value()
+            while item := iterator.value():
                 if item.parent() is None:
                     item.setExpanded(False)
                 else:
                     item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                 iterator += 1
         else:
-            while iterator.value():
-                item = iterator.value()
+            while item := iterator.value():
                 item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                 iterator += 1
 
@@ -1692,8 +1679,7 @@ MultiRasterSeparator;&
                 signals = []
 
                 if self.channel_view.currentIndex() == 1:
-                    while iterator.value():
-                        item = iterator.value()
+                    while item := iterator.value():
                         if item.parent() is None:
                             iterator += 1
                             continue
@@ -1717,8 +1703,7 @@ MultiRasterSeparator;&
 
                         iterator += 1
                 else:
-                    while iterator.value():
-                        item = iterator.value()
+                    while item := iterator.value():
 
                         if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             group, index = item.entry
@@ -2606,8 +2591,7 @@ MultiRasterSeparator;&
         channels = []
 
         if self.filter_view.currentText() == "Internal file structure":
-            while iterator.value():
-                item = iterator.value()
+            while item := iterator.value():
 
                 group, index = item.entry
 
@@ -2617,8 +2601,7 @@ MultiRasterSeparator;&
 
                 iterator += 1
         else:
-            while iterator.value():
-                item = iterator.value()
+            while item := iterator.value():
 
                 if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     group, index = item.entry
@@ -2993,7 +2976,7 @@ MultiRasterSeparator;&
             name = list(result)[0]
             self.raster_channel.setCurrentText(name)
 
-    def filter_changed(self, item, column):
+    def filter_changed(self, item, column=0):
         name = item.text(0)
         if self.filter_view.currentText() == "Internal file structure":
             if item.checkState(0) == QtCore.Qt.CheckState.Checked and item.parent() is not None:

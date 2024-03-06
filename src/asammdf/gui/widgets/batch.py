@@ -902,8 +902,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         total = 0
 
         if self.filter_view.currentText() == "Internal file structure":
-            while iterator.value():
-                item = iterator.value()
+            while item := iterator.value():
 
                 group, index = item.entry
                 if index != 0xFFFFFFFFFFFFFFFF:
@@ -916,8 +915,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                 iterator += 1
         else:
-            while iterator.value():
-                item = iterator.value()
+            while item := iterator.value():
 
                 if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     group, index = item.entry
@@ -955,7 +953,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 name = list(result)[0]
                 self.raster_channel.setCurrentText(name)
 
-    def filter_changed(self, item, column):
+    def filter_changed(self, item, column=0):
         name = item.text(0)
         if item.checkState(0) == QtCore.Qt.CheckState.Checked:
             self._selected_filter.add(name)
@@ -1015,8 +1013,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                         if (dg_cntr, ch_cntr) in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
-                        else:
-                            item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
                         iterator += 1
                         ch_cntr += 1
@@ -1025,8 +1021,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
 
                     signals = set()
-                    while iterator.value():
-                        item = iterator.value()
+                    while item := iterator.value():
 
                         if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             signals.add(item.entry)
@@ -1036,28 +1031,32 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     signals = signals | set(result)
 
                     widget.clear()
+                    self._selected_filter.clear()
+
+                    uuid = os.urandom(6).hex()
 
                     items = []
                     for entry in signals:
                         gp_index, ch_index = entry
                         ch = mdf.groups[gp_index].channels[ch_index]
-                        channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
+                        channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=uuid)
                         channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                         items.append(channel)
+                        self._selected_filter.add(ch.name)
 
                     if len(items) < 30000:
                         items = natsorted(items, key=lambda x: x.name)
                     else:
                         items.sort(key=lambda x: x.name)
+
                     widget.addTopLevelItems(items)
+                    self.update_selected_filter_channels()
 
                 else:
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
                     while item := iterator.value():
                         if item.entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
-                        else:
-                            item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
                         iterator += 1
         except:
@@ -1073,8 +1072,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
         if not count:
             self.filter_tree.clear()
-            return
-        elif self.filter_tree.topLevelItemCount():
             return
         else:
             uuid = os.urandom(6).hex()
@@ -1102,8 +1099,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                         iterator += 1
                 else:
-                    while iterator.value():
-                        item = iterator.value()
+                    while item := iterator.value():
 
                         if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             signals.add(item.entry)
@@ -1850,8 +1846,7 @@ MultiRasterSeparator;&
             iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
             if self.filter_view.currentText() == "Internal file structure":
-                while iterator.value():
-                    item = iterator.value()
+                while item := iterator.value():
                     if item.parent() is None:
                         iterator += 1
                         continue
@@ -1864,9 +1859,9 @@ MultiRasterSeparator;&
                         item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
                     iterator += 1
+
             elif self.filter_view.currentText() == "Natural sort":
-                while iterator.value():
-                    item = iterator.value()
+                while item := iterator.value():
 
                     channel_name = item.text(0)
                     if channel_name in channels:

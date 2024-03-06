@@ -875,8 +875,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         count = 0
         enabled = 0
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
-        while iterator.value():
-            cur_item = iterator.value()
+        while cur_item := iterator.value():
             if cur_item.type() == ChannelsTreeItem.Channel:
                 count += 1
                 if cur_item.checkState(self.NameColumn) == QtCore.Qt.CheckState.Checked:

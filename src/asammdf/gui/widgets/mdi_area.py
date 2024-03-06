@@ -3480,8 +3480,7 @@ class WithMDIArea:
             plot.cursor_info.set_precision(window_info["configuration"]["cursor_precision"])
 
         iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
-        while iterator.value():
-            item = iterator.value()
+        while item := iterator.value():
             iterator += 1
 
             if item.type() == item.Group:
