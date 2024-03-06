@@ -1768,6 +1768,31 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
         result = pack(fmt, *[getattr(self, key) for key in keys])
         return result
 
+    def get_byte_offset_factors(self) -> list[int]:
+        """Returns list of factors f(d), used to calculate byte offset"""
+        return self._factors(self.byte_offset_base)
+
+    def get_bit_pos_inval_factors(self) -> list[int]:
+        """Returns list of factors f(d), used to calculate invalidation bit position"""
+        return self._factors(self.invalidation_bit_base)
+
+    def _factors(self, base: int) -> list[int]:
+        factor = base
+        factors = [factor]
+        # column oriented layout
+        if self.flags & v4c.FLAG_CA_INVERSE_LAYOUT:
+            for i in range(1, self.dims):
+                factor *= self[f"dim_size_{i - 1}"]
+                factors.append(factor)
+
+        # row oriented layout
+        else:
+            for i in range(self.dims - 2, -1, -1):
+                factor *= self[f"dim_size_{i + 1}"]
+                factors.insert(0, factor)
+
+        return factors
+
 
 class ChannelGroup:
     """*ChannelGroup* has the following attributes, that are also available as
