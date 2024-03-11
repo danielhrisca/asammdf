@@ -5678,7 +5678,7 @@ class HeaderBlock:
                     self._common_properties = parse_common_properties(common_properties)
 
                 for element in comment_xml:
-                    if element.tag not in ("TX", "commond_properties"):
+                    if element.tag not in ("TX", "common_properties"):
                         self._other_elements.append(element)
 
         else:
