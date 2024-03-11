@@ -1674,9 +1674,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
         self.__setattr__(item, value)
 
     def __str__(self) -> str:
-        return "<ChannelArrayBlock (referenced channels: {}, address: {}, fields: {})>".format(
-            self.axis_channels, hex(self.address), dict(self)
-        )
+        return f"<ChannelArrayBlock (referenced channels: {self.axis_channels}, address: {hex(self.address)}, fields: {dict(self)})>"
 
     def __bytes__(self) -> bytes:
         flags = self.flags
@@ -4312,15 +4310,7 @@ formula: {self.formula}
         return result
 
     def __str__(self) -> str:
-        return "<ChannelConversion (name: {}, unit: {}, comment: {}, formula: {}, referenced blocks: {}, address: {}, fields: {})>".format(
-            self.name,
-            self.unit,
-            self.comment,
-            self.formula,
-            self.referenced_blocks,
-            self.address,
-            block_fields(self),
-        )
+        return f"<ChannelConversion (name: {self.name}, unit: {self.unit}, comment: {self.comment}, formula: {self.formula}, referenced blocks: {self.referenced_blocks}, address: {self.address}, fields: {block_fields(self)})>"
 
 
 class DataBlock:
@@ -5167,9 +5157,7 @@ class EventBlock(_EventBlockBase):
         self.__setattr__(item, value)
 
     def __str__(self) -> str:
-        return "EventBlock (name: {}, comment: {}, address: {}, scopes: {}, fields: {})".format(
-            self.name, self.comment, hex(self.address), self.scopes, super().__str__()
-        )
+        return f"EventBlock (name: {self.name}, comment: {self.comment}, address: {hex(self.address)}, scopes: {self.scopes}, fields: {super().__str__()})"
 
     @property
     def value(self):
@@ -5517,6 +5505,7 @@ class HeaderBlock:
         super().__init__()
 
         self._common_properties = {}
+        self._other_elements = []
         self.description = ""
 
         self.comment = ""
@@ -5599,6 +5588,9 @@ class HeaderBlock:
 
         common_properties_to_xml(common, self._common_properties)
 
+        for elem in self._other_elements:
+            root.append(elem)
+
         comment_xml = (
             ET.tostring(root, encoding="utf8", method="xml")
             .replace(b"<?xml version='1.0' encoding='utf8'?>\n", b"")
@@ -5607,11 +5599,12 @@ class HeaderBlock:
 
         comment_xml = minidom.parseString(comment_xml).toprettyxml(indent=" ")
 
-        return "\n".join(comment_xml.splitlines()[1:])
+        return "\n".join(line for line in comment_xml.splitlines()[1:] if line.strip())
 
     @comment.setter
     def comment(self, string):
         self._common_properties.clear()
+        self._other_elements.clear()
 
         def parse_common_properties(root):
             root_name = root.get("name")
@@ -5658,6 +5651,10 @@ class HeaderBlock:
                 common_properties = comment_xml.find(".//common_properties")
                 if common_properties is not None:
                     self._common_properties = parse_common_properties(common_properties)
+
+                for element in comment_xml:
+                    if element.tag not in ("TX", "commond_properties"):
+                        self._other_elements.append(element)
 
         else:
             self.description = string
@@ -6418,9 +6415,7 @@ comment: {self.comment}
         )
 
     def __str__(self) -> str:
-        return "<SourceInformation (name: {}, path: {}, comment: {}, address: {}, fields: {})>".format(
-            self.name, self.path, self.comment, hex(self.address), block_fields(self)
-        )
+        return f"<SourceInformation (name: {self.name}, path: {self.path}, comment: {self.comment}, address: {hex(self.address)}, fields: {block_fields(self)})>"
 
 
 class TextBlock:
