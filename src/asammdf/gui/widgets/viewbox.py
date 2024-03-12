@@ -293,6 +293,11 @@ class ViewBoxWithCursor(pg.ViewBox):
 
         ev.ignore()
 
+    def setXRange(self, min, max, padding=None, update=True):
+        min = round(min, 12)
+        max = round(max, 12)
+        return super().setXRange(min, max, padding, update)
+
     def updateScaleBox(self, p1, p2):
         r = QtCore.QRectF(p1, p2)
         r = self.childGroup.mapRectFromScene(r)

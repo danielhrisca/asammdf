@@ -1766,6 +1766,31 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
         result = pack(fmt, *[getattr(self, key) for key in keys])
         return result
 
+    def get_byte_offset_factors(self) -> list[int]:
+        """Returns list of factors f(d), used to calculate byte offset"""
+        return self._factors(self.byte_offset_base)
+
+    def get_bit_pos_inval_factors(self) -> list[int]:
+        """Returns list of factors f(d), used to calculate invalidation bit position"""
+        return self._factors(self.invalidation_bit_base)
+
+    def _factors(self, base: int) -> list[int]:
+        factor = base
+        factors = [factor]
+        # column oriented layout
+        if self.flags & v4c.FLAG_CA_INVERSE_LAYOUT:
+            for i in range(1, self.dims):
+                factor *= self[f"dim_size_{i - 1}"]
+                factors.append(factor)
+
+        # row oriented layout
+        else:
+            for i in range(self.dims - 2, -1, -1):
+                factor *= self[f"dim_size_{i + 1}"]
+                factors.insert(0, factor)
+
+        return factors
+
 
 class ChannelGroup:
     """*ChannelGroup* has the following attributes, that are also available as
@@ -5505,6 +5530,7 @@ class HeaderBlock:
         super().__init__()
 
         self._common_properties = {}
+        self._other_elements = []
         self.description = ""
 
         self.comment = ""
@@ -5587,6 +5613,9 @@ class HeaderBlock:
 
         common_properties_to_xml(common, self._common_properties)
 
+        for elem in self._other_elements:
+            root.append(elem)
+
         comment_xml = (
             ET.tostring(root, encoding="utf8", method="xml")
             .replace(b"<?xml version='1.0' encoding='utf8'?>\n", b"")
@@ -5595,11 +5624,12 @@ class HeaderBlock:
 
         comment_xml = minidom.parseString(comment_xml).toprettyxml(indent=" ")
 
-        return "\n".join(comment_xml.splitlines()[1:])
+        return "\n".join(line for line in comment_xml.splitlines()[1:] if line.strip())
 
     @comment.setter
     def comment(self, string):
         self._common_properties.clear()
+        self._other_elements.clear()
 
         def parse_common_properties(root):
             root_name = root.get("name")
@@ -5646,6 +5676,10 @@ class HeaderBlock:
                 common_properties = comment_xml.find(".//common_properties")
                 if common_properties is not None:
                     self._common_properties = parse_common_properties(common_properties)
+
+                for element in comment_xml:
+                    if element.tag not in ("TX", "common_properties"):
+                        self._other_elements.append(element)
 
         else:
             self.description = string

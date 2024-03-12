@@ -392,10 +392,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         new_item = item
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-        while iterator.value():
-            item = iterator.value()
-            if item is None:
-                break
+        while item := iterator.value():
 
             data = tuple(item.text(i) for i in range(self.columns))
             selection.add(data)

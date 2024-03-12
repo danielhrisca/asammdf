@@ -20,20 +20,17 @@ class TestTableViewWidgetShortcuts(TestFileWidget):
 
     def test_TableViewWidget_Shortcut_Shift_Key_Delete(self):
         """
-
+        test for shortcut Delete
         Returns
         -------
 
         """
-        # self.manual_use(self.widget)
         self.processEvents()
         self.assertIsNotNone(self.add_channels([10, 11, 12, 13]), self.numeric)
         self.processEvents()
-        x = self.numeric.grab().save("D:\\numeric.png")
         channel_count = len(self.channels)
-        # Click on last channel
-        channel_0 = self.channels.pop()
 
+        # Select first row
         self.numeric.channels.dataView.selectRow(0)
         self.processEvents()
         # Press key Delete
