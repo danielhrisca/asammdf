@@ -77,7 +77,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
 
         """
 
-        self.assertIsNotNone(self.addChannelsToPlot([10, 11, 12, 13]))
+        self.assertIsNotNone(self.add_channels([10, 11, 12, 13]))
         channel_count = self.ctw.topLevelItemCount()
         # Click on last channel
         channel_0 = self.channels.pop()
@@ -194,7 +194,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         -------
 
         """
-        self.assertIsNotNone(self.addChannelsToPlot([10, 11, 12, 13]))
+        self.assertIsNotNone(self.add_channels([10, 11, 12, 13]))
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self.ctw)
         while item := iterator.value():
@@ -236,7 +236,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
             - Evaluate that color dialog is not open if channel is not selected.
             - Evaluate that channel color is changed only for selected channel
         """
-        self.assertIsNotNone(self.addChannelsToPlot([10, 11, 12]))
+        self.assertIsNotNone(self.add_channels([10, 11, 12]))
         with self.subTest("test_WOSelectedChannel"):
             with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QColorDialog.getColor") as mo_getColor:
                 QtTest.QTest.keyClick(self.ctw, QtCore.Qt.Key_C)
@@ -284,7 +284,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         Evaluate:
             - Evaluate in clipboard exist names of all selected channels
         """
-        self.assertIsNotNone(self.addChannelsToPlot([10, 11, 12, 13]))
+        self.assertIsNotNone(self.add_channels([10, 11, 12, 13]))
         # Set selected all channels
         QtTest.QTest.keySequence(self.ctw, QtGui.QKeySequence("Ctrl+A"))
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QApplication.instance") as mo_instance:
@@ -346,7 +346,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         """
         ...
         """
-        self.assertIsNotNone(self.addChannelsToPlot([10]))
+        self.assertIsNotNone(self.add_channels([10]))
         # Evaluate precondition
         ch_0_display_properties = self.ctw.topLevelItem(0).get_display_properties()
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QApplication.instance") as mo_instance:
@@ -366,7 +366,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         Evaluate
             - display_properties of both channels must be equal
         """
-        self.assertIsNotNone(self.addChannelsToPlot([10, 11]))
+        self.assertIsNotNone(self.add_channels([10, 11]))
         # Evaluate precondition
         ch_0_display_properties = self.ctw.topLevelItem(0).get_display_properties()
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QApplication.instance") as mo_instance:
@@ -391,7 +391,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         -------
 
         """
-        self.assertIsNotNone(self.addChannelsToPlot([10, 11, 12, 13]))
+        self.assertIsNotNone(self.add_channels([10, 11, 12, 13]))
         expected_cb_all_items_call = ""
         iterator = QtWidgets.QTreeWidgetItemIterator(self.ctw)
         while item := iterator.value():

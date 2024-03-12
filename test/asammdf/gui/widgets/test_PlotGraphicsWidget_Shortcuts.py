@@ -339,7 +339,7 @@ class TestPlotGraphicsShortcutsFunctionality(TestPlotWidget):
                 - Evaluate that the signal intersect the midd line less time after pressing key "X"
         """
         # Setup
-        self.addChannelsToPlot([35])
+        self.add_channels([35])
         channel_color = self.channels[0].color.name()
 
         self.widget.showMaximized()
@@ -461,7 +461,7 @@ class TestPlotGraphicsShortcutsFunctionality(TestPlotWidget):
         """
         self.plot.plot.cursor1.color = "#000000"
 
-        self.addChannelsToPlot([35, 36, 37])
+        self.add_channels([35, 36, 37])
 
         channel_35 = self.channels[0]
         channel_36 = self.channels[1]
@@ -780,7 +780,7 @@ class TestPlotGraphicsShortcutsFunctionality(TestPlotWidget):
             - Evaluate that distance between first and second transition of signal in the same line is increased
                 after pressing key "I"
         """
-        self.assertIsNotNone(self.addChannelsToPlot([35]))
+        self.assertIsNotNone(self.add_channels([35]))
         channel_35 = self.channels[0]
 
         # Select line
@@ -827,7 +827,7 @@ class TestPlotGraphicsShortcutsFunctionality(TestPlotWidget):
             - Evaluate that the distance between first and second transition of signal in the same line is decreased
                 after pressing key "O"
         """
-        self.addChannelsToPlot([35])
+        self.add_channels([35])
         channel_35 = self.channels[0]
         # Select line
         y_midd_line = self.plot.plot.viewport().grab(
@@ -999,7 +999,7 @@ class TestPlotGraphicsShortcutsFunctionality(TestPlotWidget):
             - Evaluate values from `Value` column on self.plot.channels_selection
             - Evaluate timestamp label
         """
-        self.addChannelsToPlot([36, 37])
+        self.add_channels([36, 37])
         channel_36 = self.channels[0]
         channel_37 = self.channels[1]
 
@@ -1084,7 +1084,7 @@ class TestPlotGraphicsShortcutsFunctionality(TestPlotWidget):
             - Evaluate that first signal is shifted down & left after pressing combination "Shift+Down" & "Shift+Left"
             - Evaluate that second signal is shifted up & right after pressing combination "Shift+Up" & "Shift+Right"
         """
-        self.addChannelsToPlot([36, 37])
+        self.add_channels([36, 37])
         channel_36 = self.channels[0]
         channel_37 = self.channels[1]
 
@@ -1193,7 +1193,7 @@ class TestPlotGraphicsShortcutsFunctionality(TestPlotWidget):
                 > signal is zoomed => is extended to left side => last column contain signal color
             - Evaluate that after pressing key "W" from first to last column is displayed signal
         """
-        self.addChannelsToPlot([35])
+        self.add_channels([35])
         channel_35 = self.channels[0]
 
         # check if the grid is available
