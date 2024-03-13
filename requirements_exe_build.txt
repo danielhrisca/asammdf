@@ -8,8 +8,8 @@ isal; platform_machine == "x86_64" or platform_machine == "AMD64"
 lxml==4.9.3
 natsort 
 psutil 
-PySide6==6.6.0
-pyqtgraph==0.13.3
+PySide6==6.3.1
+pyqtgraph
 QtPy==2.3.1
 pyqtlet2
 pyopengl
