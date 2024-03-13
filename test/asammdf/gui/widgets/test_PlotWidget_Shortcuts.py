@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from math import floor
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 from unittest import mock
@@ -265,21 +266,9 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         # Switch ComboBox to "Natural sort"
         self.widget.channel_view.setCurrentText("Natural sort")
         # Select channels -> Press PushButton "Create Window" -> "Plot"
-        self.create_window(window_type="Plot", channels_indexes=(35, 36, 37))
+        self.create_window(window_type="Plot")
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
         self.plot = self.widget.mdi_area.subWindowList()[0].widget()
-        # Settings for cursor
-        # self.widget.set_cursor_options(False, False, 1, Pixmap.COLOR_BACKGROUND)
-        # channels
-        self.channel_35 = self.plot.channel_selection.topLevelItem(0)
-        self.channel_36 = self.plot.channel_selection.topLevelItem(1)
-        self.channel_37 = self.plot.channel_selection.topLevelItem(2)
-        self.assertEqual(3, self.plot.channel_selection.topLevelItemCount())
-        # Double-click on channels -> to add channels to plot
-        self.mouseDClick_WidgetItem(self.channel_35)
-        self.mouseDClick_WidgetItem(self.channel_36)
-        self.mouseDClick_WidgetItem(self.channel_37)
-        self.processEvents()
         # Remove dots
         if self.plot.plot.with_dots:
             self.plot.plot.set_dots(False)
@@ -292,12 +281,12 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             self.plot.toggle_bookmarks(hide=True)
         self.processEvents()
         # pixmap is not black
-        self.assertFalse(Pixmap.is_black(self.plot.plot.viewport().grab()))
+        # self.assertFalse(Pixmap.is_black(self.plot.plot.viewport().grab()))
 
     def tearDown(self):
-        self.widget.destroy()
         with mock.patch("asammdf.gui.widgets.mdi_area.MessageBox.question") as mo_question:
             mo_question.return_value = QtWidgets.QMessageBox.No
+        self.widget.destroy()
 
     def test_Plot_Plot_Shortcut_Key_M(self):
         """
@@ -317,22 +306,25 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             - Evaluate that displayed info is related to second channel
             - Evaluate that buffer is clear
         """
+        # add channels to plot
+        self.assertIsNotNone(self.add_channels([35, 36, 37]))
+        # #Evaluate if info isn't visible before pressing key M
+        self.assertFalse(self.plot.info.isVisible())
+        # Event
         QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_M)
-        self.processEvents()
-        with self.subTest("test_key_M_last_channel"):
-            self.assertEqual(self.plot.info._name, self.channel_37.name)
-            self.assertEqual(self.plot.info.color, self.channel_37.color.name())
+        # #Evaluate if info is visible after pressing key M
+        self.assertTrue(self.plot.info.isVisible())
 
         # click on a first channel
         with self.subTest("test_key_M_click_on_first_channel"):
-            self.mouseClick_WidgetItem(self.channel_35)
-            self.assertEqual(self.plot.info._name, self.channel_35.name)
-            self.assertEqual(self.plot.info.color, self.channel_35.color.name())
+            self.mouseClick_WidgetItem(self.channels[0])
+            self.assertEqual(self.plot.info._name, self.channels[0].name)
+            self.assertEqual(self.plot.info.color, self.channels[0].color.name())
 
         with self.subTest("test_key_M_press_key_Down_on_channel_selection"):
             QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
-            self.assertEqual(self.plot.info._name, self.channel_36.name)
-            self.assertEqual(self.plot.info.color, self.channel_36.color.name())
+            self.assertEqual(self.plot.info._name, self.channels[1].name)
+            self.assertEqual(self.plot.info.color, self.channels[1].color.name())
 
         # delete all channels
         with self.subTest("test_key_M_delete_all_channels"):
@@ -340,7 +332,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Delete)
 
             # Not save value of the last selected channel
-            self.assertNotEqual(self.plot.info._name, self.channel_37.name)
+            self.assertNotEqual(self.plot.info._name, self.channels[2].name)
 
     def test_Plot_Plot_Shortcut_Key_2(self):
         """
@@ -362,11 +354,13 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             - Evaluate that plot contains only color of third channel after clicked on third channel
             - Evaluate that plot contains colors of all 3 channels after pressing key "2"
         """
+        # add channels to plot
+        self.assertIsNotNone(self.add_channels([35, 36, 37]))
         pixmap = self.plot.plot.viewport().grab()
         # Evaluate
-        self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-        self.assertTrue(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-        self.assertTrue(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+        self.assertTrue(Pixmap.has_color(pixmap, self.channels[0].color.name()))
+        self.assertTrue(Pixmap.has_color(pixmap, self.channels[1].color.name()))
+        self.assertTrue(Pixmap.has_color(pixmap, self.channels[2].color.name()))
 
         # case 0
         QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_2)
@@ -375,14 +369,14 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         self.assertTrue(Pixmap.is_black(self.plot.plot.viewport().grab()))
 
         # case 1
-        self.mouseClick_WidgetItem(self.channel_35)
+        self.mouseClick_WidgetItem(self.channels[0])
         for _ in range(50):
             self.avoid_blinking_issue(self.plot.channel_selection)
         pixmap = self.plot.plot.viewport().grab()
         # Evaluate
-        self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-        self.assertFalse(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-        self.assertFalse(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+        self.assertTrue(Pixmap.has_color(pixmap, self.channels[0].color.name()))
+        self.assertFalse(Pixmap.has_color(pixmap, self.channels[1].color.name()))
+        self.assertFalse(Pixmap.has_color(pixmap, self.channels[2].color.name()))
 
         # case 2
         QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key_Down)
@@ -390,19 +384,19 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             self.avoid_blinking_issue(self.plot.channel_selection)
         pixmap = self.plot.plot.viewport().grab()
         # Evaluate
-        self.assertFalse(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-        self.assertTrue(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-        self.assertFalse(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+        self.assertFalse(Pixmap.has_color(pixmap, self.channels[0].color.name()))
+        self.assertTrue(Pixmap.has_color(pixmap, self.channels[1].color.name()))
+        self.assertFalse(Pixmap.has_color(pixmap, self.channels[2].color.name()))
 
         # case 3
-        self.mouseClick_WidgetItem(self.channel_37)
+        self.mouseClick_WidgetItem(self.channels[2])
         for _ in range(50):
             self.avoid_blinking_issue(self.plot.channel_selection)
         pixmap = self.plot.plot.viewport().grab()
         # Evaluate
-        self.assertFalse(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-        self.assertFalse(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-        self.assertTrue(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+        self.assertFalse(Pixmap.has_color(pixmap, self.channels[0].color.name()))
+        self.assertFalse(Pixmap.has_color(pixmap, self.channels[1].color.name()))
+        self.assertTrue(Pixmap.has_color(pixmap, self.channels[2].color.name()))
 
         # case 4
         QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_2)
@@ -410,11 +404,11 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             self.avoid_blinking_issue(self.plot.channel_selection)
         pixmap = self.plot.plot.viewport().grab()
         # Evaluate
-        self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
-        self.assertTrue(Pixmap.has_color(pixmap, self.channel_36.color.name()))
-        self.assertTrue(Pixmap.has_color(pixmap, self.channel_37.color.name()))
+        self.assertTrue(Pixmap.has_color(pixmap, self.channels[0].color.name()))
+        self.assertTrue(Pixmap.has_color(pixmap, self.channels[1].color.name()))
+        self.assertTrue(Pixmap.has_color(pixmap, self.channels[2].color.name()))
 
-    def test_Plot_Plot_Shortcut_Ctrl_H_Ctrl_B_Ctrl_P_Ctrl_T(self):
+    def test_Plot_Plot_Shortcut_Keys_Ctrl_H_Ctrl_B_Ctrl_P_Ctrl_T(self):
         """
         Test Scope:
             Check if values is converted to int, hex, bin after pressing combination of key "Ctrl+<H>|<B>|<P>"
@@ -432,6 +426,10 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             - Evaluate that unit is changed to bin after pressing key "Ctrl+B"
             - Evaluate that unit is changed to Int after pressing key "Ctrl+P"
         """
+        # add channels to plot
+        self.assertIsNotNone(self.add_channels([35]))
+        self.mouseClick_WidgetItem(self.channels[0])
+
         physical = self.plot.selected_channel_value.text()
         physical_hours = int(physical.split(" ")[0])
         # Press "Ctrl+B"
@@ -475,7 +473,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         self.assertNotEqual(physical, ascii_value)
         self.assertEqual(physical_hours, ascii_int)
 
-    def test_Plot_Plot_Shortcut_Ctrl_Key_R(self):
+    def test_Plot_Plot_Shortcut_Key_Ctrl_R(self):
         """
         Test Scope:
             Check if color range is triggered after pressing key Ctrl+R
@@ -483,91 +481,88 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             - Open 'FileWidget' with valid measurement.
             - Display 1 signal on plot
             - Select signal
-            - Press "Ctrl+R" -> ser ranges from 0 to half of y value and colors green and red -> apply
+            - Press "Ctrl+R" -> set ranges from 0 to 40% of y value and colors green and red -> apply
             - Click on unchanged color part of signal on plot
             - Click on changed color part of signal on plot
+            - Click Ctrl+G to shift plot from and to 40% of y range
         Evaluate:
             - Evaluate that plot is not black
             - Evaluate that plot selected channel value has channel color
             - Evaluate RangeEditor object was called
-            - Evaluate that signal was separated in 2 parts, second half red
-            - Evaluate that plot selected channel value area has red and green colors
-            - Evaluate that after clicking on part that not enter in ranges, plot selected channel value area become
-                    normal
-            - Evaluate that after clicking on signal where it's fit in selected limits, colors of plot selected
-                    channel value area will be changed
+            - Evaluate that plot selected channel value area doesn't have red and green colors, only original one,
+                when cursor not intersect red part of signal
+            - Evaluate that after clicking on part that enter in selected ranges,
+                plot selected channel value area has only red and green colors
+            - Evaluate using Y axi scaling if plot is correctly painted: from 0 to 40% is red, from 40% is not affected
         """
         # Setup
+        # add channels to plot
+        self.assertIsNotNone(self.add_channels([35]))
+
         self.widget.showMaximized()
         self.processEvents()
-        self.widget.set_cursor_options(False, False, 1, Pixmap.COLOR_CURSOR)
         if self.plot.selected_channel_value_btn.isFlat():
             QtTest.QTest.mouseClick(self.plot.selected_channel_value_btn, QtCore.Qt.MouseButton.LeftButton)
-        self.mouseDClick_WidgetItem(self.channel_36)
-        self.mouseDClick_WidgetItem(self.channel_37)
-        self.mouseClick_WidgetItem(self.channel_35)
+        self.mouseClick_WidgetItem(self.channels[0])
         # Evaluate
-        self.assertTrue(Pixmap.has_color(self.plot.selected_channel_value.grab(), self.channel_35.color.name()))
-        # ToDo
-        # samples = self.channel_35.signal.samples
+        self.assertTrue(Pixmap.has_color(self.plot.selected_channel_value.grab(), self.channels[0].color.name()))
         y_range = self.plot.plot.y_axis.range[1] - self.plot.plot.y_axis.range[0]
-        red_range = y_range * 0.4  # magic number
-        green = QtGui.QColor.fromRgbF(0.000000, 1.000000, 0.000000, 1.000000).name()
-        red = QtGui.QColor.fromRgbF(1.000000, 0.000000, 0.000000, 1.000000).name()
+        offset = 40
+        red_range = y_range * offset/100
+        green = QtGui.QColor.fromRgbF(0.000000, 1.000000, 0.000000, 1.000000)
+        red = QtGui.QColor.fromRgbF(1.000000, 0.000000, 0.000000, 1.000000)
 
         range_editor_result = [
             {
-                "background_color": QtGui.QColor.fromRgbF(0.000000, 1.000000, 0.000000, 1.000000),
-                "font_color": QtGui.QColor.fromRgbF(1.000000, 0.000000, 0.000000, 1.000000),
+                "background_color": green,
+                "font_color": red,
                 "op1": "<=",
                 "op2": "<=",
                 "value1": 0.0,
                 "value2": red_range,
             }
         ]
+
         # Click on channel
-        self.mouseClick_WidgetItem(self.channel_35)
+        self.mouseClick_WidgetItem(self.channels[0])
         with mock.patch("asammdf.gui.widgets.tree.RangeEditor") as mo_RangeEditor:
             mo_RangeEditor.return_value.result = range_editor_result
             mo_RangeEditor.return_value.pressed_button = "apply"
             # Press "Alt+R"
             QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+R"))
-        self.processEvents(0.01)
 
         # Evaluate
         mo_RangeEditor.assert_called()
-        self.assertEqual(self.channel_35.ranges, range_editor_result)
+        self.assertEqual(self.channels[0].ranges, range_editor_result)
 
         for _ in range(50):
-            self.processEvents()
+            self.processEvents(0.01)
         self.avoid_blinking_issue(self.plot.channel_selection)
 
-        h = red_range * self.plot.plot.height() / y_range
-
-        # self.assertFalse(
-        #     Pixmap.has_color(self.plot.plot.grab(QtCore.QRect(0, 0, self.plot.plot.width(), int(h / 2) - 2)), red)
-        # )
-        self.processEvents()
-        self.assertTrue(
-            Pixmap.has_color(
-                self.plot.plot.grab(QtCore.QRect(0, int(h / 2) + 2, self.plot.plot.width(), int(h / 2) - 2)), red
-            )
-        )
-
-        # Evaluate
+        # Evaluate that plot has only Green and Red colors
         self.assertTrue(Pixmap.has_color(self.plot.selected_channel_value.grab(), red))
         self.assertTrue(Pixmap.has_color(self.plot.selected_channel_value.grab(), green))
-        self.assertFalse(Pixmap.has_color(self.plot.selected_channel_value.grab(), self.channel_35))
+        self.assertFalse(Pixmap.has_color(self.plot.selected_channel_value.grab(), self.channels[0]))
 
-        x = Pixmap.search_signal_extremes_by_ax(
-            self.plot.plot.grab(QtCore.QRect(0, 0, self.plot.plot.width(), int(h / 3))), self.channel_35, "X"
+        # Setup
+        floor_ = floor(self.plot.plot.height() * offset / 1000)
+        find_original_x = Pixmap.search_signal_extremes_by_ax(
+            self.plot.plot.grab(QtCore.QRect(0, floor_ * 2, self.plot.plot.width(), floor_)),
+            signal_color=self.channels[0],
+            ax="X"
         )[0]
-        # Click on plot
+        find_red_x = Pixmap.search_signal_extremes_by_ax(
+            self.plot.plot.grab(QtCore.QRect(0, self.plot.plot.height() - floor_ * 2, self.plot.plot.width(), floor_)),
+            signal_color=red,
+            ax="X"
+        )[0]
+
+        # Click on plot where was founded original color
         QtTest.QTest.mouseClick(
             self.plot.plot.viewport(),
             QtCore.Qt.MouseButton.LeftButton,
             QtCore.Qt.KeyboardModifiers(),
-            QtCore.QPoint(x, int(h / 2)),
+            QtCore.QPoint(find_original_x, int(self.plot.plot.height() / 2)),
         )
         self.processEvents()
         pm = self.plot.selected_channel_value.grab()
@@ -575,17 +570,14 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         # Evaluate
         self.assertFalse(Pixmap.has_color(pm, red))
         self.assertFalse(Pixmap.has_color(pm, green))
-        self.assertTrue(Pixmap.has_color(pm, self.channel_35))
+        self.assertTrue(Pixmap.has_color(pm, self.channels[0]))
 
-        x = Pixmap.search_signal_extremes_by_ax(
-            self.plot.plot.grab(QtCore.QRect(0, int(h / 2.5), self.plot.plot.width(), int(h / 3))), red, "X"
-        )[0]
-        # Click on plot
+        # Click on plot where was founded red color
         QtTest.QTest.mouseClick(
             self.plot.plot.viewport(),
             QtCore.Qt.MouseButton.LeftButton,
             QtCore.Qt.KeyboardModifiers(),
-            QtCore.QPoint(x, int(h / 2)),
+            QtCore.QPoint(find_red_x, int(self.plot.plot.height() / 2)),
         )
         self.processEvents()
         pm = self.plot.selected_channel_value.grab()
@@ -593,9 +585,50 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         # Evaluate
         self.assertTrue(Pixmap.has_color(pm, red))
         self.assertTrue(Pixmap.has_color(pm, green))
-        self.assertFalse(Pixmap.has_color(pm, self.channel_35))
+        self.assertFalse(Pixmap.has_color(pm, self.channels[0]))
 
-    def test_Plot_Plot_Shortcut_Key_Alt_R_Alt_S(self):
+        # self.mouseClick_WidgetItem(self.channels[0])
+        # Evaluate plot
+        with mock.patch("asammdf.gui.widgets.plot.ScaleDialog") as mo_ScaleDialog:
+            mo_ScaleDialog.return_value.offset.value.return_value = 0.0
+            mo_ScaleDialog.return_value.scaling.value.return_value = red_range
+            # Press Ctrl+G
+            QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+G"))
+            # Evaluate that ScaleDialog object was created, and it's a method exec() was called
+            mo_ScaleDialog.return_value.exec.assert_called()
+            self.avoid_blinking_issue(self.plot.channel_selection)
+
+            for _ in range(50):
+                self.processEvents()
+            self.avoid_blinking_issue(self.plot.channel_selection)
+
+            self.assertTrue(Pixmap.has_color(self.plot.plot.grab(), red))
+
+            mo_ScaleDialog.return_value.offset.value.return_value = - offset
+            mo_ScaleDialog.return_value.scaling.value.return_value = y_range
+            # Press Ctrl+G
+            QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+G"))
+
+            self.assertEqual(mo_ScaleDialog.return_value.exec.call_count, 2)
+            self.avoid_blinking_issue(self.plot.channel_selection)
+
+            for _ in range(50):
+                self.processEvents()
+            self.avoid_blinking_issue(self.plot.channel_selection)
+
+            self.assertTrue(Pixmap.has_color(self.plot.plot.grab(), self.channels[0]))
+
+            # Todo
+        # trans = []
+        # buf = 0
+        # op = (extremes[1] - extremes[0]) / len(self.channels[0].signal.samples) + extremes[0]
+        # for x, sample in enumerate(self.channels[0].signal.samples):
+        #     if red_range - 1 <= sample <= red_range:
+        #         if x > buf + 1:
+        #             trans.append(ceil(x * op))
+        #         buf = x
+
+    def test_Plot_Plot_Shortcut_Keys_Alt_R_Alt_S(self):
         """
         Test Scope:
             Check functionality of key "Alt+I" and "Alt+S"
@@ -608,11 +641,14 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             - Evaluate that signal mode is raw and line style is DashLine after pressing key "Alt+R"
             - Evaluate that signal mode is phys and line style is SolidLine after pressing key "Alt+S"
         """
+        # add channels to plot
+        self.assertIsNotNone(self.add_channels([35]))
+
         # Press "Alt+R"
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Alt+R"))
         # Evaluate
         # Signal mode = raw
-        self.assertEqual(self.channel_35.mode, "raw")
+        self.assertEqual(self.channels[0].mode, "raw")
         # Signal line style = Dash line
         self.assertEqual(self.plot.plot.signals[0].pen.style(), QtCore.Qt.PenStyle.DashLine)
 
@@ -620,7 +656,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Alt+S"))
         # Evaluate
         # Signal mode = raw
-        self.assertEqual(self.channel_35.mode, "phys")
+        self.assertEqual(self.channels[0].mode, "phys")
         # Signal line style = Dash line
         self.assertEqual(self.plot.plot.signals[0].pen.style(), QtCore.Qt.PenStyle.SolidLine)
 
@@ -674,63 +710,74 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         # Evaluate
         self.assertFalse(self.plot.show_bookmarks)
 
-    def test_Plot_Channel_Selection_Shortcut_Ctrl_Key_G(self):
+    def test_Plot_Plot_Shortcut_Ctrl_Key_G(self):
         """
         Test Scope:
             Check if signal is changed his Y limits by setting it with ScaleDialog object called with "Ctrl+G"
         Events:
             - Open 'FileWidget' with valid measurement.
-            - Select 2 signals and create a plot
-            - Pres S
+            - Create a plot widget with signals
             - Click on first channel
             - Mock ScaleDialog object
-            - Set up return_value of scaling and offset
+            - Set up return_value for scaling and offset objects
             - Press Ctrl+G
         Evaluate:
-            - Evaluate that Signals are separated in the top and bottom part of plot
+            - Evaluate that Signal is on top and bottom part of plot
             - Evaluate that mock object was called
-            - Evaluate that after pressing Ctrl+G, selected channel is situated on top and bottom part of plot,
-                    second channel is not changed
+            - Evaluate that after pressing Ctrl+G, selected channel is situated on top and not on bottom part of plot
+            - Evaluate if y_range of signal is identical with expected range
         """
-        # Press S
-        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_S)
-        self.avoid_blinking_issue(self.plot.channel_selection)
-        # Evaluate plot
-        self.assertTrue(Pixmap.is_black(self.plot.plot.viewport().grab(QtCore.QRect(0, 0, self.plot.plot.width(), 2))))
+        # add channels to plot
+        self.assertIsNotNone(self.add_channels([35]))
+        self.processEvents()
+
+        # Setup
+        offset = 50.0
+        scale = self.plot.plot.y_axis.range[1] - self.plot.plot.y_axis.range[0]
+        y_bottom = -offset * scale / 100
+        y_top = y_bottom + scale
+
+        expected_y_range = y_bottom, y_top
+
         # Top
         pixmap = self.plot.plot.viewport().grab(
             QtCore.QRect(0, 0, self.plot.plot.width(), int(self.plot.plot.height() / 2))
         )
-        self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
+        self.assertTrue(Pixmap.has_color(pixmap, self.channels[0].color.name()))
         # Bottom
         pixmap = self.plot.plot.viewport().grab(
             QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.width(), int(self.plot.plot.height() / 2))
         )
-        self.assertFalse(Pixmap.has_color(pixmap, self.channel_35.color.name()))
+        self.assertTrue(Pixmap.has_color(pixmap, self.channels[0].color.name()))
 
-        # Click on channel 36
-        self.mouseClick_WidgetItem(self.channel_35)
+        # Click on first channel
+        self.mouseClick_WidgetItem(self.channels[0])
         with mock.patch("asammdf.gui.widgets.plot.ScaleDialog") as mo_ScaleDialog:
-            mo_ScaleDialog.return_value.offset.value.return_value = 0.0
-            mo_ScaleDialog.return_value.scaling.value.return_value = 255
+            mo_ScaleDialog.return_value.offset.value.return_value = offset
+            mo_ScaleDialog.return_value.scaling.value.return_value = scale
             # Press Ctrl+Shift+C
             QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+G"))
         # Evaluate that ScaleDialog object was created, and it's a method exec() was called
         mo_ScaleDialog.return_value.exec.assert_called()
+        for _ in range(50):
+            self.processEvents()
         self.avoid_blinking_issue(self.plot.channel_selection)
 
+        # Top
         pixmap = self.plot.plot.viewport().grab(
             QtCore.QRect(0, 0, self.plot.plot.width(), int(self.plot.plot.height() / 2))
         )
         # Evaluate plot
-        self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
+        self.assertTrue(Pixmap.has_color(pixmap, self.channels[0].color.name()))
         # Bottom
         pixmap = self.plot.plot.viewport().grab(
             QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.width(), int(self.plot.plot.height() / 2))
         )
-        self.assertTrue(Pixmap.has_color(pixmap, self.channel_35.color.name()))
+        self.assertTrue(Pixmap.has_color(pixmap, self.channels[0].color.name()))
+        # Evaluate y_range tuple
+        self.assertTupleEqual(self.plot.plot.signals[0].y_range, expected_y_range)
 
-    def test_Plot_Channel_Selection_Shortcut_Key_C(self):
+    def test_Plot_Plot_Shortcut_Key_C(self):
         """
         Test Scope:
             - Ensure that channel color is changed.
@@ -746,6 +793,8 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             - Evaluate that color dialog is not open if channel is not selected.
             - Evaluate that channel color is changed only for selected channel
         """
+        # add channels to plot
+        self.assertIsNotNone(self.add_channels([35, 36, 37]))
         with self.subTest("test_WOSelectedChannel"):
             with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QColorDialog.getColor") as mo_getColor:
                 QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_C)
@@ -754,16 +803,16 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         with self.subTest("test_1SelectedChannel"):
             with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QColorDialog.getColor") as mo_getColor:
                 # Setup
-                self.mouseClick_WidgetItem(self.channel_36)
-                previous_color = self.channel_36.color.name()
+                self.mouseClick_WidgetItem(self.channels[1])
+                previous_color = self.channels[1].color.name()
                 color = QtGui.QColor("magenta")
                 mo_getColor.return_value = color
                 # Event
                 QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_C)
                 # Evaluate
                 mo_getColor.assert_called()
-                self.assertNotEqual(previous_color, self.channel_36.color.name())
-                self.assertEqual(color.name(), self.channel_36.color.name())
+                self.assertNotEqual(previous_color, self.channels[1].color.name())
+                self.assertEqual(color.name(), self.channels[1].color.name())
 
         with self.subTest("test_2SelectedChannel"):
             with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QColorDialog.getColor") as mo_getColor:
@@ -773,9 +822,9 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
                 # Set selected both channels
                 QtTest.QTest.keySequence(self.plot.channel_selection, QtGui.QKeySequence("Ctrl+A"))
                 # store previous colors of channels
-                previous_ch_35_color = self.channel_35.color.name()
-                previous_ch_36_color = self.channel_36.color.name()
-                previous_ch_37_color = self.channel_37.color.name()
+                previous_ch_35_color = self.channels[0].color.name()
+                previous_ch_36_color = self.channels[1].color.name()
+                previous_ch_37_color = self.channels[2].color.name()
                 color = QtGui.QColor("black")
                 mo_getColor.return_value = color
                 # Event
@@ -783,14 +832,14 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
                 # Evaluate
                 mo_getColor.assert_called()
 
-                self.assertNotEqual(previous_ch_35_color, self.channel_35.color.name())
-                self.assertNotEqual(previous_ch_36_color, self.channel_36.color.name())
-                self.assertNotEqual(previous_ch_37_color, self.channel_37.color.name())
-                self.assertEqual(color.name(), self.channel_35.color.name())
-                self.assertEqual(color.name(), self.channel_36.color.name())
-                self.assertEqual(color.name(), self.channel_37.color.name())
+                self.assertNotEqual(previous_ch_35_color, self.channels[0].color.name())
+                self.assertNotEqual(previous_ch_36_color, self.channels[1].color.name())
+                self.assertNotEqual(previous_ch_37_color, self.channels[2].color.name())
+                self.assertEqual(color.name(), self.channels[0].color.name())
+                self.assertEqual(color.name(), self.channels[1].color.name())
+                self.assertEqual(color.name(), self.channels[2].color.name())
 
-    def test_Plot_Channel_Selection_Shortcut_Ctrl_Keys_C_V(self):
+    def test_Plot_Plot_Shortcut_Keys_Ctrl_C__Ctrl_V(self):
         """
         Test Scope:
             - Ensure that selected channel is copied to clipboard and pasted into a plot.
@@ -805,17 +854,19 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             - Evaluate that is one more channel in channel selection area with the same properties as selected channel
             - Evaluate that channel is inserted in new window with the same properties
         """
-        self.mouseClick_WidgetItem(self.channel_35)
+        # add channels to plot
+        self.assertIsNotNone(self.add_channels([35, 36]))
+        self.mouseClick_WidgetItem(self.channels[0])
         # Press Ctrl+C -> Ctrl+V
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+C"))
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+V"))
         self.processEvents()
         # Evaluate that now is three channels available
-        self.assertEqual(4, self.plot.channel_selection.topLevelItemCount())
-        original_name = self.channel_35.name
-        original_color_name = self.channel_35.color.name()
-        original_origin_uuid = self.channel_35.origin_uuid
-        original_signal = self.channel_35.signal
+        self.assertEqual(3, self.plot.channel_selection.topLevelItemCount())
+        original_name = self.channels[0].name
+        original_color_name = self.channels[0].color.name()
+        original_origin_uuid = self.channels[0].origin_uuid
+        original_signal = self.channels[0].signal
         replica = self.plot.channel_selection.topLevelItem(1)
         # Evaluate channels essential attributes
         self.assertEqual(original_name, replica.name)
@@ -824,11 +875,9 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         self.assertEqual(original_signal, replica.signal)
 
         # Uncheck channels
-        ch = self.find_channel(self.widget.channels_tree, self.channel_35.name)
+        ch = self.find_channel(self.widget.channels_tree, self.channels[0].name)
         ch.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-        ch = self.find_channel(self.widget.channels_tree, self.channel_36.name)
-        ch.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-        ch = self.find_channel(self.widget.channels_tree, self.channel_37.name)
+        ch = self.find_channel(self.widget.channels_tree, self.channels[1].name)
         ch.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
         # Press PushButton "Create Window" -> "Plot"
         self.create_window(window_type="Plot")
@@ -849,7 +898,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         self.assertEqual(original_origin_uuid, replica.origin_uuid)
         self.assertEqual(original_signal, replica.signal)
 
-    def test_Plot_Channel_Selection_Shortcut_Ctrl_Key_Shift_C_Shift_V(self):
+    def test_Plot_Plot_Shortcut_Keys_Ctrl_Shift_C__Ctrl_Shift_V(self):
         """
         Test Scope:
             Check if only display properties of selected channels is copied on another channel
@@ -866,22 +915,24 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             - Evaluate that after pressing shortcuts combination, names are different,
                 but colors are the same for both channels
         """
+        # add channels to plot
+        self.assertIsNotNone(self.add_channels([35, 36, 37]))
         # Evaluate precondition
-        self.assertNotEqual(self.channel_36.name, self.channel_37.name)
-        self.assertNotEqual(self.channel_36.color.name(), self.channel_37.color.name())
+        self.assertNotEqual(self.channels[1].name, self.channels[2].name)
+        self.assertNotEqual(self.channels[1].color.name(), self.channels[2].color.name())
 
         # Click on channel 36
-        self.mouseClick_WidgetItem(self.channel_36)
+        self.mouseClick_WidgetItem(self.channels[1])
         # Press Ctrl+Shift+C
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+Shift+C"))
-        self.mouseClick_WidgetItem(self.channel_37)
+        self.mouseClick_WidgetItem(self.channels[2])
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+Shift+V"))
 
         # Evaluate
-        self.assertNotEqual(self.channel_36.name, self.channel_37.name)
-        self.assertEqual(self.channel_36.color.name(), self.channel_37.color.name())
+        self.assertNotEqual(self.channels[1].name, self.channels[2].name)
+        self.assertEqual(self.channels[1].color.name(), self.channels[2].color.name())
 
-    def test_Plot_Channel_Selection_Shortcut_Key_Ctrl_Left_and_Right_Buckets(self):
+    def test_Plot_Plot_Shortcut_Keys_Ctrl_Left_and_Right_Buckets(self):
         """
         tests for Ctrl+[ and Ctrl+]
         """
@@ -893,13 +944,14 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+["))
         self.assertGreater(font_size, self.plot.font().pointSize())
 
-    def test_Plot_Plot_Shortcut_Key_Backspace_and_Shift_Backspace_Shift_W(self):
+    def test_Plot_Plot_Shortcut_Keys_Backspace__Shift_Backspace__Shift_W(self):
         """
         Test Scope:
             ...
         """
-        self.mouseDClick_WidgetItem(self.channel_36)
-        self.mouseDClick_WidgetItem(self.channel_37)
+        # add channels to plot
+        self.assertIsNotNone(self.add_channels([35]))
+
         self.widget.showMaximized()
 
         self.processEvents()
@@ -912,7 +964,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         distance_in_pixels_0 = 0
         # Find distance between first and second signal transit trough midd line
         for i, x in enumerate(color_map[0]):
-            if x == self.channel_35.color.name():
+            if x == self.channels[0].color.name():
                 distance_in_pixels_0 = i - distance_in_pixels_0
                 if distance_in_pixels_0 != i:
                     break
@@ -931,7 +983,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         distance_in_pixels_1 = 0
         # Find distance between first and second signal transit trough midd line
         for i, x in enumerate(color_map[0]):
-            if x == self.channel_35.color.name():
+            if x == self.channels[0].color.name():
                 distance_in_pixels_1 = i - distance_in_pixels_1
                 if distance_in_pixels_1 != i:
                     break
@@ -948,7 +1000,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         distance_in_pixels_2 = 0
         # Find distance between first and second signal transit trough midd line
         for i, x in enumerate(color_map[0]):
-            if x == self.channel_35.color.name():
+            if x == self.channels[0].color.name():
                 distance_in_pixels_2 = i - distance_in_pixels_2
                 if distance_in_pixels_2 != i:
                     break
@@ -966,7 +1018,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         distance_in_pixels_3 = 0
         # Find distance between first and second signal transit trough midd line
         for i, x in enumerate(color_map[0]):
-            if x == self.channel_35.color.name():
+            if x == self.channels[0].color.name():
                 distance_in_pixels_3 = i - distance_in_pixels_3
                 if distance_in_pixels_3 != i:
                     break
@@ -985,7 +1037,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         distance_in_pixels_3 = 0
         # Find distance between first and second signal transit trough midd line
         for i, x in enumerate(color_map[0]):
-            if x == self.channel_35.color.name():
+            if x == self.channels[0].color.name():
                 distance_in_pixels_3 = i - distance_in_pixels_3
                 if distance_in_pixels_3 != i:
                     break
@@ -1006,7 +1058,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         distance_in_pixels_3 = 0
         # Find distance between first and second signal transit trough midd line
         for i, x in enumerate(color_map[0]):
-            if x == self.channel_35.color.name():
+            if x == self.channels[0].color.name():
                 distance_in_pixels_3 = i - distance_in_pixels_3
                 if distance_in_pixels_3 != i:
                     break
