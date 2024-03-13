@@ -86,8 +86,8 @@ class TestTableViewWidgetShortcuts(TestFileWidget):
         mo_RangeEditor.assert_called()
         row_0 = True
         for value in self.numeric.channels.dataView.ranges.values():
-            if row_0 is True:       # Evaluate range for first row
+            if row_0 is True:  # Evaluate range for first row
                 self.assertDictEqual(value[0], range_editor_result[0])
                 row_0 = False
-            else:           #
+            else:  #
                 self.assertListEqual(value, [])

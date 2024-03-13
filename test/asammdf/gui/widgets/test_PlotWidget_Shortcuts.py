@@ -508,7 +508,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         self.assertTrue(Pixmap.has_color(self.plot.selected_channel_value.grab(), self.channels[0].color.name()))
         y_range = self.plot.plot.y_axis.range[1] - self.plot.plot.y_axis.range[0]
         offset = 40
-        red_range = y_range * offset/100
+        red_range = y_range * offset / 100
         green = QtGui.QColor.fromRgbF(0.000000, 1.000000, 0.000000, 1.000000)
         red = QtGui.QColor.fromRgbF(1.000000, 0.000000, 0.000000, 1.000000)
 
@@ -549,12 +549,12 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         find_original_x = Pixmap.search_signal_extremes_by_ax(
             self.plot.plot.grab(QtCore.QRect(0, floor_ * 2, self.plot.plot.width(), floor_)),
             signal_color=self.channels[0],
-            ax="X"
+            ax="X",
         )[0]
         find_red_x = Pixmap.search_signal_extremes_by_ax(
             self.plot.plot.grab(QtCore.QRect(0, self.plot.plot.height() - floor_ * 2, self.plot.plot.width(), floor_)),
             signal_color=red,
-            ax="X"
+            ax="X",
         )[0]
 
         # Click on plot where was founded original color
@@ -604,7 +604,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
 
             self.assertTrue(Pixmap.has_color(self.plot.plot.grab(), red))
 
-            mo_ScaleDialog.return_value.offset.value.return_value = - offset
+            mo_ScaleDialog.return_value.offset.value.return_value = -offset
             mo_ScaleDialog.return_value.scaling.value.return_value = y_range
             # Press Ctrl+G
             QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+G"))
@@ -618,7 +618,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
 
             self.assertTrue(Pixmap.has_color(self.plot.plot.grab(), self.channels[0]))
 
-            # Todo
+            # Todo this test must be failed, add evaluation for second color...
         # trans = []
         # buf = 0
         # op = (extremes[1] - extremes[0]) / len(self.channels[0].signal.samples) + extremes[0]
