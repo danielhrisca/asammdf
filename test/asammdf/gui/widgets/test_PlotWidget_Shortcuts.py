@@ -364,7 +364,8 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
 
         # case 0
         QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_2)
-        self.processEvents(0.01)
+        for _ in range(10):
+            self.processEvents(0.01)
         # Evaluate
         self.assertTrue(Pixmap.is_black(self.plot.plot.viewport().grab()))
 
