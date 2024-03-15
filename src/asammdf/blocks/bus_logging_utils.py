@@ -280,18 +280,18 @@ def merge_cantp(payload, ts):
     CONSECUTIVE = 0x20
     merged = []
     t_out = []
-    merging = np.array([], 'uint8')
+    merging = np.array([], "uint8")
     for frame, t in zip(payload, ts):
-        if frame[0] & 0xf0 == INITIAL:
-            expected_size = 256*(frame[0]&0x0f) + frame[1]
-            merging = np.array(frame[2:8], 'uint8')
-        if frame[0] & 0xf0 == CONSECUTIVE:
+        if frame[0] & 0xF0 == INITIAL:
+            expected_size = 256 * (frame[0] & 0x0F) + frame[1]
+            merging = np.array(frame[2:8], "uint8")
+        if frame[0] & 0xF0 == CONSECUTIVE:
             merging = np.hstack((merging, frame[1:]))
             if len(merging) >= expected_size:
                 merging = merging[:expected_size]
                 merged.append(merging)
                 t_out.append(t)  # Using t from final received part (as does Canoe, apparently)
-    frames = np.vstack(merged) if len(merged) > 0 else np.array([], 'uint8')
+    frames = np.vstack(merged) if len(merged) > 0 else np.array([], "uint8")
     return frames, np.array(t_out)
 
 
@@ -358,15 +358,15 @@ def extract_mux(
 
     extracted_signals = {}
 
-    # (Too?) simple check for ISO-TP CAN data - if it has flow control, we believe its ISO-TP 
-    is_ISOTP =  "CanTpFcFrameId" in message.attributes
+    # (Too?) simple check for ISO-TP CAN data - if it has flow control, we believe its ISO-TP
+    is_ISOTP = "CanTpFcFrameId" in message.attributes
     if is_ISOTP:
         # print(f"  ISO-TP frame, for message {message_id}, merging CAN frames...")
         payload, t = merge_cantp(payload, t)
-        #assert(len(payload) == len(t))
-        #if len(payload) > 0:
+        # assert(len(payload) == len(t))
+        # if len(payload) > 0:
         #    print(f"    message size post-merge: {payload.shape[1]}")
-        #else:
+        # else:
         #    print(f"    no payload found to merge")
 
     if payload.shape[0] == 0 or message.size > payload.shape[1] or message.size == 0:
@@ -404,7 +404,7 @@ def extract_mux(
                 payload_,
                 ignore_value2text_conversion=ignore_value2text_conversion,
                 raw=True,
-                is_ISOTP = is_ISOTP,
+                is_ISOTP=is_ISOTP,
             )
             if len(samples) == 0 and len(t_):
                 continue
