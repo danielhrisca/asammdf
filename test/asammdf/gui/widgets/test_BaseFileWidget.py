@@ -123,7 +123,8 @@ class TestFileWidget(TestBase):
             len(channels_list),
             len(channels),
             msg=f"Not all channels from given list was found! \n"
-            f"Given channels: {channels_list} \n Founded channels: \n{channels}",
+            f"Given channels: {channels_list} \nFounded channels: \n"
+            f"----------------------------------------------------\n{channels}",
         )
 
         # add channels to channel selection

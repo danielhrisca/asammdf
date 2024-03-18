@@ -1626,7 +1626,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
 
             if file_name:
-                signals = [signal for signal in self.signals if signal.enable]
+                selected_items = {index.row() for index in self.channels.dataView.selectedIndexes() if index.isValid()}
+                signals = []
+                for index in selected_items:
+                    signals.append(self.channels.dataView.backend.signals[index].signal)
                 if signals:
                     with mdf_module.MDF() as mdf:
                         groups = {}

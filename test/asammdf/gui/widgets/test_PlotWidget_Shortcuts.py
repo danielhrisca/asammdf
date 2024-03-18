@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from math import floor
+import os
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 from unittest import mock
@@ -660,6 +661,45 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         self.assertEqual(self.channels[0].mode, "phys")
         # Signal line style = Dash line
         self.assertEqual(self.plot.plot.signals[0].pen.style(), QtCore.Qt.PenStyle.SolidLine)
+
+    def test_Plot_Plot_Shortcut_Key_Ctrl_S(self):
+        """
+        Test Scope:
+            Check if by pressing "Ctrl+S" is saved in the new measurement file only active channels
+        Events:
+            - Open 'FileWidget' with valid measurement.
+            - Select 3 signals and create a plot
+            _ Deselect last channel
+            - Mock getSaveFileName() object and set return value of this object a file path of the new measurement
+            file
+            - Press Key "Ctrl+S"
+            - Open recently created measurement file in a new window
+        Evaluate:
+            - Evaluate that object getSaveFileName() was called after pressing combination "Ctrl+S"
+            - Evaluate that in measurement file is saved only active channels
+        """
+        self.assertIsNotNone(self.add_channels([10, 11, 12, 13]))
+        expected_items = [channel.name for channel in self.channels]
+        expected_items.append("time")
+        file_path = os.path.join(self.test_workspace, "file.mf4")
+        # mock for getSaveFileName object
+        with mock.patch("asammdf.gui.widgets.plot.QtWidgets.QFileDialog.getSaveFileName") as mo_getSaveFileName:
+            mo_getSaveFileName.return_value = (file_path, "")
+            # Press Ctrl+S
+            QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+S"))
+        # Evaluate
+        mo_getSaveFileName.assert_called()
+
+        # Open recently saved measurement file
+        self.setUpFileWidget(measurement_file=file_path, default=True)
+        # Switch ComboBox to "Natural sort"
+        self.widget.channel_view.setCurrentText("Natural sort")
+        # Evaluate
+        for index in range(self.widget.channels_tree.topLevelItemCount()):
+            self.assertIn(self.widget.channels_tree.topLevelItem(index).name, expected_items)
+            if self.widget.channels_tree.topLevelItem(index).name != "time":
+                expected_items.remove(self.widget.channels_tree.topLevelItem(index).name)
+        self.assertListEqual(expected_items, ["time"])
 
     def test_Plot_Plot_Shortcut_Key_Ctrl_I(self):
         """

@@ -220,7 +220,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         QtTest.QTest.keyClick(self.ctw, QtCore.Qt.Key_Space)
         self.assertEqual(self.ctw.topLevelItem(0).checkState(0), QtCore.Qt.CheckState.Checked)
 
-    def test_Plot_Channel_Selection_Shortcut_Key_C(self):
+    def test_ChannelsTreeWidget_Shortcut_Key_C(self):
         """
         Test Scope:
             - Ensure that channel color is changed.
@@ -273,7 +273,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
                     self.assertNotIn(channel.color.name(), previous_ch_colors)
                     self.assertEqual(channel.color.name(), color.name())
 
-    def test_Plot_Channel_Selection_Shortcut_Key_Ctrl_C(self):
+    def test_ChannelsTreeWidget_Shortcut_Key_Ctrl_C(self):
         """
         Test Scope:
             - Ensure that copied to clipboard channel is pasted into a plot.
@@ -297,7 +297,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         for channel in self.channels:
             self.assertIn(channel.name, mo_set_text.call_args.args[0])
 
-    def test_Plot_Channel_Selection_Shortcut_Key_Ctrl_V(self):
+    def test_ChannelsTreeWidget_Shortcut_Key_Ctrl_V(self):
         """
         Test Scope:
             - Ensure that selected channel is copied to clipboard.
@@ -342,7 +342,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         self.assertEqual(self.ctw.topLevelItem(0).name, self.id())
         self.assertEqual(self.ctw.topLevelItem(0).color.name(), color)
 
-    def test_Plot_Channel_Selection_Shortcut_Key_Ctrl_Shift_C(self):
+    def test_ChannelsTreeWidget_Shortcut_Key_Ctrl_Shift_C(self):
         """
         ...
         """
@@ -357,7 +357,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         # Evaluate
         mo_instance.return_value.clipboard.return_value.setText.assert_called_with(ch_0_display_properties)
 
-    def test_Plot_Channel_Selection_Shortcut_Key_Ctrl_Shift_V(self):
+    def test_ChannelsTreeWidget_Shortcut_Key_Ctrl_Shift_V(self):
         """
         - Add 2 channels to plot
         - Set clipboard text = display_properties of first channel
