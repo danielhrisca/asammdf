@@ -119,7 +119,12 @@ class TestFileWidget(TestBase):
                 found_channel = self.find_channel(channel_tree=self.widget.channels_tree, channel_name=channel)
             if found_channel is not None:
                 channels.append(found_channel)
-        self.assertEqual(len(channels_list), len(channels), msg="Not all channels from given list was found!")
+        self.assertEqual(
+            len(channels_list),
+            len(channels),
+            msg=f"Not all channels from given list was found! \n"
+            f"Given channels: {channels_list} \n Founded channels: \n{channels}",
+        )
 
         # add channels to channel selection
         self.widget.add_new_channels([channel.name for channel in channels], widget)
