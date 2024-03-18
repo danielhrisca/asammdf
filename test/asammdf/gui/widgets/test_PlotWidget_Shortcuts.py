@@ -711,7 +711,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         # Evaluate
         self.assertFalse(self.plot.show_bookmarks)
 
-    def test_Plot_Plot_Shortcut_Ctrl_Key_G(self):
+    def test_Plot_Plot_Shortcut_Key_Ctrl_G(self):
         """
         Test Scope:
             Check if signal is changed his Y limits by setting it with ScaleDialog object called with "Ctrl+G"

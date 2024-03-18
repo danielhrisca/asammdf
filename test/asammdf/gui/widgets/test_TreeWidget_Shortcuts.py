@@ -69,7 +69,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         if self.widget:
             self.widget.destroy()
 
-    def test_ChannelsTreeWidget_Shortcut_Shift_Key_Delete(self):
+    def test_ChannelsTreeWidget_Shortcut_Key_Shift_Delete(self):
         """
 
         Returns
@@ -100,7 +100,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         # Evaluate
         self.assertEqual(self.ctw.topLevelItemCount(), 0)
 
-    def test_ChannelsTreeWidget_Shortcut_Ctrl_Key_Insert(self):
+    def test_ChannelsTreeWidget_Shortcut_Key_Ctrl_Insert(self):
         """
         Test Scope:
             Check if a new pattern based channel group can be created by pressing shortcut "Ctrl+Insert"
@@ -162,7 +162,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
             # To avoid duplicates
             items.remove(channel_name)
 
-    def test_ChannelsTreeWidget_Shortcut_Shift_Key_Insert(self):
+    def test_ChannelsTreeWidget_Shortcut_Key_Shift_Insert(self):
         """
         Test Scope:
             Check if a new channel group can be created by pressing shortcut "Shift+Insert"
@@ -183,7 +183,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         mo_QInputDialog.getText.assert_called()
         self.assertEqual(self.ctw.topLevelItem(0).name, self.id())
 
-    def test_ChannelsTreeWidget_Shortcut_Shift_Key_Space(self):
+    def test_ChannelsTreeWidget_Shortcut_Key_Shift_Space(self):
         """
             - Add few channels to plot
             - Click on channels -> press key Space
@@ -273,7 +273,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
                     self.assertNotIn(channel.color.name(), previous_ch_colors)
                     self.assertEqual(channel.color.name(), color.name())
 
-    def test_Plot_Channel_Selection_Shortcut_Ctrl_Key_C(self):
+    def test_Plot_Channel_Selection_Shortcut_Key_Ctrl_C(self):
         """
         Test Scope:
             - Ensure that copied to clipboard channel is pasted into a plot.
@@ -297,7 +297,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         for channel in self.channels:
             self.assertIn(channel.name, mo_set_text.call_args.args[0])
 
-    def test_Plot_Channel_Selection_Shortcut_Ctrl_Key_V(self):
+    def test_Plot_Channel_Selection_Shortcut_Key_Ctrl_V(self):
         """
         Test Scope:
             - Ensure that selected channel is copied to clipboard.
@@ -342,7 +342,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         self.assertEqual(self.ctw.topLevelItem(0).name, self.id())
         self.assertEqual(self.ctw.topLevelItem(0).color.name(), color)
 
-    def test_Plot_Channel_Selection_Shortcut_Ctrl_Key_Shift_C(self):
+    def test_Plot_Channel_Selection_Shortcut_Key_Ctrl_Shift_C(self):
         """
         ...
         """
@@ -357,7 +357,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         # Evaluate
         mo_instance.return_value.clipboard.return_value.setText.assert_called_with(ch_0_display_properties)
 
-    def test_Plot_Channel_Selection_Shortcut_Ctrl_Key_Shift_V(self):
+    def test_Plot_Channel_Selection_Shortcut_Key_Ctrl_Shift_V(self):
         """
         - Add 2 channels to plot
         - Set clipboard text = display_properties of first channel
@@ -384,7 +384,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
             self.ctw.topLevelItem(0).get_display_properties(), self.ctw.topLevelItem(1).get_display_properties()
         )
 
-    def test_ChannelsTreeWidget_Shortcut_Ctrl_Key_N(self):
+    def test_ChannelsTreeWidget_Shortcut_Key_Ctrl_N(self):
         """
 
         Returns
