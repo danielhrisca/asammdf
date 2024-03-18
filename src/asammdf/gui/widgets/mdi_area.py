@@ -1552,7 +1552,9 @@ class WithMDIArea:
 
                     if "FLX_NullFrame.Dir" in names:
                         if data["FLX_NullFrame.Dir"].dtype.kind == "S":
-                            columns["Direction"][index] = [v.decode("utf-8") for v in data["FLX_NullFrame.Dir"].tolist()]
+                            columns["Direction"][index] = [
+                                v.decode("utf-8") for v in data["FLX_NullFrame.Dir"].tolist()
+                            ]
                         else:
                             columns["Direction"][index] = [
                                 "TX" if dir else "RX" for dir in data["FLX_NullFrame.Dir"].astype("u1").tolist()

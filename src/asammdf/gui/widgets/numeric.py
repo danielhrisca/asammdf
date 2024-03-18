@@ -1626,7 +1626,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
 
             if file_name:
-                signals = [signal for signal in self.signals if signal.enable]
+                signals = [signal for signal in self.channels.dataView.signals if signal.enable]
                 if signals:
                     with mdf_module.MDF() as mdf:
                         groups = {}
