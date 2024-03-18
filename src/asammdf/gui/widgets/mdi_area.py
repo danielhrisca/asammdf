@@ -1150,188 +1150,215 @@ class WithMDIArea:
             return self._add_tabular_window(names)
 
     def _add_can_bus_trace_window(self, ranges=None):
-        if self.mdf.version < "4.00":
-            return
-
-        groups_count = len(self.mdf.groups)
-
         dfs = []
 
-        for index in range(groups_count):
-            group = self.mdf.groups[index]
-            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
-                source = group.channel_group.acq_source
+        if self.mdf.version >= "4.00":
 
-                names = [ch.name for ch in group.channels]
+            groups_count = len(self.mdf.groups)
 
-                if source and source.bus_type == v4c.BUS_TYPE_CAN:
-                    if "CAN_DataFrame" in names:
-                        data = self.mdf.get("CAN_DataFrame", index)  # , raw=True)
+            for index in range(groups_count):
+                group = self.mdf.groups[index]
+                if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                    source = group.channel_group.acq_source
 
-                    elif "CAN_RemoteFrame" in names:
-                        data = self.mdf.get("CAN_RemoteFrame", index, raw=True)
+                    names = [ch.name for ch in group.channels]
 
-                    elif "CAN_ErrorFrame" in names:
-                        data = self.mdf.get("CAN_ErrorFrame", index, raw=True)
+                    if source and source.bus_type == v4c.BUS_TYPE_CAN:
+                        if "CAN_DataFrame" in names:
+                            data = self.mdf.get("CAN_DataFrame", index)  # , raw=True)
 
-                    else:
-                        continue
+                        elif "CAN_RemoteFrame" in names:
+                            data = self.mdf.get("CAN_RemoteFrame", index, raw=True)
 
-                    df_index = data.timestamps
-                    count = len(df_index)
+                        elif "CAN_ErrorFrame" in names:
+                            data = self.mdf.get("CAN_ErrorFrame", index, raw=True)
 
-                    columns = {
-                        "timestamps": df_index,
-                        "Bus": np.full(count, "Unknown", dtype="O"),
-                        "ID": np.full(count, 0xFFFFFFFF, dtype="u4"),
-                        "IDE": np.zeros(count, dtype="u1"),
-                        "Direction": np.full(count, "", dtype="O"),
-                        "Name": np.full(count, "", dtype="O"),
-                        "Event Type": np.full(count, "CAN Frame", dtype="O"),
-                        "Details": np.full(count, "", dtype="O"),
-                        "ESI": np.full(count, "", dtype="O"),
-                        "EDL": np.full(count, "Standard CAN", dtype="O"),
-                        "BRS": np.full(count, "", dtype="O"),
-                        "DLC": np.zeros(count, dtype="u1"),
-                        "Data Length": np.zeros(count, dtype="u1"),
-                        "Data Bytes": np.full(count, "", dtype="O"),
-                    }
+                        else:
+                            continue
 
-                    for string in v4c.CAN_ERROR_TYPES.values():
-                        sys.intern(string)
+                        df_index = data.timestamps
+                        count = len(df_index)
 
-                    frame_map = None
-                    if data.attachment and data.attachment[0]:
-                        dbc = load_can_database(data.attachment[1], data.attachment[0])
-                        if dbc:
-                            frame_map = {frame.arbitration_id.id: frame.name for frame in dbc}
+                        columns = {
+                            "timestamps": df_index,
+                            "Bus": np.full(count, "Unknown", dtype="O"),
+                            "ID": np.full(count, 0xFFFFFFFF, dtype="u4"),
+                            "IDE": np.zeros(count, dtype="u1"),
+                            "Direction": np.full(count, "", dtype="O"),
+                            "Name": np.full(count, "", dtype="O"),
+                            "Event Type": np.full(count, "CAN Frame", dtype="O"),
+                            "Details": np.full(count, "", dtype="O"),
+                            "ESI": np.full(count, "", dtype="O"),
+                            "EDL": np.full(count, "Standard CAN", dtype="O"),
+                            "BRS": np.full(count, "", dtype="O"),
+                            "DLC": np.zeros(count, dtype="u1"),
+                            "Data Length": np.zeros(count, dtype="u1"),
+                            "Data Bytes": np.full(count, "", dtype="O"),
+                        }
 
-                            for name in frame_map.values():
-                                sys.intern(name)
+                        for string in v4c.CAN_ERROR_TYPES.values():
+                            sys.intern(string)
 
-                    if data.name == "CAN_DataFrame":
-                        vals = data["CAN_DataFrame.BusChannel"].astype("u1")
+                        frame_map = None
+                        if data.attachment and data.attachment[0]:
+                            dbc = load_can_database(data.attachment[1], data.attachment[0])
+                            if dbc:
+                                frame_map = {frame.arbitration_id.id: frame.name for frame in dbc}
 
-                        vals = [f"CAN {chn}" for chn in vals.tolist()]
-                        columns["Bus"] = vals
+                                for name in frame_map.values():
+                                    sys.intern(name)
 
-                        vals = data["CAN_DataFrame.ID"].astype("u4") & 0x1FFFFFFF
-                        columns["ID"] = vals
-                        if frame_map:
-                            columns["Name"] = [frame_map.get(_id, "") for _id in vals.tolist()]
+                        if data.name == "CAN_DataFrame":
+                            vals = data["CAN_DataFrame.BusChannel"].astype("u1")
 
-                        if "CAN_DataFrame.IDE" in names:
-                            columns["IDE"] = data["CAN_DataFrame.IDE"].astype("u1")
-
-                        columns["DLC"] = data["CAN_DataFrame.DLC"].astype("u1")
-                        data_length = data["CAN_DataFrame.DataLength"].astype("u1")
-                        columns["Data Length"] = data_length
-
-                        vals = csv_bytearray2hex(
-                            pd.Series(list(data["CAN_DataFrame.DataBytes"])),
-                            data_length.tolist(),
-                        )
-                        columns["Data Bytes"] = vals
-
-                        if "CAN_DataFrame.Dir" in names:
-                            if data["CAN_DataFrame.Dir"].dtype.kind == "S":
-                                columns["Direction"] = [v.decode("utf-8") for v in data["CAN_DataFrame.Dir"].tolist()]
-                            else:
-                                columns["Direction"] = [
-                                    "TX" if dir else "RX" for dir in data["CAN_DataFrame.Dir"].astype("u1").tolist()
-                                ]
-
-                        if "CAN_DataFrame.ESI" in names:
-                            columns["ESI"] = [
-                                "Error" if dir else "No error"
-                                for dir in data["CAN_DataFrame.ESI"].astype("u1").tolist()
-                            ]
-
-                        if "CAN_DataFrame.EDL" in names:
-                            columns["EDL"] = [
-                                "CAN FD" if dir else "Standard CAN"
-                                for dir in data["CAN_DataFrame.EDL"].astype("u1").tolist()
-                            ]
-
-                        if "CAN_DataFrame.BRS" in names:
-                            columns["BRS"] = [str(dir) for dir in data["CAN_DataFrame.BRS"].astype("u1").tolist()]
-
-                        vals = None
-                        data_length = None
-
-                    elif data.name == "CAN_RemoteFrame":
-                        vals = data["CAN_RemoteFrame.BusChannel"].astype("u1")
-                        vals = [f"CAN {chn}" for chn in vals.tolist()]
-                        columns["Bus"] = vals
-
-                        vals = data["CAN_RemoteFrame.ID"].astype("u4") & 0x1FFFFFFF
-                        columns["ID"] = vals
-                        if frame_map:
-                            columns["Name"] = [frame_map.get(_id, "") for _id in vals.tolist()]
-
-                        if "CAN_RemoteFrame.IDE" in names:
-                            columns["IDE"] = data["CAN_RemoteFrame.IDE"].astype("u1")
-
-                        columns["DLC"] = data["CAN_RemoteFrame.DLC"].astype("u1")
-                        data_length = data["CAN_RemoteFrame.DataLength"].astype("u1")
-                        columns["Data Length"] = data_length
-                        columns["Event Type"] = "Remote Frame"
-
-                        if "CAN_RemoteFrame.Dir" in names:
-                            if data["CAN_RemoteFrame.Dir"].dtype.kind == "S":
-                                columns["Direction"] = [v.decode("utf-8") for v in data["CAN_RemoteFrame.Dir"].tolist()]
-                            else:
-                                columns["Direction"] = [
-                                    "TX" if dir else "RX" for dir in data["CAN_RemoteFrame.Dir"].astype("u1").tolist()
-                                ]
-
-                        vals = None
-                        data_length = None
-
-                    elif data.name == "CAN_ErrorFrame":
-                        names = set(data.samples.dtype.names)
-
-                        if "CAN_ErrorFrame.BusChannel" in names:
-                            vals = data["CAN_ErrorFrame.BusChannel"].astype("u1")
                             vals = [f"CAN {chn}" for chn in vals.tolist()]
                             columns["Bus"] = vals
 
-                        if "CAN_ErrorFrame.ID" in names:
-                            vals = data["CAN_ErrorFrame.ID"].astype("u4") & 0x1FFFFFFF
+                            vals = data["CAN_DataFrame.ID"].astype("u4") & 0x1FFFFFFF
                             columns["ID"] = vals
                             if frame_map:
                                 columns["Name"] = [frame_map.get(_id, "") for _id in vals.tolist()]
 
-                        if "CAN_ErrorFrame.IDE" in names:
-                            columns["IDE"] = data["CAN_ErrorFrame.IDE"].astype("u1")
+                            if "CAN_DataFrame.IDE" in names:
+                                columns["IDE"] = data["CAN_DataFrame.IDE"].astype("u1")
 
-                        if "CAN_ErrorFrame.DLC" in names:
-                            columns["DLC"] = data["CAN_ErrorFrame.DLC"].astype("u1")
+                            columns["DLC"] = data["CAN_DataFrame.DLC"].astype("u1")
+                            data_length = data["CAN_DataFrame.DataLength"].astype("u1")
+                            columns["Data Length"] = data_length
 
-                        if "CAN_ErrorFrame.DataLength" in names:
-                            columns["Data Length"] = data["CAN_ErrorFrame.DataLength"].astype("u1")
+                            vals = csv_bytearray2hex(
+                                pd.Series(list(data["CAN_DataFrame.DataBytes"])),
+                                data_length.tolist(),
+                            )
+                            columns["Data Bytes"] = vals
 
-                        columns["Event Type"] = "Error Frame"
+                            if "CAN_DataFrame.Dir" in names:
+                                if data["CAN_DataFrame.Dir"].dtype.kind == "S":
+                                    columns["Direction"] = [
+                                        v.decode("utf-8") for v in data["CAN_DataFrame.Dir"].tolist()
+                                    ]
+                                else:
+                                    columns["Direction"] = [
+                                        "TX" if dir else "RX" for dir in data["CAN_DataFrame.Dir"].astype("u1").tolist()
+                                    ]
 
-                        if "CAN_ErrorFrame.ErrorType" in names:
-                            vals = data["CAN_ErrorFrame.ErrorType"].astype("u1").tolist()
-                            vals = [v4c.CAN_ERROR_TYPES.get(err, "Other error") for err in vals]
-
-                            columns["Details"] = vals
-
-                        if "CAN_ErrorFrame.Dir" in names:
-                            if data["CAN_ErrorFrame.Dir"].dtype.kind == "S":
-                                columns["Direction"] = [v.decode("utf-8") for v in data["CAN_ErrorFrame.Dir"].tolist()]
-                            else:
-                                columns["Direction"] = [
-                                    "TX" if dir else "RX" for dir in data["CAN_ErrorFrame.Dir"].astype("u1").tolist()
+                            if "CAN_DataFrame.ESI" in names:
+                                columns["ESI"] = [
+                                    "Error" if dir else "No error"
+                                    for dir in data["CAN_DataFrame.ESI"].astype("u1").tolist()
                                 ]
 
-                    df = pd.DataFrame(columns, index=df_index)
-                    dfs.append(df)
+                            if "CAN_DataFrame.EDL" in names:
+                                columns["EDL"] = [
+                                    "CAN FD" if dir else "Standard CAN"
+                                    for dir in data["CAN_DataFrame.EDL"].astype("u1").tolist()
+                                ]
+
+                            if "CAN_DataFrame.BRS" in names:
+                                columns["BRS"] = [str(dir) for dir in data["CAN_DataFrame.BRS"].astype("u1").tolist()]
+
+                            vals = None
+                            data_length = None
+
+                        elif data.name == "CAN_RemoteFrame":
+                            vals = data["CAN_RemoteFrame.BusChannel"].astype("u1")
+                            vals = [f"CAN {chn}" for chn in vals.tolist()]
+                            columns["Bus"] = vals
+
+                            vals = data["CAN_RemoteFrame.ID"].astype("u4") & 0x1FFFFFFF
+                            columns["ID"] = vals
+                            if frame_map:
+                                columns["Name"] = [frame_map.get(_id, "") for _id in vals.tolist()]
+
+                            if "CAN_RemoteFrame.IDE" in names:
+                                columns["IDE"] = data["CAN_RemoteFrame.IDE"].astype("u1")
+
+                            columns["DLC"] = data["CAN_RemoteFrame.DLC"].astype("u1")
+                            data_length = data["CAN_RemoteFrame.DataLength"].astype("u1")
+                            columns["Data Length"] = data_length
+                            columns["Event Type"] = "Remote Frame"
+
+                            if "CAN_RemoteFrame.Dir" in names:
+                                if data["CAN_RemoteFrame.Dir"].dtype.kind == "S":
+                                    columns["Direction"] = [
+                                        v.decode("utf-8") for v in data["CAN_RemoteFrame.Dir"].tolist()
+                                    ]
+                                else:
+                                    columns["Direction"] = [
+                                        "TX" if dir else "RX"
+                                        for dir in data["CAN_RemoteFrame.Dir"].astype("u1").tolist()
+                                    ]
+
+                            vals = None
+                            data_length = None
+
+                        elif data.name == "CAN_ErrorFrame":
+                            names = set(data.samples.dtype.names)
+
+                            if "CAN_ErrorFrame.BusChannel" in names:
+                                vals = data["CAN_ErrorFrame.BusChannel"].astype("u1")
+                                vals = [f"CAN {chn}" for chn in vals.tolist()]
+                                columns["Bus"] = vals
+
+                            if "CAN_ErrorFrame.ID" in names:
+                                vals = data["CAN_ErrorFrame.ID"].astype("u4") & 0x1FFFFFFF
+                                columns["ID"] = vals
+                                if frame_map:
+                                    columns["Name"] = [frame_map.get(_id, "") for _id in vals.tolist()]
+
+                            if "CAN_ErrorFrame.IDE" in names:
+                                columns["IDE"] = data["CAN_ErrorFrame.IDE"].astype("u1")
+
+                            if "CAN_ErrorFrame.DLC" in names:
+                                columns["DLC"] = data["CAN_ErrorFrame.DLC"].astype("u1")
+
+                            if "CAN_ErrorFrame.DataLength" in names:
+                                columns["Data Length"] = data["CAN_ErrorFrame.DataLength"].astype("u1")
+
+                            columns["Event Type"] = "Error Frame"
+
+                            if "CAN_ErrorFrame.ErrorType" in names:
+                                vals = data["CAN_ErrorFrame.ErrorType"].astype("u1").tolist()
+                                vals = [v4c.CAN_ERROR_TYPES.get(err, "Other error") for err in vals]
+
+                                columns["Details"] = vals
+
+                            if "CAN_ErrorFrame.Dir" in names:
+                                if data["CAN_ErrorFrame.Dir"].dtype.kind == "S":
+                                    columns["Direction"] = [
+                                        v.decode("utf-8") for v in data["CAN_ErrorFrame.Dir"].tolist()
+                                    ]
+                                else:
+                                    columns["Direction"] = [
+                                        "TX" if dir else "RX"
+                                        for dir in data["CAN_ErrorFrame.Dir"].astype("u1").tolist()
+                                    ]
+
+                        df = pd.DataFrame(columns, index=df_index)
+                        dfs.append(df)
 
         if not dfs:
-            return
+            df_index = []
+            count = 0
+
+            columns = {
+                "timestamps": df_index,
+                "Bus": np.full(count, "Unknown", dtype="O"),
+                "ID": np.full(count, 0xFFFFFFFF, dtype="u4"),
+                "IDE": np.zeros(count, dtype="u1"),
+                "Direction": np.full(count, "", dtype="O"),
+                "Name": np.full(count, "", dtype="O"),
+                "Event Type": np.full(count, "CAN Frame", dtype="O"),
+                "Details": np.full(count, "", dtype="O"),
+                "ESI": np.full(count, "", dtype="O"),
+                "EDL": np.full(count, "Standard CAN", dtype="O"),
+                "BRS": np.full(count, "", dtype="O"),
+                "DLC": np.zeros(count, dtype="u1"),
+                "Data Length": np.zeros(count, dtype="u1"),
+                "Data Bytes": np.full(count, "", dtype="O"),
+            }
+            signals = pd.DataFrame(columns, index=df_index)
+
         else:
             signals = pd.concat(dfs).sort_index()
 
