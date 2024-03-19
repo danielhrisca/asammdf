@@ -3111,6 +3111,17 @@ class WithMDIArea:
                 columns_visibility["unit"], numeric.channels.columnHeader.UnitColumn
             )
 
+        sorting = window_info["configuration"].get("sorting", {})
+        if sorting:
+            enabled = sorting["enabled"]
+            if enabled:
+                numeric.channels.columnHeader.backend.sort_reversed = not self.sort_reversed
+            else:
+                numeric.channels.columnHeader.backend.sort_reversed = self.sort_reversed
+
+            numeric.channels.columnHeader.backend.sorting_enabled = sorting["enabled"]
+            numeric.channels.columnHeader.backend.sort_column(sorting["sort_column"])
+
         return w, pattern_info
 
     def _load_gps_window(self, window_info):

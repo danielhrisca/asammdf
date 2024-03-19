@@ -159,6 +159,7 @@ class OnlineBackEnd:
         self.numeric = numeric
 
         self.sorted_column_index = 0
+        self.sorting_enabled = True
         self.sort_reversed = False
         self.numeric_viewer = None
 
@@ -219,6 +220,9 @@ class OnlineBackEnd:
             self.numeric_viewer.refresh_ui()
 
     def sort(self):
+        if not self.sorting_enabled:
+            return
+
         sorted_column_index = self.sorted_column_index
 
         if sorted_column_index == 0:
@@ -299,6 +303,7 @@ class OfflineBackEnd:
         self.numeric = numeric
 
         self.sorted_column_index = 0
+        self.sorting_enabled = True
         self.sort_reversed = False
         self.numeric_viewer = None
 
@@ -337,6 +342,9 @@ class OfflineBackEnd:
             self.numeric_viewer.refresh_ui()
 
     def sort(self):
+        if not self.sorting_enabled:
+            return
+
         sorted_column_index = self.sorted_column_index
 
         if sorted_column_index == 0:
@@ -838,7 +846,7 @@ class HeaderModel(QtCore.QAbstractTableModel):
             return names[col]
 
         elif role == QtCore.Qt.ItemDataRole.DecorationRole:
-            if col != self.backend.sorted_column_index:
+            if not self.backend.sorting_enabled or col != self.backend.sorted_column_index:
                 return
             else:
                 if self.backend.sort_reversed:
@@ -922,11 +930,18 @@ class HeaderView(QtWidgets.QTableView):
         super().showEvent(a0)
         self.initial_size = self.size()
 
+    def sorting(self):
+        return {
+            "sort_column": self.backend.sorted_column_index,
+            "enabled": self.backend.sorting_enabled,
+            "reversed": self.backend.sort_reversed,
+        }
+
     def mouseDoubleClickEvent(self, event):
         point = event.pos()
         ix = self.indexAt(point)
         col = ix.column()
-        if event.button() == QtCore.Qt.MouseButton.LeftButton:
+        if event.button() == QtCore.Qt.MouseButton.LeftButton and self.backend.sorting_enabled:
             self.backend.sort_column(col)
             self.sorting_changed.emit(col)
         else:
@@ -938,6 +953,12 @@ class HeaderView(QtWidgets.QTableView):
         menu = QtWidgets.QMenu()
         menu.addAction(f"{count} rows in the numeric window")
         menu.addSeparator()
+
+        action = QtGui.QAction("Sorting", menu)
+        action.setCheckable(True)
+        action.setChecked(self.backend.sorting_enabled)
+        action.toggled.connect(self.toggle_sorting)
+        menu.addAction(action)
 
         menu.addAction("Automatic set columns width")
         menu.addSeparator()
@@ -1056,6 +1077,10 @@ class HeaderView(QtWidgets.QTableView):
 
         self.updateGeometry()
         self.numeric_viewer.dataView.updateGeometry()
+
+    def toggle_sorting(self, checked):
+        self.backend.sorting_enabled = checked
+        self.backend.sort()
 
     def minimumSizeHint(self):
         return QtCore.QSize(50, self.sizeHint().height())
@@ -1390,6 +1415,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             "header_sections_width": self.channels.columnHeader.all_columns_width(),
             "font_size": self.font().pointSize(),
             "columns_visibility": self.channels.columnHeader.columns_visibility(),
+            "sorting": self.channels.columnHeader.sorting(),
         }
 
         return config
