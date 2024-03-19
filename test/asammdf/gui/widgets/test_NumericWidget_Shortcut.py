@@ -159,6 +159,9 @@ class TestNumericWidgetShortcuts(TestFileWidget):
         self.numeric = self.widget.mdi_area.subWindowList()[0].widget()
         self.table_view = self.numeric.channels.dataView
 
+    def tearDown(self):
+        super().tearDown()
+
     def test_NumericWidget_Shortcut_Keys_Ctrl_H_Ctrl_B_Ctrl_P_Ctrl_T(self):
         """
         Test Scope:

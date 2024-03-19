@@ -287,6 +287,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
     def tearDown(self):
         with mock.patch("asammdf.gui.widgets.mdi_area.MessageBox.question") as mo_question:
             mo_question.return_value = QtWidgets.QMessageBox.No
+        super().tearDown()
         self.widget.destroy()
 
     def test_Plot_Plot_Shortcut_Key_M(self):
@@ -365,7 +366,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
 
         # case 0
         QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_2)
-        for _ in range(10):
+        for _ in range(50):
             self.processEvents(0.01)
         # Evaluate
         self.assertTrue(Pixmap.is_black(self.plot.plot.viewport().grab()))
