@@ -1,4 +1,5 @@
 import bisect
+from functools import partial
 import json
 import os
 from pathlib import Path
@@ -856,6 +857,10 @@ class HeaderModel(QtCore.QAbstractTableModel):
 
 class HeaderView(QtWidgets.QTableView):
     sorting_changed = QtCore.Signal(int)
+    NameColumn = 0
+    RawColumn = 1
+    ScaledColumn = 2
+    UnitColumn = 3
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -897,6 +902,22 @@ class HeaderView(QtWidgets.QTableView):
 
         self.resize(self.sizeHint())
 
+        self.columns_width = {
+            self.RawColumn: self.columnWidth(self.RawColumn),
+            self.ScaledColumn: self.columnWidth(self.ScaledColumn),
+            self.UnitColumn: self.columnWidth(self.UnitColumn),
+        }
+
+    def all_columns_width(self):
+        return [self.columnWidth(self.NameColumn), *self.columns_width.values()]
+
+    def columns_visibility(self):
+        return {
+            "raw": not self.isColumnHidden(self.RawColumn),
+            "scaled": not self.isColumnHidden(self.ScaledColumn),
+            "unit": not self.isColumnHidden(self.UnitColumn),
+        }
+
     def showEvent(self, a0: QtGui.QShowEvent) -> None:
         super().showEvent(a0)
         self.initial_size = self.size()
@@ -915,10 +936,29 @@ class HeaderView(QtWidgets.QTableView):
         count = len(self.backend)
 
         menu = QtWidgets.QMenu()
-        menu.addAction(self.tr(f"{count} rows in the numeric window"))
+        menu.addAction(f"{count} rows in the numeric window")
         menu.addSeparator()
 
-        menu.addAction(self.tr("Automatic set columns width"))
+        menu.addAction("Automatic set columns width")
+        menu.addSeparator()
+
+        action = QtGui.QAction("Raw Column", menu)
+        action.setCheckable(True)
+        action.setChecked(not self.isColumnHidden(self.RawColumn))
+        action.toggled.connect(partial(self.toggle_column, column=self.RawColumn))
+        menu.addAction(action)
+
+        action = QtGui.QAction("Scaled Column", menu)
+        action.setCheckable(True)
+        action.setChecked(not self.isColumnHidden(self.ScaledColumn))
+        action.toggled.connect(partial(self.toggle_column, column=self.ScaledColumn))
+        menu.addAction(action)
+
+        action = QtGui.QAction("Unit Column", menu)
+        action.setCheckable(True)
+        action.setChecked(not self.isColumnHidden(self.UnitColumn))
+        action.toggled.connect(partial(self.toggle_column, column=self.UnitColumn))
+        menu.addAction(action)
 
         action = menu.exec_(self.viewport().mapToGlobal(position))
 
@@ -1002,6 +1042,20 @@ class HeaderView(QtWidgets.QTableView):
         height = 16 + self.font().pointSize() + 2 * self.frameWidth()
 
         return QtCore.QSize(width, height)
+
+    def toggle_column(self, checked, column):
+        if not checked:
+            self.columns_width[column] = self.columnWidth(column)
+
+        self.setColumnHidden(column, not checked)
+        self.numeric_viewer.dataView.setColumnHidden(column, not checked)
+
+        if checked:
+            self.setColumnWidth(column, self.columns_width[column])
+            self.numeric_viewer.dataView.setColumnWidth(column, self.columns_width[column])
+
+        self.updateGeometry()
+        self.numeric_viewer.dataView.updateGeometry()
 
     def minimumSizeHint(self):
         return QtCore.QSize(50, self.sizeHint().height())
@@ -1333,11 +1387,9 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             "channels": channels,
             "pattern": pattern,
             "float_precision": self.float_precision.currentIndex() - 1,
-            "header_sections_width": [
-                self.channels.columnHeader.horizontalHeader().sectionSize(i)
-                for i in range(self.channels.columnHeader.horizontalHeader().count())
-            ],
+            "header_sections_width": self.channels.columnHeader.all_columns_width(),
             "font_size": self.font().pointSize(),
+            "columns_visibility": self.channels.columnHeader.columns_visibility(),
         }
 
         return config
@@ -1626,7 +1678,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
 
             if file_name:
-                signals = [signal for signal in self.channels.dataView.backend.signals if signal.enable]
+                signals = [offline_signal.signal for offline_signal in self.channels.dataView.backend.signals]
                 if signals:
                     with mdf_module.MDF() as mdf:
                         groups = {}

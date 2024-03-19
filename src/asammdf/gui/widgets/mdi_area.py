@@ -3099,6 +3099,18 @@ class WithMDIArea:
         font_size = window_info["configuration"].get("font_size", numeric.font().pointSize())
         numeric.set_font_size(font_size)
 
+        columns_visibility = window_info["configuration"].get("columns_visibility", {})
+        if columns_visibility:
+            numeric.channels.columnHeader.toggle_column(
+                columns_visibility["raw"], numeric.channels.columnHeader.RawColumn
+            )
+            numeric.channels.columnHeader.toggle_column(
+                columns_visibility["scaled"], numeric.channels.columnHeader.ScaledColumn
+            )
+            numeric.channels.columnHeader.toggle_column(
+                columns_visibility["unit"], numeric.channels.columnHeader.UnitColumn
+            )
+
         return w, pattern_info
 
     def _load_gps_window(self, window_info):
