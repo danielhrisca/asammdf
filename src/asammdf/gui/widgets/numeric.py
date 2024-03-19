@@ -195,6 +195,10 @@ class OnlineBackEnd:
     def data_changed(self):
         self.refresh_ui()
 
+    def move_rows(self, rows, target_row):
+        sigs = [self.signals.pop(row) for row in rows]
+        self.signals.extend(sigs)
+
     def refresh_ui(self):
         if self.numeric is not None and self.numeric.mode == "offline":
             numeric = self.numeric
@@ -218,6 +222,13 @@ class OnlineBackEnd:
 
         if self.numeric_viewer is not None:
             self.numeric_viewer.refresh_ui()
+
+    def reorder(self, names):
+        sigs = {sig["name"]: idx for idx, sig in enumerate(self.signals)}
+
+        self.signals = [self.signals[sigs[name]] for name in names]
+
+        self.data_changed()
 
     def sort(self):
         if not self.sorting_enabled:
@@ -337,9 +348,30 @@ class OfflineBackEnd:
     def data_changed(self):
         self.refresh_ui()
 
+    def move_rows(self, rows, target_row):
+        if target_row == -1:
+            sigs = [self.signals.pop(row) for row in rows]
+            self.signals.extend(sigs)
+        else:
+            sig = self.signals[target_row]
+            sigs = [self.signals.pop(row) for row in rows]
+
+            idx = self.signals.index(sig)
+            for sig in sigs:
+                self.signals.insert(idx, sig)
+
+        self.data_changed()
+
     def refresh_ui(self):
         if self.numeric_viewer is not None:
             self.numeric_viewer.refresh_ui()
+
+    def reorder(self, names):
+        sigs = {sig.name: idx for idx, sig in enumerate(self.signals)}
+
+        self.signals = [self.signals[sigs[name]] for name in names]
+
+        self.data_changed()
 
     def sort(self):
         if not self.sorting_enabled:
@@ -589,10 +621,31 @@ class TableModel(QtCore.QAbstractTableModel):
             QtCore.Qt.ItemFlag.ItemIsEnabled
             | QtCore.Qt.ItemFlag.ItemIsSelectable
             | QtCore.Qt.ItemFlag.ItemIsDragEnabled
+            | QtCore.Qt.ItemFlag.ItemIsDropEnabled
         )
 
-    def setData(self, index, value, role=None):
-        pass
+    def dropMimeData(self, data, action, row, column, parent):
+        print(data, action, row, column, parent)
+
+        def moved_rows(data):
+
+            rows = set()
+
+            ds = QtCore.QDataStream(data.data("application/x-qabstractitemmodeldatalist"))
+            while not ds.atEnd():
+
+                row = ds.readInt32()
+                ds.readInt32()
+                map_items = ds.readInt32()
+                for i in range(map_items):
+                    ds.readInt32()
+                    ds.readQVariant()
+
+                rows.add(row)
+
+            return sorted(rows, reverse=True)
+
+        self.backend.move_rows(moved_rows(data), parent.row())
 
     def supportedDropActions(self) -> bool:
         return QtCore.Qt.DropAction.MoveAction | QtCore.Qt.DropAction.CopyAction
@@ -752,61 +805,70 @@ class TableView(QtWidgets.QTableView):
             super().keyPressEvent(event)
 
     def startDrag(self, supportedActions):
-        selected_items = [index.row() for index in self.selectedIndexes() if index.isValid()]
+        if (
+            bool(QtWidgets.QApplication.instance().mouseButtons() & QtCore.Qt.RightButton)
+            and not self.backend.sorting_enabled
+        ):
+            super().startDrag(supportedActions)
 
-        mimeData = QtCore.QMimeData()
+        else:
+            selected_items = [index.row() for index in self.selectedIndexes() if index.isValid()]
 
-        data = []
-        numeric_mode = self.backend.numeric.mode
+            mimeData = QtCore.QMimeData()
 
-        for row in sorted(set(selected_items)):
-            signal = self.backend.signals[row]
+            data = []
+            numeric_mode = self.backend.numeric.mode
 
-            entry = signal.entry if numeric_mode == "online" else signal.signal.entry
+            for row in sorted(set(selected_items)):
+                signal = self.backend.signals[row]
 
-            group_index, channel_index = entry
+                entry = signal.entry if numeric_mode == "online" else signal.signal.entry
 
-            ranges = copy_ranges(self.ranges[signal.entry])
+                group_index, channel_index = entry
 
-            for range_info in ranges:
-                range_info["font_color"] = range_info["font_color"].color().name()
-                range_info["background_color"] = range_info["background_color"].color().name()
+                ranges = copy_ranges(self.ranges[signal.entry])
 
-            info = {
-                "name": signal.name,
-                "computation": {},
-                "computed": True,
-                "group_index": group_index,
-                "channel_index": channel_index,
-                "ranges": ranges,
-                "origin_uuid": str(entry[0]) if numeric_mode == "online" else signal.signal.origin_uuid,
-                "type": "channel",
-                "uuid": os.urandom(6).hex(),
-            }
+                for range_info in ranges:
+                    range_info["font_color"] = range_info["font_color"].color().name()
+                    range_info["background_color"] = range_info["background_color"].color().name()
 
-            data.append(info)
+                info = {
+                    "name": signal.name,
+                    "computation": {},
+                    "computed": True,
+                    "group_index": group_index,
+                    "channel_index": channel_index,
+                    "ranges": ranges,
+                    "origin_uuid": str(entry[0]) if numeric_mode == "online" else signal.signal.origin_uuid,
+                    "type": "channel",
+                    "uuid": os.urandom(6).hex(),
+                }
 
-        data = json.dumps(data).encode("utf-8")
+                data.append(info)
 
-        mimeData.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
+            data = json.dumps(data).encode("utf-8")
 
-        drag = QtGui.QDrag(self)
-        drag.setMimeData(mimeData)
-        drag.exec(QtCore.Qt.DropAction.CopyAction)
+            mimeData.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
+
+            drag = QtGui.QDrag(self)
+            drag.setMimeData(mimeData)
+            drag.exec(QtCore.Qt.DropAction.CopyAction)
 
     def dragEnterEvent(self, e):
         e.accept()
 
     def dropEvent(self, e):
         if e.source() is self:
-            return
+            if e.mimeData().hasFormat("application/x-qabstractitemmodeldatalist"):
+                super().dropEvent(e)
+            else:
+                e.ignore()
+            self.clearSelection()
         else:
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
                 self.add_channels_request.emit(names)
-            else:
-                return
 
     def edit_ranges(self, index):
         if not self.double_clicked_enabled or not index.isValid():

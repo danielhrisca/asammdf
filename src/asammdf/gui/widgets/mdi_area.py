@@ -3115,12 +3115,17 @@ class WithMDIArea:
         if sorting:
             enabled = sorting["enabled"]
             if enabled:
-                numeric.channels.columnHeader.backend.sort_reversed = not self.sort_reversed
+                numeric.channels.columnHeader.backend.sort_reversed = not sorting["reversed"]
             else:
-                numeric.channels.columnHeader.backend.sort_reversed = self.sort_reversed
+                numeric.channels.columnHeader.backend.sort_reversed = sorting["reversed"]
 
             numeric.channels.columnHeader.backend.sorting_enabled = sorting["enabled"]
             numeric.channels.columnHeader.backend.sort_column(sorting["sort_column"])
+
+            if not enabled:
+                numeric.channels.columnHeader.backend.reorder(
+                    [s["name"] for s in window_info["configuration"]["channels"]]
+                )
 
         return w, pattern_info
 
