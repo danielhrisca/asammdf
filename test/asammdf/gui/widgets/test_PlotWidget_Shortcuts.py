@@ -369,7 +369,10 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         for _ in range(50):
             self.processEvents(0.01)
         # Evaluate
-        self.assertTrue(Pixmap.is_black(self.plot.plot.viewport().grab()))
+        pm = self.plot.plot.viewport().grab()
+        colors = Pixmap.color_names(pm)
+        print(colors)
+        self.assertTrue(Pixmap.is_black(pm))
 
         # case 1
         self.mouseClick_WidgetItem(self.channels[0])

@@ -160,6 +160,8 @@ class TestNumericWidgetShortcuts(TestFileWidget):
         self.table_view = self.numeric.channels.dataView
 
     def tearDown(self):
+        if self.widget:
+            self.widget.destroy()
         super().tearDown()
 
     def test_NumericWidget_Shortcut_Keys_Ctrl_H_Ctrl_B_Ctrl_P_Ctrl_T(self):
