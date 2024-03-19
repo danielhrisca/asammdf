@@ -213,7 +213,7 @@ class TestPlotGraphicsShortcutsFunctionality(TestPlotWidget):
         # Get X position of Cursors
         new_cursors = Pixmap.cursors_x(range_pixmap)
         # Evaluate that two cursors are available
-        self.assertEqual(2, len(cursors))
+        self.assertEqual(2, len(new_cursors))
         self.assertEqual(cursors[0], new_cursors[0], "First cursor have new position after manipulation")
         self.assertNotEqual(cursors[1], new_cursors[1], "Second cursors have same position after manipulation")
 
@@ -263,7 +263,7 @@ class TestPlotGraphicsShortcutsFunctionality(TestPlotWidget):
         # Get X position of Cursors
         new_cursors = Pixmap.cursors_x(range_pixmap)
         # Evaluate that two cursors are available
-        self.assertEqual(2, len(cursors))
+        self.assertEqual(2, len(new_cursors))
         for c in cursors:
             self.assertNotIn(c, new_cursors, f"cursor {c} is the same")
 
@@ -1133,6 +1133,7 @@ class TestPlotGraphicsShortcutsFunctionality(TestPlotWidget):
 
         # Evaluate
         self.assertEqual(delta_x_honey_range, self.plot.plot.x_range[1] - self.plot.plot.x_range[0])
+        # todo cauta dpi-ul ecranului, calculeaza range-ul in functie de el
 
     def test_Plot_PlotGraphics_Shortcut_Key_W(self):
         """

@@ -372,7 +372,10 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         pm = self.plot.plot.viewport().grab()
         colors = Pixmap.color_names(pm)
         print(colors)
-        # self.assertTrue(Pixmap.is_black(pm))
+        server_path = os.path.join(self.resource, "pixmap.png")
+        is_ok = pm.save(server_path)
+        print(is_ok)
+        self.assertTrue(Pixmap.is_black(pm))
 
         # case 1
         self.mouseClick_WidgetItem(self.channels[0])
@@ -649,6 +652,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         """
         # add channels to plot
         self.assertIsNotNone(self.add_channels([35]))
+        # todo ASAM.M.SCALAR.SBYTE.LINEAR_MUL_2 seschimba valoarea..
 
         # Press "Alt+R"
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Alt+R"))
@@ -682,6 +686,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             - Evaluate that object getSaveFileName() was called after pressing combination "Ctrl+S"
             - Evaluate that in measurement file is saved only active channels
         """
+        # todo mai adauga un plot si salveaza din celalalt
         self.assertIsNotNone(self.add_channels([10, 11, 12, 13]))
         expected_items = [channel.name for channel in self.channels]
         expected_items.append("time")
@@ -816,9 +821,11 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         self.assertTrue(Pixmap.has_color(pixmap, self.channels[0].color.name()))
         # Bottom
         pixmap = self.plot.plot.viewport().grab(
-            QtCore.QRect(0, int(self.plot.plot.height() / 2), self.plot.plot.width(), int(self.plot.plot.height() / 2))
+            QtCore.QRect(
+                0, int(self.plot.plot.height() / 2 + 1), self.plot.plot.width(), int(self.plot.plot.height() / 2)
+            )
         )
-        self.assertTrue(Pixmap.has_color(pixmap, self.channels[0].color.name()))
+        self.assertFalse(Pixmap.has_color(pixmap, self.channels[0].color.name()))
         # Evaluate y_range tuple
         self.assertTupleEqual(self.plot.plot.signals[0].y_range, expected_y_range)
 
@@ -859,7 +866,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
                 self.assertNotEqual(previous_color, self.channels[1].color.name())
                 self.assertEqual(color.name(), self.channels[1].color.name())
 
-        with self.subTest("test_2SelectedChannel"):
+        with self.subTest("test_AllSelectedChannel"):
             with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QColorDialog.getColor") as mo_getColor:
                 # Setup
                 color = QtGui.QColor("black")
@@ -976,6 +983,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         # Evaluate
         self.assertNotEqual(self.channels[1].name, self.channels[2].name)
         self.assertEqual(self.channels[1].color.name(), self.channels[2].color.name())
+        # Todo evaluate range, precizia, formatul, axa individuala, y_range, conversia
 
     def test_Plot_Plot_Shortcut_Keys_Ctrl_Left_and_Right_Buckets(self):
         """
