@@ -196,8 +196,18 @@ class OnlineBackEnd:
         self.refresh_ui()
 
     def move_rows(self, rows, target_row):
-        sigs = [self.signals.pop(row) for row in rows]
-        self.signals.extend(sigs)
+        if target_row == -1:
+            sigs = [self.signals.pop(row) for row in rows]
+            self.signals.extend(sigs)
+        else:
+            sig = self.signals[target_row]
+            sigs = [self.signals.pop(row) for row in rows]
+
+            idx = self.signals.index(sig)
+            for sig in sigs:
+                self.signals.insert(idx, sig)
+
+        self.data_changed()
 
     def refresh_ui(self):
         if self.numeric is not None and self.numeric.mode == "offline":
@@ -224,7 +234,7 @@ class OnlineBackEnd:
             self.numeric_viewer.refresh_ui()
 
     def reorder(self, names):
-        sigs = {sig["name"]: idx for idx, sig in enumerate(self.signals)}
+        sigs = {sig.name: idx for idx, sig in enumerate(self.signals)}
 
         self.signals = [self.signals[sigs[name]] for name in names]
 
