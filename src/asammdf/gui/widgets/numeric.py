@@ -635,12 +635,9 @@ class TableModel(QtCore.QAbstractTableModel):
         )
 
     def dropMimeData(self, data, action, row, column, parent):
-        print(data, action, row, column, parent)
 
         def moved_rows(data):
-
             rows = set()
-
             ds = QtCore.QDataStream(data.data("application/x-qabstractitemmodeldatalist"))
             while not ds.atEnd():
 
@@ -815,54 +812,52 @@ class TableView(QtWidgets.QTableView):
             super().keyPressEvent(event)
 
     def startDrag(self, supportedActions):
-        if (
-            bool(QtWidgets.QApplication.instance().mouseButtons() & QtCore.Qt.RightButton)
-            and not self.backend.sorting_enabled
-        ):
-            super().startDrag(supportedActions)
 
+        indexes = self.selectedIndexes()
+        if not self.backend.sorting_enabled:
+            mime_data = self.model().mimeData(indexes)
         else:
-            selected_items = [index.row() for index in self.selectedIndexes() if index.isValid()]
+            mime_data = QtCore.QMimeData()
 
-            mimeData = QtCore.QMimeData()
+        selected_items = [index.row() for index in indexes if index.isValid()]
 
-            data = []
-            numeric_mode = self.backend.numeric.mode
+        data = []
+        numeric_mode = self.backend.numeric.mode
 
-            for row in sorted(set(selected_items)):
-                signal = self.backend.signals[row]
+        for row in sorted(set(selected_items)):
+            signal = self.backend.signals[row]
 
-                entry = signal.entry if numeric_mode == "online" else signal.signal.entry
+            entry = signal.entry if numeric_mode == "online" else signal.signal.entry
 
-                group_index, channel_index = entry
+            group_index, channel_index = entry
 
-                ranges = copy_ranges(self.ranges[signal.entry])
+            ranges = copy_ranges(self.ranges[signal.entry])
 
-                for range_info in ranges:
-                    range_info["font_color"] = range_info["font_color"].color().name()
-                    range_info["background_color"] = range_info["background_color"].color().name()
+            for range_info in ranges:
+                range_info["font_color"] = range_info["font_color"].color().name()
+                range_info["background_color"] = range_info["background_color"].color().name()
 
-                info = {
-                    "name": signal.name,
-                    "computation": {},
-                    "computed": True,
-                    "group_index": group_index,
-                    "channel_index": channel_index,
-                    "ranges": ranges,
-                    "origin_uuid": str(entry[0]) if numeric_mode == "online" else signal.signal.origin_uuid,
-                    "type": "channel",
-                    "uuid": os.urandom(6).hex(),
-                }
+            info = {
+                "name": signal.name,
+                "computation": {},
+                "computed": True,
+                "group_index": group_index,
+                "channel_index": channel_index,
+                "ranges": ranges,
+                "origin_uuid": str(entry[0]) if numeric_mode == "online" else signal.signal.origin_uuid,
+                "type": "channel",
+                "uuid": os.urandom(6).hex(),
+            }
 
-                data.append(info)
+            data.append(info)
 
-            data = json.dumps(data).encode("utf-8")
+        data = json.dumps(data).encode("utf-8")
 
-            mimeData.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
+        mime_data.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
 
-            drag = QtGui.QDrag(self)
-            drag.setMimeData(mimeData)
-            drag.exec(QtCore.Qt.DropAction.CopyAction)
+        drag = QtGui.QDrag(self)
+        drag.setMimeData(mime_data)
+        drag.exec(supportedActions)
 
     def dragEnterEvent(self, e):
         e.accept()
@@ -870,6 +865,7 @@ class TableView(QtWidgets.QTableView):
     def dropEvent(self, e):
         if e.source() is self:
             if e.mimeData().hasFormat("application/x-qabstractitemmodeldatalist"):
+                e.mimeData().removeFormat("application/octet-stream-asammdf")
                 super().dropEvent(e)
             else:
                 e.ignore()
