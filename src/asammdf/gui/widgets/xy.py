@@ -2,7 +2,7 @@ from functools import partial
 
 import numpy as np
 import pyqtgraph as pg
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...signal import Signal
 from ..ui.xy import Ui_XYDisplay
@@ -10,6 +10,7 @@ from ..ui.xy import Ui_XYDisplay
 
 class XY(Ui_XYDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.Signal(list)
+    timestamp_changed_signal = QtCore.Signal(object, float)
 
     def __init__(
         self,
@@ -28,13 +29,17 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
 
         self.plot = pg.PlotWidget()
         self.plot_layout.addWidget(self.plot)
-        self.curve = self.plot.plot(x=[], y=[], symbol="o")
+
+        self.plot.plotItem.scene().sigMouseClicked.connect(self.clicked)
+
+        self.curve = self.plot.plot(x=[], y=[], symbol="o", symbolSize=4)
         self.marker = self.plot.plot(
             x=[],
             y=[],
             symbol="o",
-            symbolPen={"color": self._settings.value("cursor_color", "#ff0000"), "width": 4},
-            symbolSize=12,
+            symbolPen={"color": self._settings.value("cursor_color", "#ff0000"), "width": 2},
+            symbolBrush=QtGui.QBrush(),
+            symbolSize=10,
         )
 
         self.x_search_btn.clicked.connect(partial(self.search, target="x"))
@@ -49,7 +54,7 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
         self._y = None
         self._timebase = None
         self._timestamp = None
-        self._pen = "#00ff00"
+        self._pen = {"color": "#00ff00", "dash": [16.0, 8.0, 4.0, 4.0, 4.0, 4.0, 4.0, 16.0]}
         self._requested_channel = None
 
         self.set_x(x_channel)
@@ -69,6 +74,27 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
 
         self.update_plot()
 
+    def clicked(self, event):
+
+        scene_pos = event.scenePos()
+        pos = self.plot.plotItem.vb.mapSceneToView(scene_pos)
+        x = pos.x()
+        y = pos.y()
+
+        delta = (self._x.samples - x) ** 2 + (self._y.samples - y) ** 2
+        idx = np.argmin(delta).flatten()[0]
+
+        x = self._x.samples[idx : idx + 1]
+        y = self._y.samples[idx : idx + 1]
+        stamp = self._timebase[idx]
+
+        self.marker.setData(
+            x=x,
+            y=y,
+        )
+
+        self.timestamp_changed_signal.emit(self, stamp)
+
     def keyPressEvent(self, event):
         key = event.key()
         modifiers = event.modifiers()
@@ -77,7 +103,7 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
             event.accept()
             color = QtWidgets.QColorDialog.getColor(self._pen, parent=self)
             if color.isValid():
-                self._pen = color.name()
+                self._pen["color"] = color.name()
                 self.update_plot()
 
         elif key in (QtCore.Qt.Key.Key_S, QtCore.Qt.Key.Key_F) and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
@@ -111,7 +137,7 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
 
         self.add_channels_request.emit(channels)
 
-    def set_timestamp(self, stamp):
+    def set_timestamp(self, stamp, emit=True):
         self._timestamp = stamp
         if stamp is None or not len(self._timebase):
             self.marker.setData(x=[], y=[])
@@ -124,9 +150,6 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
             self.marker.setData(
                 x=x,
                 y=y,
-                symbol="o",
-                symbolPen={"color": self._settings.value("cursor_color", "#ff0000"), "width": 4},
-                symbolSize=12,
             )
 
     def set_x(self, x):
@@ -163,8 +186,8 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
         return config
 
     def update_plot(self):
-        self.plot.plotItem.getAxis("left").setPen(self._pen)
-        self.plot.plotItem.getAxis("left").setTextPen(self._pen)
+        self.plot.plotItem.getAxis("left").setPen(self._pen["color"])
+        self.plot.plotItem.getAxis("left").setTextPen(self._pen["color"])
 
         x, y = self._x, self._y
         if x is None or y is None:
@@ -175,6 +198,12 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
             x = x.interp(t)
             y = y.interp(t)
             self.curve.setData(
-                x=x.samples, y=y.samples, pen=self._pen, symbolPen=self._pen, symbolBrush=self._pen, symbolSize=4
+                x=x.samples,
+                y=y.samples,
+                pen=self._pen,
+                symbolPen=self._pen["color"],
+                symbolBrush=self._pen["color"],
+                symbolSize=4,
+                antialias=False,
             )
             self.set_timestamp(self._timestamp)

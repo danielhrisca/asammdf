@@ -2870,6 +2870,9 @@ class WithMDIArea:
         w.setWindowTitle(f"XY {self._window_counter}")
         self._window_counter += 1
 
+        if self.subplots_link:
+            xy.timestamp_changed_signal.connect(self.set_cursor)
+
         self.windows_modified.emit()
 
     def clear_windows(self):
@@ -4006,6 +4009,8 @@ class WithMDIArea:
         menu.insertAction(before, action)
 
         xy.add_channels_request.connect(partial(self.add_new_channels, widget=xy))
+        if self.subplots_link:
+            xy.timestamp_changed_signal.connect(self.set_cursor)
 
         return w, xy
 
@@ -4044,7 +4049,7 @@ class WithMDIArea:
                     widget.region_removed_signal.connect(self.remove_region)
                     widget.region_moved_signal.connect(self.set_region)
                     widget.splitter_moved.connect(self.set_splitter)
-                elif isinstance(widget, Numeric):
+                elif isinstance(widget, (Numeric, XY)):
                     widget.timestamp_changed_signal.connect(self.set_cursor)
         else:
             for mdi in self.mdi_area.subWindowList():
@@ -4070,7 +4075,7 @@ class WithMDIArea:
                         widget.splitter_moved.disconnect(self.set_splitter)
                     except:
                         pass
-                elif isinstance(widget, Numeric):
+                elif isinstance(widget, (Numeric, XY)):
                     try:
                         widget.timestamp_changed_signal.disconnect(self.set_cursor)
                     except:
