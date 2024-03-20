@@ -56,6 +56,7 @@ from .plot import Plot
 from .tabular import Tabular
 from .tree import add_children
 from .tree_item import MinimalTreeItem
+from .xy import XY
 
 
 def _process_dict(d):
@@ -888,7 +889,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         for mdi in self.mdi_area.subWindowList()
                         if not isinstance(
                             mdi.widget(),
-                            (CANBusTrace, LINBusTrace, FlexRayBusTrace, GPSDialog),
+                            (CANBusTrace, LINBusTrace, FlexRayBusTrace, GPSDialog, XY),
                         )
                     ]
 
@@ -999,6 +1000,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 window_config["type"] = "FlexRay Bus Trace"
             elif isinstance(wid, LINBusTrace):
                 window_config["type"] = "LIN Bus Trace"
+            elif isinstance(wid, XY):
+                window_config["type"] = "XY"
             else:
                 continue
 
@@ -1599,6 +1602,7 @@ MultiRasterSeparator;&
                     "FlexRay Bus Trace",
                     "LIN Bus Trace",
                     "GPS",
+                    "XY",
                 ),
                 parent=self,
             )
@@ -1614,7 +1618,7 @@ MultiRasterSeparator;&
 
         if window_type is None:
             return
-        elif window_type in ("CAN Bus Trace", "FlexRay Bus Trace", "LIN Bus Trace"):
+        elif window_type in ("CAN Bus Trace", "FlexRay Bus Trace", "LIN Bus Trace", "XY"):
             signals = []
         elif window_type == "GPS":
             target = "(latitude|gps_y)"
