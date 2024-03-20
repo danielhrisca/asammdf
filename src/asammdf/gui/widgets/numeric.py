@@ -234,11 +234,16 @@ class OnlineBackEnd:
             self.numeric_viewer.refresh_ui()
 
     def reorder(self, names):
-        sigs = {sig.name: idx for idx, sig in enumerate(self.signals)}
+        try:
+            sigs = {sig.name: idx for idx, sig in enumerate(self.signals)}
 
-        self.signals = [self.signals[sigs[name]] for name in names]
+            if len(sigs) == len(names):
+                self.signals = [self.signals[sigs[name]] for name in names]
 
-        self.data_changed()
+            self.data_changed()
+
+        except:
+            pass
 
     def sort(self):
         if not self.sorting_enabled:
@@ -377,11 +382,16 @@ class OfflineBackEnd:
             self.numeric_viewer.refresh_ui()
 
     def reorder(self, names):
-        sigs = {sig.name: idx for idx, sig in enumerate(self.signals)}
+        try:
+            sigs = {sig.name: idx for idx, sig in enumerate(self.signals)}
 
-        self.signals = [self.signals[sigs[name]] for name in names]
+            if len(sigs) == len(names):
+                self.signals = [self.signals[sigs[name]] for name in names]
 
-        self.data_changed()
+            self.data_changed()
+
+        except:
+            pass
 
     def sort(self):
         if not self.sorting_enabled:
