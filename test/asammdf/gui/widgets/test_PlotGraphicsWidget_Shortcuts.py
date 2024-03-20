@@ -1111,29 +1111,39 @@ class TestPlotGraphicsShortcutsFunctionality(TestPlotWidget):
             - Evaluate that the range of x-axis is same after pressing key "H" second time
                     with range of x-axis after pressing key "H" first time
         """
-        delta_x_range = self.plot.plot.x_range[1] - self.plot.plot.x_range[0]
+
+        def find_honey_range(plot):
+            rect = plot.plotItem.vb.sceneBoundingRect()
+            dpi = QtGui.QGuiApplication.primaryScreen().physicalDotsPerInchX()
+            dpc = dpi / 2.54  # from inch to cm
+            physical_viewbox_width = (rect.width() - 5) / dpc  # cm
+            return physical_viewbox_width * 0.1
+
+        # Setup
+        self.add_channels([35])
+        expected_normal_screen_honey_range = find_honey_range(self.plot.plot)
         # Press "H"
         QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_H)
         self.avoid_blinking_issue(self.plot.channel_selection)
-        delta_x_honey_range = self.plot.plot.x_range[1] - self.plot.plot.x_range[0]
-
+        delta_normal_screen_x_range = self.plot.plot.x_range[1] - self.plot.plot.x_range[0]
         # Evaluate
-        self.assertNotEqual(delta_x_range, delta_x_honey_range)
+        self.assertEqual(delta_normal_screen_x_range, expected_normal_screen_honey_range)
 
-        # Press "O"
-        QtTest.QTest.keyClick(self.plot.plot.viewport(), QtCore.Qt.Key_O)
+        # New Full screen test
+        self.widget.showMaximized()
         self.processEvents()
-
         # Evaluate
-        self.assertNotEqual(delta_x_honey_range, self.plot.plot.x_range[1] - self.plot.plot.x_range[0])
+        self.assertEqual(self.plot.plot.x_range[1] - self.plot.plot.x_range[0], delta_normal_screen_x_range)
 
-        # Press H
+        expected_full_screen_honey_range = find_honey_range(self.plot.plot)
+        # Press "H"
         QtTest.QTest.keyClick(self.plot.plot, QtCore.Qt.Key_H)
         self.avoid_blinking_issue(self.plot.channel_selection)
+        delta_full_screen_x_range = self.plot.plot.x_range[1] - self.plot.plot.x_range[0]
 
         # Evaluate
-        self.assertEqual(delta_x_honey_range, self.plot.plot.x_range[1] - self.plot.plot.x_range[0])
-        # todo cauta dpi-ul ecranului, calculeaza range-ul in functie de el
+        self.assertNotEqual(delta_full_screen_x_range, delta_normal_screen_x_range)
+        self.assertEqual(delta_full_screen_x_range, expected_full_screen_honey_range)
 
     def test_Plot_PlotGraphics_Shortcut_Key_W(self):
         """

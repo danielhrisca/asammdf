@@ -5083,8 +5083,8 @@ class PlotGraphics(pg.PlotWidget):
                 dpi = QtWidgets.QApplication.primaryScreen().physicalDotsPerInchX()
                 dpc = dpi / 2.54
 
-                physical_viewbox_witdh = width / dpc  # cm
-                time_width = physical_viewbox_witdh * HONEYWELL_SECONDS_PER_CM
+                physical_viewbox_width = width / dpc  # cm
+                time_width = physical_viewbox_width * HONEYWELL_SECONDS_PER_CM
 
                 if self.cursor1.isVisible():
                     mid = self.cursor1.value()
