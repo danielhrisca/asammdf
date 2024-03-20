@@ -29,6 +29,13 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
         self.plot = pg.PlotWidget()
         self.plot_layout.addWidget(self.plot)
         self.curve = self.plot.plot(x=[], y=[], symbol="o")
+        self.marker = self.plot.plot(
+            x=[],
+            y=[],
+            symbol="o",
+            symbolPen={"color": self._settings.value("cursor_color", "#ff0000"), "width": 4},
+            symbolSize=12,
+        )
 
         self.x_search_btn.clicked.connect(partial(self.search, target="x"))
         self.y_search_btn.clicked.connect(partial(self.search, target="y"))
@@ -40,6 +47,8 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
 
         self._x = None
         self._y = None
+        self._timebase = None
+        self._timestamp = None
         self._pen = "#00ff00"
         self._requested_channel = None
 
@@ -102,8 +111,23 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
 
         self.add_channels_request.emit(channels)
 
-    def set_timestamp(self, *args):
-        pass
+    def set_timestamp(self, stamp):
+        self._timestamp = stamp
+        if stamp is None or not len(self._timebase):
+            self.marker.setData(x=[], y=[])
+        else:
+            idx = np.searchsorted(self._timebase, stamp, side="right") - 1
+
+            x = self._x.samples[idx : idx + 1]
+            y = self._y.samples[idx : idx + 1]
+
+            self.marker.setData(
+                x=x,
+                y=y,
+                symbol="o",
+                symbolPen={"color": self._settings.value("cursor_color", "#ff0000"), "width": 4},
+                symbolSize=12,
+            )
 
     def set_x(self, x):
         if isinstance(x, Signal):
@@ -145,10 +169,12 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
         x, y = self._x, self._y
         if x is None or y is None:
             self.curve.setData(x=[], y=[], pen=self._pen, symbolPen=self._pen, symbolBrush=self._pen)
+            self._timebase = None
         else:
-            t = np.unique(np.concatenate([x.timestamps, y.timestamps]))
+            self._timebase = t = np.unique(np.concatenate([x.timestamps, y.timestamps]))
             x = x.interp(t)
             y = y.interp(t)
             self.curve.setData(
                 x=x.samples, y=y.samples, pen=self._pen, symbolPen=self._pen, symbolBrush=self._pen, symbolSize=4
             )
+            self.set_timestamp(self._timestamp)
