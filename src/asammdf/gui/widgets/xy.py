@@ -50,6 +50,11 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
 
         self.show()
 
+        self.timestamp.valueChanged.connect(self._timestamp_changed)
+        self.timestamp_slider.valueChanged.connect(self._timestamp_slider_changed)
+
+        self._inhibit = False
+
         self._x = None
         self._y = None
         self._timebase = None
@@ -86,14 +91,13 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
 
         x = self._x.samples[idx : idx + 1]
         y = self._y.samples[idx : idx + 1]
-        stamp = self._timebase[idx]
 
         self.marker.setData(
             x=x,
             y=y,
         )
 
-        self.timestamp_changed_signal.emit(self, stamp)
+        self.timestamp_slider.setValue(idx)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -124,6 +128,19 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
                 else:
                     delta = 0.05 * (max_val - min_val)
                 self.plot.setXRange(min_val - delta, max_val + delta, padding=0)
+        elif (
+            key
+            in (
+                QtCore.Qt.Key.Key_Left,
+                QtCore.Qt.Key.Key_Right,
+                QtCore.Qt.Key.Key_PageUp,
+                QtCore.Qt.Key.Key_PageDown,
+                QtCore.Qt.Key.Key_Home,
+                QtCore.Qt.Key.Key_End,
+            )
+            and modifiers == QtCore.Qt.KeyboardModifier.NoModifier
+        ):
+            self.timestamp_slider.keyPressEvent(event)
 
     def search(self, *args, edit=False, target=None, **kwargs):
         self._requested_channel = target
@@ -152,6 +169,14 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
                 y=y,
             )
 
+            self._inhibit = True
+            self.timestamp_slider.setValue(idx)
+            self.timestamp.setValue(stamp)
+            self._inhibit = False
+
+            if emit:
+                self.timestamp_changed_signal.emit(self, stamp)
+
     def set_x(self, x):
         if isinstance(x, Signal):
             self._x = x
@@ -176,6 +201,18 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
             self.plot.plotItem.setLabel("left", "", "")
 
         self.update_plot()
+        self.update_timebase()
+
+    def _timestamp_changed(self, stamp):
+        if not self._inhibit:
+            self.set_timestamp(stamp)
+
+    def _timestamp_slider_changed(self, idx):
+        if not self._inhibit:
+            if not len(self._timebase):
+                return
+
+            self.set_timestamp(self._timebase[idx])
 
     def to_config(self):
 
@@ -193,6 +230,7 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
         if x is None or y is None:
             self.curve.setData(x=[], y=[], pen=self._pen, symbolPen=self._pen, symbolBrush=self._pen)
             self._timebase = None
+
         else:
             self._timebase = t = np.unique(np.concatenate([x.timestamps, y.timestamps]))
             x = x.interp(t)
@@ -207,3 +245,19 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
                 antialias=False,
             )
             self.set_timestamp(self._timestamp)
+
+    def update_timebase(self):
+
+        if self._timebase is not None and len(self._timebase):
+            count = len(self._timebase)
+            min_, max_ = self._timebase[0], self._timebase[-1]
+            self.timestamp_slider.setRange(0, count - 1)
+
+        else:
+            min_, max_ = 0.0, 0.0
+            self.timestamp_slider.setRange(0, 0)
+
+        self.min_t.setText(f"{min_:.9f}s")
+        self.max_t.setText(f"{max_:.9f}s")
+        self.timestamp.setRange(min_, max_)
+        self.set_timestamp(self._timestamp, emit=False)
