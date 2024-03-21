@@ -1560,7 +1560,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
     def _timestamp_changed(self, stamp):
         if not self._inhibit:
-            self.set_timestamp(stamp)
+            self.set_timestamp(stamp, spinbox=True)
 
     def _timestamp_slider_changed(self, idx):
         if not self._inhibit:
@@ -1569,7 +1569,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
             self.set_timestamp(self.timebase[idx])
 
-    def set_timestamp(self, stamp=None, emit=True):
+    def set_timestamp(self, stamp=None, emit=True, spinbox=False):
         if stamp is None:
             if self._timestamp is None:
                 if len(self.timebase):
@@ -1584,18 +1584,24 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         idx = np.searchsorted(self.timebase, stamp, side="right") - 1
 
-        stamp = self.timebase[idx]
-        self._timestamp = stamp
+        new_stamp = self.timebase[idx]
 
-        self.channels.backend.set_timestamp(stamp)
+        if spinbox:
+            if new_stamp == self._timestamp and stamp > new_stamp:
+                idx += 1
+                new_stamp = self.timebase[idx]
+
+        self._timestamp = new_stamp
+
+        self.channels.backend.set_timestamp(new_stamp)
 
         self._inhibit = True
         self.timestamp_slider.setValue(idx)
-        self.timestamp.setValue(stamp)
+        self.timestamp.setValue(new_stamp)
         self._inhibit = False
 
         if emit:
-            self.timestamp_changed_signal.emit(self, stamp)
+            self.timestamp_changed_signal.emit(self, new_stamp)
 
     def search_forward(self):
         if self.op.currentIndex() < 0 or not self.target.text().strip() or not self.pattern_match.text().strip():
@@ -1893,12 +1899,15 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         if count:
             min_, max_ = self.timebase[0], self.timebase[-1]
             self.timestamp_slider.setRange(0, count - 1)
+            if count >= 2:
+                self.timestamp.setSingleStep(0.5 * np.min(np.diff(self.timebase)))
 
         else:
             min_, max_ = 0.0, 0.0
             self.timestamp_slider.setRange(0, 0)
 
         self.timestamp.setRange(min_, max_)
+        self.timestamp.setSingleStep(0.001)
 
         self.min_t.setText(f"{min_:.9f}s")
         self.max_t.setText(f"{max_:.9f}s")
