@@ -7645,6 +7645,8 @@ class MDF4(MDF_Common):
                     v4c.DATA_TYPE_BYTEARRAY,
                     v4c.DATA_TYPE_UNSIGNED_INTEL,
                     v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                    v4c.DATA_TYPE_SIGNED_INTEL,
+                    v4c.DATA_TYPE_SIGNED_MOTOROLA,
                     v4c.DATA_TYPE_MIME_SAMPLE,
                     v4c.DATA_TYPE_MIME_STREAM,
                 ):
@@ -7669,6 +7671,8 @@ class MDF4(MDF_Common):
                     v4c.DATA_TYPE_BYTEARRAY,
                     v4c.DATA_TYPE_UNSIGNED_INTEL,
                     v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                    v4c.DATA_TYPE_SIGNED_INTEL,
+                    v4c.DATA_TYPE_SIGNED_MOTOROLA,
                     v4c.DATA_TYPE_MIME_SAMPLE,
                     v4c.DATA_TYPE_MIME_STREAM,
                 ):
