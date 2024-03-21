@@ -470,7 +470,7 @@ class DataTableView(QtWidgets.QTableView):
                 ranges = []
                 for index in selected_items:
                     original_name = self.pgdf.df_unfiltered.columns[index]
-                    ranges.update(self.pgdf.tabular.ranges[original_name])
+                    ranges.extend(self.pgdf.tabular.ranges[original_name])
 
                 dlg = RangeEditor("<selected signals>", "", ranges=ranges, parent=self, brush=True)
                 dlg.exec_()
@@ -1150,78 +1150,6 @@ class ColumnMenu(QtWidgets.QMenu):
         action = self.addAction("Automatic set columns width")
         action.triggered.connect(self.automatic_columns_width)
 
-        ########################
-        # Move
-        #
-        # col_name = self.pgdf.df.columns[column_ix]
-        # self.move_b1 = QtWidgets.QPushButton("<<")
-        # self.move_b1.clicked.connect(lambda: [self.pgdf.move_column(column_ix, 0),
-        #                                       self.close(), self.pgdf.dataframe_viewer.show_column_menu(col_name)])
-        # self.move_b2 = QtWidgets.QPushButton("<")
-        # self.move_b2.clicked.connect(lambda: [self.pgdf.move_column(column_ix, column_ix - 1),
-        #                                       self.close(), self.pgdf.dataframe_viewer.show_column_menu(col_name)])
-        # self.move_b3 = QtWidgets.QPushButton(">")
-        # self.move_b3.clicked.connect(lambda: [self.pgdf.move_column(column_ix, column_ix + 1),
-        #                                       self.close(), self.pgdf.dataframe_viewer.show_column_menu(col_name)])
-        # self.move_b4 = QtWidgets.QPushButton(">>")
-        # self.move_b4.clicked.connect(lambda: [self.pgdf.move_column(column_ix, len(df.columns)),
-        #                                       self.close(), self.pgdf.dataframe_viewer.show_column_menu(col_name)])
-        #
-        # move_control = QtWidgets.QWidget()
-        # move_control_layout = QtWidgets.QHBoxLayout()
-        # move_control_layout.setSpacing(0)
-        # move_control_layout.setContentsMargins(0, 0, 0, 0)
-        # move_control.setLayout(move_control_layout)
-        # [move_control_layout.addWidget(w) for w in [self.move_b1, self.move_b2, self.move_b3, self.move_b4]]
-        #
-        # self.add_widget(move_control)
-
-        ########################
-        # Delete
-
-        # button = QtWidgets.QPushButton("Delete Column")
-        # button.clicked.connect(lambda: [self.pgdf.delete_column(column_ix), self.close()])
-        # self.add_widget(button)
-
-        # ########################
-        # # Parse Date
-        #
-        # button = QtWidgets.QPushButton("Parse Date")
-        # button.clicked.connect(lambda: [self.pgdf.parse_date(column_ix), self.close()])
-        # self.add_widget(button)
-
-        # ########################
-        # # Data Type
-        # col_type = self.pgdf.df_unfiltered.dtypes[column_ix]
-        # types = list(dict.fromkeys([str(col_type)] + ['float', 'bool', 'category', 'str']))
-        # combo = QtWidgets.QComboBox()
-        # combo.addItems(types)
-        # combo.setCurrentText(str(col_type))
-        # combo.currentTextChanged.connect(lambda x: [self.pgdf.change_column_type(column_ix, x)])
-        # self.add_widget(combo)
-
-        # ########################
-        # # Coloring
-        # self.add_action("Color by None",
-        #                 lambda: [setattr(self.pgdf.dataframe_viewer, 'color_mode', None),
-        #                          self.pgdf.dataframe_viewer.refresh_ui()]
-        #                 )
-        #
-        # self.add_action("Color by columns",
-        #                 lambda: [setattr(self.pgdf.dataframe_viewer, 'color_mode', 'column'),
-        #                          self.pgdf.dataframe_viewer.refresh_ui()]
-        #                 )
-        #
-        # self.add_action("Color by rows",
-        #                 lambda: [setattr(self.pgdf.dataframe_viewer, 'color_mode', 'row'),
-        #                          self.pgdf.dataframe_viewer.refresh_ui()]
-        #                 )
-        #
-        # self.add_action("Color by all",
-        #                 lambda: [setattr(self.pgdf.dataframe_viewer, 'color_mode', 'all'),
-        #                          self.pgdf.dataframe_viewer.refresh_ui()]
-        #                 )
-
     def edit_ranges(self, *args):
         self.hide()
         self.pgdf.tabular.edit_ranges(self.column_ix, self.name)
@@ -1243,8 +1171,14 @@ class ColumnMenu(QtWidgets.QMenu):
         self.addAction(custom_action)
 
     def show_menu(self, point):
+        screen_rect = self.screen().availableGeometry()
         self.move(point)
         self.show()
+        menu_rect = self.geometry()
+
+        if not screen_rect.contains(menu_rect):
+            point.setX(point.x() - menu_rect.width())
+            self.move(point)
 
     def automatic_columns_width(self, *args):
         self.pgdf.dataframe_viewer.auto_size_header()
@@ -2129,7 +2063,7 @@ class DataFrameViewer(QtWidgets.QWidget):
             logger.info("Column menu not implemented for MultiIndex")
             return
 
-        if type(column_ix_or_name) == str:
+        if isinstance(column_ix_or_name, str):
             column_ix = list(self.pgdf.df.columns).index(column_ix_or_name)
         else:
             column_ix = column_ix_or_name

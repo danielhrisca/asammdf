@@ -30,6 +30,7 @@ from ...blocks.utils import (
 )
 from ...blocks.v4_blocks import EventBlock, HeaderBlock
 from ...signal import Signal
+from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.messagebox import MessageBox
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
@@ -46,6 +47,7 @@ from .lin_bus_trace import LINBusTrace
 from .numeric import Numeric
 from .plot import Plot
 from .tabular import Tabular
+from .xy import XY
 
 COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
@@ -736,6 +738,44 @@ class WithMDIArea:
             ignore_value2text_conversions = False
             current_count = len(widget.plot.signals)
             count = len(names)
+        elif isinstance(widget, XY):
+
+            if names:
+                name = names[0]
+            else:
+                dlg = AdvancedSearch(
+                    self.mdf,
+                    show_add_window=False,
+                    show_apply=True,
+                    show_pattern=False,
+                    apply_text="Apply",
+                    parent=self,
+                )
+                dlg.setModal(True)
+                dlg.exec_()
+                result, pattern_window = dlg.result, dlg.pattern_window
+
+                if result:
+                    name = list(result.values())[0]
+                else:
+                    name = ""
+
+            entries = self.mdf.whereis(name)
+            if entries:
+                entry = entries[0]
+                channels = self.mdf.select(
+                    [(name, *entry)],
+                    raw=False,
+                    ignore_value2text_conversions=True,
+                    validate=True,
+                )
+                widget.add_new_channels(channels)
+
+            else:
+                widget.add_new_channels([None])
+
+            return
+
         else:
             ignore_value2text_conversions = self.ignore_value2text_conversions
 
@@ -1148,6 +1188,8 @@ class WithMDIArea:
             return self._add_numeric_window(names)
         elif window_type == "Tabular":
             return self._add_tabular_window(names)
+        elif window_type == "XY":
+            return self._add_xy_window(names)
 
     def _add_can_bus_trace_window(self, ranges=None):
         dfs = []
@@ -2784,6 +2826,55 @@ class WithMDIArea:
 
         self.windows_modified.emit()
 
+    def _add_xy_window(self, signals):
+        signals = [sig[:3] for sig in signals]
+        if len(signals) == 2:
+            x_channel, y_channel = self.mdf.select(signals, validate=True)
+        else:
+            x_channel, y_channel = None, None
+
+        xy = XY(x_channel, y_channel)
+        sub = MdiSubWindow(parent=self)
+        sub.setWidget(xy)
+        xy.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        sub.sigClosed.connect(self.window_closed_handler)
+        sub.titleModified.connect(self.window_closed_handler)
+
+        w = self.mdi_area.addSubWindow(sub)
+
+        if len(self.mdi_area.subWindowList()) == 1:
+            w.showMaximized()
+        else:
+            w.show()
+            self.mdi_area.tileSubWindows()
+
+        menu = w.systemMenu()
+        if self._frameless_windows:
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
+
+        w.layout().setSpacing(1)
+
+        def set_title(mdi):
+            name, ok = QtWidgets.QInputDialog.getText(self, "Set sub-plot title", "Title:")
+            if ok and name:
+                mdi.setWindowTitle(name)
+
+        action = QtGui.QAction("Set title", menu)
+        action.triggered.connect(partial(set_title, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
+
+        xy.add_channels_request.connect(partial(self.add_new_channels, widget=xy))
+
+        w.setWindowTitle(f"XY {self._window_counter}")
+        self._window_counter += 1
+
+        if self.subplots_link:
+            xy.timestamp_changed_signal.connect(self.set_cursor)
+
+        self.windows_modified.emit()
+
     def clear_windows(self):
         for window in self.mdi_area.subWindowList():
             widget = window.widget()
@@ -2919,6 +3010,7 @@ class WithMDIArea:
             "CAN Bus Trace": self._load_can_bus_trace_window,
             "FlexRay Bus Trace": self._load_flexray_bus_trace_window,
             "LIN Bus Trace": self._load_lin_bus_trace_window,
+            "XY": self._load_xy_window,
         }
 
         if window_info["type"] not in functions:
@@ -3110,6 +3202,22 @@ class WithMDIArea:
             numeric.channels.columnHeader.toggle_column(
                 columns_visibility["unit"], numeric.channels.columnHeader.UnitColumn
             )
+
+        sorting = window_info["configuration"].get("sorting", {})
+        if sorting:
+            enabled = sorting["enabled"]
+            if enabled:
+                numeric.channels.columnHeader.backend.sort_reversed = not sorting["reversed"]
+            else:
+                numeric.channels.columnHeader.backend.sort_reversed = sorting["reversed"]
+
+            numeric.channels.columnHeader.backend.sorting_enabled = sorting["enabled"]
+            numeric.channels.columnHeader.backend.sort_column(sorting["sort_column"])
+
+            if not enabled:
+                numeric.channels.columnHeader.backend.reorder(
+                    [s["name"] for s in window_info["configuration"]["channels"]]
+                )
 
         return w, pattern_info
 
@@ -3835,6 +3943,77 @@ class WithMDIArea:
 
         return None, False
 
+    def _load_xy_window(self, window_info):
+        geometry = window_info.get("geometry", None)
+
+        x, y = window_info["configuration"]["channels"]
+
+        if x in self.mdf:
+            (x,) = self.mdf.select(
+                [(x, *self.mdf.whereis(x)[0])],
+                ignore_value2text_conversions=True,
+                copy_master=False,
+                validate=True,
+                raw=False,
+            )
+        else:
+            x = None
+
+        if y in self.mdf:
+            (y,) = self.mdf.select(
+                [(y, *self.mdf.whereis(y)[0])],
+                ignore_value2text_conversions=True,
+                copy_master=False,
+                validate=True,
+                raw=False,
+            )
+        else:
+            y = None
+
+        xy = XY(x, y, color=window_info["configuration"]["color"])
+
+        sub = MdiSubWindow(parent=self)
+        sub.setWidget(xy)
+        xy.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        sub.sigClosed.connect(self.window_closed_handler)
+        sub.titleModified.connect(self.window_closed_handler)
+
+        if not self.subplots:
+            for mdi in self.mdi_area.subWindowList():
+                mdi.close()
+            w = self.mdi_area.addSubWindow(sub)
+
+            w.showMaximized()
+        else:
+            w = self.mdi_area.addSubWindow(sub)
+            w.show()
+
+            if geometry:
+                w.setGeometry(*geometry)
+            else:
+                self.mdi_area.tileSubWindows()
+
+        if window_info.get("maximized", False):
+            w.showMaximized()
+        elif window_info.get("minimized", False):
+            w.showMinimized()
+
+        w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
+
+        menu = w.systemMenu()
+
+        action = QtGui.QAction("Set title", menu)
+        action.triggered.connect(partial(set_title, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
+
+        xy.add_channels_request.connect(partial(self.add_new_channels, widget=xy))
+        if self.subplots_link:
+            xy.timestamp_changed_signal.connect(self.set_cursor)
+
+        return w, xy
+
     def set_line_style(self, with_dots=None):
         if with_dots is None:
             with_dots = not self.with_dots
@@ -3870,7 +4049,7 @@ class WithMDIArea:
                     widget.region_removed_signal.connect(self.remove_region)
                     widget.region_moved_signal.connect(self.set_region)
                     widget.splitter_moved.connect(self.set_splitter)
-                elif isinstance(widget, Numeric):
+                elif isinstance(widget, (Numeric, XY)):
                     widget.timestamp_changed_signal.connect(self.set_cursor)
         else:
             for mdi in self.mdi_area.subWindowList():
@@ -3896,7 +4075,7 @@ class WithMDIArea:
                         widget.splitter_moved.disconnect(self.set_splitter)
                     except:
                         pass
-                elif isinstance(widget, Numeric):
+                elif isinstance(widget, (Numeric, XY)):
                     try:
                         widget.timestamp_changed_signal.disconnect(self.set_cursor)
                     except:

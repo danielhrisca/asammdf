@@ -159,6 +159,7 @@ class OnlineBackEnd:
         self.numeric = numeric
 
         self.sorted_column_index = 0
+        self.sorting_enabled = True
         self.sort_reversed = False
         self.numeric_viewer = None
 
@@ -194,6 +195,20 @@ class OnlineBackEnd:
     def data_changed(self):
         self.refresh_ui()
 
+    def move_rows(self, rows, target_row):
+        if target_row == -1:
+            sigs = [self.signals.pop(row) for row in rows]
+            self.signals.extend(sigs)
+        else:
+            sig = self.signals[target_row]
+            sigs = [self.signals.pop(row) for row in rows]
+
+            idx = self.signals.index(sig)
+            for sig in sigs:
+                self.signals.insert(idx, sig)
+
+        self.data_changed()
+
     def refresh_ui(self):
         if self.numeric is not None and self.numeric.mode == "offline":
             numeric = self.numeric
@@ -218,7 +233,22 @@ class OnlineBackEnd:
         if self.numeric_viewer is not None:
             self.numeric_viewer.refresh_ui()
 
+    def reorder(self, names):
+        try:
+            sigs = {sig.name: idx for idx, sig in enumerate(self.signals)}
+
+            if len(sigs) == len(names):
+                self.signals = [self.signals[sigs[name]] for name in names]
+
+            self.data_changed()
+
+        except:
+            pass
+
     def sort(self):
+        if not self.sorting_enabled:
+            return
+
         sorted_column_index = self.sorted_column_index
 
         if sorted_column_index == 0:
@@ -299,6 +329,7 @@ class OfflineBackEnd:
         self.numeric = numeric
 
         self.sorted_column_index = 0
+        self.sorting_enabled = True
         self.sort_reversed = False
         self.numeric_viewer = None
 
@@ -332,11 +363,40 @@ class OfflineBackEnd:
     def data_changed(self):
         self.refresh_ui()
 
+    def move_rows(self, rows, target_row):
+        if target_row == -1:
+            sigs = [self.signals.pop(row) for row in rows]
+            self.signals.extend(sigs)
+        else:
+            sig = self.signals[target_row]
+            sigs = [self.signals.pop(row) for row in rows]
+
+            idx = self.signals.index(sig)
+            for sig in sigs:
+                self.signals.insert(idx, sig)
+
+        self.data_changed()
+
     def refresh_ui(self):
         if self.numeric_viewer is not None:
             self.numeric_viewer.refresh_ui()
 
+    def reorder(self, names):
+        try:
+            sigs = {sig.name: idx for idx, sig in enumerate(self.signals)}
+
+            if len(sigs) == len(names):
+                self.signals = [self.signals[sigs[name]] for name in names]
+
+            self.data_changed()
+
+        except:
+            pass
+
     def sort(self):
+        if not self.sorting_enabled:
+            return
+
         sorted_column_index = self.sorted_column_index
 
         if sorted_column_index == 0:
@@ -581,10 +641,28 @@ class TableModel(QtCore.QAbstractTableModel):
             QtCore.Qt.ItemFlag.ItemIsEnabled
             | QtCore.Qt.ItemFlag.ItemIsSelectable
             | QtCore.Qt.ItemFlag.ItemIsDragEnabled
+            | QtCore.Qt.ItemFlag.ItemIsDropEnabled
         )
 
-    def setData(self, index, value, role=None):
-        pass
+    def dropMimeData(self, data, action, row, column, parent):
+
+        def moved_rows(data):
+            rows = set()
+            ds = QtCore.QDataStream(data.data("application/x-qabstractitemmodeldatalist"))
+            while not ds.atEnd():
+
+                row = ds.readInt32()
+                ds.readInt32()
+                map_items = ds.readInt32()
+                for i in range(map_items):
+                    ds.readInt32()
+                    ds.readQVariant()
+
+                rows.add(row)
+
+            return sorted(rows, reverse=True)
+
+        self.backend.move_rows(moved_rows(data), parent.row())
 
     def supportedDropActions(self) -> bool:
         return QtCore.Qt.DropAction.MoveAction | QtCore.Qt.DropAction.CopyAction
@@ -744,9 +822,14 @@ class TableView(QtWidgets.QTableView):
             super().keyPressEvent(event)
 
     def startDrag(self, supportedActions):
-        selected_items = [index.row() for index in self.selectedIndexes() if index.isValid()]
 
-        mimeData = QtCore.QMimeData()
+        indexes = self.selectedIndexes()
+        if not self.backend.sorting_enabled:
+            mime_data = self.model().mimeData(indexes)
+        else:
+            mime_data = QtCore.QMimeData()
+
+        selected_items = [index.row() for index in indexes if index.isValid()]
 
         data = []
         numeric_mode = self.backend.numeric.mode
@@ -780,25 +863,28 @@ class TableView(QtWidgets.QTableView):
 
         data = json.dumps(data).encode("utf-8")
 
-        mimeData.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
+        mime_data.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
 
         drag = QtGui.QDrag(self)
-        drag.setMimeData(mimeData)
-        drag.exec(QtCore.Qt.DropAction.CopyAction)
+        drag.setMimeData(mime_data)
+        drag.exec(supportedActions)
 
     def dragEnterEvent(self, e):
         e.accept()
 
     def dropEvent(self, e):
         if e.source() is self:
-            return
+            if e.mimeData().hasFormat("application/x-qabstractitemmodeldatalist"):
+                e.mimeData().removeFormat("application/octet-stream-asammdf")
+                super().dropEvent(e)
+            else:
+                e.ignore()
+            self.clearSelection()
         else:
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
                 self.add_channels_request.emit(names)
-            else:
-                return
 
     def edit_ranges(self, index):
         if not self.double_clicked_enabled or not index.isValid():
@@ -838,7 +924,7 @@ class HeaderModel(QtCore.QAbstractTableModel):
             return names[col]
 
         elif role == QtCore.Qt.ItemDataRole.DecorationRole:
-            if col != self.backend.sorted_column_index:
+            if not self.backend.sorting_enabled or col != self.backend.sorted_column_index:
                 return
             else:
                 if self.backend.sort_reversed:
@@ -922,11 +1008,18 @@ class HeaderView(QtWidgets.QTableView):
         super().showEvent(a0)
         self.initial_size = self.size()
 
+    def sorting(self):
+        return {
+            "sort_column": self.backend.sorted_column_index,
+            "enabled": self.backend.sorting_enabled,
+            "reversed": self.backend.sort_reversed,
+        }
+
     def mouseDoubleClickEvent(self, event):
         point = event.pos()
         ix = self.indexAt(point)
         col = ix.column()
-        if event.button() == QtCore.Qt.MouseButton.LeftButton:
+        if event.button() == QtCore.Qt.MouseButton.LeftButton and self.backend.sorting_enabled:
             self.backend.sort_column(col)
             self.sorting_changed.emit(col)
         else:
@@ -938,6 +1031,12 @@ class HeaderView(QtWidgets.QTableView):
         menu = QtWidgets.QMenu()
         menu.addAction(f"{count} rows in the numeric window")
         menu.addSeparator()
+
+        action = QtGui.QAction("Sorting", menu)
+        action.setCheckable(True)
+        action.setChecked(self.backend.sorting_enabled)
+        action.toggled.connect(self.toggle_sorting)
+        menu.addAction(action)
 
         menu.addAction("Automatic set columns width")
         menu.addSeparator()
@@ -1056,6 +1155,10 @@ class HeaderView(QtWidgets.QTableView):
 
         self.updateGeometry()
         self.numeric_viewer.dataView.updateGeometry()
+
+    def toggle_sorting(self, checked):
+        self.backend.sorting_enabled = checked
+        self.backend.sort()
 
     def minimumSizeHint(self):
         return QtCore.QSize(50, self.sizeHint().height())
@@ -1390,6 +1493,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             "header_sections_width": self.channels.columnHeader.all_columns_width(),
             "font_size": self.font().pointSize(),
             "columns_visibility": self.channels.columnHeader.columns_visibility(),
+            "sorting": self.channels.columnHeader.sorting(),
         }
 
         return config
