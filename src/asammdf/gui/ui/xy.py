@@ -24,10 +24,12 @@ class Ui_XYDisplay(object):
     def setupUi(self, XYDisplay):
         if not XYDisplay.objectName():
             XYDisplay.setObjectName(u"XYDisplay")
-        XYDisplay.resize(739, 424)
+        XYDisplay.resize(919, 487)
         self.verticalLayout = QVBoxLayout(XYDisplay)
+        self.verticalLayout.setSpacing(2)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.plot_layout = QHBoxLayout()
+        self.plot_layout.setSpacing(0)
         self.plot_layout.setObjectName(u"plot_layout")
 
         self.verticalLayout.addLayout(self.plot_layout)
@@ -35,7 +37,9 @@ class Ui_XYDisplay(object):
         self.groupBox = QGroupBox(XYDisplay)
         self.groupBox.setObjectName(u"groupBox")
         self.horizontalLayout = QHBoxLayout(self.groupBox)
+        self.horizontalLayout.setSpacing(2)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalLayout.setContentsMargins(2, 2, 2, 2)
         self.timestamp = QDoubleSpinBox(self.groupBox)
         self.timestamp.setObjectName(u"timestamp")
         self.timestamp.setDecimals(9)
@@ -69,7 +73,9 @@ class Ui_XYDisplay(object):
         self.groupBox_2 = QGroupBox(XYDisplay)
         self.groupBox_2.setObjectName(u"groupBox_2")
         self.gridLayout = QGridLayout(self.groupBox_2)
+        self.gridLayout.setSpacing(2)
         self.gridLayout.setObjectName(u"gridLayout")
+        self.gridLayout.setContentsMargins(2, 2, 2, 2)
         self.label = QLabel(self.groupBox_2)
         self.label.setObjectName(u"label")
 

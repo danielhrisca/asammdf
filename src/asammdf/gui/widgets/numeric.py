@@ -247,6 +247,7 @@ class OnlineBackEnd:
 
     def sort(self):
         if not self.sorting_enabled:
+            self.data_changed()
             return
 
         sorted_column_index = self.sorted_column_index
@@ -395,6 +396,7 @@ class OfflineBackEnd:
 
     def sort(self):
         if not self.sorting_enabled:
+            self.data_changed()
             return
 
         sorted_column_index = self.sorted_column_index
@@ -1753,20 +1755,20 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 self.set_format("Physical")
 
         elif (
-            key == QtCore.Qt.Key.Key_Right
+            key
+            in (
+                QtCore.Qt.Key.Key_Left,
+                QtCore.Qt.Key.Key_Right,
+                QtCore.Qt.Key.Key_PageUp,
+                QtCore.Qt.Key.Key_PageDown,
+                QtCore.Qt.Key.Key_Home,
+                QtCore.Qt.Key.Key_End,
+            )
             and modifiers == QtCore.Qt.KeyboardModifier.NoModifier
             and self.mode == "offline"
         ):
-            event.accept()
-            self.timestamp_slider.setValue(self.timestamp_slider.value() + 1)
 
-        elif (
-            key == QtCore.Qt.Key.Key_Left
-            and modifiers == QtCore.Qt.KeyboardModifier.NoModifier
-            and self.mode == "offline"
-        ):
-            event.accept()
-            self.timestamp_slider.setValue(self.timestamp_slider.value() - 1)
+            self.timestamp_slider.keyPressEvent(event)
 
         elif (
             key == QtCore.Qt.Key.Key_S
