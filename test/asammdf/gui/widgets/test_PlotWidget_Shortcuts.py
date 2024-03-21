@@ -366,15 +366,16 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
 
         # case 0
         QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_2)
-        for _ in range(50):
-            self.processEvents(0.01)
+
+        self.processEvents(0.01)
         # Evaluate
         pm = self.plot.plot.viewport().grab()
         colors = Pixmap.color_names(pm)
-        print(colors)
-        server_path = os.path.join(self.resource, "pixmap.png")
-        is_ok = pm.save(server_path)
-        print(is_ok)
+
+        debug_ = Pixmap.color_map(pm)
+        for line in debug_.items():
+            print(line)
+            print()
         self.assertTrue(Pixmap.is_black(pm))
 
         # case 1
@@ -651,16 +652,20 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             - Evaluate that signal mode is phys and line style is SolidLine after pressing key "Alt+S"
         """
         # add channels to plot
-        self.assertIsNotNone(self.add_channels([35]))
-        # todo ASAM.M.SCALAR.SBYTE.LINEAR_MUL_2 seschimba valoarea..
-
+        self.assertIsNotNone(self.add_channels(["ASAM.M.SCALAR.SBYTE.LINEAR_MUL_2"]))
+        phys_value = self.plot.selected_channel_value.text().split()[0]
+        expected_raw_value = float(phys_value) / self.channels[0].signal.conversion.a
         # Press "Alt+R"
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Alt+R"))
+        for _ in range(50):
+            self.processEvents()
         # Evaluate
         # Signal mode = raw
         self.assertEqual(self.channels[0].mode, "raw")
         # Signal line style = Dash line
         self.assertEqual(self.plot.plot.signals[0].pen.style(), QtCore.Qt.PenStyle.DashLine)
+        # Raw value
+        self.assertEqual(expected_raw_value, float(self.plot.selected_channel_value.text()))
 
         # Press "Alt+S"
         QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Alt+S"))
