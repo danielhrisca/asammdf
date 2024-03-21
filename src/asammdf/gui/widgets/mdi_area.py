@@ -3090,16 +3090,17 @@ class WithMDIArea:
 
             signals_ = [(elem["name"], *self.mdf.whereis(elem["name"])[0]) for elem in found]
 
-            if not signals_:
-                return None, False
+            if signals_:
 
-            signals = self.mdf.select(
-                signals_,
-                ignore_value2text_conversions=self.ignore_value2text_conversions,
-                copy_master=False,
-                validate=True,
-                raw=True,
-            )
+                signals = self.mdf.select(
+                    signals_,
+                    ignore_value2text_conversions=self.ignore_value2text_conversions,
+                    copy_master=False,
+                    validate=True,
+                    raw=True,
+                )
+            else:
+                signals = []
 
             for sig, sig_, description in zip(signals, signals_, found):
                 sig.group_index = sig_[1]
