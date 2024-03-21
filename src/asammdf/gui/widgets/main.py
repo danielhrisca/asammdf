@@ -634,10 +634,16 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         cursors_actions = QtGui.QActionGroup(self)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/cursor.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        action = QtGui.QAction(icon, "{: <20}\tC".format("Cursor"), menu)
-        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key.Key_C))
-        action.setShortcut(QtCore.Qt.Key.Key_C)
+        icon.addPixmap(QtGui.QPixmap(":/cursor.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtGui.QAction(icon, "{: <20}\tShift+G".format("Go to time stamp"), menu)
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_G,
+                modifier=QtCore.Qt.ShiftModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Shift+G"))
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()

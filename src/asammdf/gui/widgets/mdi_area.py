@@ -2631,23 +2631,24 @@ class WithMDIArea:
 
         w.setWindowTitle(generate_window_title(w, "Plot"))
 
-        if self.subplots_link:
-            for i, mdi in enumerate(self.mdi_area.subWindowList()):
-                try:
-                    viewbox = mdi.widget().plot.viewbox
-                    if plot.plot.viewbox is not viewbox:
-                        plot.plot.viewbox.setXLink(viewbox)
-                    break
-                except:
-                    continue
-
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
         plot.edit_channel_request.connect(partial(self.edit_channel, widget=plot))
 
         plot.show_properties.connect(self._show_info)
 
         plot.add_new_channels(signals, mime_data)
-        self.set_subplots_link(self.subplots_link)
+        if self.subplots_link:
+            plot.x_range_changed_signal.connect(self.set_x_range)
+            plot.cursor_moved_signal.connect(self.set_cursor)
+            plot.region_removed_signal.connect(self.remove_region)
+            plot.region_moved_signal.connect(self.set_region)
+            plot.splitter_moved.connect(self.set_splitter)
+
+            for i, mdi in enumerate(self.mdi_area.subWindowList()):
+                widget = mdi.widget()
+                if isinstance(widget, Plot):
+                    plot.plot.viewbox.setXRange(*widget.plot.viewbox.viewRange()[0], padding=0, update=True)
+                    break
 
         iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
         while item := iterator.value():
@@ -2656,17 +2657,6 @@ class WithMDIArea:
             if item.type() == item.Group:
                 if item.pattern:
                     plot.pattern_group_added.emit(plot, item)
-
-        if len(plot.plot.all_timebase):
-            start = plot.plot.all_timebase[0]
-            stop = plot.plot.all_timebase[-1]
-
-            if start == stop:
-                padding = 1
-            else:
-                padding = (stop - start) * 0.05
-
-            # plot.plot.viewbox.setXRange(start - padding, stop + padding, padding=0)
 
         self.windows_modified.emit()
 
@@ -3656,7 +3646,18 @@ class WithMDIArea:
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
         plot.edit_channel_request.connect(partial(self.edit_channel, widget=plot))
 
-        self.set_subplots_link(self.subplots_link)
+        if self.subplots_link:
+            plot.x_range_changed_signal.connect(self.set_x_range)
+            plot.cursor_moved_signal.connect(self.set_cursor)
+            plot.region_removed_signal.connect(self.remove_region)
+            plot.region_moved_signal.connect(self.set_region)
+            plot.splitter_moved.connect(self.set_splitter)
+
+            for i, mdi in enumerate(self.mdi_area.subWindowList()):
+                widget = mdi.widget()
+                if isinstance(widget, Plot):
+                    plot.plot.viewbox.setXRange(*widget.plot.viewbox.viewRange()[0], padding=0, update=True)
+                    break
 
         if "cursor_precision" in window_info["configuration"]:
             plot.cursor_info.set_precision(window_info["configuration"]["cursor_precision"])
@@ -4052,7 +4053,7 @@ class WithMDIArea:
                     widget.region_removed_signal.connect(self.remove_region)
                     widget.region_moved_signal.connect(self.set_region)
                     widget.splitter_moved.connect(self.set_splitter)
-                elif isinstance(widget, (Numeric, XY)):
+                elif widget:
                     widget.timestamp_changed_signal.connect(self.set_cursor)
         else:
             for mdi in self.mdi_area.subWindowList():
@@ -4078,7 +4079,7 @@ class WithMDIArea:
                         widget.splitter_moved.disconnect(self.set_splitter)
                     except:
                         pass
-                elif isinstance(widget, (Numeric, XY)):
+                elif widget:
                     try:
                         widget.timestamp_changed_signal.disconnect(self.set_cursor)
                     except:

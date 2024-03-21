@@ -305,30 +305,6 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
 
             self.set_timestamp(self._timestamp)
 
-    def update_plot2(self):
-        self.plot.plotItem.getAxis("left").setPen(self._pen)
-        self.plot.plotItem.getAxis("left").setTextPen(self._pen)
-
-        x, y = self._x, self._y
-        if x is None or y is None:
-            self.curve.setData(x=[], y=[], pen=self._pen, symbolPen=self._pen, symbolBrush=self._pen)
-            self._timebase = None
-
-        else:
-            self._timebase = t = np.unique(np.concatenate([x.timestamps, y.timestamps]))
-            x = x.interp(t)
-            y = y.interp(t)
-            self.curve.setData(
-                x=x.samples,
-                y=y.samples,
-                pen=self._pen,
-                symbolPen=self._pen,
-                symbolBrush=self._pen,
-                symbolSize=4,
-                antialias=False,
-            )
-            self.set_timestamp(self._timestamp)
-
     def update_timebase(self):
 
         if self._timebase is not None and len(self._timebase):
