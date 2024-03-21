@@ -18,6 +18,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 PLOT_BUFFER_SIZE = 4000
 
+
 from ... import tool as Tool
 from ...blocks.conversion_utils import from_dict, to_dict
 from ...blocks.cutils import get_idx_with_edges, positions

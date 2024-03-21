@@ -708,6 +708,8 @@ class WithMDIArea:
         self.cursor_line_width = 1
         self.cursor_color = "#e69138"
 
+        self._busy = False
+
         self.functions = {}
 
     def add_pattern_group(self, plot, group):
@@ -4082,70 +4084,117 @@ class WithMDIArea:
                         pass
 
     def set_cursor(self, widget, pos):
+
+        if self._busy:
+            return
+        else:
+            self._busy = True
+
         if not self.subplots_link:
+            self._busy = False
             return
 
         active_window = self.mdi_area.currentSubWindow()
         if active_window is None:
+            self._busy = False
             return
 
         active_widget = active_window.widget()
 
         if widget is not active_widget:
+            self._busy = False
             return
 
         for mdi in self.mdi_area.subWindowList():
             wid = mdi.widget()
             if wid is not widget:
-                wid.set_timestamp(pos)
+                try:
+                    wid.set_timestamp(pos)
+                except:
+                    print(format_exc())
+
+        self._busy = False
 
     def set_x_range(self, widget, x_range):
+        if self._busy:
+            return
+        else:
+            self._busy = True
+
         if not self.subplots_link:
+            self._busy = False
             return
 
         if not isinstance(x_range, (tuple, list)):
+            self._busy = False
             return
 
         if not len(x_range) == 2:
+            self._busy = False
             return
 
         if np.any(np.isnan(x_range)) or not np.all(np.isfinite(x_range)):
+            self._busy = False
             return
 
         for mdi in self.mdi_area.subWindowList():
             wid = mdi.widget()
             if wid is not widget and isinstance(wid, Plot):
-                wid._inhibit_x_range_changed_signal = True
-                wid.plot.viewbox.setXRange(*x_range, padding=0, update=True)
-                wid._inhibit_x_range_changed_signal = False
+                try:
+                    wid._inhibit_x_range_changed_signal = True
+                    wid.plot.viewbox.setXRange(*x_range, padding=0, update=True)
+                    wid._inhibit_x_range_changed_signal = False
+                except:
+                    print(format_exc())
+
+        self._busy = False
 
     def set_region(self, widget, region):
+        if self._busy:
+            return
+        else:
+            self._busy = True
+
         if not self.subplots_link:
+            self._busy = False
             return
 
         active_window = self.mdi_area.currentSubWindow()
         if active_window is None:
+            self._busy = False
             return
 
         active_widget = active_window.widget()
 
         if widget is not active_widget:
+            self._busy = False
             return
 
         for mdi in self.mdi_area.subWindowList():
             wid = mdi.widget()
             if isinstance(wid, Plot) and wid is not widget:
-                if wid.plot.region is None:
-                    event = QtGui.QKeyEvent(
-                        QtCore.QEvent.Type.KeyPress,
-                        QtCore.Qt.Key.Key_R,
-                        QtCore.Qt.KeyboardModifier.NoModifier,
-                    )
-                    wid.plot.keyPressEvent(event)
-                wid.plot.region.setRegion(region)
+                try:
+                    if wid.plot.region is None:
+                        event = QtGui.QKeyEvent(
+                            QtCore.QEvent.Type.KeyPress,
+                            QtCore.Qt.Key.Key_R,
+                            QtCore.Qt.KeyboardModifier.NoModifier,
+                        )
+                        wid.plot.keyPressEvent(event)
+                    wid.plot.region.setRegion(region)
+                except:
+                    print(format_exc())
+
+        self._busy = False
 
     def set_splitter(self, widget, selection_width):
+        if self._busy:
+            return
+        else:
+            self._busy = True
+
         if not self.subplots_link:
+            self._busy = False
             return
 
         if self._splitter_source is None:
@@ -4154,11 +4203,16 @@ class WithMDIArea:
                 wid = mdi.widget()
                 if isinstance(wid, Plot) and wid is not widget:
                     if selection_width is not None:
-                        total_size = sum(wid.splitter.sizes())
-                        if total_size > selection_width:
-                            wid.splitter.setSizes([selection_width, total_size - selection_width])
+                        try:
+                            total_size = sum(wid.splitter.sizes())
+                            if total_size > selection_width:
+                                wid.splitter.setSizes([selection_width, total_size - selection_width])
+                        except:
+                            print(format_exc())
 
             self._splitter_source = None
+
+        self._busy = False
 
     def update_functions(self, original_definitions, modified_definitions):
         # new definitions
