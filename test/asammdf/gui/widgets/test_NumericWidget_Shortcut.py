@@ -272,10 +272,14 @@ class TestNumericWidgetShortcuts(TestFileWidget):
             - Evaluate that object getSaveFileName() was called after pressing combination "Ctrl+S"
             - Evaluate that in measurement file is saved only active channels
         """
+        # Setup
         self.assertIsNotNone(self.add_channels([10, 11, 12, 13]))
+        # Create new Numeric widget window
+
         # Select first row (0)
         self.table_view.selectRow(0)
-        # QtTest.QTest.keySequence(self.numeric, QtGui.QKeySequence("Ctrl+A"))
+        self.create_window(window_type="Numeric", channels_indexes=(20, 21, 22))
+
         expected_items = [channel.name for channel in self.channels]
         expected_items.append("time")
         file_path = os.path.join(self.test_workspace, "file.mf4")
@@ -296,6 +300,7 @@ class TestNumericWidgetShortcuts(TestFileWidget):
             self.assertIn(self.widget.channels_tree.topLevelItem(index).name, expected_items)
             if self.widget.channels_tree.topLevelItem(index).name != "time":
                 expected_items.remove(self.widget.channels_tree.topLevelItem(index).name)
+        self.assertListEqual(expected_items, ["time"])
 
     def test_NumericWidget_Shortcut_Keys_Ctrl_Left_and_Right_Buckets(self):
         """
