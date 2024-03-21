@@ -7,6 +7,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ...signal import Signal
 from ..ui.xy import Ui_XYDisplay
 
+ARROW = pg.arrayToQPath(np.array([0.0, -1.0, 0.0, -1.0, 0.0]), np.array([0.0, 1.0, 0.0, -1.0, 0.0]), connect="all")
+
 
 class XY(Ui_XYDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.Signal(list)
@@ -16,6 +18,7 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
         self,
         x_channel=None,
         y_channel=None,
+        color="#00ff00",
         *args,
         **kwargs,
     ):
@@ -31,8 +34,26 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
         self.plot_layout.addWidget(self.plot)
 
         self.plot.plotItem.scene().sigMouseClicked.connect(self.clicked)
+        self._pen = color
 
-        self.curve = self.plot.plot(x=[], y=[], symbol="o", symbolSize=4)
+        # self.curve = self.plot.plot(x=[], y=[], symbol="o", symbolSize=4)
+        self.curve = pg.PlotCurveItem(
+            size=0,
+            pen=self._pen,
+            antialias=False,
+        )
+        self.arrows = pg.ScatterPlotItem(
+            size=0,
+            pen=self._pen,
+            brush=self._pen,
+            symbolPen=self._pen,
+            symbolBrush=self._pen,
+            symbolSize=4,
+            antialias=False,
+            useCache=False,
+        )
+        self.plot.addItem(self.curve)
+        self.plot.addItem(self.arrows)
         self.marker = self.plot.plot(
             x=[],
             y=[],
@@ -59,7 +80,7 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
         self._y = None
         self._timebase = None
         self._timestamp = None
-        self._pen = {"color": "#00ff00", "dash": [16.0, 8.0, 4.0, 4.0, 4.0, 4.0, 4.0, 16.0]}
+
         self._requested_channel = None
 
         self.set_x(x_channel)
@@ -107,7 +128,7 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
             event.accept()
             color = QtWidgets.QColorDialog.getColor(self._pen, parent=self)
             if color.isValid():
-                self._pen["color"] = color.name()
+                self._pen = color.name()
                 self.update_plot()
 
         elif key in (QtCore.Qt.Key.Key_S, QtCore.Qt.Key.Key_F) and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
@@ -156,7 +177,7 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
 
     def set_timestamp(self, stamp, emit=True):
         self._timestamp = stamp
-        if stamp is None or not len(self._timebase):
+        if stamp is None or self._timebase is None or not len(self._timebase):
             self.marker.setData(x=[], y=[])
         else:
             idx = np.searchsorted(self._timebase, stamp, side="right") - 1
@@ -188,6 +209,7 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
             self.plot.plotItem.setLabel("bottom", "", "")
 
         self.update_plot()
+        self.update_timebase()
 
     def set_y(self, y):
         if isinstance(y, Signal):
@@ -218,13 +240,74 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
 
         config = {
             "channels": [self._x.name if self._x else "", self._y.name if self._y else ""],
+            "color": self._pen,
         }
 
         return config
 
     def update_plot(self):
-        self.plot.plotItem.getAxis("left").setPen(self._pen["color"])
-        self.plot.plotItem.getAxis("left").setTextPen(self._pen["color"])
+        self.plot.plotItem.getAxis("left").setPen(self._pen)
+        self.plot.plotItem.getAxis("left").setTextPen(self._pen)
+
+        x, y = self._x, self._y
+        if x is None or y is None:
+            self.curve.clear()
+            self.arrows.clear()
+            self._timebase = None
+
+        elif not len(x) or not len(y):
+            self.curve.clear()
+            self.arrows.clear()
+            self._timebase = None
+
+        else:
+            self._timebase = t = np.unique(np.concatenate([x.timestamps, y.timestamps]))
+            x = x.interp(t)
+            y = y.interp(t)
+
+            transform = QtGui.QTransform()
+
+            angles = -np.arctan2(np.diff(y.samples.astype("f8")), np.diff(x.samples.astype("f8"))) * 180 / np.pi
+
+            exit_spots = [
+                {
+                    "pos": (x.samples[0], y.samples[0]),
+                    "symbol": ARROW,
+                    "size": 6,
+                    "pen": self._pen,
+                    "brush": self._pen,
+                }
+            ]
+            for angle, xpos, ypos in zip(angles.tolist(), x.samples[1:].tolist(), y.samples[1:].tolist()):
+
+                transform.reset()
+                angle_rot = transform.rotate(angle)
+                my_rotated_symbol = angle_rot.map(ARROW)
+
+                exit_spots.append(
+                    {
+                        "pos": (xpos, ypos),
+                        "symbol": my_rotated_symbol,
+                        "size": 6,
+                        "pen": self._pen,
+                        "brush": self._pen,
+                    }
+                )
+
+            # add the spots to the item
+            self.arrows.setData(exit_spots)
+            self.curve.setData(
+                x=x.samples,
+                y=y.samples,
+                pen=self._pen,
+                antialias=False,
+            )
+
+            self.set_timestamp(self._timestamp)
+
+    def update_plot2(self):
+        self.plot.plotItem.getAxis("left").setPen(self._pen)
+        self.plot.plotItem.getAxis("left").setTextPen(self._pen)
 
         x, y = self._x, self._y
         if x is None or y is None:
@@ -239,8 +322,8 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
                 x=x.samples,
                 y=y.samples,
                 pen=self._pen,
-                symbolPen=self._pen["color"],
-                symbolBrush=self._pen["color"],
+                symbolPen=self._pen,
+                symbolBrush=self._pen,
                 symbolSize=4,
                 antialias=False,
             )

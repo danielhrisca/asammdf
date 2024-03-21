@@ -3970,7 +3970,7 @@ class WithMDIArea:
         else:
             y = None
 
-        xy = XY(x, y)
+        xy = XY(x, y, color=window_info["configuration"]["color"])
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(xy)
