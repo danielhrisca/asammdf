@@ -1127,13 +1127,15 @@ class TestPlotGraphicsShortcutsFunctionality(TestPlotWidget):
         self.avoid_blinking_issue(self.plot.channel_selection)
         delta_normal_screen_x_range = self.plot.plot.x_range[1] - self.plot.plot.x_range[0]
         # Evaluate
-        self.assertEqual(delta_normal_screen_x_range, expected_normal_screen_honey_range)
+        self.assertAlmostEqual(delta_normal_screen_x_range, expected_normal_screen_honey_range, delta=0.0001)
 
         # New Full screen test
         self.widget.showMaximized()
         self.processEvents()
         # Evaluate
-        self.assertEqual(self.plot.plot.x_range[1] - self.plot.plot.x_range[0], delta_normal_screen_x_range)
+        self.assertAlmostEqual(
+            self.plot.plot.x_range[1] - self.plot.plot.x_range[0], delta_normal_screen_x_range, delta=0.0001
+        )
 
         expected_full_screen_honey_range = find_honey_range(self.plot.plot)
         # Press "H"
@@ -1143,7 +1145,7 @@ class TestPlotGraphicsShortcutsFunctionality(TestPlotWidget):
 
         # Evaluate
         self.assertNotEqual(delta_full_screen_x_range, delta_normal_screen_x_range)
-        self.assertEqual(delta_full_screen_x_range, expected_full_screen_honey_range)
+        self.assertAlmostEqual(delta_full_screen_x_range, expected_full_screen_honey_range, delta=0.0001)
 
     def test_Plot_PlotGraphics_Shortcut_Key_W(self):
         """

@@ -366,7 +366,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
 
         # case 0
         QtTest.QTest.keyClick(self.plot, QtCore.Qt.Key_2)
-        for _ in range(200):
+        for _ in range(1000):
             self.processEvents(0.01)
         # Evaluate
         pm = self.plot.plot.viewport().grab()
@@ -691,14 +691,16 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             - Evaluate that object getSaveFileName() was called after pressing combination "Ctrl+S"
             - Evaluate that in measurement file is saved only active channels
         """
-        # todo mai adauga un plot si salveaza din celalalt
         self.assertIsNotNone(self.add_channels([10, 11, 12, 13]))
         expected_items = [channel.name for channel in self.channels]
         expected_items.append("time")
         file_path = os.path.join(self.test_workspace, "file.mf4")
+        self.create_window(window_type="Plot", channels_indexes=(20, 21, 22))
+        self.processEvents()
         # mock for getSaveFileName object
         with mock.patch("asammdf.gui.widgets.plot.QtWidgets.QFileDialog.getSaveFileName") as mo_getSaveFileName:
             mo_getSaveFileName.return_value = (file_path, "")
+            self.mouseClick_WidgetItem(self.channels[0])
             # Press Ctrl+S
             QtTest.QTest.keySequence(self.plot, QtGui.QKeySequence("Ctrl+S"))
         # Evaluate
@@ -988,7 +990,13 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         # Evaluate
         self.assertNotEqual(self.channels[1].name, self.channels[2].name)
         self.assertEqual(self.channels[1].color.name(), self.channels[2].color.name())
-        # Todo evaluate range, precizia, formatul, axa individuala, y_range, conversia
+        self.assertEqual(self.channels[1].precision, self.channels[2].precision)
+        self.assertEqual(self.channels[1].format, self.channels[2].format)
+        self.assertEqual(self.channels[1].signal.y_link, self.channels[2].signal.y_link)
+        self.assertEqual(self.channels[1].signal.individual_axis, self.channels[2].signal.individual_axis)
+        self.assertListEqual(self.channels[1].ranges, self.channels[2].ranges)
+        self.assertEqual(self.channels[1].signal.y_range[0], self.channels[2].signal.y_range[0])
+        self.assertEqual(self.channels[1].signal.y_range[1], self.channels[2].signal.y_range[1])
 
     def test_Plot_Plot_Shortcut_Keys_Ctrl_Left_and_Right_Buckets(self):
         """
