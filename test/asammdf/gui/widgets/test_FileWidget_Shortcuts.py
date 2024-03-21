@@ -37,7 +37,11 @@ class TestFileWidgetShortcuts(TestFileWidget):
         # Evaluate
         self.assertFalse(self.widget._frameless_windows)
 
-    def test_FileWidget_Shortcut_Key_Shift_Alt_F11(self): ...
+    def test_FileWidget_Shortcut_Key_Shift_Alt_F11(self):
+        self.assertFalse(self.widget.isFullScreen())
+        QtTest.QTest.keyClick(self.widget, QtCore.Qt.Key_F11)
+        self.processEvents()
+        self.assertTrue(self.widget.isFullScreen())
 
     def test_FileWidget_Shortcut_Shift_Key_V(self):
         """
