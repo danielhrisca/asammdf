@@ -175,12 +175,22 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
 
         self.add_channels_request.emit(channels)
 
-    def set_timestamp(self, stamp, emit=True):
-        self._timestamp = stamp
+    def set_timestamp(self, stamp, emit=True, spinbox=False):
+
         if stamp is None or self._timebase is None or not len(self._timebase):
             self.marker.setData(x=[], y=[])
+
         else:
             idx = np.searchsorted(self._timebase, stamp, side="right") - 1
+
+            new_stamp = self._timebase[idx]
+
+            if spinbox:
+                if new_stamp == self._timestamp and stamp > new_stamp:
+                    idx += 1
+                    new_stamp = self._timebase[idx]
+
+            stamp = new_stamp
 
             x = self._x.samples[idx : idx + 1]
             y = self._y.samples[idx : idx + 1]
@@ -197,6 +207,8 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
 
             if emit:
                 self.timestamp_changed_signal.emit(self, stamp)
+
+        self._timestamp = stamp
 
     def set_x(self, x):
         if isinstance(x, Signal):
@@ -227,7 +239,7 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
 
     def _timestamp_changed(self, stamp):
         if not self._inhibit:
-            self.set_timestamp(stamp)
+            self.set_timestamp(stamp, spinbox=True)
 
     def _timestamp_slider_changed(self, idx):
         if not self._inhibit:
@@ -311,6 +323,8 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
             count = len(self._timebase)
             min_, max_ = self._timebase[0], self._timebase[-1]
             self.timestamp_slider.setRange(0, count - 1)
+            if count >= 2:
+                self.timestamp.setSingleStep(0.5 * np.min(np.diff(self._timebase)))
 
         else:
             min_, max_ = 0.0, 0.0

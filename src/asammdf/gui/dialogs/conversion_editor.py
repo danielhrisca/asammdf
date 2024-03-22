@@ -16,9 +16,11 @@ def range_overlapping(x, y):
 
 
 class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
-    def __init__(self, channel_name="", conversion=None, *args, **kwargs):
+    def __init__(self, channel_name="", conversion=None, original_conversion=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+
+        self.original_conversion = original_conversion
 
         self.vtt_default_conversion = None
         self.vrtt_default_conversion = None
@@ -42,110 +44,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
             widget.setMaximum(np.inf)
             widget.setMinimum(-np.inf)
 
-        original_conversion_color = QtGui.QColor("#62b2e2")
-        bar = self.tabs.tabBar()
-
-        if conversion is not None:
-            self.name.setText(conversion["name"])
-            self.unit.setText(conversion["unit"])
-            self.comment.setPlainText(conversion["comment"])
-
-            if conversion["conversion_type"] == v4c.CONVERSION_TYPE_LIN:
-                self.tabs.setCurrentIndex(0)
-                bar.setTabTextColor(0, original_conversion_color)
-
-                self.a.setValue(conversion["a"])
-                self.b.setValue(conversion["b"])
-
-            elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_RAT:
-                self.tabs.setCurrentIndex(1)
-                bar.setTabTextColor(1, original_conversion_color)
-
-                self.p1.setValue(conversion["P1"])
-                self.p2.setValue(conversion["P2"])
-                self.p3.setValue(conversion["P3"])
-                self.p4.setValue(conversion["P4"])
-                self.p5.setValue(conversion["P5"])
-                self.p6.setValue(conversion["P6"])
-
-            elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_TABX:
-                self.tabs.setCurrentIndex(2)
-                bar.setTabTextColor(2, original_conversion_color)
-
-                if isinstance(conversion.referenced_blocks["default_addr"], bytes):
-                    self.vtt_default_mode.setCurrentIndex(0)
-
-                    self.vtt_default.setText(
-                        conversion.referenced_blocks["default_addr"].decode("utf-8", errors="replace")
-                    )
-                else:
-                    self.vtt_default_mode.setCurrentIndex(1)
-
-                    self.vtt_default_conversion = conversion.referenced_blocks["default_addr"]
-
-                for i in range(conversion.ref_param_nr - 1):
-                    if isinstance(conversion.referenced_blocks[f"text_{i}"], bytes):
-                        widget = VTTWidget(
-                            mode="text",
-                            value=conversion[f"val_{i}"],
-                            text=conversion.referenced_blocks[f"text_{i}"].decode("utf-8", errors="replace"),
-                        )
-
-                    else:
-                        widget = VTTWidget(
-                            mode="conversion",
-                            value=conversion[f"val_{i}"],
-                            conversion=conversion.referenced_blocks[f"text_{i}"],
-                        )
-
-                    item = QtWidgets.QListWidgetItem()
-                    item.setSizeHint(widget.sizeHint())
-                    self.vtt_list.addItem(item)
-                    self.vtt_list.setItemWidget(item, widget)
-
-            elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_RTABX:
-                self.tabs.setCurrentIndex(3)
-                bar.setTabTextColor(3, original_conversion_color)
-
-                if isinstance(conversion.referenced_blocks["default_addr"], bytes):
-                    self.vrtt_default_mode.setCurrentIndex(0)
-
-                    self.vrtt_default.setText(
-                        conversion.referenced_blocks["default_addr"].decode("utf-8", errors="replace")
-                    )
-                else:
-                    self.vrtt_default_mode.setCurrentIndex(1)
-
-                    self.vrtt_default_conversion = conversion.referenced_blocks["default_addr"]
-
-                for i in range(conversion.ref_param_nr - 1):
-                    if isinstance(conversion.referenced_blocks[f"text_{i}"], bytes):
-                        widget = VRTTWidget(
-                            mode="text",
-                            lower=conversion[f"lower_{i}"],
-                            upper=conversion[f"upper_{i}"],
-                            text=conversion.referenced_blocks[f"text_{i}"].decode("utf-8", errors="replace"),
-                        )
-
-                    else:
-                        widget = VRTTWidget(
-                            mode="conversion",
-                            lower=conversion[f"lower_{i}"],
-                            upper=conversion[f"upper_{i}"],
-                            conversion=conversion.referenced_blocks[f"text_{i}"],
-                        )
-
-                    item = QtWidgets.QListWidgetItem()
-                    item.setSizeHint(widget.sizeHint())
-                    self.vrtt_list.addItem(item)
-                    self.vrtt_list.setItemWidget(item, widget)
-
-            elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_NON:
-                self.tabs.setCurrentIndex(4)
-                bar.setTabTextColor(4, original_conversion_color)
-        else:
-            self.tabs.setCurrentIndex(4)
-            bar.setTabTextColor(4, original_conversion_color)
+        self.load_conversion(conversion=conversion)
 
         self.insert_btn.clicked.connect(self.insert)
         self.insert_vrtt_btn.clicked.connect(self.insert_vrtt)
@@ -153,6 +52,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
         self.reset_vrtt_btn.clicked.connect(self.reset_vrtt)
         self.apply_btn.clicked.connect(self.apply)
         self.cancel_btn.clicked.connect(self.cancel)
+        self.load_original_conversion_btn.clicked.connect(self.load_conversion)
 
         self.vtt_list.setUniformItemSizes(True)
         self.vtt_list.setAlternatingRowColors(False)
@@ -379,6 +279,120 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
         item.setSizeHint(widget.sizeHint())
         self.vrtt_list.addItem(item)
         self.vrtt_list.setItemWidget(item, widget)
+
+    def load_conversion(self, *, conversion=None):
+        conversion = conversion or self.original_conversion
+        original_conversion_color = QtGui.QColor("#62b2e2")
+        bar = self.tabs.tabBar()
+
+        for i in range(self.tabs.count()):
+            bar.setTabTextColor(i, QtGui.QColor())
+
+        if conversion is not None:
+            self.name.setText(conversion["name"])
+            self.unit.setText(conversion["unit"])
+            self.comment.setPlainText(conversion["comment"])
+
+            if conversion["conversion_type"] == v4c.CONVERSION_TYPE_LIN:
+                self.tabs.setCurrentIndex(0)
+                bar.setTabTextColor(0, original_conversion_color)
+
+                self.a.setValue(conversion["a"])
+                self.b.setValue(conversion["b"])
+
+            elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_RAT:
+                self.tabs.setCurrentIndex(1)
+                bar.setTabTextColor(1, original_conversion_color)
+
+                self.p1.setValue(conversion["P1"])
+                self.p2.setValue(conversion["P2"])
+                self.p3.setValue(conversion["P3"])
+                self.p4.setValue(conversion["P4"])
+                self.p5.setValue(conversion["P5"])
+                self.p6.setValue(conversion["P6"])
+
+            elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_TABX:
+                self.tabs.setCurrentIndex(2)
+                bar.setTabTextColor(2, original_conversion_color)
+
+                if isinstance(conversion.referenced_blocks["default_addr"], bytes):
+                    self.vtt_default_mode.setCurrentIndex(0)
+
+                    self.vtt_default.setText(
+                        conversion.referenced_blocks["default_addr"].decode("utf-8", errors="replace")
+                    )
+                else:
+                    self.vtt_default_mode.setCurrentIndex(1)
+
+                    self.vtt_default_conversion = conversion.referenced_blocks["default_addr"]
+
+                for i in range(conversion.ref_param_nr - 1):
+                    if isinstance(conversion.referenced_blocks[f"text_{i}"], bytes):
+                        widget = VTTWidget(
+                            mode="text",
+                            value=conversion[f"val_{i}"],
+                            text=conversion.referenced_blocks[f"text_{i}"].decode("utf-8", errors="replace"),
+                        )
+
+                    else:
+                        widget = VTTWidget(
+                            mode="conversion",
+                            value=conversion[f"val_{i}"],
+                            conversion=conversion.referenced_blocks[f"text_{i}"],
+                        )
+
+                    item = QtWidgets.QListWidgetItem()
+                    item.setSizeHint(widget.sizeHint())
+                    self.vtt_list.addItem(item)
+                    self.vtt_list.setItemWidget(item, widget)
+
+            elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_RTABX:
+                self.tabs.setCurrentIndex(3)
+                bar.setTabTextColor(3, original_conversion_color)
+
+                if isinstance(conversion.referenced_blocks["default_addr"], bytes):
+                    self.vrtt_default_mode.setCurrentIndex(0)
+
+                    self.vrtt_default.setText(
+                        conversion.referenced_blocks["default_addr"].decode("utf-8", errors="replace")
+                    )
+                else:
+                    self.vrtt_default_mode.setCurrentIndex(1)
+
+                    self.vrtt_default_conversion = conversion.referenced_blocks["default_addr"]
+
+                for i in range(conversion.ref_param_nr - 1):
+                    if isinstance(conversion.referenced_blocks[f"text_{i}"], bytes):
+                        widget = VRTTWidget(
+                            mode="text",
+                            lower=conversion[f"lower_{i}"],
+                            upper=conversion[f"upper_{i}"],
+                            text=conversion.referenced_blocks[f"text_{i}"].decode("utf-8", errors="replace"),
+                        )
+
+                    else:
+                        widget = VRTTWidget(
+                            mode="conversion",
+                            lower=conversion[f"lower_{i}"],
+                            upper=conversion[f"upper_{i}"],
+                            conversion=conversion.referenced_blocks[f"text_{i}"],
+                        )
+
+                    item = QtWidgets.QListWidgetItem()
+                    item.setSizeHint(widget.sizeHint())
+                    self.vrtt_list.addItem(item)
+                    self.vrtt_list.setItemWidget(item, widget)
+
+            elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_NON:
+                self.tabs.setCurrentIndex(4)
+                bar.setTabTextColor(4, original_conversion_color)
+        else:
+            self.name.setText("")
+            self.unit.setText("")
+            self.comment.setPlainText("")
+
+            self.tabs.setCurrentIndex(4)
+            bar.setTabTextColor(4, original_conversion_color)
 
     def reset(self, event):
         self.vtt_list.clear()
