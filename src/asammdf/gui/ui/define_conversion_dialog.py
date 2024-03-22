@@ -36,16 +36,6 @@ class Ui_ConversionDialog(object):
         ConversionDialog.setSizeGripEnabled(True)
         self.gridLayout = QGridLayout(ConversionDialog)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.label_6 = QLabel(ConversionDialog)
-        self.label_6.setObjectName(u"label_6")
-
-        self.gridLayout.addWidget(self.label_6, 4, 0, 1, 1)
-
-        self.unit = QLineEdit(ConversionDialog)
-        self.unit.setObjectName(u"unit")
-
-        self.gridLayout.addWidget(self.unit, 4, 1, 1, 1)
-
         self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         self.gridLayout.addItem(self.horizontalSpacer_4, 5, 2, 1, 1)
@@ -61,29 +51,44 @@ class Ui_ConversionDialog(object):
 
         self.gridLayout.addWidget(self.label_7, 1, 0, 1, 1)
 
-        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.unit = QLineEdit(ConversionDialog)
+        self.unit.setObjectName(u"unit")
 
-        self.gridLayout.addItem(self.horizontalSpacer_3, 5, 1, 1, 1)
+        self.gridLayout.addWidget(self.unit, 4, 1, 1, 1)
 
-        self.cancel_btn = QPushButton(ConversionDialog)
-        self.cancel_btn.setObjectName(u"cancel_btn")
+        self.label_6 = QLabel(ConversionDialog)
+        self.label_6.setObjectName(u"label_6")
 
-        self.gridLayout.addWidget(self.cancel_btn, 5, 4, 1, 1)
-
-        self.comment = QPlainTextEdit(ConversionDialog)
-        self.comment.setObjectName(u"comment")
-
-        self.gridLayout.addWidget(self.comment, 3, 1, 1, 4)
+        self.gridLayout.addWidget(self.label_6, 4, 0, 1, 1)
 
         self.apply_btn = QPushButton(ConversionDialog)
         self.apply_btn.setObjectName(u"apply_btn")
 
-        self.gridLayout.addWidget(self.apply_btn, 5, 3, 1, 1)
+        self.gridLayout.addWidget(self.apply_btn, 5, 5, 1, 1)
 
         self.name = QLineEdit(ConversionDialog)
         self.name.setObjectName(u"name")
 
-        self.gridLayout.addWidget(self.name, 1, 1, 1, 4)
+        self.gridLayout.addWidget(self.name, 1, 1, 1, 6)
+
+        self.comment = QPlainTextEdit(ConversionDialog)
+        self.comment.setObjectName(u"comment")
+
+        self.gridLayout.addWidget(self.comment, 3, 1, 1, 6)
+
+        self.load_original_conversion_btn = QPushButton(ConversionDialog)
+        self.load_original_conversion_btn.setObjectName(u"load_original_conversion_btn")
+
+        self.gridLayout.addWidget(self.load_original_conversion_btn, 5, 3, 1, 1)
+
+        self.cancel_btn = QPushButton(ConversionDialog)
+        self.cancel_btn.setObjectName(u"cancel_btn")
+
+        self.gridLayout.addWidget(self.cancel_btn, 5, 6, 1, 1)
+
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.gridLayout.addItem(self.horizontalSpacer_3, 5, 1, 1, 1)
 
         self.tabs = QTabWidget(ConversionDialog)
         self.tabs.setObjectName(u"tabs")
@@ -360,9 +365,14 @@ class Ui_ConversionDialog(object):
 
         self.tabs.addTab(self.tab_5, "")
 
-        self.gridLayout.addWidget(self.tabs, 0, 0, 1, 5)
+        self.gridLayout.addWidget(self.tabs, 0, 0, 1, 7)
+
+        self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.gridLayout.addItem(self.horizontalSpacer_5, 5, 4, 1, 1)
 
         self.gridLayout.setRowStretch(0, 1)
+        self.gridLayout.setColumnStretch(2, 1)
         QWidget.setTabOrder(self.tabs, self.a)
         QWidget.setTabOrder(self.a, self.b)
         QWidget.setTabOrder(self.b, self.p1)
@@ -401,15 +411,16 @@ class Ui_ConversionDialog(object):
 
     def retranslateUi(self, ConversionDialog):
         ConversionDialog.setWindowTitle(QCoreApplication.translate("ConversionDialog", u"Define new channel", None))
-        self.label_6.setText(QCoreApplication.translate("ConversionDialog", u"Conversion unit", None))
-        self.unit.setPlaceholderText("")
         self.label_8.setText(QCoreApplication.translate("ConversionDialog", u"Conversion comment", None))
         self.label_7.setText(QCoreApplication.translate("ConversionDialog", u"Conversion name", None))
-        self.cancel_btn.setText(QCoreApplication.translate("ConversionDialog", u"Cancel", None))
+        self.unit.setPlaceholderText("")
+        self.label_6.setText(QCoreApplication.translate("ConversionDialog", u"Conversion unit", None))
         self.apply_btn.setText(QCoreApplication.translate("ConversionDialog", u"Apply", None))
         self.name.setInputMask("")
         self.name.setText("")
         self.name.setPlaceholderText("")
+        self.load_original_conversion_btn.setText(QCoreApplication.translate("ConversionDialog", u"Load original conversion", None))
+        self.cancel_btn.setText(QCoreApplication.translate("ConversionDialog", u"Cancel", None))
         self.label_10.setText(QCoreApplication.translate("ConversionDialog", u"Offset (b)", None))
         self.label_11.setText(QCoreApplication.translate("ConversionDialog", u"Y = a * X + b", None))
         self.label_9.setText(QCoreApplication.translate("ConversionDialog", u"Factor (a)", None))

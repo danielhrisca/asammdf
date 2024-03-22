@@ -4,6 +4,7 @@ from functools import lru_cache
 import json
 import os
 import re
+from traceback import format_exc
 
 import numpy as np
 from pyqtgraph import functions as fn
@@ -1066,14 +1067,27 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 if item.type() == ChannelsTreeItem.Channel:
                     conversion = item.signal.conversion
                     channel_name = item.name
+
+                    try:
+                        if hasattr(self.plot.owner, "mdf"):
+                            mdf = self.plot.owner.mdf
+                            original_conversion = (
+                                mdf.groups[item.signal.group_index].channels[item.signal.channel_index].conversion
+                            )
+                        else:
+                            original_conversion = self.plot.owner.original_conversion(item.signal)
+                    except:
+                        print(format_exc())
+                        original_conversion = None
+
                 else:
-                    conversion = None
+                    conversion = original_conversion = None
                     channel_name = item.name
             else:
-                conversion = None
+                conversion = original_conversion = None
                 channel_name = "selected items"
 
-            dlg = ConversionEditor(channel_name, conversion, parent=self)
+            dlg = ConversionEditor(channel_name, conversion, original_conversion=original_conversion, parent=self)
             dlg.exec_()
             if dlg.pressed_button == "apply":
                 conversion = dlg.conversion()
