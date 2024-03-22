@@ -164,3 +164,8 @@ class TestTabularBaseWidgetShortcuts(TestFileWidget):
             mo_getDouble.return_value = expected_pos, True
             QtTest.QTest.keySequence(self.tabular, QtGui.QKeySequence("Shift+G"))
         mo_getDouble.assert_called()
+
+        h = self.tabular.tree.dataView.height()
+        index = self.tabular.tree.dataView.rowAt(h - 1)
+        # self.tabular.tree.dataView.selectionModel().selection().indexes()
+        self.assertIn(index, self.tabular.tree.dataView.selectedIndexes())
