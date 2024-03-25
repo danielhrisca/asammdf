@@ -2551,7 +2551,7 @@ class Plot(QtWidgets.QWidget):
                 names = extract_mime_names(data)
                 self.add_channels_request.emit(names)
             else:
-                super().dropEvent(e)
+                e.ignore()
 
     def flash_curve(self, item, column):
         if self.plot.cursor1:
@@ -4251,7 +4251,7 @@ class PlotGraphics(pg.PlotWidget):
                 names = extract_mime_names(data)
                 self.add_channels_request.emit(names)
             else:
-                super().dropEvent(e)
+                e.ignore()
 
     def edit_computation(self, item):
         signal = item.signal

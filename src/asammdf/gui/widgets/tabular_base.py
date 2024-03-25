@@ -449,14 +449,15 @@ class DataTableView(QtWidgets.QTableView):
 
     def dropEvent(self, e):
         if e.source() is self:
-            return
+            e.ignore()
         else:
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
                 self.add_channels_request.emit(names)
+                e.accept()
             else:
-                return
+                e.ignore()
 
     def keyPressEvent(self, event):
         key = event.key()

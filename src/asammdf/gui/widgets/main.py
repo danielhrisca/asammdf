@@ -13,6 +13,7 @@ from PySide6 import __version__ as pyside6_version
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...version import __version__ as libversion
+from .. import utils
 from ..dialogs.bus_database_manager import BusDatabaseManagerDialog
 from ..dialogs.dependencies_dlg import DependenciesDlg
 from ..dialogs.functions_manager import FunctionsManagerDialog
@@ -1274,15 +1275,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             if self.stackedWidget.currentIndex() == 0:
                 for path in e.mimeData().text().splitlines():
                     path = Path(path.replace(r"file:///", ""))
-                    if path.suffix.lower() in (
-                        ".csv",
-                        ".zip",
-                        ".erg",
-                        ".dat",
-                        ".mdf",
-                        ".mf4",
-                        ".mf4z",
-                    ):
+                    if path.suffix.lower() in utils.SUPPORTED_FILE_EXTENSIONS:
                         self._open_file(path)
             else:
                 icon = QtGui.QIcon()
@@ -1290,15 +1283,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
                 for path in e.mimeData().text().splitlines():
                     path = Path(path.replace(r"file:///", ""))
-                    if path.suffix.lower() in (
-                        ".csv",
-                        ".zip",
-                        ".erg",
-                        ".dat",
-                        ".mdf",
-                        ".mf4",
-                        ".mf4z",
-                    ):
+                    if path.suffix.lower() in utils.SUPPORTED_FILE_EXTENSIONS:
                         row = self.batch.files_list.count()
                         self.batch.files_list.addItem(str(path))
                         self.batch.files_list.item(row).setIcon(icon)
