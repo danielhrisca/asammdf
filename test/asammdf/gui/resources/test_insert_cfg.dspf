@@ -1,0 +1,83 @@
+{
+  "selected_channels": [],
+  "windows": [
+    {
+      "title": "Plot 0",
+      "configuration": {
+        "channels": [
+          {
+            "type": "channel",
+            "name": "ASAM_[13][0].M.MATRIX_DIM_16_1.UBYTE.IDENTICAL",
+            "unit": "hours",
+            "flags": 0,
+            "enabled": true,
+            "individual_axis": false,
+            "common_axis": false,
+            "color": "#1f77b4",
+            "computed": false,
+            "ranges": [],
+            "precision": 3,
+            "fmt": "{}",
+            "format": "phys",
+            "mode": "phys",
+            "y_range": [
+              0.0,
+              255.0
+            ],
+            "origin_uuid": "8b499db8ee08"
+          }
+        ],
+        "pattern": {},
+        "splitter": [
+          364,
+          68,
+          0
+        ],
+        "x_range": [
+          -1.2266879363388932,
+          13.654530499727267
+        ],
+        "y_axis_width": 0.0,
+        "grid": [
+          false,
+          false
+        ],
+        "cursor_precision": 6,
+        "font_size": 9,
+        "locked": false,
+        "common_axis_y_range": [
+          0.0,
+          1.0
+        ],
+        "channels_header": [
+          364,
+          [
+            334,
+            83,
+            42,
+            35,
+            35
+          ]
+        ],
+        "hide_axes": true,
+        "hide_selected_channel_value_panel": false,
+        "focused_mode": false,
+        "delta_mode": "value",
+        "hide_bookmarks": false
+      },
+      "geometry": [
+        0,
+        0,
+        438,
+        646
+      ],
+      "maximized": true,
+      "minimized": false,
+      "type": "Plot"
+    }
+  ],
+  "active_window": "Plot 0",
+  "functions": {
+    "Function1": "def Function1(t=0):\n    return 0"
+  }
+}

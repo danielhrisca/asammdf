@@ -4,6 +4,8 @@ from unittest import mock
 from PySide6 import QtCore, QtTest, QtWidgets
 
 from asammdf.gui.widgets.file import FileWidget
+from asammdf.gui.widgets.numeric import Numeric
+from asammdf.gui.widgets.plot import Plot
 
 
 class TestFileWidget(TestBase):
@@ -81,6 +83,65 @@ class TestFileWidget(TestBase):
                     break
                 iterator += 1
         return selected_channel
+
+    def add_channels(self, channels_list: list, widget=None):
+        """
+        Add channels to the widget from a list using channels indexes or channels names
+        Add channels to the list <self.channels>
+
+        Parameters
+            channel_list: a list with existent channels names and indexes;  \n
+            widget: the widget where the channels will be inserted.
+
+        Returns
+            None: if one channel or widget not exist;   \n
+            self.channels: if all channels was found.
+        """
+        if not isinstance(channels_list, list):
+            return
+
+        windows_list = self.widget.mdi_area.subWindowList()
+        if len(windows_list) == 0:
+            return
+        else:
+            if widget is None:
+                widget = windows_list[0].widget()
+            else:
+                if widget not in [w.widget() for w in windows_list]:
+                    return
+
+        channels = []
+        for channel in channels_list:
+            found_channel = None
+            if isinstance(channel, int):
+                found_channel = self.find_channel(channel_tree=self.widget.channels_tree, channel_index=channel)
+            elif isinstance(channel, str):
+                found_channel = self.find_channel(channel_tree=self.widget.channels_tree, channel_name=channel)
+            if found_channel is not None:
+                channels.append(found_channel)
+        self.assertEqual(
+            len(channels_list),
+            len(channels),
+            msg=f"Not all channels from given list was found!      \n"
+            f"Given channels:\n{channels_list} \nFounded channels: \n"
+            f"-------------------------------------------\n{channels}",
+        )
+
+        # add channels to channel selection
+        self.widget.add_new_channels([channel.name for channel in channels], widget)
+
+        if isinstance(widget, Numeric):
+            cw = widget.channels.dataView
+            self.channels = cw.backend.signals
+        elif isinstance(widget, Plot):
+            cw = widget.channel_selection
+            self.channels = [cw.topLevelItem(_) for _ in range(cw.topLevelItemCount())]
+        else:
+            return
+        self.assertEqual(len(self.channels), len(channels_list))
+        self.processEvents()
+
+        return self.channels
 
     def get_subwindows(self):
         widget_types = sorted(w.widget().__class__.__name__ for w in self.widget.mdi_area.subWindowList())
