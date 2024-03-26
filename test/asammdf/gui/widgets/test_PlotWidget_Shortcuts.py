@@ -691,13 +691,18 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             - Evaluate that object getSaveFileName() was called after pressing combination "Ctrl+S"
             - Evaluate that in measurement file is saved only active channels
         """
-        self.assertIsNotNone(self.add_channels([10, 11, 12, 13]))
-        expected_items = [channel.name for channel in self.channels]
-        expected_items.append("time")
         file_path = os.path.join(self.test_workspace, "file.mf4")
         self.create_window(window_type="Plot", channels_indexes=(20, 21, 22))
         self.processEvents()
-        # mock for getSaveFileName object
+        second_plot_items = []
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.mdi_area.subWindowList()[1].widget().channel_selection)
+        while item := iterator.value():
+            second_plot_items.append(item.name)
+            iterator += 1
+        self.assertIsNotNone(self.add_channels([10, 11, 12, 13]))
+        expected_items = [channel.name for channel in self.channels]
+        expected_items.append("time")
+
         with mock.patch("asammdf.gui.widgets.plot.QtWidgets.QFileDialog.getSaveFileName") as mo_getSaveFileName:
             mo_getSaveFileName.return_value = (file_path, "")
             self.mouseClick_WidgetItem(self.channels[0])
@@ -710,11 +715,15 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         self.setUpFileWidget(measurement_file=file_path, default=True)
         # Switch ComboBox to "Natural sort"
         self.widget.channel_view.setCurrentText("Natural sort")
+        # debug
+        print(f"\n\tplot 0:\n{expected_items}\n\n\tplot 1:\n{second_plot_items}\n")
         # Evaluate
         for index in range(self.widget.channels_tree.topLevelItemCount()):
-            self.assertIn(self.widget.channels_tree.topLevelItem(index).name, expected_items)
-            if self.widget.channels_tree.topLevelItem(index).name != "time":
-                expected_items.remove(self.widget.channels_tree.topLevelItem(index).name)
+            channel = self.widget.channels_tree.topLevelItem(index).name
+            self.assertIn(channel, expected_items)
+            if channel != "time":
+                expected_items.remove(channel)
+        # In list must remain only "time"
         self.assertListEqual(expected_items, ["time"])
 
     def test_Plot_Plot_Shortcut_Key_Ctrl_I(self):

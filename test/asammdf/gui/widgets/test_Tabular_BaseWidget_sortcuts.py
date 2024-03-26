@@ -169,3 +169,36 @@ class TestTabularBaseWidgetShortcuts(TestFileWidget):
         index = self.tabular.tree.dataView.rowAt(h - 1)
         # self.tabular.tree.dataView.selectionModel().selection().indexes()
         self.assertIn(index, self.tabular.tree.dataView.selectedIndexes())
+
+
+class TestDataFrameViewerWidgetShortcuts(TestFileWidget):
+    def setUp(self):
+        super().setUp()
+        # Open measurement file
+        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
+
+        # Open measurement file
+        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+
+        self.create_window(window_type="Tabular", channels_indexes=(35, 36))
+
+        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+        self.tabular = self.widget.mdi_area.subWindowList()[0].widget()
+        self.dfw = self.tabular.tree
+        self.processEvents(0.01)
+
+    def test_DataFrameViewerWidget_Shortcut_Keys_Ctrl_C(self):
+        """
+        test for Ctrl+C
+        Returns
+        -------
+
+        """
+        with mock.patch("asammdf.gui.widgets.tabular_base.threading.Thread") as mo_Thread:
+            # Click on first channel
+            # Press Ctrl+Shift+C
+            QtTest.QTest.keySequence(self.dfw, QtGui.QKeySequence("Ctrl+A"))
+            QtTest.QTest.keySequence(self.dfw, QtGui.QKeySequence("Ctrl+C"))
+        # Evaluate
+        mo_Thread.return_value.start.assert_called()
+        # Evaluate args

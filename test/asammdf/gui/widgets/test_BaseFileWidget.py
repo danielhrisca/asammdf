@@ -118,13 +118,15 @@ class TestFileWidget(TestBase):
             elif isinstance(channel, str):
                 found_channel = self.find_channel(channel_tree=self.widget.channels_tree, channel_name=channel)
             if found_channel is not None:
+                # debug
+                print(found_channel.name)
                 channels.append(found_channel)
         self.assertEqual(
             len(channels_list),
             len(channels),
-            msg=f"Not all channels from given list was found! \n"
-            f"Given channels: {channels_list} \nFounded channels: \n"
-            f"----------------------------------------------------\n{channels}",
+            msg=f"Not all channels from given list was found!      \n"
+            f"Given channels:\n{channels_list} \nFounded channels: \n"
+            f"-------------------------------------------\n{channels}",
         )
 
         # add channels to channel selection
@@ -136,10 +138,8 @@ class TestFileWidget(TestBase):
         elif isinstance(widget, Plot):
             cw = widget.channel_selection
             self.channels = [cw.topLevelItem(_) for _ in range(cw.topLevelItemCount())]
-
         else:
             return
-
         self.assertEqual(len(self.channels), len(channels_list))
         self.processEvents()
 
