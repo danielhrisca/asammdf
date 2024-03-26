@@ -887,6 +887,9 @@ class TableView(QtWidgets.QTableView):
             if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
                 self.add_channels_request.emit(names)
+                e.accept()
+            else:
+                e.ignore()
 
     def edit_ranges(self, index):
         if not self.double_clicked_enabled or not index.isValid():

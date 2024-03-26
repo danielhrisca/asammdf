@@ -30,6 +30,7 @@ from ...blocks.utils import (
 )
 from ...blocks.v4_blocks import EventBlock, HeaderBlock
 from ...signal import Signal
+from .. import utils
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.messagebox import MessageBox
@@ -585,15 +586,7 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
                 try:
                     for path in e.mimeData().text().splitlines():
                         path = Path(path.replace(r"file:///", ""))
-                        if path.suffix.lower() in (
-                            ".csv",
-                            ".zip",
-                            ".erg",
-                            ".dat",
-                            ".mdf",
-                            ".mf4",
-                            ".mf4z",
-                        ):
+                        if path.suffix.lower() in utils.SUPPORTED_FILE_EXTENSIONS:
                             self.open_file_request.emit(str(path))
                 except:
                     print(format_exc())
@@ -3782,7 +3775,7 @@ class WithMDIArea:
 
         for name in sorted(required - found):
             vals = np.empty(dim)
-            vals.fill(np.NaN)
+            vals.fill(np.nan)
             signals[name] = pd.Series(vals, index=signals.index)
 
         tabular = Tabular(

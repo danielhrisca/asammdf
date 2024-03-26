@@ -529,8 +529,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 self.drop_target = item
 
                 self.add_channels_request.emit(names)
+                e.accept()
             else:
-                super().dropEvent(e)
+                e.ignore()
 
         self.refresh()
         self.update_channel_groups_count()

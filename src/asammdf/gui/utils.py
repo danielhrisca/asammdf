@@ -47,6 +47,8 @@ COLORS = [
 ]
 COLORS_COUNT = len(COLORS)
 
+SUPPORTED_FILE_EXTENSIONS = {".csv", ".zip", ".erg", ".dat", ".mdf", ".mf4", ".mf4z"}
+
 GREEN = "#599e5e"
 BLUE = "#61b2e2"
 
