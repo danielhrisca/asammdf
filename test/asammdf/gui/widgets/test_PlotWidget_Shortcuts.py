@@ -691,6 +691,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
             - Evaluate that object getSaveFileName() was called after pressing combination "Ctrl+S"
             - Evaluate that in measurement file is saved only active channels
         """
+        # Setup
         file_path = os.path.join(self.test_workspace, "file.mf4")
         self.create_window(window_type="Plot", channels_indexes=(20, 21, 22))
         self.processEvents()
@@ -702,6 +703,18 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         self.assertIsNotNone(self.add_channels([10, 11, 12, 13]))
         expected_items = [channel.name for channel in self.channels]
         expected_items.append("time")
+        self.processEvents()
+
+        # Ensure that all chennels from first plot is checked
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.plot.channel_selection)
+        while item := iterator.value():
+            if item.checkState(0) == QtCore.Qt.CheckState.Unchecked:
+                self.mouseDClick_WidgetItem(item)
+            iterator += 1
+
+        # Uncheck fist channel
+        self.mouseDClick_WidgetItem(self.channels[0])
+        expected_items.remove(self.channels[0].name)
 
         with mock.patch("asammdf.gui.widgets.plot.QtWidgets.QFileDialog.getSaveFileName") as mo_getSaveFileName:
             mo_getSaveFileName.return_value = (file_path, "")
@@ -715,12 +728,9 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         self.setUpFileWidget(measurement_file=file_path, default=True)
         # Switch ComboBox to "Natural sort"
         self.widget.channel_view.setCurrentText("Natural sort")
-        # debug
-        print(f"\n\tplot 0:\n{expected_items}\n\n\tplot 1:\n{second_plot_items}\n")
         # Evaluate
         for index in range(self.widget.channels_tree.topLevelItemCount()):
             channel = self.widget.channels_tree.topLevelItem(index).name
-            print(f"\nchanel {index}: {channel}")
             self.assertIn(channel, expected_items)
             if channel != "time":
                 expected_items.remove(channel)

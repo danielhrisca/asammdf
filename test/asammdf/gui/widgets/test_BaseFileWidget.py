@@ -118,8 +118,6 @@ class TestFileWidget(TestBase):
             elif isinstance(channel, str):
                 found_channel = self.find_channel(channel_tree=self.widget.channels_tree, channel_name=channel)
             if found_channel is not None:
-                # debug
-                print(found_channel.name)
                 channels.append(found_channel)
         self.assertEqual(
             len(channels_list),
