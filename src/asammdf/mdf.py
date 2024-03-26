@@ -2068,6 +2068,8 @@ class MDF:
                             sigs,
                             common_timebase=True,
                             comment=cg.comment,
+                            acq_name=cg.acq_name,
+                            acq_source=cg.acq_source,
                         )
                         MDF._transfer_channel_group_data(mdf.groups[cg_nr].channel_group, cg)
                     else:
