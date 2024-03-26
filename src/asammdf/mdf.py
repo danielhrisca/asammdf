@@ -2068,6 +2068,8 @@ class MDF:
                             sigs,
                             common_timebase=True,
                             comment=cg.comment,
+                            acq_name=getattr(cg, "acq_name", None),
+                            acq_source=getattr(cg, "acq_source", None),
                         )
                         MDF._transfer_channel_group_data(mdf.groups[cg_nr].channel_group, cg)
                     else:
