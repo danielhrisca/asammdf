@@ -101,7 +101,7 @@ class TestTableViewWidgetShortcuts(TestFileWidget):
         """
         Test for Ctrl+Shift+C shortcut
         """
-        self.assertIsNotNone(self.add_channels([10]))
+        self.assertIsNotNone(self.add_channels(["ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL"]))
         signal = self.table_view.backend.signals[0]
         expected_ch_info = {
             "format": signal.format,
@@ -124,7 +124,11 @@ class TestTableViewWidgetShortcuts(TestFileWidget):
         Evaluate
             - display_properties of both channels must be equal
         """
-        self.assertIsNotNone(self.add_channels([10, 11]))
+        self.assertIsNotNone(
+            self.add_channels(
+                ["ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL", "ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL"]
+            )
+        )
         # Evaluate precondition
         signal_0 = self.table_view.backend.signals[0]
         expected_ch_info = {

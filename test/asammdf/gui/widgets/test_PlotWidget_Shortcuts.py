@@ -720,6 +720,7 @@ class TestPlotShortcutsFunctionality(TestPlotWidget):
         # Evaluate
         for index in range(self.widget.channels_tree.topLevelItemCount()):
             channel = self.widget.channels_tree.topLevelItem(index).name
+            print(f"\nchanel {index}: {channel}")
             self.assertIn(channel, expected_items)
             if channel != "time":
                 expected_items.remove(channel)
