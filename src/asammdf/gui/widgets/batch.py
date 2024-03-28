@@ -139,13 +139,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         databases = {}
 
-        can_databases = self._settings.value("can_databases", [])
+        can_databases = self._settings.value("can_databases", None) or []
         buses = can_databases[::2]
         dbs = can_databases[1::2]
 
         databases["CAN"] = list(zip(buses, dbs))
 
-        lin_databases = self._settings.value("lin_databases", [])
+        lin_databases = self._settings.value("lin_databases", None) or []
         buses = lin_databases[::2]
         dbs = lin_databases[1::2]
 
