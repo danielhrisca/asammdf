@@ -8,6 +8,8 @@ import numpy as np
 from numpy.typing import NDArray
 from typing_extensions import TypedDict
 
+from . import v4_blocks as v4b
+from . import v4_constants as v4c
 from .conversion_utils import from_dict
 from .utils import as_non_byte_sized_signed_int, MdfException
 
@@ -35,31 +37,10 @@ def defined_j1939_bit_count(signal):
 
 
 def apply_conversion(vals: NDArray[Any], signal: Signal, ignore_value2text_conversion: bool) -> NDArray[Any]:
-    a, b = float(signal.factor), float(signal.offset)
 
-    if signal.values:
-        if ignore_value2text_conversion:
-            if (a, b) != (1, 0):
-                vals = vals * a
-                if b:
-                    vals += b
-        else:
-            conv = {}
-            for i, (val, text) in enumerate(signal.values.items()):
-                conv[f"upper_{i}"] = val
-                conv[f"lower_{i}"] = val
-                conv[f"text_{i}"] = text
-
-            conv["default"] = from_dict({"a": a, "b": b})
-
-            conv = from_dict(conv)
-            vals = conv.convert(vals)
-
-    else:
-        if (a, b) != (1, 0):
-            vals = vals * a
-            if b:
-                vals += b
+    conv = get_conversion(signal)
+    if conv and not (ignore_value2text_conversion and conv.conversion_type in v4c.CONVERSIONS_WITH_TEXTS):
+        vals = conv.convert(vals)
 
     return vals
 
@@ -382,6 +363,7 @@ def extract_mux(
                     "comment": sig.comment or "",
                     "unit": sig.unit or "",
                     "samples": samples if raw else apply_conversion(samples, sig, ignore_value2text_conversion),
+                    "conversion": get_conversion(sig) if raw else None,
                     "t": t_,
                     "invalidation_bits": None,
                 }
@@ -414,3 +396,24 @@ def extract_mux(
                 )
 
     return extracted_signals
+
+
+def get_conversion(signal: Signal) -> v4b.ChannelConversion | None:
+    conv = {}
+
+    a, b = float(signal.factor), float(signal.offset)
+
+    if signal.values:
+        conv = {}
+        for i, (val, text) in enumerate(signal.values.items()):
+            conv[f"upper_{i}"] = val
+            conv[f"lower_{i}"] = val
+            conv[f"text_{i}"] = text
+
+        conv["default"] = from_dict({"a": a, "b": b})
+
+    else:
+        conv["a"] = a
+        conv["b"] = b
+
+    return from_dict(conv)

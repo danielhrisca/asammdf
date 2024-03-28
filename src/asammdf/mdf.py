@@ -4903,6 +4903,7 @@ class MDF:
                                     ignore_value2text_conversion=ignore_value2text_conversion,
                                     is_j1939=is_j1939,
                                     is_extended=is_extended,
+                                    raw=True,
                                 )
                             except:
                                 print(format_exc())
@@ -4931,6 +4932,8 @@ class MDF:
                                                 f"CAN{bus}.{message.name}.{signal_name}": "bus",
                                                 f"{message.name}.{signal_name}": "message",
                                             },
+                                            raw=True,
+                                            conversion=signal["conversion"],
                                         )
 
                                         sigs.append(sig)
@@ -5198,6 +5201,7 @@ class MDF:
                                 t,
                                 original_message_id=None,
                                 ignore_value2text_conversion=ignore_value2text_conversion,
+                                raw=True,
                             )
 
                             for entry, signals in extracted_signals.items():
@@ -5222,6 +5226,8 @@ class MDF:
                                                 f"LIN{bus}.{message.name}.{signal_name}": "bus",
                                                 f"{message.name}.{signal_name}": "message",
                                             },
+                                            raw=True,
+                                            conversion=signal["conversion"],
                                         )
 
                                         sigs.append(sig)

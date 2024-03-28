@@ -8757,6 +8757,8 @@ class MDF4(MDF_Common):
                         name=name,
                         unit=signal.unit or "",
                         comment=comment,
+                        raw=raw,
+                        conversion=sig["conversion"],
                     )
                     if len(sig):
                         return sig
@@ -8931,6 +8933,8 @@ class MDF4(MDF_Common):
                         name=name,
                         unit=signal.unit or "",
                         comment=comment,
+                        conversion=sig["conversion"],
+                        raw=raw,
                     )
                     if len(sig):
                         return sig
@@ -10638,7 +10642,7 @@ class MDF4(MDF_Common):
                         payload = bus_data_bytes[idx]
                         t = bus_t[idx]
 
-                        extracted_signals = bus_logging_utils.extract_mux(payload, message, msg_id, bus, t)
+                        extracted_signals = bus_logging_utils.extract_mux(payload, message, msg_id, bus, t, raw=True)
 
                         for entry, signals in extracted_signals.items():
                             if len(next(iter(signals.values()))["samples"]) == 0:
@@ -10658,6 +10662,8 @@ class MDF4(MDF_Common):
                                             f"{message.name}.{signal['name']}": "message_name",
                                             f"CAN{bus}.{message.name}.{signal['name']}": "bus_name",
                                         },
+                                        conversion=signal["conversion"],
+                                        raw=True,
                                     )
 
                                     sigs.append(sig)
@@ -10806,7 +10812,7 @@ class MDF4(MDF_Common):
                     payload = bus_data_bytes[idx]
                     t = bus_t[idx]
 
-                    extracted_signals = bus_logging_utils.extract_mux(payload, message, msg_id, 0, t)
+                    extracted_signals = bus_logging_utils.extract_mux(payload, message, msg_id, 0, t, raw=True)
 
                     for entry, signals in extracted_signals.items():
                         if len(next(iter(signals.values()))["samples"]) == 0:
@@ -10826,6 +10832,8 @@ class MDF4(MDF_Common):
                                         f"{message.name}.{signal['name']}": "message_name",
                                         f"LIN.{message.name}.{signal['name']}": "bus_name",
                                     },
+                                    conversion=signal["conversion"],
+                                    raw=True,
                                 )
 
                                 sigs.append(sig)
