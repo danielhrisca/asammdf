@@ -1,0 +1,61 @@
+{
+  "Plot": [
+    {
+      "statistics": "M",
+      "focused_mode": "2",
+      "bin": "Ctrl+B",
+      "hex": "Ctrl+H",
+      "physical": "Ctrl+P",
+      "ascii": "Ctrl+T",
+      "raw_samples": "Alt+R",
+      "scaled_samples": "Alt+S",
+      "insert_bookmark": "Ctrl+I",
+      "toggle_bookmarks": "Alt+I",
+      "edit_y_axis_scaling": "Ctrl+G",
+      "range": "R",
+      "set_color": "C",
+      "copy_channel_structure": "Ctrl+C",
+      "copy_display_properties": "Ctrl+Shift+C",
+      "set_color_range": "Ctrl+R",
+      "paste_channel_structure": "Ctrl+V",
+      "paste_display_properties": "Ctrl+Shift+V",
+      "increase_font": "Ctrl+[",
+      "decrease_font": "Ctrl+]",
+      "undo_zoom": "Backspace",
+      "redo_zoom": "Shift+Backspace",
+      "x_default_zoom": "Shift+W"
+    }
+  ],
+
+  "PlotGraphics": [
+    {
+      "toggle_range": "Y",
+      "zoom_to_range": "X",
+      "fit_all": "F",
+      "fit_selected": "Shift+F",
+      "grid": "G",
+      "go_to_timestamp": "Shift+G",
+      "x_zoom_in": "I",
+      "x_zoom_out": "O",
+      "y_zoom_in": "Shift+I",
+      "y_zoom_out": "Shift+O",
+      "range": "R",
+      "save_active_subplot_channels": "Ctrl+S",
+      "stack_all": "S",
+      "stack_selected": "Shift+S",
+      "move_cursor_left_1x": "Left",
+      "move_cursor_right_1x": "Right",
+      "move_cursor_left_10x": "Ctrl+Left",
+      "move_cursor_right_10x": "Ctrl+Right",
+      "shift_channels_left": "Shift+Left",
+      "shift_channels_right": "Shift+Right",
+      "shift_channels_up_1x": "Shift+Up",
+      "shift_channels_down_1x": "Shift+Down",
+      "shift_channels_op_10x": "Shift+PgUp",
+      "shift_channels_down_10x": "Shift+PgDown",
+      "honeywell": "H",
+      "home": "W",
+      "insert_computation": "Insert"
+    }
+  ]
+}

@@ -4,6 +4,9 @@ from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets
+from PySide6.QtCore import QCoreApplication, QPoint, QPointF, Qt
+from PySide6.QtGui import QInputDevice, QPointingDevice, QWheelEvent
+from PySide6.QtWidgets import QWidget
 
 
 class QMenuWrap(QtWidgets.QMenu):
@@ -97,3 +100,46 @@ class TestPlotWidget(TestFileWidget):
             dst_pos=drop_position,
         )
         self.processEvents(0.05)
+
+    def wheel_action(self, w: QWidget, x: float, y: float, angle_delta: int):
+        """
+        Used to simulate mouse wheel event.
+
+        Parameters
+        ----------
+        w: widget - widget object
+        x: float - x position of cursor
+        y: float - y position of cursor
+        angle_delta: int - physical wheel rotations units
+
+        Returns
+        -------
+
+        """
+        pos = QPointF(x, y)
+        global_pos = self.widget.mapToGlobal(pos)
+        x = global_pos.x()
+        global_pos.setX(x + pos.x())
+
+        pixel_d = QPoint(0, 0)
+        angle_d = QPoint(0, angle_delta * 120)
+        buttons = Qt.MouseButtons()
+        modifiers = Qt.KeyboardModifiers()
+        phase = Qt.ScrollPhase(0x0)
+        inverted = False
+        source = Qt.MouseEventSource(0x0)
+        device = QPointingDevice(
+            "core pointer",
+            1,
+            QInputDevice.DeviceType(0x1),
+            QPointingDevice.PointerType(0x0),
+            QInputDevice.Capabilities(),
+            1,
+            3,
+        )
+        # Create event
+        event = QWheelEvent(pos, global_pos, pixel_d, angle_d, buttons, modifiers, phase, inverted, source, device)
+        # Post event
+        QCoreApplication.postEvent(w, event)
+        self.assertTrue(event.isAccepted())
+        QCoreApplication.processEvents()

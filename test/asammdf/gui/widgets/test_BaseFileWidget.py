@@ -1,3 +1,5 @@
+import json
+import os
 from test.asammdf.gui.test_base import TestBase
 from unittest import mock
 
@@ -142,6 +144,30 @@ class TestFileWidget(TestBase):
         self.processEvents()
 
         return self.channels
+
+    def load_shortcuts_from_json_file(self, widget):
+        """
+        Used to store widget shortcuts into variable "self.shortcuts"
+
+        Parameters
+        ----------
+            widget: tested widget
+
+        Returns
+        -------
+            None: if class not exist in json \n
+            Dict: if class was found. Dict contain all shortcuts applied to selected class
+        """
+        # get json path
+        json_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "Shortcuts.json"))
+        widget_name = widget.__class__.__name__
+        self.shortcuts = None
+        with open(json_path) as json_file:
+            data = json.load(json_file)
+            if widget_name in data.keys():
+                self.shortcuts = data[widget_name][0]
+        json_file.close()
+        return self.shortcuts
 
     def get_subwindows(self):
         widget_types = sorted(w.widget().__class__.__name__ for w in self.widget.mdi_area.subWindowList())

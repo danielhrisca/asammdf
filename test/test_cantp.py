@@ -1,5 +1,7 @@
 import unittest
+
 import numpy as np
+
 from asammdf.blocks import bus_logging_utils as blu
 
 
