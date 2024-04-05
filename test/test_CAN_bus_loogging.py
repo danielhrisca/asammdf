@@ -45,14 +45,14 @@ class TestCANBusLogging(unittest.TestCase):
 
         signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
 
-        out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]})
+        out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]}, ignore_value2text_conversion=True)
 
         for signal in signals:
             name = signal.stem
 
             target = np.load(signal)
             sig = out.get(name)
-            if sig.samples.dtype == 'S':
+            if sig.samples.dtype == "S":
                 sig = out.get(name, raw=True)
 
             self.assertTrue(np.array_equal(sig.samples, target), f"{name} {sig} {target}")
@@ -70,14 +70,14 @@ class TestCANBusLogging(unittest.TestCase):
 
         signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
 
-        out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]})
+        out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]}, ignore_value2text_conversion=True)
 
         for signal in signals:
             name = signal.stem
 
             target = np.load(signal)
             values = out.get(name).samples
-            if values.dtype == 'S':
+            if values.dtype == "S":
                 values = out.get(name, raw=True).samples
 
             self.assertTrue(np.array_equal(values, target))
