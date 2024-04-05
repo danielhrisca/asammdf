@@ -109,7 +109,7 @@ class Delegate(QtWidgets.QStyledItemDelegate):
 
 
 class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
-    open_new_files = QtCore.Signal(list)
+    open_new_files = QtCore.Signal(object)
     full_screen_toggled = QtCore.Signal()
     display_file_modified = QtCore.Signal(str)
 

@@ -534,7 +534,7 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
 
 class MdiAreaWidget(QtWidgets.QMdiArea):
     add_window_request = QtCore.Signal(list)
-    open_files_request = QtCore.Signal(list)
+    open_files_request = QtCore.Signal(object)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

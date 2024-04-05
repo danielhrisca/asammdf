@@ -1156,35 +1156,41 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self.open_batch_files(event)
 
     def _open_file(self, file_name):
-        file_name = Path(file_name)
-        index = self.files.count()
-
-        try:
-            widget = FileWidget(
-                file_name,
-                self.with_dots,
-                self.subplots,
-                self.subplots_link,
-                self.ignore_value2text_conversions,
-                self.display_cg_name,
-                self.line_interconnect,
-                1,
-                None,
-                None,
-                self,
-            )
-
-        except:
-            raise
+        if isinstance(file_name, (tuple, list)):
+            file_names = file_name
         else:
-            widget.mdf.configure(integer_interpolation=self.integer_interpolation)
-            self.files.addTab(widget, file_name.name)
-            self.files.setTabToolTip(index, str(file_name))
-            self.files.setCurrentIndex(index)
-            widget.open_new_file.connect(self._open_file)
-            widget.full_screen_toggled.connect(self.toggle_fullscreen)
+            file_names = [file_name]
 
-            self.edit_cursor_options()
+        for file_name in file_names:
+            file_name = Path(file_name)
+            index = self.files.count()
+
+            try:
+                widget = FileWidget(
+                    file_name,
+                    self.with_dots,
+                    self.subplots,
+                    self.subplots_link,
+                    self.ignore_value2text_conversions,
+                    self.display_cg_name,
+                    self.line_interconnect,
+                    1,
+                    None,
+                    None,
+                    self,
+                )
+
+            except:
+                raise
+            else:
+                widget.mdf.configure(integer_interpolation=self.integer_interpolation)
+                self.files.addTab(widget, file_name.name)
+                self.files.setTabToolTip(index, str(file_name))
+                self.files.setCurrentIndex(index)
+                widget.open_new_files.connect(self._open_file)
+                widget.full_screen_toggled.connect(self.toggle_fullscreen)
+
+                self.edit_cursor_options()
 
     def open_file(self, event):
         system = platform.system().lower()
