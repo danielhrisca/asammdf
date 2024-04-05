@@ -52,7 +52,7 @@ class TestCANBusLogging(unittest.TestCase):
 
             target = np.load(signal)
             sig = out.get(name)
-            if sig.samples.dtype == "S":
+            if sig.samples.dtype.kind == "S":
                 sig = out.get(name, raw=True)
 
             self.assertTrue(np.array_equal(sig.samples, target), f"{name} {sig} {target}")
@@ -77,7 +77,7 @@ class TestCANBusLogging(unittest.TestCase):
 
             target = np.load(signal)
             values = out.get(name).samples
-            if values.dtype == "S":
+            if values.dtype.kind == "S":
                 values = out.get(name, raw=True).samples
 
             self.assertTrue(np.array_equal(values, target))
