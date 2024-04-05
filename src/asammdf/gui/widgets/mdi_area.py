@@ -534,7 +534,7 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
 
 class MdiAreaWidget(QtWidgets.QMdiArea):
     add_window_request = QtCore.Signal(list)
-    open_file_request = QtCore.Signal(str)
+    open_files_request = QtCore.Signal(list)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -584,10 +584,14 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
                     self.add_window_request.emit([window_type, names])
             else:
                 try:
+                    files = []
                     for path in e.mimeData().text().splitlines():
                         path = Path(path.replace(r"file:///", ""))
                         if path.suffix.lower() in utils.SUPPORTED_FILE_EXTENSIONS:
-                            self.open_file_request.emit(str(path))
+                            files.append(str(path))
+
+                    if files:
+                        self.open_files_request.emit(str(path))
                 except:
                     print(format_exc())
 

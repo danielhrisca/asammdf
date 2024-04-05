@@ -109,7 +109,7 @@ class Delegate(QtWidgets.QStyledItemDelegate):
 
 
 class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
-    open_new_file = QtCore.Signal(str)
+    open_new_files = QtCore.Signal(list)
     full_screen_toggled = QtCore.Signal()
     display_file_modified = QtCore.Signal(str)
 
@@ -130,9 +130,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     ):
         self.default_folder = kwargs.pop("default_folder", "")
         display_file = kwargs.pop("display_file", "")
-        database_file = kwargs.pop("database_file", None)
+        databases = kwargs.pop("databases", None)
         show_progress = kwargs.pop("show_progress", True)
         process_bus_logging = kwargs.pop("process_bus_logging", True)
+        mdf = kwargs.pop("mdf", None)
 
         self._progress = None
 
@@ -179,96 +180,101 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             progress = None
 
         try:
-            if file_name.suffix.lower() in (".asc", ".blf", ".erg", ".bsig", ".dl3", ".tdms"):
-                extension = file_name.suffix.lower().strip(".")
-                if progress:
-                    progress.setLabelText(f"Converting from {extension} to mdf")
-
-                try:
-                    from mfile import ASC, BLF, BSIG, DL3, ERG, TDMS
-                except ImportError:
-                    from cmerg import BSIG, ERG
-
-                if file_name.suffix.lower() == ".erg":
-                    cls = ERG
-                elif file_name.suffix.lower() == ".bsig":
-                    cls = BSIG
-                elif file_name.suffix.lower() == ".tdms":
-                    cls = TDMS
-                elif file_name.suffix.lower() == ".asc":
-                    cls = ASC
-                elif file_name.suffix.lower() == ".blf":
-                    cls = BLF
-                else:
-                    cls = DL3
-
-                out_file = Path(gettempdir()) / file_name.name
-                if file_name.suffix.lower() in (".asc", ".blf"):
-                    meas_file = cls(file_name, database=database_file)
-                else:
-                    meas_file = cls(file_name)
-
-                mdf_path = meas_file.export_mdf().save(out_file.with_suffix(".tmp.mf4"))
-                meas_file.close()
-                self.mdf = mdf_module.MDF(mdf_path, process_bus_logging=process_bus_logging)
-                self.mdf.original_name = file_name
-                self.mdf.uuid = self.uuid
-
-            elif file_name.suffix.lower() == ".csv":
-                try:
-                    with open(file_name) as csv:
-                        names = [n.strip() for n in csv.readline().split(",")]
-                        units = [n.strip() for n in csv.readline().split(",")]
-
-                        try:
-                            float(units[0])
-                        except:
-                            units = dict(zip(names, units))
-                        else:
-                            csv.seek(0)
-                            csv.readline()
-                            units = None
-
-                        df = pd.read_csv(csv, header=None, names=names)
-                        df.set_index(df[names[0]], inplace=True)
-                        self.mdf = mdf_module.MDF()
-                        self.mdf.append(df, units=units)
-                        self.mdf.uuid = self.uuid
-                        self.mdf.original_name = file_name
-                except Exception as exc:
+            if mdf is None:
+                if file_name.suffix.lower() in (".asc", ".blf", ".erg", ".bsig", ".dl3", ".tdms"):
+                    extension = file_name.suffix.lower().strip(".")
                     if progress:
-                        progress.cancel()
-                    print(format_exc())
-                    raise Exception(
-                        "Could not load CSV. The first line must contain the channel names. The seconds line "
-                        "can optionally contain the channel units. The first column must be the time"
-                    ) from exc
+                        progress.setLabelText(f"Converting from {extension} to mdf")
 
+                    try:
+                        from mfile import ASC, BLF, BSIG, DL3, ERG, TDMS
+                    except ImportError:
+                        from cmerg import BSIG, ERG
+
+                    if file_name.suffix.lower() == ".erg":
+                        cls = ERG
+                    elif file_name.suffix.lower() == ".bsig":
+                        cls = BSIG
+                    elif file_name.suffix.lower() == ".tdms":
+                        cls = TDMS
+                    elif file_name.suffix.lower() == ".asc":
+                        cls = ASC
+                    elif file_name.suffix.lower() == ".blf":
+                        cls = BLF
+                    else:
+                        cls = DL3
+
+                    out_file = Path(gettempdir()) / file_name.name
+                    if file_name.suffix.lower() in (".asc", ".blf"):
+                        meas_file = cls(file_name, databases=databases)
+                    else:
+                        meas_file = cls(file_name)
+
+                    mdf_path = meas_file.export_mdf().save(out_file.with_suffix(".tmp.mf4"))
+                    meas_file.close()
+                    self.mdf = mdf_module.MDF(mdf_path, process_bus_logging=process_bus_logging)
+                    self.mdf.original_name = file_name
+                    self.mdf.uuid = self.uuid
+
+                elif file_name.suffix.lower() == ".csv":
+                    try:
+                        with open(file_name) as csv:
+                            names = [n.strip() for n in csv.readline().split(",")]
+                            units = [n.strip() for n in csv.readline().split(",")]
+
+                            try:
+                                float(units[0])
+                            except:
+                                units = dict(zip(names, units))
+                            else:
+                                csv.seek(0)
+                                csv.readline()
+                                units = None
+
+                            df = pd.read_csv(csv, header=None, names=names)
+                            df.set_index(df[names[0]], inplace=True)
+                            self.mdf = mdf_module.MDF()
+                            self.mdf.append(df, units=units)
+                            self.mdf.uuid = self.uuid
+                            self.mdf.original_name = file_name
+                    except Exception as exc:
+                        if progress:
+                            progress.cancel()
+                        print(format_exc())
+                        raise Exception(
+                            "Could not load CSV. The first line must contain the channel names. The seconds line "
+                            "can optionally contain the channel units. The first column must be the time"
+                        ) from exc
+
+                else:
+                    original_name = file_name
+
+                    target = mdf_module.MDF
+                    kwargs = {
+                        "name": file_name,
+                        "callback": self.update_progress,
+                        "password": password,
+                        "use_display_names": True,
+                        "process_bus_logging": process_bus_logging,
+                    }
+
+                    self.mdf = run_thread_with_progress(
+                        self,
+                        target=target,
+                        kwargs=kwargs,
+                        factor=33,
+                        offset=0,
+                        progress=progress,
+                    )
+
+                    if self.mdf is TERMINATED:
+                        return
+
+                    self.mdf.original_name = original_name
+                    self.mdf.uuid = self.uuid
             else:
-                original_name = file_name
-
-                target = mdf_module.MDF
-                kwargs = {
-                    "name": file_name,
-                    "callback": self.update_progress,
-                    "password": password,
-                    "use_display_names": True,
-                    "process_bus_logging": process_bus_logging,
-                }
-
-                self.mdf = run_thread_with_progress(
-                    self,
-                    target=target,
-                    kwargs=kwargs,
-                    factor=33,
-                    offset=0,
-                    progress=progress,
-                )
-
-                if self.mdf is TERMINATED:
-                    return
-
-                self.mdf.original_name = original_name
+                self.mdf = mdf
+                self.mdf.original_name = file_name
                 self.mdf.uuid = self.uuid
 
             self.mdf.configure(raise_on_multiple_occurrences=False)
@@ -285,7 +291,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.mdi_area = MdiAreaWidget()
 
             self.mdi_area.add_window_request.connect(self.add_window)
-            self.mdi_area.open_file_request.connect(self.open_new_file.emit)
+            self.mdi_area.open_files_request.connect(self.open_new_files.emit)
             self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
             self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
             self.splitter.addWidget(self.mdi_area)
@@ -1743,7 +1749,7 @@ MultiRasterSeparator;&
     def scramble_finished(self):
         if self._progress.error is None and self._progress.result is not TERMINATED:
             path = Path(self.file_name)
-            self.open_new_file.emit(str(path.with_suffix(f".scrambled{path.suffix}")))
+            self.open_new_files.emit([str(path.with_suffix(f".scrambled{path.suffix}"))])
 
         self._progress = None
 
@@ -1762,7 +1768,7 @@ MultiRasterSeparator;&
             file_name, message = self._progress.result
 
             self.output_info_bus.setPlainText("\n".join(message))
-            self.open_new_file.emit(str(file_name))
+            self.open_new_files.emit([str(file_name)])
 
         self._progress = None
 
