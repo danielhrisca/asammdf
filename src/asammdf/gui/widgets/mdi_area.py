@@ -587,11 +587,14 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
                     files = []
                     for path in e.mimeData().text().splitlines():
                         path = Path(path.replace(r"file:///", ""))
-                        if path.suffix.lower() in utils.SUPPORTED_FILE_EXTENSIONS:
+                        if (
+                            path.suffix.lower()
+                            in utils.SUPPORTED_FILE_EXTENSIONS | utils.SUPPORTED_BUS_DATABASE_EXTENSIONS
+                        ):
                             files.append(str(path))
 
                     if files:
-                        self.open_files_request.emit(str(path))
+                        self.open_files_request.emit(files)
                 except:
                     print(format_exc())
 
