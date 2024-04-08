@@ -77,7 +77,9 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
         self._inhibit = False
 
         self._x = None
+        self._x_interp = None
         self._y = None
+        self._y_interp = None
         self._timebase = None
         self._timestamp = None
 
@@ -107,18 +109,20 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
         x = pos.x()
         y = pos.y()
 
-        delta = (self._x.samples - x) ** 2 + (self._y.samples - y) ** 2
-        idx = np.argmin(delta).flatten()[0]
+        if self._x is not None and self._y is not None:
 
-        x = self._x.samples[idx : idx + 1]
-        y = self._y.samples[idx : idx + 1]
+            delta = (self._x_interp.samples - x) ** 2 + (self._y_interp.samples - y) ** 2
+            idx = np.argmin(delta).flatten()[0]
 
-        self.marker.setData(
-            x=x,
-            y=y,
-        )
+            x = self._x_interp.samples[idx : idx + 1]
+            y = self._y_interp.samples[idx : idx + 1]
 
-        self.timestamp_slider.setValue(idx)
+            self.marker.setData(
+                x=x,
+                y=y,
+            )
+
+            self.timestamp_slider.setValue(idx)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -192,8 +196,8 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
 
             stamp = new_stamp
 
-            x = self._x.samples[idx : idx + 1]
-            y = self._y.samples[idx : idx + 1]
+            x = self._x_interp.samples[idx : idx + 1]
+            y = self._y_interp.samples[idx : idx + 1]
 
             self.marker.setData(
                 x=x,
@@ -274,8 +278,8 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
 
         else:
             self._timebase = t = np.unique(np.concatenate([x.timestamps, y.timestamps]))
-            x = x.interp(t)
-            y = y.interp(t)
+            self._x_interp = x = x.interp(t)
+            self._y_interp = y = y.interp(t)
 
             transform = QtGui.QTransform()
 

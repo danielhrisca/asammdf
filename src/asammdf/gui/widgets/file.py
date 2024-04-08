@@ -2224,7 +2224,7 @@ MultiRasterSeparator;&
             else:
                 super().keyPressEvent(event)
 
-    def aspect_changed(self, index):
+    def aspect_changed(self, index=None):
         current_index = self.aspects.currentIndex()
         count = self.aspects.count()
         for i in range(count):
