@@ -5,6 +5,7 @@ DEFAULT_TIMEOUT = 60
 
 class MessageBox(QtWidgets.QMessageBox):
     def __init__(self, *args, **kwargs):
+
         self.timeout = kwargs.pop("timeout", DEFAULT_TIMEOUT)
         informative_text = kwargs.pop("informative_text", "")
         detailed_text = kwargs.pop("detailed_text", "")
@@ -13,6 +14,27 @@ class MessageBox(QtWidgets.QMessageBox):
         markdown = kwargs.pop("markdown", False)
 
         super().__init__(*args, **kwargs)
+
+        self.label = label = self.findChild(QtWidgets.QLabel, "qt_msgbox_label")
+        idx = self.layout().indexOf(label)
+        position = self.layout().getItemPosition(idx)
+        self.layout().removeWidget(label)
+
+        layout = QtWidgets.QVBoxLayout()
+
+        scroll_contents = QtWidgets.QWidget()
+        scroll_contents.setLayout(layout)
+
+        self.scroll = scroll = QtWidgets.QScrollArea()
+        scroll.setMinimumWidth(400)
+        scroll.setMinimumHeight(300)
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(scroll_contents)
+        scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+
+        layout.addWidget(label)
+
+        self.layout().addWidget(scroll, *position)
 
         self.original_text = self.text()
         if markdown:
@@ -75,6 +97,16 @@ This message will be closed in {self.timeout}s
             event.accept()
         else:
             super().keyPressEvent(event)
+
+    def setText(self, text):
+        super().setText(text)
+        pscreen = QtWidgets.QApplication.primaryScreen()
+
+        geometry = pscreen.availableGeometry()
+        self.label.adjustSize()
+
+        self.scroll.setMinimumWidth(min(self.label.width() + 20, int(geometry.width() * 0.7)))
+        self.scroll.setMinimumHeight(min(self.label.height() + 20, int(geometry.height() * 0.7)))
 
     def tick(self):
         self.timeout -= 1
@@ -148,6 +180,7 @@ This message will be closed in {self.timeout}s
             informative_text=informative_text,
             detailed_text=detailed_text,
         )
+
         return msg.exec()
 
     @classmethod
