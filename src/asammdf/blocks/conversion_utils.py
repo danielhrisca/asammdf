@@ -432,6 +432,8 @@ def to_dict(conversion: ChannelConversionType) -> dict | None:
                 conversion_dict[key] = val
             elif isinstance(val, v4b.ChannelConversion):
                 conversion_dict[key] = to_dict(val)
+            elif val is None:
+                conversion_dict[key] = ""
             else:
                 conversion_dict[key] = val.decode("utf-8", errors="replace")
 
@@ -448,6 +450,8 @@ def to_dict(conversion: ChannelConversionType) -> dict | None:
                 conversion_dict[key] = val
             elif isinstance(val, v4b.ChannelConversion):
                 conversion_dict[key] = to_dict(val)
+            elif val is None:
+                conversion_dict[key] = ""
             else:
                 conversion_dict[key] = val.decode("utf-8", errors="replace")
 

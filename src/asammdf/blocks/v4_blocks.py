@@ -3131,6 +3131,8 @@ class ChannelConversion(_ChannelConversionBase):
         return address
 
     def convert(self, values, as_object=False, as_bytes=False, ignore_value2text_conversions=False):
+        identical = ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_NON)
+
         if not isinstance(values, np.ndarray):
             values = np.array(values)
 
@@ -3281,8 +3283,6 @@ class ChannelConversion(_ChannelConversionBase):
                 nr = self.val_param_nr
                 raw_vals = [self[f"val_{i}"] for i in range(nr)]
 
-                identical = ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_NON)
-
                 phys = []
                 for i in range(nr):
                     ref = self.referenced_blocks[f"text_{i}"]
@@ -3295,7 +3295,7 @@ class ChannelConversion(_ChannelConversionBase):
                 raw_vals = np.array([e[0] for e in x], dtype="<i8")
                 phys = [e[1] for e in x]
 
-                ref = self.referenced_blocks["default_addr"]
+                ref = self.referenced_blocks["default_addr"] or identical
                 if isinstance(ref, bytes):
                     default = identical
                 else:
@@ -3317,7 +3317,7 @@ class ChannelConversion(_ChannelConversionBase):
                     phys = self._cache["phys"]
                     raw_vals = self._cache["raw_vals"]
 
-                default = self.referenced_blocks["default_addr"]
+                default = self.referenced_blocks["default_addr"] or identical
 
             names = values.dtype.names
 
@@ -3471,7 +3471,7 @@ class ChannelConversion(_ChannelConversionBase):
                 raw_vals = [e[0] for e in x]
                 phys = [e[1] for e in x]
 
-                ref = self.referenced_blocks["default_addr"]
+                ref = self.referenced_blocks["default_addr"] or identical
                 if isinstance(ref, bytes):
                     default = identical
                 else:
@@ -3495,7 +3495,7 @@ class ChannelConversion(_ChannelConversionBase):
                     phys = self._cache["phys"]
                     raw_vals = self._cache["raw_vals"]
 
-                default = self.referenced_blocks["default_addr"]
+                default = self.referenced_blocks["default_addr"] or identical
                 default_is_bytes = isinstance(default, bytes)
 
             names = values.dtype.names
@@ -3569,11 +3569,13 @@ class ChannelConversion(_ChannelConversionBase):
                         if default_is_bytes:
                             ret.append(default)
 
-                        else:
+                        elif default:
                             v_ = default.convert([v], ignore_value2text_conversions=ignore_value2text_conversions)[0]
                             ret.append(v_)
                             if all_bytes and not isinstance(v_, bytes):
                                 all_bytes = False
+                        else:
+                            ret.append(v)
 
                 if not all_bytes:
                     try:
@@ -3612,7 +3614,7 @@ class ChannelConversion(_ChannelConversionBase):
                 upper = np.array([e[1] for e in x], dtype="<i8")
                 phys = [e[2] for e in x]
 
-                ref = self.referenced_blocks["default_addr"]
+                ref = self.referenced_blocks["default_addr"] or identical
                 if isinstance(ref, bytes):
                     default = identical
                 else:
@@ -3645,7 +3647,7 @@ class ChannelConversion(_ChannelConversionBase):
                     lower = self._cache["lower"]
                     upper = self._cache["upper"]
 
-                default = self.referenced_blocks["default_addr"]
+                default = self.referenced_blocks["default_addr"] or identical
 
             ret = np.full(values.size, None, "O")
 
@@ -3720,7 +3722,7 @@ class ChannelConversion(_ChannelConversionBase):
                 upper = [e[1] for e in x]
                 phys = [e[2] for e in x]
 
-                ref = self.referenced_blocks["default_addr"]
+                ref = self.referenced_blocks["default_addr"] or identical
                 if isinstance(ref, bytes):
                     default = identical
                 else:
@@ -3753,7 +3755,7 @@ class ChannelConversion(_ChannelConversionBase):
                     lower = self._cache["lower"]
                     upper = self._cache["upper"]
 
-                default = self.referenced_blocks["default_addr"]
+                default = self.referenced_blocks["default_addr"] or identical
                 default_is_bytes = isinstance(default, bytes)
 
             ret = []
