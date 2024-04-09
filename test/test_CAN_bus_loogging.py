@@ -93,12 +93,12 @@ class TestCANBusLogging(unittest.TestCase):
         # else it is identical to the CSS Electronics demo file in test package
         # NB: This fiddöing with optional "test" in path not needed if test file included in test .zip!
         dbc = os.path.join(".", "test", "almost-J1939.dbc")  # Local tests
-        #if not os.path.exists(dbc):
+        # if not os.path.exists(dbc):
         #    dbc = os.path.join(os.path.abspath("."), "almost-J1939.dbc")  # CI env?
 
         # What is really present in current dir in CI env...?
-        #content = ", ".join(os.listdir(os.path.join(".", "test")))
-        #assert( content == "Foo")
+        # content = ", ".join(os.listdir(os.path.join(".", "test")))
+        # assert( content == "Foo")
 
         signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
 
