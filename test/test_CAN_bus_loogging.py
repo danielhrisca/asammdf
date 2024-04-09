@@ -92,7 +92,9 @@ class TestCANBusLogging(unittest.TestCase):
         # This dbc throws exception without the suggested changes in branch "relaxed_j1939"...
         # else it is identical to the CSS Electronics demo file in test package
         # NB: This fiddöing with optional "test" in path not needed if test file included in test .zip!
-        dbc = os.path.join(".", "test", "almost-J1939.dbc")  # Local tests
+        dbc = os.path.join("test", "almost-J1939.dbc")  # Local tests
+        print(f"{dbc=} exists? {os.path.exists(dbc)}")
+        print(f"content of test subdir: {os.listdir('test')}")
         # if not os.path.exists(dbc):
         #    dbc = os.path.join(os.path.abspath("."), "almost-J1939.dbc")  # CI env?
 
