@@ -79,7 +79,6 @@ class TestCANBusLogging(unittest.TestCase):
 
             self.assertTrue(np.array_equal(values, target))
 
-
     def test_almost_j1939_extract(self):
         print("non-standard J1939 extract")
 
@@ -92,7 +91,7 @@ class TestCANBusLogging(unittest.TestCase):
         # dbc = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
         # This dbc throws exception without the suggested changes in branch "relaxed_j1939"...
         # else it is identical to the CSS Electronics demo file in test package
-        dbc =  os.path.join(os.path.abspath("."),"test","almost-J1939.dbc")
+        dbc = os.path.join(os.path.abspath("."), "test", "almost-J1939.dbc")
 
         signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
 
@@ -105,7 +104,6 @@ class TestCANBusLogging(unittest.TestCase):
             values = out.get(name).samples
 
             self.assertTrue(np.array_equal(values, target))
-
 
     def test_j1939_get_can_signal(self):
         print("J1939 get CAN signal")
