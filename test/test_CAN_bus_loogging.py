@@ -97,7 +97,7 @@ class TestCANBusLogging(unittest.TestCase):
             dbc = os.path.join(os.path.abspath("."), "almost-J1939.dbc")  # CI env?
 
         # What is really present in current dir in CI env...?
-        content = ", ".join(os.listdir("."))
+        content = ", ".join(os.listdir(os.path.join(".", "test")))
         assert( content == "Foo")
 
         signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
