@@ -207,8 +207,7 @@ class ViewBoxWithCursor(pg.ViewBox):
         dif = dif * -1
 
         ## Ignore axes if mouse is disabled
-        mouseEnabled = np.array(self.state["mouseEnabled"], dtype=np.float64)
-        mask = mouseEnabled.copy()
+        mask = np.array(self.state["mouseEnabled"], dtype=np.float64)
         if axis is not None:
             mask[1 - axis] = 0.0
 
@@ -233,7 +232,7 @@ class ViewBoxWithCursor(pg.ViewBox):
                 self._resetTarget()
                 if x is not None:
                     self.translateBy(x=x, y=0)
-                self.sigRangeChangedManually.emit(self.state["mouseEnabled"])
+                self.sigRangeChangedManually.emit(mask)
 
         else:
             ## Scale or translate based on mouse button
@@ -251,7 +250,7 @@ class ViewBoxWithCursor(pg.ViewBox):
                 self._resetTarget()
                 if x is not None or y is not None:
                     self.translateBy(x=x, y=y)
-                self.sigRangeChangedManually.emit(self.state["mouseEnabled"])
+                self.sigRangeChangedManually.emit(mask)
 
             elif ev.button() & QtCore.Qt.MouseButton.RightButton:
                 if self.state["aspectLocked"] is not False:
@@ -265,13 +264,13 @@ class ViewBoxWithCursor(pg.ViewBox):
                 tr = self.childGroup.transform()
                 tr = fn.invertQTransform(tr)
 
-                x = s[0] if mouseEnabled[0] == 1 else None
-                y = s[1] if mouseEnabled[1] == 1 else None
+                x = s[0] if mask[0] == 1 else None
+                y = s[1] if mask[1] == 1 else None
 
                 center = pg.Point(tr.map(ev.buttonDownPos(QtCore.Qt.MouseButton.RightButton)))
                 self._resetTarget()
                 self.scaleBy(x=x, y=y, center=center)
-                self.sigRangeChangedManually.emit(self.state["mouseEnabled"])
+                self.sigRangeChangedManually.emit(mask)
 
     def keyPressEvent(self, ev):
         if self.zoom_start is None:

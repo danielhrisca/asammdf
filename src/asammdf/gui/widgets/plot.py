@@ -210,6 +210,8 @@ class PlotSignal(Signal):
         self.original_name = getattr(signal, "original_name", None)
 
         self.y_link = False
+
+        self._y_range = None
         self.y_range = (0, -1)
         self.home = (0, -1)
 
@@ -5972,6 +5974,7 @@ class PlotGraphics(pg.PlotWidget):
         return y, sig_y_bottom, sig_y_top
 
     def xrange_changed_handle(self, *args, force=False):
+
         if self._can_paint:
             self.trim(force=force)
             self.update()
@@ -5979,8 +5982,9 @@ class PlotGraphics(pg.PlotWidget):
         self.zoom_changed.emit(False)
 
     def y_changed(self, *args):
+
         if len(args) == 1:
-            # range manually changed by the user with the wheel
+            # range manually changed by the user with the wheel or drag
             mask = args[0]
             if mask[1]:
                 y_range = self.viewbox.viewRange()[1]
