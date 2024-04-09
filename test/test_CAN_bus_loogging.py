@@ -96,6 +96,10 @@ class TestCANBusLogging(unittest.TestCase):
         if not os.path.exists(dbc):
             dbc = os.path.join(os.path.abspath("."), "almost-J1939.dbc")  # CI env?
 
+        # What is really present in current dir in CI env...?
+        content = ", ".join(os.listdir("."))
+        assert( content == "Foo")
+
         signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
 
         out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]})
