@@ -232,6 +232,10 @@ class WorkerSignals(QtCore.QObject):
 
 class Worker(QtCore.QRunnable):
     def __init__(self, function, *args, **kwargs):
+        args = inspect.signature(function)
+        if "progress" in args.parameters:
+            kwargs["progress"] = self
+
         super().__init__()
         self.function = function
         self.args = args
@@ -239,9 +243,6 @@ class Worker(QtCore.QRunnable):
         self.signals = WorkerSignals()
         self.stop = False
         self.TERMINATED = TERMINATED
-
-        # Add the qrunner to the keyword arguments
-        kwargs["progress"] = self
 
     @QtCore.Slot()
     def run(self):
@@ -270,7 +271,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         # Connect signal to "processEvents": Give the chance to "destroy" function to make his job
         self.qfinished.connect(lambda: QtCore.QCoreApplication.processEvents())
 
-    def run_thread_with_progress(self, target, args, kwargs):
+    def run_thread_with_progress(self, target, args, kwargs, wait_here=False):
         self.show()
         self.result = None
         self.error = None
@@ -291,6 +292,9 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.canceled.connect(self._canceled)
 
         self.threadpool.start(self.worker)
+
+        if wait_here:
+            return self.exec()
 
     def _canceled(self):
         self.close()
@@ -326,7 +330,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
 
 
 def setup_progress(parent, title="", message="", icon_name="", autoclose=False):
-    progress = ProgressDialog(message, "Cancel", 0, 100, parent)
+    progress = ProgressDialog(message, "Cancel", 0, 0, parent)
 
     progress.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
     progress.setCancelButton(None)

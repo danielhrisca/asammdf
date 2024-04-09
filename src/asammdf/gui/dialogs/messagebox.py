@@ -43,6 +43,12 @@ class MessageBox(QtWidgets.QMessageBox):
         if defaultButton is not None:
             self.setDefaultButton(defaultButton)
 
+        if informative_text:
+            self.setInformativeText(informative_text)
+
+        if detailed_text:
+            self.setDetailedText(detailed_text)
+
         if self.defaultButton() is not None:
             if markdown:
                 self.setText(
@@ -77,12 +83,6 @@ This message will be closed in {self.timeout}s
                     "Abort the countdown - [F1]"
                 )
 
-        if informative_text:
-            self.setInformativeText(informative_text)
-
-        if detailed_text:
-            self.setDetailedText(detailed_text)
-
         if escapeButton is not None:
             self.setEscapeButton(escapeButton)
 
@@ -105,8 +105,8 @@ This message will be closed in {self.timeout}s
         geometry = pscreen.availableGeometry()
         self.label.adjustSize()
 
-        self.scroll.setMinimumWidth(min(self.label.width() + 20, int(geometry.width() * 0.7)))
-        self.scroll.setMinimumHeight(min(self.label.height() + 20, int(geometry.height() * 0.7)))
+        self.scroll.setMinimumWidth(min(self.label.width() + 20, int(geometry.width() * 0.8)))
+        self.scroll.setMinimumHeight(min(self.label.height() + 20, int(geometry.height() * 0.8)))
 
     def tick(self):
         self.timeout -= 1
