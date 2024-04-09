@@ -91,7 +91,10 @@ class TestCANBusLogging(unittest.TestCase):
         # dbc = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
         # This dbc throws exception without the suggested changes in branch "relaxed_j1939"...
         # else it is identical to the CSS Electronics demo file in test package
-        dbc = os.path.join(os.path.abspath("."), "test", "almost-J1939.dbc")
+        # NB: This fiddöing with optional "test" in path not needed if test file included in test .zip!
+        dbc = os.path.join(os.path.abspath("."), "test", "almost-J1939.dbc")  # Local tests
+        if not os.path.exists(dbc):
+            dbc = os.path.join(os.path.abspath("."), "almost-J1939.dbc")  # CI env?
 
         signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
 
