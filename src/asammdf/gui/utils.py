@@ -232,13 +232,15 @@ class WorkerSignals(QtCore.QObject):
 
 class Worker(QtCore.QRunnable):
     def __init__(self, function, *args, **kwargs):
-        args = inspect.signature(function)
-        if "progress" in args.parameters:
-            kwargs["progress"] = self
 
         super().__init__()
         self.function = function
         self.args = args
+
+        args = inspect.signature(function)
+        if "progress" in args.parameters:
+            kwargs["progress"] = self
+
         self.kwargs = kwargs
         self.signals = WorkerSignals()
         self.stop = False
