@@ -100,7 +100,7 @@ class TestCANBusLogging(unittest.TestCase):
         print(f"content of working dir: {os.listdir('.')}")
         print(f"content of working dir (abspath): {os.listdir(os.path.abspath('.'))}")
         print(f"content of ./test subdir: {os.listdir(os.path.join('.','test'))}")
-        assert(False)  # We want fail and output of prints above
+        assert False  # We want fail and output of prints above
 
         # if not os.path.exists(dbc):
         #    dbc = os.path.join(os.path.abspath("."), "almost-J1939.dbc")  # CI env?
