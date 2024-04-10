@@ -91,23 +91,8 @@ class TestCANBusLogging(unittest.TestCase):
         # dbc = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
         # This dbc throws exception without the suggested changes in branch "relaxed_j1939"...
         # else it is identical to the CSS Electronics demo file in test package
-        # NB: This fiddöing with optional "test" in path not needed if test file included in test .zip!
         d = os.path.dirname(__file__)
-        print(f"dir for running testfile: {d}")
-        dbc = os.path.join(d, "almost-J1939.dbc")  # Local tests
-        print(f"{dbc=} exists? {os.path.exists(dbc)}")
-        # print(f"working dir for tests: {os.path.abspath('.')}")
-        # print(f"content of working dir: {os.listdir('.')}")
-        # print(f"content of working dir (abspath): {os.listdir(os.path.abspath('.'))}")
-        # print(f"content of ./test subdir: {os.listdir(os.path.join('.','test'))}")
-        # assert False  # We want fail and output of prints above
-
-        # if not os.path.exists(dbc):
-        #    dbc = os.path.join(os.path.abspath("."), "almost-J1939.dbc")  # CI env?
-
-        # What is really present in current dir in CI env...?
-        # content = ", ".join(os.listdir(os.path.join(".", "test")))
-        # assert( content == "Foo")
+        dbc = os.path.join(d, "almost-J1939.dbc")  # Pls replace with file from expanded zip file
 
         signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
 
