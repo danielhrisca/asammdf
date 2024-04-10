@@ -94,7 +94,10 @@ class TestCANBusLogging(unittest.TestCase):
         # NB: This fiddöing with optional "test" in path not needed if test file included in test .zip!
         dbc = os.path.join("test", "almost-J1939.dbc")  # Local tests
         print(f"{dbc=} exists? {os.path.exists(dbc)}")
-        print(f"content of test subdir: {os.listdir('test')}")
+        print(f"working dir for tests: {os.path.abspath('.')}")
+        print(f"content of working dir: {os.listdir('.')}")
+        print(f"content of working dir (abspath): {os.listdir(os.path.abspath('.'))}")
+        print(f"content of ./test subdir: {os.listdir(os.path.join('.','test'))}")
         # if not os.path.exists(dbc):
         #    dbc = os.path.join(os.path.abspath("."), "almost-J1939.dbc")  # CI env?
 
