@@ -41,7 +41,6 @@ except:
 import numpy as np
 
 from .. import tool
-from ..version import __version__
 from . import v4_constants as v4c
 from .utils import (
     block_fields,
