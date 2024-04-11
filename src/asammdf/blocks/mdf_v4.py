@@ -6212,10 +6212,10 @@ class MDF4(MDF_Common):
         creator_index = len(self.file_history)
         fh = FileHistory()
         fh.comment = """<FHcomment>
-<TX>Added new embedded attachment from {file_name}</TX>
-<tool_id>{tool}</tool_id>
-<tool_vendor>{vendor}</tool_vendor>
-<tool_version>{version}</tool_version>
+    <TX>Added new embedded attachment from {file_name}</TX>
+    <tool_id>{tool}</tool_id>
+    <tool_vendor>{vendor}</tool_vendor>
+    <tool_version>{version}</tool_version>
 </FHcomment>""".format(
             file_name=file_name if file_name else "bin.bin",
             version=tool.__version__,
@@ -9076,10 +9076,10 @@ class MDF4(MDF_Common):
         if add_history_block:
             fh = FileHistory()
             fh.comment = f"""<FHcomment>
-<TX>{comment}</TX>
-<tool_id>{tool.__tool__}</tool_id>
-<tool_vendor>{tool.__vendor__}</tool_vendor>
-<tool_version>{tool.__version__}</tool_version>
+    <TX>{comment}</TX>
+    <tool_id>{tool.__tool__}</tool_id>
+    <tool_vendor>{tool.__vendor__}</tool_vendor>
+    <tool_version>{tool.__version__}</tool_version>
 </FHcomment>"""
 
             self.file_history.append(fh)

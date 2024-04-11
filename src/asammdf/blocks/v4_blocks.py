@@ -40,6 +40,7 @@ except:
 
 import numpy as np
 
+from .. import tool
 from ..version import __version__
 from . import v4_constants as v4c
 from .utils import (
@@ -5301,7 +5302,9 @@ class FileIdentificationBlock:
             version = kwargs.get("version", "4.00")
             self.file_identification = b"MDF     "
             self.version_str = f"{version}    ".encode()
-            self.program_identification = "amdf{}".format(__version__.replace(".", "")).encode("utf-8")
+            self.program_identification = "{}{}".format(tool.__tool_short__, tool.__version__.replace(".", "")).encode(
+                "utf-8"
+            )
             self.reserved0 = b"\0" * 4
             self.mdf_version = int(version.replace(".", ""))
             self.reserved1 = b"\0" * 30
