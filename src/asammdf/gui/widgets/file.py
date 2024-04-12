@@ -1621,6 +1621,8 @@ MultiRasterSeparator;&
                 window_type = None
 
             disable_new_channels = dialog.disable_new_channels()
+        else:
+            disable_new_channels = False
 
         if window_type is None:
             return

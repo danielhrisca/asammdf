@@ -1,4 +1,5 @@
 from copy import deepcopy
+import datetime
 from functools import partial
 import inspect
 import itertools
@@ -2761,10 +2762,15 @@ class WithMDIArea:
             dfs.append(df)
 
         if not dfs:
-            return
+            signals = pd.DataFrame()
+            try:
+                start = self.mdf.header.start_time
+            except:
+                start = datetime.datetime.now()
+        else:
+            signals = pd.concat(dfs, axis=1)
 
-        signals = pd.concat(dfs, axis=1)
-        start = min(start)
+            start = min(start)
 
         for name in signals.columns:
             if name.endswith(
