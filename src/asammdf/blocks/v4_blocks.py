@@ -5301,9 +5301,7 @@ class FileIdentificationBlock:
             version = kwargs.get("version", "4.00")
             self.file_identification = b"MDF     "
             self.version_str = f"{version}    ".encode()
-            self.program_identification = "{}{}".format(tool.__tool_short__, tool.__version__.replace(".", "")).encode(
-                "utf-8"
-            )
+            self.program_identification = f"{tool.__tool_short__}{tool.__version__}".encode()
             self.reserved0 = b"\0" * 4
             self.mdf_version = int(version.replace(".", ""))
             self.reserved1 = b"\0" * 30

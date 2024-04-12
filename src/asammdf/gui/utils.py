@@ -270,14 +270,17 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.error = None
         self.result = None
         self.thread_finished = True
+        self.close_on_finish = True
         # Connect signal to "processEvents": Give the chance to "destroy" function to make his job
         self.qfinished.connect(lambda: QtCore.QCoreApplication.processEvents())
 
-    def run_thread_with_progress(self, target, args, kwargs, wait_here=False):
+    def run_thread_with_progress(self, target, args, kwargs, wait_here=False, close_on_finish=True):
         self.show()
         self.result = None
         self.error = None
         self.thread_finished = False
+
+        self.close_on_finish = close_on_finish
 
         self.worker = Worker(target, *args, **kwargs)
         self.worker.signals.result.connect(self.receive_result)
@@ -296,7 +299,11 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.threadpool.start(self.worker)
 
         if wait_here:
-            return self.exec()
+            while not self.thread_finished:
+                sleep(0.1)
+                QtWidgets.QApplication.processEvents()
+
+            return self.result
 
     def _canceled(self):
         self.close()
@@ -309,7 +316,8 @@ class ProgressDialog(QtWidgets.QProgressDialog):
 
     def thread_complete(self):
         self.thread_finished = True
-        super().close()
+        if self.close_on_finish:
+            super().close()
         self.qfinished.emit()
 
     def cancel(self):

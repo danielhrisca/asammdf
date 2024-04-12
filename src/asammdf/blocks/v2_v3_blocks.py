@@ -2591,9 +2591,7 @@ class FileIdentificationBlock:
             version = kwargs["version"]
             self.file_identification = "MDF     ".encode("latin-1")
             self.version_str = version.encode("latin-1") + b"\0" * 4
-            self.program_identification = "{}{}".format(tool.__tool_short__, tool.__version__.replace(".", "")).encode(
-                "latin-1"
-            )
+            self.program_identification = f"{tool.__tool_short__}{tool.__version__}".encode("latin-1")
             self.byte_order = v23c.BYTE_ORDER_INTEL if sys.byteorder == "little" else v23c.BYTE_ORDER_MOTOROLA
             self.float_format = 0
             self.mdf_version = int(version.replace(".", ""))
