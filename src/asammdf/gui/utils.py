@@ -308,6 +308,9 @@ class ProgressDialog(QtWidgets.QProgressDialog):
     def _canceled(self):
         self.close()
 
+    def processEvents(self):
+        QtCore.QCoreApplication.processEvents()
+
     def receive_result(self, result):
         self.result = result
 
@@ -337,6 +340,34 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             self.close()
         else:
             super().keyPressEvent(event)
+
+    def setLabelText(self, text):
+        super().setLabelText(text)
+        self.processEvents()
+
+    def setMaximum(self, value):
+        super().setMaximum(value)
+        self.processEvents()
+
+    def setMinimum(self, value):
+        super().setMinimum(value)
+        self.processEvents()
+
+    def setRange(self, min_value, max_value):
+        super().setRange(min_value, max_value)
+        self.processEvents()
+
+    def setValue(self, value):
+        super().setValue(value)
+        self.processEvents()
+
+    def setWindowIcon(self, icon):
+        super().setWindowIcon(icon)
+        self.processEvents()
+
+    def setWindowTitle(self, title):
+        super().setWindowTitle(title)
+        self.processEvents()
 
 
 def setup_progress(parent, title="", message="", icon_name="", autoclose=False):
