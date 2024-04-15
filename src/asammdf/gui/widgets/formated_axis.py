@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from math import ceil
 from traceback import format_exc
 
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -26,7 +27,6 @@ class FormatedAxis(pg.AxisItem):
         self.linked_signal = kwargs.pop("linked_signal", None)
 
         super().__init__(*args, **kwargs)
-        self.setStyle(tickAlpha=0.75)
 
         self._settings = QtCore.QSettings()
 
@@ -505,7 +505,6 @@ class FormatedAxis(pg.AxisItem):
         pen, p1, p2 = axisSpec
         p.setPen(pen)
         p.drawLine(p1, p2)
-        # p.translate(0.5,0)  ## resolves some damn pixel ambiguity
 
         ## draw ticks
         for pen, p1, p2 in tickSpecs:
@@ -526,11 +525,13 @@ class FormatedAxis(pg.AxisItem):
     def paint(self, p, opt, widget):
         rect = self.boundingRect()
 
-        width = rect.width()
+        width = ceil(rect.width())
+        height = ceil(rect.height())
         ratio = widget.devicePixelRatio() if widget else 1.0
+
         if self.picture is None:
             try:
-                picture = QtGui.QPixmap(int(width * ratio), int(rect.height() * ratio))
+                picture = QtGui.QPixmap(ceil(width * ratio), ceil(height * ratio))
                 picture.fill(self.background)
 
                 painter = QtGui.QPainter()
@@ -679,11 +680,8 @@ class FormatedAxis(pg.AxisItem):
 
             lineAlpha = self.style["tickAlpha"]
             if lineAlpha is None:
-                lineAlpha = 255 / (i + 1)
-                if self.grid is not False:
-                    lineAlpha *= (
-                        self.grid / 255.0 * fn.clip_scalar((0.05 * lengthInPixels / (len(ticks) + 1)), 0.0, 1.0)
-                    )
+                lineAlpha = (0.6**i) * 255
+
             elif isinstance(lineAlpha, float):
                 lineAlpha *= 255
                 lineAlpha = max(0, int(round(lineAlpha)))

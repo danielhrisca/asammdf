@@ -5165,7 +5165,7 @@ class PlotGraphics(pg.PlotWidget):
         if self._pixmap is None:
             ratio = self.devicePixelRatio()
 
-            _pixmap = QtGui.QPixmap(int(event_rect.width() * ratio), int(event_rect.height() * ratio))
+            _pixmap = QtGui.QPixmap(ceil(ceil(event_rect.width()) * ratio), ceil(ceil(event_rect.height()) * ratio))
             # _pixmap.fill(self.backgroundBrush().color())
             _pixmap.fill(QtCore.Qt.transparent)
 
@@ -5377,6 +5377,7 @@ class PlotGraphics(pg.PlotWidget):
 
         if self.y_axis.picture is None:
             self.y_axis.paint(paint, None, None)
+
         if self.x_axis.picture is None:
             self.x_axis.paint(paint, None, None)
 
