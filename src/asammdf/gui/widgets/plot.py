@@ -3995,7 +3995,7 @@ class PlotGraphics(pg.PlotWidget):
 
     def auto_clip_rect(self, painter):
         rect = self.viewbox.sceneBoundingRect()
-        painter.setClipRect(rect.x() + 5, rect.y(), rect.width() - 5, rect.height())
+        painter.setClipRect(rect.x() + 5, rect.y(), rect.width() - 5, rect.height() - 1)
         painter.setClipping(True)
 
     def _clicked(self, event):
@@ -5426,9 +5426,7 @@ class PlotGraphics(pg.PlotWidget):
         self.auto_clip_rect(paint)
         self.draw_grids(paint, event_rect)
 
-        paint.setClipping(False)
         paint.drawPixmap(t.toRect(), _pixmap, r.toRect())
-        paint.setClipping(True)
 
         if self.zoom is None:
             if self.cursor1 is not None and self.cursor1.isVisible():
