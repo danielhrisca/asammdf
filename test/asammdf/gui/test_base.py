@@ -258,7 +258,7 @@ class Pixmap:
                 if _x < x or _y < y:
                     continue
                 # De unde 2?
-                elif (_x > width - x) or (_y > height - y - 2):
+                elif (_x > width - x) or (_y > height - y - 3):
                     break
                 if color.name() != color_name:
                     print(x, y, width, height)
@@ -308,7 +308,7 @@ class Pixmap:
                     break
                 count += 1
             else:
-                if count == image.height() - 2:
+                if count == image.height() - 3:
                     cursors.append(x)
 
         return cursors
