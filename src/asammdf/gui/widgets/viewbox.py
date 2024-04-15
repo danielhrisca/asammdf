@@ -317,17 +317,6 @@ class ViewBoxWithCursor(pg.ViewBox):
 
         pos = ev.pos()
 
-        if self._settings.value("zoom_y_center_on_cursor", True, type=bool):
-            y_pos_val, sig_y_top, sig_y_bottom = self.plot.value_at_cursor()
-
-            if isinstance(y_pos_val, (int, float)):
-                ratio = (sig_y_top - y_pos_val) / (sig_y_top - sig_y_bottom)
-
-                rect = self.boundingRect()
-
-                y_coord = (rect.height() - rect.y()) * ratio
-                pos.setY(y_coord)
-
         s = 1.02 ** (ev.delta() * self.state["wheelScaleFactor"])  # actual scaling factor
 
         s = [(None if m is False else s) for m in mask]
@@ -337,18 +326,48 @@ class ViewBoxWithCursor(pg.ViewBox):
         center = pg.Point(fn.invertQTransform(self.childGroup.transform()).map(pos))
 
         self._resetTarget()
-        self.scaleBy(s, center)
+
+        if s is not None:
+            x, y = s[0], s[1]
+
+        affect = [x is not None, y is not None]
+        if not any(affect):
+            return
+
+        scale = pg.Point([1.0 if x is None else x, 1.0 if y is None else y])
+
+        if self.state["aspectLocked"] is not False:
+            scale[0] = scale[1]
+
+        vr = self.targetRect()
+        if center is None:
+            center = pg.Point(vr.center())
+        else:
+            center = pg.Point(center)
+
+        tl = center + (vr.topLeft() - center) * scale
+        br = center + (vr.bottomRight() - center) * scale
+
+        x_range = tl.x(), br.x()
+        y_range = br.y(), tl.y()
 
         if (
             self._settings.value("zoom_x_center_on_cursor", True, type=bool)
             and self.cursor is not None
             and self.cursor.isVisible()
         ):
-            x_range, _ = self.viewRange()
             delta = x_range[1] - x_range[0]
 
             pos = self.cursor.value()
-            self.setXRange(pos - delta / 2, pos + delta / 2, padding=0)
+            x_range = pos - delta / 2, pos + delta / 2
+
+        if self._settings.value("zoom_y_center_on_cursor", True, type=bool):
+            y_pos_val, sig_y_top, sig_y_bottom = self.plot.value_at_cursor()
+            if isinstance(y_pos_val, (int, float)):
+                delta = y_range[1] - y_range[0]
+                y_range = y_pos_val - delta / 2, y_pos_val + delta / 2
+
+        self.setRange(xRange=x_range, yRange=y_range, padding=0)
 
         ev.accept()
         self.sigRangeChangedManually.emit(mask)

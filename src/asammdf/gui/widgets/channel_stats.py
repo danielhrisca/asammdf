@@ -21,7 +21,7 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
         global MONOSPACE_FONT
 
         if MONOSPACE_FONT is None:
-            families = QtGui.QFontDatabase().families()
+            families = QtGui.QFontDatabase.families()
             for family in (
                 "Consolas",
                 "Liberation Mono",

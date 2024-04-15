@@ -22,12 +22,10 @@ class MessageBox(QtWidgets.QMessageBox):
 
         layout = QtWidgets.QVBoxLayout()
 
-        scroll_contents = QtWidgets.QWidget()
+        self.scroll_contents = scroll_contents = QtWidgets.QWidget()
         scroll_contents.setLayout(layout)
 
         self.scroll = scroll = QtWidgets.QScrollArea()
-        scroll.setMinimumWidth(400)
-        scroll.setMinimumHeight(300)
         scroll.setWidgetResizable(True)
         scroll.setWidget(scroll_contents)
         scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
@@ -35,6 +33,9 @@ class MessageBox(QtWidgets.QMessageBox):
         layout.addWidget(label)
 
         self.layout().addWidget(scroll, *position)
+
+        self.scroll.setMinimumWidth(400)
+        self.scroll.setMinimumHeight(200)
 
         self.original_text = self.text()
         if markdown:
@@ -90,6 +91,10 @@ This message will be closed in {self.timeout}s
         self.timer.timeout.connect(self.tick)
         self.timer.start(1000)
 
+        self.show()
+        self.scroll.setMinimumWidth(min(800, self.scroll_contents.width()))
+        self.scroll.setMinimumHeight(min(800, self.scroll_contents.height()))
+
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_F1:
             self.timer.stop()
@@ -97,16 +102,6 @@ This message will be closed in {self.timeout}s
             event.accept()
         else:
             super().keyPressEvent(event)
-
-    def setText(self, text):
-        super().setText(text)
-        pscreen = QtWidgets.QApplication.primaryScreen()
-
-        geometry = pscreen.availableGeometry()
-        self.label.adjustSize()
-
-        self.scroll.setMinimumWidth(min(self.label.width() + 20, int(geometry.width() * 0.8)))
-        self.scroll.setMinimumHeight(min(self.label.height() + 20, int(geometry.height() * 0.8)))
 
     def tick(self):
         self.timeout -= 1

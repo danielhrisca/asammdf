@@ -20,7 +20,7 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
 
         self.trace = QtWidgets.QTextEdit()
 
-        families = QtGui.QFontDatabase().families()
+        families = QtGui.QFontDatabase.families()
         for family in (
             "Consolas",
             "Liberation Mono",
