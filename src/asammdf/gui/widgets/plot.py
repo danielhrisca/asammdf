@@ -3540,6 +3540,7 @@ class PlotGraphics(pg.PlotWidget):
         self.autoFillBackground()
 
         self._pixmap = None
+        self._grid_pixmap = None
 
         self.locked = False
 
@@ -3995,8 +3996,12 @@ class PlotGraphics(pg.PlotWidget):
 
     def auto_clip_rect(self, painter):
         rect = self.viewbox.sceneBoundingRect()
-        painter.setClipRect(rect.x() + 5, rect.y(), rect.width() - 5, rect.height() - 1)
+        rect.setX(rect.x() + 5)
+        rect.setWidth(rect.width() - 5)
+        rect.setHeight(rect.height() - 1)
+        painter.setClipRect(rect)
         painter.setClipping(True)
+        return rect
 
     def _clicked(self, event):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
@@ -4215,34 +4220,54 @@ class PlotGraphics(pg.PlotWidget):
             e.accept()
         super().dragEnterEvent(e)
 
-    def draw_grids(self, paint, event_rect):
-        ratio = self.devicePixelRatio()
-        if self.y_axis.grid or self.x_axis.grid:
-            rect = self.viewbox.sceneBoundingRect()
-            y_delta = rect.y()
-            x_delta = rect.x()
+    def draw_grids(self, paint, event_rect, ratio, clip_rect):
+        if self._grid_pixmap is None:
+            _pixmap = QtGui.QPixmap(ceil(ceil(event_rect.width()) * ratio), ceil(ceil(event_rect.height()) * ratio))
+            _pixmap.fill(QtCore.Qt.transparent)
 
-            if self.y_axis.grid and self.y_axis.isVisible():
-                for pen, p1, p2 in self.y_axis.tickSpecs:
-                    pen2 = fn.mkPen(pen)
-                    pen2.setStyle(QtCore.Qt.PenStyle.DashLine)
-                    y_pos = p1.y() / ratio + y_delta
-                    paint.setPen(pen2)
-                    paint.drawLine(
-                        QtCore.QPointF(0, y_pos),
-                        QtCore.QPointF(event_rect.x() + event_rect.width(), y_pos),
-                    )
+            paint = QtGui.QPainter()
+            paint.begin(_pixmap)
+            paint.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_SourceOver)
+            paint.setRenderHints(paint.RenderHint.Antialiasing, False)
 
-            if self.x_axis.grid and self.x_axis.isVisible():
-                for pen, p1, p2 in self.x_axis.tickSpecs:
-                    pen2 = fn.mkPen(pen)
-                    pen2.setStyle(QtCore.Qt.PenStyle.DashLine)
-                    x_pos = p1.x() / ratio + x_delta
-                    paint.setPen(pen2)
-                    paint.drawLine(
-                        QtCore.QPointF(x_pos, 0),
-                        QtCore.QPointF(x_pos, event_rect.y() + event_rect.height()),
-                    )
+            clip_rect.setSize(clip_rect.size() * ratio)
+            clip_rect.moveTo(clip_rect.topLeft() * ratio)
+
+            paint.setClipRect(clip_rect)
+
+            if self.y_axis.grid or self.x_axis.grid:
+                rect = self.viewbox.sceneBoundingRect()
+                y_delta = rect.y() * ratio
+                x_delta = rect.x() * ratio
+
+                if self.y_axis.grid and self.y_axis.isVisible():
+                    for pen, p1, p2 in self.y_axis.tickSpecs:
+                        pen2 = fn.mkPen(pen)
+                        pen2.setStyle(QtCore.Qt.PenStyle.DashLine)
+                        y_pos = p1.y() + y_delta
+                        paint.setPen(pen2)
+                        paint.drawLine(
+                            QtCore.QPointF(0, y_pos),
+                            QtCore.QPointF((event_rect.x() + event_rect.width()) * ratio, y_pos),
+                        )
+
+                if self.x_axis.grid and self.x_axis.isVisible():
+                    for pen, p1, p2 in self.x_axis.tickSpecs:
+                        pen2 = fn.mkPen(pen)
+                        pen2.setStyle(QtCore.Qt.PenStyle.DashLine)
+                        x_pos = p1.x() + x_delta
+                        paint.setPen(pen2)
+                        paint.drawLine(
+                            QtCore.QPointF(x_pos, 0),
+                            QtCore.QPointF(x_pos, (event_rect.y() + event_rect.height()) * ratio),
+                        )
+
+            paint.end()
+            _pixmap.setDevicePixelRatio(self.devicePixelRatio())
+
+            self._grid_pixmap = _pixmap
+
+        return self._grid_pixmap
 
     def dropEvent(self, e):
         if e.source() is self.parent().channel_selection:
@@ -5162,11 +5187,12 @@ class PlotGraphics(pg.PlotWidget):
 
         super().paintEvent(ev)
 
+        ratio = self.devicePixelRatio()
+
         if self._pixmap is None:
-            ratio = self.devicePixelRatio()
+            self._grid_pixmap = None
 
             _pixmap = QtGui.QPixmap(ceil(ceil(event_rect.width()) * ratio), ceil(ceil(event_rect.height()) * ratio))
-            # _pixmap.fill(self.backgroundBrush().color())
             _pixmap.fill(QtCore.Qt.transparent)
 
             paint = QtGui.QPainter()
@@ -5381,8 +5407,6 @@ class PlotGraphics(pg.PlotWidget):
         if self.x_axis.picture is None:
             self.x_axis.paint(paint, None, None)
 
-        ratio = self.devicePixelRatio()
-
         r = self.y_axis.boundingRect()
         r.setSize(self.y_axis.picture.size())
         r.moveTo(r.topLeft() * ratio)
@@ -5424,9 +5448,10 @@ class PlotGraphics(pg.PlotWidget):
         t = self.viewbox.sceneBoundingRect()
         t.setLeft(t.left() + 5)
 
-        self.auto_clip_rect(paint)
-        self.draw_grids(paint, event_rect)
+        clip_rect = self.auto_clip_rect(paint)
+        grid_pixmap = self.draw_grids(paint, event_rect, ratio, clip_rect)
 
+        paint.drawPixmap(t.toRect(), grid_pixmap, r.toRect())
         paint.drawPixmap(t.toRect(), _pixmap, r.toRect())
 
         if self.zoom is None:
