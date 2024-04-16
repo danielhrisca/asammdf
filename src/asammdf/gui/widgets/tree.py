@@ -1558,21 +1558,38 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         font.setPointSize(size)
         self.setFont(font)
 
-        dark = QtWidgets.QApplication.instance().palette().window().color().value() < QtWidgets.QApplication.instance().palette().windowText().color().value()
+        dark = (
+            QtWidgets.QApplication.instance().palette().window().color().value()
+            < QtWidgets.QApplication.instance().palette().windowText().color().value()
+        )
 
         if dark:
-            color = QtWidgets.QApplication.instance().palette().brush(QtGui.QPalette.ColorGroup.Active,
-                                                                      QtGui.QPalette.ColorRole.Highlight).color().name()
+            color = (
+                QtWidgets.QApplication.instance()
+                .palette()
+                .brush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.Highlight)
+                .color()
+                .name()
+            )
             self.setStyleSheet(SCROLLBAR_STYLE.format(font_size=size, color=color))
 
     def set_style(self):
 
-        dark = QtWidgets.QApplication.instance().palette().window().color().value() < QtWidgets.QApplication.instance().palette().windowText().color().value()
+        dark = (
+            QtWidgets.QApplication.instance().palette().window().color().value()
+            < QtWidgets.QApplication.instance().palette().windowText().color().value()
+        )
 
         item = QtWidgets.QTreeWidgetItem()
         background = item.background(0)
 
-        color = QtWidgets.QApplication.instance().palette().brush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.Highlight).color().name()
+        color = (
+            QtWidgets.QApplication.instance()
+            .palette()
+            .brush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.Highlight)
+            .color()
+            .name()
+        )
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
 
@@ -2289,7 +2306,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             else:
                 if new_background_color != self._current_background_color:
                     brush = fn.mkBrush(new_background_color.name())
-                    print('>set_value 2', self._background_color.name())
                     self.setBackground(self.NameColumn, brush)
                     self.setBackground(self.ValueColumn, brush)
                     self.setBackground(self.UnitColumn, brush)

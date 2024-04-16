@@ -2223,13 +2223,12 @@ class Plot(QtWidgets.QWidget):
         if item.uuid == self.info_uuid:
             palette = self.selected_channel_value.palette()
 
-            brush = QtGui.QBrush(item.foreground(item.NameColumn))
+            brush = item.foreground(item.NameColumn)
             brush.setStyle(QtCore.Qt.BrushStyle.SolidPattern)
             palette.setBrush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.WindowText, brush)
             palette.setBrush(QtGui.QPalette.ColorGroup.Inactive, QtGui.QPalette.ColorRole.WindowText, brush)
 
-            brush = QtGui.QBrush(item.background(item.NameColumn))
-            brush.setStyle(QtCore.Qt.BrushStyle.SolidPattern)
+            brush = QtGui.QBrush(item._current_background_color)
             palette.setBrush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.Window, brush)
 
             self.selected_channel_value.setPalette(palette)
@@ -2424,6 +2423,7 @@ class Plot(QtWidgets.QWidget):
             sig, idx = self.plot.signal_by_uuid(uuid)
             brush = QtGui.QBrush(sig.color)
             brush.setStyle(QtCore.Qt.BrushStyle.SolidPattern)
+
             palette.setBrush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.WindowText, brush)
             palette.setBrush(QtGui.QPalette.ColorGroup.Inactive, QtGui.QPalette.ColorRole.WindowText, brush)
             self.selected_channel_value.setPalette(palette)
