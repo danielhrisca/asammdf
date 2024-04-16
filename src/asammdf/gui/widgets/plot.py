@@ -1952,7 +1952,6 @@ class Plot(QtWidgets.QWidget):
                 ChannelsTreeItem.Channel,
                 signal=sig,
                 check=QtCore.Qt.CheckState.Checked if sig.enable else QtCore.Qt.CheckState.Unchecked,
-                background_color=background_color,
             )
 
             if len(sig):

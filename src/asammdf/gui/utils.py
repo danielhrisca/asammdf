@@ -57,81 +57,81 @@ SCROLLBAR_STYLE = """
 QTreeWidget {{ font-size: {font_size}pt; }}
 
 QScrollBar:vertical {{
-    border: 1px solid #61b2e2;
-    background: {background};
+    border: 1px solid {color};
+    background: palette(window);
     width: 14px;
     margin: 14px 0px 14px 0px;
 }}
 QScrollBar::handle:vertical {{
-    border: 1px solid  {background};
-    background: #61b2e2;
+    border: 1px solid  palette(window);
+    background: {color};
     min-height: 40px;
     width: 6px;
 }}
 
 QScrollBar::add-line:vertical {{
-    border: 1px solid #61b2e2;
-    background: {background};
+    border: 1px solid {color};
+    background: palette(window);
     height: 13px;
     subcontrol-position: bottom;
     subcontrol-origin: margin;
 }}
 QScrollBar::sub-line:vertical {{
-    border: 1px solid #61b2e2;
-    background: {background};
+    border: 1px solid {color};
+    background: palette(window);
     height: 13px;
     subcontrol-position: top;
     subcontrol-origin: margin;
 }}
 
 QScrollBar:up-arrow:vertical {{
-    image: url(:up.png);
-    width: 13px;
-    height: 13px;
+    background: {color};
+    width: 4px;
+    height: 4px;
 }}
 QScrollBar:down-arrow:vertical {{
-    image: url(:down.png);
-    width: 13px;
-    height: 13px;
+    background: {color};
+    width: 4px;
+    height: 4px;
 }}
 
 
 QScrollBar:horizontal {{
-    border: 1px solid #61b2e2;
-    background: {background};
+    border: 1px solid {color};
+    background: palette(window);
     height: 14px;
     margin: 0px 14px 0px 14px;
 }}
 QScrollBar::handle:horizontal {{
-    border: 1px solid  {background};
-    background: #61b2e2;
+    border: 1px solid  palette(window);
+    background: {color};
     min-width: 40px;
     height: 14px;
 }}
 QScrollBar::add-line:horizontal {{
-    border: 1px solid #61b2e2;
-    background: {background};
+    border: 1px solid {color};
+    background: palette(window);
     width: 13px;
     subcontrol-position: right;
     subcontrol-origin: margin;
 }}
 QScrollBar::sub-line:horizontal {{
-    border: 1px solid #61b2e2;
-    background: {background};
+    border: 1px solid {color};
+    background: palette(window);
     width: 13 px;
     subcontrol-position: left;
     subcontrol-origin: margin;
 }}
 
 QScrollBar:left-arrow:horizontal {{
-    image: url(:left2.png);
-    width: 13px;
-    height: 13px;
+    background: {color};
+    width: 4px;
+    height: 4px;
 }}
 QScrollBar:right-arrow:horizontal {{
-    image: url(:right2.png);
-    width: 13px;
-    height: 13px;
+    background: {color};
+    width: 4px;
+    height: 4px;
 }}"""
 
 COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")

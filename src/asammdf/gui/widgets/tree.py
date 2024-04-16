@@ -446,17 +446,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.idel = Delegate(self)
         self.setItemDelegate(self.idel)
 
-        settings = QtCore.QSettings()
-
-        background = QtGui.QColor(55, 55, 55).name()
-        if settings.value("current_theme") == "Dark":
-            self._dark = True
-            self._font_size = self.font().pointSize()
-            self._background = background
-            self._style = SCROLLBAR_STYLE
-            self.setStyleSheet(self._style.format(font_size=self._font_size, background=self._background))
-        else:
-            self._dark = False
+        self.set_style()
 
     def autoscroll(self):
         step = max(
@@ -1564,9 +1554,36 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.update_visibility_status()
 
     def set_font_size(self, size):
-        if self._dark:
-            self._font_size = size
-            self.setStyleSheet(self._style.format(font_size=self._font_size, background=self._background))
+        font = self.font()
+        font.setPointSize(size)
+        self.setFont(font)
+
+        dark = QtWidgets.QApplication.instance().palette().window().color().value() < QtWidgets.QApplication.instance().palette().windowText().color().value()
+
+        if dark:
+            color = QtWidgets.QApplication.instance().palette().brush(QtGui.QPalette.ColorGroup.Active,
+                                                                      QtGui.QPalette.ColorRole.Highlight).color().name()
+            self.setStyleSheet(SCROLLBAR_STYLE.format(font_size=size, color=color))
+
+    def set_style(self):
+
+        dark = QtWidgets.QApplication.instance().palette().window().color().value() < QtWidgets.QApplication.instance().palette().windowText().color().value()
+
+        item = QtWidgets.QTreeWidgetItem()
+        background = item.background(0)
+
+        color = QtWidgets.QApplication.instance().palette().brush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.Highlight).color().name()
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(self)
+
+        while item := iterator.value():
+            item.set_default_background(background)
+            iterator += 1
+
+        if dark:
+            self.setStyleSheet(SCROLLBAR_STYLE.format(font_size=self.font().pointSize(), color=color))
+        else:
+            self.setStyleSheet("")
 
     def update_channel_groups_count(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
@@ -1654,9 +1671,12 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         self._name = ""
         self._count = 0
+
+        if background_color is None:
+            background_color = self.background(0)
         self._background_color = background_color
         self._current_background_color = background_color
-        self._current_font_color = background_color
+        self._current_font_color = background_color.color()
 
         if type == self.Group:
             self.pattern = None
@@ -2102,6 +2122,12 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 child = self.child(i)
                 child.set_conversion(conversion)
 
+    def set_default_background(self, brush):
+        if self._current_background_color == self._background_color:
+            self._current_background_color = brush
+
+        self._current_background_color = brush
+
     def set_disabled(self, disabled, preserve_subgroup_state=True):
         if self.type() == self.Channel:
             for col in range(self.columnCount()):
@@ -2202,7 +2228,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.setToolTip(self.ValueColumn, "")
 
             if self.type() == self.Channel:
-                brush = fn.mkBrush(self._background_color.name())
+                brush = self._background_color
                 self.setBackground(self.NameColumn, brush)
                 self.setBackground(self.ValueColumn, brush)
                 self.setBackground(self.UnitColumn, brush)
@@ -2253,7 +2279,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             if new_background_color is None:
                 if self._background_color != self._current_background_color:
-                    brush = fn.mkBrush(self._background_color.name())
+                    brush = self._background_color
                     self.setBackground(self.NameColumn, brush)
                     self.setBackground(self.ValueColumn, brush)
                     self.setBackground(self.UnitColumn, brush)
@@ -2263,12 +2289,13 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             else:
                 if new_background_color != self._current_background_color:
                     brush = fn.mkBrush(new_background_color.name())
+                    print('>set_value 2', self._background_color.name())
                     self.setBackground(self.NameColumn, brush)
                     self.setBackground(self.ValueColumn, brush)
                     self.setBackground(self.UnitColumn, brush)
                     self.setBackground(self.CommonAxisColumn, brush)
                     self.setBackground(self.IndividualAxisColumn, brush)
-                    self._current_background_color = new_background_color
+                    self._current_background_color = brush
 
             if new_font_color is None:
                 if self.signal.color != self._current_font_color:
