@@ -1588,7 +1588,7 @@ MultiRasterSeparator;&
     def close(self):
         mdf_name = self.mdf.name
         self.mdf.close()
-        if self.file_name.suffix.lower() in (".dl3", ".erg"):
+        if mdf_name != self.mdf.original_name and mdf_name.is_file():
             mdf_name.unlink()
         self.channels_tree.clear()
         self.filter_tree.clear()
