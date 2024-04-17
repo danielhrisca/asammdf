@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -79,6 +80,33 @@ class TestCANBusLogging(unittest.TestCase):
             values = out.get(name).samples
             if values.dtype.kind == "S":
                 values = out.get(name, raw=True).samples
+
+            self.assertTrue(np.array_equal(values, target))
+
+    def test_almost_j1939_extract(self):
+        print("non-standard J1939 extract")
+
+        temp_dir = Path(TestCANBusLogging.tempdir_j1939.name)
+
+        mdf = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
+
+        mdf = MDF(mdf)
+
+        # dbc = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
+        # This dbc throws exception without the suggested changes in branch "relaxed_j1939"...
+        # else it is identical to the CSS Electronics demo file in test package
+        d = os.path.dirname(__file__)
+        dbc = os.path.join(d, "almost-J1939.dbc")  # Pls replace with file from expanded zip file
+
+        signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
+
+        out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]})
+
+        for signal in signals:
+            name = signal.stem
+
+            target = np.load(signal)
+            values = out.get(name).samples
 
             self.assertTrue(np.array_equal(values, target))
 

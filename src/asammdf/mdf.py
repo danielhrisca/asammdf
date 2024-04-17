@@ -4755,6 +4755,14 @@ class MDF:
             messages = {(message.arbitration_id.id, message.arbitration_id.extended): message for message in dbc}
 
             global_is_j1939 = dbc.attributes.get("ProtocolType", "").lower() == "j1939"
+            not_extended = [msg for msg in dbc if not msg.arbitration_id.extended]
+            if global_is_j1939 and not_extended:
+                logger.warning(
+                    f"Not all j1939 messages in <{dbc_name}> seem to use extended addressing. Disabling global j1939 flag..."
+                )
+                for msg in not_extended:
+                    logger.warning(f"  {msg} with id {msg.arbitration_id}")
+                global_is_j1939 = False  # Relax req on j1939 adressing
 
             j1939_messages = {
                 (
