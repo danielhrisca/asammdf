@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 120
-target-version = ['py38']
+target-version = ['py39']
 extend-exclude = '''
 ^/src/asammdf/gui/ui
 '''
@@ -22,7 +22,7 @@ archs = ["auto64"]  # only build for 64bit architectures
 skip = "pp* *_ppc64le  *-musllinux* *_s390x"  # skip pypy and irrelevant architectures
 
 [tool.ruff]
-target-version = "py38"
+target-version = "py39"
 exclude = ["./src/asammdf/gui/ui"]
 
 [tool.ruff.lint]
