@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
+          python-version: "3.9"
 
       - name: Install packages
         shell: bash
@@ -39,7 +39,7 @@ jobs:
           export DISPLAY=:0
 
       - name: Run coverage
-        run: tox -e py38
+        run: tox -e py39
 
       - name: Stop Xvfb
         if: matrix.os == 'ubuntu-latest'
