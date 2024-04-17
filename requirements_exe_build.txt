@@ -5,19 +5,19 @@ numpy>=1.23.0
 pandas
 typing_extensions
 isal; platform_machine == "x86_64" or platform_machine == "AMD64"
-lxml==4.9.3
+lxml
 natsort 
 psutil 
-PySide6==6.3.1
+PySide6
 pyqtgraph
-QtPy==2.3.1
+QtPy
 pyqtlet2
 pyopengl
 h5py 
 fastparquet 
 hdf5storage 
 snappy 
-faust-cchardet==2.1.19
+faust-cchardet
 chardet
 cryptography
 keyring

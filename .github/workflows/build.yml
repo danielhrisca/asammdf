@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macos-latest]
-        python-version: ["3.10"]
+        python-version: ["3.12"]
 
     steps:
       - uses: actions/checkout@v3
@@ -20,7 +20,7 @@ jobs:
 
       - name: Install packages
         run: |
-            pip install build numpy wheel 
+            pip install build numpy wheel setuptools
             pip install -r requirements_exe_build.txt
             python setup.py bdist_wheel
             pip install -e . --no-deps
@@ -28,20 +28,13 @@ jobs:
 
       - name: Build an executable
         shell: bash
-        if: ${{ matrix.python-version == '3.10' }}
+        if: ${{ matrix.python-version == '3.12' }}
         run: |
-            pip install build numpy wheel
+            pip install build numpy wheel setuptools
             pip install -r requirements_exe_build.txt
             python setup.py bdist_wheel
             pip install -e . --no-deps
             pip install cmerg
-            if [ "$RUNNER_OS" == "Linux" ]; then
-                 sudo apt update
-                 sudo apt install libegl1 libopengl0
-                 sudo apt-get install '^libxcb.*-dev' libx11-xcb-dev libglu1-mesa-dev libxrender-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev
-                 sudo apt-get install libxcb-xinerama0
-                 sudo apt-get install libxkbcommon-x11-0
-            fi
             pyinstaller asammdf.spec --distpath dist/${RUNNER_OS} --noconfirm --clean
 
       # see: https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
