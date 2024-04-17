@@ -80,7 +80,7 @@ setup(
         "Programming Language :: Python :: 3.12",
     ],
     # Supported python versions
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     # What does your project relate to?
     keywords="read reader edit editor parse parser asam mdf measurement",
     # You can just specify the packages manually here if your project is
