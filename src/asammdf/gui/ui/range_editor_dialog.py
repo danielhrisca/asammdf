@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'range_editor_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.1
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -37,7 +37,7 @@ class Ui_RangeDialog(object):
 
         self.gridLayout.addWidget(self.ranges, 0, 0, 7, 1)
 
-        self.verticalSpacer = QSpacerItem(20, 271, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer = QSpacerItem(20, 271, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout.addItem(self.verticalSpacer, 4, 1, 1, 1)
 
@@ -61,7 +61,7 @@ class Ui_RangeDialog(object):
 
         self.gridLayout.addWidget(self.insert_btn, 0, 1, 1, 1)
 
-        self.verticalSpacer_2 = QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_2 = QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout.addItem(self.verticalSpacer_2, 1, 1, 1, 1)
 
@@ -84,4 +84,3 @@ class Ui_RangeDialog(object):
         self.apply_btn.setText(QCoreApplication.translate("RangeDialog", u"Apply", None))
         self.insert_btn.setText(QCoreApplication.translate("RangeDialog", u"Insert range", None))
     # retranslateUi
-

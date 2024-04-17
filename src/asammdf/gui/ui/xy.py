@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'xy.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.1
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -133,4 +133,3 @@ class Ui_XYDisplay(object):
         self.label_2.setText(QCoreApplication.translate("XYDisplay", u"Y channel", None))
         self.y_search_btn.setText("")
     # retranslateUi
-

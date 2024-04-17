@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'main_window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.0
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -26,7 +26,7 @@ class Ui_PyMDFMainWindow(object):
         if not PyMDFMainWindow.objectName():
             PyMDFMainWindow.setObjectName(u"PyMDFMainWindow")
         PyMDFMainWindow.resize(800, 723)
-        sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(PyMDFMainWindow.sizePolicy().hasHeightForWidth())
@@ -99,4 +99,3 @@ class Ui_PyMDFMainWindow(object):
         self.action_memory_low.setToolTip(QCoreApplication.translate("PyMDFMainWindow", u"Load metdata block in RAM but leave the samples on disk", None))
 #endif // QT_CONFIG(tooltip)
     # retranslateUi
-

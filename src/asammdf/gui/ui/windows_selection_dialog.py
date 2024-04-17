@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'windows_selection_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.1
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -79,4 +79,3 @@ class Ui_WindowSelectionDialog(object):
         self.groupBox.setTitle(QCoreApplication.translate("WindowSelectionDialog", u"Available window types", None))
         self.disable_channels.setText(QCoreApplication.translate("WindowSelectionDialog", u"Disable newly added channels", None))
     # retranslateUi
-

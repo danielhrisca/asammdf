@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'define_conversion_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.1
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -36,7 +36,7 @@ class Ui_ConversionDialog(object):
         ConversionDialog.setSizeGripEnabled(True)
         self.gridLayout = QGridLayout(ConversionDialog)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout.addItem(self.horizontalSpacer_4, 5, 2, 1, 1)
 
@@ -86,7 +86,7 @@ class Ui_ConversionDialog(object):
 
         self.gridLayout.addWidget(self.cancel_btn, 5, 6, 1, 1)
 
-        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout.addItem(self.horizontalSpacer_3, 5, 1, 1, 1)
 
@@ -117,7 +117,7 @@ class Ui_ConversionDialog(object):
 
         self.gridLayout_5.addWidget(self.label_9, 1, 0, 1, 1)
 
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout_5.addItem(self.horizontalSpacer, 1, 2, 1, 1)
 
@@ -128,7 +128,7 @@ class Ui_ConversionDialog(object):
 
         self.gridLayout_5.addWidget(self.a, 1, 1, 1, 1)
 
-        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout_5.addItem(self.verticalSpacer, 3, 0, 1, 1)
 
@@ -142,7 +142,7 @@ class Ui_ConversionDialog(object):
 
         self.gridLayout_6.addWidget(self.label_3, 1, 0, 1, 1)
 
-        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout_6.addItem(self.verticalSpacer_2, 7, 0, 1, 1)
 
@@ -208,7 +208,7 @@ class Ui_ConversionDialog(object):
 
         self.gridLayout_6.addWidget(self.label_14, 5, 0, 1, 1)
 
-        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout_6.addItem(self.horizontalSpacer_2, 1, 2, 1, 1)
 
@@ -252,7 +252,7 @@ class Ui_ConversionDialog(object):
 
         self.gridLayout_2.addWidget(self.vtt_mode, 5, 2, 1, 1)
 
-        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout_2.addItem(self.verticalSpacer_3, 2, 4, 1, 1)
 
@@ -328,7 +328,7 @@ class Ui_ConversionDialog(object):
 
         self.gridLayout_3.addWidget(self.insert_vrtt_btn, 1, 4, 1, 1)
 
-        self.verticalSpacer_4 = QSpacerItem(20, 78, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_4 = QSpacerItem(20, 78, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout_3.addItem(self.verticalSpacer_4, 2, 4, 1, 1)
 
@@ -359,7 +359,7 @@ class Ui_ConversionDialog(object):
 
         self.verticalLayout.addWidget(self.label_18)
 
-        self.verticalSpacer_5 = QSpacerItem(20, 166, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_5 = QSpacerItem(20, 166, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout.addItem(self.verticalSpacer_5)
 
@@ -367,7 +367,7 @@ class Ui_ConversionDialog(object):
 
         self.gridLayout.addWidget(self.tabs, 0, 0, 1, 7)
 
-        self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout.addItem(self.horizontalSpacer_5, 5, 4, 1, 1)
 
@@ -454,4 +454,3 @@ class Ui_ConversionDialog(object):
         self.label_18.setText(QCoreApplication.translate("ConversionDialog", u"X -> X", None))
         self.tabs.setTabText(self.tabs.indexOf(self.tab_5), QCoreApplication.translate("ConversionDialog", u"1:1", None))
     # retranslateUi
-

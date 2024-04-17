@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'fft_window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.3
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -72,7 +72,7 @@ class Ui_FFTWindow(object):
 
         self.verticalLayout.addWidget(self.frequency_step)
 
-        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout.addItem(self.verticalSpacer)
 
@@ -108,4 +108,3 @@ class Ui_FFTWindow(object):
         self.label_3.setText(QCoreApplication.translate("FFTWindow", u"Frequency step", None))
         self.frequency_step.setSuffix(QCoreApplication.translate("FFTWindow", u"Hz", None))
     # retranslateUi
-

@@ -78,9 +78,10 @@ class TestContextMenu(TestPlotWidget):
         QtTest.QTest.keyClick(self.plot.channel_selection.viewport(), QtCore.Qt.Key.Key_Down)
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
-        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText, mock.patch(
-            "asammdf.gui.widgets.tree.MessageBox.warning"
-        ) as mo_warning:
+        with (
+            mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText,
+            mock.patch("asammdf.gui.widgets.tree.MessageBox.warning") as mo_warning,
+        ):
             mo_getText.return_value = self.id(), True
             self.context_menu(action_text="Search item")
 
@@ -103,9 +104,10 @@ class TestContextMenu(TestPlotWidget):
         QtTest.QTest.keyClick(self.plot.channel_selection.viewport(), QtCore.Qt.Key.Key_Down)
         self.assertEqual(1, len(self.plot.channel_selection.selectedItems()))
 
-        with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText, mock.patch(
-            "asammdf.gui.widgets.tree.MessageBox.warning"
-        ) as mo_warning:
+        with (
+            mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText,
+            mock.patch("asammdf.gui.widgets.tree.MessageBox.warning") as mo_warning,
+        ):
             mo_getText.return_value = self.plot_channel_b.text(self.Column.NAME), True
             self.context_menu(action_text="Search item")
 

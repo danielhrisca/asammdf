@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'range_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.1
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -23,7 +23,7 @@ class Ui_RangeWidget(object):
         if not RangeWidget.objectName():
             RangeWidget.setObjectName(u"RangeWidget")
         RangeWidget.resize(673, 41)
-        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(RangeWidget.sizePolicy().hasHeightForWidth())
@@ -129,4 +129,3 @@ class Ui_RangeWidget(object):
         self.label_3.setText(QCoreApplication.translate("RangeWidget", u"and font/curve", None))
         self.font_color_btn.setText("")
     # retranslateUi
-

@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'file_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.1
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -32,7 +32,7 @@ class Ui_file_widget(object):
         if not file_widget.objectName():
             file_widget.setObjectName(u"file_widget")
         file_widget.resize(1034, 622)
-        sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(file_widget.sizePolicy().hasHeightForWidth())
@@ -81,7 +81,7 @@ class Ui_file_widget(object):
 
         self.buttons_layout.addWidget(self.load_channel_list_btn)
 
-        self.button_spacer1 = QSpacerItem(20, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        self.button_spacer1 = QSpacerItem(20, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
         self.buttons_layout.addItem(self.button_spacer1)
 
@@ -125,7 +125,7 @@ class Ui_file_widget(object):
 
         self.buttons_layout.addWidget(self.create_window_btn)
 
-        self.horizontalSpacer_6 = QSpacerItem(20, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        self.horizontalSpacer_6 = QSpacerItem(20, 20, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
 
         self.buttons_layout.addItem(self.horizontalSpacer_6)
 
@@ -145,7 +145,7 @@ class Ui_file_widget(object):
 
         self.buttons_layout.addWidget(self.save_embedded_channel_list_btn)
 
-        self.button_spacer2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.button_spacer2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.buttons_layout.addItem(self.button_spacer2)
 
@@ -202,7 +202,7 @@ class Ui_file_widget(object):
 
         self.horizontalLayout_4.addWidget(self.advanced_serch_filter_btn)
 
-        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_4.addItem(self.horizontalSpacer_2)
 
@@ -304,7 +304,7 @@ class Ui_file_widget(object):
 
         self.raster = QDoubleSpinBox(self.resample_group)
         self.raster.setObjectName(u"raster")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(0)
         sizePolicy1.setHeightForWidth(self.raster.sizePolicy().hasHeightForWidth())
@@ -379,8 +379,8 @@ class Ui_file_widget(object):
 
         self.line_14 = QFrame(self.MDF)
         self.line_14.setObjectName(u"line_14")
-        self.line_14.setFrameShape(QFrame.HLine)
-        self.line_14.setFrameShadow(QFrame.Sunken)
+        self.line_14.setFrameShape(QFrame.Shape.HLine)
+        self.line_14.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_22.addWidget(self.line_14, 1, 0, 1, 2)
 
@@ -406,7 +406,7 @@ class Ui_file_widget(object):
 
         self.gridLayout_20.addWidget(self.scramble_btn, 1, 0, 1, 1)
 
-        self.horizontalSpacer_23 = QSpacerItem(2, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_23 = QSpacerItem(2, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout_20.addItem(self.horizontalSpacer_23, 1, 1, 1, 1)
 
@@ -448,7 +448,7 @@ class Ui_file_widget(object):
 
         self.gridLayout_2.addWidget(self.empty_channels, 8, 1, 1, 1)
 
-        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout_2.addItem(self.verticalSpacer_3, 9, 0, 1, 1)
 
@@ -469,8 +469,8 @@ class Ui_file_widget(object):
 
         self.line_30 = QFrame(self.HDF5)
         self.line_30.setObjectName(u"line_30")
-        self.line_30.setFrameShape(QFrame.HLine)
-        self.line_30.setFrameShadow(QFrame.Sunken)
+        self.line_30.setFrameShape(QFrame.Shape.HLine)
+        self.line_30.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_2.addWidget(self.line_30, 4, 0, 1, 2)
 
@@ -531,14 +531,14 @@ class Ui_file_widget(object):
 
         self.gridLayout_3.addWidget(self.export_compression_mat, 7, 1, 1, 1)
 
-        self.verticalSpacer_4 = QSpacerItem(20, 2, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_4 = QSpacerItem(20, 2, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout_3.addItem(self.verticalSpacer_4, 11, 0, 1, 1)
 
         self.line_31 = QFrame(self.MAT)
         self.line_31.setObjectName(u"line_31")
-        self.line_31.setFrameShape(QFrame.HLine)
-        self.line_31.setFrameShadow(QFrame.Sunken)
+        self.line_31.setFrameShape(QFrame.Shape.HLine)
+        self.line_31.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_3.addWidget(self.line_31, 4, 0, 1, 2)
 
@@ -617,8 +617,8 @@ class Ui_file_widget(object):
 
         self.line_32 = QFrame(self.CSV)
         self.line_32.setObjectName(u"line_32")
-        self.line_32.setFrameShape(QFrame.HLine)
-        self.line_32.setFrameShadow(QFrame.Sunken)
+        self.line_32.setFrameShape(QFrame.Shape.HLine)
+        self.line_32.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout.addWidget(self.line_32, 4, 0, 1, 3)
 
@@ -720,7 +720,7 @@ class Ui_file_widget(object):
 
         self.verticalLayout_3.addWidget(self.groupBox_10)
 
-        self.verticalSpacer_2 = QSpacerItem(20, 2, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_2 = QSpacerItem(20, 2, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_3.addItem(self.verticalSpacer_2)
 
@@ -839,8 +839,8 @@ class Ui_file_widget(object):
 
         self.line_13 = QFrame(self.groupBox_3)
         self.line_13.setObjectName(u"line_13")
-        self.line_13.setFrameShape(QFrame.HLine)
-        self.line_13.setFrameShadow(QFrame.Sunken)
+        self.line_13.setFrameShape(QFrame.Shape.HLine)
+        self.line_13.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_6.addWidget(self.line_13, 13, 0, 1, 3)
 
@@ -902,8 +902,8 @@ class Ui_file_widget(object):
 
         self.line_12 = QFrame(self.groupBox_2)
         self.line_12.setObjectName(u"line_12")
-        self.line_12.setFrameShape(QFrame.HLine)
-        self.line_12.setFrameShadow(QFrame.Sunken)
+        self.line_12.setFrameShape(QFrame.Shape.HLine)
+        self.line_12.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_5.addWidget(self.line_12, 3, 0, 1, 3)
 
@@ -924,7 +924,7 @@ class Ui_file_widget(object):
 
         self.gridLayout_5.addWidget(self.extract_bus_compression, 0, 1, 1, 2)
 
-        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout_5.addItem(self.horizontalSpacer_4, 4, 0, 1, 1)
 
@@ -958,7 +958,7 @@ class Ui_file_widget(object):
 
         self.gridLayout_4.addWidget(self.load_can_database_btn, 0, 0, 1, 1)
 
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout_4.addItem(self.horizontalSpacer, 0, 1, 1, 1)
 
@@ -979,7 +979,7 @@ class Ui_file_widget(object):
 
         self.gridLayout_8.addWidget(self.load_lin_database_btn, 0, 0, 1, 1)
 
-        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout_8.addItem(self.horizontalSpacer_3, 0, 1, 1, 1)
 
@@ -1005,7 +1005,7 @@ class Ui_file_widget(object):
 
         self.horizontalLayout_3.addWidget(self.prefix)
 
-        self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_3.addItem(self.horizontalSpacer_5)
 
@@ -1247,4 +1247,3 @@ class Ui_file_widget(object):
         self.aspects.setTabText(self.aspects.indexOf(self.info_tab), QCoreApplication.translate("file_widget", u"Info", None))
         self.aspects.setTabText(self.aspects.indexOf(self.attachments_tab), QCoreApplication.translate("file_widget", u"Attachments", None))
     # retranslateUi
-

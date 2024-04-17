@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'channel_info_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.0
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -49,7 +49,7 @@ class Ui_ChannelInfo(object):
 
         self.verticalLayout_3.addWidget(self.channel_label)
 
-        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_3.addItem(self.verticalSpacer_3)
 
@@ -79,7 +79,7 @@ class Ui_ChannelInfo(object):
 
         self.verticalLayout_2.addWidget(self.conversion_label)
 
-        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_2.addItem(self.verticalSpacer)
 
@@ -109,7 +109,7 @@ class Ui_ChannelInfo(object):
 
         self.verticalLayout.addWidget(self.source_label)
 
-        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout.addItem(self.verticalSpacer_2)
 
@@ -135,4 +135,3 @@ class Ui_ChannelInfo(object):
         self.groupBox_3.setTitle(QCoreApplication.translate("ChannelInfo", u"Source", None))
         self.source_label.setText(QCoreApplication.translate("ChannelInfo", u"No source", None))
     # retranslateUi
-

@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'tabular_filter.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.3
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -66,4 +66,3 @@ class Ui_TabularFilter(object):
         TabularFilter.setWindowTitle(QCoreApplication.translate("TabularFilter", u"Form", None))
         self.enabled.setText("")
     # retranslateUi
-

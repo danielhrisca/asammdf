@@ -838,7 +838,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     def mousePressEvent(self, event) -> None:
         if event.button() == QtCore.Qt.MouseButton.RightButton:
             self.context_menu_timer.start(300)
-            self.context_menu_pos = event.pos()
+            self.context_menu_pos = event.position().toPoint()
 
         if self.context_menu is not None:
             self.context_menu.close()

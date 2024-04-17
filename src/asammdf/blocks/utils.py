@@ -20,7 +20,7 @@ import sys
 from tempfile import TemporaryDirectory
 from time import perf_counter
 from traceback import format_exc
-from typing import Any, Dict, overload, Tuple
+from typing import Any, overload
 import xml.etree.ElementTree as ET
 
 import lxml
@@ -1028,7 +1028,7 @@ def validate_version_argument(version: str, hint: int = 4) -> str:
     return valid_version
 
 
-class ChannelsDB(Dict[str, Tuple[Tuple[int, int], ...]]):
+class ChannelsDB(dict[str, tuple[tuple[int, int], ...]]):
     def __init__(self) -> None:
         super().__init__()
 

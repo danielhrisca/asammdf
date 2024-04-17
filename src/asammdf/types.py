@@ -1,9 +1,10 @@
 from bz2 import BZ2File
+from collections.abc import Sequence
 from gzip import GzipFile
 from io import BufferedRandom, BufferedReader, BufferedWriter, BytesIO
 from mmap import mmap
 from os import PathLike
-from typing import Any, Optional, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Optional, TYPE_CHECKING, Union
 from zipfile import ZipFile
 
 from canmatrix import CanMatrix
@@ -28,11 +29,11 @@ WritableBufferType = Union[BufferedRandom, BufferedWriter, BytesIO, mmap]
 BusType = Literal["CAN", "LIN"]
 ChannelConversionType = Union["v2_v3_blocks.ChannelConversion", "v4_blocks.ChannelConversion"]
 ChannelGroupType = Union["v2_v3_blocks.ChannelGroup", "v4_blocks.ChannelGroup"]
-ChannelsType = Union[Sequence[str], Sequence[Tuple[Optional[str], int, int]], Sequence[Tuple[str, int]]]
+ChannelsType = Union[Sequence[str], Sequence[tuple[Optional[str], int, int]], Sequence[tuple[str, int]]]
 ChannelType = Union["v2_v3_blocks.Channel", "v4_blocks.Channel"]
 CompressionType = Literal[0, 1, 2]
 DataGroupType = Union["v2_v3_blocks.DataGroup", "v4_blocks.DataGroup"]
-DbcFileType = Tuple[Union[StrPathType, CanMatrix], int]
+DbcFileType = tuple[Union[StrPathType, CanMatrix], int]
 EmptyChannelsType = Literal["skip", "zeros"]
 FloatInterpolationModeType = Literal[0, 1]
 InputType = Union[BufferedReader, BytesIO, StrPathType, ZipFile, BZ2File, GzipFile]

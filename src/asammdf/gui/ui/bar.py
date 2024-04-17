@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'bar.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.3
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -80,4 +80,3 @@ class Ui_BarDisplay(object):
         self.min_t.setText("")
         self.max_t.setText("")
     # retranslateUi
-

@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'functions_manager.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.1
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -68,7 +68,7 @@ class Ui_FunctionsManager(object):
 
         self.horizontalLayout_2.addWidget(self.export_btn)
 
-        self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_2.addItem(self.horizontalSpacer_5)
 
@@ -97,7 +97,7 @@ class Ui_FunctionsManager(object):
 
         self.horizontalLayout_3.addWidget(self.store_btn)
 
-        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_3.addItem(self.horizontalSpacer_2)
 
@@ -147,4 +147,3 @@ class Ui_FunctionsManager(object):
         self.store_btn.setText(QCoreApplication.translate("FunctionsManager", u"Store function changes", None))
         self.function_definition.setPlaceholderText(QCoreApplication.translate("FunctionsManager", u"function code", None))
     # retranslateUi
-

@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'multi_search_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.1
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -49,7 +49,7 @@ class Ui_MultiSearchDialog(object):
 
         self.grid_layout.addWidget(self.matches, 6, 0, 2, 1)
 
-        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.grid_layout.addItem(self.verticalSpacer_2, 7, 1, 1, 1)
 
@@ -84,7 +84,7 @@ class Ui_MultiSearchDialog(object):
 
         self.horizontalLayout.addWidget(self.cancel_btn)
 
-        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout.addItem(self.horizontalSpacer_2)
 
@@ -147,4 +147,3 @@ class Ui_MultiSearchDialog(object):
         self.case_sensitivity.setItemText(1, QCoreApplication.translate("MultiSearchDialog", u"Case sensitive", None))
 
     # retranslateUi
-

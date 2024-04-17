@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'define_channel_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.1
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -52,7 +52,7 @@ class Ui_ComputedChannel(object):
         self.gridLayout_8.setSpacing(2)
         self.gridLayout_8.setObjectName(u"gridLayout_8")
         self.gridLayout_8.setContentsMargins(4, 4, 4, 4)
-        self.horizontalSpacer_8 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_8 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout_8.addItem(self.horizontalSpacer_8, 1, 2, 1, 1)
 
@@ -98,7 +98,7 @@ class Ui_ComputedChannel(object):
 
         self.gridLayout.addWidget(self.groupBox_3, 0, 0, 1, 5)
 
-        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout.addItem(self.horizontalSpacer_3, 7, 1, 1, 1)
 
@@ -133,7 +133,7 @@ class Ui_ComputedChannel(object):
 
         self.gridLayout.addWidget(self.name, 3, 1, 1, 4)
 
-        self.horizontalSpacer_7 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_7 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout.addItem(self.horizontalSpacer_7, 7, 2, 1, 1)
 
@@ -163,7 +163,7 @@ class Ui_ComputedChannel(object):
 
         self.arg_layout.addWidget(self.show_definition_btn, 0, 2, 1, 1)
 
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.arg_layout.addItem(self.horizontalSpacer, 1, 1, 1, 1)
 
@@ -290,4 +290,3 @@ class Ui_ComputedChannel(object):
 "<ul style=\"margin-top: 0px; margin-bottom:"
                         " 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\"><li style=\" font-family:'MS Shell Dlg 2'; font-size:8pt;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">the<span style=\" font-style:italic;\"> </span><span style=\" font-weight:700; font-style:italic;\">t</span><span style=\" font-style:italic;\"> </span>argument will receive the complete time base ndarray</li></ul></body></html>", None))
     # retranslateUi
-

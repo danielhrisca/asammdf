@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'channel_stats.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.1
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -405,7 +405,7 @@ class Ui_ChannelStats(object):
 
         self.overall_min = QLabel(self.overall_group)
         self.overall_min.setObjectName(u"overall_min")
-        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.overall_min.sizePolicy().hasHeightForWidth())
@@ -496,7 +496,7 @@ class Ui_ChannelStats(object):
 
         self.name = QTextEdit(self.scrollAreaWidgetContents)
         self.name.setObjectName(u"name")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(1)
         sizePolicy1.setHeightForWidth(self.name.sizePolicy().hasHeightForWidth())
@@ -756,7 +756,7 @@ class Ui_ChannelStats(object):
 
         self.verticalLayout.addLayout(self.gridLayout)
 
-        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout.addItem(self.verticalSpacer)
 
@@ -895,4 +895,3 @@ class Ui_ChannelStats(object):
         self.unit22.setText("")
         self.label_22.setText(QCoreApplication.translate("ChannelStats", u"Precisison", None))
     # retranslateUi
-

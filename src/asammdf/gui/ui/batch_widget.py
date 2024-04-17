@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'batch_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.1
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -69,8 +69,8 @@ class Ui_batch_widget(object):
 
         self.line_5 = QFrame(self.concatenate_tab)
         self.line_5.setObjectName(u"line_5")
-        self.line_5.setFrameShape(QFrame.HLine)
-        self.line_5.setFrameShadow(QFrame.Sunken)
+        self.line_5.setFrameShape(QFrame.Shape.HLine)
+        self.line_5.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_7.addWidget(self.line_5, 3, 0, 1, 2)
 
@@ -92,8 +92,8 @@ class Ui_batch_widget(object):
 
         self.line_6 = QFrame(self.concatenate_tab)
         self.line_6.setObjectName(u"line_6")
-        self.line_6.setFrameShape(QFrame.HLine)
-        self.line_6.setFrameShadow(QFrame.Sunken)
+        self.line_6.setFrameShape(QFrame.Shape.HLine)
+        self.line_6.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_7.addWidget(self.line_6, 7, 0, 1, 2)
 
@@ -116,7 +116,7 @@ class Ui_batch_widget(object):
 
         self.gridLayout_7.addWidget(self.concatenate_btn, 9, 1, 1, 1)
 
-        self.verticalSpacer_4 = QSpacerItem(20, 2, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_4 = QSpacerItem(20, 2, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout_7.addItem(self.verticalSpacer_4, 8, 1, 1, 1)
 
@@ -183,7 +183,7 @@ class Ui_batch_widget(object):
 
         self.horizontalLayout_5.addWidget(self.advanced_serch_filter_btn)
 
-        self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_5 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_5.addItem(self.horizontalSpacer_5)
 
@@ -356,8 +356,8 @@ class Ui_batch_widget(object):
 
         self.line_17 = QFrame(self.MDF_2)
         self.line_17.setObjectName(u"line_17")
-        self.line_17.setFrameShape(QFrame.HLine)
-        self.line_17.setFrameShadow(QFrame.Sunken)
+        self.line_17.setFrameShape(QFrame.Shape.HLine)
+        self.line_17.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_25.addWidget(self.line_17, 1, 0, 1, 2)
 
@@ -374,7 +374,7 @@ class Ui_batch_widget(object):
 
         self.groupBox_12 = QGroupBox(self.MDF_2)
         self.groupBox_12.setObjectName(u"groupBox_12")
-        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.groupBox_12.sizePolicy().hasHeightForWidth())
@@ -389,7 +389,7 @@ class Ui_batch_widget(object):
 
         self.gridLayout_26.addWidget(self.scramble_btn, 1, 0, 1, 1)
 
-        self.horizontalSpacer_24 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_24 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout_26.addItem(self.horizontalSpacer_24, 1, 1, 1, 1)
 
@@ -424,7 +424,7 @@ class Ui_batch_widget(object):
 
         self.gridLayout_17.addWidget(self.empty_channels, 8, 1, 1, 1)
 
-        self.verticalSpacer_12 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_12 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout_17.addItem(self.verticalSpacer_12, 9, 0, 1, 1)
 
@@ -445,8 +445,8 @@ class Ui_batch_widget(object):
 
         self.line_32 = QFrame(self.HDF5_2)
         self.line_32.setObjectName(u"line_32")
-        self.line_32.setFrameShape(QFrame.HLine)
-        self.line_32.setFrameShadow(QFrame.Sunken)
+        self.line_32.setFrameShape(QFrame.Shape.HLine)
+        self.line_32.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_17.addWidget(self.line_32, 4, 0, 1, 2)
 
@@ -507,14 +507,14 @@ class Ui_batch_widget(object):
 
         self.gridLayout_18.addWidget(self.export_compression_mat, 7, 1, 1, 1)
 
-        self.verticalSpacer_13 = QSpacerItem(20, 2, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_13 = QSpacerItem(20, 2, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout_18.addItem(self.verticalSpacer_13, 11, 0, 1, 1)
 
         self.line_33 = QFrame(self.MAT_2)
         self.line_33.setObjectName(u"line_33")
-        self.line_33.setFrameShape(QFrame.HLine)
-        self.line_33.setFrameShadow(QFrame.Sunken)
+        self.line_33.setFrameShape(QFrame.Shape.HLine)
+        self.line_33.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_18.addWidget(self.line_33, 4, 0, 1, 2)
 
@@ -636,8 +636,8 @@ class Ui_batch_widget(object):
 
         self.line_34 = QFrame(self.CSV)
         self.line_34.setObjectName(u"line_34")
-        self.line_34.setFrameShape(QFrame.HLine)
-        self.line_34.setFrameShadow(QFrame.Sunken)
+        self.line_34.setFrameShape(QFrame.Shape.HLine)
+        self.line_34.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_2.addWidget(self.line_34, 4, 0, 1, 2)
 
@@ -717,7 +717,7 @@ class Ui_batch_widget(object):
 
         self.verticalLayout_15.addWidget(self.groupBox)
 
-        self.verticalSpacer_14 = QSpacerItem(20, 2, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_14 = QSpacerItem(20, 2, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_15.addItem(self.verticalSpacer_14)
 
@@ -770,8 +770,8 @@ class Ui_batch_widget(object):
 
         self.line_8 = QFrame(self.stack_tab)
         self.line_8.setObjectName(u"line_8")
-        self.line_8.setFrameShape(QFrame.HLine)
-        self.line_8.setFrameShadow(QFrame.Sunken)
+        self.line_8.setFrameShape(QFrame.Shape.HLine)
+        self.line_8.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_8.addWidget(self.line_8, 3, 0, 1, 2)
 
@@ -804,12 +804,12 @@ class Ui_batch_widget(object):
 
         self.line_7 = QFrame(self.stack_tab)
         self.line_7.setObjectName(u"line_7")
-        self.line_7.setFrameShape(QFrame.HLine)
-        self.line_7.setFrameShadow(QFrame.Sunken)
+        self.line_7.setFrameShape(QFrame.Shape.HLine)
+        self.line_7.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_8.addWidget(self.line_7, 7, 0, 1, 2)
 
-        self.verticalSpacer_7 = QSpacerItem(20, 502, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_7 = QSpacerItem(20, 502, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout_8.addItem(self.verticalSpacer_7, 8, 1, 1, 1)
 
@@ -848,8 +848,8 @@ class Ui_batch_widget(object):
 
         self.line_13 = QFrame(self.groupBox_3)
         self.line_13.setObjectName(u"line_13")
-        self.line_13.setFrameShape(QFrame.HLine)
-        self.line_13.setFrameShadow(QFrame.Sunken)
+        self.line_13.setFrameShape(QFrame.Shape.HLine)
+        self.line_13.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_10.addWidget(self.line_13, 12, 1, 1, 3)
 
@@ -1024,7 +1024,7 @@ class Ui_batch_widget(object):
 
         self.horizontalLayout.addWidget(self.prefix)
 
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout.addItem(self.horizontalSpacer)
 
@@ -1056,8 +1056,8 @@ class Ui_batch_widget(object):
 
         self.line_12 = QFrame(self.groupBox_2)
         self.line_12.setObjectName(u"line_12")
-        self.line_12.setFrameShape(QFrame.HLine)
-        self.line_12.setFrameShadow(QFrame.Sunken)
+        self.line_12.setFrameShape(QFrame.Shape.HLine)
+        self.line_12.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_5.addWidget(self.line_12, 3, 0, 1, 2)
 
@@ -1304,4 +1304,3 @@ class Ui_batch_widget(object):
         self.sort_by_start_time_btn.setText(QCoreApplication.translate("batch_widget", u"Sort by start time", None))
         self.sort_alphabetically_btn.setText(QCoreApplication.translate("batch_widget", u"Sort alphabetically", None))
     # retranslateUi
-

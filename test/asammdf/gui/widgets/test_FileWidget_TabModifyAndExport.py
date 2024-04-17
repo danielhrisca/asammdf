@@ -95,9 +95,10 @@ class TestTabModifyAndExport(TestFileWidget):
         # Case 0:
         self.processEvents()
         with self.subTest("test_ExportMDF_0"):
-            with mock.patch(
-                "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName"
-            ) as mc_getSaveFileName, mock.patch("asammdf.gui.widgets.file.setup_progress") as mo_setup_progress:
+            with (
+                mock.patch("asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName") as mc_getSaveFileName,
+                mock.patch("asammdf.gui.widgets.file.setup_progress") as mo_setup_progress,
+            ):
                 mc_getSaveFileName.return_value = None, None
                 QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
                 self.processEvents()

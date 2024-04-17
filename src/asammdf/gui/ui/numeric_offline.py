@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'numeric_offline.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.1
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -51,7 +51,7 @@ class Ui_NumericDisplay(object):
 
         self.gridLayout_2.addWidget(self.float_precision, 0, 1, 1, 1)
 
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout_2.addItem(self.horizontalSpacer, 0, 2, 1, 1)
 
@@ -160,7 +160,7 @@ class Ui_NumericDisplay(object):
 
         self.horizontalLayout_3.addWidget(self.backward)
 
-        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_3.addItem(self.horizontalSpacer_4)
 
@@ -226,4 +226,3 @@ class Ui_NumericDisplay(object):
         self.forward.setText("")
         self.match.setText("")
     # retranslateUi
-

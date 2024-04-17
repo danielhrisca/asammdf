@@ -87,9 +87,10 @@ class TestFileWidget(TestBase):
         return widget_types
 
     def load_display_file(self, display_file):
-        with mock.patch.object(self.widget, "load_window", wraps=self.widget.load_window) as mo_load_window, mock.patch(
-            "asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName"
-        ) as mo_getOpenFileName:
+        with (
+            mock.patch.object(self.widget, "load_window", wraps=self.widget.load_window) as mo_load_window,
+            mock.patch("asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName") as mo_getOpenFileName,
+        ):
             mo_getOpenFileName.return_value = display_file, None
             QtTest.QTest.mouseClick(
                 self.widget.load_channel_list_btn,

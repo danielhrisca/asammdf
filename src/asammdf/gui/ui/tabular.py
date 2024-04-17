@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'tabular.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.1
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -68,7 +68,7 @@ class Ui_TabularDisplay(object):
 
         self.horizontalLayout_2.addWidget(self.prefix)
 
-        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_2.addItem(self.horizontalSpacer_3)
 
@@ -95,7 +95,7 @@ class Ui_TabularDisplay(object):
 
         self.gridLayout_3.addWidget(self.add_filter_btn, 0, 0, 1, 1)
 
-        self.horizontalSpacer = QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer = QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout_3.addItem(self.horizontalSpacer, 0, 1, 1, 1)
 
@@ -107,7 +107,7 @@ class Ui_TabularDisplay(object):
 
         self.gridLayout_3.addWidget(self.apply_filters_btn, 0, 2, 1, 1)
 
-        self.horizontalSpacer_2 = QSpacerItem(559, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_2 = QSpacerItem(559, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout_3.addItem(self.horizontalSpacer_2, 0, 3, 1, 1)
 
@@ -119,7 +119,7 @@ class Ui_TabularDisplay(object):
 
         self.groupBox = QGroupBox(self.filters_group)
         self.groupBox.setObjectName(u"groupBox")
-        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
@@ -131,7 +131,7 @@ class Ui_TabularDisplay(object):
         self.gridLayout.setContentsMargins(0, 0, 0, 0)
         self.query = QTextEdit(self.groupBox)
         self.query.setObjectName(u"query")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.MinimumExpanding)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(0)
         sizePolicy1.setHeightForWidth(self.query.sizePolicy().hasHeightForWidth())
@@ -183,4 +183,3 @@ class Ui_TabularDisplay(object):
         self.apply_filters_btn.setText(QCoreApplication.translate("TabularDisplay", u"Apply filters", None))
         self.groupBox.setTitle(QCoreApplication.translate("TabularDisplay", u"pandas DataFrame query", None))
     # retranslateUi
-

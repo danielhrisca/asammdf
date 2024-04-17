@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'bus_database_manager.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.1
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -44,7 +44,7 @@ class Ui_BusDatabaseManager(object):
 
         self.gridLayout_4.addWidget(self.load_can_database_btn, 0, 0, 1, 1)
 
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout_4.addItem(self.horizontalSpacer, 0, 1, 1, 1)
 
@@ -65,7 +65,7 @@ class Ui_BusDatabaseManager(object):
 
         self.gridLayout_8.addWidget(self.load_lin_database_btn, 0, 0, 1, 1)
 
-        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout_8.addItem(self.horizontalSpacer_3, 0, 1, 1, 1)
 
@@ -94,4 +94,3 @@ class Ui_BusDatabaseManager(object):
         self.load_lin_database_btn.setText(QCoreApplication.translate("BusDatabaseManager", u"Load LIN database", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("BusDatabaseManager", u"LIN", None))
     # retranslateUi
-

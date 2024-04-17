@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'simple_search_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.1
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QApplication, QComboBox, QDial
     QGridLayout, QHBoxLayout, QHeaderView, QLabel,
     QLineEdit, QPushButton, QSizePolicy, QSpacerItem,
     QTreeWidget, QTreeWidgetItem, QWidget)
-import resource_rc
+from . import resource_rc
 
 class Ui_SimpleSearchDialog(object):
     def setupUi(self, SimpleSearchDialog):
@@ -55,7 +55,7 @@ class Ui_SimpleSearchDialog(object):
 
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_2.addItem(self.horizontalSpacer)
 
@@ -82,7 +82,7 @@ class Ui_SimpleSearchDialog(object):
 
         self.gridLayout.addWidget(self.match_kind, 0, 0, 1, 1)
 
-        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.gridLayout.addItem(self.verticalSpacer_2, 4, 1, 1, 1)
 
@@ -93,7 +93,7 @@ class Ui_SimpleSearchDialog(object):
 
         self.horizontalLayout.addWidget(self.cancel_btn)
 
-        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout.addItem(self.horizontalSpacer_2)
 
@@ -154,4 +154,3 @@ class Ui_SimpleSearchDialog(object):
         self.case_sensitivity.setItemText(1, QCoreApplication.translate("SimpleSearchDialog", u"Case sensitive", None))
 
     # retranslateUi
-

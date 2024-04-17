@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'attachment.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.3
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -63,4 +63,3 @@ class Ui_Attachment(object):
         ___qtreewidgetitem.setText(0, QCoreApplication.translate("Attachment", u"Item", None));
         self.extract_btn.setText(QCoreApplication.translate("Attachment", u"Extract", None))
     # retranslateUi
-

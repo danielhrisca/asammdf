@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'channel_group_info_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.0
+## Created by: Qt User Interface Compiler version 6.7.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -56,7 +56,7 @@ class Ui_ChannelGroupInfo(object):
 
         self.verticalLayout_3.addWidget(self.channel_group_label)
 
-        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_3.addItem(self.verticalSpacer_3)
 
@@ -85,7 +85,7 @@ class Ui_ChannelGroupInfo(object):
 
         self.verticalLayout.addWidget(self.source_label)
 
-        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout.addItem(self.verticalSpacer_2)
 
@@ -161,4 +161,3 @@ class Ui_ChannelGroupInfo(object):
         self.wrap.setText(QCoreApplication.translate("ChannelGroupInfo", u"Text wrap", None))
         self.tabs.setTabText(self.tabs.indexOf(self.tab_2), QCoreApplication.translate("ChannelGroupInfo", u"Raw bytes", None))
     # retranslateUi
-

@@ -13,7 +13,7 @@ from threading import Thread
 from time import sleep
 import traceback
 from traceback import format_exc
-from typing import Dict, Union
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -1125,7 +1125,7 @@ def draw_color_icon(color):
     return QtGui.QIcon(pix)
 
 
-def generate_python_function(definition: str, in_globals: Union[Dict, None] = None) -> tuple:
+def generate_python_function(definition: str, in_globals: Union[dict, None] = None) -> tuple:
     trace = None
     func = None
 
