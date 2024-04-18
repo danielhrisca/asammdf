@@ -367,6 +367,12 @@ class ViewBoxWithCursor(pg.ViewBox):
                 delta = y_range[1] - y_range[0]
                 y_range = y_pos_val - delta / 2, y_pos_val + delta / 2
 
+        if not mask[0]:
+            x_range = None
+
+        if not mask[1]:
+            y_range = None
+
         self.setRange(xRange=x_range, yRange=y_range, padding=0)
 
         ev.accept()
