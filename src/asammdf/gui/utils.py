@@ -10,7 +10,7 @@ import re
 import sys
 from textwrap import indent
 from threading import Thread
-from time import sleep
+from time import sleep, perf_counter
 import traceback
 from traceback import format_exc
 from typing import Union
@@ -274,6 +274,8 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         # Connect signal to "processEvents": Give the chance to "destroy" function to make his job
         self.qfinished.connect(self.processEvents)
 
+        self._last_process_events = perf_counter()
+
     def run_thread_with_progress(self, target, args, kwargs, wait_here=False, close_on_finish=True):
         self.show()
         self.result = None
@@ -301,7 +303,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         if wait_here:
             while not self.thread_finished:
                 sleep(0.1)
-                QtWidgets.QApplication.processEvents()
+                self.processEvents()
 
             return self.result
 
@@ -309,7 +311,9 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.close()
 
     def processEvents(self):
-        QtCore.QCoreApplication.processEvents()
+        if perf_counter() - self._last_process_events >= 0.1:
+            QtCore.QCoreApplication.processEvents()
+            self._last_process_events = perf_counter()
 
     def receive_result(self, result):
         self.result = result
