@@ -988,9 +988,6 @@ class HeaderView(QtWidgets.QTableView):
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
-        self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.show_menu)
-
         self.resize(self.sizeHint())
 
         self.columns_width = {
@@ -1029,48 +1026,6 @@ class HeaderView(QtWidgets.QTableView):
             self.sorting_changed.emit(col)
         else:
             super().mouseDoubleClickEvent(event)
-
-    def show_menu(self, position):
-        count = len(self.backend)
-
-        menu = QtWidgets.QMenu()
-        menu.addAction(f"{count} rows in the numeric window")
-        menu.addSeparator()
-
-        action = QtGui.QAction("Sorting", menu)
-        action.setCheckable(True)
-        action.setChecked(self.backend.sorting_enabled)
-        action.toggled.connect(self.toggle_sorting)
-        menu.addAction(action)
-
-        menu.addAction("Automatic set columns width")
-        menu.addSeparator()
-
-        action = QtGui.QAction("Raw Column", menu)
-        action.setCheckable(True)
-        action.setChecked(not self.isColumnHidden(self.RawColumn))
-        action.toggled.connect(partial(self.toggle_column, column=self.RawColumn))
-        menu.addAction(action)
-
-        action = QtGui.QAction("Scaled Column", menu)
-        action.setCheckable(True)
-        action.setChecked(not self.isColumnHidden(self.ScaledColumn))
-        action.toggled.connect(partial(self.toggle_column, column=self.ScaledColumn))
-        menu.addAction(action)
-
-        action = QtGui.QAction("Unit Column", menu)
-        action.setCheckable(True)
-        action.setChecked(not self.isColumnHidden(self.UnitColumn))
-        action.toggled.connect(partial(self.toggle_column, column=self.UnitColumn))
-        menu.addAction(action)
-
-        action = menu.exec_(self.viewport().mapToGlobal(position))
-
-        if action is None:
-            return
-
-        if action.text() == "Automatic set columns width":
-            self.numeric_viewer.auto_size_header()
 
     def eventFilter(self, object: QtCore.QObject, event: QtCore.QEvent):
         if event.type() in [
@@ -1342,7 +1297,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.main_layout.insertWidget(0, self.channels)
         self.main_layout.setStretch(0, 1)
 
-        self.float_precision.addItems(["Full float precision"] + [f"{i} float decimals" for i in range(16)])
+        self.float_precision.addItems(["Full"] + [f"{i} decimals" for i in range(16)])
 
         self.float_precision.currentIndexChanged.connect(self.set_float_precision)
 
@@ -1388,6 +1343,65 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             self.toggle_controls_btn.setHidden(True)
             self.time_group.setHidden(True)
             self.search_group.setHidden(True)
+
+        self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.show_menu)
+
+    def show_menu(self, position):
+        count = len(self.channels.backend)
+
+        header = self.channels.columnHeader
+
+        menu = QtWidgets.QMenu()
+        menu.addAction(f"{count} rows in the numeric window")
+        menu.addSeparator()
+
+        action = QtGui.QAction("Sorting", menu)
+        action.setCheckable(True)
+        action.setChecked(self.channels.backend.sorting_enabled)
+        action.toggled.connect(header.toggle_sorting)
+        menu.addAction(action)
+
+        menu.addAction("Automatic set columns width")
+        menu.addSeparator()
+
+        action = QtGui.QAction("Raw Column", menu)
+        action.setCheckable(True)
+        action.setChecked(not header.isColumnHidden(header.RawColumn))
+        action.toggled.connect(partial(header.toggle_column, column=header.RawColumn))
+        menu.addAction(action)
+
+        action = QtGui.QAction("Scaled Column", menu)
+        action.setCheckable(True)
+        action.setChecked(not header.isColumnHidden(header.ScaledColumn))
+        action.toggled.connect(partial(header.toggle_column, column=header.ScaledColumn))
+        menu.addAction(action)
+
+        action = QtGui.QAction("Unit Column", menu)
+        action.setCheckable(True)
+        action.setChecked(not header.isColumnHidden(header.UnitColumn))
+        action.toggled.connect(partial(header.toggle_column, column=header.UnitColumn))
+        menu.addAction(action)
+
+        action = QtGui.QAction("Hide header and controls", menu)
+        action.setCheckable(True)
+        action.setChecked(header.isHidden())
+        menu.addAction(action)
+
+        action = menu.exec_(self.mapToGlobal(position))
+
+        if action is None:
+            return
+
+        if action.text() == "Automatic set columns width":
+            header.numeric_viewer.auto_size_header()
+        elif action.text() == "Hide header and controls":
+            if action.isChecked():
+                header.hide()
+                self.controls.hide()
+            else:
+                header.show()
+                self.controls.show()
 
     def add_new_channels(self, channels, mime_data=None):
         if self.mode == "online":
@@ -1499,6 +1513,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             "font_size": self.font().pointSize(),
             "columns_visibility": self.channels.columnHeader.columns_visibility(),
             "sorting": self.channels.columnHeader.sorting(),
+            "header_and_controls_visible": self.controls.isVisible(),
         }
 
         return config

@@ -464,9 +464,10 @@ def substitude_mime_uuids(mime, uuid=None, force=False):
 
 def set_title(mdi):
     name, ok = QtWidgets.QInputDialog.getText(
-        None,
+        mdi,
         "Set sub-plot title",
         "Title:",
+        text=mdi.windowTitle(),
     )
     if ok and name:
         mdi.setWindowTitle(generate_window_title(mdi, title=name))
@@ -525,6 +526,10 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+
+        layout = self.layout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
     def closeEvent(self, event):
         if isinstance(self.widget(), Plot):
@@ -2038,6 +2043,7 @@ class WithMDIArea:
         return trace
 
     def _add_numeric_window(self, names):
+
         if names and isinstance(names[0], str):
             signals_ = [
                 (
@@ -2212,8 +2218,6 @@ class WithMDIArea:
 
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
-
-        w.layout().setSpacing(1)
 
         menu = w.systemMenu()
 
@@ -3201,6 +3205,11 @@ class WithMDIArea:
             numeric.channels.columnHeader.toggle_column(
                 columns_visibility["unit"], numeric.channels.columnHeader.UnitColumn
             )
+
+        header_and_controls_visible = window_info["configuration"].get("header_and_controls_visible", True)
+        if not header_and_controls_visible:
+            numeric.controls.setHidden(True)
+            numeric.channels.columnHeader.setHidden(True)
 
         sorting = window_info["configuration"].get("sorting", {})
         if sorting:
