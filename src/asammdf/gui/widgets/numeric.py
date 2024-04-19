@@ -732,7 +732,7 @@ class TableView(QtWidgets.QTableView):
             event.accept()
             selected_items = {index.row() for index in self.selectedIndexes() if index.isValid()}
 
-            for row in reversed(list(selected_items)):
+            for row in sorted(selected_items, reverse=True):
                 signal = self.backend.signals.pop(row)
                 del self.backend.map[signal.entry]
 
