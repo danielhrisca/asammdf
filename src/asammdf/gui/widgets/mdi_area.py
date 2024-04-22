@@ -55,6 +55,8 @@ COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
 NOT_FOUND = 0xFFFFFFFF
 
+SNAP_PIXELS_DISTANCE = 20
+
 
 def rename_origin_uuid(items):
     for item in items:
@@ -519,9 +521,219 @@ def get_comparison_mime(data, uuids):
     return entries
 
 
+class MdiAreaMixin:
+
+    def addSubWindow(self, window):
+        window.resized.connect(self.window_resized)
+        window.moved.connect(self.window_moved)
+        return super().addSubWindow(window)
+
+    def clear_windows(self):
+        for window in self.subWindowList():
+            widget = window.widget()
+            self.removeSubWindow(window)
+            widget.setParent(None)
+            window.close()
+            widget.deleteLater()
+            widget.close()
+
+    def window_moved(self, window, new_position, old_position):
+
+        snap = False
+
+        window_geometry = window.geometry()
+        area_geometry = self.geometry()
+        sub_windows = [sub.geometry() for sub in self.subWindowList() if sub is not window]
+
+        # left edge snapping
+        snap_candidates = [
+            0,
+        ]
+
+        for sub in sub_windows:
+            snap_candidates.append(sub.x())
+            snap_candidates.append(sub.x() + sub.width())
+
+        for x in snap_candidates:
+            if abs(new_position.x() - x) <= SNAP_PIXELS_DISTANCE:
+                new_position.setX(x)
+                snap = True
+                break
+        else:
+            # right edge snapping
+            snap_candidates = [
+                area_geometry.width(),
+            ]
+
+            for sub in sub_windows:
+                snap_candidates.append(sub.x())
+                snap_candidates.append(sub.x() + sub.width())
+
+            for x in snap_candidates:
+                if abs(new_position.x() + window_geometry.width() - x) <= SNAP_PIXELS_DISTANCE:
+                    new_position.setX(x - window_geometry.width())
+                    snap = True
+                    break
+
+        # top edge snapping
+        snap_candidates = [
+            0,
+        ]
+
+        for sub in sub_windows:
+            snap_candidates.append(sub.y())
+            snap_candidates.append(sub.y() + sub.height())
+
+        for y in snap_candidates:
+            if abs(new_position.y() - y) <= SNAP_PIXELS_DISTANCE:
+                new_position.setY(y)
+                snap = True
+                break
+        else:
+            # bottom edge snapping
+            snap_candidates = [
+                area_geometry.height(),
+            ]
+
+            for sub in sub_windows:
+                if sub is not window:
+                    snap_candidates.append(sub.y())
+                    snap_candidates.append(sub.y() + sub.height())
+
+            for y in snap_candidates:
+                if abs(new_position.y() + window_geometry.height() - y) <= SNAP_PIXELS_DISTANCE:
+                    new_position.setY(y - window_geometry.height())
+                    snap = True
+                    break
+
+        if snap:
+            window.blockSignals(True)
+            window_geometry.moveTo(new_position)
+            window.setGeometry(window_geometry)
+            window.blockSignals(False)
+
+            window.previous_position = old_position
+
+    def window_resized(self, window, new_size, old_size):
+        snap = False
+
+        window_geometry = window.geometry()
+        new_position = window_geometry.topLeft()
+        area_geometry = self.geometry()
+        sub_windows = [sub for sub in self.subWindowList() if sub is not window]
+
+        for sub in sub_windows:
+            sub.blockSignals(True)
+
+        previous_position = window.previous_position
+
+        # right edge of other windows growing and snapping
+        snap_candidates = [
+            area_geometry.width(),
+        ]
+
+        for sub in sub_windows:
+            if sub is not window:
+                snap_candidates.append(sub.geometry().x() + sub.geometry().width())
+
+        for x in snap_candidates:
+            if abs(new_position.x() + window_geometry.width() - x) <= SNAP_PIXELS_DISTANCE:
+                window_geometry.setWidth(abs(x - new_position.x()))
+                snap = True
+                break
+
+        else:
+
+            # left edge of other windows growing and snapping
+            snap_candidates = []
+
+            for sub in sub_windows:
+                if sub is not window:
+                    snap_candidates.append(sub.geometry().x())
+
+            for x in snap_candidates:
+                if abs(new_position.x() + window_geometry.width() - x) <= SNAP_PIXELS_DISTANCE:
+                    window_geometry.setWidth(abs(x - new_position.x()))
+                    snap = True
+                    break
+
+        # bottom edge of other windows snapping
+        snap_candidates = [
+            area_geometry.height(),
+        ]
+
+        for sub in sub_windows:
+            if sub is not window:
+                snap_candidates.append(sub.geometry().y() + sub.geometry().height())
+
+        for y in snap_candidates:
+            if abs(new_position.y() + window_geometry.height() - y) <= SNAP_PIXELS_DISTANCE:
+                window_geometry.setHeight(abs(y - new_position.y()))
+                snap = True
+                break
+        else:
+
+            # top edge of other windows snapping
+            snap_candidates = []
+
+            for sub in sub_windows:
+                if sub is not window:
+                    snap_candidates.append(sub.geometry().y())
+
+            for y in snap_candidates:
+                if abs(new_position.y() + window_geometry.height() - y) <= SNAP_PIXELS_DISTANCE:
+                    window_geometry.setHeight(abs(y - new_position.y()))
+                    snap = True
+                    break
+
+        if snap:
+            window.blockSignals(True)
+            window.setGeometry(window_geometry)
+            window.blockSignals(False)
+
+        # manage edge driven resize of other windows
+
+        x_delta = new_size.width() - old_size.width()
+        y_delta = new_size.height() - old_size.height()
+
+        print(x_delta, y_delta)
+
+        if previous_position.x() == new_position.x():
+            if x_delta:
+                previous_x = previous_position.x() + old_size.width()
+                # right edge was dragged
+
+                for sub in sub_windows:
+                    geometry = sub.geometry()
+                    if abs(geometry.x() - previous_x) <= SNAP_PIXELS_DISTANCE:
+                        geometry.setX(previous_x + x_delta)
+                        sub.setGeometry(geometry)
+                    elif abs(geometry.x() + geometry.width() - previous_x) <= SNAP_PIXELS_DISTANCE:
+                        geometry.setWidth(geometry.width() + x_delta)
+                        sub.setGeometry(geometry)
+
+            if y_delta:
+                previous_y = previous_position.y() + old_size.height()
+                # bottom edge was dragged
+
+                for sub in sub_windows:
+                    geometry = sub.geometry()
+                    if abs(geometry.y() - previous_y) <= SNAP_PIXELS_DISTANCE:
+                        geometry.setY(previous_y + y_delta)
+                        sub.setGeometry(geometry)
+                    elif abs(geometry.y() + geometry.height() - previous_y) <= SNAP_PIXELS_DISTANCE:
+                        geometry.setHeight(geometry.height() + y_delta)
+                        sub.setGeometry(geometry)
+
+        for sub in sub_windows:
+            sub.blockSignals(False)
+
+
 class MdiSubWindow(QtWidgets.QMdiSubWindow):
     sigClosed = QtCore.Signal(object)
     titleModified = QtCore.Signal()
+    resized = QtCore.Signal(object, object, object)
+    moved = QtCore.Signal(object, object, object)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -531,14 +743,42 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
+        self.setOption(MdiSubWindow.RubberBandResize)
+        self.setOption(MdiSubWindow.RubberBandMove)
+
+        self.previous_position = QtCore.QPoint(0, 0)
+
     def closeEvent(self, event):
         if isinstance(self.widget(), Plot):
             self.widget().close()
         super().closeEvent(event)
         self.sigClosed.emit(self)
 
+    def moveEvent(self, event):
+        old_position = event.oldPos()
+        new_position = event.pos()
 
-class MdiAreaWidget(QtWidgets.QMdiArea):
+        # old_position == new_position => restore from minimized or maximized
+
+        super().moveEvent(event)
+
+        if not (self.isMinimized() or self.isMaximized()):
+            self.moved.emit(self, new_position, old_position)
+
+    def resizeEvent(self, event):
+        old_size = event.oldSize()
+        new_size = event.size()
+
+        super().resizeEvent(event)
+
+        if old_size.isValid() and not (self.isMinimized() or self.isMaximized()):
+            self.resized.emit(self, new_size, old_size)
+
+    def changeEvent(self, changeEvent):
+        super().changeEvent(changeEvent)
+
+
+class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
     add_window_request = QtCore.Signal(list)
     open_files_request = QtCore.Signal(object)
 
@@ -2606,8 +2846,7 @@ class WithMDIArea:
         sub.titleModified.connect(self.window_closed_handler)
 
         if not self.subplots:
-            for mdi in self.mdi_area.subWindowList():
-                mdi.close()
+            self.mdi_area.clear_windows()
             w = self.mdi_area.addSubWindow(sub)
 
             w.showMaximized()
@@ -2618,7 +2857,6 @@ class WithMDIArea:
                 w.showMaximized()
             else:
                 w.show()
-                self.mdi_area.tileSubWindows()
 
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
@@ -2878,13 +3116,7 @@ class WithMDIArea:
         self.windows_modified.emit()
 
     def clear_windows(self):
-        for window in self.mdi_area.subWindowList():
-            widget = window.widget()
-            self.mdi_area.removeSubWindow(window)
-            widget.setParent(None)
-            window.close()
-            widget.deleteLater()
-            widget.close()
+        self.mdi_area.clear_windows()
 
     def delete_functions(self, deleted_functions):
         deleted = set()
