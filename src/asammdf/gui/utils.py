@@ -1217,12 +1217,16 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
     # try with sample by sample call
     sample_by_sample = True
     try:
-        func(**kwargs)
+        res = func(**kwargs)
     except ZeroDivisionError:
         pass
     except:
         sample_by_sample = False
-        trace = format_exc()
+        trace = f"Sample by sample: {format_exc()}"
+    else:
+        if not isinstance(res, (int, float)):
+            sample_by_sample = False
+            trace = "Sample by sample: The function did not return a numeric scalar value"
 
     kwargs = {}
     for i, (arg_name, arg) in enumerate(args.parameters.items()):
@@ -1231,15 +1235,29 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
     # try with complete signal call
     complete_signal = True
     try:
-        func(**kwargs)
+        res = func(**kwargs)
     except ZeroDivisionError:
         pass
     except:
         complete_signal = False
         if trace:
-            trace += "\n\n" + format_exc()
+            trace += f"\n\nComplete signal: {format_exc()}"
         else:
-            trace = format_exc()
+            trace = f"Complete signal: {format_exc()}"
+    else:
+        if not isinstance(res, (tuple, list, np.array)):
+            complete_signal = False
+            if trace:
+                trace += "\n\nComplete signal: The function did not return an list, tuple or np.array"
+            else:
+                trace = "Complete signal: The function did not return an list, tuple or np.array"
+
+        if len(np.array(res).shape) > 1:
+            complete_signal = False
+            if trace:
+                trace += "\n\nComplete signal: The function returned a multi dimensional array"
+            else:
+                trace = "Complete signal: The function returned a multi dimensional array"
 
     if not sample_by_sample and not complete_signal:
         ErrorDialog(

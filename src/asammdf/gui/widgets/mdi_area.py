@@ -617,7 +617,7 @@ class MdiAreaMixin:
     def window_resized(self, window, new_size, old_size):
         snap = False
 
-        window_geometry = window.geometry()
+        window_geometry = new_geometry = window.geometry()
         new_position = window_geometry.topLeft()
         area_geometry = self.geometry()
         sub_windows = [sub for sub in self.subWindowList() if sub is not window]
@@ -626,6 +626,9 @@ class MdiAreaMixin:
             sub.blockSignals(True)
 
         previous_position = window.previous_position
+        previous_geometry = QtCore.QRect(0, 0, 0, 0)
+        previous_geometry.moveTo(previous_position)
+        previous_geometry.setSize(old_size)
 
         # right edge of other windows growing and snapping
         snap_candidates = [
@@ -691,39 +694,81 @@ class MdiAreaMixin:
             window.setGeometry(window_geometry)
             window.blockSignals(False)
 
+            new_size = window_geometry.size()
+            new_geometry = window_geometry
+
         # manage edge driven resize of other windows
 
         x_delta = new_size.width() - old_size.width()
         y_delta = new_size.height() - old_size.height()
 
-        print(x_delta, y_delta)
+        previous_x = None
+        previous_y = None
 
-        if previous_position.x() == new_position.x():
+        # top left corner unchanged
+        if new_geometry.topLeft() == previous_geometry.topLeft():
             if x_delta:
-                previous_x = previous_position.x() + old_size.width()
                 # right edge was dragged
-
-                for sub in sub_windows:
-                    geometry = sub.geometry()
-                    if abs(geometry.x() - previous_x) <= SNAP_PIXELS_DISTANCE:
-                        geometry.setX(previous_x + x_delta)
-                        sub.setGeometry(geometry)
-                    elif abs(geometry.x() + geometry.width() - previous_x) <= SNAP_PIXELS_DISTANCE:
-                        geometry.setWidth(geometry.width() + x_delta)
-                        sub.setGeometry(geometry)
+                previous_x = previous_geometry.x() + old_size.width()
 
             if y_delta:
-                previous_y = previous_position.y() + old_size.height()
                 # bottom edge was dragged
+                previous_y = previous_geometry.y() + old_size.height()
 
-                for sub in sub_windows:
-                    geometry = sub.geometry()
-                    if abs(geometry.y() - previous_y) <= SNAP_PIXELS_DISTANCE:
-                        geometry.setY(previous_y + y_delta)
-                        sub.setGeometry(geometry)
-                    elif abs(geometry.y() + geometry.height() - previous_y) <= SNAP_PIXELS_DISTANCE:
-                        geometry.setHeight(geometry.height() + y_delta)
-                        sub.setGeometry(geometry)
+        # top right corner unchanged
+        elif new_geometry.topRight() == previous_geometry.topRight():
+            if x_delta:
+                # left edge was dragged
+                previous_x = previous_geometry.x()
+                x_delta = -x_delta
+            if y_delta:
+                # bottom edge was dragged
+                previous_y = previous_geometry.y() + old_size.height()
+
+        # bottom left corner unchanged
+        elif new_geometry.bottomLeft() == previous_geometry.bottomLeft():
+            if x_delta:
+                # right edge was dragged
+                previous_x = previous_geometry.x() + old_size.width()
+
+            if y_delta:
+                # top edge was dragged
+                previous_y = previous_geometry.y()
+                y_delta = -y_delta
+
+        # bottom right corner unchanged
+        elif new_geometry.bottomRight() == previous_geometry.bottomRight():
+            if x_delta:
+                # left edge was dragged
+                previous_x = previous_geometry.x()
+                x_delta = -x_delta
+
+            if y_delta:
+                # top edge was dragged
+                previous_y = previous_geometry.y()
+                y_delta = -y_delta
+
+        if previous_x is not None:
+
+            for sub in sub_windows:
+                geometry = sub.geometry()
+                if abs(geometry.x() - previous_x) <= SNAP_PIXELS_DISTANCE:
+                    geometry.setX(geometry.x() + x_delta)
+                    sub.setGeometry(geometry)
+                elif abs(geometry.x() + geometry.width() - previous_x) <= SNAP_PIXELS_DISTANCE:
+                    geometry.setWidth(geometry.width() + x_delta)
+                    sub.setGeometry(geometry)
+
+        if previous_y is not None:
+
+            for sub in sub_windows:
+                geometry = sub.geometry()
+                if abs(geometry.y() - previous_y) <= SNAP_PIXELS_DISTANCE:
+                    geometry.setY(geometry.y() + y_delta)
+                    sub.setGeometry(geometry)
+                elif abs(geometry.y() + geometry.height() - previous_y) <= SNAP_PIXELS_DISTANCE:
+                    geometry.setHeight(geometry.height() + y_delta)
+                    sub.setGeometry(geometry)
 
         for sub in sub_windows:
             sub.blockSignals(False)
@@ -746,7 +791,7 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
         self.setOption(MdiSubWindow.RubberBandResize)
         self.setOption(MdiSubWindow.RubberBandMove)
 
-        self.previous_position = QtCore.QPoint(0, 0)
+        self.previous_geometry = QtCore.QRect(0, 0, 0, 0)
 
     def closeEvent(self, event):
         if isinstance(self.widget(), Plot):
