@@ -877,6 +877,23 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.context_menu = menu = QtWidgets.QMenu()
         menu.addAction(self.tr(f"{count} items in the list, {enabled} enabled"))
         menu.addSeparator()
+
+        submenu = QtWidgets.QMenu("Columns")
+        action = QtGui.QAction("Unit Column", submenu)
+        action.setCheckable(True)
+        action.setChecked(not self.isColumnHidden(self.UnitColumn))
+        submenu.addAction(action)
+        action = QtGui.QAction("Common Axis Column", submenu)
+        action.setCheckable(True)
+        action.setChecked(not self.isColumnHidden(self.CommonAxisColumn))
+        submenu.addAction(action)
+        action = QtGui.QAction("Individual Axis Column", submenu)
+        action.setCheckable(True)
+        action.setChecked(not self.isColumnHidden(self.IndividualAxisColumn))
+        submenu.addAction(action)
+        menu.addMenu(submenu)
+        menu.addSeparator()
+
         menu.addAction(QtGui.QIcon(":/search.png"), "Search item")
         if item and item.type() in (ChannelsTreeItem.Channel, ChannelsTreeItem.Group):
             menu.addAction(QtGui.QIcon(":/down.png"), f"Find next {item.name}")
@@ -1540,6 +1557,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     return
 
                 iterator += 1
+
+        elif action_text == "Unit Column":
+            self.setColumnHidden(self.UnitColumn, not self.isColumnHidden(self.UnitColumn))
+        elif action_text == "Common Axis Column":
+            self.setColumnHidden(self.CommonAxisColumn, not self.isColumnHidden(self.CommonAxisColumn))
+        elif action_text == "Individual Axis Column":
+            self.setColumnHidden(self.IndividualAxisColumn, not self.isColumnHidden(self.IndividualAxisColumn))
 
         self.update_channel_groups_count()
 

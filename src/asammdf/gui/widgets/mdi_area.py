@@ -512,6 +512,9 @@ def get_comparison_mime(data, uuids):
 class MdiAreaMixin:
 
     def addSubWindow(self, window):
+        geometry = window.geometry()
+        geometry.setSize(QtCore.QSize(400, 400))
+        window.setGeometry(geometry)
         window.resized.connect(self.window_resized)
         window.moved.connect(self.window_moved)
         return super().addSubWindow(window)
@@ -779,7 +782,7 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
         self.setOption(MdiSubWindow.RubberBandResize)
         self.setOption(MdiSubWindow.RubberBandMove)
 
-        self.previous_geometry = QtCore.QRect(0, 0, 0, 0)
+        self.previous_position = QtCore.QPoint(0, 0)
 
         menu = self.systemMenu()
 
@@ -3857,6 +3860,10 @@ class WithMDIArea:
             plot.splitter.setSizes([width, max(current_width - width, 50)])
             for i, size in enumerate(sizes):
                 plot.channel_selection.setColumnWidth(i, size)
+
+        if "channels_header_columns_visible" in window_info["configuration"]:
+            for i, visible in enumerate(window_info["configuration"]["channels_header_columns_visible"]):
+                plot.channel_selection.setColumnHidden(i, not visible)
 
         plot.set_locked(locked=window_info["configuration"].get("locked", False))
         plot.hide_axes(hide=window_info["configuration"].get("hide_axes", False))

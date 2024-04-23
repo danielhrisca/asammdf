@@ -3295,6 +3295,9 @@ class Plot(QtWidgets.QWidget):
                 self.splitter.sizes()[0],
                 [self.channel_selection.columnWidth(i) for i in range(5)],
             ],
+            "channels_header_columns_visible": [
+                not self.channel_selection.isColumnHidden(i) for i in range(5)
+            ],
             "hide_axes": self.hide_axes_btn.isFlat(),
             "hide_selected_channel_value_panel": self.selected_channel_value_btn.isFlat(),
             "focused_mode": not self.focused_mode_btn.isFlat(),
