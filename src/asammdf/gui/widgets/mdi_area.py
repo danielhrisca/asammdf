@@ -464,9 +464,6 @@ def substitude_mime_uuids(mime, uuid=None, force=False):
     return new_mime
 
 
-
-
-
 def parse_matrix_component(name):
     indexes = []
     while True:
@@ -3354,13 +3351,6 @@ class WithMDIArea:
 
         numeric.add_new_channels(signals)
 
-        menu = w.systemMenu()
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
-
         numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
 
         if self.subplots_link:
@@ -3467,13 +3457,6 @@ class WithMDIArea:
             w.showMaximized()
         elif window_info.get("minimized", False):
             w.showMinimized()
-
-        menu = w.systemMenu()
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         if self.subplots_link:
             gps.timestamp_changed_signal.connect(self.set_cursor)
@@ -3802,13 +3785,6 @@ class WithMDIArea:
         elif window_info.get("minimized", False):
             w.showMinimized()
 
-        menu = w.systemMenu()
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
-
         w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
 
         if "x_range" in window_info["configuration"] and WithMDIArea.load_plot_x_range:
@@ -4057,13 +4033,6 @@ class WithMDIArea:
         )
         tabular.add_channels_request.connect(partial(self.add_new_channels, widget=tabular))
 
-        menu = w.systemMenu()
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
-
         if self.subplots_link:
             tabular.timestamp_changed_signal.connect(self.set_cursor)
 
@@ -4204,13 +4173,6 @@ class WithMDIArea:
             w.showMinimized()
 
         w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
-
-        menu = w.systemMenu()
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         xy.add_channels_request.connect(partial(self.add_new_channels, widget=xy))
         if self.subplots_link:
