@@ -464,16 +464,7 @@ def substitude_mime_uuids(mime, uuid=None, force=False):
     return new_mime
 
 
-def set_title(mdi):
-    name, ok = QtWidgets.QInputDialog.getText(
-        mdi,
-        "Set sub-plot title",
-        "Title:",
-        text=mdi.windowTitle(),
-    )
-    if ok and name:
-        mdi.setWindowTitle(generate_window_title(mdi, title=name))
-        mdi.titleModified.emit()
+
 
 
 def parse_matrix_component(name):
@@ -793,6 +784,13 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
 
         self.previous_geometry = QtCore.QRect(0, 0, 0, 0)
 
+        menu = self.systemMenu()
+
+        action = QtGui.QAction("Set title", menu)
+        action.triggered.connect(self.set_title)
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
+
     def closeEvent(self, event):
         if isinstance(self.widget(), Plot):
             self.widget().close()
@@ -819,8 +817,16 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
         if old_size.isValid() and not (self.isMinimized() or self.isMaximized()):
             self.resized.emit(self, new_size, old_size)
 
-    def changeEvent(self, changeEvent):
-        super().changeEvent(changeEvent)
+    def set_title(self):
+        name, ok = QtWidgets.QInputDialog.getText(
+            self,
+            "Set sub-plot title",
+            "Title:",
+            text=self.windowTitle(),
+        )
+        if ok and name:
+            self.setWindowTitle(generate_window_title(self, title=name))
+            self.titleModified.emit()
 
 
 class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
@@ -1728,23 +1734,9 @@ class WithMDIArea:
                 w.showMaximized()
             else:
                 w.show()
-                self.mdi_area.tileSubWindows()
 
-        menu = w.systemMenu()
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
-
-        w.layout().setSpacing(1)
-
-        def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(self, "Set sub-plot title", "Title:")
-            if ok and name:
-                mdi.setWindowTitle(name)
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         w.setWindowTitle(f"CAN Bus Trace {self._window_counter}")
         self._window_counter += 1
@@ -1966,23 +1958,9 @@ class WithMDIArea:
                 w.showMaximized()
             else:
                 w.show()
-                self.mdi_area.tileSubWindows()
 
-        menu = w.systemMenu()
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
-
-        w.layout().setSpacing(1)
-
-        def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(self, "Set sub-plot title", "Title:")
-            if ok and name:
-                mdi.setWindowTitle(name)
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         w.setWindowTitle(f"FlexRay Bus Trace {self._window_counter}")
         self._window_counter += 1
@@ -2017,23 +1995,9 @@ class WithMDIArea:
             w.showMaximized()
         else:
             w.show()
-            self.mdi_area.tileSubWindows()
 
-        menu = w.systemMenu()
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
-
-        w.layout().setSpacing(1)
-
-        def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(self, "Set sub-plot title", "Title:")
-            if ok and name:
-                mdi.setWindowTitle(name)
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         w.setWindowTitle(f"GPS {self._window_counter}")
         self._window_counter += 1
@@ -2298,23 +2262,9 @@ class WithMDIArea:
                 w.showMaximized()
             else:
                 w.show()
-                self.mdi_area.tileSubWindows()
 
-        menu = w.systemMenu()
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
-
-        w.layout().setSpacing(1)
-
-        def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(self, "Set sub-plot title", "Title:")
-            if ok and name:
-                mdi.setWindowTitle(name)
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         w.setWindowTitle(f"LIN Bus Trace {self._window_counter}")
         self._window_counter += 1
@@ -2499,17 +2449,9 @@ class WithMDIArea:
                 w.showMaximized()
             else:
                 w.show()
-                self.mdi_area.tileSubWindows()
 
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
-
-        menu = w.systemMenu()
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         w.setWindowTitle(generate_window_title(w, "Numeric"))
 
@@ -2906,16 +2848,7 @@ class WithMDIArea:
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
 
-        w.layout().setSpacing(1)
-
         plot.show()
-
-        menu = w.systemMenu()
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         w.setWindowTitle(generate_window_title(w, "Plot"))
 
@@ -3087,18 +3020,9 @@ class WithMDIArea:
                 w.showMaximized()
             else:
                 w.show()
-                self.mdi_area.tileSubWindows()
 
-        menu = w.systemMenu()
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
-
-        w.layout().setSpacing(1)
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         w.setWindowTitle(generate_window_title(w, "Tabular"))
 
@@ -3132,23 +3056,9 @@ class WithMDIArea:
             w.showMaximized()
         else:
             w.show()
-            self.mdi_area.tileSubWindows()
 
-        menu = w.systemMenu()
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
-
-        w.layout().setSpacing(1)
-
-        def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(self, "Set sub-plot title", "Title:")
-            if ok and name:
-                mdi.setWindowTitle(name)
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         xy.add_channels_request.connect(partial(self.add_new_channels, widget=xy))
 
@@ -3312,8 +3222,6 @@ class WithMDIArea:
                         QtGui.QIcon.State.Off,
                     )
                     w.setWindowIcon(icon)
-
-                w.layout().setSpacing(1)
 
                 self.windows_modified.emit()
 
