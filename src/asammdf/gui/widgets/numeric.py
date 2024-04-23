@@ -1183,11 +1183,11 @@ class NumericViewer(QtWidgets.QWidget):
         self.dataView.verticalHeader().setDefaultSectionSize(self.default_row_height)
         self.dataView.verticalHeader().setMinimumSectionSize(self.default_row_height)
         self.dataView.verticalHeader().setMaximumSectionSize(self.default_row_height)
-        self.dataView.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Fixed)
+        self.dataView.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Fixed)
         self.columnHeader.verticalHeader().setDefaultSectionSize(self.default_row_height)
         self.columnHeader.verticalHeader().setMinimumSectionSize(self.default_row_height)
         self.columnHeader.verticalHeader().setMaximumSectionSize(self.default_row_height)
-        self.columnHeader.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Fixed)
+        self.columnHeader.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Fixed)
 
     def auto_size_header(self):
         s = 0
