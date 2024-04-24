@@ -29,6 +29,7 @@ from ..utils import (
 from .tree_item import MinimalTreeItem
 
 NOT_FOUND = 0xFFFFFFFF
+MINIMUM_COLUMN_WIDTH = 20
 
 
 def substitude_mime_uuids(mime, uuid=None, force=False, random_uuid=False):
@@ -413,19 +414,20 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         self.setHeaderHidden(False)
         self.setColumnCount(5)
-        # self.setHeaderLabels(["Name", "Value", "Unit", "\u27f0", "\u21A8"])
         self.setHeaderLabels(["Name", "Value", "Unit", "\u290a", "\u21A8"])
         self.setDragEnabled(True)
         self.setExpandsOnDoubleClick(False)
 
         self.setMinimumWidth(5)
-        self.header().setMinimumSectionSize(10)
-        self.header().resizeSection(self.CommonAxisColumn, 10)
-        self.header().resizeSection(self.IndividualAxisColumn, 10)
-        self.header().setSectionResizeMode(self.CommonAxisColumn, QtWidgets.QHeaderView.ResizeMode.Fixed)
-        self.header().setSectionResizeMode(self.IndividualAxisColumn, QtWidgets.QHeaderView.ResizeMode.Fixed)
-
-        self.header().setStretchLastSection(False)
+        header = self.header()
+        header.setMinimumSectionSize(MINIMUM_COLUMN_WIDTH)
+        header.resizeSection(self.CommonAxisColumn, MINIMUM_COLUMN_WIDTH)
+        header.resizeSection(self.IndividualAxisColumn, MINIMUM_COLUMN_WIDTH)
+        header.setSectionResizeMode(self.CommonAxisColumn, QtWidgets.QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(self.IndividualAxisColumn, QtWidgets.QHeaderView.ResizeMode.Fixed)
+        header.setStretchLastSection(False)
+        header.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        header.customContextMenuRequested.connect(self.open_menu)
 
         self.itemSelectionChanged.connect(self.item_selection_changed)
 
@@ -859,10 +861,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         position = event.position()
         self.double_click.emit(self.itemAt(position.x(), position.y()), event.button())
 
-    def open_menu(self):
-        position = self.context_menu_pos
+    def open_menu(self, position=None):
+        position = position or self.context_menu_pos
 
-        item = self.itemAt(position)
+        if position:
+            item = self.itemAt(position)
+        else:
+            item = None
 
         count = 0
         enabled = 0
@@ -1576,6 +1581,12 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if self.updatesEnabled():
             super().resizeEvent(e)
             self.update_visibility_status()
+
+    def setColumnWidth(self, column, width):
+        if column not in (self.CommonAxisColumn, self.IndividualAxisColumn):
+            if width < MINIMUM_COLUMN_WIDTH:
+                width = MINIMUM_COLUMN_WIDTH
+            super().setColumnWidth(column, width)
 
     def set_font_size(self, size):
         font = self.font()

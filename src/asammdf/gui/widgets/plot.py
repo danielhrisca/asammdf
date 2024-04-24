@@ -1689,8 +1689,6 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.setColumnWidth(self.channel_selection.NameColumn, nameColumnWidth)
         self.channel_selection.setColumnWidth(self.channel_selection.ValueColumn, 83)
         self.channel_selection.setColumnWidth(self.channel_selection.UnitColumn, unitColumnWidth)
-        self.channel_selection.setColumnWidth(self.channel_selection.CommonAxisColumn, 35)
-        self.channel_selection.setColumnWidth(self.channel_selection.IndividualAxisColumn, 35)
         self.hide()
 
         if signals:

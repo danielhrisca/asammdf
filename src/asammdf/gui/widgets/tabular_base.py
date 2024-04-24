@@ -1989,7 +1989,7 @@ class DataFrameViewer(QtWidgets.QWidget):
 
         fmt = self.dataView.model().format
 
-        # Copy from data, columns, or index depending which has focus
+        # Copy from data, columns, or index depending on which has focus
         if header or self.dataView.hasFocus():
             indexes = self.dataView.selectionModel().selection().indexes()
             rows = [ix.row() for ix in indexes]
