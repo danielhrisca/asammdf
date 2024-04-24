@@ -2228,6 +2228,7 @@ class Plot(QtWidgets.QWidget):
 
             brush = QtGui.QBrush(item._current_background_color)
             palette.setBrush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.Window, brush)
+            palette.setBrush(QtGui.QPalette.ColorGroup.Inactive, QtGui.QPalette.ColorRole.Window, brush)
 
             self.selected_channel_value.setPalette(palette)
 
