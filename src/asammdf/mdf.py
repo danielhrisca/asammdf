@@ -2162,6 +2162,7 @@ class MDF:
                 index=ch_nr,
                 raster=raster,
                 samples_only=samples_only,
+                ignore_invalidation_bits=samples_only,
                 data=fragment,
                 raw=raw,
             )
@@ -4808,10 +4809,7 @@ class MDF:
                         "CAN_DataFrame.BusChannel",
                         group=i,
                         data=fragment,
-                        samples_only=True,
-                    )[
-                        0
-                    ].astype("<u1")
+                    ).samples.astype("<u1")
 
                     msg_ids = self.get("CAN_DataFrame.ID", group=i, data=fragment).astype("<u4")
                     try:
@@ -4825,8 +4823,7 @@ class MDF:
                         "CAN_DataFrame.DataBytes",
                         group=i,
                         data=fragment,
-                        samples_only=True,
-                    )[0]
+                    ).samples
 
                     buses = np.unique(bus_ids)
 
@@ -5153,18 +5150,14 @@ class MDF:
                         "LIN_Frame.DataBytes",
                         group=i,
                         data=fragment,
-                        samples_only=True,
-                    )[0]
+                    ).samples
 
                     try:
                         bus_ids = self.get(
                             "LIN_Frame.BusChannel",
                             group=i,
                             data=fragment,
-                            samples_only=True,
-                        )[
-                            0
-                        ].astype("<u1")
+                        ).samples.astype("<u1")
                     except:
                         bus_ids = np.ones(len(original_ids), dtype="u1")
 

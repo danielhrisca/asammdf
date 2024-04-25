@@ -1,7 +1,6 @@
 """ asammdf is a parser and editor for ASAM MDF files """
 
 import logging
-import os
 
 logger = logging.getLogger("asammdf")
 formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
