@@ -237,4 +237,3 @@ class Ui_NumericDisplay(object):
         self.forward.setText("")
         self.match.setText("")
     # retranslateUi
-
