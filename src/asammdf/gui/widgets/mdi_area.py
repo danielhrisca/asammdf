@@ -56,6 +56,7 @@ SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
 NOT_FOUND = 0xFFFFFFFF
 
 SNAP_PIXELS_DISTANCE = 20
+CASCADE_PIXELS_DISTANCE = SNAP_PIXELS_DISTANCE + 10
 
 
 def rename_origin_uuid(items):
@@ -851,13 +852,25 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
             wid = window.widget()
             if isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = True
+            window.blockSignals(True)
 
-        super().cascadeSubWindows()
+        position = QtCore.QPoint(0, 0)
+        rect = QtCore.QRect(0, 0, 400, 300)
+
+        for i, window in enumerate(sub_windows, 1):
+            rect.moveTo(position)
+            window.setGeometry(rect)
+
+            position.setX(position.x() + CASCADE_PIXELS_DISTANCE)
+            position.setY(position.y() + CASCADE_PIXELS_DISTANCE)
+            if i % 5 == 0:
+                position.setY(0)
 
         for window in sub_windows:
             wid = window.widget()
             if isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = False
+            window.blockSignals(False)
 
     def dragEnterEvent(self, e):
         e.accept()
@@ -910,20 +923,22 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
             wid = window.widget()
             if isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = True
+            window.blockSignals(True)
 
         for window in sub_windows:
             if window.isMinimized() or window.isMaximized():
                 window.showNormal()
             rect = QtCore.QRect(0, 0, width, ratio)
+            rect.moveTo(position)
 
             window.setGeometry(rect)
-            window.move(position)
             position.setY(position.y() + ratio)
 
         for window in sub_windows:
             wid = window.widget()
             if isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = False
+            window.blockSignals(False)
 
     def tile_vertically(self):
         sub_windows = self.subWindowList()
@@ -940,20 +955,21 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
             wid = window.widget()
             if isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = True
+            window.blockSignals(True)
 
         for window in sub_windows:
             if window.isMinimized() or window.isMaximized():
                 window.showNormal()
             rect = QtCore.QRect(0, 0, ratio, height)
-
+            rect.moveTo(position)
             window.setGeometry(rect)
-            window.move(position)
             position.setX(position.x() + ratio)
 
         for window in sub_windows:
             wid = window.widget()
             if isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = False
+            window.blockSignals(False)
 
     def tileSubWindows(self):
         sub_windows = self.subWindowList()
@@ -964,6 +980,7 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
             wid = window.widget()
             if isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = True
+            window.blockSignals(True)
 
         super().tileSubWindows()
 
@@ -971,6 +988,7 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
             wid = window.widget()
             if isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = False
+            window.blockSignals(False)
 
     def paintEvent(self, event):
         super().paintEvent(event)
