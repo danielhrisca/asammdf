@@ -475,12 +475,14 @@ class MDF4(MDF_Common):
 
             if finalisation_flags:
                 message = f"Attempting finalization of {self.name}"
+                stream = self._file
+                self.header = HeaderBlock(address=0x40, stream=stream, mapped=mapped)
+
                 logger.info(message)
                 self._finalize()
                 self._mapped = mapped = False
 
         stream = self._file
-
         self.header = HeaderBlock(address=0x40, stream=stream, mapped=mapped)
 
         # read file history
@@ -9983,14 +9985,15 @@ class MDF4(MDF_Common):
         flags = self.identification.unfinalized_standard_flags
 
         stream = self._file
-        blocks, block_groups, addresses = all_blocks_addresses(stream)
+        blocks, _, addresses = all_blocks_addresses(stream)
 
         stream.seek(0, 2)
         limit = stream.tell()
         mapped = self._mapped
 
         if flags & v4c.FLAG_UNFIN_UPDATE_LAST_DL:
-            for dg_addr in block_groups[b"##DG\x00\x00"]:
+            dg_addr = self.header.first_dg_addr
+            while dg_addr != 0:
                 group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
                 data_addr = group.data_block_addr
                 if not data_addr:
@@ -10076,11 +10079,14 @@ class MDF4(MDF_Common):
                     stream.seek(data_addr)
                     stream.write(bytes(DataList(**kwargs)))
 
+                dg_addr = group.next_dg_addr
+
             self.identification["unfinalized_standard_flags"] -= v4c.FLAG_UNFIN_UPDATE_LAST_DL
 
         if flags & v4c.FLAG_UNFIN_UPDATE_LAST_DT_LENGTH:
+            dg_addr = self.header.first_dg_addr
             try:
-                for dg_addr in block_groups[b"##DG\x00\x00"]:
+                while dg_addr != 0:
                     group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
                     data_addr = group.data_block_addr
                     if not data_addr:
@@ -10120,6 +10126,8 @@ class MDF4(MDF_Common):
                     blk.block_len = block_len
                     stream.seek(data_addr)
                     stream.write(bytes(blk))
+
+                    dg_addr = group.next_dg_addr
             except:
                 print(format_exc())
                 raise
