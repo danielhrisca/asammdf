@@ -1,4 +1,4 @@
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 DEFAULT_TIMEOUT = 60
 
@@ -21,21 +21,19 @@ class MessageBox(QtWidgets.QMessageBox):
         self.layout().removeWidget(label)
 
         layout = QtWidgets.QVBoxLayout()
+        layout.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetMinAndMaxSize)
 
         self.scroll_contents = scroll_contents = QtWidgets.QWidget()
         scroll_contents.setLayout(layout)
 
         self.scroll = scroll = QtWidgets.QScrollArea()
-        scroll.setWidgetResizable(True)
+        scroll.setWidgetResizable(False)
         scroll.setWidget(scroll_contents)
         scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
 
         layout.addWidget(label)
 
         self.layout().addWidget(scroll, *position)
-
-        self.scroll.setMinimumWidth(400)
-        self.scroll.setMinimumHeight(200)
 
         self.original_text = self.text()
         if markdown:
@@ -87,13 +85,25 @@ This message will be closed in {self.timeout}s
         if escapeButton is not None:
             self.setEscapeButton(escapeButton)
 
-        self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.tick)
-        self.timer.start(1000)
-
         self.show()
         self.scroll.setMinimumWidth(min(800, self.scroll_contents.width()))
         self.scroll.setMinimumHeight(min(800, self.scroll_contents.height()))
+
+        rect = QtCore.QRect(0, 0, self.scroll_contents.width() + 70, self.scroll_contents.height() + 90)
+
+        cursor = QtGui.QCursor()
+        for screen in QtWidgets.QApplication.screens():
+            pos = cursor.pos(screen)
+            screen_rect = screen.availableGeometry()
+            if screen_rect.contains(pos):
+                rect.moveCenter(screen_rect.center())
+                break
+
+        self.setGeometry(rect)
+
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.tick)
+        self.timer.start(1000)
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_F1:
