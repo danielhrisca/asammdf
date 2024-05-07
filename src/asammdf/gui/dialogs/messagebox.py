@@ -1,12 +1,12 @@
-from PySide6 import QtCore, QtGui, QtWidgets
+import os
 
-DEFAULT_TIMEOUT = 60
+from PySide6 import QtCore, QtGui, QtWidgets
 
 
 class MessageBox(QtWidgets.QMessageBox):
     def __init__(self, *args, **kwargs):
 
-        self.timeout = kwargs.pop("timeout", DEFAULT_TIMEOUT)
+        self.timeout = kwargs.pop("timeout", int(os.environ.get("ASAMMDF_ERROR_DIALOG_TIMEOUT", 60)))
         informative_text = kwargs.pop("informative_text", "")
         detailed_text = kwargs.pop("detailed_text", "")
         escapeButton = kwargs.pop("escapeButton", None)
