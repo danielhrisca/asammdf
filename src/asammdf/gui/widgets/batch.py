@@ -1653,7 +1653,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
     def change_modify_output_folder(self, event=None):
         folder = QtWidgets.QFileDialog.getExistingDirectory(self, "Select output folder", "")
         if folder:
-            self.modify_output_folder.setText(folder)
+            self.modify_output_folder.setText(str(Path(folder)))
 
     def output_format_changed(self, name):
         if name == "MDF":
