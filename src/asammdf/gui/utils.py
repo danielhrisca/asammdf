@@ -22,6 +22,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import QThreadPool
 
 from ..blocks.options import FloatInterpolation, IntegerInterpolation
+from ..blocks.utils import TERMINATED
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
 from .dialogs.messagebox import MessageBox
@@ -136,8 +137,6 @@ QScrollBar:right-arrow:horizontal {{
 
 COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
-
-TERMINATED = object()
 
 FONT_SIZE = [6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72]
 VARIABLE = re.compile(r"(?P<var>\{\{[^}]+\}\})")
