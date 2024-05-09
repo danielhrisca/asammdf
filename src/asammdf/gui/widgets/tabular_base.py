@@ -1553,7 +1553,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
     def open_menu(self, position):
         menu = QtWidgets.QMenu()
 
-        menu.addAction(self.tr("Export to CSV"))
+        menu.addAction("Export to CSV")
 
         action = menu.exec_(self.tree.viewport().mapToGlobal(position))
 

@@ -338,6 +338,10 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             self.processEvents()
         self.destroy()
 
+    def hide(self):
+        super().hide()
+        self.processEvents()
+
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Escape and event.modifiers() == QtCore.Qt.KeyboardModifier.NoModifier:
             event.accept()
@@ -366,11 +370,19 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.processEvents()
 
     def setWindowIcon(self, icon):
+        if isinstance(icon, str):
+            icon_name = icon
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap(f":/{icon_name}.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         super().setWindowIcon(icon)
         self.processEvents()
 
     def setWindowTitle(self, title):
         super().setWindowTitle(title)
+        self.processEvents()
+
+    def show(self):
+        super().show()
         self.processEvents()
 
 
