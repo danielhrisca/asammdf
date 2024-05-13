@@ -280,19 +280,19 @@ class AttachmentBlock:
                 data = decompress(self.embedded_data, bufsize=self.original_size)
             else:
                 data = self.embedded_data
+
             if self.flags & v4c.FLAG_AT_MD5_VALID:
                 md5_worker = md5()
                 md5_worker.update(data)
                 md5_sum = md5_worker.digest()
-                if self.md5_sum == md5_sum:
-                    return data
-                else:
+                if self.md5_sum != md5_sum:
                     message = f"ATBLOCK md5sum={self.md5_sum} and embedded data md5sum={md5_sum}"
                     logger.warning(message)
-            else:
-                return data
+
+            return data
         else:
             logger.warning("external attachments not supported")
+            return b""
 
     def to_blocks(self, address: int, blocks: list[Any], defined_texts: dict[str, int]) -> int:
         text = self.file_name
