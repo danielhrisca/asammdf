@@ -3015,6 +3015,9 @@ class ChannelConversion(_ChannelConversionBase):
                 logger.exception(message)
                 raise MdfException(message)
 
+        # the inverse conversion is not used (see issue #1017)
+        self.inv_conv_addr = 0
+
     def to_blocks(
         self,
         address: int,
