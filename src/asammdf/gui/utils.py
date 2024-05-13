@@ -22,6 +22,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import QThreadPool
 
 from ..blocks.options import FloatInterpolation, IntegerInterpolation
+from ..blocks.utils import TERMINATED
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
 from .dialogs.messagebox import MessageBox
@@ -136,8 +137,6 @@ QScrollBar:right-arrow:horizontal {{
 
 COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
-
-TERMINATED = object()
 
 FONT_SIZE = [6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72]
 VARIABLE = re.compile(r"(?P<var>\{\{[^}]+\}\})")
@@ -339,6 +338,10 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             self.processEvents()
         self.destroy()
 
+    def hide(self):
+        super().hide()
+        self.processEvents()
+
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Escape and event.modifiers() == QtCore.Qt.KeyboardModifier.NoModifier:
             event.accept()
@@ -367,11 +370,19 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.processEvents()
 
     def setWindowIcon(self, icon):
+        if isinstance(icon, str):
+            icon_name = icon
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap(f":/{icon_name}.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         super().setWindowIcon(icon)
         self.processEvents()
 
     def setWindowTitle(self, title):
         super().setWindowTitle(title)
+        self.processEvents()
+
+    def show(self):
+        super().show()
         self.processEvents()
 
 

@@ -1,12 +1,12 @@
-from PySide6 import QtCore, QtGui, QtWidgets
+import os
 
-DEFAULT_TIMEOUT = 60
+from PySide6 import QtCore, QtGui, QtWidgets
 
 
 class MessageBox(QtWidgets.QMessageBox):
     def __init__(self, *args, **kwargs):
 
-        self.timeout = kwargs.pop("timeout", DEFAULT_TIMEOUT)
+        self.timeout = kwargs.pop("timeout", int(os.environ.get("ASAMMDF_ERROR_DIALOG_TIMEOUT", 60)))
         informative_text = kwargs.pop("informative_text", "")
         detailed_text = kwargs.pop("detailed_text", "")
         escapeButton = kwargs.pop("escapeButton", None)
@@ -167,7 +167,7 @@ This message will be closed in {self.timeout}s
         buttons=QtWidgets.QMessageBox.StandardButton.Ok,
         defaultButton=QtWidgets.QMessageBox.StandardButton.Ok,
         escapeButton=QtWidgets.QMessageBox.StandardButton.Ok,
-        timeout=DEFAULT_TIMEOUT,
+        timeout= int(os.environ.get("ASAMMDF_ERROR_DIALOG_TIMEOUT", 60)),
         markdown=False,
         informative_text="",
         detailed_text="",
@@ -197,7 +197,7 @@ This message will be closed in {self.timeout}s
         buttons=QtWidgets.QMessageBox.StandardButton.Ok,
         defaultButton=QtWidgets.QMessageBox.StandardButton.Ok,
         escapeButton=QtWidgets.QMessageBox.StandardButton.Ok,
-        timeout=DEFAULT_TIMEOUT,
+        timeout= int(os.environ.get("ASAMMDF_ERROR_DIALOG_TIMEOUT", 60)),
         markdown=False,
         informative_text="",
         detailed_text="",
@@ -227,7 +227,7 @@ This message will be closed in {self.timeout}s
         buttons=QtWidgets.QMessageBox.StandardButton.Ok,
         defaultButton=QtWidgets.QMessageBox.StandardButton.Ok,
         escapeButton=QtWidgets.QMessageBox.StandardButton.Ok,
-        timeout=DEFAULT_TIMEOUT,
+        timeout= int(os.environ.get("ASAMMDF_ERROR_DIALOG_TIMEOUT", 60)),
         markdown=False,
         informative_text="",
         detailed_text="",
@@ -256,7 +256,7 @@ This message will be closed in {self.timeout}s
         buttons=QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No,
         defaultButton=QtWidgets.QMessageBox.StandardButton.No,
         escapeButton=QtWidgets.QMessageBox.StandardButton.No,
-        timeout=DEFAULT_TIMEOUT,
+        timeout= int(os.environ.get("ASAMMDF_ERROR_DIALOG_TIMEOUT", 60)),
         markdown=False,
         informative_text="",
         detailed_text="",
@@ -285,7 +285,7 @@ This message will be closed in {self.timeout}s
         buttons=QtWidgets.QMessageBox.StandardButton.Ok,
         defaultButton=QtWidgets.QMessageBox.StandardButton.Ok,
         escapeButton=QtWidgets.QMessageBox.StandardButton.Ok,
-        timeout=DEFAULT_TIMEOUT,
+        timeout= int(os.environ.get("ASAMMDF_ERROR_DIALOG_TIMEOUT", 60)),
         markdown=False,
         informative_text="",
         detailed_text="",

@@ -18,6 +18,7 @@
     <file alias="comments.png">images/comments.png</file>
     <file alias="compare.png">images/compare.png</file>
     <file alias="convert.png">images/convert.png</file>
+    <file alias="copy.png">images/copy.png</file>
     <file alias="csv.png">images/csv.png</file>
     <file alias="cursor.png">images/cursor.png</file>
     <file alias="cut.png">images/cut.png</file>
@@ -66,6 +67,7 @@
     <file alias="save.png">images/save.png</file>
     <file alias="scramble.png">images/scramble.png</file>
     <file alias="search.png">images/search.png</file>
+    <file alias="settings.png">images/settings.png</file>
     <file alias="shift_down.png">images/shift_down.png</file>
     <file alias="shift_left.png">images/shift_left.png</file>
     <file alias="shift_right.png">images/shift_right.png</file>
@@ -73,6 +75,7 @@
     <file alias="sort-ascending.png">images/sort-ascending.png</file>
     <file alias="sort-descending.png">images/sort-descending.png</file>
     <file alias="stack.png">images/stack.png</file>
+    <file alias="structure.png">images/structure.png</file>
     <file alias="undo.png">images/undo.png</file>
     <file alias="unlocked.png">images/unlocked.png</file>
     <file alias="up.png">images/up.png</file>
