@@ -1456,7 +1456,6 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     self.channels.dataView.ranges[sig.entry] = ranges
 
         self.channels.backend.update(others)
-        self.channels.auto_size_header()
         self.update_timebase()
 
     def reset(self):
