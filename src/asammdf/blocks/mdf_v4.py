@@ -6400,7 +6400,16 @@ class MDF4(MDF_Common):
 
             else:
                 # for external attachments read the file and return the content
-                data = file_path.read_bytes()
+
+                if file_path.exists() and file_path.is_file():
+                    data = file_path.read_bytes()
+                else:
+                    file_path = Path(self.original_name).parent / file_path.name
+                    if file_path.exists() and file_path.is_file():
+                        data = file_path.read_bytes()
+                    else:
+                        raise Exception(f"External attachment file {attachment.file_name} was not found")
+
 
                 md5_worker = md5()
                 md5_worker.update(data)
