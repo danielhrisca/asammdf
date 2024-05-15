@@ -6410,7 +6410,6 @@ class MDF4(MDF_Common):
                     else:
                         raise Exception(f"External attachment file {attachment.file_name} was not found")
 
-
                 md5_worker = md5()
                 md5_worker.update(data)
                 md5_sum = md5_worker.digest()

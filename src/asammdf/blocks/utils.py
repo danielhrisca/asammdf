@@ -1805,10 +1805,10 @@ def load_can_database(path: StrPathType, contents: bytes | str | None = None, **
 
 
 def all_blocks_addresses(obj: ReadableBufferType):
-    DG = 'DG\x00\x00\x00\x00\x40\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00'
-    others = '(D[VTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX)\x00\x00\x00\x00'
+    DG = "DG\x00\x00\x00\x00\x40\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00"
+    others = "(D[VTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX)\x00\x00\x00\x00"
     pattern = re.compile(
-        f"(?P<block>##({DG}|{others}))".encode('ascii'),
+        f"(?P<block>##({DG}|{others}))".encode("ascii"),
         re.DOTALL | re.MULTILINE,
     )
 
