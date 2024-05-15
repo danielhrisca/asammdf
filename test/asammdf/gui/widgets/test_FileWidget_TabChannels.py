@@ -584,7 +584,7 @@ class TestTabChannels(TestFileWidget):
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
                 while iterator.value():
                     item = iterator.value()
-                    self.assertFalse(item.checkState(0))
+                    self.assertFalse(item.checkState(0) == QtCore.Qt.CheckState.Checked)
                     iterator += 1
 
         # Case 1:
