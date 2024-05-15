@@ -81,7 +81,7 @@ class TestTabModifyAndExport(TestFileWidget):
         while iterator.value() and count:
             item = iterator.value()
             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
-            self.assertTrue(item.checkState(0))
+            self.assertTrue(item.checkState(0) == QtCore.Qt.CheckState.Checked)
             selected_channels.append(item.text(0))
             iterator += 1
             count -= 1

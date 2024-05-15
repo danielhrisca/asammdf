@@ -446,7 +446,7 @@ class TestTabChannels(TestFileWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
         while iterator.value():
             item = iterator.value()
-            self.assertTrue(item.checkState(0))
+            self.assertTrue(item.checkState(0) == QtCore.Qt.CheckState.Checked)
             iterator += 1
 
         # Clear all
@@ -454,7 +454,7 @@ class TestTabChannels(TestFileWidget):
         while iterator.value():
             item = iterator.value()
             item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-            self.assertFalse(item.checkState(0))
+            self.assertFalse(item.checkState(0) == QtCore.Qt.CheckState.Checked)
             iterator += 1
 
         # Switch ComboBox to "Internal file structure"
@@ -466,7 +466,7 @@ class TestTabChannels(TestFileWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
         while iterator.value():
             item = iterator.value()
-            self.assertTrue(item.checkState(0))
+            self.assertTrue(item.checkState(0) == QtCore.Qt.CheckState.Checked)
             iterator += 1
 
         # Switch ComboBox to "Selected channels only"
@@ -476,7 +476,7 @@ class TestTabChannels(TestFileWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
         while iterator.value():
             item = iterator.value()
-            self.assertTrue(item.checkState(0))
+            self.assertTrue(item.checkState(0) == QtCore.Qt.CheckState.Checked)
             iterator += 1
 
     def test_PushButton_ClearAll(self):
