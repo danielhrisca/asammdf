@@ -1070,7 +1070,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             extension = file_name.suffix.lower()
             if extension == ".dsp":
                 palette = self.palette()
-                info = load_dsp(file_name, palette.color(palette.Base).name())
+                info = load_dsp(file_name, palette.base().color().name())
                 if info.get("has_virtual_channels", False):
                     message = (
                         "The DSP file contains virtual channels that are not supported.\n"
