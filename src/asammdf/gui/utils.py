@@ -262,28 +262,31 @@ class Worker(QtCore.QRunnable):
 class ProgressDialog(QtWidgets.QProgressDialog):
     qfinished = QtCore.Signal()
 
+    NONE = object()
+    TERMINATED = TERMINATED
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.threadpool = QThreadPool()
         self.worker = None
         self.error = None
-        self.result = None
+        self.result = self.NONE
         self.thread_finished = True
         self.close_on_finish = True
         # Connect signal to "processEvents": Give the chance to "destroy" function to make his job
         self.qfinished.connect(self.processEvents)
 
         self.update_timer = QtCore.QTimer()
-        self.update_timer.setSingleShot(True)
-        self.update_timer.timeout.connect(self.processEvents)
         self.update_timer.setInterval(32)
+        self.update_timer.timeout.connect(self.processEvents)
+        self.update_timer.setSingleShot(True)
 
         self._label_text = self._maximum = self._minimum = self._range = None
         self._window_icon = self._window_title = self._value = None
 
     def run_thread_with_progress(self, target, args, kwargs, wait_here=False, close_on_finish=True):
         self.show()
-        self.result = None
+        self.result = self.NONE
         self.error = None
         self.thread_finished = False
 
@@ -308,8 +311,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         if wait_here:
             while not self.thread_finished:
                 sleep(0.1)
-                if not self.update_timer.isActive():
-                    self.update_timer.start()
+                QtWidgets.QApplication.processEvents()
 
             return self.result
 
@@ -329,9 +331,9 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         if self._value is not None:
             super().setValue(self._value)
         if self._window_title is not None:
-            self.setWindowTitle(self._window_title)
+            super().setWindowTitle(self._window_title)
         if self._window_icon is not None:
-            self.setWindowIcon(self._window_icon)
+            super().setWindowIcon(self._window_icon)
 
         self._label_text = self._maximum = self._minimum = self._range = None
         self._window_icon = self._window_title = self._value = None
@@ -347,7 +349,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
     def thread_complete(self):
         self.thread_finished = True
         if self.close_on_finish:
-            super().close()
+            self.accept()
         self.qfinished.emit()
 
     def cancel(self):
@@ -364,7 +366,8 @@ class ProgressDialog(QtWidgets.QProgressDialog):
 
     def hide(self):
         super().hide()
-        self.processEvents()
+        if not self.update_timer.isActive():
+            self.update_timer.start()
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Escape and event.modifiers() == QtCore.Qt.KeyboardModifier.NoModifier:
@@ -414,7 +417,8 @@ class ProgressDialog(QtWidgets.QProgressDialog):
 
     def show(self):
         super().show()
-        self.processEvents()
+        if not self.update_timer.isActive():
+            self.update_timer.start()
 
 
 def setup_progress(parent, title="", message="", icon_name="", autoclose=False):
