@@ -502,8 +502,9 @@ class MinimalListWidget(QtWidgets.QListWidget):
         if self.minimal_menu:
             if self.count() > 0:
                 menu.addAction(f"{self.count()} items in the list")
-                menu.addSeparator()
-                menu.addAction("Delete (Del)")
+                if self.user_editable:
+                    menu.addSeparator()
+                    menu.addAction("Delete (Del)")
             else:
                 return
         else:
