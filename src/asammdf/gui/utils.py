@@ -10,7 +10,7 @@ import re
 import sys
 from textwrap import indent
 from threading import Thread
-from time import perf_counter, sleep
+from time import sleep
 import traceback
 from traceback import format_exc
 from typing import Union
@@ -273,7 +273,13 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         # Connect signal to "processEvents": Give the chance to "destroy" function to make his job
         self.qfinished.connect(self.processEvents)
 
-        self._last_process_events = perf_counter()
+        self.update_timer = QtCore.QTimer()
+        self.update_timer.setSingleShot(True)
+        self.update_timer.timeout.connect(self.processEvents)
+        self.update_timer.setInterval(32)
+
+        self._label_text = self._maximum = self._minimum = self._range = None
+        self._window_icon = self._window_title = self._value = None
 
     def run_thread_with_progress(self, target, args, kwargs, wait_here=False, close_on_finish=True):
         self.show()
@@ -302,7 +308,8 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         if wait_here:
             while not self.thread_finished:
                 sleep(0.1)
-                self.processEvents()
+                if not self.update_timer.isActive():
+                    self.update_timer.start()
 
             return self.result
 
@@ -310,9 +317,26 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.close()
 
     def processEvents(self):
-        if perf_counter() - self._last_process_events >= 0.1:
-            QtCore.QCoreApplication.processEvents()
-            self._last_process_events = perf_counter()
+        if self._label_text is not None:
+            super().setLabelText(self._label_text)
+        if self._range is not None:
+            super().setRange(*self._range)
+        else:
+            if self._minimum is not None:
+                super().setMinimum(self._minimum)
+            if self._maximum is not None:
+                super().setMaximum(self._maximum)
+        if self._value is not None:
+            super().setValue(self._value)
+        if self._window_title is not None:
+            self.setWindowTitle(self._window_title)
+        if self._window_icon is not None:
+            self.setWindowIcon(self._window_icon)
+
+        self._label_text = self._maximum = self._minimum = self._range = None
+        self._window_icon = self._window_title = self._value = None
+
+        QtCore.QCoreApplication.processEvents()
 
     def receive_result(self, result):
         self.result = result
@@ -350,36 +374,43 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             super().keyPressEvent(event)
 
     def setLabelText(self, text):
-        super().setLabelText(text)
-        self.processEvents()
+        self._label_text = text
+        if not self.update_timer.isActive():
+            self.update_timer.start()
 
     def setMaximum(self, value):
-        super().setMaximum(value)
-        self.processEvents()
+        self._maximum = value
+        if not self.update_timer.isActive():
+            self.update_timer.start()
 
     def setMinimum(self, value):
-        super().setMinimum(value)
-        self.processEvents()
+        self._minimum = value
+        if not self.update_timer.isActive():
+            self.update_timer.start()
 
     def setRange(self, min_value, max_value):
-        super().setRange(min_value, max_value)
-        self.processEvents()
+        self._range = min_value, max_value
+        if not self.update_timer.isActive():
+            self.update_timer.start()
 
     def setValue(self, value):
-        super().setValue(value)
-        self.processEvents()
+        self._value = value
+        if not self.update_timer.isActive():
+            self.update_timer.start()
 
     def setWindowIcon(self, icon):
         if isinstance(icon, str):
             icon_name = icon
             icon = QtGui.QIcon()
             icon.addPixmap(QtGui.QPixmap(f":/{icon_name}.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        super().setWindowIcon(icon)
-        self.processEvents()
+        self._window_icon = icon
+        if not self.update_timer.isActive():
+            self.update_timer.start()
 
     def setWindowTitle(self, title):
-        super().setWindowTitle(title)
-        self.processEvents()
+        self._window_title = title
+        if not self.update_timer.isActive():
+            self.update_timer.start()
 
     def show(self):
         super().show()
