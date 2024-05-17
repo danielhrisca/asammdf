@@ -315,6 +315,9 @@ class ProgressDialog(QtWidgets.QProgressDialog):
 
             return self.result
 
+        if close_on_finish:
+            self.accept()
+
     def _canceled(self):
         self.close()
 
