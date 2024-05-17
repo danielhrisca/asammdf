@@ -883,6 +883,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         mdf_files = []
         for i, file_name in enumerate(files):
+            if progress.stop:
+                return []
+
             progress.signals.setLabelText.emit(f"Preparing the file {i+1} of {count}\n{file_name}")
             try:
                 mdf = self._as_mdf(file_name)
