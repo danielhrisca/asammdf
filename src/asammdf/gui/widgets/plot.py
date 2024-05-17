@@ -3946,6 +3946,9 @@ class PlotGraphics(pg.PlotWidget):
             PlotSignal(sig, i, trim_info=trim_info) for i, sig in enumerate(channels.values(), len(self.signals))
         ]
 
+        for sig in self.signals:
+            sig.path = None
+
         self.signals.extend(channels)
         for sig in channels:
             uuids = self._timebase_db.setdefault(id(sig.timestamps), set())
