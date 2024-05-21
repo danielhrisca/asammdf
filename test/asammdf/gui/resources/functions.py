@@ -15,6 +15,7 @@ def Function1(t=0):
             break
         else:
             return 1
+        return 2
     else:
         return 0
 
