@@ -886,7 +886,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             if progress.stop:
                 return []
 
-            progress.signals.setLabelText.emit(f"Preparing the file {i+1} of {count}\n{file_name}")
+            progress.signals.setLabelText.emit(f"Preparing the file {i+1} of {count}\n{file_name.name}")
             try:
                 mdf = self._as_mdf(file_name)
             except:

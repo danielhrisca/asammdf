@@ -276,14 +276,6 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         # Connect signal to "processEvents": Give the chance to "destroy" function to make his job
         self.qfinished.connect(self.processEvents)
 
-        self.update_timer = QtCore.QTimer()
-        self.update_timer.setInterval(32)
-        self.update_timer.timeout.connect(self.processEvents)
-        self.update_timer.setSingleShot(True)
-
-        self._label_text = self._maximum = self._minimum = self._range = None
-        self._window_icon = self._window_title = self._value = None
-
     def run_thread_with_progress(self, target, args, kwargs, wait_here=False, close_on_finish=True):
         self.show()
         self.result = self.NONE
@@ -309,39 +301,19 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.threadpool.start(self.worker)
 
         if wait_here:
-            while not self.thread_finished:
-                sleep(0.1)
-                QtWidgets.QApplication.processEvents()
+            loop = QtCore.QEventLoop()
+            self.worker.signals.finished.connect(loop.quit)
+            loop.exec()
 
-            return self.result
-
-        if close_on_finish:
-            self.accept()
+        return self.result
 
     def _canceled(self):
-        self.close()
+        self.close(reject=True)
 
     def processEvents(self):
-        if self._label_text is not None:
-            super().setLabelText(self._label_text)
-        if self._range is not None:
-            super().setRange(*self._range)
-        else:
-            if self._minimum is not None:
-                super().setMinimum(self._minimum)
-            if self._maximum is not None:
-                super().setMaximum(self._maximum)
-        if self._value is not None:
-            super().setValue(self._value)
-        if self._window_title is not None:
-            super().setWindowTitle(self._window_title)
-        if self._window_icon is not None:
-            super().setWindowIcon(self._window_icon)
-
-        self._label_text = self._maximum = self._minimum = self._range = None
-        self._window_icon = self._window_title = self._value = None
-
-        QtCore.QCoreApplication.processEvents()
+        loop = QtCore.QEventLoop()
+        QtCore.QTimer.singleShot(20, loop.quit)
+        loop.exec()
 
     def receive_result(self, result):
         self.result = result
@@ -351,26 +323,25 @@ class ProgressDialog(QtWidgets.QProgressDialog):
 
     def thread_complete(self):
         self.thread_finished = True
+        self.qfinished.emit()
         if self.close_on_finish:
             self.accept()
-        self.qfinished.emit()
 
     def cancel(self):
-        self.processEvents()
         super().cancel()
-        self.destroy()
 
-    def close(self):
-        while not self.thread_finished:
+    def close(self, reject=False):
+        if not self.thread_finished:
             self.worker.stop = True
-            sleep(0.01)
-            self.processEvents()
-        self.destroy()
 
-    def hide(self):
-        super().hide()
-        if not self.update_timer.isActive():
-            self.update_timer.start()
+            loop = QtCore.QEventLoop()
+            self.worker.signals.finished.connect(loop.quit)
+            loop.exec()
+
+        if reject:
+            self.reject()
+        else:
+            self.accept()
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Escape and event.modifiers() == QtCore.Qt.KeyboardModifier.NoModifier:
@@ -379,49 +350,13 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         else:
             super().keyPressEvent(event)
 
-    def setLabelText(self, text):
-        self._label_text = text
-        if not self.update_timer.isActive():
-            self.update_timer.start()
-
-    def setMaximum(self, value):
-        self._maximum = value
-        if not self.update_timer.isActive():
-            self.update_timer.start()
-
-    def setMinimum(self, value):
-        self._minimum = value
-        if not self.update_timer.isActive():
-            self.update_timer.start()
-
-    def setRange(self, min_value, max_value):
-        self._range = min_value, max_value
-        if not self.update_timer.isActive():
-            self.update_timer.start()
-
-    def setValue(self, value):
-        self._value = value
-        if not self.update_timer.isActive():
-            self.update_timer.start()
-
     def setWindowIcon(self, icon):
         if isinstance(icon, str):
             icon_name = icon
             icon = QtGui.QIcon()
             icon.addPixmap(QtGui.QPixmap(f":/{icon_name}.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        self._window_icon = icon
-        if not self.update_timer.isActive():
-            self.update_timer.start()
 
-    def setWindowTitle(self, title):
-        self._window_title = title
-        if not self.update_timer.isActive():
-            self.update_timer.start()
-
-    def show(self):
-        super().show()
-        if not self.update_timer.isActive():
-            self.update_timer.start()
+        super().setWindowIcon(icon)
 
 
 def setup_progress(parent, title="", message="", icon_name="", autoclose=False):

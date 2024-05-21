@@ -2715,6 +2715,11 @@ class MDF:
             if not isinstance(mdf, MDF):
                 mdf = MDF(mdf, use_display_names=use_display_names)
 
+            if progress is not None:
+                progress.signals.setLabelText.emit(
+                    f"Stacking file {mdf_index+1} of {files_nr}\n" f"{mdf.original_name.name}"
+                )
+
             if mdf_index == 0:
                 version = validate_version_argument(version)
 
