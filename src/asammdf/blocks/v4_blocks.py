@@ -5458,13 +5458,17 @@ class FileHistory:
         """
 
         timestamp = self.abs_time / 10**9
+        tz_local = False
         if self.time_flags & v4c.FLAG_HD_LOCAL_TIME:
-            tz = dateutil.tz.tzlocal()
+            tz_local = True
+            tz = timezone.utc
         else:
             tz = timezone(timedelta(minutes=self.tz_offset + self.daylight_save_time))
 
         try:
             timestamp = datetime.fromtimestamp(timestamp, tz)
+            if tz_local:
+                timestamp = timestamp.replace(tzinfo=None)
 
         except OverflowError:
             timestamp = datetime.fromtimestamp(0, tz) + timedelta(seconds=timestamp)
@@ -5475,7 +5479,7 @@ class FileHistory:
     def time_stamp(self, timestamp: datetime) -> None:
         if timestamp.tzinfo is None:
             self.time_flags = v4c.FLAG_HD_LOCAL_TIME
-            self.abs_time = int(timestamp.timestamp() * 10**9)
+            self.abs_time = int(timestamp.replace(tzinfo=timezone.utc).timestamp() * 10**9)
             self.tz_offset = 0
             self.daylight_save_time = 0
 
@@ -5747,13 +5751,17 @@ class HeaderBlock:
         """
 
         timestamp = self.abs_time / 10**9
+        tz_local = False
         if self.time_flags & v4c.FLAG_HD_LOCAL_TIME:
-            tz = dateutil.tz.tzlocal()
+            tz = timezone.utc
+            tz_local = True
         else:
             tz = timezone(timedelta(minutes=self.tz_offset + self.daylight_save_time))
 
         try:
             timestamp = datetime.fromtimestamp(timestamp, tz)
+            if tz_local:
+                timestamp = timestamp.replace(tzinfo=None)
 
         except OverflowError:
             timestamp = datetime.fromtimestamp(0, tz) + timedelta(seconds=timestamp)
@@ -5764,7 +5772,7 @@ class HeaderBlock:
     def start_time(self, timestamp: datetime) -> None:
         if timestamp.tzinfo is None:
             self.time_flags = v4c.FLAG_HD_LOCAL_TIME
-            self.abs_time = int(timestamp.timestamp() * 10**9)
+            self.abs_time = int(timestamp.replace(tzinfo=timezone.utc).timestamp() * 10**9)
             self.tz_offset = 0
             self.daylight_save_time = 0
 
@@ -5798,6 +5806,9 @@ class HeaderBlock:
 
         else:
             tzinfo = self.start_time.tzinfo
+
+            if tzinfo is None:
+                return f'local time = {self.start_time.strftime("%d-%b-%Y %H:%M:%S + %fu")} (no timezone info available)'
 
             dst = tzinfo.dst(self.start_time)
             if dst is not None:
