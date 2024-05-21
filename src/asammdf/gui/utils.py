@@ -22,7 +22,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import QThreadPool
 
 from ..blocks.options import FloatInterpolation, IntegerInterpolation
-from ..blocks.utils import TERMINATED
+from ..blocks.utils import NONE, TERMINATED
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
 from .dialogs.messagebox import MessageBox
@@ -262,7 +262,7 @@ class Worker(QtCore.QRunnable):
 class ProgressDialog(QtWidgets.QProgressDialog):
     qfinished = QtCore.Signal()
 
-    NONE = object()
+    NONE = NONE
     TERMINATED = TERMINATED
 
     def __init__(self, *args, **kwargs):

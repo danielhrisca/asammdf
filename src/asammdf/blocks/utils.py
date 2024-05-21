@@ -27,6 +27,7 @@ import lxml
 from typing_extensions import Literal, TypedDict
 
 TERMINATED = object()
+NONE = object()
 COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
 C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
 target_byte_order = "<=" if sys.byteorder == "little" else ">="
