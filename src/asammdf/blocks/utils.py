@@ -2061,7 +2061,7 @@ def load_dsp(file, background="#000000", flat=False):
                     "computed": False,
                     "flags": 0,
                     "comment": comment,
-                    "enabled": elem.get("on") == "1",
+                    "enabled": elem.get("on") == "1" and elem.get("trc_fmt") != "2",
                     "fmt": "{}",
                     "individual_axis": False,
                     "name": channel_name,
