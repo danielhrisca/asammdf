@@ -1929,8 +1929,8 @@ def set_mime_enable(mime, enable):
             set_mime_enable(item["channels"], enable)
 
 
-def load_dsp(file, background="#000000", flat=False):
-    if isinstance(background, str):
+def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
+    if not colors_as_string and isinstance(background, str):
         background = fn.mkColor(background)
 
     def parse_conversions(display):
@@ -2040,7 +2040,7 @@ def load_dsp(file, background="#000000", flat=False):
                             c = c << 8
                             c += color_ & 0xFF
                             color_ = color_ >> 8
-                        color = fn.mkColor(f"#{c:06X}")
+                        color = f"#{c:06X}" if colors_as_string else fn.mkColor(f"#{c:06X}")
                         ranges.append(
                             {
                                 "background_color": background,
@@ -2058,7 +2058,7 @@ def load_dsp(file, background="#000000", flat=False):
                     "computed": False,
                     "flags": 0,
                     "comment": comment,
-                    "enabled": elem.get("on") == "1",
+                    "enabled": elem.get("on") == "1" and elem.get("trc_fmt") != "2",
                     "fmt": "{}",
                     "individual_axis": False,
                     "name": channel_name,
@@ -2129,7 +2129,7 @@ def load_dsp(file, background="#000000", flat=False):
                                 c = c << 8
                                 c += color_ & 0xFF
                                 color_ = color_ >> 8
-                            color = fn.mkColor(f"#{c:06X}")
+                            color = f"#{c:06X}" if colors_as_string else fn.mkColor(f"#{c:06X}")
                             ranges.append(
                                 {
                                     "background_color": background,
