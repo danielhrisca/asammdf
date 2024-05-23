@@ -190,38 +190,38 @@ class ListWidget(QtWidgets.QListWidget):
 
         else:
             menu = QtWidgets.QMenu()
-            menu.addAction(self.tr(f"{self.count()} items in the list"))
+            menu.addAction(f"{self.count()} items in the list")
             menu.addSeparator()
-            menu.addAction(self.tr("Copy name (Ctrl+C)"))
-            menu.addAction(self.tr("Copy display properties (Ctrl+Shift+C)"))
-            menu.addAction(self.tr("Paste display properties (Ctrl+Shift+P)"))
+            menu.addAction("Copy name (Ctrl+C)")
+            menu.addAction("Copy display properties (Ctrl+Shift+C)")
+            menu.addAction("Paste display properties (Ctrl+Shift+P)")
             menu.addSeparator()
-            menu.addAction(self.tr("Enable all"))
-            menu.addAction(self.tr("Disable all"))
-            menu.addAction(self.tr("Enable all but this"))
+            menu.addAction("Enable all")
+            menu.addAction("Disable all")
+            menu.addAction("Enable all but this")
             menu.addSeparator()
             if self._has_hidden_items:
                 show_hide = "Show disabled items"
             else:
                 show_hide = "Hide disabled items"
-            menu.addAction(self.tr(show_hide))
+            menu.addAction(show_hide)
             menu.addSeparator()
 
-            menu.addAction(self.tr("Add to common Y axis"))
-            menu.addAction(self.tr("Remove from common Y axis"))
+            menu.addAction("Add to common Y axis")
+            menu.addAction("Remove from common Y axis")
             menu.addSeparator()
-            menu.addAction(self.tr("Set unit"))
-            menu.addAction(self.tr("Set precision"))
+            menu.addAction("Set unit")
+            menu.addAction("Set precision")
             menu.addSeparator()
-            menu.addAction(self.tr("Relative time base shift"))
-            menu.addAction(self.tr("Set time base start offset"))
+            menu.addAction("Relative time base shift")
+            menu.addAction("Set time base start offset")
             menu.addSeparator()
-            menu.addAction(self.tr("Insert computation using this channel"))
+            menu.addAction("Insert computation using this channel")
             menu.addSeparator()
-            menu.addAction(self.tr("Delete (Del)"))
+            menu.addAction("Delete (Del)")
             menu.addSeparator()
-            menu.addAction(self.tr("Toggle details"))
-            menu.addAction(self.tr("File/Computation properties"))
+            menu.addAction("Toggle details")
+            menu.addAction("File/Computation properties")
 
             action = menu.exec_(self.viewport().mapToGlobal(position))
 
@@ -501,25 +501,26 @@ class MinimalListWidget(QtWidgets.QListWidget):
 
         if self.minimal_menu:
             if self.count() > 0:
-                menu.addAction(self.tr(f"{self.count()} items in the list"))
-                menu.addSeparator()
-                menu.addAction(self.tr("Delete (Del)"))
+                menu.addAction(f"{self.count()} items in the list")
+                if self.user_editable:
+                    menu.addSeparator()
+                    menu.addAction("Delete (Del)")
             else:
                 return
         else:
             if self.count() == 0:
-                menu.addAction(self.tr(f"{self.count()} items in the list"))
+                menu.addAction(f"{self.count()} items in the list")
                 menu.addSeparator()
                 if self.user_editable:
-                    menu.addAction(self.tr("Paste names (Ctrl+V)"))
+                    menu.addAction("Paste names (Ctrl+V)")
             else:
-                menu.addAction(self.tr(f"{self.count()} items in the list"))
+                menu.addAction(f"{self.count()} items in the list")
                 menu.addSeparator()
-                menu.addAction(self.tr("Copy names (Ctrl+C)"))
+                menu.addAction("Copy names (Ctrl+C)")
                 if self.user_editable:
-                    menu.addAction(self.tr("Paste names (Ctrl+V)"))
+                    menu.addAction("Paste names (Ctrl+V)")
                     menu.addSeparator()
-                    menu.addAction(self.tr("Delete (Del)"))
+                    menu.addAction("Delete (Del)")
 
         action = menu.exec_(self.viewport().mapToGlobal(position))
 

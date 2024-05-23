@@ -1066,21 +1066,38 @@ class Signal:
             else:
                 s1 = self
                 s2 = other
+
             time = np.union1d(s1.timestamps, s2.timestamps)
-            s = s1.interp(time).samples
-            o = s2.interp(time).samples
-            func = getattr(s, func_name)
+            s = s1.interp(time)
+            o = s2.interp(time)
+
+            if s.invalidation_bits is not None or o.invalidation_bits is not None:
+                if s.invalidation_bits is None:
+                    invalidation_bits = o.invalidation_bits
+                elif o.invalidation_bits is None:
+                    invalidation_bits = s.invalidation_bits
+                else:
+                    invalidation_bits = s.invalidation_bits | o.invalidation_bits
+            else:
+                invalidation_bits = None
+
+            func = getattr(s.samples, func_name)
             conversion = None
-            s = func(o)
+            s = func(o.samples)
+
         elif other is None:
             s = self.samples
             conversion = self.conversion
             time = self.timestamps
+            invalidation_bits = self.invalidation_bits
+
         else:
             func = getattr(self.samples, func_name)
             s = func(other)
             conversion = self.conversion
             time = self.timestamps
+            invalidation_bits = self.invalidation_bits
+
         return Signal(
             samples=s,
             timestamps=time,
@@ -1091,7 +1108,7 @@ class Signal:
             master_metadata=self.master_metadata,
             display_names=self.display_names,
             attachment=self.attachment,
-            invalidation_bits=self.invalidation_bits,
+            invalidation_bits=invalidation_bits,
             source=self.source,
             encoding=self.encoding,
             group_index=self.group_index,

@@ -6400,7 +6400,15 @@ class MDF4(MDF_Common):
 
             else:
                 # for external attachments read the file and return the content
-                data = file_path.read_bytes()
+
+                if file_path.exists() and file_path.is_file():
+                    data = file_path.read_bytes()
+                else:
+                    file_path = Path(self.original_name).parent / file_path.name
+                    if file_path.exists() and file_path.is_file():
+                        data = file_path.read_bytes()
+                    else:
+                        raise Exception(f"External attachment file {attachment.file_name} was not found")
 
                 md5_worker = md5()
                 md5_worker.update(data)
@@ -9990,7 +9998,7 @@ class MDF4(MDF_Common):
         mapped = self._mapped
 
         if flags & v4c.FLAG_UNFIN_UPDATE_LAST_DL:
-            for dg_addr in block_groups[b"##DG\x00\x00"]:
+            for dg_addr in block_groups[b"##DG"]:
                 group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
                 data_addr = group.data_block_addr
                 if not data_addr:
@@ -10080,7 +10088,7 @@ class MDF4(MDF_Common):
 
         if flags & v4c.FLAG_UNFIN_UPDATE_LAST_DT_LENGTH:
             try:
-                for dg_addr in block_groups[b"##DG\x00\x00"]:
+                for dg_addr in block_groups[b"##DG"]:
                     group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
                     data_addr = group.data_block_addr
                     if not data_addr:

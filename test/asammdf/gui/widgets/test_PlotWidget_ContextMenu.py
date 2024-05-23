@@ -4,12 +4,13 @@ from json import JSONDecodeError
 import pathlib
 import re
 import sys
-from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 import unittest
 from unittest import mock
 from unittest.mock import ANY
 
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
+
+from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestContextMenu(TestPlotWidget):

@@ -27,6 +27,7 @@ import lxml
 from typing_extensions import Literal, TypedDict
 
 TERMINATED = object()
+NONE = object()
 COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
 C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
 target_byte_order = "<=" if sys.byteorder == "little" else ">="
@@ -1805,8 +1806,10 @@ def load_can_database(path: StrPathType, contents: bytes | str | None = None, **
 
 
 def all_blocks_addresses(obj: ReadableBufferType):
+    DG = "DG\x00\x00\x00\x00\x40\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00"
+    others = "(D[VTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX)\x00\x00\x00\x00"
     pattern = re.compile(
-        rb"(?P<block>##(D[GVTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX)\x00\x00)",
+        f"(?P<block>##({DG}|{others}))".encode("ascii"),
         re.DOTALL | re.MULTILINE,
     )
 
@@ -1826,7 +1829,7 @@ def all_blocks_addresses(obj: ReadableBufferType):
     blocks = {}
 
     for match in re.finditer(pattern, source):
-        btype = match.group("block")
+        btype = match.group("block")[:4]
         start = match.start()
 
         if start % 8:
@@ -1929,8 +1932,8 @@ def set_mime_enable(mime, enable):
             set_mime_enable(item["channels"], enable)
 
 
-def load_dsp(file, background="#000000", flat=False):
-    if isinstance(background, str):
+def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
+    if not colors_as_string and isinstance(background, str):
         background = fn.mkColor(background)
 
     def parse_conversions(display):
@@ -2040,7 +2043,7 @@ def load_dsp(file, background="#000000", flat=False):
                             c = c << 8
                             c += color_ & 0xFF
                             color_ = color_ >> 8
-                        color = fn.mkColor(f"#{c:06X}")
+                        color = f"#{c:06X}" if colors_as_string else fn.mkColor(f"#{c:06X}")
                         ranges.append(
                             {
                                 "background_color": background,
@@ -2058,7 +2061,7 @@ def load_dsp(file, background="#000000", flat=False):
                     "computed": False,
                     "flags": 0,
                     "comment": comment,
-                    "enabled": elem.get("on") == "1",
+                    "enabled": elem.get("on") == "1" and elem.get("trc_fmt") != "2",
                     "fmt": "{}",
                     "individual_axis": False,
                     "name": channel_name,
@@ -2129,7 +2132,7 @@ def load_dsp(file, background="#000000", flat=False):
                                 c = c << 8
                                 c += color_ & 0xFF
                                 color_ = color_ >> 8
-                            color = fn.mkColor(f"#{c:06X}")
+                            color = f"#{c:06X}" if colors_as_string else fn.mkColor(f"#{c:06X}")
                             ranges.append(
                                 {
                                     "background_color": background,
@@ -2285,9 +2288,11 @@ def load_dsp(file, background="#000000", flat=False):
             "type": "Plot",
             "title": "Display channels",
             "maximized": True,
+            "minimized": False,
             "configuration": {
                 "channels": channels,
                 "locked": True,
+                "pattern": {},
             },
         }
 

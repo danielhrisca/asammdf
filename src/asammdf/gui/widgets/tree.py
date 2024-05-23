@@ -29,6 +29,7 @@ from ..utils import (
 from .tree_item import MinimalTreeItem
 
 NOT_FOUND = 0xFFFFFFFF
+MINIMUM_COLUMN_WIDTH = 20
 
 
 def substitude_mime_uuids(mime, uuid=None, force=False, random_uuid=False):
@@ -430,19 +431,20 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         self.setHeaderHidden(False)
         self.setColumnCount(5)
-        # self.setHeaderLabels(["Name", "Value", "Unit", "\u27f0", "\u21A8"])
         self.setHeaderLabels(["Name", "Value", "Unit", "\u290a", "\u21A8"])
         self.setDragEnabled(True)
         self.setExpandsOnDoubleClick(False)
 
         self.setMinimumWidth(5)
-        self.header().setMinimumSectionSize(10)
-        self.header().resizeSection(self.CommonAxisColumn, 10)
-        self.header().resizeSection(self.IndividualAxisColumn, 10)
-        self.header().setSectionResizeMode(self.CommonAxisColumn, QtWidgets.QHeaderView.ResizeMode.Fixed)
-        self.header().setSectionResizeMode(self.IndividualAxisColumn, QtWidgets.QHeaderView.ResizeMode.Fixed)
-
-        self.header().setStretchLastSection(False)
+        header = self.header()
+        header.setMinimumSectionSize(MINIMUM_COLUMN_WIDTH)
+        header.resizeSection(self.CommonAxisColumn, MINIMUM_COLUMN_WIDTH)
+        header.resizeSection(self.IndividualAxisColumn, MINIMUM_COLUMN_WIDTH)
+        header.setSectionResizeMode(self.CommonAxisColumn, QtWidgets.QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(self.IndividualAxisColumn, QtWidgets.QHeaderView.ResizeMode.Fixed)
+        header.setStretchLastSection(False)
+        header.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        header.customContextMenuRequested.connect(self.open_menu)
 
         self.itemSelectionChanged.connect(self.item_selection_changed)
 
@@ -882,10 +884,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         position = event.position()
         self.double_click.emit(self.itemAt(position.x(), position.y()), event.button())
 
-    def open_menu(self):
-        position = self.context_menu_pos
+    def open_menu(self, position=None):
+        position = position or self.context_menu_pos
 
-        item = self.itemAt(position)
+        if position:
+            item = self.itemAt(position)
+        else:
+            item = None
 
         count = 0
         enabled = 0
@@ -898,99 +903,141 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             iterator += 1
 
         self.context_menu = menu = QtWidgets.QMenu()
-        menu.addAction(self.tr(f"{count} items in the list, {enabled} enabled"))
+        menu.addAction(f"{count} items in the list, {enabled} enabled")
         menu.addSeparator()
+
+        submenu = QtWidgets.QMenu("Columns")
+        action = QtGui.QAction("Unit Column", submenu)
+        action.setCheckable(True)
+        action.setChecked(not self.isColumnHidden(self.UnitColumn))
+        submenu.addAction(action)
+        action = QtGui.QAction("Common Axis Column", submenu)
+        action.setCheckable(True)
+        action.setChecked(not self.isColumnHidden(self.CommonAxisColumn))
+        submenu.addAction(action)
+        action = QtGui.QAction("Individual Axis Column", submenu)
+        action.setCheckable(True)
+        action.setChecked(not self.isColumnHidden(self.IndividualAxisColumn))
+        submenu.addAction(action)
+        menu.addMenu(submenu)
+        menu.addSeparator()
+
         menu.addAction(QtGui.QIcon(":/search.png"), "Search item")
         if item and item.type() in (ChannelsTreeItem.Channel, ChannelsTreeItem.Group):
             menu.addAction(QtGui.QIcon(":/down.png"), f"Find next {item.name}")
         menu.addSeparator()
 
-        menu.addAction(self.tr("Add channel group [Shift+Insert]"))
-        menu.addAction(self.tr("Add pattern based channel group [Ctrl+Insert]"))
+        menu.addAction("Add channel group [Shift+Insert]")
+        menu.addAction("Add pattern based channel group [Ctrl+Insert]")
         menu.addSeparator()
 
-        menu.addAction(self.tr("Copy names [Ctrl+N]"))
-        menu.addAction(self.tr("Copy names and values"))
-        menu.addAction(self.tr("Copy display properties [Ctrl+Shift+C]"))
-        menu.addAction(self.tr("Paste display properties [Ctrl+Shift+V]"))
-        menu.addAction(self.tr("Copy channel structure [Ctrl+C]"))
-        menu.addAction(self.tr("Paste channel structure [Ctrl+V]"))
+        submenu = QtWidgets.QMenu("Copy")
+        submenu.setIcon(QtGui.QIcon(":/copy.png"))
+        submenu.addAction("Copy names [Ctrl+N]")
+        submenu.addAction("Copy names and values")
+        menu.addMenu(submenu)
 
-        if item and item.type() == ChannelsTreeItem.Channel:
-            menu.addAction(self.tr("Rename channel"))
-        menu.addSeparator()
+        submenu = QtWidgets.QMenu("Tree structure")
+        submenu.setIcon(QtGui.QIcon(":/structure.png"))
+        submenu.addAction("Copy display properties [Ctrl+Shift+C]")
+        submenu.addAction("Paste display properties [Ctrl+Shift+V]")
+        submenu.addAction("Copy channel structure [Ctrl+C]")
+        submenu.addAction("Paste channel structure [Ctrl+V]")
+        menu.addMenu(submenu)
 
         submenu = QtWidgets.QMenu("Enable/disable")
         if item and item.type() == item.Group and item.isDisabled():
-            submenu.addAction(self.tr("Activate group"))
-        submenu.addAction(self.tr("Deactivate groups"))
-        submenu.addAction(self.tr("Enable all"))
-        submenu.addAction(self.tr("Disable all"))
-        submenu.addAction(self.tr("Enable selected"))
-        submenu.addAction(self.tr("Disable selected"))
+            submenu.addAction("Activate group")
+        submenu.addAction("Deactivate groups")
+        submenu.addAction("Enable all")
+        submenu.addAction("Disable all")
+        submenu.addAction("Enable selected")
+        submenu.addAction("Disable selected")
         if item:
-            submenu.addAction(self.tr("Disable all but this"))
+            submenu.addAction("Disable all but this")
         menu.addMenu(submenu)
-        menu.addSeparator()
         submenu = QtWidgets.QMenu("Show/hide")
 
         if self.hide_disabled_channels:
             show_disabled_channels = "Show disabled items"
         else:
             show_disabled_channels = "Hide disabled items"
-        submenu.addAction(self.tr(show_disabled_channels))
+        submenu.addAction(show_disabled_channels)
         if self.hide_missing_channels:
             show_missing_channels = "Show missing items"
         else:
             show_missing_channels = "Hide missing items"
-        submenu.addAction(self.tr(show_missing_channels))
+        submenu.addAction(show_missing_channels)
         submenu.addAction("Filter only computed channels")
         submenu.addAction("Un-filter computed channels")
         menu.addMenu(submenu)
         menu.addSeparator()
 
-        menu.addAction(self.tr("Edit Y axis scaling [Ctrl+G]"))
+        submenu = QtWidgets.QMenu("Axis")
+        submenu.addAction("Edit Y axis scaling [Ctrl+G]")
         if item and item.type() == ChannelsTreeItem.Channel:
-            menu.addAction(self.tr("Add to common Y axis"))
-            menu.addAction(self.tr("Remove from common Y axis"))
+            submenu.addAction("Add to common Y axis")
+            submenu.addAction("Remove from common Y axis")
+        menu.addMenu(submenu)
         menu.addSeparator()
 
-        menu.addAction(self.tr("Set color [C]"))
-        menu.addAction(self.tr("Set random color"))
-        menu.addAction(self.tr("Set precision"))
-        menu.addAction(self.tr("Set color ranges [Ctrl+R]"))
-        menu.addAction(self.tr("Set channel conversion"))
-        menu.addAction(self.tr("Set channel comment"))
-        menu.addAction(self.tr("Set unit"))
-        if item and item.type() == ChannelsTreeItem.Channel and item.signal.flags & Signal.Flags.computed:
-            menu.addSeparator()
-            menu.addAction(self.tr("Edit this computed channel"))
+        submenu = QtWidgets.QMenu("Edit")
+        submenu.setIcon(QtGui.QIcon(":/edit.png"))
+
+        submenu.addAction("Set color [C]")
+        submenu.addAction("Set random color")
+        submenu.addAction("Set precision")
+        submenu.addAction("Set color ranges [Ctrl+R]")
+        submenu.addAction("Set channel conversion")
+        submenu.addAction("Set channel comment")
+        submenu.addAction("Set unit")
+        if item:
+            if item.type() == ChannelsTreeItem.Channel:
+                if item.signal.flags & Signal.Flags.computed:
+                    submenu.addAction("Edit this computed channel")
+                else:
+                    submenu.addAction("Rename channel")
+            elif item.type() == ChannelsTreeItem.Group:
+                submenu.addAction("Edit group")
+        menu.addMenu(submenu)
+
+        submenu = QtWidgets.QMenu("Display")
+        # submenu.setIcon(QtGui.QIcon(":/edit.png"))
+        submenu.addAction("Ascii\t[Ctrl+T]")
+        submenu.addAction("Bin\t[Ctrl+B]")
+        submenu.addAction("Hex\t[Ctrl+H]")
+        submenu.addAction("Physical\t[Ctrl+P]")
+        submenu.addSeparator()
+        submenu.addAction("Raw samples\t[Alt+R]")
+        submenu.addAction("Scaled samples\t[Alt+S]")
+        menu.addMenu(submenu)
         menu.addSeparator()
 
         if item and item.type() == ChannelsTreeItem.Channel:
             menu.addSeparator()
             submenu = QtWidgets.QMenu("Time shift")
-            submenu.addAction(self.tr("Relative time base shift"))
-            submenu.addAction(self.tr("Set time base start offset"))
+            submenu.addAction("Relative time base shift")
+            submenu.addAction("Set time base start offset")
 
-            try:
-                import scipy  # noqa: F401
-
-                menu.addAction(self.tr("Compute FFT"))
-            except ImportError:
-                pass
+            # try:
+            #     import scipy
+            #
+            #     menu.addAction("Compute FFT"))
+            # except ImportError:
+            #     pass
 
             menu.addMenu(submenu)
             menu.addSeparator()
         if item:
-            menu.addAction(self.tr("Delete [Del]"))
+            menu.addAction(QtGui.QIcon(":/erase.png"), "Delete [Del]")
             menu.addSeparator()
-        menu.addAction(self.tr("Toggle details"))
+
+        menu.addAction("Toggle details")
+
         if item and item.type() == ChannelsTreeItem.Channel:
-            menu.addAction(self.tr("File/Computation properties"))
+            menu.addAction("File/Computation properties")
         elif item and item.type() == ChannelsTreeItem.Group:
-            menu.addAction(self.tr("Edit group"))
-            menu.addAction(self.tr("Group properties"))
+            menu.addAction("Group properties")
 
         action = menu.exec(self.viewport().mapToGlobal(position))
 
@@ -1564,6 +1611,43 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                 iterator += 1
 
+        elif action_text == "Unit Column":
+            self.setColumnHidden(self.UnitColumn, not self.isColumnHidden(self.UnitColumn))
+        elif action_text == "Common Axis Column":
+            self.setColumnHidden(self.CommonAxisColumn, not self.isColumnHidden(self.CommonAxisColumn))
+        elif action_text == "Individual Axis Column":
+            self.setColumnHidden(self.IndividualAxisColumn, not self.isColumnHidden(self.IndividualAxisColumn))
+        elif action_text == "Raw samples\t[Alt+R]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_R, QtCore.Qt.KeyboardModifier.AltModifier
+            )
+            self.plot.keyPressEvent(event)
+        elif action_text == "Scaled samples\t[Alt+S]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_S, QtCore.Qt.KeyboardModifier.AltModifier
+            )
+            self.plot.keyPressEvent(event)
+        elif action_text == "Ascii\t[Ctrl+T]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_T, QtCore.Qt.KeyboardModifier.ControlModifier
+            )
+            self.plot.keyPressEvent(event)
+        elif action_text == "Bin\t[Ctrl+B]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_B, QtCore.Qt.KeyboardModifier.ControlModifier
+            )
+            self.plot.keyPressEvent(event)
+        elif action_text == "Hex\t[Ctrl+H]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_H, QtCore.Qt.KeyboardModifier.ControlModifier
+            )
+            self.plot.keyPressEvent(event)
+        elif action_text == "Physical\t[Ctrl+P]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_P, QtCore.Qt.KeyboardModifier.ControlModifier
+            )
+            self.plot.keyPressEvent(event)
+
         self.update_channel_groups_count()
 
     def refresh(self):
@@ -1575,6 +1659,12 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if self.updatesEnabled():
             super().resizeEvent(e)
             self.update_visibility_status()
+
+    def setColumnWidth(self, column, width):
+        if column not in (self.CommonAxisColumn, self.IndividualAxisColumn):
+            if width < MINIMUM_COLUMN_WIDTH:
+                width = MINIMUM_COLUMN_WIDTH
+            super().setColumnWidth(column, width)
 
     def set_font_size(self, size):
         font = self.font()

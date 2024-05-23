@@ -1,8 +1,7 @@
-from test.asammdf.gui.test_base import TestBase
-
 from PySide6 import QtCore, QtTest
 
 from asammdf.gui.dialogs.window_selection_dialog import WindowSelectionDialog
+from test.asammdf.gui.test_base import TestBase
 
 
 class TestWindowSelectionDialog(TestBase):

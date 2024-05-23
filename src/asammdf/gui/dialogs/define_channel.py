@@ -51,6 +51,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
         self._functions = functions or {}
         self.info = None
+        self.signature = None
 
         self.functions.addItems(sorted(self._functions))
         self.functions.setCurrentIndex(-1)
@@ -85,7 +86,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             if computation["function"] in self._functions:
                 self.functions.setCurrentText(computation["function"])
 
-                for i, names in enumerate(computation["args"].values()):
+                for i, arg_name in enumerate(list(self.signature.parameters)[:-1]):
+                    names = computation["args"][arg_name]
                     self.arg_widgets[i][1].insertPlainText("\n".join(names))
 
             if computation.get("computation_mode", "sample_by_sample") == "sample_by_sample":
@@ -177,7 +179,9 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/search.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
-        parameters = list(inspect.signature(func).parameters)[:-1]
+        self.signature = inspect.signature(func)
+
+        parameters = list(self.signature.parameters)[:-1]
         for i, arg_name in enumerate(parameters, 2):
             label = QtWidgets.QLabel(arg_name)
             self.arg_layout.addWidget(label, i, 0)

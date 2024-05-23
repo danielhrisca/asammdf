@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 import pathlib
 import shutil
-from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 import time
 from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets
+
+from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 # Note: If it's possible and make sense, use self.subTests
 # to avoid initializing widgets multiple times and consume time.
@@ -81,7 +82,7 @@ class TestTabModifyAndExport(TestFileWidget):
         while iterator.value() and count:
             item = iterator.value()
             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
-            self.assertTrue(item.checkState(0))
+            self.assertTrue(item.checkState(0) == QtCore.Qt.CheckState.Checked)
             selected_channels.append(item.text(0))
             iterator += 1
             count -= 1

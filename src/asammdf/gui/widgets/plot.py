@@ -1689,8 +1689,6 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.setColumnWidth(self.channel_selection.NameColumn, nameColumnWidth)
         self.channel_selection.setColumnWidth(self.channel_selection.ValueColumn, 83)
         self.channel_selection.setColumnWidth(self.channel_selection.UnitColumn, unitColumnWidth)
-        self.channel_selection.setColumnWidth(self.channel_selection.CommonAxisColumn, 35)
-        self.channel_selection.setColumnWidth(self.channel_selection.IndividualAxisColumn, 35)
         self.hide()
 
         if signals:
@@ -2230,6 +2228,7 @@ class Plot(QtWidgets.QWidget):
 
             brush = QtGui.QBrush(item._current_background_color)
             palette.setBrush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.Window, brush)
+            palette.setBrush(QtGui.QPalette.ColorGroup.Inactive, QtGui.QPalette.ColorRole.Window, brush)
 
             self.selected_channel_value.setPalette(palette)
 
@@ -3295,6 +3294,7 @@ class Plot(QtWidgets.QWidget):
                 self.splitter.sizes()[0],
                 [self.channel_selection.columnWidth(i) for i in range(5)],
             ],
+            "channels_header_columns_visible": [not self.channel_selection.isColumnHidden(i) for i in range(5)],
             "hide_axes": self.hide_axes_btn.isFlat(),
             "hide_selected_channel_value_panel": self.selected_channel_value_btn.isFlat(),
             "focused_mode": not self.focused_mode_btn.isFlat(),
@@ -3945,6 +3945,9 @@ class PlotGraphics(pg.PlotWidget):
         channels = [
             PlotSignal(sig, i, trim_info=trim_info) for i, sig in enumerate(channels.values(), len(self.signals))
         ]
+
+        for sig in self.signals:
+            sig.path = None
 
         self.signals.extend(channels)
         for sig in channels:

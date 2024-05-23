@@ -883,7 +883,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         mdf_files = []
         for i, file_name in enumerate(files):
-            progress.signals.setLabelText.emit(f"Preparing the file {i+1} of {count}\n{file_name}")
+            if progress.stop:
+                return []
+
+            progress.signals.setLabelText.emit(f"Preparing the file {i+1} of {count}\n{file_name.name}")
             try:
                 mdf = self._as_mdf(file_name)
             except:
@@ -1653,7 +1656,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
     def change_modify_output_folder(self, event=None):
         folder = QtWidgets.QFileDialog.getExistingDirectory(self, "Select output folder", "")
         if folder:
-            self.modify_output_folder.setText(folder)
+            self.modify_output_folder.setText(str(Path(folder)))
 
     def output_format_changed(self, name):
         if name == "MDF":

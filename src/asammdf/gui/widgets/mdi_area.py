@@ -55,6 +55,9 @@ COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
 NOT_FOUND = 0xFFFFFFFF
 
+SNAP_PIXELS_DISTANCE = 20
+CASCADE_PIXELS_DISTANCE = SNAP_PIXELS_DISTANCE + 10
+
 
 def rename_origin_uuid(items):
     for item in items:
@@ -462,17 +465,6 @@ def substitude_mime_uuids(mime, uuid=None, force=False):
     return new_mime
 
 
-def set_title(mdi):
-    name, ok = QtWidgets.QInputDialog.getText(
-        None,
-        "Set sub-plot title",
-        "Title:",
-    )
-    if ok and name:
-        mdi.setWindowTitle(generate_window_title(mdi, title=name))
-        mdi.titleModified.emit()
-
-
 def parse_matrix_component(name):
     indexes = []
     while True:
@@ -518,13 +510,287 @@ def get_comparison_mime(data, uuids):
     return entries
 
 
+class MdiAreaMixin:
+
+    def addSubWindow(self, window):
+        geometry = window.geometry()
+        geometry.setSize(QtCore.QSize(400, 400))
+        window.setGeometry(geometry)
+        window.resized.connect(self.window_resized)
+        window.moved.connect(self.window_moved)
+        return super().addSubWindow(window)
+
+    def clear_windows(self):
+        for window in self.subWindowList():
+            widget = window.widget()
+            self.removeSubWindow(window)
+            widget.setParent(None)
+            window.close()
+            widget.deleteLater()
+            widget.close()
+
+    def window_moved(self, window, new_position, old_position):
+
+        snap = False
+
+        window_geometry = window.geometry()
+        area_geometry = self.geometry()
+        sub_windows = [sub.geometry() for sub in self.subWindowList() if sub is not window]
+
+        # left edge snapping
+        snap_candidates = [
+            0,
+        ]
+
+        for sub in sub_windows:
+            snap_candidates.append(sub.x())
+            snap_candidates.append(sub.x() + sub.width())
+
+        for x in snap_candidates:
+            if abs(new_position.x() - x) <= SNAP_PIXELS_DISTANCE:
+                new_position.setX(x)
+                snap = True
+                break
+        else:
+            # right edge snapping
+            snap_candidates = [
+                area_geometry.width(),
+            ]
+
+            for sub in sub_windows:
+                snap_candidates.append(sub.x())
+                snap_candidates.append(sub.x() + sub.width())
+
+            for x in snap_candidates:
+                if abs(new_position.x() + window_geometry.width() - x) <= SNAP_PIXELS_DISTANCE:
+                    new_position.setX(x - window_geometry.width())
+                    snap = True
+                    break
+
+        # top edge snapping
+        snap_candidates = [
+            0,
+        ]
+
+        for sub in sub_windows:
+            snap_candidates.append(sub.y())
+            snap_candidates.append(sub.y() + sub.height())
+
+        for y in snap_candidates:
+            if abs(new_position.y() - y) <= SNAP_PIXELS_DISTANCE:
+                new_position.setY(y)
+                snap = True
+                break
+        else:
+            # bottom edge snapping
+            snap_candidates = [
+                area_geometry.height(),
+            ]
+
+            for sub in sub_windows:
+                if sub is not window:
+                    snap_candidates.append(sub.y())
+                    snap_candidates.append(sub.y() + sub.height())
+
+            for y in snap_candidates:
+                if abs(new_position.y() + window_geometry.height() - y) <= SNAP_PIXELS_DISTANCE:
+                    new_position.setY(y - window_geometry.height())
+                    snap = True
+                    break
+
+        if snap:
+            window.blockSignals(True)
+            window_geometry.moveTo(new_position)
+            window.setGeometry(window_geometry)
+            window.blockSignals(False)
+
+            window.previous_position = old_position
+
+    def window_resized(self, window, new_size, old_size):
+        snap = False
+
+        window_geometry = new_geometry = window.geometry()
+        new_position = window_geometry.topLeft()
+        area_geometry = self.geometry()
+        sub_windows = [sub for sub in self.subWindowList() if sub is not window]
+
+        for sub in sub_windows:
+            sub.blockSignals(True)
+
+        previous_position = window.previous_position
+        previous_geometry = QtCore.QRect(0, 0, 0, 0)
+        previous_geometry.moveTo(previous_position)
+        previous_geometry.setSize(old_size)
+
+        # right edge of other windows growing and snapping
+        snap_candidates = [
+            area_geometry.width(),
+        ]
+
+        for sub in sub_windows:
+            if sub is not window:
+                snap_candidates.append(sub.geometry().x() + sub.geometry().width())
+
+        for x in snap_candidates:
+            if abs(new_position.x() + window_geometry.width() - x) <= SNAP_PIXELS_DISTANCE:
+                window_geometry.setWidth(abs(x - new_position.x()))
+                snap = True
+                break
+
+        else:
+
+            # left edge of other windows growing and snapping
+            snap_candidates = []
+
+            for sub in sub_windows:
+                if sub is not window:
+                    snap_candidates.append(sub.geometry().x())
+
+            for x in snap_candidates:
+                if abs(new_position.x() + window_geometry.width() - x) <= SNAP_PIXELS_DISTANCE:
+                    window_geometry.setWidth(abs(x - new_position.x()))
+                    snap = True
+                    break
+
+        # bottom edge of other windows snapping
+        snap_candidates = [
+            area_geometry.height(),
+        ]
+
+        for sub in sub_windows:
+            if sub is not window:
+                snap_candidates.append(sub.geometry().y() + sub.geometry().height())
+
+        for y in snap_candidates:
+            if abs(new_position.y() + window_geometry.height() - y) <= SNAP_PIXELS_DISTANCE:
+                window_geometry.setHeight(abs(y - new_position.y()))
+                snap = True
+                break
+        else:
+
+            # top edge of other windows snapping
+            snap_candidates = []
+
+            for sub in sub_windows:
+                if sub is not window:
+                    snap_candidates.append(sub.geometry().y())
+
+            for y in snap_candidates:
+                if abs(new_position.y() + window_geometry.height() - y) <= SNAP_PIXELS_DISTANCE:
+                    window_geometry.setHeight(abs(y - new_position.y()))
+                    snap = True
+                    break
+
+        if snap:
+            window.blockSignals(True)
+            window.setGeometry(window_geometry)
+            window.blockSignals(False)
+
+            new_size = window_geometry.size()
+            new_geometry = window_geometry
+
+        # manage edge driven resize of other windows
+
+        x_delta = new_size.width() - old_size.width()
+        y_delta = new_size.height() - old_size.height()
+
+        previous_x = None
+        previous_y = None
+
+        # top left corner unchanged
+        if new_geometry.topLeft() == previous_geometry.topLeft():
+            if x_delta:
+                # right edge was dragged
+                previous_x = previous_geometry.x() + old_size.width()
+
+            if y_delta:
+                # bottom edge was dragged
+                previous_y = previous_geometry.y() + old_size.height()
+
+        # top right corner unchanged
+        elif new_geometry.topRight() == previous_geometry.topRight():
+            if x_delta:
+                # left edge was dragged
+                previous_x = previous_geometry.x()
+                x_delta = -x_delta
+            if y_delta:
+                # bottom edge was dragged
+                previous_y = previous_geometry.y() + old_size.height()
+
+        # bottom left corner unchanged
+        elif new_geometry.bottomLeft() == previous_geometry.bottomLeft():
+            if x_delta:
+                # right edge was dragged
+                previous_x = previous_geometry.x() + old_size.width()
+
+            if y_delta:
+                # top edge was dragged
+                previous_y = previous_geometry.y()
+                y_delta = -y_delta
+
+        # bottom right corner unchanged
+        elif new_geometry.bottomRight() == previous_geometry.bottomRight():
+            if x_delta:
+                # left edge was dragged
+                previous_x = previous_geometry.x()
+                x_delta = -x_delta
+
+            if y_delta:
+                # top edge was dragged
+                previous_y = previous_geometry.y()
+                y_delta = -y_delta
+
+        if previous_x is not None:
+
+            for sub in sub_windows:
+                geometry = sub.geometry()
+                if abs(geometry.x() - previous_x) <= SNAP_PIXELS_DISTANCE:
+                    geometry.setX(geometry.x() + x_delta)
+                    sub.setGeometry(geometry)
+                elif abs(geometry.x() + geometry.width() - previous_x) <= SNAP_PIXELS_DISTANCE:
+                    geometry.setWidth(geometry.width() + x_delta)
+                    sub.setGeometry(geometry)
+
+        if previous_y is not None:
+
+            for sub in sub_windows:
+                geometry = sub.geometry()
+                if abs(geometry.y() - previous_y) <= SNAP_PIXELS_DISTANCE:
+                    geometry.setY(geometry.y() + y_delta)
+                    sub.setGeometry(geometry)
+                elif abs(geometry.y() + geometry.height() - previous_y) <= SNAP_PIXELS_DISTANCE:
+                    geometry.setHeight(geometry.height() + y_delta)
+                    sub.setGeometry(geometry)
+
+        for sub in sub_windows:
+            sub.blockSignals(False)
+
+
 class MdiSubWindow(QtWidgets.QMdiSubWindow):
     sigClosed = QtCore.Signal(object)
     titleModified = QtCore.Signal()
+    resized = QtCore.Signal(object, object, object)
+    moved = QtCore.Signal(object, object, object)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+
+        layout = self.layout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        self.setOption(MdiSubWindow.RubberBandResize)
+        self.setOption(MdiSubWindow.RubberBandMove)
+
+        self.previous_position = QtCore.QPoint(0, 0)
+
+        menu = self.systemMenu()
+
+        action = QtGui.QAction("Set title", menu)
+        action.triggered.connect(self.set_title)
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
 
     def closeEvent(self, event):
         if isinstance(self.widget(), Plot):
@@ -532,8 +798,39 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
         super().closeEvent(event)
         self.sigClosed.emit(self)
 
+    def moveEvent(self, event):
+        old_position = event.oldPos()
+        new_position = event.pos()
 
-class MdiAreaWidget(QtWidgets.QMdiArea):
+        # old_position == new_position => restore from minimized or maximized
+
+        super().moveEvent(event)
+
+        if not (self.isMinimized() or self.isMaximized()):
+            self.moved.emit(self, new_position, old_position)
+
+    def resizeEvent(self, event):
+        old_size = event.oldSize()
+        new_size = event.size()
+
+        super().resizeEvent(event)
+
+        if old_size.isValid() and not (self.isMinimized() or self.isMaximized()):
+            self.resized.emit(self, new_size, old_size)
+
+    def set_title(self):
+        name, ok = QtWidgets.QInputDialog.getText(
+            self,
+            "Set sub-plot title",
+            "Title:",
+            text=self.windowTitle(),
+        )
+        if ok and name:
+            self.setWindowTitle(generate_window_title(self, title=name))
+            self.titleModified.emit()
+
+
+class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
     add_window_request = QtCore.Signal(list)
     open_files_request = QtCore.Signal(object)
 
@@ -555,13 +852,25 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
             wid = window.widget()
             if isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = True
+            window.blockSignals(True)
 
-        super().cascadeSubWindows()
+        position = QtCore.QPoint(0, 0)
+        rect = QtCore.QRect(0, 0, 400, 300)
+
+        for i, window in enumerate(sub_windows, 1):
+            rect.moveTo(position)
+            window.setGeometry(rect)
+
+            position.setX(position.x() + CASCADE_PIXELS_DISTANCE)
+            position.setY(position.y() + CASCADE_PIXELS_DISTANCE)
+            if i % 5 == 0:
+                position.setY(0)
 
         for window in sub_windows:
             wid = window.widget()
             if isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = False
+            window.blockSignals(False)
 
     def dragEnterEvent(self, e):
         e.accept()
@@ -614,20 +923,22 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
             wid = window.widget()
             if isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = True
+            window.blockSignals(True)
 
         for window in sub_windows:
             if window.isMinimized() or window.isMaximized():
                 window.showNormal()
             rect = QtCore.QRect(0, 0, width, ratio)
+            rect.moveTo(position)
 
             window.setGeometry(rect)
-            window.move(position)
             position.setY(position.y() + ratio)
 
         for window in sub_windows:
             wid = window.widget()
             if isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = False
+            window.blockSignals(False)
 
     def tile_vertically(self):
         sub_windows = self.subWindowList()
@@ -644,20 +955,21 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
             wid = window.widget()
             if isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = True
+            window.blockSignals(True)
 
         for window in sub_windows:
             if window.isMinimized() or window.isMaximized():
                 window.showNormal()
             rect = QtCore.QRect(0, 0, ratio, height)
-
+            rect.moveTo(position)
             window.setGeometry(rect)
-            window.move(position)
             position.setX(position.x() + ratio)
 
         for window in sub_windows:
             wid = window.widget()
             if isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = False
+            window.blockSignals(False)
 
     def tileSubWindows(self):
         sub_windows = self.subWindowList()
@@ -668,6 +980,7 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
             wid = window.widget()
             if isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = True
+            window.blockSignals(True)
 
         super().tileSubWindows()
 
@@ -675,6 +988,7 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
             wid = window.widget()
             if isinstance(wid, Plot):
                 wid._inhibit_x_range_changed_signal = False
+            window.blockSignals(False)
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -1438,23 +1752,9 @@ class WithMDIArea:
                 w.showMaximized()
             else:
                 w.show()
-                self.mdi_area.tileSubWindows()
 
-        menu = w.systemMenu()
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
-
-        w.layout().setSpacing(1)
-
-        def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(self, "Set sub-plot title", "Title:")
-            if ok and name:
-                mdi.setWindowTitle(name)
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         w.setWindowTitle(f"CAN Bus Trace {self._window_counter}")
         self._window_counter += 1
@@ -1676,23 +1976,9 @@ class WithMDIArea:
                 w.showMaximized()
             else:
                 w.show()
-                self.mdi_area.tileSubWindows()
 
-        menu = w.systemMenu()
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
-
-        w.layout().setSpacing(1)
-
-        def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(self, "Set sub-plot title", "Title:")
-            if ok and name:
-                mdi.setWindowTitle(name)
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         w.setWindowTitle(f"FlexRay Bus Trace {self._window_counter}")
         self._window_counter += 1
@@ -1727,23 +2013,9 @@ class WithMDIArea:
             w.showMaximized()
         else:
             w.show()
-            self.mdi_area.tileSubWindows()
 
-        menu = w.systemMenu()
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
-
-        w.layout().setSpacing(1)
-
-        def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(self, "Set sub-plot title", "Title:")
-            if ok and name:
-                mdi.setWindowTitle(name)
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         w.setWindowTitle(f"GPS {self._window_counter}")
         self._window_counter += 1
@@ -2008,23 +2280,9 @@ class WithMDIArea:
                 w.showMaximized()
             else:
                 w.show()
-                self.mdi_area.tileSubWindows()
 
-        menu = w.systemMenu()
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
-
-        w.layout().setSpacing(1)
-
-        def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(self, "Set sub-plot title", "Title:")
-            if ok and name:
-                mdi.setWindowTitle(name)
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         w.setWindowTitle(f"LIN Bus Trace {self._window_counter}")
         self._window_counter += 1
@@ -2038,6 +2296,7 @@ class WithMDIArea:
         return trace
 
     def _add_numeric_window(self, names):
+
         if names and isinstance(names[0], str):
             signals_ = [
                 (
@@ -2208,19 +2467,9 @@ class WithMDIArea:
                 w.showMaximized()
             else:
                 w.show()
-                self.mdi_area.tileSubWindows()
 
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
-
-        w.layout().setSpacing(1)
-
-        menu = w.systemMenu()
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         w.setWindowTitle(generate_window_title(w, "Numeric"))
 
@@ -2602,8 +2851,7 @@ class WithMDIArea:
         sub.titleModified.connect(self.window_closed_handler)
 
         if not self.subplots:
-            for mdi in self.mdi_area.subWindowList():
-                mdi.close()
+            self.mdi_area.clear_windows()
             w = self.mdi_area.addSubWindow(sub)
 
             w.showMaximized()
@@ -2614,21 +2862,11 @@ class WithMDIArea:
                 w.showMaximized()
             else:
                 w.show()
-                self.mdi_area.tileSubWindows()
 
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
 
-        w.layout().setSpacing(1)
-
         plot.show()
-
-        menu = w.systemMenu()
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         w.setWindowTitle(generate_window_title(w, "Plot"))
 
@@ -2800,18 +3038,9 @@ class WithMDIArea:
                 w.showMaximized()
             else:
                 w.show()
-                self.mdi_area.tileSubWindows()
 
-        menu = w.systemMenu()
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
-
-        w.layout().setSpacing(1)
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         w.setWindowTitle(generate_window_title(w, "Tabular"))
 
@@ -2845,23 +3074,9 @@ class WithMDIArea:
             w.showMaximized()
         else:
             w.show()
-            self.mdi_area.tileSubWindows()
 
-        menu = w.systemMenu()
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
-
-        w.layout().setSpacing(1)
-
-        def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(self, "Set sub-plot title", "Title:")
-            if ok and name:
-                mdi.setWindowTitle(name)
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         xy.add_channels_request.connect(partial(self.add_new_channels, widget=xy))
 
@@ -2874,13 +3089,7 @@ class WithMDIArea:
         self.windows_modified.emit()
 
     def clear_windows(self):
-        for window in self.mdi_area.subWindowList():
-            widget = window.widget()
-            self.mdi_area.removeSubWindow(window)
-            widget.setParent(None)
-            window.close()
-            widget.deleteLater()
-            widget.close()
+        self.mdi_area.clear_windows()
 
     def delete_functions(self, deleted_functions):
         deleted = set()
@@ -3032,8 +3241,6 @@ class WithMDIArea:
                     )
                     w.setWindowIcon(icon)
 
-                w.layout().setSpacing(1)
-
                 self.windows_modified.emit()
 
     def _load_numeric_window(self, window_info):
@@ -3165,13 +3372,6 @@ class WithMDIArea:
 
         numeric.add_new_channels(signals)
 
-        menu = w.systemMenu()
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
-
         numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
 
         if self.subplots_link:
@@ -3201,6 +3401,11 @@ class WithMDIArea:
             numeric.channels.columnHeader.toggle_column(
                 columns_visibility["unit"], numeric.channels.columnHeader.UnitColumn
             )
+
+        header_and_controls_visible = window_info["configuration"].get("header_and_controls_visible", True)
+        if not header_and_controls_visible:
+            numeric.controls.setHidden(True)
+            numeric.channels.columnHeader.setHidden(True)
 
         sorting = window_info["configuration"].get("sorting", {})
         if sorting:
@@ -3273,13 +3478,6 @@ class WithMDIArea:
             w.showMaximized()
         elif window_info.get("minimized", False):
             w.showMinimized()
-
-        menu = w.systemMenu()
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         if self.subplots_link:
             gps.timestamp_changed_signal.connect(self.set_cursor)
@@ -3608,13 +3806,6 @@ class WithMDIArea:
         elif window_info.get("minimized", False):
             w.showMinimized()
 
-        menu = w.systemMenu()
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
-
         w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
 
         if "x_range" in window_info["configuration"] and WithMDIArea.load_plot_x_range:
@@ -3687,6 +3878,10 @@ class WithMDIArea:
             plot.splitter.setSizes([width, max(current_width - width, 50)])
             for i, size in enumerate(sizes):
                 plot.channel_selection.setColumnWidth(i, size)
+
+        if "channels_header_columns_visible" in window_info["configuration"]:
+            for i, visible in enumerate(window_info["configuration"]["channels_header_columns_visible"]):
+                plot.channel_selection.setColumnHidden(i, not visible)
 
         plot.set_locked(locked=window_info["configuration"].get("locked", False))
         plot.hide_axes(hide=window_info["configuration"].get("hide_axes", False))
@@ -3863,13 +4058,6 @@ class WithMDIArea:
         )
         tabular.add_channels_request.connect(partial(self.add_new_channels, widget=tabular))
 
-        menu = w.systemMenu()
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
-
         if self.subplots_link:
             tabular.timestamp_changed_signal.connect(self.set_cursor)
 
@@ -4010,13 +4198,6 @@ class WithMDIArea:
             w.showMinimized()
 
         w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
-
-        menu = w.systemMenu()
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
 
         xy.add_channels_request.connect(partial(self.add_new_channels, widget=xy))
         if self.subplots_link:

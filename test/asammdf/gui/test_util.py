@@ -1,13 +1,13 @@
 import inspect
+import unittest
+
+from asammdf.gui.utils import generate_python_function
 from test.asammdf.gui.resources.functions import (
     Function1,
     gray2dec,
     maximum,
     rpm_to_rad_per_second,
 )
-import unittest
-
-from asammdf.gui.utils import generate_python_function
 
 
 class TestUtils(unittest.TestCase):

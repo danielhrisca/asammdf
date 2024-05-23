@@ -22,6 +22,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import QThreadPool
 
 from ..blocks.options import FloatInterpolation, IntegerInterpolation
+from ..blocks.utils import NONE, TERMINATED
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
 from .dialogs.messagebox import MessageBox
@@ -137,8 +138,6 @@ QScrollBar:right-arrow:horizontal {{
 COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
 
-TERMINATED = object()
-
 FONT_SIZE = [6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72]
 VARIABLE = re.compile(r"(?P<var>\{\{[^}]+\}\})")
 VARIABLE_GET_DATA = re.compile(r"get_data\s*\(\s*\"(?P<var>[^\"]+)")
@@ -250,7 +249,7 @@ class Worker(QtCore.QRunnable):
     def run(self):
         try:
             result = self.function(*self.args, **self.kwargs)
-        except Exception:
+        except:
             traceback.print_exc()
             exctype, value = sys.exc_info()[:2]
             self.signals.error.emit((exctype, value, traceback.format_exc()))
@@ -263,12 +262,15 @@ class Worker(QtCore.QRunnable):
 class ProgressDialog(QtWidgets.QProgressDialog):
     qfinished = QtCore.Signal()
 
+    NONE = NONE
+    TERMINATED = TERMINATED
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.threadpool = QThreadPool()
         self.worker = None
         self.error = None
-        self.result = None
+        self.result = self.NONE
         self.thread_finished = True
         self.close_on_finish = True
         # Connect signal to "processEvents": Give the chance to "destroy" function to make his job
@@ -276,7 +278,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
 
     def run_thread_with_progress(self, target, args, kwargs, wait_here=False, close_on_finish=True):
         self.show()
-        self.result = None
+        self.result = self.NONE
         self.error = None
         self.thread_finished = False
 
@@ -299,17 +301,19 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.threadpool.start(self.worker)
 
         if wait_here:
-            while not self.thread_finished:
-                sleep(0.1)
-                QtWidgets.QApplication.processEvents()
+            loop = QtCore.QEventLoop()
+            self.worker.signals.finished.connect(loop.quit)
+            loop.exec()
 
-            return self.result
+        return self.result
 
     def _canceled(self):
-        self.close()
+        self.close(reject=True)
 
     def processEvents(self):
-        QtCore.QCoreApplication.processEvents()
+        loop = QtCore.QEventLoop()
+        QtCore.QTimer.singleShot(20, loop.quit)
+        loop.exec()
 
     def receive_result(self, result):
         self.result = result
@@ -319,21 +323,25 @@ class ProgressDialog(QtWidgets.QProgressDialog):
 
     def thread_complete(self):
         self.thread_finished = True
-        if self.close_on_finish:
-            super().close()
         self.qfinished.emit()
+        if self.close_on_finish:
+            self.accept()
 
     def cancel(self):
-        self.processEvents()
         super().cancel()
-        self.destroy()
 
-    def close(self):
-        while not self.thread_finished:
+    def close(self, reject=False):
+        if not self.thread_finished:
             self.worker.stop = True
-            sleep(0.01)
-            self.processEvents()
-        self.destroy()
+
+            loop = QtCore.QEventLoop()
+            self.worker.signals.finished.connect(loop.quit)
+            loop.exec()
+
+        if reject:
+            self.reject()
+        else:
+            self.accept()
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Escape and event.modifiers() == QtCore.Qt.KeyboardModifier.NoModifier:
@@ -342,33 +350,13 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         else:
             super().keyPressEvent(event)
 
-    def setLabelText(self, text):
-        super().setLabelText(text)
-        self.processEvents()
-
-    def setMaximum(self, value):
-        super().setMaximum(value)
-        self.processEvents()
-
-    def setMinimum(self, value):
-        super().setMinimum(value)
-        self.processEvents()
-
-    def setRange(self, min_value, max_value):
-        super().setRange(min_value, max_value)
-        self.processEvents()
-
-    def setValue(self, value):
-        super().setValue(value)
-        self.processEvents()
-
     def setWindowIcon(self, icon):
-        super().setWindowIcon(icon)
-        self.processEvents()
+        if isinstance(icon, str):
+            icon_name = icon
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap(f":/{icon_name}.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
-    def setWindowTitle(self, title):
-        super().setWindowTitle(title)
-        self.processEvents()
+        super().setWindowIcon(icon)
 
 
 def setup_progress(parent, title="", message="", icon_name="", autoclose=False):
@@ -1213,12 +1201,16 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
     # try with sample by sample call
     sample_by_sample = True
     try:
-        func(**kwargs)
+        res = func(**kwargs)
     except ZeroDivisionError:
         pass
     except:
         sample_by_sample = False
-        trace = format_exc()
+        trace = f"Sample by sample: {format_exc()}"
+    else:
+        if not isinstance(res, (int, float)):
+            sample_by_sample = False
+            trace = "Sample by sample: The function did not return a numeric scalar value"
 
     kwargs = {}
     for i, (arg_name, arg) in enumerate(args.parameters.items()):
@@ -1227,15 +1219,29 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
     # try with complete signal call
     complete_signal = True
     try:
-        func(**kwargs)
+        res = func(**kwargs)
     except ZeroDivisionError:
         pass
     except:
         complete_signal = False
         if trace:
-            trace += "\n\n" + format_exc()
+            trace += f"\n\nComplete signal: {format_exc()}"
         else:
-            trace = format_exc()
+            trace = f"Complete signal: {format_exc()}"
+    else:
+        if not isinstance(res, (tuple, list, np.ndarray)):
+            complete_signal = False
+            if trace:
+                trace += "\n\nComplete signal: The function did not return an list, tuple or np.ndarray"
+            else:
+                trace = "Complete signal: The function did not return an list, tuple or np.ndarray"
+
+        if len(np.array(res).shape) > 1:
+            complete_signal = False
+            if trace:
+                trace += "\n\nComplete signal: The function returned a multi dimensional array"
+            else:
+                trace = "Complete signal: The function returned a multi dimensional array"
 
     if not sample_by_sample and not complete_signal:
         ErrorDialog(

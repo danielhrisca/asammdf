@@ -530,11 +530,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             if default_display_file:
                 default_display_file = Path(default_display_file)
                 if default_display_file.exists():
-                    self.load_channel_list(file_name=default_display_file)
+                    self.load_channel_list(file_name=default_display_file, show_progress=False)
                 else:
                     default_display_file = Path(self.mdf.original_name).parent / default_display_file.name
                     if default_display_file.exists():
-                        self.load_channel_list(file_name=default_display_file)
+                        self.load_channel_list(file_name=default_display_file, show_progress=False)
 
         self.restore_export_setttings()
         self.connect_export_updates()
@@ -1036,7 +1036,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             )
 
         if file_name:
-            file_name = Path(file_name)
+            file_name = Path(file_name).with_suffix(".dspf")
             file_name.write_text(json.dumps(self.to_config(), indent=2))
 
             worker = sha1()
@@ -1045,7 +1045,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.display_file_modified.emit(Path(self.loaded_display_file[0]).name)
 
-    def load_channel_list(self, event=None, file_name=None, manually=False):
+    def load_channel_list(self, event=None, file_name=None, manually=False, show_progress=True):
         if file_name is None:
             file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self,
@@ -1070,7 +1070,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             extension = file_name.suffix.lower()
             if extension == ".dsp":
                 palette = self.palette()
-                info = load_dsp(file_name, palette.color(palette.Base).name())
+                info = load_dsp(file_name, palette.base().color().name())
                 if info.get("has_virtual_channels", False):
                     message = (
                         "The DSP file contains virtual channels that are not supported.\n"
@@ -1306,29 +1306,36 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         if windows:
             count = len(windows)
 
-            progress = setup_progress(
-                parent=self,
-                title="Loading display windows",
-                message="",
-                icon_name="window",
-            )
-            progress.setRange(0, count - 1)
-            progress.resize(500, progress.height())
+            if show_progress:
+
+                progress = setup_progress(
+                    parent=self,
+                    title="Loading display windows",
+                    message="",
+                    icon_name="window",
+                )
+                progress.setRange(0, count - 1)
+                progress.resize(500, progress.height())
+            else:
+                progress = None
 
             for i, window in enumerate(windows, 1):
                 window = _process_dict(window)
                 window_type = window["type"]
                 window_title = window["title"]
-                progress.setLabelText(f"Loading {window_type} window <{window_title}>")
-                QtWidgets.QApplication.processEvents()
+                if progress:
+                    progress.setLabelText(f"Loading {window_type} window <{window_title}>")
+                    QtWidgets.QApplication.processEvents()
                 try:
                     self.load_window(window)
-                    progress.setValue(i)
+                    if progress:
+                        progress.setValue(i)
                 except:
                     print(format_exc())
                     errors[window_title] = format_exc()
 
-            progress.cancel()
+            if progress:
+                progress.cancel()
 
             active_window = info.get("active_window", "")
             for window in self.mdi_area.subWindowList():

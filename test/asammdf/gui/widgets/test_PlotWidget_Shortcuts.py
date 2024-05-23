@@ -1,8 +1,8 @@
 #!/usr/bin/env python
+from PySide6 import QtCore, QtGui, QtTest
+
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
-
-from PySide6 import QtCore, QtGui, QtTest
 
 
 class TestShortcuts(TestPlotWidget):

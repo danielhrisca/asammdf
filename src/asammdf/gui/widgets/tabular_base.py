@@ -1553,7 +1553,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
     def open_menu(self, position):
         menu = QtWidgets.QMenu()
 
-        menu.addAction(self.tr("Export to CSV"))
+        menu.addAction("Export to CSV")
 
         action = menu.exec_(self.tree.viewport().mapToGlobal(position))
 
@@ -1867,19 +1867,19 @@ class DataFrameViewer(QtWidgets.QWidget):
         self.indexHeaderNames.verticalHeader().setDefaultSectionSize(self.default_row_height)
         self.indexHeaderNames.verticalHeader().setMinimumSectionSize(self.default_row_height)
         self.indexHeaderNames.verticalHeader().setMaximumSectionSize(self.default_row_height)
-        self.indexHeaderNames.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Fixed)
+        self.indexHeaderNames.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Fixed)
         self.indexHeader.verticalHeader().setDefaultSectionSize(self.default_row_height)
         self.indexHeader.verticalHeader().setMinimumSectionSize(self.default_row_height)
         self.indexHeader.verticalHeader().setMaximumSectionSize(self.default_row_height)
-        self.indexHeader.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Fixed)
+        self.indexHeader.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Fixed)
         self.dataView.verticalHeader().setDefaultSectionSize(self.default_row_height)
         self.dataView.verticalHeader().setMinimumSectionSize(self.default_row_height)
         self.dataView.verticalHeader().setMaximumSectionSize(self.default_row_height)
-        self.dataView.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Fixed)
+        self.dataView.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Fixed)
         self.columnHeader.verticalHeader().setDefaultSectionSize(self.default_row_height)
         self.columnHeader.verticalHeader().setMinimumSectionSize(self.default_row_height)
         self.columnHeader.verticalHeader().setMaximumSectionSize(self.default_row_height)
-        self.columnHeader.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Fixed)
+        self.columnHeader.verticalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Fixed)
 
     def __reduce__(self):
         # This is so dataclasses.asdict doesn't complain about this being unpicklable
@@ -1989,7 +1989,7 @@ class DataFrameViewer(QtWidgets.QWidget):
 
         fmt = self.dataView.model().format
 
-        # Copy from data, columns, or index depending which has focus
+        # Copy from data, columns, or index depending on which has focus
         if header or self.dataView.hasFocus():
             indexes = self.dataView.selectionModel().selection().indexes()
             rows = [ix.row() for ix in indexes]

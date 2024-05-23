@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 import pathlib
-from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets
 
 from asammdf.gui.dialogs.channel_group_info import ChannelGroupInfoDialog
 from asammdf.gui.dialogs.channel_info import ChannelInfoDialog
+from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 # Note: If it's possible and make sense, use self.subTests
 # to avoid initializing widgets multiple times and consume time.
@@ -446,7 +446,7 @@ class TestTabChannels(TestFileWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
         while iterator.value():
             item = iterator.value()
-            self.assertTrue(item.checkState(0))
+            self.assertTrue(item.checkState(0) == QtCore.Qt.CheckState.Checked)
             iterator += 1
 
         # Clear all
@@ -454,7 +454,7 @@ class TestTabChannels(TestFileWidget):
         while iterator.value():
             item = iterator.value()
             item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-            self.assertFalse(item.checkState(0))
+            self.assertFalse(item.checkState(0) == QtCore.Qt.CheckState.Checked)
             iterator += 1
 
         # Switch ComboBox to "Internal file structure"
@@ -466,7 +466,7 @@ class TestTabChannels(TestFileWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
         while iterator.value():
             item = iterator.value()
-            self.assertTrue(item.checkState(0))
+            self.assertTrue(item.checkState(0) == QtCore.Qt.CheckState.Checked)
             iterator += 1
 
         # Switch ComboBox to "Selected channels only"
@@ -476,7 +476,7 @@ class TestTabChannels(TestFileWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
         while iterator.value():
             item = iterator.value()
-            self.assertTrue(item.checkState(0))
+            self.assertTrue(item.checkState(0) == QtCore.Qt.CheckState.Checked)
             iterator += 1
 
     def test_PushButton_ClearAll(self):
@@ -584,7 +584,7 @@ class TestTabChannels(TestFileWidget):
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
                 while iterator.value():
                     item = iterator.value()
-                    self.assertFalse(item.checkState(0))
+                    self.assertFalse(item.checkState(0) == QtCore.Qt.CheckState.Checked)
                     iterator += 1
 
         # Case 1:
