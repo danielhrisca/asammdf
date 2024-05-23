@@ -1,9 +1,9 @@
-from test.asammdf.gui.test_base import TestBase
 from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets
 
 from asammdf.gui.widgets.file import FileWidget
+from test.asammdf.gui.test_base import TestBase
 
 
 class TestFileWidget(TestBase):

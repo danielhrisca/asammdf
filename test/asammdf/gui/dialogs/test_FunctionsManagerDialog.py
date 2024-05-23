@@ -2,6 +2,11 @@ import copy
 import inspect
 import json
 import pathlib
+from unittest import mock
+
+from PySide6 import QtCore, QtTest
+
+from asammdf.gui.dialogs.functions_manager import FunctionsManagerDialog
 from test.asammdf.gui.resources.functions import (
     Function1,
     Function2,
@@ -12,11 +17,6 @@ from test.asammdf.gui.resources.functions import (
     WrongDefinition,
 )
 from test.asammdf.gui.test_base import TestBase
-from unittest import mock
-
-from PySide6 import QtCore, QtTest
-
-from asammdf.gui.dialogs.functions_manager import FunctionsManagerDialog
 
 
 class TestPushButtons(TestBase):

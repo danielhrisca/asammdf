@@ -2285,9 +2285,12 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
             "type": "Plot",
             "title": "Display channels",
             "maximized": True,
+            "minimized": False,
+            "geometry": [0, 0, 800, 600],
             "configuration": {
                 "channels": channels,
                 "locked": True,
+                "pattern": {},
             },
         }
 
