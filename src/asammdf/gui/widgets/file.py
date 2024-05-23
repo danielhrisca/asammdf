@@ -1027,7 +1027,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             )
 
         if file_name:
-            file_name = Path(file_name)
+            file_name = Path(file_name).with_suffix(".dspf")
             file_name.write_text(json.dumps(self.to_config(), indent=2))
 
             worker = sha1()
