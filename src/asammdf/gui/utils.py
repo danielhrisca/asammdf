@@ -276,6 +276,8 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         # Connect signal to "processEvents": Give the chance to "destroy" function to make his job
         self.qfinished.connect(self.processEvents)
 
+        self._closed = False
+
     def run_thread_with_progress(self, target, args, kwargs, wait_here=False, close_on_finish=True):
         self.show()
         self.result = self.NONE
@@ -328,6 +330,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             self.accept()
 
     def cancel(self):
+        self._closed = True
         super().cancel()
 
     def close(self, reject=False):
@@ -337,6 +340,8 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             loop = QtCore.QEventLoop()
             self.worker.signals.finished.connect(loop.quit)
             loop.exec()
+
+        self._closed = True
 
         if reject:
             self.reject()
@@ -349,6 +354,12 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             self.close()
         else:
             super().keyPressEvent(event)
+
+    def show(self):
+        if not self._closed:
+            super().show()
+        else:
+            self.hide()
 
     def setWindowIcon(self, icon):
         if isinstance(icon, str):
