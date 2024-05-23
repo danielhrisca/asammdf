@@ -1,9 +1,10 @@
 import pathlib
-from test.asammdf.gui.test_base import DragAndDrop
-from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets
+
+from test.asammdf.gui.test_base import DragAndDrop
+from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 
 class QMenuWrap(QtWidgets.QMenu):

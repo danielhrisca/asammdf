@@ -5808,7 +5808,9 @@ class HeaderBlock:
             tzinfo = self.start_time.tzinfo
 
             if tzinfo is None:
-                return f'local time = {self.start_time.strftime("%d-%b-%Y %H:%M:%S + %fu")} (no timezone info available)'
+                return (
+                    f'local time = {self.start_time.strftime("%d-%b-%Y %H:%M:%S + %fu")} (no timezone info available)'
+                )
 
             dst = tzinfo.dst(self.start_time)
             if dst is not None:

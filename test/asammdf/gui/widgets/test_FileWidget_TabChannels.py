@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 import pathlib
-from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets
 
 from asammdf.gui.dialogs.channel_group_info import ChannelGroupInfoDialog
 from asammdf.gui.dialogs.channel_info import ChannelInfoDialog
+from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 # Note: If it's possible and make sense, use self.subTests
 # to avoid initializing widgets multiple times and consume time.
