@@ -280,7 +280,6 @@ class TestContextMenu(TestPlotWidget):
 
         self.assertEqual(channel_a_properties, channel_b_properties)
 
-    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Action_CopyDisplayProperties_Group(self):
         """
         Test Scope:
@@ -374,6 +373,8 @@ class TestContextMenu(TestPlotWidget):
             else:
                 self.assertIsInstance(content, dict)
                 self.assertTrue(content["type"] == "group")
+
+        self.manual_use(self.widget)
 
     @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Action_PasteDisplayProperties_Group(self):

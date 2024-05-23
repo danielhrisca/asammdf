@@ -4269,7 +4269,7 @@ class PlotGraphics(pg.PlotWidget):
         return self._grid_pixmap
 
     def dropEvent(self, e):
-        if e.source() is self.parent().channel_selection:
+        if e.source() is self.parent().parent().channel_selection:
             super().dropEvent(e)
         else:
             data = e.mimeData()
