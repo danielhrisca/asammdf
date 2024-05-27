@@ -9,7 +9,7 @@ from test.asammdf.gui.test_base import DragAndDrop
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
-@unittest.skipIf("Timers cannot be started/stopped from another thread.")
+@unittest.skip("Timers cannot be started/stopped from another thread.")
 class TestDragAndDrop(TestPlotWidget):
     # Note: Test Plot Widget through FileWidget.
 
@@ -130,7 +130,7 @@ class TestDragAndDrop(TestPlotWidget):
             iterator += 1
         self.assertListEqual(selected_channels, plot_channels)
 
-    @unittest.skipIf("Test applicable just for Windows.")
+    @unittest.skip("Test applicable just for Windows.")
     # Test is applicable just for Windows because of Drag and Drop implementation.
     # In order to perform this operation, two threads are needed, one to startDrag operation and the other one to move
     # the cursor and Release/drop the item.
