@@ -60,21 +60,35 @@ class TestBase(unittest.TestCase):
         return self._testMethodDoc
 
     @staticmethod
-    def manual_use(widget):
+    def manual_use(widget, duration=None):
         """
         Execute Widget for debug/development purpose.
+
+        Parameters
+        ----------
+        duration : float | None
+            duration in seconds
         """
-        widget.showNormal()
-        app.exec()
+        if duration is None:
+            duration = 3600
+        else:
+            duration = abs(duration)
+
+        w.showNormal()
+
+        loop = QtCore.QEventLoop()
+        QtCore.QTimer.singleShot(int(duration * 1000), loop.quit)
+        loop.exec_()
+
+        w.showNormal()
 
     @staticmethod
     def processEvents(timeout=0.001):
-        QtCore.QCoreApplication.processEvents()
-        QtCore.QCoreApplication.sendPostedEvents()
-        if timeout:
-            time.sleep(timeout)
-            QtCore.QCoreApplication.processEvents()
-            QtCore.QCoreApplication.sendPostedEvents()
+        app.sendPostedEvents()
+
+        loop = QtCore.QEventLoop()
+        QtCore.QTimer.singleShot(int(timeout * 1000), loop.quit)
+        loop.exec_()
 
     def setUp(self) -> None:
         if os.path.exists(self.test_workspace):
