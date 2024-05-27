@@ -1638,6 +1638,7 @@ def master_using_raster(mdf: MDF_v2_v3_v4, raster: RasterType, endpoint: bool = 
             group = mdf.groups[group_index]
             cycles_nr = group.channel_group.cycles_nr
             if cycles_nr:
+
                 master_min = mdf.get_master(group_index, record_offset=0, record_count=1)
                 if len(master_min):
                     t_min.append(master_min[0])

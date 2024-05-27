@@ -3140,7 +3140,6 @@ class MDF:
             t_epoch = self.header.start_time.timestamp() + delta
             mdf.header.start_time = datetime.fromtimestamp(t_epoch)
         else:
-            delta = 0
             new_raster = None
             mdf.header.start_time = self.header.start_time
 
@@ -4018,6 +4017,8 @@ class MDF:
                     master = np.array([], dtype="<f4")
 
             master_ = master
+            if time_from_zero and len(master_):
+                master_ -= master_[0]
             channel_count = sum(len(gp.channels) - 1 for gp in self.groups) + 1
             # approximation with all float64 dtype
             itemsize = channel_count * 8
@@ -4267,8 +4268,6 @@ class MDF:
 
                     new_index = self.header.start_time + delta
                     df.set_index(new_index, inplace=True)
-                elif time_from_zero and len(master):
-                    df.set_index(df.index - df.index[0], inplace=True)
 
                 yield df
 

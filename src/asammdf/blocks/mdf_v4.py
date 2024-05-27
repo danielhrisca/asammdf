@@ -8299,8 +8299,8 @@ class MDF4(MDF_Common):
                 t += offset
             else:
                 t = array([], dtype=float64)
-            virtual_conv = {"a": 1, "b": 0}
             metadata = ("timestamps", v4c.SYNC_TYPE_TIME)
+
         else:
             time_ch = group.channels[time_ch_nr]
             time_conv = time_ch.conversion
@@ -8309,20 +8309,15 @@ class MDF4(MDF_Common):
             metadata = (time_name, time_ch.sync_type)
 
             if time_ch.channel_type == v4c.CHANNEL_TYPE_VIRTUAL_MASTER:
-                t = arange(cycles_nr, dtype=float64)
-                t += offset
-                t = time_conv.convert(t)
 
                 if record_count is None:
-                    t = t[record_offset:]
+                    t = arange(record_offset, cycles_nr, 1, dtype=float64)
                 else:
-                    t = t[record_offset : record_offset + record_count]
+                    t = arange(record_offset, record_offset + record_count, 1, dtype=float64)
 
-                virtual_conv = time_conv
+                t = time_conv.convert(t)
 
             else:
-                virtual_conv = None
-
                 # check if the channel group contains just the master channel
                 # and that there are no padding bytes
                 if len(group.channels) == 1 and time_ch.dtype_fmt.itemsize == record_size:
