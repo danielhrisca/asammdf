@@ -2840,16 +2840,7 @@ class Plot(QtWidgets.QWidget):
             event.accept()
 
         elif key == QtCore.Qt.Key.Key_I and modifiers == QtCore.Qt.KeyboardModifier.AltModifier:
-            self.show_bookmarks = not self.show_bookmarks
-            if self.show_bookmarks:
-                self.bookmark_btn.setFlat(False)
-            else:
-                self.bookmark_btn.setFlat(True)
-
-            for bookmark in self.plot.bookmarks:
-                bookmark.visible = self.show_bookmarks
-
-            self.plot.update()
+            self.toggle_bookmarks(not self.show_bookmarks)
             event.accept()
 
         elif key == QtCore.Qt.Key.Key_G and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
@@ -3308,12 +3299,17 @@ class Plot(QtWidgets.QWidget):
         if hide is not None:
             self.show_bookmarks = hide
 
-        key_event = QtGui.QKeyEvent(
-            QtCore.QEvent.Type.KeyPress,
-            QtCore.Qt.Key.Key_I,
-            QtCore.Qt.KeyboardModifier.AltModifier,
-        )
-        self.keyPressEvent(key_event)
+        self.show_bookmarks = not self.show_bookmarks
+
+        if self.show_bookmarks:
+            self.bookmark_btn.setFlat(False)
+        else:
+            self.bookmark_btn.setFlat(True)
+
+        for bookmark in self.plot.bookmarks:
+             bookmark.visible = self.show_bookmarks
+
+        self.plot.update()
 
         if not self.show_bookmarks:
             png = ":/bookmark.png"
