@@ -3307,7 +3307,7 @@ class Plot(QtWidgets.QWidget):
             self.bookmark_btn.setFlat(True)
 
         for bookmark in self.plot.bookmarks:
-             bookmark.visible = self.show_bookmarks
+            bookmark.visible = self.show_bookmarks
 
         self.plot.update()
 
