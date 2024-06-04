@@ -131,6 +131,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.files_list.model().rowsInserted.connect(self.update_channel_tree)
         self.files_list.itemsDeleted.connect(self.update_channel_tree)
 
+        self.clear_filter_btn.clicked.connect(self.clear_filter)
+
         self.filter_tree.itemChanged.connect(self.filter_changed)
         self._selected_filter = set()
         self._filter_timer = QtCore.QTimer()
@@ -901,41 +903,20 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
         channels = []
-        count = 0
-        total = 0
 
-        if self.filter_view.currentText() == "Internal file structure":
-            while item := iterator.value():
+        while item := iterator.value():
+            iterator += 1
 
-                group, index = item.entry
-                if index != 0xFFFFFFFFFFFFFFFF:
-                    total += 1
+            group, index = item.entry
+            if index == 0xFFFFFFFFFFFFFFFF:
+                continue
 
-                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                    if index != 0xFFFFFFFFFFFFFFFF:
-                        channels.append((item.name, group, index))
-                        count += 1
+            if item.checkState(0) == QtCore.Qt.CheckState.Checked:
+                channels.append((item.name, group, index))
 
-                iterator += 1
-        else:
-            while item := iterator.value():
+        needs_filter = self.selected_filter_channels.count() > 0
 
-                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                    group, index = item.entry
-                    channels.append((item.name, group, index))
-                    count += 1
-
-                total += 1
-
-                iterator += 1
-
-        if not channels:
-            return False, channels
-        else:
-            if total == count:
-                return False, channels
-            else:
-                return True, channels
+        return needs_filter, channels
 
     def raster_search(self, event):
         if not self.files_list.count():
@@ -1409,7 +1390,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             output_folder = None
 
         try:
-            root = Path(os.path.commonpath(source_files))
+            if len(source_files) == 1:
+                root = source_files[0].parent
+            else:
+                root = Path(os.path.commonpath(source_files))
 
         except ValueError:
             root = None
@@ -1570,6 +1554,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         file_name = output_folder / Path(mdf_file.original_name).name
                     else:
                         file_name = output_folder / Path(mdf_file.original_name).relative_to(root)
+
+                    print(file_name)
 
                     if not file_name.parent.exists():
                         os.makedirs(file_name.parent, exist_ok=True)
@@ -1846,6 +1832,7 @@ MultiRasterSeparator;&
             channels = info.get("selected_channels", [])
 
         if channels:
+            channels = set(channels)
             iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
             if self.filter_view.currentText() == "Internal file structure":
@@ -1857,7 +1844,7 @@ MultiRasterSeparator;&
                     channel_name = item.text(0)
                     if channel_name in channels:
                         item.setCheckState(0, QtCore.Qt.CheckState.Checked)
-                        channels.pop(channels.index(channel_name))
+                        channels.remove(channel_name)
                     else:
                         item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
@@ -1869,7 +1856,7 @@ MultiRasterSeparator;&
                     channel_name = item.text(0)
                     if channel_name in channels:
                         item.setCheckState(0, QtCore.Qt.CheckState.Checked)
-                        channels.pop(channels.index(channel_name))
+                        channels.remove(channel_name)
                     else:
                         item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
 
@@ -1890,6 +1877,8 @@ MultiRasterSeparator;&
                 mdf = self._as_mdf(file_name)
                 origin_uuid = os.urandom(6).hex()
 
+                self._selected_filter = set(channels)
+
                 for i, gp in enumerate(mdf.groups):
                     for j, ch in enumerate(gp.channels):
                         if ch.name in channels:
@@ -1899,13 +1888,15 @@ MultiRasterSeparator;&
                             channel.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             items.append(channel)
 
-                            channels.pop(channels.index(ch.name))
+                            channels.remove(ch.name)
 
                 if len(items) < 30000:
                     items = natsorted(items, key=lambda x: x.name)
                 else:
                     items.sort(key=lambda x: x.name)
                 self.filter_tree.addTopLevelItems(items)
+
+                self.update_selected_filter_channels()
 
     def connect_export_updates(self):
         self.output_format.currentTextChanged.connect(self.store_export_setttings)
@@ -2050,3 +2041,21 @@ MultiRasterSeparator;&
         self._settings.setValue("export_batch/MAT/export_compression_mat", self.export_compression_mat.currentText())
         self._settings.setValue("export_batch/MAT/mat_format", self.mat_format.currentText())
         self._settings.setValue("export_batch/MAT/oned_as", self.oned_as.currentText())
+
+    def clear_filter(self):
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
+
+        if self.filter_view.currentIndex() == 1:
+            while item := iterator.value():
+                if item.parent() is None:
+                    item.setExpanded(False)
+                else:
+                    item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+                iterator += 1
+        else:
+            while item := iterator.value():
+                item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+                iterator += 1
+
+        self._selected_filter.clear()
+        self.update_selected_filter_channels()

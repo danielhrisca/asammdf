@@ -1554,13 +1554,17 @@ MultiRasterSeparator;&
     def clear_filter(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
-        while item := iterator.value():
-            item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-
-            if item.parent() is None:
-                item.setExpanded(False)
-
-            iterator += 1
+        if self.filter_view.currentIndex() == 1:
+            while item := iterator.value():
+                if item.parent() is None:
+                    item.setExpanded(False)
+                else:
+                    item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+                iterator += 1
+        else:
+            while item := iterator.value():
+                item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+                iterator += 1
 
     def clear_channels(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
@@ -2609,24 +2613,15 @@ MultiRasterSeparator;&
 
         channels = []
 
-        if self.filter_view.currentText() == "Internal file structure":
-            while item := iterator.value():
+        while item := iterator.value():
+            iterator += 1
 
-                group, index = item.entry
+            group, index = item.entry
+            if index == 0xFFFFFFFFFFFFFFFF:
+                continue
 
-                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                    if index != 0xFFFFFFFFFFFFFFFF:
-                        channels.append((None, group, index))
-
-                iterator += 1
-        else:
-            while item := iterator.value():
-
-                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                    group, index = item.entry
-                    channels.append((None, group, index))
-
-                iterator += 1
+            if item.checkState(0) == QtCore.Qt.CheckState.Checked:
+                channels.append((item.name, group, index))
 
         needs_filter = self.selected_filter_channels.count() > 0
 
