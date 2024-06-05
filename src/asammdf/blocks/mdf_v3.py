@@ -265,7 +265,8 @@ class MDF3(MDF_Common):
             self.header = HeaderBlock(version=self.version)
             self.name = Path("__new__.mdf")
 
-        self._sort(progress=progress)
+        if not kwargs.get("skip_sorting", False):
+            self._sort(progress=progress)
 
         for index, grp in enumerate(self.groups):
             self.virtual_groups_map[index] = index
