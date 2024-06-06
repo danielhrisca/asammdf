@@ -16,6 +16,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from natsort import natsorted
 import numpy as np
 import pandas as pd
+from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 import asammdf.mdf as mdf_module
@@ -1209,6 +1210,7 @@ class WithMDIArea:
                         sig.name = sig_[0]
                         sig.uuid = sig_uuid["uuid"]
                         sig.ranges = sig_uuid["ranges"]
+                        sig.color = fn.mkColor(sig_uuid["color"] or "#505050")
 
                         if not hasattr(self, "mdf"):
                             # MainWindow => comparison plots
@@ -2377,6 +2379,7 @@ class WithMDIArea:
                 sig.name = sig_[0] or sig.name
                 sig.ranges = sig_obj["ranges"]
                 sig.uuid = sig_obj["uuid"]
+                sig.color = fn.mkColor(sig_obj.get("color", "#505050"))
 
                 if not hasattr(self, "mdf"):
                     # MainWindow => comparison plots
@@ -3312,10 +3315,11 @@ class WithMDIArea:
                 sig.computation = None
                 ranges = description["ranges"]
                 for range in ranges:
-                    range["font_color"] = QtGui.QBrush(QtGui.QColor(range["font_color"]))
-                    range["background_color"] = QtGui.QBrush(QtGui.QColor(range["background_color"]))
+                    range["font_color"] = fn.mkBrush(range["font_color"])
+                    range["background_color"] = fn.mkBrush(range["background_color"])
                 sig.ranges = ranges
                 sig.format = description["format"]
+                sig.color = fn.mkColor(description.get("color", "#505050"))
 
             signals = [sig for sig in signals if not sig.samples.dtype.names and len(sig.samples.shape) <= 1]
 
