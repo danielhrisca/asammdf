@@ -1210,7 +1210,7 @@ class WithMDIArea:
                         sig.name = sig_[0]
                         sig.uuid = sig_uuid["uuid"]
                         sig.ranges = sig_uuid["ranges"]
-                        sig.color = fn.mkColor(sig_uuid["color"] or "#505050")
+                        sig.color = fn.mkColor(sig_uuid.get("color", "#505050"))
 
                         if not hasattr(self, "mdf"):
                             # MainWindow => comparison plots
