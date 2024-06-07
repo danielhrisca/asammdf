@@ -792,6 +792,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             except:
                 return
 
+            plot = self.plot.plot
+
             if info["type"] == "channel":
                 info["color"] = fn.mkColor(info["color"])
 
@@ -810,9 +812,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     )
 
                     if item.type() == ChannelsTreeItem.Channel:
-                        plot = item.treeWidget().plot.plot
                         sig, index = plot.signal_by_uuid(item.uuid)
                         sig.y_range = info["y_range"]
+
+                        if plot.current_uuid == sig.uuid:
+                            plot.viewbox.setYRange(*sig.y_range, padding=0)
 
                         item.set_ranges(info["ranges"])
 
@@ -826,6 +830,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 for item in selected_items:
                     if item.type() in (ChannelsTreeItem.Channel, ChannelsTreeItem.Group):
                         item.set_ranges(info["ranges"])
+
+            plot.update()
 
         elif modifiers == QtCore.Qt.KeyboardModifier.ShiftModifier and key in (
             QtCore.Qt.Key.Key_Up,

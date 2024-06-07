@@ -54,6 +54,7 @@ class SignalOnline:
         exists=True,
         format="phys",
         color="#505050",
+        y_range=(0, 100),
     ):
         self.name = name
         self.raw = raw
@@ -64,6 +65,7 @@ class SignalOnline:
         self.exists = exists
         self.configured_from_device = True
         self.format = format
+        self.y_range = y_range
 
         color = color or "#505050"
         self.color = fn.mkColor(color)
@@ -120,6 +122,17 @@ class SignalOffline:
 
         if not hasattr(signal, "color"):
             self.color = fn.mkColor("#505050")
+
+        if not hasattr(signal, "y_range"):
+            self.y_range = (0, 100)
+
+    @property
+    def y_range(self):
+        return self.signal.y_range
+
+    @y_range.setter
+    def y_range(self, value):
+        self.signal.y_range = value
 
     @property
     def color(self):
@@ -795,12 +808,19 @@ class TableView(QtWidgets.QTableView):
             if not selected_items:
                 return
             else:
+                precision = self.model().float_precision
                 row = list(selected_items)[0]
                 signal = self.backend.signals[row]
 
                 info = {
                     "format": signal.format,
                     "ranges": copy_ranges(self.ranges[signal.entry]),
+                    "type": "channel",
+                    "color": signal.color.name(),
+                    "precision": precision,
+                    "ylink": False,
+                    "individual_axis": False,
+                    "y_range": signal.y_range,
                 }
 
                 for range_info in info["ranges"]:
@@ -833,6 +853,8 @@ class TableView(QtWidgets.QTableView):
                     signal = self.backend.signals[row]
 
                     signal.format = info["format"]
+                    signal.color = fn.mkColor(info["color"])
+                    signal.y_range = info["y_range"]
                     self.ranges[signal.entry] = copy_ranges(info["ranges"])
 
                 self.backend.update()
@@ -1604,6 +1626,22 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_V,
                 QtCore.Qt.KeyboardModifier.ControlModifier,
+            )
+            self.keyPressEvent(event)
+
+        elif action_text == "Copy display properties [Ctrl+Shift+C]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress,
+                QtCore.Qt.Key.Key_C,
+                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+            )
+            self.keyPressEvent(event)
+
+        elif action_text == "Paste display properties [Ctrl+Shift+V]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress,
+                QtCore.Qt.Key.Key_V,
+                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
             )
             self.keyPressEvent(event)
 
