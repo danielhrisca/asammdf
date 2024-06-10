@@ -601,7 +601,7 @@ class MDF4(MDF_Common):
             inval_total_size = 0
             block_type = b"##DT"
             record_size = 0
-            
+
             for new_group in new_groups:
                 channel_group = new_group.channel_group
                 if channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:

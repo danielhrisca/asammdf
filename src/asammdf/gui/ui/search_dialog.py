@@ -157,6 +157,8 @@ class Ui_SearchDialog(object):
 
         self.gridLayout.addWidget(self.case_sensitivity, 0, 3, 1, 1)
 
+        self.gridLayout.setRowStretch(2, 1)
+        self.gridLayout.setRowStretch(5, 1)
         icon4 = QIcon()
         icon4.addFile(u":/search.png", QSize(), QIcon.Normal, QIcon.Off)
         self.tabs.addTab(self.tab, icon4, "")
@@ -293,11 +295,13 @@ class Ui_SearchDialog(object):
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
         self.y_range_min = QDoubleSpinBox(self.tab_2)
         self.y_range_min.setObjectName(u"y_range_min")
+        self.y_range_min.setDecimals(6)
 
         self.horizontalLayout_3.addWidget(self.y_range_min)
 
         self.y_range_max = QDoubleSpinBox(self.tab_2)
         self.y_range_max.setObjectName(u"y_range_max")
+        self.y_range_max.setDecimals(6)
 
         self.horizontalLayout_3.addWidget(self.y_range_max)
 

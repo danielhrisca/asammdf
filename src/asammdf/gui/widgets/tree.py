@@ -2525,15 +2525,16 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     def y_range(self, value):
         if self.type() == self.Channel:
             self.signal.y_range = value
-            print('SES', self.signal.name, value)
+
         elif self.type() == self.Group:
             if self.pattern:
-                self.pattern['y_range'] = value
+                self.pattern["y_range"] = value
 
             count = self.childCount()
             for row in range(count):
                 child = self.child(row)
                 child.y_range = value
+
 
 class ChannnelGroupDialog(QtWidgets.QDialog):
     def __init__(self, name, pattern, ranges, *args, **kwargs):

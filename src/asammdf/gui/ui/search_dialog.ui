@@ -30,7 +30,7 @@
       <attribute name="title">
        <string>Search</string>
       </attribute>
-      <layout class="QGridLayout" name="gridLayout">
+      <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,1,0,0,1,0">
        <item row="2" column="0" colspan="5">
         <widget class="SearchTreeWidget" name="matches">
          <property name="selectionMode">
@@ -563,10 +563,18 @@
        <item row="9" column="2">
         <layout class="QHBoxLayout" name="horizontalLayout_3">
          <item>
-          <widget class="QDoubleSpinBox" name="y_range_min"/>
+          <widget class="QDoubleSpinBox" name="y_range_min">
+           <property name="decimals">
+            <number>6</number>
+           </property>
+          </widget>
          </item>
          <item>
-          <widget class="QDoubleSpinBox" name="y_range_max"/>
+          <widget class="QDoubleSpinBox" name="y_range_max">
+           <property name="decimals">
+            <number>6</number>
+           </property>
+          </widget>
          </item>
         </layout>
        </item>

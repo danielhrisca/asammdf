@@ -367,7 +367,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             "ranges": self.ranges,
             "name": self.name.text().strip(),
             "integer_format": self.integer_format.currentText(),
-            "y_range": sorted([self.y_range_min.value(), self.y_range_max.value()])
+            "y_range": sorted([self.y_range_min.value(), self.y_range_max.value()]),
         }
 
         if not self.result["pattern"]:

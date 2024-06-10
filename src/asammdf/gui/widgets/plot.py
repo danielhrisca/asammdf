@@ -2861,17 +2861,11 @@ class Plot(QtWidgets.QWidget):
                 item for item in self.channel_selection.selectedItems() if item.type() != ChannelsTreeItem.Info
             ]
 
-            channel_items = [
-                item for item in selected_items if item.type() == ChannelsTreeItem.Channel
-            ]
+            channel_items = [item for item in selected_items if item.type() == ChannelsTreeItem.Channel]
 
             if not channel_items:
-                channel_items = [
-                    item.first_signal() for item in selected_items
-                ]
-                channel_items = [
-                    item for item in channel_items if item is not None
-                ]
+                channel_items = [item.first_signal() for item in selected_items]
+                channel_items = [item for item in channel_items if item is not None]
 
             if selected_items:
                 uuids = [item.uuid for item in channel_items]
