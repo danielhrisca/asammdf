@@ -300,7 +300,7 @@ class MDF4(MDF_Common):
 
         self._closed = False
 
-        self.temporary_folder = kwargs.get("temporary_folder", None)
+        self.temporary_folder = kwargs.get("temporary_folder", get_global_option("temporary_folder"))
 
         if channels is None:
             self.load_filter = set()
@@ -365,6 +365,8 @@ class MDF4(MDF_Common):
 
                 if version >= "4.10" and flags:
                     tmpdir = Path(gettempdir())
+                    if self.temporary_folder:
+                        tmpdir = Path(self.temporary_folder)
                     self.name = tmpdir / f"{os.urandom(6).hex()}_{Path(name).name}"
                     shutil.copy(name, self.name)
                     self._file = open(self.name, "rb+")
