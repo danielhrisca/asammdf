@@ -1838,6 +1838,13 @@ class Plot(QtWidgets.QWidget):
 
                         del items_pool[uuid]
 
+                if root and root.pattern:
+                    y_range = root.pattern.get("y_range", (0, 100))
+
+                    item.y_range = y_range
+                    if item.uuid == self.plot.current_uuid:
+                        self.plot.viewbox.setYRange(*y_range, padding=0)
+
             if root is None:
                 root = self.channel_selection.invisibleRootItem()
                 root.addChildren(children)
@@ -2031,6 +2038,13 @@ class Plot(QtWidgets.QWidget):
             else:
                 if destination.type() == ChannelsTreeItem.Group:
                     destination.addChildren(children)
+                    if destination.pattern:
+                        y_range = destination.pattern.get("y_range", (0, 100))
+                        for child in children:
+                            self.plot.set_y_range(child.uuid, y_range, emit=False)
+
+                        if child.uuid == self.plot.current_uuid:
+                            self.plot.viewbox.setYRange(*y_range, padding=0)
                 else:
                     parent = destination.parent() or self.channel_selection.invisibleRootItem()
                     index = parent.indexOfChild(destination)
@@ -2070,7 +2084,6 @@ class Plot(QtWidgets.QWidget):
             self.channel_selection.refresh()
 
         self.adjust_splitter(initial=initial)
-
         self.current_uuid_changed(self.plot.current_uuid)
         self.plot._can_paint = True
         self.plot.update()
@@ -2845,20 +2858,38 @@ class Plot(QtWidgets.QWidget):
 
         elif key == QtCore.Qt.Key.Key_G and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
             selected_items = [
-                item for item in self.channel_selection.selectedItems() if item.type() == ChannelsTreeItem.Channel
+                item for item in self.channel_selection.selectedItems() if item.type() != ChannelsTreeItem.Info
             ]
 
+            channel_items = [
+                item for item in selected_items if item.type() == ChannelsTreeItem.Channel
+            ]
+
+            if not channel_items:
+                channel_items = [
+                    item.first_signal() for item in selected_items
+                ]
+                channel_items = [
+                    item for item in channel_items if item is not None
+                ]
+
             if selected_items:
-                uuids = [item.uuid for item in selected_items]
+                uuids = [item.uuid for item in channel_items]
 
                 signals = {}
-                indexes = []
                 for i, uuid in enumerate(uuids):
                     sig, idx = self.plot.signal_by_uuid(uuid)
                     if i == 0:
                         y_range = sig.y_range
-                    indexes.append(idx)
                     signals[sig.name] = sig
+
+                if not signals:
+                    signals["Demo signal"] = Signal(
+                        name="Demo signal",
+                        samples=[],
+                        timestamps=[],
+                    )
+                    y_range = (0, 100)
 
                 diag = ScaleDialog(signals, y_range, parent=self)
 
@@ -2871,10 +2902,8 @@ class Plot(QtWidgets.QWidget):
 
                     y_range = y_bottom, y_top
 
-                    # TO DO: should we update the axis here?
-
-                    for idx in indexes:
-                        self.plot.signals[idx].y_range = y_range
+                    for item in selected_items:
+                        item.y_range = y_range
 
                     self.zoom_changed()
 
@@ -5957,6 +5986,18 @@ class PlotGraphics(pg.PlotWidget):
 
     def update(self, *args, pixmap=None, **kwargs):
         self._pixmap = pixmap
+
+        for idx, sig in enumerate(self.signals):
+
+            if sig.individual_axis:
+                axis = self.get_axis(idx)
+                if tuple(axis.range) != tuple(sig.y_range):
+                    axis.setRange(*sig.y_range)
+
+            if sig.uuid == self.current_uuid:
+                if tuple(self.y_axis.range) != tuple(sig.y_range):
+                    self.y_axis.setRange(*sig.y_range)
+
         if self.viewbox:
             self.viewbox.update()
 

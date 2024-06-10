@@ -3,6 +3,7 @@ import re
 from traceback import format_exc
 
 from natsort import natsorted
+import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...blocks.utils import extract_xml_comment
@@ -74,6 +75,13 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.cancel_pattern_btn.clicked.connect(self._cancel_pattern)
         self.define_ranges_btn.clicked.connect(self._define_ranges)
 
+        self.y_range_min.setMinimum(-np.inf)
+        self.y_range_min.setMaximum(np.inf)
+        self.y_range_min.setValue(0)
+        self.y_range_max.setMinimum(-np.inf)
+        self.y_range_max.setMaximum(np.inf)
+        self.y_range_max.setValue(100)
+
         self.search_box.setFocus()
 
         self._return_names = return_names
@@ -112,6 +120,10 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             self.name.setText(pattern["name"])
             self.ranges = pattern["ranges"]
             self.integer_format.setCurrentText(pattern.get("integer_format", "phys"))
+
+            y_range = sorted(pattern.get("y_range", (0, 100)))
+            self.y_range_min.setValue(y_range[0])
+            self.y_range_max.setValue(y_range[1])
 
         self.setWindowTitle(window_title)
 
@@ -355,6 +367,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             "ranges": self.ranges,
             "name": self.name.text().strip(),
             "integer_format": self.integer_format.currentText(),
+            "y_range": sorted([self.y_range_min.value(), self.y_range_max.value()])
         }
 
         if not self.result["pattern"]:

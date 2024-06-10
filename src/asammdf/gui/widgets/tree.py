@@ -2029,6 +2029,20 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         self.exists = exists
 
+    def first_signal(self):
+        if self.type() == self.Group:
+            count = self.childCount()
+            for i in range(count):
+                item = self.child(i)
+                if item.type() == self.Channel:
+                    return item
+
+            for i in range(count):
+                item = self.child(i)
+                if item.type() == self.Group:
+                    if item_first_signal := item.first_signal():
+                        return item_first_signal
+
     def filter_computed(self):
         if self.type() == self.Channel:
             hide = not (self.signal.flags & Signal.Flags.computed)
@@ -2492,6 +2506,34 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         if self.type() == self.Channel:
             self.set_value(update=True)
 
+    @property
+    def y_range(self):
+        type = self.type()
+        if type == self.Channel:
+            return self.signal.y_range
+        elif type == self.Group:
+            count = self.childCount()
+            if count:
+                for row in range(count):
+                    return self.child(row).y_range
+            else:
+                return (0, 1)
+        else:
+            return (0, 1)
+
+    @y_range.setter
+    def y_range(self, value):
+        if self.type() == self.Channel:
+            self.signal.y_range = value
+            print('SES', self.signal.name, value)
+        elif self.type() == self.Group:
+            if self.pattern:
+                self.pattern['y_range'] = value
+
+            count = self.childCount()
+            for row in range(count):
+                child = self.child(row)
+                child.y_range = value
 
 class ChannnelGroupDialog(QtWidgets.QDialog):
     def __init__(self, name, pattern, ranges, *args, **kwargs):
