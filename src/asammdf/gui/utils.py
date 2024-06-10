@@ -1,6 +1,6 @@
 import ctypes
 from datetime import datetime
-from functools import reduce
+from functools import partial, reduce
 import inspect
 from io import StringIO
 import math
@@ -260,7 +260,6 @@ class Worker(QtCore.QRunnable):
 
 
 class ProgressDialog(QtWidgets.QProgressDialog):
-    qfinished = QtCore.Signal()
 
     NONE = NONE
     TERMINATED = TERMINATED
@@ -273,10 +272,16 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.result = self.NONE
         self.thread_finished = True
         self.close_on_finish = True
-        # Connect signal to "processEvents": Give the chance to "destroy" function to make his job
-        self.qfinished.connect(self.processEvents)
 
         self._closed = False
+
+    def accept(self):
+        self._closed = True
+        return super().accept()
+
+    def reject(self):
+        self._closed = True
+        return super().reject()
 
     def run_thread_with_progress(self, target, args, kwargs, wait_here=False, close_on_finish=True):
         self.show()
@@ -298,7 +303,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.worker.signals.setMinimum.connect(self.setMinimum)
         self.worker.signals.setMaximum.connect(self.setMaximum)
 
-        self.canceled.connect(self._canceled)
+        self.canceled.connect(partial(self.close, reject=True))
 
         self.threadpool.start(self.worker)
 
@@ -308,9 +313,6 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             loop.exec()
 
         return self.result
-
-    def _canceled(self):
-        self.close(reject=True)
 
     def processEvents(self):
         loop = QtCore.QEventLoop()
@@ -325,15 +327,13 @@ class ProgressDialog(QtWidgets.QProgressDialog):
 
     def thread_complete(self):
         self.thread_finished = True
-        self.qfinished.emit()
+        self.processEvents()
         if self.close_on_finish:
-            self.accept()
-
-    def cancel(self):
-        self._closed = True
-        super().cancel()
+            QtCore.QTimer.singleShot(50, self.accept)
 
     def close(self, reject=False):
+        self._closed = True
+
         if not self.thread_finished:
             self.worker.stop = True
 
@@ -341,12 +341,12 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             self.worker.signals.finished.connect(loop.quit)
             loop.exec()
 
-        self._closed = True
-
         if reject:
             self.reject()
         else:
             self.accept()
+
+        self.deleteLater()
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Escape and event.modifiers() == QtCore.Qt.KeyboardModifier.NoModifier:
