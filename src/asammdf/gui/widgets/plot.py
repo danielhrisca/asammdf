@@ -1838,7 +1838,7 @@ class Plot(QtWidgets.QWidget):
 
                         del items_pool[uuid]
 
-                if all(root, root.type() == ChannelsTreeItem.Group, root.pattern):
+                if root and root.type() == ChannelsTreeItem.Group and root.pattern:
                     y_range = root.pattern.get("y_range", (0, 100))
 
                     item.y_range = y_range
