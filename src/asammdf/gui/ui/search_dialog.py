@@ -40,7 +40,7 @@ class Ui_SearchDialog(object):
         self.gridLayout.setObjectName(u"gridLayout")
         self.matches = SearchTreeWidget(self.tab)
         self.matches.setObjectName(u"matches")
-        self.matches.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.matches.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.matches.setUniformRowHeights(False)
         self.matches.setSortingEnabled(False)
         self.matches.header().setMinimumSectionSize(40)
@@ -90,6 +90,7 @@ class Ui_SearchDialog(object):
 
         self.selection = SearchTreeWidget(self.tab)
         self.selection.setObjectName(u"selection")
+        self.selection.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.selection.setSortingEnabled(False)
         self.selection.header().setMinimumSectionSize(25)
         self.selection.header().setProperty("showSortIndicator", False)

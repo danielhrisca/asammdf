@@ -34,7 +34,7 @@
        <item row="2" column="0" colspan="5">
         <widget class="SearchTreeWidget" name="matches">
          <property name="selectionMode">
-          <enum>QAbstractItemView::SelectionMode::NoSelection</enum>
+          <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
          </property>
          <property name="uniformRowHeights">
           <bool>false</bool>
@@ -168,6 +168,9 @@
        </item>
        <item row="5" column="0" colspan="5">
         <widget class="SearchTreeWidget" name="selection">
+         <property name="selectionMode">
+          <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
+         </property>
          <property name="sortingEnabled">
           <bool>false</bool>
          </property>
