@@ -1337,7 +1337,7 @@ class MDF4(MDF_Common):
         invalidation_offset = 0
         has_yielded = False
         _count = 0
-        data_group = group.data_group
+
         data_blocks_info_generator = group.data_blocks_info_generator
         channel_group = group.channel_group
 
@@ -8225,6 +8225,8 @@ class MDF4(MDF_Common):
             idx += 1
             yield signals
 
+        grp.read_split_count = 0
+
     def get_master(
         self,
         index: int,
@@ -9558,7 +9560,7 @@ class MDF4(MDF_Common):
                         channel.next_ch_addr = group_channels[j + 1].address
                     group_channels[-1].next_ch_addr = 0
 
-                # channel dependecies
+                # channel dependencies
                 j = len(channels) - 1
                 while j >= 0:
                     dep_list = gp.channel_dependencies[j]
