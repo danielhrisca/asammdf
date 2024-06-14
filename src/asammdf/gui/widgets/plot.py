@@ -184,9 +184,8 @@ class PlotSignal(Signal):
             flags=signal.flags,
         )
 
-        self._pos = np.empty(2 * PLOT_BUFFER_SIZE, dtype="i4")
-        self._plot_samples = np.empty(2 * PLOT_BUFFER_SIZE, dtype="i1")
-        self._plot_timestamps = np.empty(2 * PLOT_BUFFER_SIZE, dtype="f8")
+        self._pos = self._plot_samples = self._plot_timestamps = None
+        self._enable = False
 
         self.path = None
 
@@ -201,7 +200,7 @@ class PlotSignal(Signal):
         self.precision = getattr(signal, "precision", 3)
 
         self._mode = "raw"
-        self._enable = getattr(signal, "enable", 3)
+        self.enable = getattr(signal, "enable", False)
 
         self.format = getattr(signal, "format", "phys")
 
