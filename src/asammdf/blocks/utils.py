@@ -1240,6 +1240,8 @@ class Group:
         "single_channel_dtype",
         "uses_ld",
         "read_split_count",
+        "uuid",
+        "index",
     )
 
     def __init__(self, data_group: DataGroupType) -> None:
@@ -1255,6 +1257,8 @@ class Group:
         self.uses_ld = False
         self.read_split_count = 0
         self.data_blocks_info_generator = iter(EMPTY_TUPLE)
+        self.uuid = ""
+        self.index = 0
 
     def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
