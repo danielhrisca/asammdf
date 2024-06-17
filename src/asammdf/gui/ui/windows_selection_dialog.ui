@@ -45,17 +45,17 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_3">
           <property name="leftMargin">
-           <number>1</number>
-          </property>
+  <number>3</number>
+</property>
           <property name="topMargin">
-           <number>1</number>
-          </property>
+  <number>3</number>
+</property>
           <property name="rightMargin">
-           <number>1</number>
-          </property>
+  <number>3</number>
+</property>
           <property name="bottomMargin">
-           <number>1</number>
-          </property>
+  <number>3</number>
+</property>
           <item>
            <layout class="QVBoxLayout" name="selection_layout"/>
           </item>

@@ -28,20 +28,20 @@
   </property>
   <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,1,0,0,0,0,0" columnstretch="0,0,0,0,0">
    <property name="leftMargin">
-    <number>4</number>
-   </property>
+  <number>3</number>
+</property>
    <property name="topMargin">
-    <number>4</number>
-   </property>
+  <number>3</number>
+</property>
    <property name="rightMargin">
-    <number>4</number>
-   </property>
+  <number>3</number>
+</property>
    <property name="bottomMargin">
-    <number>4</number>
-   </property>
+  <number>3</number>
+</property>
    <property name="spacing">
-    <number>2</number>
-   </property>
+  <number>3</number>
+</property>
    <item row="5" column="1" colspan="4">
     <widget class="QPlainTextEdit" name="comment"/>
    </item>
@@ -59,20 +59,20 @@
      </property>
      <layout class="QGridLayout" name="gridLayout_8">
       <property name="leftMargin">
-       <number>4</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="topMargin">
-       <number>4</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="rightMargin">
-       <number>4</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="bottomMargin">
-       <number>4</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="spacing">
-       <number>2</number>
-      </property>
+  <number>3</number>
+</property>
       <item row="1" column="2">
        <spacer name="horizontalSpacer_8">
         <property name="orientation">
@@ -233,20 +233,20 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout">
       <property name="spacing">
-       <number>0</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="leftMargin">
-       <number>0</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="topMargin">
-       <number>0</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="rightMargin">
-       <number>0</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="bottomMargin">
-       <number>0</number>
-      </property>
+  <number>3</number>
+</property>
       <item>
        <widget class="QScrollArea" name="scrollArea">
         <property name="frameShape">
@@ -269,20 +269,20 @@
          </property>
          <layout class="QGridLayout" name="arg_layout">
           <property name="leftMargin">
-           <number>9</number>
-          </property>
+  <number>3</number>
+</property>
           <property name="topMargin">
-           <number>4</number>
-          </property>
+  <number>3</number>
+</property>
           <property name="rightMargin">
-           <number>4</number>
-          </property>
+  <number>3</number>
+</property>
           <property name="bottomMargin">
-           <number>4</number>
-          </property>
+  <number>3</number>
+</property>
           <property name="spacing">
-           <number>2</number>
-          </property>
+  <number>3</number>
+</property>
           <item row="0" column="2">
            <widget class="QPushButton" name="show_definition_btn">
             <property name="text">
@@ -344,23 +344,23 @@
      </property>
      <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1">
       <property name="leftMargin">
-       <number>4</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="topMargin">
-       <number>4</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="rightMargin">
-       <number>4</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="bottomMargin">
-       <number>4</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="horizontalSpacing">
-       <number>2</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="verticalSpacing">
-       <number>12</number>
-      </property>
+  <number>3</number>
+</property>
       <item row="0" column="0">
        <widget class="QRadioButton" name="sample_by_sample">
         <property name="text">

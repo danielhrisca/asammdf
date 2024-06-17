@@ -24,9 +24,9 @@ class Ui_DatabaseItemUI(object):
             DatabaseItemUI.setObjectName(u"DatabaseItemUI")
         DatabaseItemUI.resize(291, 24)
         self.horizontalLayout = QHBoxLayout(DatabaseItemUI)
-        self.horizontalLayout.setSpacing(10)
+        self.horizontalLayout.setSpacing(3)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.horizontalLayout.setContentsMargins(2, 2, 2, 2)
+        self.horizontalLayout.setContentsMargins(3, 3, 3, 3)
         self.bus = QComboBox(DatabaseItemUI)
         self.bus.setObjectName(u"bus")
 

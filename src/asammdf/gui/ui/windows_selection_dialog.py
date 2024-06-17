@@ -41,7 +41,7 @@ class Ui_WindowSelectionDialog(object):
         self.scrollAreaWidgetContents_2.setGeometry(QRect(0, 0, 415, 325))
         self.verticalLayout_3 = QVBoxLayout(self.scrollAreaWidgetContents_2)
         self.verticalLayout_3.setObjectName(u"verticalLayout_3")
-        self.verticalLayout_3.setContentsMargins(1, 1, 1, 1)
+        self.verticalLayout_3.setContentsMargins(3, 3, 3, 3)
         self.selection_layout = QVBoxLayout()
         self.selection_layout.setObjectName(u"selection_layout")
 

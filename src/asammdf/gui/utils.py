@@ -261,6 +261,8 @@ class Worker(QtCore.QRunnable):
 
 class ProgressDialog(QtWidgets.QProgressDialog):
 
+    qfinished = QtCore.Signal()
+
     NONE = NONE
     TERMINATED = TERMINATED
 
@@ -330,6 +332,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.processEvents()
         if self.close_on_finish:
             QtCore.QTimer.singleShot(50, self.accept)
+        self.qfinished.emit()
 
     def close(self, reject=False):
         self._closed = True

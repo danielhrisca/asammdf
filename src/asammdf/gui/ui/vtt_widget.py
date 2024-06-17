@@ -26,7 +26,7 @@ class Ui_VTT_Widget(object):
         VTT_Widget.resize(511, 26)
         self.horizontalLayout = QHBoxLayout(VTT_Widget)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.horizontalLayout.setContentsMargins(-1, 2, -1, 2)
+        self.horizontalLayout.setContentsMargins(-1, 3, -1, 3)
         self.value = QDoubleSpinBox(VTT_Widget)
         self.value.setObjectName(u"value")
         self.value.setMinimumSize(QSize(100, 0))

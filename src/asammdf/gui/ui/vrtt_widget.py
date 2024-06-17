@@ -26,7 +26,7 @@ class Ui_VRTT_Widget(object):
         VRTT_Widget.resize(496, 46)
         self.horizontalLayout = QHBoxLayout(VRTT_Widget)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.horizontalLayout.setContentsMargins(-1, 2, -1, 2)
+        self.horizontalLayout.setContentsMargins(-1, 3, -1, 3)
         self.label = QLabel(VRTT_Widget)
         self.label.setObjectName(u"label")
 

@@ -30,7 +30,7 @@ class Ui_FunctionsManager(object):
         self.gridLayout_2 = QGridLayout(FunctionsManager)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setSpacing(10)
+        self.horizontalLayout_2.setSpacing(3)
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.add_btn = QPushButton(FunctionsManager)
         self.add_btn.setObjectName(u"add_btn")

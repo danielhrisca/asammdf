@@ -26,20 +26,20 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <property name="spacing">
-     <number>2</number>
-    </property>
+  <number>3</number>
+</property>
     <property name="leftMargin">
-     <number>0</number>
-    </property>
+  <number>3</number>
+</property>
     <property name="topMargin">
-     <number>0</number>
-    </property>
+  <number>3</number>
+</property>
     <property name="rightMargin">
-     <number>0</number>
-    </property>
+  <number>3</number>
+</property>
     <property name="bottomMargin">
-     <number>0</number>
-    </property>
+  <number>3</number>
+</property>
     <item>
      <widget class="QStackedWidget" name="stackedWidget">
       <property name="frameShape">
@@ -51,20 +51,20 @@
       <widget class="QWidget" name="stackedWidgetPage1">
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <property name="spacing">
-         <number>2</number>
-        </property>
+  <number>3</number>
+</property>
         <property name="leftMargin">
-         <number>0</number>
-        </property>
+  <number>3</number>
+</property>
         <property name="topMargin">
-         <number>0</number>
-        </property>
+  <number>3</number>
+</property>
         <property name="rightMargin">
-         <number>0</number>
-        </property>
+  <number>3</number>
+</property>
         <property name="bottomMargin">
-         <number>0</number>
-        </property>
+  <number>3</number>
+</property>
         <item>
          <widget class="QTabWidget" name="files">
           <property name="currentIndex">

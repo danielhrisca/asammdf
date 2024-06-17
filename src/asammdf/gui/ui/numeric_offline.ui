@@ -15,20 +15,20 @@
   </property>
   <layout class="QVBoxLayout" name="main_layout">
    <property name="spacing">
-    <number>2</number>
-   </property>
+  <number>3</number>
+</property>
    <property name="leftMargin">
-    <number>0</number>
-   </property>
+  <number>3</number>
+</property>
    <property name="topMargin">
-    <number>0</number>
-   </property>
+  <number>3</number>
+</property>
    <property name="rightMargin">
-    <number>0</number>
-   </property>
+  <number>3</number>
+</property>
    <property name="bottomMargin">
-    <number>0</number>
-   </property>
+  <number>3</number>
+</property>
    <item>
     <widget class="QGroupBox" name="controls">
      <property name="title">
@@ -39,25 +39,25 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout">
       <property name="spacing">
-       <number>2</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="leftMargin">
-       <number>0</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="topMargin">
-       <number>0</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="rightMargin">
-       <number>0</number>
-      </property>
+  <number>3</number>
+</property>
       <property name="bottomMargin">
-       <number>0</number>
-      </property>
+  <number>3</number>
+</property>
       <item>
        <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,1,0">
         <property name="spacing">
-         <number>4</number>
-        </property>
+  <number>3</number>
+</property>
         <item row="0" column="3">
          <widget class="QPushButton" name="toggle_controls_btn">
           <property name="text">
@@ -101,20 +101,20 @@
         </property>
         <layout class="QHBoxLayout" name="horizontalLayout_2">
          <property name="spacing">
-          <number>4</number>
-         </property>
+  <number>3</number>
+</property>
          <property name="leftMargin">
-          <number>4</number>
-         </property>
+  <number>3</number>
+</property>
          <property name="topMargin">
-          <number>4</number>
-         </property>
+  <number>3</number>
+</property>
          <property name="rightMargin">
-          <number>4</number>
-         </property>
+  <number>3</number>
+</property>
          <property name="bottomMargin">
-          <number>4</number>
-         </property>
+  <number>3</number>
+</property>
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1,0">
            <item>
@@ -178,20 +178,20 @@
         </property>
         <layout class="QGridLayout" name="gridLayout" columnstretch="0,1,0,0">
          <property name="leftMargin">
-          <number>4</number>
-         </property>
+  <number>3</number>
+</property>
          <property name="topMargin">
-          <number>4</number>
-         </property>
+  <number>3</number>
+</property>
          <property name="rightMargin">
-          <number>4</number>
-         </property>
+  <number>3</number>
+</property>
          <property name="bottomMargin">
-          <number>4</number>
-         </property>
+  <number>3</number>
+</property>
          <property name="spacing">
-          <number>4</number>
-         </property>
+  <number>3</number>
+</property>
          <item row="0" column="1">
           <widget class="QLineEdit" name="pattern_match">
            <property name="placeholderText">

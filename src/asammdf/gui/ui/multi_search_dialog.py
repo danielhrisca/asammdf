@@ -31,7 +31,7 @@ class Ui_MultiSearchDialog(object):
         MultiSearchDialog.setSizeGripEnabled(True)
         self.grid_layout = QGridLayout(MultiSearchDialog)
         self.grid_layout.setObjectName(u"grid_layout")
-        self.grid_layout.setContentsMargins(9, 9, 9, 9)
+        self.grid_layout.setContentsMargins(3, 3, 3, 3)
         self.match_kind = QComboBox(MultiSearchDialog)
         self.match_kind.addItem("")
         self.match_kind.addItem("")

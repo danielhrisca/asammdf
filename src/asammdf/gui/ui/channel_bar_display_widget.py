@@ -28,7 +28,7 @@ class Ui_ChannelBarDisplay(object):
         self.verticalLayout = QVBoxLayout(ChannelBarDisplay)
         self.verticalLayout.setSpacing(3)
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.verticalLayout.setContentsMargins(2, 2, 2, 2)
+        self.verticalLayout.setContentsMargins(3, 3, 3, 3)
         self.layout = QHBoxLayout()
         self.layout.setObjectName(u"layout")
         self.color_btn = QPushButton(ChannelBarDisplay)

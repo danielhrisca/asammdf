@@ -21,20 +21,20 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <property name="spacing">
-    <number>2</number>
-   </property>
+  <number>3</number>
+</property>
    <property name="leftMargin">
-    <number>2</number>
-   </property>
+  <number>3</number>
+</property>
    <property name="topMargin">
-    <number>2</number>
-   </property>
+  <number>3</number>
+</property>
    <property name="rightMargin">
-    <number>2</number>
-   </property>
+  <number>3</number>
+</property>
    <property name="bottomMargin">
-    <number>2</number>
-   </property>
+  <number>3</number>
+</property>
    <item>
     <widget class="QScrollArea" name="scrollArea">
      <property name="horizontalScrollBarPolicy">
@@ -54,25 +54,25 @@
       </property>
       <layout class="QVBoxLayout" name="verticalLayout">
        <property name="spacing">
-        <number>1</number>
-       </property>
+  <number>3</number>
+</property>
        <property name="leftMargin">
-        <number>2</number>
-       </property>
+  <number>3</number>
+</property>
        <property name="topMargin">
-        <number>2</number>
-       </property>
+  <number>3</number>
+</property>
        <property name="rightMargin">
-        <number>2</number>
-       </property>
+  <number>3</number>
+</property>
        <property name="bottomMargin">
-        <number>2</number>
-       </property>
+  <number>3</number>
+</property>
        <item>
         <layout class="QGridLayout" name="gridLayout" rowstretch="1,0,0,0,0,0" columnstretch="0,1">
          <property name="spacing">
-          <number>2</number>
-         </property>
+  <number>3</number>
+</property>
          <item row="4" column="0" colspan="2">
           <widget class="QGroupBox" name="visible_group">
            <property name="title">
@@ -80,23 +80,23 @@
            </property>
            <layout class="QGridLayout" name="gridLayout_3" columnstretch="0,1,0">
             <property name="leftMargin">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="topMargin">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="rightMargin">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="bottomMargin">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="horizontalSpacing">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="verticalSpacing">
-             <number>0</number>
-            </property>
+  <number>3</number>
+</property>
             <item row="0" column="1">
              <widget class="QLabel" name="visible_start">
               <property name="text">
@@ -404,23 +404,23 @@
            </property>
            <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1,0">
             <property name="leftMargin">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="topMargin">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="rightMargin">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="bottomMargin">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="horizontalSpacing">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="verticalSpacing">
-             <number>0</number>
-            </property>
+  <number>3</number>
+</property>
             <item row="0" column="2">
              <widget class="QLabel" name="xunit7">
               <property name="text">
@@ -740,23 +740,23 @@
            </property>
            <layout class="QGridLayout" name="gridLayout_4" columnstretch="0,1,0">
             <property name="leftMargin">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="topMargin">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="rightMargin">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="bottomMargin">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="horizontalSpacing">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="verticalSpacing">
-             <number>0</number>
-            </property>
+  <number>3</number>
+</property>
             <item row="0" column="1">
              <widget class="QLabel" name="cursor_t">
               <property name="text">
@@ -851,23 +851,23 @@ hr { height: 1px; border-width: 0; }
            </property>
            <layout class="QGridLayout" name="gridLayout_5" columnstretch="0,1,0">
             <property name="leftMargin">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="topMargin">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="rightMargin">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="bottomMargin">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="horizontalSpacing">
-             <number>2</number>
-            </property>
+  <number>3</number>
+</property>
             <property name="verticalSpacing">
-             <number>0</number>
-            </property>
+  <number>3</number>
+</property>
             <item row="0" column="0">
              <widget class="QLabel" name="label_13">
               <property name="text">

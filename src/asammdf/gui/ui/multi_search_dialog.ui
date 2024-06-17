@@ -18,17 +18,17 @@
   </property>
   <layout class="QGridLayout" name="grid_layout" columnstretch="1,0,0,0,0,0">
    <property name="leftMargin">
-    <number>9</number>
-   </property>
+  <number>3</number>
+</property>
    <property name="topMargin">
-    <number>9</number>
-   </property>
+  <number>3</number>
+</property>
    <property name="rightMargin">
-    <number>9</number>
-   </property>
+  <number>3</number>
+</property>
    <property name="bottomMargin">
-    <number>9</number>
-   </property>
+  <number>3</number>
+</property>
    <item row="0" column="0">
     <widget class="QComboBox" name="match_kind">
      <property name="currentIndex">

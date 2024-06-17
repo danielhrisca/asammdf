@@ -17,8 +17,8 @@
    <item row="0" column="0">
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <property name="spacing">
-      <number>10</number>
-     </property>
+  <number>3</number>
+</property>
      <item>
       <widget class="QPushButton" name="add_btn">
        <property name="text">
