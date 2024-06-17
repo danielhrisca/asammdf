@@ -676,7 +676,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             target=self.concatenate_thread,
             args=(
                 output_file_name,
-                version,
+                version,
                 source_files,
                 sync,
                 add_samples_origin,
