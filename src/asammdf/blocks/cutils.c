@@ -267,6 +267,7 @@ static PyObject *extract(PyObject *self, PyObject *args)
             dims[0] = count;
 
             descr = PyArray_DescrFromType(NPY_STRING);
+            descr = PyArray_DescrNew(descr);
 #if NPY_ABI_VERSION < 0x02000000
             descr->elsize = max;
 #else
