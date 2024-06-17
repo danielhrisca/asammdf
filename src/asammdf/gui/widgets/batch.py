@@ -234,7 +234,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             return
 
         self._progress = setup_progress(parent=self, autoclose=False)
-        self._progress.qfinished.connect(self.scramble_finished)
+        self._progress.finished.connect(self.scramble_finished)
 
         self._progress.run_thread_with_progress(
             target=self.scramble_thread,
@@ -283,7 +283,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
 
         self._progress = setup_progress(parent=self)
-        self._progress.qfinished.connect(self.extract_bus_logging_finished)
+        self._progress.finished.connect(self.extract_bus_logging_finished)
 
         self._progress.run_thread_with_progress(
             target=self.extract_bus_logging_thread,
@@ -439,7 +439,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
 
         self._progress = setup_progress(parent=self)
-        self._progress.qfinished.connect(self.extract_bus_csv_logging_finished)
+        self._progress.finished.connect(self.extract_bus_csv_logging_finished)
 
         self._progress.run_thread_with_progress(
             target=self.extract_bus_csv_logging_thread,
@@ -670,13 +670,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
 
         self._progress = setup_progress(parent=self, autoclose=False)
-        self._progress.qfinished.connect(self.concatenate_finished)
+        self._progress.finished.connect(self.concatenate_finished)
 
         self._progress.run_thread_with_progress(
             target=self.concatenate_thread,
             args=(
                 output_file_name,
-                version,
+                version,
                 source_files,
                 sync,
                 add_samples_origin,
@@ -827,7 +827,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
 
         self._progress = setup_progress(parent=self, autoclose=False)
-        self._progress.qfinished.connect(self.stack_finished)
+        self._progress.finished.connect(self.stack_finished)
 
         self._progress.run_thread_with_progress(
             target=self.stack_thread,
@@ -1338,7 +1338,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 return
 
         self._progress = setup_progress(parent=self, autoclose=False)
-        self._progress.qfinished.connect(self.apply_processing_finished)
+        self._progress.finished.connect(self.apply_processing_finished)
 
         self._progress.run_thread_with_progress(
             target=self.apply_processing_thread,

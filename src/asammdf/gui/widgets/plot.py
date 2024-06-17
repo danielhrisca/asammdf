@@ -4290,7 +4290,7 @@ class PlotGraphics(pg.PlotWidget):
         return self._grid_pixmap
 
     def dropEvent(self, e):
-        if e.source() is self.parent().channel_selection:
+        if e.source() is self.plot_parent.channel_selection:
             super().dropEvent(e)
         else:
             data = e.mimeData()
@@ -4533,7 +4533,7 @@ class PlotGraphics(pg.PlotWidget):
                 key == QtCore.Qt.Key.Key_F and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier and not self.locked
             ):
                 self.block_zoom_signal = True
-                parent = self.parent().parent()
+                parent = self.plot_parent
                 uuids = [
                     item.uuid
                     for item in parent.channel_selection.selectedItems()
@@ -4760,7 +4760,7 @@ class PlotGraphics(pg.PlotWidget):
 
             elif key == QtCore.Qt.Key.Key_S and modifier == QtCore.Qt.KeyboardModifier.NoModifier and not self.locked:
                 self.block_zoom_signal = True
-                parent = self.parent().parent()
+                parent = self.plot_parent
                 uuids = []
 
                 iterator = QtWidgets.QTreeWidgetItemIterator(parent.channel_selection)
@@ -4867,7 +4867,7 @@ class PlotGraphics(pg.PlotWidget):
                 key == QtCore.Qt.Key.Key_S and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier and not self.locked
             ):
                 self.block_zoom_signal = True
-                parent = self.parent().parent()
+                parent = self.plot_parent
                 uuids = [
                     item.uuid
                     for item in parent.channel_selection.selectedItems()
@@ -5055,7 +5055,7 @@ class PlotGraphics(pg.PlotWidget):
                 key in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_Right)
                 and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
             ):
-                parent = self.parent().parent()
+                parent = self.plot_parent
                 uuids = list(
                     {
                         item.uuid
@@ -5086,7 +5086,7 @@ class PlotGraphics(pg.PlotWidget):
                 )
                 and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
             ):
-                parent = self.parent().parent()
+                parent = self.plot_parent
                 uuids = list(
                     {
                         item.uuid
