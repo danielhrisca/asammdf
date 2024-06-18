@@ -5702,7 +5702,8 @@ class PlotGraphics(pg.PlotWidget):
 
             axis.picture = None
 
-        sig.trim(*sig.trim_info, force=True)
+        if sig.trim_info is not None:
+            sig.trim(*sig.trim_info, force=True)
 
         self.update()
 
@@ -5861,7 +5862,8 @@ class PlotGraphics(pg.PlotWidget):
                 if len(self._timebase_db[id_]) == 0:
                     del self._timebase_db[id_]
 
-                sig.trim(*sig.trim_info, force=True)
+                if sig.trim_info is not None:
+                    sig.trim(*sig.trim_info, force=True)
         else:
             for sig in signals:
                 if not len(sig.timestamps):
@@ -5877,7 +5879,8 @@ class PlotGraphics(pg.PlotWidget):
                 if len(self._timebase_db[id_]) == 0:
                     del self._timebase_db[id_]
 
-                sig.trim(*sig.trim_info, force=True)
+                if sig.trim_info is not None:
+                    sig.trim(*sig.trim_info, force=True)
 
         self._compute_all_timebase()
 
