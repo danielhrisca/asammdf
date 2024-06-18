@@ -27,7 +27,9 @@ class Ui_BusDatabaseManager(object):
             BusDatabaseManager.setObjectName(u"BusDatabaseManager")
         BusDatabaseManager.resize(632, 267)
         self.gridLayout = QGridLayout(BusDatabaseManager)
+        self.gridLayout.setSpacing(3)
         self.gridLayout.setObjectName(u"gridLayout")
+        self.gridLayout.setContentsMargins(3, 3, 3, 3)
         self.tabWidget = QTabWidget(BusDatabaseManager)
         self.tabWidget.setObjectName(u"tabWidget")
         self.tab = QWidget()
@@ -57,6 +59,7 @@ class Ui_BusDatabaseManager(object):
         self.tab_2 = QWidget()
         self.tab_2.setObjectName(u"tab_2")
         self.gridLayout_8 = QGridLayout(self.tab_2)
+        self.gridLayout_8.setSpacing(3)
         self.gridLayout_8.setObjectName(u"gridLayout_8")
         self.gridLayout_8.setContentsMargins(3, 3, 3, 3)
         self.load_lin_database_btn = QPushButton(self.tab_2)
@@ -81,7 +84,7 @@ class Ui_BusDatabaseManager(object):
 
         self.retranslateUi(BusDatabaseManager)
 
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(BusDatabaseManager)

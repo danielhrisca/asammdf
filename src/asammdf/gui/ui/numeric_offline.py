@@ -73,6 +73,7 @@ class Ui_NumericDisplay(object):
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.horizontalLayout_2.setContentsMargins(3, 3, 3, 3)
         self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setSpacing(3)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.timestamp = QDoubleSpinBox(self.time_group)
         self.timestamp.setObjectName(u"timestamp")
@@ -89,10 +90,10 @@ class Ui_NumericDisplay(object):
         self.timestamp_slider = QSlider(self.time_group)
         self.timestamp_slider.setObjectName(u"timestamp_slider")
         self.timestamp_slider.setMaximum(99999)
-        self.timestamp_slider.setOrientation(Qt.Horizontal)
+        self.timestamp_slider.setOrientation(Qt.Orientation.Horizontal)
         self.timestamp_slider.setInvertedAppearance(False)
         self.timestamp_slider.setInvertedControls(False)
-        self.timestamp_slider.setTickPosition(QSlider.NoTicks)
+        self.timestamp_slider.setTickPosition(QSlider.TickPosition.NoTicks)
         self.timestamp_slider.setTickInterval(1)
 
         self.horizontalLayout.addWidget(self.timestamp_slider)
@@ -158,6 +159,7 @@ class Ui_NumericDisplay(object):
         self.gridLayout.addWidget(self.case_sensitivity, 2, 1, 1, 1)
 
         self.horizontalLayout_3 = QHBoxLayout()
+        self.horizontalLayout_3.setSpacing(3)
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
         self.backward = QPushButton(self.search_group)
         self.backward.setObjectName(u"backward")

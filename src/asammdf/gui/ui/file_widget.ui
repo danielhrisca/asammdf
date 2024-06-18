@@ -50,7 +50,7 @@
       <enum>QTabWidget::TabPosition::West</enum>
      </property>
      <property name="currentIndex">
-      <number>3</number>
+      <number>0</number>
      </property>
      <property name="documentMode">
       <bool>false</bool>
@@ -86,6 +86,9 @@
          </property>
          <widget class="QWidget" name="verticalLayoutWidget">
           <layout class="QVBoxLayout" name="channels_layout">
+           <property name="spacing">
+  <number>3</number>
+</property>
            <item>
             <widget class="QComboBox" name="channel_view">
              <item>
@@ -119,6 +122,9 @@
            </item>
            <item>
             <layout class="QHBoxLayout" name="buttons_layout">
+             <property name="spacing">
+  <number>3</number>
+</property>
              <item>
               <widget class="QPushButton" name="load_channel_list_btn">
                <property name="toolTip">
@@ -310,6 +316,9 @@
 </property>
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_2">
+         <property name="spacing">
+  <number>3</number>
+</property>
          <item>
           <widget class="QComboBox" name="filter_view">
            <item>
@@ -343,6 +352,9 @@
          </item>
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_4">
+           <property name="spacing">
+  <number>3</number>
+</property>
            <item>
             <widget class="QPushButton" name="load_filter_list_btn">
              <property name="toolTip">
@@ -418,6 +430,9 @@
        </item>
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_6">
+         <property name="spacing">
+  <number>3</number>
+</property>
          <item>
           <widget class="QLabel" name="label">
            <property name="text">
@@ -450,11 +465,26 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>313</width>
-            <height>629</height>
+            <width>310</width>
+            <height>626</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_4">
+           <property name="spacing">
+  <number>3</number>
+</property>
+           <property name="leftMargin">
+  <number>3</number>
+</property>
+           <property name="topMargin">
+  <number>3</number>
+</property>
+           <property name="rightMargin">
+  <number>3</number>
+</property>
+           <property name="bottomMargin">
+  <number>3</number>
+</property>
            <item>
             <layout class="QVBoxLayout" name="verticalLayout_3" stretch="0,0,0,1,0">
              <property name="spacing">
@@ -484,7 +514,7 @@
                 <property name="bottomMargin">
   <number>3</number>
 </property>
-                <property name="horizontalSpacing">
+                <property name="spacing">
   <number>3</number>
 </property>
                 <item row="0" column="0">
@@ -574,7 +604,7 @@
                 <property name="bottomMargin">
   <number>3</number>
 </property>
-                <property name="horizontalSpacing">
+                <property name="spacing">
   <number>3</number>
 </property>
                 <item row="0" column="0">
@@ -714,10 +744,25 @@
                 <item>
                  <widget class="QStackedWidget" name="output_options">
                   <property name="currentIndex">
-                   <number>0</number>
+                   <number>4</number>
                   </property>
                   <widget class="QWidget" name="MDF">
                    <layout class="QGridLayout" name="gridLayout_22" columnstretch="0,0">
+                    <property name="leftMargin">
+  <number>3</number>
+</property>
+                    <property name="topMargin">
+  <number>3</number>
+</property>
+                    <property name="rightMargin">
+  <number>3</number>
+</property>
+                    <property name="bottomMargin">
+  <number>3</number>
+</property>
+                    <property name="spacing">
+  <number>3</number>
+</property>
                     <item row="4" column="1">
                      <widget class="QDoubleSpinBox" name="mdf_split_size">
                       <property name="suffix">
@@ -758,6 +803,21 @@
                        <string>Scramble</string>
                       </property>
                       <layout class="QGridLayout" name="gridLayout_20">
+                       <property name="leftMargin">
+  <number>3</number>
+</property>
+                       <property name="topMargin">
+  <number>3</number>
+</property>
+                       <property name="rightMargin">
+  <number>3</number>
+</property>
+                       <property name="bottomMargin">
+  <number>3</number>
+</property>
+                       <property name="spacing">
+  <number>3</number>
+</property>
                        <item row="1" column="0">
                         <widget class="QPushButton" name="scramble_btn">
                          <property name="text">
@@ -1311,17 +1371,35 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>999</width>
-            <height>610</height>
+            <width>991</width>
+            <height>602</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_7" columnstretch="0,0,0">
+           <property name="leftMargin">
+  <number>3</number>
+</property>
+           <property name="topMargin">
+  <number>3</number>
+</property>
+           <property name="rightMargin">
+  <number>3</number>
+</property>
+           <property name="bottomMargin">
+  <number>3</number>
+</property>
+           <property name="spacing">
+  <number>3</number>
+</property>
            <item row="2" column="1">
             <widget class="QGroupBox" name="groupBox_3">
              <property name="title">
               <string>CSV</string>
              </property>
              <layout class="QGridLayout" name="gridLayout_6" columnstretch="1,0,0">
+              <property name="leftMargin">
+  <number>3</number>
+</property>
               <property name="topMargin">
   <number>3</number>
 </property>
@@ -1693,6 +1771,9 @@
                <property name="bottomMargin">
   <number>3</number>
 </property>
+               <property name="spacing">
+  <number>3</number>
+</property>
                <item row="0" column="0">
                 <widget class="QPushButton" name="load_lin_database_btn">
                  <property name="text">
@@ -1726,6 +1807,9 @@
            </item>
            <item row="1" column="0" colspan="2">
             <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0,1">
+             <property name="spacing">
+  <number>3</number>
+</property>
              <item>
               <widget class="QLabel" name="label_12">
                <property name="text">
@@ -1785,10 +1869,7 @@
        <property name="bottomMargin">
   <number>3</number>
 </property>
-       <property name="horizontalSpacing">
-  <number>3</number>
-</property>
-       <property name="verticalSpacing">
+       <property name="spacing">
   <number>3</number>
 </property>
        <item row="0" column="0">

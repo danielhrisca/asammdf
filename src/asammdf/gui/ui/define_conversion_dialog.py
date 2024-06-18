@@ -35,14 +35,16 @@ class Ui_ConversionDialog(object):
         ConversionDialog.setWindowIcon(icon)
         ConversionDialog.setSizeGripEnabled(True)
         self.gridLayout = QGridLayout(ConversionDialog)
+        self.gridLayout.setSpacing(3)
         self.gridLayout.setObjectName(u"gridLayout")
+        self.gridLayout.setContentsMargins(3, 3, 3, 3)
         self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.gridLayout.addItem(self.horizontalSpacer_4, 5, 2, 1, 1)
 
         self.label_8 = QLabel(ConversionDialog)
         self.label_8.setObjectName(u"label_8")
-        self.label_8.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignTop)
+        self.label_8.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
 
         self.gridLayout.addWidget(self.label_8, 3, 0, 1, 1)
 
@@ -95,7 +97,9 @@ class Ui_ConversionDialog(object):
         self.tab = QWidget()
         self.tab.setObjectName(u"tab")
         self.gridLayout_5 = QGridLayout(self.tab)
+        self.gridLayout_5.setSpacing(3)
         self.gridLayout_5.setObjectName(u"gridLayout_5")
+        self.gridLayout_5.setContentsMargins(3, 3, 3, 3)
         self.label_10 = QLabel(self.tab)
         self.label_10.setObjectName(u"label_10")
 
@@ -136,7 +140,9 @@ class Ui_ConversionDialog(object):
         self.tab_2 = QWidget()
         self.tab_2.setObjectName(u"tab_2")
         self.gridLayout_6 = QGridLayout(self.tab_2)
+        self.gridLayout_6.setSpacing(3)
         self.gridLayout_6.setObjectName(u"gridLayout_6")
+        self.gridLayout_6.setContentsMargins(3, 3, 3, 3)
         self.label_3 = QLabel(self.tab_2)
         self.label_3.setObjectName(u"label_3")
 
@@ -221,7 +227,9 @@ class Ui_ConversionDialog(object):
         self.tab_3 = QWidget()
         self.tab_3.setObjectName(u"tab_3")
         self.gridLayout_2 = QGridLayout(self.tab_3)
+        self.gridLayout_2.setSpacing(3)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
+        self.gridLayout_2.setContentsMargins(3, 3, 3, 3)
         self.vtt_list = MinimalListWidget(self.tab_3)
         self.vtt_list.setObjectName(u"vtt_list")
 
@@ -232,7 +240,9 @@ class Ui_ConversionDialog(object):
         self.page = QWidget()
         self.page.setObjectName(u"page")
         self.horizontalLayout = QHBoxLayout(self.page)
+        self.horizontalLayout.setSpacing(3)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalLayout.setContentsMargins(3, 3, 3, 3)
         self.vtt_default = QLineEdit(self.page)
         self.vtt_default.setObjectName(u"vtt_default")
 
@@ -242,7 +252,9 @@ class Ui_ConversionDialog(object):
         self.page_2 = QWidget()
         self.page_2.setObjectName(u"page_2")
         self.horizontalLayout_2 = QHBoxLayout(self.page_2)
+        self.horizontalLayout_2.setSpacing(3)
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.horizontalLayout_2.setContentsMargins(3, 3, 3, 3)
         self.vtt_default_btn = QPushButton(self.page_2)
         self.vtt_default_btn.setObjectName(u"vtt_default_btn")
 
@@ -287,7 +299,9 @@ class Ui_ConversionDialog(object):
         self.tab_4 = QWidget()
         self.tab_4.setObjectName(u"tab_4")
         self.gridLayout_3 = QGridLayout(self.tab_4)
+        self.gridLayout_3.setSpacing(3)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
+        self.gridLayout_3.setContentsMargins(3, 3, 3, 3)
         self.vrtt_list = MinimalListWidget(self.tab_4)
         self.vrtt_list.setObjectName(u"vrtt_list")
 
@@ -303,7 +317,9 @@ class Ui_ConversionDialog(object):
         self.page_3 = QWidget()
         self.page_3.setObjectName(u"page_3")
         self.horizontalLayout_3 = QHBoxLayout(self.page_3)
+        self.horizontalLayout_3.setSpacing(3)
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.horizontalLayout_3.setContentsMargins(3, 3, 3, 3)
         self.vrtt_default = QLineEdit(self.page_3)
         self.vrtt_default.setObjectName(u"vrtt_default")
 
@@ -313,7 +329,9 @@ class Ui_ConversionDialog(object):
         self.page_4 = QWidget()
         self.page_4.setObjectName(u"page_4")
         self.horizontalLayout_4 = QHBoxLayout(self.page_4)
+        self.horizontalLayout_4.setSpacing(3)
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
+        self.horizontalLayout_4.setContentsMargins(3, 3, 3, 3)
         self.vrtt_default_btn = QPushButton(self.page_4)
         self.vrtt_default_btn.setObjectName(u"vrtt_default_btn")
 
@@ -353,7 +371,9 @@ class Ui_ConversionDialog(object):
         self.tab_5 = QWidget()
         self.tab_5.setObjectName(u"tab_5")
         self.verticalLayout = QVBoxLayout(self.tab_5)
+        self.verticalLayout.setSpacing(3)
         self.verticalLayout.setObjectName(u"verticalLayout")
+        self.verticalLayout.setContentsMargins(3, 3, 3, 3)
         self.label_18 = QLabel(self.tab_5)
         self.label_18.setObjectName(u"label_18")
 
@@ -402,8 +422,8 @@ class Ui_ConversionDialog(object):
         self.retranslateUi(ConversionDialog)
 
         self.tabs.setCurrentIndex(0)
-        self.vtt_mode.setCurrentIndex(0)
-        self.vrtt_mode.setCurrentIndex(0)
+        self.vtt_mode.setCurrentIndex(1)
+        self.vrtt_mode.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(ConversionDialog)

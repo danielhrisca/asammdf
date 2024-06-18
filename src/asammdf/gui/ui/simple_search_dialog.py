@@ -28,11 +28,13 @@ class Ui_SimpleSearchDialog(object):
         SimpleSearchDialog.resize(1183, 421)
         SimpleSearchDialog.setSizeGripEnabled(True)
         self.gridLayout = QGridLayout(SimpleSearchDialog)
+        self.gridLayout.setSpacing(3)
         self.gridLayout.setObjectName(u"gridLayout")
+        self.gridLayout.setContentsMargins(3, 3, 3, 3)
         self.matches = QTreeWidget(SimpleSearchDialog)
         self.matches.setObjectName(u"matches")
-        self.matches.setFocusPolicy(Qt.TabFocus)
-        self.matches.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.matches.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+        self.matches.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.matches.setSortingEnabled(True)
 
         self.gridLayout.addWidget(self.matches, 3, 0, 2, 1)
@@ -54,6 +56,7 @@ class Ui_SimpleSearchDialog(object):
         self.gridLayout.addWidget(self.label, 2, 2, 1, 1)
 
         self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setSpacing(3)
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
@@ -87,6 +90,7 @@ class Ui_SimpleSearchDialog(object):
         self.gridLayout.addItem(self.verticalSpacer_2, 4, 1, 1, 1)
 
         self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setSpacing(3)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.cancel_btn = QPushButton(SimpleSearchDialog)
         self.cancel_btn.setObjectName(u"cancel_btn")

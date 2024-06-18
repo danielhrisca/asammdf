@@ -22,7 +22,7 @@ class Ui_ChannelBarDisplay(object):
     def setupUi(self, ChannelBarDisplay):
         if not ChannelBarDisplay.objectName():
             ChannelBarDisplay.setObjectName(u"ChannelBarDisplay")
-        ChannelBarDisplay.resize(154, 46)
+        ChannelBarDisplay.resize(168, 46)
         ChannelBarDisplay.setMinimumSize(QSize(40, 46))
         ChannelBarDisplay.setMaximumSize(QSize(16777215, 46))
         self.verticalLayout = QVBoxLayout(ChannelBarDisplay)
@@ -55,8 +55,8 @@ class Ui_ChannelBarDisplay(object):
         self.name.setMinimumSize(QSize(130, 40))
         self.name.setMaximumSize(QSize(16777215, 40))
         self.name.setMouseTracking(False)
-        self.name.setTextFormat(Qt.PlainText)
-        self.name.setTextInteractionFlags(Qt.LinksAccessibleByMouse)
+        self.name.setTextFormat(Qt.TextFormat.PlainText)
+        self.name.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse)
 
         self.layout.addWidget(self.name)
 

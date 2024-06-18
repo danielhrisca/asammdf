@@ -28,6 +28,7 @@ class Ui_XYDisplay(object):
         self.verticalLayout = QVBoxLayout(XYDisplay)
         self.verticalLayout.setSpacing(3)
         self.verticalLayout.setObjectName(u"verticalLayout")
+        self.verticalLayout.setContentsMargins(3, 3, 3, 3)
         self.plot_layout = QHBoxLayout()
         self.plot_layout.setSpacing(3)
         self.plot_layout.setObjectName(u"plot_layout")
@@ -56,7 +57,7 @@ class Ui_XYDisplay(object):
         self.timestamp_slider = QSlider(self.groupBox)
         self.timestamp_slider.setObjectName(u"timestamp_slider")
         self.timestamp_slider.setMaximum(99999)
-        self.timestamp_slider.setOrientation(Qt.Horizontal)
+        self.timestamp_slider.setOrientation(Qt.Orientation.Horizontal)
         self.timestamp_slider.setTickInterval(1)
 
         self.horizontalLayout.addWidget(self.timestamp_slider)

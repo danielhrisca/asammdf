@@ -17,6 +17,18 @@
    <property name="spacing">
   <number>3</number>
 </property>
+   <property name="leftMargin">
+  <number>3</number>
+</property>
+   <property name="topMargin">
+  <number>3</number>
+</property>
+   <property name="rightMargin">
+  <number>3</number>
+</property>
+   <property name="bottomMargin">
+  <number>3</number>
+</property>
    <item>
     <layout class="QHBoxLayout" name="plot_layout">
      <property name="spacing">
@@ -74,7 +86,7 @@
          <number>99999</number>
         </property>
         <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+         <enum>Qt::Orientation::Horizontal</enum>
         </property>
         <property name="tickInterval">
          <number>1</number>

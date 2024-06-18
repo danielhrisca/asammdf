@@ -14,6 +14,21 @@
    <string>Select window type</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
+   <property name="spacing">
+  <number>3</number>
+</property>
+   <property name="leftMargin">
+  <number>3</number>
+</property>
+   <property name="topMargin">
+  <number>3</number>
+</property>
+   <property name="rightMargin">
+  <number>3</number>
+</property>
+   <property name="bottomMargin">
+  <number>3</number>
+</property>
    <item>
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
@@ -23,13 +38,28 @@
       <bool>true</bool>
      </property>
      <layout class="QVBoxLayout" name="lay">
+      <property name="spacing">
+  <number>3</number>
+</property>
+      <property name="leftMargin">
+  <number>3</number>
+</property>
+      <property name="topMargin">
+  <number>3</number>
+</property>
+      <property name="rightMargin">
+  <number>3</number>
+</property>
+      <property name="bottomMargin">
+  <number>3</number>
+</property>
       <item>
        <widget class="QScrollArea" name="scrollArea">
         <property name="frameShape">
-         <enum>QFrame::NoFrame</enum>
+         <enum>QFrame::Shape::NoFrame</enum>
         </property>
         <property name="frameShadow">
-         <enum>QFrame::Plain</enum>
+         <enum>QFrame::Shadow::Plain</enum>
         </property>
         <property name="widgetResizable">
          <bool>true</bool>
@@ -39,11 +69,14 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>415</width>
-           <height>325</height>
+           <width>439</width>
+           <height>355</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_3">
+          <property name="spacing">
+  <number>3</number>
+</property>
           <property name="leftMargin">
   <number>3</number>
 </property>
@@ -57,7 +90,11 @@
   <number>3</number>
 </property>
           <item>
-           <layout class="QVBoxLayout" name="selection_layout"/>
+           <layout class="QVBoxLayout" name="selection_layout">
+            <property name="spacing">
+  <number>3</number>
+</property>
+           </layout>
           </item>
          </layout>
         </widget>
@@ -76,10 +113,10 @@
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+      <enum>Qt::Orientation::Horizontal</enum>
      </property>
      <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+      <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
      </property>
     </widget>
    </item>
