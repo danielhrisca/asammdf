@@ -2876,6 +2876,7 @@ class WithMDIArea:
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
         plot.edit_channel_request.connect(partial(self.edit_channel, widget=plot))
 
+        plot.show_overlapping_alias.connect(self._show_overlapping_alias)
         plot.show_properties.connect(self._show_info)
 
         plot.add_new_channels(signals, mime_data)
@@ -3838,6 +3839,7 @@ class WithMDIArea:
         plot.setContentsMargins(1, 1, 1, 1)
 
         # plot.hide()
+        plot.show_overlapping_alias.connect(self._show_overlapping_alias)
         plot.show_properties.connect(self._show_info)
 
         plot.add_new_channels(signals, mime_data)
@@ -4537,8 +4539,42 @@ class WithMDIArea:
             else:
                 return None
 
-    def _show_info(self, lst):
-        group_index, index, sig = lst
+    def _show_overlapping_alias(self, sig):
+        group_index, index, uuid = sig.group_index, sig.channel_index, sig.origin_uuid
+        file_info = self.file_by_uuid(uuid)
+        if file_info:
+            _, file = file_info
+            try:
+                channel = file.mdf.get_channel_metadata(group=group_index, index=index)
+                info = (channel.data_type, channel.byte_offset, channel.bit_count)
+                position = (group_index, index)
+                alias = {}
+                for gp_index, gp in enumerate(file.mdf.groups):
+                    for ch_index, ch in enumerate(gp.channels):
+                        if (gp_index, ch_index) != position and (ch.data_type, ch.byte_offset, ch.bit_count) == info:
+                            alias[ch.name] = (gp_index, ch_index)
+
+                if alias:
+                    alias_text = "\n".join(
+                        f"{name} - group {gp_index} index {ch_index}" for name, (gp_index, ch_index) in alias.items()
+                    )
+                    MessageBox.information(
+                        self,
+                        f"{channel.name} - other overlapping alias",
+                        f"{channel.name} has the following overlapping alias channels:\n\n{alias_text}",
+                    )
+                else:
+                    MessageBox.information(
+                        self,
+                        f"{channel.name} - no other overlapping alias",
+                        f"No other overlapping alias channels found for {channel.name}",
+                    )
+
+            except MdfException:
+                print(format_exc())
+
+    def _show_info(self, sig):
+        group_index, index = sig.group_index, sig.channel_index
         uuid = sig.origin_uuid
         file_info = self.file_by_uuid(uuid)
         if file_info:

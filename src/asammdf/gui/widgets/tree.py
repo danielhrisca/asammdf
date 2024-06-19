@@ -372,7 +372,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     itemsDeleted = QtCore.Signal(list)
     set_time_offset = QtCore.Signal(list)
     add_channels_request = QtCore.Signal(list)
-    show_properties = QtCore.Signal(object)
+    show_properties = QtCore.Signal(str, str)
+    show_overlapping_alias = QtCore.Signal(str, str)
     insert_computation = QtCore.Signal(str)
     edit_computation = QtCore.Signal(object)
     pattern_group_added = QtCore.Signal(object)
@@ -1017,8 +1018,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         menu.addAction("Toggle details")
 
-        if item and item.type() == ChannelsTreeItem.Channel:
+        if item and item.type() == ChannelsTreeItem.Channel and item.exists:
             menu.addAction("File/Computation properties")
+            menu.addAction("Show overlapping alias")
         elif item and item.type() == ChannelsTreeItem.Group:
             menu.addAction("Group properties")
 
@@ -1408,9 +1410,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if len(selected_items) == 1:
                 item = selected_items[0]
                 if item.type() == ChannelsTreeItem.Channel:
-                    self.show_properties.emit(item.uuid)
+                    self.show_properties.emit(item.origin_uuid, item.uuid)
                 elif item.type() == ChannelsTreeItem.Group:
                     item.show_info()
+
+        elif action_text == "Show overlapping alias":
+            selected_items = self.selectedItems()
+            if len(selected_items) == 1:
+                item = selected_items[0]
+                if item.type() == ChannelsTreeItem.Channel:
+                    self.show_overlapping_alias.emit(item.origin_uuid, item.uuid)
 
         elif action_text == "Edit this computed channel":
             self.edit_computation.emit(item)

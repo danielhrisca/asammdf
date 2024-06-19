@@ -1318,7 +1318,8 @@ class Plot(QtWidgets.QWidget):
     edit_channel_request = QtCore.Signal(object, object)
     region_moved_signal = QtCore.Signal(object, list)
     region_removed_signal = QtCore.Signal(object)
-    show_properties = QtCore.Signal(list)
+    show_overlapping_alias = QtCore.Signal(object)
+    show_properties = QtCore.Signal(object)
     splitter_moved = QtCore.Signal(object, int)
     pattern_group_added = QtCore.Signal(object, object)
     verify_bookmarks = QtCore.Signal(list, object)
@@ -1705,6 +1706,7 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.itemSelectionChanged.connect(self.channel_selection_changed)
         self.channel_selection.add_channels_request.connect(self.add_channels_request)
         self.channel_selection.set_time_offset.connect(self.plot.set_time_offset)
+        self.channel_selection.show_overlapping_alias.connect(self._show_overlapping_alias)
         self.channel_selection.show_properties.connect(self._show_properties)
         self.channel_selection.insert_computation.connect(self.plot.insert_computation)
         self.channel_selection.edit_computation.connect(self.plot.edit_computation)
@@ -3224,7 +3226,12 @@ class Plot(QtWidgets.QWidget):
         self.plot.cursor1.setPos(stamp)
         self.cursor_move_finished()
 
-    def _show_properties(self, uuid):
+    def _show_overlapping_alias(self, origin_uuid, uuid):
+        for sig in self.plot.signals:
+            if sig.uuid == uuid:
+                self.show_overlapping_alias.emit(sig)
+
+    def _show_properties(self, origin_uuid, uuid):
         for sig in self.plot.signals:
             if sig.uuid == uuid:
                 if sig.flags & Signal.Flags.computed:
@@ -3236,7 +3243,7 @@ class Plot(QtWidgets.QWidget):
                         raise
 
                 else:
-                    self.show_properties.emit([sig.group_index, sig.channel_index, sig])
+                    self.show_properties.emit(sig)
 
     def to_config(self):
         def item_to_config(tree, root):
