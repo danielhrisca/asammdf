@@ -42,6 +42,42 @@ class Ui_SearchDialog(object):
         self.gridLayout.setSpacing(3)
         self.gridLayout.setObjectName(u"gridLayout")
         self.gridLayout.setContentsMargins(3, 3, 3, 3)
+        self.search_box = QLineEdit(self.tab)
+        self.search_box.setObjectName(u"search_box")
+        self.search_box.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+
+        self.gridLayout.addWidget(self.search_box, 0, 0, 1, 1)
+
+        self.status = QLabel(self.tab)
+        self.status.setObjectName(u"status")
+        self.status.setMinimumSize(QSize(100, 0))
+
+        self.gridLayout.addWidget(self.status, 0, 1, 1, 1)
+
+        self.match_kind = QComboBox(self.tab)
+        self.match_kind.addItem("")
+        self.match_kind.addItem("")
+        self.match_kind.setObjectName(u"match_kind")
+
+        self.gridLayout.addWidget(self.match_kind, 0, 2, 1, 1)
+
+        self.case_sensitivity = QComboBox(self.tab)
+        self.case_sensitivity.addItem("")
+        self.case_sensitivity.addItem("")
+        self.case_sensitivity.setObjectName(u"case_sensitivity")
+
+        self.gridLayout.addWidget(self.case_sensitivity, 0, 3, 1, 1)
+
+        self.extended_search = QCheckBox(self.tab)
+        self.extended_search.setObjectName(u"extended_search")
+
+        self.gridLayout.addWidget(self.extended_search, 0, 4, 1, 1)
+
+        self.label_7 = QLabel(self.tab)
+        self.label_7.setObjectName(u"label_7")
+
+        self.gridLayout.addWidget(self.label_7, 1, 0, 1, 1)
+
         self.matches = SearchTreeWidget(self.tab)
         self.matches.setObjectName(u"matches")
         self.matches.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
@@ -52,28 +88,24 @@ class Ui_SearchDialog(object):
 
         self.gridLayout.addWidget(self.matches, 2, 0, 1, 5)
 
-        self.match_kind = QComboBox(self.tab)
-        self.match_kind.addItem("")
-        self.match_kind.addItem("")
-        self.match_kind.setObjectName(u"match_kind")
+        self.label = QLabel(self.tab)
+        self.label.setObjectName(u"label")
 
-        self.gridLayout.addWidget(self.match_kind, 0, 2, 1, 1)
+        self.gridLayout.addWidget(self.label, 4, 0, 1, 1)
 
-        self.status = QLabel(self.tab)
-        self.status.setObjectName(u"status")
-        self.status.setMinimumSize(QSize(100, 0))
+        self.selection = SearchTreeWidget(self.tab)
+        self.selection.setObjectName(u"selection")
+        self.selection.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.selection.setSortingEnabled(False)
+        self.selection.header().setMinimumSectionSize(25)
+        self.selection.header().setProperty("showSortIndicator", False)
 
-        self.gridLayout.addWidget(self.status, 0, 1, 1, 1)
-
-        self.extended_search = QCheckBox(self.tab)
-        self.extended_search.setObjectName(u"extended_search")
-
-        self.gridLayout.addWidget(self.extended_search, 0, 4, 1, 1)
+        self.gridLayout.addWidget(self.selection, 5, 0, 1, 5)
 
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setSpacing(3)
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.horizontalSpacer_4 = QSpacerItem(358, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.horizontalSpacer_4 = QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_2.addItem(self.horizontalSpacer_4)
 
@@ -86,26 +118,12 @@ class Ui_SearchDialog(object):
 
         self.horizontalLayout_2.addWidget(self.add_btn)
 
-        self.horizontalSpacer_5 = QSpacerItem(358, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.horizontalSpacer_5 = QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_2.addItem(self.horizontalSpacer_5)
 
 
         self.gridLayout.addLayout(self.horizontalLayout_2, 3, 0, 1, 5)
-
-        self.selection = SearchTreeWidget(self.tab)
-        self.selection.setObjectName(u"selection")
-        self.selection.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-        self.selection.setSortingEnabled(False)
-        self.selection.header().setMinimumSectionSize(25)
-        self.selection.header().setProperty("showSortIndicator", False)
-
-        self.gridLayout.addWidget(self.selection, 5, 0, 1, 5)
-
-        self.label = QLabel(self.tab)
-        self.label.setObjectName(u"label")
-
-        self.gridLayout.addWidget(self.label, 4, 0, 1, 1)
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setSpacing(3)
@@ -145,24 +163,6 @@ class Ui_SearchDialog(object):
         self.horizontalLayout.setStretch(1, 1)
 
         self.gridLayout.addLayout(self.horizontalLayout, 6, 0, 1, 5)
-
-        self.label_7 = QLabel(self.tab)
-        self.label_7.setObjectName(u"label_7")
-
-        self.gridLayout.addWidget(self.label_7, 1, 0, 1, 1)
-
-        self.search_box = QLineEdit(self.tab)
-        self.search_box.setObjectName(u"search_box")
-        self.search_box.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-
-        self.gridLayout.addWidget(self.search_box, 0, 0, 1, 1)
-
-        self.case_sensitivity = QComboBox(self.tab)
-        self.case_sensitivity.addItem("")
-        self.case_sensitivity.addItem("")
-        self.case_sensitivity.setObjectName(u"case_sensitivity")
-
-        self.gridLayout.addWidget(self.case_sensitivity, 0, 3, 1, 1)
 
         self.gridLayout.setRowStretch(2, 1)
         self.gridLayout.setRowStretch(5, 1)
@@ -356,6 +356,18 @@ class Ui_SearchDialog(object):
 
     def retranslateUi(self, SearchDialog):
         SearchDialog.setWindowTitle(QCoreApplication.translate("SearchDialog", u"Dialog", None))
+        self.search_box.setInputMask("")
+        self.search_box.setText("")
+        self.search_box.setPlaceholderText(QCoreApplication.translate("SearchDialog", u"channel name pattern", None))
+        self.status.setText(QCoreApplication.translate("SearchDialog", u"No results", None))
+        self.match_kind.setItemText(0, QCoreApplication.translate("SearchDialog", u"Wildcard", None))
+        self.match_kind.setItemText(1, QCoreApplication.translate("SearchDialog", u"Regex", None))
+
+        self.case_sensitivity.setItemText(0, QCoreApplication.translate("SearchDialog", u"Case insensitive", None))
+        self.case_sensitivity.setItemText(1, QCoreApplication.translate("SearchDialog", u"Case sensitive", None))
+
+        self.extended_search.setText(QCoreApplication.translate("SearchDialog", u"Extended search", None))
+        self.label_7.setText(QCoreApplication.translate("SearchDialog", u"Search results", None))
         ___qtreewidgetitem = self.matches.headerItem()
         ___qtreewidgetitem.setText(6, QCoreApplication.translate("SearchDialog", u"Comment", None));
         ___qtreewidgetitem.setText(5, QCoreApplication.translate("SearchDialog", u"Source path", None));
@@ -364,12 +376,7 @@ class Ui_SearchDialog(object):
         ___qtreewidgetitem.setText(2, QCoreApplication.translate("SearchDialog", u"Index", None));
         ___qtreewidgetitem.setText(1, QCoreApplication.translate("SearchDialog", u"Group", None));
         ___qtreewidgetitem.setText(0, QCoreApplication.translate("SearchDialog", u"Name", None));
-        self.match_kind.setItemText(0, QCoreApplication.translate("SearchDialog", u"Wildcard", None))
-        self.match_kind.setItemText(1, QCoreApplication.translate("SearchDialog", u"Regex", None))
-
-        self.status.setText(QCoreApplication.translate("SearchDialog", u"No results", None))
-        self.extended_search.setText(QCoreApplication.translate("SearchDialog", u"Extended search", None))
-        self.add_btn.setText(QCoreApplication.translate("SearchDialog", u"Add to selection", None))
+        self.label.setText(QCoreApplication.translate("SearchDialog", u"Final selection", None))
         ___qtreewidgetitem1 = self.selection.headerItem()
         ___qtreewidgetitem1.setText(6, QCoreApplication.translate("SearchDialog", u"Comment", None));
         ___qtreewidgetitem1.setText(5, QCoreApplication.translate("SearchDialog", u"Source path", None));
@@ -378,17 +385,10 @@ class Ui_SearchDialog(object):
         ___qtreewidgetitem1.setText(2, QCoreApplication.translate("SearchDialog", u"Index", None));
         ___qtreewidgetitem1.setText(1, QCoreApplication.translate("SearchDialog", u"Group", None));
         ___qtreewidgetitem1.setText(0, QCoreApplication.translate("SearchDialog", u"Name", None));
-        self.label.setText(QCoreApplication.translate("SearchDialog", u"Final selection", None))
+        self.add_btn.setText(QCoreApplication.translate("SearchDialog", u"Add to selection", None))
         self.cancel_btn.setText(QCoreApplication.translate("SearchDialog", u"Cancel", None))
         self.apply_btn.setText(QCoreApplication.translate("SearchDialog", u"Apply", None))
         self.add_window_btn.setText(QCoreApplication.translate("SearchDialog", u"Add window", None))
-        self.label_7.setText(QCoreApplication.translate("SearchDialog", u"Search results", None))
-        self.search_box.setInputMask("")
-        self.search_box.setText("")
-        self.search_box.setPlaceholderText(QCoreApplication.translate("SearchDialog", u"channel name pattern", None))
-        self.case_sensitivity.setItemText(0, QCoreApplication.translate("SearchDialog", u"Case insensitive", None))
-        self.case_sensitivity.setItemText(1, QCoreApplication.translate("SearchDialog", u"Case sensitive", None))
-
         self.tabs.setTabText(self.tabs.indexOf(self.tab), QCoreApplication.translate("SearchDialog", u"Search", None))
         self.filter_type.setItemText(0, QCoreApplication.translate("SearchDialog", u"Unspecified", None))
         self.filter_type.setItemText(1, QCoreApplication.translate("SearchDialog", u"Contains", None))
