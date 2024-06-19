@@ -20,7 +20,7 @@ jobs:
 
       - name: Install packages
         run: |
-            pip install build numpy==1.26.4 wheel 
+            pip install build wheel 
             pip install -r requirements_exe_build.txt
             python setup.py bdist_wheel
             pip install -e . --no-deps
