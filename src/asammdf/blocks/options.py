@@ -14,7 +14,7 @@ class FloatInterpolation(IntEnum):
 
 
 _GLOBAL_OPTIONS = {
-    "read_fragment_size": 0,
+    "read_fragment_size": 64 * 1024 * 1024,
     "write_fragment_size": 4 * 1024 * 1024,
     "use_display_names": True,
     "single_bit_uint_as_bool": False,

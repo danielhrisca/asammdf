@@ -8116,7 +8116,7 @@ class MDF4(MDF_Common):
             count = self._read_fragment_size // record_size or 1
         else:
             if version < "4.20":
-                count = 16 * 1024 * 1024 // record_size or 1
+                count = 64 * 1024 * 1024 // record_size or 1
             else:
                 count = 128 * 1024 * 1024 // record_size or 1
 

@@ -725,7 +725,7 @@ class MDF:
             self._read_fragment_size = int(read_fragment_size)
 
         if write_fragment_size is not None:
-            self._write_fragment_size = min(int(write_fragment_size), 4 * 2**20)
+            self._write_fragment_size = min(int(write_fragment_size), 4 * 1024 * 1024)
 
         if use_display_names is not None:
             self._use_display_names = bool(use_display_names)
