@@ -3692,7 +3692,7 @@ class MDF4(MDF_Common):
             for ch in gp.channels:
                 if ch.flags & v4c.FLAG_CN_INVALIDATION_PRESENT:
                     if (origin := ch.pos_invalidation_bit) == InvalidationArray.ORIGIN_UNKNOWN:
-                        ch.pos_invalidation_bit = _unknown_pos_map.pop_left()
+                        ch.pos_invalidation_bit = _unknown_pos_map.popleft()
                     else:
                         ch.pos_invalidation_bit = _pos_map[origin]
 
