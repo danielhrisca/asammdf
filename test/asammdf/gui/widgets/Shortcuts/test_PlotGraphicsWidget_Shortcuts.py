@@ -1091,6 +1091,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_left"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_left"]))
         self.avoid_blinking_issue(self.plot.channel_selection)
+        self.processEvents()
         if sys.platform == "win32":
             ss_path = os.path.join(self.save_ss_here, f"{self.__module__}_before.png")
             self.widget.grab().save(ss_path)
@@ -1101,6 +1102,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
         self.avoid_blinking_issue(self.plot.channel_selection)
+        self.processEvents()
         if sys.platform == "win32":
             ss_path = os.path.join(self.save_ss_here, f"{self.__module__}_after.png")
             print(self.widget.grab().save(ss_path))

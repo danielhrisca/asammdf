@@ -22,6 +22,8 @@ class TestFileWidget(TestBase):
         self.addCleanup(patcher.stop)
 
     def tearDown(self):
+        if self._outcome.result.failures and self.save_ss_here is not None:
+            self.widget.grab().save(os.path.join(self.save_ss_here, f"td_{self.id()}"))
         if self.widget:
             self.widget.close()
             self.widget.destroy()
