@@ -277,6 +277,9 @@
             <iconset resource="resource.qrc">
              <normaloff>:/shift_down.png</normaloff>:/shift_down.png</iconset>
            </property>
+           <property name="autoDefault">
+            <bool>false</bool>
+           </property>
           </widget>
          </item>
          <item>
@@ -308,6 +311,9 @@
             <iconset resource="resource.qrc">
              <normaloff>:/erase.png</normaloff>:/erase.png</iconset>
            </property>
+           <property name="autoDefault">
+            <bool>false</bool>
+           </property>
           </widget>
          </item>
          <item>
@@ -332,6 +338,9 @@
             <iconset resource="resource.qrc">
              <normaloff>:/checkmark.png</normaloff>:/checkmark.png</iconset>
            </property>
+           <property name="autoDefault">
+            <bool>false</bool>
+           </property>
           </widget>
          </item>
          <item>
@@ -355,6 +364,9 @@
            <property name="icon">
             <iconset resource="resource.qrc">
              <normaloff>:/plus.png</normaloff>:/plus.png</iconset>
+           </property>
+           <property name="autoDefault">
+            <bool>false</bool>
            </property>
           </widget>
          </item>
@@ -601,6 +613,9 @@
           <iconset resource="resource.qrc">
            <normaloff>:/checkmark.png</normaloff>:/checkmark.png</iconset>
          </property>
+         <property name="autoDefault">
+          <bool>false</bool>
+         </property>
         </widget>
        </item>
        <item row="11" column="1">
@@ -611,6 +626,9 @@
          <property name="icon">
           <iconset resource="resource.qrc">
            <normaloff>:/erase.png</normaloff>:/erase.png</iconset>
+         </property>
+         <property name="autoDefault">
+          <bool>false</bool>
          </property>
         </widget>
        </item>

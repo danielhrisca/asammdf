@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include <time.h>
 
+#define HASH_SIZE 128
+
 #define PY_PRINTF(o)              \
     PyObject_Print(o, stdout, 0); \
     printf("\n");
@@ -1269,9 +1271,10 @@ static PyObject *get_channel_raw_bytes(PyObject *self, PyObject *args)
 
             for (int i = 0; i < count; i++)
             {
-                memcpy(outptr, inptr, actual_byte_count);
-                inptr += record_size;
-                outptr += actual_byte_count;
+                for (int j = 0; j < actual_byte_count; j++)
+                    *outptr++ = *inptr++;
+
+                inptr += record_size - actual_byte_count;
                 for (int j = 0; j < delta; j++)
                 {
                     *outptr++ = '\0';
@@ -1292,9 +1295,9 @@ static PyObject *get_channel_raw_bytes(PyObject *self, PyObject *args)
 
             for (int i = 0; i < count; i++)
             {
-                memcpy(outptr, inptr, byte_count);
-                inptr += record_size;
-                outptr += byte_count;
+                for (int j = 0; j < byte_count; j++)
+                    *outptr++ = *inptr++;
+                inptr += delta;
             }
         }
 
@@ -1304,8 +1307,8 @@ static PyObject *get_channel_raw_bytes(PyObject *self, PyObject *args)
 
 struct dtype
 {
-    unsigned char *data;
-    int32_t itemsize;
+    char *data;
+    int64_t itemsize;
 };
 
 static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
@@ -1314,48 +1317,65 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
     PyObject *data_blocks, *out, *item, *bytes, *itemsize;
 
     char *outptr;
-    uint64_t total_size = 0, cycles;
+    char *read_pos = NULL, *write_pos = NULL;
+    int64_t total_size = 0, record_size = 0,
+            cycles;
+    int64_t isize = 0, offset = 0;
 
     struct dtype *block_info = NULL;
 
     if (!PyArg_ParseTuple(args, "OK", &data_blocks, &cycles))
     {
-        return 0;
+        return NULL;
     }
     else
     {
         size = PyList_GET_SIZE(data_blocks);
+
         if (!size)
         {
             out = PyBytes_FromStringAndSize(NULL, 0);
         }
         else
         {
-
             block_info = (struct dtype *)malloc(size * sizeof(struct dtype));
 
             for (int i = 0; i < size; i++)
             {
                 item = PyList_GET_ITEM(data_blocks, i);
                 bytes = PyTuple_GET_ITEM(item, 0);
+                if (!PyArray_IS_C_CONTIGUOUS((PyArrayObject *)bytes))
+                {
+                    PyErr_SetString(PyExc_ValueError, "All arrays passed to data_block_from_arrays must be C contiguous\n\0");
+                    return NULL;
+                }
                 itemsize = PyTuple_GET_ITEM(item, 1);
-                block_info[i].data = (unsigned char *)PyBytes_AsString(bytes);
-                block_info[i].itemsize = PyLong_AsLong(itemsize);
-                total_size += (uint64_t)block_info[i].itemsize;
+                block_info[i].data = PyArray_DATA((PyArrayObject *)bytes);
+                block_info[i].itemsize = (int64_t)PyLong_AsLong(itemsize);
+                total_size += block_info[i].itemsize;
             }
 
+            record_size = total_size;
             total_size *= cycles;
 
             out = PyByteArray_FromStringAndSize(NULL, total_size);
             outptr = PyByteArray_AsString(out);
 
-            for (int i = 0; i < cycles; i++)
+            offset = 0;
+
+            for (int j = 0; j < size; j++, offset += isize)
             {
-                for (int j = 0; j < size; j++)
+                read_pos = block_info[j].data;
+                write_pos = outptr + offset;
+                isize = block_info[j].itemsize;
+
+                for (
+                    int i = 0;
+                    i < cycles;
+                    i++)
                 {
-                    memcpy(outptr, block_info[j].data, block_info[j].itemsize);
-                    outptr += block_info[j].itemsize;
-                    block_info[j].data += block_info[j].itemsize;
+                    for (int k = 0; k < isize; k++)
+                        *write_pos++ = *read_pos++;
                 }
             }
         }
@@ -1411,6 +1431,52 @@ static PyObject *get_idx_with_edges(PyObject *self, PyObject *args)
     return (PyObject *)result;
 }
 
+static PyObject *reverse_transposition(PyObject *self, PyObject *args)
+{
+    int i = 0, j = 0;
+    Py_ssize_t count, lines = 0, cols = 0;
+    PyObject *data, *values, *item;
+    char *in, *in_original, *out;
+
+    if (!PyArg_ParseTuple(args, "Onn", &data, &lines, &cols))
+    {
+        return NULL;
+    }
+    else
+    {
+
+        if (PyBytes_Check(data))
+        {
+            in = PyBytes_AS_STRING(data);
+            count = PyBytes_GET_SIZE(data);
+        }
+        else
+        {
+            in = PyByteArray_AS_STRING(data);
+            count = PyByteArray_GET_SIZE(data);
+        }
+
+        values = PyBytes_FromStringAndSize(NULL, count);
+        out = PyBytes_AS_STRING(values);
+
+        count -= lines * cols;
+
+        in_original = in;
+
+        for (j = 0; j < (int)cols; j++)
+        {
+            in = in_original + j;
+            for (i = 0; i < (int)lines; i++, in += (int)cols, out++)
+                *out = *in;
+        }
+
+        if (count)
+            memcpy(out, in_original + (int)(lines * cols), (int)count);
+    }
+
+    return values;
+}
+
 // Our Module's Function Definition struct
 // We require this `NULL` to signal the end of our method
 // definition
@@ -1424,6 +1490,7 @@ static PyMethodDef myMethods[] = {
     {"get_channel_raw_bytes", get_channel_raw_bytes, METH_VARARGS, "get_channel_raw_bytes"},
     {"data_block_from_arrays", data_block_from_arrays, METH_VARARGS, "data_block_from_arrays"},
     {"get_idx_with_edges", get_idx_with_edges, METH_VARARGS, "get_idx_with_edges"},
+    {"reverse_transposition", reverse_transposition, METH_VARARGS, "reverse_transposition"},
 
     {NULL, NULL, 0, NULL}};
 
