@@ -115,6 +115,7 @@ class Ui_SearchDialog(object):
         icon = QIcon()
         icon.addFile(u":/shift_down.png", QSize(), QIcon.Normal, QIcon.Off)
         self.add_btn.setIcon(icon)
+        self.add_btn.setAutoDefault(False)
 
         self.horizontalLayout_2.addWidget(self.add_btn)
 
@@ -133,6 +134,7 @@ class Ui_SearchDialog(object):
         icon1 = QIcon()
         icon1.addFile(u":/erase.png", QSize(), QIcon.Normal, QIcon.Off)
         self.cancel_btn.setIcon(icon1)
+        self.cancel_btn.setAutoDefault(False)
 
         self.horizontalLayout.addWidget(self.cancel_btn)
 
@@ -145,6 +147,7 @@ class Ui_SearchDialog(object):
         icon2 = QIcon()
         icon2.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
         self.apply_btn.setIcon(icon2)
+        self.apply_btn.setAutoDefault(False)
 
         self.horizontalLayout.addWidget(self.apply_btn)
 
@@ -157,6 +160,7 @@ class Ui_SearchDialog(object):
         icon3 = QIcon()
         icon3.addFile(u":/plus.png", QSize(), QIcon.Normal, QIcon.Off)
         self.add_window_btn.setIcon(icon3)
+        self.add_window_btn.setAutoDefault(False)
 
         self.horizontalLayout.addWidget(self.add_window_btn)
 
@@ -291,12 +295,14 @@ class Ui_SearchDialog(object):
         self.apply_pattern_btn = QPushButton(self.tab_2)
         self.apply_pattern_btn.setObjectName(u"apply_pattern_btn")
         self.apply_pattern_btn.setIcon(icon2)
+        self.apply_pattern_btn.setAutoDefault(False)
 
         self.gridLayout_3.addWidget(self.apply_pattern_btn, 11, 5, 1, 1)
 
         self.cancel_pattern_btn = QPushButton(self.tab_2)
         self.cancel_pattern_btn.setObjectName(u"cancel_pattern_btn")
         self.cancel_pattern_btn.setIcon(icon1)
+        self.cancel_pattern_btn.setAutoDefault(False)
 
         self.gridLayout_3.addWidget(self.cancel_pattern_btn, 11, 1, 1, 1)
 

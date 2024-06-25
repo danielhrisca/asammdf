@@ -170,6 +170,7 @@ from .cutils import (
     extract,
     get_channel_raw_bytes,
     get_vlsd_max_sample_size,
+    reverse_transposition,
     sort_data_block,
 )
 
@@ -1252,9 +1253,8 @@ class MDF4(MDF_Common):
                             cols = param
                             lines = original_size // cols
 
-                            nd = frombuffer(new_data[: lines * cols], dtype=uint8)
-                            nd = nd.reshape((cols, lines))
-                            new_data = nd.T.ravel().tobytes() + new_data[lines * cols :]
+                            new_data = reverse_transposition(new_data, lines, cols)
+
                         elif block_type == v4c.DZ_BLOCK_LZ:
                             new_data = lz_decompress(new_data)
 
@@ -1295,9 +1295,8 @@ class MDF4(MDF_Common):
                             cols = param
                             lines = original_size // cols
 
-                            nd = frombuffer(new_data[: lines * cols], dtype=uint8)
-                            nd = nd.reshape((cols, lines))
-                            new_data = nd.T.ravel().tobytes() + new_data[lines * cols :]
+                            new_data = reverse_transposition(new_data, lines, cols)
+
                         elif block_type == v4c.DZ_BLOCK_LZ:
                             new_data = lz_decompress(new_data)
 
@@ -1481,9 +1480,8 @@ class MDF4(MDF_Common):
                     cols = param
                     lines = original_size // cols
 
-                    nd = frombuffer(new_data[: lines * cols], dtype=uint8)
-                    nd = nd.reshape((cols, lines))
-                    new_data = nd.T.ravel().tobytes() + new_data[lines * cols :]
+                    new_data = reverse_transposition(new_data, lines, cols)
+
                 elif block_type == v4c.DZ_BLOCK_LZ:
                     new_data = lz_decompress(new_data)
 
@@ -2576,12 +2574,12 @@ class MDF4(MDF_Common):
             self._invalidation_cache[(group_index, offset, _count)] = invalidation
 
         ch_invalidation_pos = channel.pos_invalidation_bit
-        pos_byte, pos_offset = ch_invalidation_pos // 8, ch_invalidation_pos % 8
+        pos_byte, pos_offset = divmod(ch_invalidation_pos, 8)
 
         mask = 1 << pos_offset
 
         invalidation_bits = invalidation[:, pos_byte] & mask
-        invalidation_bits = invalidation_bits.astype(bool)
+        invalidation_bits = invalidation_bits.view(bool)
 
         return invalidation_bits
 
@@ -2695,7 +2693,9 @@ class MDF4(MDF_Common):
 
                     if different:
                         times = [s.timestamps for s in signals]
-                        t = unique(concatenate(times)).astype(float64)
+                        t = unique(concatenate(times))
+                        if t.dtype != float64:
+                            t = t.astype(float64)
                         signals = [
                             s.interp(
                                 t,
@@ -2851,13 +2851,14 @@ class MDF4(MDF_Common):
                 # time channel doesn't have channel dependencies
                 gp_dep.append(None)
 
-                fields.append((t.tobytes(), t.itemsize))
+                fields.append((t, t.itemsize))
 
                 offset += t_size // 8
                 ch_cntr += 1
 
                 gp_sig_types.append(v4c.SIGNAL_TYPE_SCALAR)
 
+        c = 0
         for signal in signals:
             sig = signal
             samples = sig.samples
@@ -2997,6 +2998,7 @@ class MDF4(MDF_Common):
                     gp_dep.append(None)
 
                 else:
+                    c += 1
                     byte_size = s_size // 8 or 1
                     data_block_addr = 0
 
@@ -3095,7 +3097,7 @@ class MDF4(MDF_Common):
 
                     offset += byte_size
 
-                    fields.append((samples.tobytes(), byte_size))
+                    fields.append((samples, byte_size))
 
                     gp_sdata.append(None)
                     entry = (dg_cntr, ch_cntr)
@@ -3393,7 +3395,7 @@ class MDF4(MDF_Common):
                     size *= dim
                 offset += size
 
-                fields.append((samples.tobytes(), size))
+                fields.append((samples, size))
 
                 gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
@@ -3461,7 +3463,7 @@ class MDF4(MDF_Common):
                         byte_size *= dim
                     offset += byte_size
 
-                    fields.append((samples.tobytes(), byte_size))
+                    fields.append((samples, byte_size))
 
                     gp_sdata.append(None)
                     self.channels_db.add(name, entry)
@@ -3651,10 +3653,10 @@ class MDF4(MDF_Common):
 
             gp.channel_group.invalidation_bytes_nr = invalidation_bytes_nr
 
-            inval_bits = np.fliplr(np.packbits(array(inval_bits).T).reshape((cycles_nr, invalidation_bytes_nr)))
+            inval_bits = np.fliplr(np.packbits(array(inval_bits).T).reshape((cycles_nr, invalidation_bytes_nr))).ravel()
 
             if self.version < "4.20":
-                fields.append((inval_bits.tobytes(), invalidation_bytes_nr))
+                fields.append((inval_bits, invalidation_bytes_nr))
 
         gp.channel_group.cycles_nr = cycles_nr
         gp.channel_group.samples_byte_nr = offset
@@ -5057,7 +5059,7 @@ class MDF4(MDF_Common):
 
                 offset += byte_size
 
-                fields.append((samples.tobytes(), byte_size))
+                fields.append((samples, byte_size))
 
                 gp_sdata.append(None)
                 self.channels_db.add(name, entry)
@@ -5180,7 +5182,7 @@ class MDF4(MDF_Common):
                     size *= dim
                 offset += size
 
-                fields.append((samples.tobytes(), size))
+                fields.append((samples, size))
 
                 gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
@@ -5248,7 +5250,7 @@ class MDF4(MDF_Common):
                         byte_size *= dim
                     offset += byte_size
 
-                    fields.append((samples.tobytes(), byte_size))
+                    fields.append((samples, byte_size))
 
                     gp_sdata.append(None)
                     self.channels_db.add(name, entry)
@@ -5756,7 +5758,7 @@ class MDF4(MDF_Common):
                 s_type, s_size = fmt_to_datatype_v4(signal.dtype, signal.shape)
                 byte_size = s_size // 8 or 1
 
-                fields.append((signal.tobytes(), byte_size))
+                fields.append((signal, byte_size))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
                     inval_bits.append(invalidation_bits)
@@ -5797,7 +5799,7 @@ class MDF4(MDF_Common):
                 for dim in shape:
                     size *= dim
 
-                fields.append((samples.tobytes(), size))
+                fields.append((samples, size))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
                     inval_bits.append(invalidation_bits)
@@ -5810,7 +5812,7 @@ class MDF4(MDF_Common):
                     for dim in shape:
                         size *= dim
 
-                    fields.append((samples.tobytes(), size))
+                    fields.append((samples, size))
 
                     if invalidation_bytes_nr and invalidation_bits is not None:
                         inval_bits.append(invalidation_bits)
@@ -5900,10 +5902,10 @@ class MDF4(MDF_Common):
 
             gp.channel_group.invalidation_bytes_nr = invalidation_bytes_nr
 
-            inval_bits = np.fliplr(np.packbits(array(inval_bits).T).reshape((cycles_nr, invalidation_bytes_nr)))
+            inval_bits = np.fliplr(np.packbits(array(inval_bits).T).reshape((cycles_nr, invalidation_bytes_nr))).ravel()
 
             if self.version < "4.20":
-                fields.append((inval_bits.tobytes(), invalidation_bytes_nr))
+                fields.append((inval_bits, invalidation_bytes_nr))
 
         samples = data_block_from_arrays(fields, added_cycles)
         size = len(samples)
