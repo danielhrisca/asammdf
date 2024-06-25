@@ -31,6 +31,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             - Evaluate that one widget was created
             - Evaluate that plot is black
         """
+        super().setUp()
         # Open measurement file
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Switch ComboBox to "Natural sort"
@@ -1070,26 +1071,37 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
 
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["stack_all"]))
         self.processEvents(0.01)
+
+        # Zoom out
+        x = round(self.plot.plot.width() / 2)
+        y = round(self.plot.plot.height() / 2)
+        QTest.mouseClick(self.pg.viewport(), Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, QPoint(x, y))
+        self.wheel_action(self.pg.viewport(), x, y, -1)
+        self.processEvents(0.1)
+
+        # Find extremes of signals
         old_from_to_y_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "y")
-        old_from_to_y_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "y")
         old_from_to_x_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "x")
+        old_from_to_y_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "y")
         old_from_to_x_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "x")
 
         self.mouseClick_WidgetItem(channel_36)
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_down_1x"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_left"]))
-        self.processEvents(1)
+        QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_left"]))
+        self.avoid_blinking_issue(self.plot.channel_selection)
         if sys.platform == "win32":
             ss_path = os.path.join(self.save_ss_here, f"{self.__module__}_before.png")
             self.widget.grab().save(ss_path)
 
         self.mouseClick_WidgetItem(channel_37)
-        QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_up_1x"]))
+        QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_up_10x"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
-        self.processEvents(1)
+        QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
+        self.avoid_blinking_issue(self.plot.channel_selection)
         if sys.platform == "win32":
             ss_path = os.path.join(self.save_ss_here, f"{self.__module__}_after.png")
-            self.widget.grab().save(ss_path)
+            print(self.widget.grab().save(ss_path))
         self.avoid_blinking_issue(self.plot.channel_selection)
 
         new_from_to_y_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "y")

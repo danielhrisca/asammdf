@@ -22,6 +22,7 @@ class TestShortcuts(TestBase):
         -------
 
         """
+        super().setUp()
         self.measurement_file = str(Path(TestBase.resource, "ASAP2_Demo_V171.mf4"))
         self.mw = MainWindow(files=(self.measurement_file,))
         self.mw.showNormal()

@@ -25,6 +25,7 @@ class TestTableViewShortcuts(TestFileWidget):
         -------
 
         """
+        super().setUp()
         # Open measurement file
         measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
@@ -234,6 +235,7 @@ class TestNumericShortcuts(TestFileWidget):
         -------
 
         """
+        super().setUp()
         # Open measurement file
         measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
 

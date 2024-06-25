@@ -26,6 +26,7 @@ class TestPlotShortcuts(TestPlotWidget):
         -------
 
         """
+        super().setUp()
         # Open measurement file
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Switch ComboBox to "Natural sort"

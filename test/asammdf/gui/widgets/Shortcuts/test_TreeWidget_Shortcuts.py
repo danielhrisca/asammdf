@@ -23,6 +23,7 @@ class TestTreeWidgetShortcuts(TestFileWidget):
         -------
 
         """
+        super().setUp()
         # Open measurement file
         measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
@@ -102,6 +103,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         -------
 
         """
+        super().setUp()
         # Open measurement file
         measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
         # Open measurement file

@@ -27,6 +27,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
         Evaluate:
             - Evaluate that widget didn't have active sub-windows
         """
+        super().setUp()
         # Open measurement file
         measurement_file = str(pathlib.Path(TestFileWidget.resource, "ASAP2_Demo_V171.mf4"))
         self.setUpFileWidget(measurement_file=measurement_file, default=True)
