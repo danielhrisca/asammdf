@@ -3693,6 +3693,10 @@ class MDF4(MDF_Common):
 
         gp.sorted = True
 
+        for i, (samples, itemsize) in enumerate(fields):
+            if not samples.flags["C_CONTIGUOUS"]:
+                fields[i] = (np.ascontiguousarray(samples), itemsize)
+
         samples = data_block_from_arrays(fields, cycles_nr)
         size = len(samples)
         samples = memoryview(samples)
@@ -5954,6 +5958,10 @@ class MDF4(MDF_Common):
 
             if self.version < "4.20":
                 fields.append((inval_bits, invalidation_bytes_nr))
+
+        for i, (samples, itemsize) in enumerate(fields):
+            if not samples.flags["C_CONTIGUOUS"]:
+                fields[i] = (np.ascontiguousarray(samples), itemsize)
 
         samples = data_block_from_arrays(fields, added_cycles)
         size = len(samples)
