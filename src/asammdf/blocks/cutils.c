@@ -1382,7 +1382,11 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
                     write_pos += step;
                 }
             }
+
+            free(block_info);
         }
+
+        data_blocks = item = bytes = itemsize = NULL;
 
         return out;
     }
