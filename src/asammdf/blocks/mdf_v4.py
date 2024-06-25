@@ -2848,6 +2848,8 @@ class MDF4(MDF_Common):
                 # time channel doesn't have channel dependencies
                 gp_dep.append(None)
 
+                if not t.flags["C_CONTIGUOUS"]:
+                    t = np.ascontiguousarray(t)
                 fields.append((t, t.itemsize))
 
                 offset += t_size // 8
@@ -2988,7 +2990,9 @@ class MDF4(MDF_Common):
                     for _name in ch.display_names:
                         self.channels_db.add(_name, entry)
 
-                    fields.append((offsets.tobytes(), 8))
+                    if not offsets.flags["C_CONTIGUOUS"]:
+                        offsets = np.ascontiguousarray(offsets)
+                    fields.append((offsets, 8))
 
                     ch_cntr += 1
 
@@ -3097,6 +3101,8 @@ class MDF4(MDF_Common):
 
                     offset += byte_size
 
+                    if not samples.flags["C_CONTIGUOUS"]:
+                        samples = np.ascontiguousarray(samples)
                     fields.append((samples, byte_size))
 
                     gp_sdata.append(None)
@@ -3176,6 +3182,8 @@ class MDF4(MDF_Common):
 
                     vals = signal.samples.tobytes()
 
+                    if not vals.flags["C_CONTIGUOUS"]:
+                        vals = np.ascontiguousarray(vals)
                     fields.append((vals, 6))
                     byte_size = 6
                     s_type = v4c.DATA_TYPE_CANOPEN_TIME
@@ -3201,6 +3209,8 @@ class MDF4(MDF_Common):
                             vals.append(signal.samples[field])
                     vals = fromarrays(vals).tobytes()
 
+                    if not vals.flags["C_CONTIGUOUS"]:
+                        vals = np.ascontiguousarray(vals)
                     fields.append((vals, 7))
                     byte_size = 7
                     s_type = v4c.DATA_TYPE_CANOPEN_DATE
@@ -3397,6 +3407,8 @@ class MDF4(MDF_Common):
                     size *= dim
                 offset += size
 
+                if not samples.flags["C_CONTIGUOUS"]:
+                    samples = np.ascontiguousarray(samples)
                 fields.append((samples, size))
 
                 gp_sdata.append(None)
@@ -3466,6 +3478,9 @@ class MDF4(MDF_Common):
                     for dim in shape:
                         byte_size *= dim
                     offset += byte_size
+
+                    if not samples.flags["C_CONTIGUOUS"]:
+                        samples = np.ascontiguousarray(samples)
 
                     fields.append((samples, byte_size))
 
@@ -3641,7 +3656,10 @@ class MDF4(MDF_Common):
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
 
-                fields.append((offsets.tobytes(), 8))
+                if not offsets.flags["C_CONTIGUOUS"]:
+                    offsets = np.ascontiguousarray(offsets)
+
+                fields.append((offsets, 8))
 
                 ch_cntr += 1
 
@@ -3692,10 +3710,6 @@ class MDF4(MDF_Common):
         gp.data_group = DataGroup()
 
         gp.sorted = True
-
-        for i, (samples, itemsize) in enumerate(fields):
-            if not samples.flags["C_CONTIGUOUS"]:
-                fields[i] = (np.ascontiguousarray(samples), itemsize)
 
         samples = data_block_from_arrays(fields, cycles_nr)
         size = len(samples)
@@ -4268,6 +4282,9 @@ class MDF4(MDF_Common):
 
                 field_name = field_names.get_unique_name(name)
 
+                if not samples.flags["C_CONTIGUOUS"]:
+                    samples = np.ascontiguousarray(samples)
+
                 fields.append(samples)
                 dtype_pair = field_name, samples.dtype, shape
                 types.append(dtype_pair)
@@ -4343,6 +4360,9 @@ class MDF4(MDF_Common):
 
                     samples = signal.samples[name]
                     shape = samples.shape[1:]
+
+                    if not samples.flags["C_CONTIGUOUS"]:
+                        samples = np.ascontiguousarray(samples)
                     fields.append(samples)
                     types.append((field_name, samples.dtype, shape))
 
@@ -5085,6 +5105,9 @@ class MDF4(MDF_Common):
 
                 offset += byte_size
 
+                if not samples.flags["C_CONTIGUOUS"]:
+                    samples = np.ascontiguousarray(samples)
+
                 fields.append((samples, byte_size))
 
                 gp_sdata.append(None)
@@ -5210,6 +5233,9 @@ class MDF4(MDF_Common):
                     size *= dim
                 offset += size
 
+                if not samples.flags["C_CONTIGUOUS"]:
+                    samples = np.ascontiguousarray(samples)
+
                 fields.append((samples, size))
 
                 gp_sdata.append(None)
@@ -5279,6 +5305,9 @@ class MDF4(MDF_Common):
                     for dim in shape:
                         byte_size *= dim
                     offset += byte_size
+
+                    if not samples.flags["C_CONTIGUOUS"]:
+                        samples = np.ascontiguousarray(samples)
 
                     fields.append((samples, byte_size))
 
@@ -5786,6 +5815,9 @@ class MDF4(MDF_Common):
                 s_type, s_size = fmt_to_datatype_v4(signal.dtype, signal.shape)
                 byte_size = s_size // 8 or 1
 
+                if not signal.flags["C_CONTIGUOUS"]:
+                    signal = np.ascontiguousarray(signal)
+
                 fields.append((signal, byte_size))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
@@ -5798,9 +5830,10 @@ class MDF4(MDF_Common):
                 names = signal.dtype.names
 
                 if names == v4c.CANOPEN_TIME_FIELDS:
-                    vals = signal.tobytes()
+                    if not signal.flags["C_CONTIGUOUS"]:
+                        signal = np.ascontiguousarray(signal)
 
-                    fields.append((vals, 6))
+                    fields.append((signal, 6))
 
                 else:
                     vals = []
@@ -5823,7 +5856,10 @@ class MDF4(MDF_Common):
                     else:
                         inval_bits[origin] = invalidation_bits
 
-                fields.append((signal.tobytes(), signal.dtype.itemsize))
+                if not signal.flags["C_CONTIGUOUS"]:
+                    signal = np.ascontiguousarray(signal)
+
+                fields.append((signal, signal.dtype.itemsize))
 
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 names = signal.dtype.names
@@ -5835,6 +5871,9 @@ class MDF4(MDF_Common):
                 size = s_size // 8
                 for dim in shape:
                     size *= dim
+
+                if not signal.flags["C_CONTIGUOUS"]:
+                    signal = np.ascontiguousarray(signal)
 
                 fields.append((samples, size))
 
@@ -5851,6 +5890,9 @@ class MDF4(MDF_Common):
                     size = s_size // 8
                     for dim in shape:
                         size *= dim
+
+                    if not signal.flags["C_CONTIGUOUS"]:
+                        signal = np.ascontiguousarray(signal)
 
                     fields.append((samples, size))
 
@@ -5900,7 +5942,9 @@ class MDF4(MDF_Common):
                         stream.write(b"".join(data))
 
                     offsets += cur_offset
-                    fields.append((offsets.tobytes(), 8))
+                    if not offsets.flags["C_CONTIGUOUS"]:
+                        offsets = np.ascontiguousarray(offsets)
+                    fields.append((offsets, 8))
 
                 else:
                     cur_offset = sum(blk.original_size for blk in gp.get_signal_data_blocks(i))
@@ -5927,7 +5971,9 @@ class MDF4(MDF_Common):
                         values.tofile(stream)
 
                     offsets += cur_offset
-                    fields.append((offsets.tobytes(), 8))
+                    if not offsets.flags["C_CONTIGUOUS"]:
+                        offsets = np.ascontiguousarray(offsets)
+                    fields.append((offsets, 8))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
                     if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
@@ -5958,10 +6004,6 @@ class MDF4(MDF_Common):
 
             if self.version < "4.20":
                 fields.append((inval_bits, invalidation_bytes_nr))
-
-        for i, (samples, itemsize) in enumerate(fields):
-            if not samples.flags["C_CONTIGUOUS"]:
-                fields[i] = (np.ascontiguousarray(samples), itemsize)
 
         samples = data_block_from_arrays(fields, added_cycles)
         size = len(samples)
