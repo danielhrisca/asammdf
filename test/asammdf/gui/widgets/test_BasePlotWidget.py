@@ -1,7 +1,14 @@
 import pathlib
+import sys
+import threading as td
 from unittest import mock
 
+if sys.platform == "win32":
+    import pyautogui
 from PySide6 import QtCore, QtTest, QtWidgets
+from PySide6.QtCore import QCoreApplication, QPoint, QPointF, Qt
+from PySide6.QtGui import QInputDevice, QPointingDevice, QWheelEvent
+from PySide6.QtWidgets import QWidget
 
 from test.asammdf.gui.test_base import DragAndDrop
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
@@ -76,7 +83,7 @@ class TestPlotWidget(TestFileWidget):
                 QtTest.QTest.mouseClick(
                     self.plot.channel_selection.viewport(),
                     QtCore.Qt.MouseButton.RightButton,
-                    QtCore.Qt.KeyboardModifiers(),
+                    QtCore.Qt.KeyboardModifier.NoModifier,
                     position,
                 )
             self.processEvents(0.01)
@@ -84,17 +91,79 @@ class TestPlotWidget(TestFileWidget):
             while not mo_action.text.called:
                 self.processEvents(0.02)
 
-    def move_channel_to_group(self, plot=None, src=None, dst=None):
-        if not plot and self.plot:
-            plot = self.plot
-
-        drag_position = plot.channel_selection.visualItemRect(src).center()
-        drop_position = plot.channel_selection.visualItemRect(dst).center()
-
-        DragAndDrop(
-            src_widget=plot.channel_selection,
-            dst_widget=plot.channel_selection,
-            src_pos=drag_position,
-            dst_pos=drop_position,
+    def move_item_inside_channels_tree_widget(self, plot=None, src=None, dst=None):
+        if src is None or dst is None:
+            raise Exception("src and dst is cannot be None")
+        channels_tree_widget = src.treeWidget()
+        drag_x, drag_y = (
+            channels_tree_widget.visualItemRect(src).center().x(),
+            channels_tree_widget.visualItemRect(src).center().y() + 25,
         )
-        self.processEvents(0.05)
+        if dst is channels_tree_widget:
+            drop_x, drop_y = dst.rect().center().x(), dst.rect().center().y()
+        else:
+            drop_x, drop_y = (
+                channels_tree_widget.visualItemRect(dst).center().x(),
+                channels_tree_widget.visualItemRect(dst).center().y() + 25,
+            )
+        QtTest.QTest.mouseMove(channels_tree_widget, QPoint(drag_x, drag_y))
+        # minimum necessary time for drag action to be implemented
+        t = 0.6
+
+        def call_drop_event():
+            d = drop_y - drag_y
+            if d > 25:
+                pyautogui.drag(0, d, duration=t / 2)
+            else:
+                pyautogui.drag(0, d, duration=t)
+
+        timer = td.Timer(0.001, call_drop_event)
+        timer.start()
+        self.manual_use(self.widget, duration=t + 0.002)
+
+        self.processEvents(0.01)
+
+    def wheel_action(self, w: QWidget, x: float, y: float, angle_delta: int):
+        """
+        Used to simulate mouse wheel event.
+
+        Parameters
+        ----------
+        w: widget - widget object
+        x: float - x position of cursor
+        y: float - y position of cursor
+        angle_delta: int - physical-wheel rotations units
+
+        Returns
+        -------
+
+        """
+        pos = QPointF(x, y)
+
+        widget_x, widget_y = self.widget.geometry().x(), self.widget.geometry().y()
+        widget_width, widget_height = self.widget.width(), self.widget.height()
+
+        global_pos = QPointF(widget_width + widget_x - x, widget_height + widget_y - y)
+
+        pixel_d = QPoint(0, 0)
+        angle_d = QPoint(0, angle_delta * 120)
+        buttons = Qt.MouseButton.NoButton
+        modifiers = Qt.KeyboardModifier.NoModifier
+        phase = Qt.ScrollPhase(0x0)
+        inverted = False
+        source = Qt.MouseEventSource(0x0)
+        device = QPointingDevice(
+            "core pointer",
+            1,
+            QInputDevice.DeviceType(0x1),
+            QPointingDevice.PointerType(0x0),
+            QInputDevice.Capability.All,
+            1,
+            3,
+        )
+        # Create event
+        event = QWheelEvent(pos, global_pos, pixel_d, angle_d, buttons, modifiers, phase, inverted, source, device)
+        # Post event
+        QCoreApplication.postEvent(w, event)
+        self.assertTrue(event.isAccepted())
+        QCoreApplication.processEvents()

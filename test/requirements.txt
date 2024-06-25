@@ -3,6 +3,7 @@ numexpr
 numpy>=1.23.0
 pandas
 psutil
+pyautogui
 pytest
 pytest-cov
 canmatrix[arxml,dbc]>=1.0

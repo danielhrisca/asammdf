@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 import sys
-import unittest
-from unittest import mock
+from unittest import mock, skipIf
 
 from PySide6 import QtCore, QtGui, QtTest
 
-from test.asammdf.gui.test_base import DragAndDrop, Pixmap
+from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
-@unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
 class TestDoubleClick(TestPlotWidget):
     # Note: Test Plot Widget through FileWidget.
     def setUp(self):
@@ -64,6 +62,9 @@ class TestDoubleClick(TestPlotWidget):
         self.mouseDClick_WidgetItem(plot_channel)
         self.assertEqual(QtCore.Qt.CheckState.Checked, plot_channel.checkState(0))
 
+    @skipIf(
+        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
+    )
     def test_EnableDisable_Group(self):
         """
         Test Scope: Validate that doubleClick operation will activate deactivate groups.
@@ -106,19 +107,11 @@ class TestDoubleClick(TestPlotWidget):
             else:
                 self.fail("FirstGroup is not present on Plot Channel Selection.")
             first_group.setExpanded(True)
-            # Get the First Item that will be moved
-            drag_position = self.plot.channel_selection.visualItemRect(plot_channel_0).center()
-            drop_position = self.plot.channel_selection.visualItemRect(first_group).center()
             # Get the Name of the first channel
             first_channel = plot_channel_0.text(self.Column.NAME)
             # PreEvaluation: Ensure that group has no child
             self.assertEqual(0, first_group.childCount())
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
-                src_pos=drag_position,
-                dst_pos=QtCore.QPoint(97, 57),
-            )
+            self.move_item_inside_channels_tree_widget(src=plot_channel_0, dst=first_group)
             # PreEvaluate: Ensure that channel was added to group
             self.assertEqual(1, first_group.childCount())
             self.assertEqual(first_channel, first_group.child(0).text(self.Column.NAME))
@@ -185,6 +178,9 @@ class TestDoubleClick(TestPlotWidget):
                 msg=f"Color of channel {plot_channel_0.text(self.Column.NAME)} is not present on plot.",
             )
 
+    @skipIf(
+        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
+    )
     def test_EnableDisable_ParentGroup(self):
         """
         Test Scope:
@@ -240,39 +236,16 @@ class TestDoubleClick(TestPlotWidget):
 
             # Get the First Item that will be moved
             for group_name, plot_channel in zip(("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c)):
-                drag_position = self.plot.channel_selection.visualItemRect(plot_channel).center()
-                drop_position = self.plot.channel_selection.visualItemRect(groups[group_name]).center()
-
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
-                DragAndDrop(
-                    src_widget=self.plot.channel_selection,
-                    dst_widget=self.plot.channel_selection.viewport(),
-                    src_pos=drag_position,
-                    dst_pos=drop_position,
-                )
+                self.move_item_inside_channels_tree_widget(src=plot_channel, dst=groups[group_name])
                 self.assertEqual(1, groups[group_name].childCount())
                 self.processEvents()
 
             # Move Group C inside Group B
-            drag_position = self.plot.channel_selection.visualItemRect(groups["C"]).center()
-            drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=groups["C"], dst=groups["B"])
             # Move Group B inside Group A
-            drag_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
-            drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
-
+            self.move_item_inside_channels_tree_widget(src=groups["B"], dst=groups["A"])
             groups["A"].setExpanded(True)
             groups["B"].setExpanded(True)
             groups["C"].setExpanded(True)
@@ -346,6 +319,9 @@ class TestDoubleClick(TestPlotWidget):
                     msg=f"Color for Channel: {channel.text(self.Column.NAME)} not present on 'plot'",
                 )
 
+    @skipIf(
+        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
+    )
     def test_EnableDisable_Subgroup(self):
         """
         Test Scope:
@@ -400,38 +376,16 @@ class TestDoubleClick(TestPlotWidget):
 
             # Get the First Item that will be moved
             for group_name, plot_channel in zip(("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c)):
-                drag_position = self.plot.channel_selection.visualItemRect(plot_channel).center()
-                drop_position = self.plot.channel_selection.visualItemRect(groups[group_name]).center()
-
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
-                DragAndDrop(
-                    src_widget=self.plot.channel_selection,
-                    dst_widget=self.plot.channel_selection.viewport(),
-                    src_pos=drag_position,
-                    dst_pos=drop_position,
-                )
+                self.move_item_inside_channels_tree_widget(src=plot_channel, dst=groups[group_name])
                 self.assertEqual(1, groups[group_name].childCount())
                 self.processEvents()
 
             # Move Group C inside Group B
-            drag_position = self.plot.channel_selection.visualItemRect(groups["C"]).center()
-            drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=groups["C"], dst=groups["B"])
             # Move Group B inside Group A
-            drag_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
-            drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=groups["B"], dst=groups["A"])
 
             groups["A"].setExpanded(True)
             groups["B"].setExpanded(True)
@@ -494,6 +448,9 @@ class TestDoubleClick(TestPlotWidget):
                     msg=f"Color for Channel: {channel.text(self.Column.NAME)} not present on 'plot'",
                 )
 
+    @skipIf(
+        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
+    )
     def test_EnableDisable_Preserve_Subgroup_State_0(self):
         """
         Test Scope:
@@ -549,38 +506,17 @@ class TestDoubleClick(TestPlotWidget):
 
             # Get the First Item that will be moved
             for group_name, plot_channel in zip(("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c)):
-                drag_position = self.plot.channel_selection.visualItemRect(plot_channel).center()
-                drop_position = self.plot.channel_selection.visualItemRect(groups[group_name]).center()
-
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
-                DragAndDrop(
-                    src_widget=self.plot.channel_selection,
-                    dst_widget=self.plot.channel_selection.viewport(),
-                    src_pos=drag_position,
-                    dst_pos=drop_position,
-                )
+                self.move_item_inside_channels_tree_widget(src=plot_channel, dst=groups[group_name])
+
                 self.processEvents(0.05)
                 self.assertEqual(1, groups[group_name].childCount())
 
             # Move Group C inside Group B
-            drag_position = self.plot.channel_selection.visualItemRect(groups["C"]).center()
-            drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=groups["C"], dst=groups["B"])
             # Move Group B inside Group A
-            drag_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
-            drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=groups["B"], dst=groups["A"])
 
             groups["A"].setExpanded(True)
             groups["B"].setExpanded(True)
@@ -644,6 +580,9 @@ class TestDoubleClick(TestPlotWidget):
                     msg=f"Color for Channel: {channel.text(self.Column.NAME)} not present on 'plot'",
                 )
 
+    @skipIf(
+        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
+    )
     def test_EnableDisable_Preserve_Subgroup_State_1(self):
         """
         Test Scope:
@@ -702,38 +641,17 @@ class TestDoubleClick(TestPlotWidget):
 
             # Get the First Item that will be moved
             for group_name, plot_channel in zip(("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c)):
-                drag_position = self.plot.channel_selection.visualItemRect(plot_channel).center()
-                drop_position = self.plot.channel_selection.visualItemRect(groups[group_name]).center()
-
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
-                DragAndDrop(
-                    src_widget=self.plot.channel_selection,
-                    dst_widget=self.plot.channel_selection.viewport(),
-                    src_pos=drag_position,
-                    dst_pos=drop_position,
-                )
+                self.move_item_inside_channels_tree_widget(src=plot_channel, dst=groups[group_name])
+
                 self.processEvents(0.05)
                 self.assertEqual(1, groups[group_name].childCount())
 
             # Move Group C inside Group B
-            drag_position = self.plot.channel_selection.visualItemRect(groups["C"]).center()
-            drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=groups["C"], dst=groups["B"])
             # Move Group B inside Group A
-            drag_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
-            drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=groups["B"], dst=groups["A"])
 
             groups["A"].setExpanded(True)
             groups["B"].setExpanded(True)

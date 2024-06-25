@@ -14,6 +14,7 @@ class DragAndDrop
 """
 import os
 import pathlib
+import platform
 import shutil
 import sys
 import time
@@ -51,7 +52,12 @@ class TestBase(unittest.TestCase):
     longMessage = False
 
     resource = os.path.normpath(os.path.join(os.path.dirname(__file__), "resources"))
-    test_workspace = os.path.join(os.path.join(os.path.dirname(__file__), "test_workspace"))
+    test_workspace = os.path.join(os.path.dirname(__file__), "test_workspace")
+    screenshots = None
+    save_ss_here = None
+    if sys.platform == "win32":
+        screenshots = os.path.join(os.path.dirname(__file__).split("test")[0], "screenshots")
+        save_ss_here = os.path.normpath(os.path.join(screenshots, platform.python_version().replace(".", "_")))
     patchers = []
     # MockClass ErrorDialog
     mc_ErrorDialog = None
@@ -60,10 +66,9 @@ class TestBase(unittest.TestCase):
         return self._testMethodDoc
 
     @staticmethod
-    def manual_use(widget, duration=None):
+    def manual_use(w, duration=None):
         """
         Execute Widget for debug/development purpose.
-
         Parameters
         ----------
         duration : float | None
@@ -84,15 +89,23 @@ class TestBase(unittest.TestCase):
 
     @staticmethod
     def processEvents(timeout=0.001):
-        app.sendPostedEvents()
-
-        loop = QtCore.QEventLoop()
-        QtCore.QTimer.singleShot(int(timeout * 1000), loop.quit)
-        loop.exec_()
+        QtCore.QCoreApplication.processEvents()
+        QtCore.QCoreApplication.sendPostedEvents()
+        QtCore.QEventLoop.processEvents(QtCore.QEventLoop())
+        if timeout:
+            time.sleep(timeout)
+            QtCore.QCoreApplication.processEvents()
+            QtCore.QCoreApplication.sendPostedEvents()
 
     def setUp(self) -> None:
         if os.path.exists(self.test_workspace):
             shutil.rmtree(self.test_workspace)
+        if sys.platform == "win32":
+            if not os.path.exists(self.screenshots):
+                os.makedirs(self.screenshots)
+            if not os.path.exists(self.save_ss_here):
+                os.makedirs(self.save_ss_here)
+
         os.makedirs(self.test_workspace)
         self.mc_ErrorDialog.reset_mock()
         self.processEvents()
@@ -119,7 +132,7 @@ class TestBase(unittest.TestCase):
         QtTest.QTest.mouseClick(
             qitem,
             QtCore.Qt.MouseButton.LeftButton,
-            QtCore.Qt.KeyboardModifiers(),
+            QtCore.Qt.KeyboardModifier.NoModifier,
             QtCore.QPoint(2, qitem.height() / 2),
         )
         self.processEvents()
@@ -138,7 +151,7 @@ class TestBase(unittest.TestCase):
         QtTest.QTest.mouseClick(
             widget.viewport(),
             QtCore.Qt.MouseButton.LeftButton,
-            QtCore.Qt.KeyboardModifiers(),
+            QtCore.Qt.KeyboardModifier.NoModifier,
             widget.visualItemRect(qitem).center(),
         )
         self.processEvents(0.5)
@@ -153,73 +166,59 @@ class TestBase(unittest.TestCase):
         QtTest.QTest.mouseDClick(
             widget.viewport(),
             QtCore.Qt.MouseButton.LeftButton,
-            QtCore.Qt.KeyboardModifiers(),
+            QtCore.Qt.KeyboardModifier.NoModifier,
             widget.visualItemRect(qitem).center(),
         )
         self.processEvents(0.5)
 
-
-class DragAndDrop:
-    _previous_position = None
-
-    class MoveThread(QtCore.QThread):
-        def __init__(self, widget, position=None, step=None):
-            super().__init__()
-            self.widget = widget
-            self.position = position
-            self.step = step
-
-        def run(self):
-            time.sleep(0.1)
-            if not self.step:
-                QtTest.QTest.mouseMove(self.widget, self.position)
-            else:
-                for step in range(self.step):
-                    QtTest.QTest.mouseMove(self.widget, self.position + QtCore.QPoint(step, step))
-                    QtTest.QTest.qWait(2)
-            QtTest.QTest.qWait(10)
-            # Release
-            QtTest.QTest.mouseRelease(
-                self.widget,
-                QtCore.Qt.MouseButton.LeftButton,
-                QtCore.Qt.KeyboardModifiers(),
-                self.position,
-            )
-            QtTest.QTest.qWait(10)
-
-    def __init__(self, src_widget, dst_widget, src_pos, dst_pos):
-        # Ensure that the previous drop was not in the same place because the mouse needs to be moved.
-        if self._previous_position and self._previous_position == dst_pos:
-            move_thread = DragAndDrop.MoveThread(widget=src_widget, position=QtCore.QPoint(101, 101))
-            move_thread.start()
-            move_thread.wait()
-            move_thread.quit()
-        DragAndDrop._previous_position = dst_pos
-
-        QtCore.QCoreApplication.processEvents()
-        if hasattr(src_widget, "viewport"):
-            source_viewport = src_widget.viewport()
-        else:
-            source_viewport = src_widget
-        # Move to Destination Widget
-        if hasattr(dst_widget, "viewport"):
-            destination_viewport = dst_widget.viewport()
-        else:
-            destination_viewport = dst_widget
-
-        # Press on Source Widget
-        QtTest.QTest.mousePress(
-            source_viewport, QtCore.Qt.MouseButton.LeftButton, QtCore.Qt.KeyboardModifiers(), src_pos
+    def avoid_blinking_issue(self, w):
+        self.processEvents(0.01)
+        # To avoid blinking issue, click on a center of widget
+        QtTest.QTest.mouseClick(
+            w, QtCore.Qt.MouseButton.LeftButton, QtCore.Qt.KeyboardModifier.NoModifier, w.rect().center()
         )
 
-        move_thread = DragAndDrop.MoveThread(widget=destination_viewport, position=dst_pos)
-        move_thread.start()
 
-        src_widget.startDrag(QtCore.Qt.DropAction.MoveAction)
-        QtTest.QTest.qWait(50)
+class DragAndDrop:
+    def __init__(self, src_widget, dst_widget, src_pos, dst_pos):
 
-        move_thread.wait()
-        move_thread.quit()
+        QtCore.QCoreApplication.processEvents()
+        # if hasattr(src_widget, "viewport"):
+        #     source_viewport = src_widget.viewport()
+        # else:
+        #     source_viewport = src_widget
+        # # Move to Destination Widget
+        # if hasattr(dst_widget, "viewport"):
+        #     destination_viewport = dst_widget.viewport()
+        # else:
+        #     destination_viewport = dst_widget
+
+        # hack QDrag object
+        with mock.patch(f"{src_widget.__module__}.QtGui.QDrag") as mo_QDrag:
+            src_widget.startDrag(QtCore.Qt.DropAction.MoveAction)
+            mo_QDrag.assert_called()
+            mime_data = mo_QDrag.return_value.setMimeData.call_args.args[0]
+
+            event = QtGui.QDragEnterEvent(
+                dst_pos,
+                QtCore.Qt.DropAction.MoveAction,
+                mime_data,
+                QtCore.Qt.MouseButton.LeftButton,
+                QtCore.Qt.KeyboardModifier.NoModifier,
+            )
+            with mock.patch.object(event, "source", return_value=src_widget):
+                dst_widget.dragEnterEvent(event)
+
+            event = QtGui.QDropEvent(
+                dst_pos,
+                QtCore.Qt.DropAction.MoveAction,
+                mime_data,
+                QtCore.Qt.MouseButton.LeftButton,
+                QtCore.Qt.KeyboardModifier.NoModifier,
+            )
+            with mock.patch.object(event, "source", return_value=src_widget):
+                dst_widget.dropEvent(event)
+
         QtCore.QCoreApplication.processEvents()
 
 
@@ -272,7 +271,7 @@ class Pixmap:
                 if _x < x or _y < y:
                     continue
                 # De unde 2?
-                elif (_x > width - x) or (_y > height - y - 3):
+                elif (_x > width - x) or (_y > height - y - 2):
                     break
                 if color.name() != color_name:
                     print(x, y, width, height)
@@ -282,8 +281,17 @@ class Pixmap:
 
     @staticmethod
     def has_color(pixmap, color_name):
+        """
+        Return True if Pixmap has selected color
+        """
         image = pixmap.toImage()
-
+        if not isinstance(color_name, str):
+            if hasattr(color_name, "color"):
+                color_name = color_name.color.name()
+            elif hasattr(color_name, "name"):
+                color_name = color_name.name()
+            else:
+                raise SyntaxError(f"Object {color_name} doesn't have the attribute <<color>> or <<name()>>")
         for y in range(image.height()):
             for x in range(image.width()):
                 color = QtGui.QColor(image.pixel(x, y))
@@ -303,11 +311,39 @@ class Pixmap:
         return color_names
 
     @staticmethod
+    def color_names_exclude_defaults(pixmap):
+        color_names = set()
+        defaults = (Pixmap.COLOR_BACKGROUND, Pixmap.COLOR_CURSOR, Pixmap.COLOR_RANGE)
+        image = pixmap.toImage()
+        for y in range(image.height()):
+            for x in range(image.width()):
+                color = QtGui.QColor(image.pixel(x, y))
+                if color not in defaults:
+                    color_names.add(color.name())
+        return color_names
+
+    @staticmethod
+    def color_map(pixmap):
+        """
+        return dict, where:
+            > keys are line of pixmap
+            > values is a list of color names ordered by columns of pixmap
+        """
+        color_dict = {}
+        line = []
+        image = pixmap.toImage()
+        for y in range(image.height()):
+            for x in range(image.width()):
+                line.append(QtGui.QColor(image.pixel(x, y)).name())
+            color_dict[y] = line
+            line = []
+        return color_dict
+
+    @staticmethod
     def cursors_x(pixmap):
         image = pixmap.toImage()
 
         cursors = []
-        possible_cursor = None
 
         for x in range(image.width()):
             count = 0
@@ -316,13 +352,87 @@ class Pixmap:
                 # Skip Black
                 if color.name() == Pixmap.COLOR_BACKGROUND:
                     continue
-                if not possible_cursor:
-                    possible_cursor = color.name()
-                if possible_cursor != color.name():
-                    break
-                count += 1
-            else:
-                if count == image.height() - 3:
-                    cursors.append(x)
+                if color.name() == Pixmap.COLOR_CURSOR:
+                    count += 1
+            if count >= image.height() / 2 - 1:  # For Y shortcut tests, one cursor is a discontinuous line
+                cursors.append(x)
 
         return cursors
+
+    @staticmethod
+    def search_signal_extremes_by_ax(pixmap, signal_color, ax: str):
+        """
+        Return column where signal start and end
+        If ax = Y: Return a list with extremes of signal by 0Y axes
+        If ax = X: Return a list with extremes of signal by 0X axes
+        """
+        if not isinstance(signal_color, str):
+            if hasattr(signal_color, "color"):
+                signal_color = signal_color.color.name()
+            elif hasattr(signal_color, "name"):
+                signal_color = signal_color.name()
+            else:
+                raise SyntaxError(f"Object {signal_color} doesn't have the attribute <<color>> or <<name()>>")
+        from_to = []
+        image = pixmap.toImage()
+        if ax in ("x", "X"):
+            for x in range(image.width()):
+                for y in range(image.height()):
+                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                        from_to.append(x)
+                        break
+                if from_to:
+                    break
+            if not from_to:
+                return
+            for x in range(image.width(), from_to[0], -1):
+                for y in range(image.height()):
+                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                        from_to.append(x)
+                        break
+                if len(from_to) == 2:
+                    break
+            return from_to
+
+        elif ax in ("y", "Y"):
+            for y in range(image.height()):
+                for x in range(image.width()):
+                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                        from_to.append(y)
+                        break
+                if from_to:
+                    break
+            if not from_to:
+                return
+
+            for y in range(image.height(), from_to[0], -1):
+                for x in range(image.width()):
+                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                        from_to.append(y)
+                        break
+                if len(from_to) == 2:
+                    break
+            return from_to
+
+    @staticmethod
+    def search_y_of_signal_in_column(pixmap_column, signal_color):
+        """
+        Return the first pixel line number where the signal color was found.
+        """
+        image = pixmap_column.toImage()
+        if image.width() > 1:
+            raise TypeError(f"<<{image.width()} != 1>>. Please check pixmap width!")
+        if not isinstance(signal_color, str):
+            if hasattr(signal_color, "color"):
+                signal_color = signal_color.color.name()
+            elif hasattr(signal_color, "name"):
+                signal_color = signal_color.name()
+            else:
+                raise SyntaxError(f"Object {signal_color} doesn't have the attribute <<color>> or <<name()>>")
+
+        line = None
+        for y in range(image.height()):
+            if QtGui.QColor(image.pixel(0, y)).name() == signal_color:
+                line = y
+                break
+        return line

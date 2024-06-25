@@ -8,7 +8,6 @@ from PySide6 import QtCore, QtTest
 
 from asammdf.gui.dialogs.functions_manager import FunctionsManagerDialog
 from test.asammdf.gui.resources.functions import (
-    Function1,
     Function2,
     gray2dec,
     maximum,
@@ -239,7 +238,6 @@ class TestPushButtons(TestBase):
         QtTest.QTest.mouseClick(self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton)
 
         for f in (
-            Function1,
             gray2dec,
             maximum,
             rpm_to_rad_per_second,
