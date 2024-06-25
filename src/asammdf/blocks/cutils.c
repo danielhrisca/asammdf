@@ -1347,7 +1347,8 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
                 if (!PyArray_IS_C_CONTIGUOUS((PyArrayObject *)bytes))
                 {
                     PY_PRINTF(bytes)
-                    PyErr_SetString(PyExc_ValueError, "All arrays passed to data_block_from_arrays must be C contiguous; i=%d of %d\n\0", i, size);
+                    printf("not C contiguous; i=%d of %d\n", i, size);
+                    PyErr_SetString(PyExc_ValueError, "All arrays passed to data_block_from_arrays must be C contiguous\n\0", i, size);
                     return NULL;
                 }
                 itemsize = PyTuple_GET_ITEM(item, 1);
