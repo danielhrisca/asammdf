@@ -1086,6 +1086,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         old_from_to_x_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "x")
 
         self.mouseClick_WidgetItem(channel_36)
+        QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_down_10x"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_down_1x"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_left"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_left"]))
@@ -1096,6 +1097,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
 
         self.mouseClick_WidgetItem(channel_37)
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_up_10x"]))
+        QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_up_1x"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
         self.avoid_blinking_issue(self.plot.channel_selection)
