@@ -1308,7 +1308,7 @@ static PyObject *get_channel_raw_bytes(PyObject *self, PyObject *args)
 struct dtype
 {
     char *data;
-    int itemsize;
+    int64_t itemsize;
 };
 
 static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
@@ -1318,9 +1318,9 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
 
     char *outptr;
     char *read_pos = NULL, *write_pos = NULL;
-    int total_size = 0, record_size = 0,
-        cycles;
-    int isize = 0, offset = 0;
+    int64_t total_size = 0, record_size = 0,
+            cycles;
+    int64_t isize = 0, offset = 0;
 
     struct dtype *block_info = NULL;
 
@@ -1351,7 +1351,7 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
                 }
                 itemsize = PyTuple_GET_ITEM(item, 1);
                 block_info[i].data = PyArray_DATA((PyArrayObject *)bytes);
-                block_info[i].itemsize = (int)PyLong_AsLong(itemsize);
+                block_info[i].itemsize = (int64_t)PyLong_AsLong(itemsize);
                 total_size += block_info[i].itemsize;
             }
 
