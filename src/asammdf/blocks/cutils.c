@@ -1319,7 +1319,7 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
     char *outptr;
     char *read_pos = NULL, *write_pos = NULL;
     int64_t total_size = 0, record_size = 0,
-            cycles;
+            cycles, step = 0;
     int64_t isize = 0, offset = 0;
 
     struct dtype *block_info = NULL;
@@ -1346,6 +1346,8 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
                 bytes = PyTuple_GET_ITEM(item, 0);
                 if (!PyArray_IS_C_CONTIGUOUS((PyArrayObject *)bytes))
                 {
+                    PY_PRINTF(bytes)
+                    printf("not C contiguous; i=%d of %d\n", i, size);
                     PyErr_SetString(PyExc_ValueError, "All arrays passed to data_block_from_arrays must be C contiguous\n\0");
                     return NULL;
                 }
@@ -1368,6 +1370,7 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
                 read_pos = block_info[j].data;
                 write_pos = outptr + offset;
                 isize = block_info[j].itemsize;
+                step = record_size - isize;
 
                 for (
                     int i = 0;
@@ -1376,6 +1379,7 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
                 {
                     for (int k = 0; k < isize; k++)
                         *write_pos++ = *read_pos++;
+                    write_pos += step;
                 }
             }
         }
