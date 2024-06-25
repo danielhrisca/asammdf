@@ -5,7 +5,7 @@ ASAM MDF version 4 file format module
 from __future__ import annotations
 
 import bisect
-from collections import defaultdict
+from collections import defaultdict, deque
 from collections.abc import Iterator, Sequence
 from copy import deepcopy
 from datetime import datetime
@@ -71,7 +71,7 @@ from numpy.typing import NDArray
 from pandas import DataFrame
 
 from .. import tool
-from ..signal import Signal
+from ..signal import InvalidationArray, Signal
 from ..types import (
     BusType,
     ChannelsType,
@@ -2581,7 +2581,7 @@ class MDF4(MDF_Common):
         invalidation_bits = invalidation[:, pos_byte] & mask
         invalidation_bits = invalidation_bits.view(bool)
 
-        return invalidation_bits
+        return InvalidationArray(invalidation_bits, (group_index, ch_invalidation_pos))
 
     def append(
         self,
@@ -2731,17 +2731,14 @@ class MDF4(MDF_Common):
         gp.channel_group.acq_source = source_block
         gp.channel_group.comment = comment
         gp.record = record = []
+        inval_bits = {InvalidationArray.ORIGIN_UNKNOWN: []}
 
         if any(sig.invalidation_bits is not None for sig in signals):
             invalidation_bytes_nr = 1
             gp.channel_group.invalidation_bytes_nr = invalidation_bytes_nr
 
-            inval_bits = []
-
         else:
             invalidation_bytes_nr = 0
-            inval_bits = []
-        inval_cntr = 0
 
         self.groups.append(gp)
 
@@ -2938,12 +2935,13 @@ class MDF4(MDF_Common):
                         "flags": 0,
                     }
 
-                    if invalidation_bytes_nr:
-                        if signal.invalidation_bits is not None:
-                            inval_bits.append(signal.invalidation_bits)
-                            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                            kwargs["pos_invalidation_bit"] = inval_cntr
-                            inval_cntr += 1
+                    if invalidation_bytes_nr and signal.invalidation_bits is not None:
+                        if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                            inval_bits[origin].append(signal.invalidation_bits)
+                        else:
+                            inval_bits[origin] = signal.invalidation_bits
+                        kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["pos_invalidation_bit"] = origin
 
                     ch = Channel(**kwargs)
                     ch.name = name
@@ -3048,10 +3046,12 @@ class MDF4(MDF_Common):
                         kwargs["attachment_addr"] = 0
 
                     if invalidation_bytes_nr and signal.invalidation_bits is not None:
-                        inval_bits.append(signal.invalidation_bits)
+                        if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                            inval_bits[origin].append(signal.invalidation_bits)
+                        else:
+                            inval_bits[origin] = signal.invalidation_bits
                         kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
-                        kwargs["pos_invalidation_bit"] = inval_cntr
-                        inval_cntr += 1
+                        kwargs["pos_invalidation_bit"] = origin
 
                     ch = Channel(**kwargs)
                     ch.name = name
@@ -3221,10 +3221,12 @@ class MDF4(MDF_Common):
                     "flags": 0,
                 }
                 if invalidation_bytes_nr and signal.invalidation_bits is not None:
-                    inval_bits.append(signal.invalidation_bits)
-                    kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                    kwargs["pos_invalidation_bit"] = inval_cntr
-                    inval_cntr += 1
+                    if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                        inval_bits[origin].append(signal.invalidation_bits)
+                    else:
+                        inval_bits[origin] = signal.invalidation_bits
+                    kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["pos_invalidation_bit"] = origin
 
                 ch = Channel(**kwargs)
                 ch.name = name
@@ -3268,7 +3270,6 @@ class MDF4(MDF_Common):
                     ch_cntr,
                     struct_self,
                     new_fields,
-                    inval_cntr,
                 ) = self._append_structure_composition(
                     gp,
                     signal,
@@ -3278,7 +3279,6 @@ class MDF4(MDF_Common):
                     defined_texts,
                     invalidation_bytes_nr,
                     inval_bits,
-                    inval_cntr,
                 )
                 fields.extend(new_fields)
 
@@ -3352,10 +3352,12 @@ class MDF4(MDF_Common):
 
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
-                        inval_bits.append(signal.invalidation_bits)
-                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                        kwargs["pos_invalidation_bit"] = inval_cntr
-                        inval_cntr += 1
+                        if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                            inval_bits[origin].append(signal.invalidation_bits)
+                        else:
+                            inval_bits[origin] = signal.invalidation_bits
+                        kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["pos_invalidation_bit"] = origin
 
                 ch = Channel(**kwargs)
                 ch.name = name
@@ -3434,10 +3436,12 @@ class MDF4(MDF_Common):
 
                     if invalidation_bytes_nr:
                         if signal.invalidation_bits is not None:
-                            inval_bits.append(signal.invalidation_bits)
-                            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                            kwargs["pos_invalidation_bit"] = inval_cntr
-                            inval_cntr += 1
+                            if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                                inval_bits[origin].append(signal.invalidation_bits)
+                            else:
+                                inval_bits[origin] = signal.invalidation_bits
+                            kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                            kwargs["pos_invalidation_bit"] = origin
 
                     ch = Channel(**kwargs)
                     ch.name = name
@@ -3585,10 +3589,12 @@ class MDF4(MDF_Common):
 
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
-                        inval_bits.append(signal.invalidation_bits)
-                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                        kwargs["pos_invalidation_bit"] = inval_cntr
-                        inval_cntr += 1
+                        if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                            inval_bits[origin].append(signal.invalidation_bits)
+                        else:
+                            inval_bits[origin] = signal.invalidation_bits
+                        kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["pos_invalidation_bit"] = origin
 
                 ch = Channel(**kwargs)
                 ch.name = name
@@ -3643,6 +3649,13 @@ class MDF4(MDF_Common):
                 gp_dep.append(None)
 
         if invalidation_bytes_nr:
+            unknown_origin = inval_bits.pop(InvalidationArray.ORIGIN_UNKNOWN)
+
+            _pos_map = {key: idx for idx, key in enumerate(inval_bits)}
+
+            _unknown_pos_map = deque(list(range(len(inval_bits), len(inval_bits) + len(unknown_origin))))
+
+            inval_bits = list(inval_bits.values()) + unknown_origin
             invalidation_bytes_nr = len(inval_bits)
 
             for _ in range(8 - invalidation_bytes_nr % 8):
@@ -3657,6 +3670,13 @@ class MDF4(MDF_Common):
 
             if self.version < "4.20":
                 fields.append((inval_bits, invalidation_bytes_nr))
+
+            for ch in gp.channels:
+                if ch.flags & v4c.FLAG_CN_INVALIDATION_PRESENT:
+                    if (origin := ch.pos_invalidation_bit) == InvalidationArray.ORIGIN_UNKNOWN:
+                        ch.pos_invalidation_bit = _unknown_pos_map.pop_left()
+                    else:
+                        ch.pos_invalidation_bit = _pos_map[origin]
 
         gp.channel_group.cycles_nr = cycles_nr
         gp.channel_group.samples_byte_nr = offset
@@ -4868,7 +4888,6 @@ class MDF4(MDF_Common):
         defined_texts: dict[str, int],
         invalidation_bytes_nr: int,
         inval_bits: list[NDArray[Any]],
-        inval_cntr: int,
     ) -> tuple[
         int,
         int,
@@ -4876,7 +4895,6 @@ class MDF4(MDF_Common):
         tuple[int, int],
         list[NDArray[Any]],
         list[tuple[str, dtype[Any], tuple[int, ...]]],
-        int,
     ]:
         si_map = self._si_map
 
@@ -4936,10 +4954,12 @@ class MDF4(MDF_Common):
             flags_ = 0
 
         if invalidation_bytes_nr and signal.invalidation_bits is not None:
-            inval_bits.append(signal.invalidation_bits)
-            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-            kwargs["pos_invalidation_bit"] = inval_cntr
-            inval_cntr += 1
+            if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                inval_bits[origin].append(signal.invalidation_bits)
+            else:
+                inval_bits[origin] = signal.invalidation_bits
+            kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+            kwargs["pos_invalidation_bit"] = origin
 
         ch = Channel(**kwargs)
         ch.name = name
@@ -5035,10 +5055,12 @@ class MDF4(MDF_Common):
 
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
-                        inval_bits.append(signal.invalidation_bits)
-                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                        kwargs["pos_invalidation_bit"] = inval_cntr
-                        inval_cntr += 1
+                        if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                            inval_bits[origin].append(signal.invalidation_bits)
+                        else:
+                            inval_bits[origin] = signal.invalidation_bits
+                        kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["pos_invalidation_bit"] = origin
 
                 ch = Channel(**kwargs)
                 ch.name = name
@@ -5148,10 +5170,12 @@ class MDF4(MDF_Common):
 
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
-                        inval_bits.append(signal.invalidation_bits)
-                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                        kwargs["pos_invalidation_bit"] = inval_cntr
-                        inval_cntr += 1
+                        if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                            inval_bits[origin].append(signal.invalidation_bits)
+                        else:
+                            inval_bits[origin] = signal.invalidation_bits
+                        kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["pos_invalidation_bit"] = origin
 
                 ch = Channel(**kwargs)
                 ch.name = name
@@ -5230,10 +5254,12 @@ class MDF4(MDF_Common):
 
                     if invalidation_bytes_nr:
                         if signal.invalidation_bits is not None:
-                            inval_bits.append(signal.invalidation_bits)
-                            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                            kwargs["pos_invalidation_bit"] = inval_cntr
-                            inval_cntr += 1
+                            if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                                inval_bits[origin].append(signal.invalidation_bits)
+                            else:
+                                inval_bits[origin] = signal.invalidation_bits
+                            kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                            kwargs["pos_invalidation_bit"] = origin
 
                     ch = Channel(**kwargs)
                     ch.name = name
@@ -5270,7 +5296,6 @@ class MDF4(MDF_Common):
                     ch_cntr,
                     sub_structure,
                     new_fields,
-                    inval_cntr,
                 ) = self._append_structure_composition(
                     grp,
                     struct,
@@ -5280,12 +5305,11 @@ class MDF4(MDF_Common):
                     defined_texts,
                     invalidation_bytes_nr,
                     inval_bits,
-                    inval_cntr,
                 )
                 dep_list.append(sub_structure)
                 fields.extend(new_fields)
 
-        return offset, dg_cntr, ch_cntr, struct_self, fields, inval_cntr
+        return offset, dg_cntr, ch_cntr, struct_self, fields
 
     def _append_structure_composition_column_oriented(
         self,
@@ -5747,7 +5771,7 @@ class MDF4(MDF_Common):
         stream = self._tempfile
 
         fields = []
-        inval_bits = []
+        inval_bits = {InvalidationArray.ORIGIN_UNKNOWN: []}
 
         added_cycles = len(signals[0][0])
 
@@ -5761,7 +5785,10 @@ class MDF4(MDF_Common):
                 fields.append((signal, byte_size))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
-                    inval_bits.append(invalidation_bits)
+                    if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                        inval_bits[origin].append(invalidation_bits)
+                    else:
+                        inval_bits[origin] = invalidation_bits
 
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
                 names = signal.dtype.names
@@ -5780,11 +5807,17 @@ class MDF4(MDF_Common):
                     fields.append((vals, 7))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
-                    inval_bits.append(invalidation_bits)
+                    if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                        inval_bits[origin].append(invalidation_bits)
+                    else:
+                        inval_bits[origin] = invalidation_bits
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 if invalidation_bytes_nr and invalidation_bits is not None:
-                    inval_bits.append(invalidation_bits)
+                    if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                        inval_bits[origin].append(invalidation_bits)
+                    else:
+                        inval_bits[origin] = invalidation_bits
 
                 fields.append((signal.tobytes(), signal.dtype.itemsize))
 
@@ -5802,7 +5835,10 @@ class MDF4(MDF_Common):
                 fields.append((samples, size))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
-                    inval_bits.append(invalidation_bits)
+                    if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                        inval_bits[origin].append(invalidation_bits)
+                    else:
+                        inval_bits[origin] = invalidation_bits
 
                 for name in names[1:]:
                     samples = signal[name]
@@ -5815,7 +5851,10 @@ class MDF4(MDF_Common):
                     fields.append((samples, size))
 
                     if invalidation_bytes_nr and invalidation_bits is not None:
-                        inval_bits.append(invalidation_bits)
+                        if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                            inval_bits[origin].append(invalidation_bits)
+                        else:
+                            inval_bits[origin] = invalidation_bits
 
             else:
                 if self.compact_vlsd:
@@ -5887,17 +5926,26 @@ class MDF4(MDF_Common):
                     fields.append((offsets.tobytes(), 8))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
-                    inval_bits.append(invalidation_bits)
+                    if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                        inval_bits[origin].append(invalidation_bits)
+                    else:
+                        inval_bits[origin] = invalidation_bits
 
         if invalidation_bytes_nr:
-            invalidation_bytes_nr = len(inval_bits)
+            unknown_origin = inval_bits.pop(InvalidationArray.ORIGIN_UNKNOWN)
+
+            _pos_map = {key: idx for idx, key in enumerate(inval_bits)}
+
+            _unknown_pos_map = deque(list(range(len(inval_bits), len(inval_bits) + len(unknown_origin))))
+
+            inval_bits = list(inval_bits.values()) + unknown_origin
             cycles_nr = len(inval_bits[0])
+            invalidation_bytes_nr = len(inval_bits)
 
             for _ in range(8 - invalidation_bytes_nr % 8):
                 inval_bits.append(zeros(cycles_nr, dtype=bool))
 
             inval_bits.reverse()
-
             invalidation_bytes_nr = len(inval_bits) // 8
 
             gp.channel_group.invalidation_bytes_nr = invalidation_bytes_nr
