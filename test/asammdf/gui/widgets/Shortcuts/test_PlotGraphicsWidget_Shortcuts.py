@@ -1085,6 +1085,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         old_from_to_y_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "y")
         old_from_to_x_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "x")
 
+        # Select first channel and move signal using commands Shift + PgDown/Down/Left
         self.mouseClick_WidgetItem(channel_36)
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_down_10x"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_down_1x"]))
@@ -1092,10 +1093,8 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_left"]))
         self.avoid_blinking_issue(self.plot.channel_selection)
         self.processEvents()
-        if sys.platform == "win32":
-            ss_path = os.path.join(self.save_ss_here, f"{self.__module__}_before.png")
-            self.widget.grab().save(ss_path)
 
+        # Select second channel and move signal using commands Shift + PgUp/Up/Right
         self.mouseClick_WidgetItem(channel_37)
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_up_10x"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_up_1x"]))
@@ -1103,11 +1102,8 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
         self.avoid_blinking_issue(self.plot.channel_selection)
         self.processEvents()
-        if sys.platform == "win32":
-            ss_path = os.path.join(self.save_ss_here, f"{self.__module__}_after.png")
-            print(self.widget.grab().save(ss_path))
-        self.avoid_blinking_issue(self.plot.channel_selection)
 
+        # Find new extremes
         new_from_to_y_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "y")
         new_from_to_y_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "y")
         new_from_to_x_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "x")

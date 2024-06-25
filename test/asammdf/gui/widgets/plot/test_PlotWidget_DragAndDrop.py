@@ -312,10 +312,6 @@ class TestDragAndDrop(TestPlotWidget):
                 self.assertEqual(0, first_group.childCount())
                 self.move_item_inside_channels_tree_widget(src=first_channel_, dst=first_group)
 
-                if sys.platform == "win32":
-                    ss_path = os.path.join(self.save_ss_here, f"{self.__module__}.png")
-                    self.widget.grab().save(ss_path)
-
                 # Evaluate
                 self.assertEqual(1, first_group.childCount())
                 self.assertEqual(first_channel, first_group.child(0).text(self.Column.NAME))
