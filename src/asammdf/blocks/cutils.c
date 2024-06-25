@@ -1324,7 +1324,7 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
 
     struct dtype *block_info = NULL;
 
-    if (!PyArg_ParseTuple(args, "OK", &data_blocks, &cycles))
+    if (!PyArg_ParseTuple(args, "Ok", &data_blocks, &cycles))
     {
         return NULL;
     }
@@ -1440,7 +1440,7 @@ static PyObject *reverse_transposition(PyObject *self, PyObject *args)
     int i = 0, j = 0;
     Py_ssize_t count, lines = 0, cols = 0;
     PyObject *data, *values, *item;
-    char *in, *in_original, *out;
+    char *read, *write_original, *write;
 
     if (!PyArg_ParseTuple(args, "Onn", &data, &lines, &cols))
     {
@@ -1448,37 +1448,39 @@ static PyObject *reverse_transposition(PyObject *self, PyObject *args)
     }
     else
     {
-
         if (PyBytes_Check(data))
         {
-            in = PyBytes_AS_STRING(data);
+            read = PyBytes_AS_STRING(data);
             count = PyBytes_GET_SIZE(data);
         }
         else
         {
-            in = PyByteArray_AS_STRING(data);
+            read = PyByteArray_AS_STRING(data);
             count = PyByteArray_GET_SIZE(data);
         }
 
         values = PyBytes_FromStringAndSize(NULL, count);
-        out = PyBytes_AS_STRING(values);
+        write = PyBytes_AS_STRING(values);
 
         count -= lines * cols;
 
-        in_original = in;
+        write_original = write;
 
         for (j = 0; j < (int)cols; j++)
         {
-            in = in_original + j;
-            for (i = 0; i < (int)lines; i++, in += (int)cols, out++)
-                *out = *in;
+            write = write_original + j;
+            for (i = 0; i < (int)lines; i++)
+            {
+                *write = *read++;
+                write += cols;
+            }
         }
 
         if (count)
-            memcpy(out, in_original + (int)(lines * cols), (int)count);
-    }
+            memcpy(write_original + (int)(lines * cols), read, (int)count);
 
-    return values;
+        return values;
+    }
 }
 
 // Our Module's Function Definition struct
