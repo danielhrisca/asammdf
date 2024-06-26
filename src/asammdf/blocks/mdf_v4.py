@@ -5977,7 +5977,6 @@ class MDF4(MDF_Common):
                     else:
                         inval_bits[origin] = invalidation_bits
 
-        # print('inval')
         if invalidation_bytes_nr:
             unknown_origin = inval_bits.pop(InvalidationArray.ORIGIN_UNKNOWN)
 
