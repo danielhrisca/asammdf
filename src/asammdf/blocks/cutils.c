@@ -1314,7 +1314,7 @@ struct dtype
 static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
 {
     Py_ssize_t size;
-    PyObject *data_blocks, *out, *item, *array, *copy_array, *itemsize;
+    PyObject *data_blocks, *out = NULL, *item, *array, *copy_array, *itemsize, *cycles_obj;
 
     char *outptr;
     char *read_pos = NULL, *write_pos = NULL;
@@ -1324,12 +1324,13 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
 
     struct dtype *block_info = NULL;
 
-    if (!PyArg_ParseTuple(args, "Ok", &data_blocks, &cycles))
+    if (!PyArg_ParseTuple(args, "OO", &data_blocks, &cycles_obj))
     {
         return NULL;
     }
     else
     {
+        cycles = PyLong_AsLongLong(cycles_obj);
         size = PyList_GET_SIZE(data_blocks);
 
         if (!size)
@@ -1340,8 +1341,11 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
         {
             block_info = (struct dtype *)malloc(size * sizeof(struct dtype));
 
+            total_size = 0;
+
             for (Py_ssize_t i = 0; i < size; i++)
             {
+
                 item = PyList_GET_ITEM(data_blocks, i);
                 array = PyTuple_GET_ITEM(item, 0);
                 if (!PyArray_IS_C_CONTIGUOUS(array))
@@ -1354,12 +1358,18 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
                 block_info[i].data = PyArray_BYTES((PyArrayObject *)array);
                 block_info[i].itemsize = (int64_t)PyLong_AsLongLong(itemsize);
                 total_size += block_info[i].itemsize;
+
+                itemsize = NULL;
+                array = NULL;
+                item = NULL;
             }
 
             record_size = total_size;
             total_size *= cycles;
 
-            out = PyByteArray_FromStringAndSize(NULL, total_size);
+            out = PyByteArray_FromStringAndSize(NULL, (Py_ssize_t)total_size);
+            if (!out)
+                return NULL;
             outptr = PyByteArray_AsString(out);
 
             offset = 0;
@@ -1388,6 +1398,7 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
         }
 
         data_blocks = item = array = itemsize = copy_array = NULL;
+        outptr = NULL;
 
         return out;
     }
@@ -1453,7 +1464,6 @@ static PyObject *reverse_transposition(PyObject *self, PyObject *args)
     }
     else
     {
-        printf("PY_SSIZE_T_MAX =%lld\n", PY_SSIZE_T_MAX);
         if (PyBytes_Check(data))
         {
             read = PyBytes_AS_STRING(data);
