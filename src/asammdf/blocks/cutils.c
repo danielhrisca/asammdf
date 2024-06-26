@@ -9,8 +9,6 @@
 #include <stdint.h>
 #include <time.h>
 
-#define HASH_SIZE 128
-
 #define PY_PRINTF(o)              \
     PyObject_Print(o, stdout, 0); \
     printf("\n");
@@ -171,7 +169,7 @@ static Py_ssize_t calc_size(char *buf)
 
 static PyObject *extract(PyObject *self, PyObject *args)
 {
-    int i = 0, count, max = 0, list_count;
+    Py_ssize_t i = 0, count, max = 0, list_count;
     int64_t offset;
     Py_ssize_t pos = 0, size = 0;
     PyObject *signal_data, *is_byte_array, *offsets, *offsets_list = NULL;
@@ -187,7 +185,7 @@ static PyObject *extract(PyObject *self, PyObject *args)
     else
     {
         Py_ssize_t max_size = 0;
-        int retval = PyBytes_AsStringAndSize(signal_data, &buf, &max_size);
+        Py_ssize_t retval = PyBytes_AsStringAndSize(signal_data, &buf, &max_size);
 
         if (retval == -1)
         {
@@ -216,7 +214,7 @@ static PyObject *extract(PyObject *self, PyObject *args)
         else
         {
             offsets_list = PyObject_CallMethod(offsets, "tolist", NULL);
-            list_count = (int)PyList_Size(offsets_list);
+            list_count = (Py_ssize_t)PyList_Size(offsets_list);
             for (i = 0; i < list_count; i++)
             {
                 offset = (int64_t)PyLong_AsLongLong(PyList_GET_ITEM(offsets_list, i));
@@ -271,7 +269,7 @@ static PyObject *extract(PyObject *self, PyObject *args)
             descr = PyArray_DescrFromType(NPY_STRING);
             descr = PyArray_DescrNew(descr);
 #if NPY_ABI_VERSION < 0x02000000
-            descr->elsize = max;
+            descr->elsize = (int)max;
 #else
             PyDataType_SET_ELSIZE(descr, max);
 #endif
@@ -310,7 +308,7 @@ static PyObject *extract(PyObject *self, PyObject *args)
 
 static PyObject *lengths(PyObject *self, PyObject *args)
 {
-    int i = 0;
+    Py_ssize_t i = 0;
     Py_ssize_t count;
     PyObject *lst, *values, *item;
 
@@ -325,7 +323,7 @@ static PyObject *lengths(PyObject *self, PyObject *args)
 
         values = PyTuple_New(count);
 
-        for (i = 0; i < (int)count; i++)
+        for (i = 0; i < (Py_ssize_t)count; i++)
         {
             item = PyList_GetItem(lst, i);
             PyTuple_SetItem(values, i, PyLong_FromSsize_t(PyBytes_GET_SIZE(item)));
@@ -337,7 +335,7 @@ static PyObject *lengths(PyObject *self, PyObject *args)
 
 static PyObject *get_vlsd_offsets(PyObject *self, PyObject *args)
 {
-    int i = 0;
+    Py_ssize_t i = 0;
     Py_ssize_t count;
     PyObject *lst, *item, *result;
     npy_intp dim[1];
@@ -355,10 +353,10 @@ static PyObject *get_vlsd_offsets(PyObject *self, PyObject *args)
     {
 
         count = PyList_Size(lst);
-        dim[0] = (int)count;
+        dim[0] = (Py_ssize_t)count;
         values = (PyArrayObject *)PyArray_SimpleNew(1, dim, NPY_ULONGLONG);
 
-        for (i = 0; i < (int)count; i++)
+        for (i = 0; i < (Py_ssize_t)count; i++)
         {
             h_result = PyArray_GETPTR1(values, i);
             item = PyList_GetItem(lst, i);
@@ -374,7 +372,7 @@ static PyObject *get_vlsd_offsets(PyObject *self, PyObject *args)
 
 static PyObject *get_vlsd_max_sample_size(PyObject *self, PyObject *args)
 {
-    int i = 0;
+    Py_ssize_t i = 0;
     Py_ssize_t count = 0;
     PyObject *data, *offsets;
     uint64_t max_size = 0;
@@ -415,7 +413,7 @@ void positions_char(PyObject *samples, PyObject *timestamps, PyObject *plot_samp
 {
     char min, max, *indata;
     int32_t *outdata;
-    int pos_min = 0, pos_max = 0;
+    Py_ssize_t pos_min = 0, pos_max = 0;
 
     indata = (char *)PyArray_GETPTR1((PyArrayObject *)samples, 0);
     outdata = (int32_t *)PyArray_GETPTR1((PyArrayObject *)result, 0);
@@ -427,8 +425,8 @@ void positions_char(PyObject *samples, PyObject *timestamps, PyObject *plot_samp
     pt = (double *)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
     ts = (double *)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
-    int current_pos = 0, stop_index = count - 1;
-    for (int i = 0; i < (int)count; i++)
+    Py_ssize_t current_pos = 0, stop_index = count - 1;
+    for (Py_ssize_t i = 0; i < (Py_ssize_t)count; i++)
     {
 
         pos_min = current_pos;
@@ -443,7 +441,7 @@ void positions_char(PyObject *samples, PyObject *timestamps, PyObject *plot_samp
         if ((i != stop_index) || (0 != last))
         {
 
-            for (int j = 1; j < step; j++, indata++, ts++)
+            for (Py_ssize_t j = 1; j < step; j++, indata++, ts++)
             {
                 if (*indata < min)
                 {
@@ -492,7 +490,7 @@ void positions_short(PyObject *samples, PyObject *timestamps, PyObject *plot_sam
 {
     short min, max, *indata;
     int32_t *outdata;
-    int pos_min = 0, pos_max = 0;
+    Py_ssize_t pos_min = 0, pos_max = 0;
 
     indata = (short *)PyArray_GETPTR1((PyArrayObject *)samples, 0);
     outdata = (int32_t *)PyArray_GETPTR1((PyArrayObject *)result, 0);
@@ -504,8 +502,8 @@ void positions_short(PyObject *samples, PyObject *timestamps, PyObject *plot_sam
     pt = (double *)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
     ts = (double *)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
-    int current_pos = 0, stop_index = count - 1;
-    for (int i = 0; i < (int)count; i++)
+    Py_ssize_t current_pos = 0, stop_index = count - 1;
+    for (Py_ssize_t i = 0; i < (Py_ssize_t)count; i++)
     {
 
         pos_min = current_pos;
@@ -520,7 +518,7 @@ void positions_short(PyObject *samples, PyObject *timestamps, PyObject *plot_sam
         if ((i != stop_index) || (0 != last))
         {
 
-            for (int j = 1; j < step; j++, indata++, ts++)
+            for (Py_ssize_t j = 1; j < step; j++, indata++, ts++)
             {
                 if (*indata < min)
                 {
@@ -569,7 +567,7 @@ void positions_long(PyObject *samples, PyObject *timestamps, PyObject *plot_samp
 {
     int32_t min, max, *indata;
     int32_t *outdata;
-    int pos_min = 0, pos_max = 0;
+    Py_ssize_t pos_min = 0, pos_max = 0;
 
     indata = (int32_t *)PyArray_GETPTR1((PyArrayObject *)samples, 0);
     outdata = (int32_t *)PyArray_GETPTR1((PyArrayObject *)result, 0);
@@ -581,8 +579,8 @@ void positions_long(PyObject *samples, PyObject *timestamps, PyObject *plot_samp
     pt = (double *)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
     ts = (double *)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
-    int current_pos = 0, stop_index = count - 1;
-    for (int i = 0; i < (int)count; i++)
+    Py_ssize_t current_pos = 0, stop_index = count - 1;
+    for (Py_ssize_t i = 0; i < (Py_ssize_t)count; i++)
     {
 
         pos_min = current_pos;
@@ -597,7 +595,7 @@ void positions_long(PyObject *samples, PyObject *timestamps, PyObject *plot_samp
         if ((i != stop_index) || (0 != last))
         {
 
-            for (int j = 1; j < step; j++, indata++, ts++)
+            for (Py_ssize_t j = 1; j < step; j++, indata++, ts++)
             {
                 if (*indata < min)
                 {
@@ -646,7 +644,7 @@ void positions_long_long(PyObject *samples, PyObject *timestamps, PyObject *plot
 {
     int64_t min, max, *indata;
     int32_t *outdata;
-    int pos_min = 0, pos_max = 0;
+    Py_ssize_t pos_min = 0, pos_max = 0;
 
     indata = (int64_t *)PyArray_GETPTR1((PyArrayObject *)samples, 0);
     outdata = (int32_t *)PyArray_GETPTR1((PyArrayObject *)result, 0);
@@ -658,8 +656,8 @@ void positions_long_long(PyObject *samples, PyObject *timestamps, PyObject *plot
     pt = (double *)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
     ts = (double *)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
-    int current_pos = 0, stop_index = count - 1;
-    for (int i = 0; i < (int)count; i++)
+    Py_ssize_t current_pos = 0, stop_index = count - 1;
+    for (Py_ssize_t i = 0; i < (Py_ssize_t)count; i++)
     {
 
         pos_min = current_pos;
@@ -674,7 +672,7 @@ void positions_long_long(PyObject *samples, PyObject *timestamps, PyObject *plot
         if ((i != stop_index) || (0 != last))
         {
 
-            for (int j = 1; j < step; j++, indata++, ts++)
+            for (Py_ssize_t j = 1; j < step; j++, indata++, ts++)
             {
                 if (*indata < min)
                 {
@@ -723,7 +721,7 @@ void positions_unsigned_char(PyObject *samples, PyObject *timestamps, PyObject *
 {
     unsigned char min, max, *indata;
     int32_t *outdata;
-    int pos_min = 0, pos_max = 0;
+    Py_ssize_t pos_min = 0, pos_max = 0;
 
     indata = (unsigned char *)PyArray_GETPTR1((PyArrayObject *)samples, 0);
     outdata = (int32_t *)PyArray_GETPTR1((PyArrayObject *)result, 0);
@@ -735,8 +733,8 @@ void positions_unsigned_char(PyObject *samples, PyObject *timestamps, PyObject *
     pt = (double *)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
     ts = (double *)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
-    int current_pos = 0, stop_index = count - 1;
-    for (int i = 0; i < (int)count; i++)
+    Py_ssize_t current_pos = 0, stop_index = count - 1;
+    for (Py_ssize_t i = 0; i < (Py_ssize_t)count; i++)
     {
 
         pos_min = current_pos;
@@ -751,7 +749,7 @@ void positions_unsigned_char(PyObject *samples, PyObject *timestamps, PyObject *
         if ((i != stop_index) || (0 != last))
         {
 
-            for (int j = 1; j < step; j++, indata++, ts++)
+            for (Py_ssize_t j = 1; j < step; j++, indata++, ts++)
             {
                 if (*indata < min)
                 {
@@ -800,7 +798,7 @@ void positions_unsigned_short(PyObject *samples, PyObject *timestamps, PyObject 
 {
     unsigned short min, max, *indata;
     int32_t *outdata;
-    int pos_min = 0, pos_max = 0;
+    Py_ssize_t pos_min = 0, pos_max = 0;
 
     indata = (unsigned short *)PyArray_GETPTR1((PyArrayObject *)samples, 0);
     outdata = (int32_t *)PyArray_GETPTR1((PyArrayObject *)result, 0);
@@ -812,8 +810,8 @@ void positions_unsigned_short(PyObject *samples, PyObject *timestamps, PyObject 
     pt = (double *)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
     ts = (double *)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
-    int current_pos = 0, stop_index = count - 1;
-    for (int i = 0; i < (int)count; i++)
+    Py_ssize_t current_pos = 0, stop_index = count - 1;
+    for (Py_ssize_t i = 0; i < (Py_ssize_t)count; i++)
     {
 
         pos_min = current_pos;
@@ -828,7 +826,7 @@ void positions_unsigned_short(PyObject *samples, PyObject *timestamps, PyObject 
         if ((i != stop_index) || (0 != last))
         {
 
-            for (int j = 1; j < step; j++, indata++, ts++)
+            for (Py_ssize_t j = 1; j < step; j++, indata++, ts++)
             {
                 if (*indata < min)
                 {
@@ -877,7 +875,7 @@ void positions_unsigned_long(PyObject *samples, PyObject *timestamps, PyObject *
 {
     uint32_t min, max, *indata;
     int32_t *outdata;
-    int pos_min = 0, pos_max = 0;
+    Py_ssize_t pos_min = 0, pos_max = 0;
 
     indata = (uint32_t *)PyArray_GETPTR1((PyArrayObject *)samples, 0);
     outdata = (int32_t *)PyArray_GETPTR1((PyArrayObject *)result, 0);
@@ -889,8 +887,8 @@ void positions_unsigned_long(PyObject *samples, PyObject *timestamps, PyObject *
     pt = (double *)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
     ts = (double *)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
-    int current_pos = 0, stop_index = count - 1;
-    for (int i = 0; i < (int)count; i++)
+    Py_ssize_t current_pos = 0, stop_index = count - 1;
+    for (Py_ssize_t i = 0; i < (Py_ssize_t)count; i++)
     {
 
         pos_min = current_pos;
@@ -905,7 +903,7 @@ void positions_unsigned_long(PyObject *samples, PyObject *timestamps, PyObject *
         if ((i != stop_index) || (0 != last))
         {
 
-            for (int j = 1; j < step; j++, indata++, ts++)
+            for (Py_ssize_t j = 1; j < step; j++, indata++, ts++)
             {
                 if (*indata < min)
                 {
@@ -954,7 +952,7 @@ void positions_unsigned_long_long(PyObject *samples, PyObject *timestamps, PyObj
 {
     uint64_t min, max, *indata;
     int32_t *outdata;
-    int pos_min = 0, pos_max = 0;
+    Py_ssize_t pos_min = 0, pos_max = 0;
 
     indata = (uint64_t *)PyArray_GETPTR1((PyArrayObject *)samples, 0);
     outdata = (int32_t *)PyArray_GETPTR1((PyArrayObject *)result, 0);
@@ -966,8 +964,8 @@ void positions_unsigned_long_long(PyObject *samples, PyObject *timestamps, PyObj
     pt = (double *)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
     ts = (double *)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
-    int current_pos = 0, stop_index = count - 1;
-    for (int i = 0; i < (int)count; i++)
+    Py_ssize_t current_pos = 0, stop_index = count - 1;
+    for (Py_ssize_t i = 0; i < (Py_ssize_t)count; i++)
     {
 
         pos_min = current_pos;
@@ -982,7 +980,7 @@ void positions_unsigned_long_long(PyObject *samples, PyObject *timestamps, PyObj
         if ((i != stop_index) || (0 != last))
         {
 
-            for (int j = 1; j < step; j++, indata++, ts++)
+            for (Py_ssize_t j = 1; j < step; j++, indata++, ts++)
             {
                 if (*indata < min)
                 {
@@ -1031,7 +1029,7 @@ void positions_float(PyObject *samples, PyObject *timestamps, PyObject *plot_sam
 {
     float min, max, *indata = NULL;
     int32_t *outdata = NULL;
-    int pos_min = 0, pos_max = 0;
+    Py_ssize_t pos_min = 0, pos_max = 0;
 
     indata = (float *)PyArray_GETPTR1((PyArrayObject *)samples, 0);
     outdata = (int32_t *)PyArray_GETPTR1((PyArrayObject *)result, 0);
@@ -1043,8 +1041,8 @@ void positions_float(PyObject *samples, PyObject *timestamps, PyObject *plot_sam
     pt = (double *)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
     ts = (double *)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
-    int current_pos = 0, stop_index = count - 1;
-    for (int i = 0; i < (int)count; i++)
+    Py_ssize_t current_pos = 0, stop_index = count - 1;
+    for (Py_ssize_t i = 0; i < (Py_ssize_t)count; i++)
     {
 
         pos_min = current_pos;
@@ -1059,7 +1057,7 @@ void positions_float(PyObject *samples, PyObject *timestamps, PyObject *plot_sam
         if ((i != stop_index) || (0 != last))
         {
 
-            for (int j = 1; j < step; j++, indata++, ts++)
+            for (Py_ssize_t j = 1; j < step; j++, indata++, ts++)
             {
                 if (*indata < min)
                 {
@@ -1108,7 +1106,7 @@ void positions_double(PyObject *samples, PyObject *timestamps, PyObject *plot_sa
 {
     double min, max, *indata = NULL;
     int32_t *outdata = NULL;
-    int pos_min = 0, pos_max = 0;
+    Py_ssize_t pos_min = 0, pos_max = 0;
 
     indata = (double *)PyArray_GETPTR1((PyArrayObject *)samples, 0);
     outdata = (int32_t *)PyArray_GETPTR1((PyArrayObject *)result, 0);
@@ -1120,8 +1118,8 @@ void positions_double(PyObject *samples, PyObject *timestamps, PyObject *plot_sa
     pt = (double *)PyArray_GETPTR1((PyArrayObject *)plot_timestamps, 0);
     ts = (double *)PyArray_GETPTR1((PyArrayObject *)timestamps, 0);
 
-    int current_pos = 0, stop_index = count - 1;
-    for (int i = 0; i < (int)count; i++)
+    Py_ssize_t current_pos = 0, stop_index = count - 1;
+    for (Py_ssize_t i = 0; i < (Py_ssize_t)count; i++)
     {
 
         pos_min = current_pos;
@@ -1136,7 +1134,7 @@ void positions_double(PyObject *samples, PyObject *timestamps, PyObject *plot_sa
         if ((i != stop_index) || (0 != last))
         {
 
-            for (int j = 1; j < step; j++, indata++, ts++)
+            for (Py_ssize_t j = 1; j < step; j++, indata++, ts++)
             {
                 if (*indata < min)
                 {
@@ -1269,13 +1267,13 @@ static PyObject *get_channel_raw_bytes(PyObject *self, PyObject *args)
 
             inptr += byte_offset;
 
-            for (int i = 0; i < count; i++)
+            for (Py_ssize_t i = 0; i < count; i++)
             {
-                for (int j = 0; j < actual_byte_count; j++)
+                for (Py_ssize_t j = 0; j < actual_byte_count; j++)
                     *outptr++ = *inptr++;
 
                 inptr += record_size - actual_byte_count;
-                for (int j = 0; j < delta; j++)
+                for (Py_ssize_t j = 0; j < delta; j++)
                 {
                     *outptr++ = '\0';
                 }
@@ -1293,13 +1291,15 @@ static PyObject *get_channel_raw_bytes(PyObject *self, PyObject *args)
 
             delta = record_size - byte_count;
 
-            for (int i = 0; i < count; i++)
+            for (Py_ssize_t i = 0; i < count; i++)
             {
-                for (int j = 0; j < byte_count; j++)
+                for (Py_ssize_t j = 0; j < byte_count; j++)
                     *outptr++ = *inptr++;
                 inptr += delta;
             }
         }
+
+        data_block = NULL;
 
         return out;
     }
@@ -1314,7 +1314,7 @@ struct dtype
 static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
 {
     Py_ssize_t size;
-    PyObject *data_blocks, *out, *item, *bytes, *itemsize;
+    PyObject *data_blocks, *out = NULL, *item, *array, *copy_array, *itemsize, *cycles_obj;
 
     char *outptr;
     char *read_pos = NULL, *write_pos = NULL;
@@ -1324,12 +1324,13 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
 
     struct dtype *block_info = NULL;
 
-    if (!PyArg_ParseTuple(args, "OK", &data_blocks, &cycles))
+    if (!PyArg_ParseTuple(args, "OO", &data_blocks, &cycles_obj))
     {
         return NULL;
     }
     else
     {
+        cycles = PyLong_AsLongLong(cycles_obj);
         size = PyList_GET_SIZE(data_blocks);
 
         if (!size)
@@ -1340,32 +1341,40 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
         {
             block_info = (struct dtype *)malloc(size * sizeof(struct dtype));
 
-            for (int i = 0; i < size; i++)
+            total_size = 0;
+
+            for (Py_ssize_t i = 0; i < size; i++)
             {
+
                 item = PyList_GET_ITEM(data_blocks, i);
-                bytes = PyTuple_GET_ITEM(item, 0);
-                if (!PyArray_IS_C_CONTIGUOUS((PyArrayObject *)bytes))
+                array = PyTuple_GET_ITEM(item, 0);
+                if (!PyArray_IS_C_CONTIGUOUS(array))
                 {
-                    PY_PRINTF(bytes)
-                    printf("not C contiguous; i=%d of %d\n", i, size);
-                    PyErr_SetString(PyExc_ValueError, "All arrays passed to data_block_from_arrays must be C contiguous\n\0");
-                    return NULL;
+                    copy_array = PyArray_NewCopy((PyArrayObject *)array, NPY_CORDER);
+                    array = copy_array;
+                    copy_array = NULL;
                 }
                 itemsize = PyTuple_GET_ITEM(item, 1);
-                block_info[i].data = PyArray_DATA((PyArrayObject *)bytes);
-                block_info[i].itemsize = (int64_t)PyLong_AsLong(itemsize);
+                block_info[i].data = PyArray_BYTES((PyArrayObject *)array);
+                block_info[i].itemsize = (int64_t)PyLong_AsLongLong(itemsize);
                 total_size += block_info[i].itemsize;
+
+                itemsize = NULL;
+                array = NULL;
+                item = NULL;
             }
 
             record_size = total_size;
             total_size *= cycles;
 
-            out = PyByteArray_FromStringAndSize(NULL, total_size);
+            out = PyByteArray_FromStringAndSize(NULL, (Py_ssize_t)total_size);
+            if (!out)
+                return NULL;
             outptr = PyByteArray_AsString(out);
 
             offset = 0;
 
-            for (int j = 0; j < size; j++, offset += isize)
+            for (Py_ssize_t j = 0; j < size; j++, offset += isize)
             {
                 read_pos = block_info[j].data;
                 write_pos = outptr + offset;
@@ -1373,16 +1382,23 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
                 step = record_size - isize;
 
                 for (
-                    int i = 0;
+                    Py_ssize_t i = 0;
                     i < cycles;
                     i++)
                 {
-                    for (int k = 0; k < isize; k++)
+                    for (Py_ssize_t k = 0; k < isize; k++)
                         *write_pos++ = *read_pos++;
                     write_pos += step;
                 }
             }
+
+            for (Py_ssize_t i = 0; i < size; i++)
+                block_info[i].data = NULL;
+            free(block_info);
         }
+
+        data_blocks = item = array = itemsize = copy_array = NULL;
+        outptr = NULL;
 
         return out;
     }
@@ -1390,7 +1406,7 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
 
 static PyObject *get_idx_with_edges(PyObject *self, PyObject *args)
 {
-    int i = 0;
+    Py_ssize_t i = 0;
     PyObject *idx = NULL;
     PyArrayObject *result = NULL;
 
@@ -1405,7 +1421,7 @@ static PyObject *get_idx_with_edges(PyObject *self, PyObject *args)
         npy_intp dims[1], count;
         count = PyArray_SIZE((PyArrayObject *)idx);
         dims[0] = count;
-        result = PyArray_ZEROS(1, dims, NPY_BOOL, 0);
+        result = (PyArrayObject *)PyArray_ZEROS(1, dims, NPY_BOOL, 0);
 
         idx_array = (uint8_t *)PyArray_GETPTR1((PyArrayObject *)idx, 0);
         out_array = (uint8_t *)PyArray_GETPTR1(result, 0);
@@ -1437,10 +1453,10 @@ static PyObject *get_idx_with_edges(PyObject *self, PyObject *args)
 
 static PyObject *reverse_transposition(PyObject *self, PyObject *args)
 {
-    int i = 0, j = 0;
+    Py_ssize_t i = 0, j = 0;
     Py_ssize_t count, lines = 0, cols = 0;
-    PyObject *data, *values, *item;
-    char *in, *in_original, *out;
+    PyObject *data, *values;
+    char *read, *write_original, *write;
 
     if (!PyArg_ParseTuple(args, "Onn", &data, &lines, &cols))
     {
@@ -1448,37 +1464,39 @@ static PyObject *reverse_transposition(PyObject *self, PyObject *args)
     }
     else
     {
-
         if (PyBytes_Check(data))
         {
-            in = PyBytes_AS_STRING(data);
+            read = PyBytes_AS_STRING(data);
             count = PyBytes_GET_SIZE(data);
         }
         else
         {
-            in = PyByteArray_AS_STRING(data);
+            read = PyByteArray_AS_STRING(data);
             count = PyByteArray_GET_SIZE(data);
         }
 
         values = PyBytes_FromStringAndSize(NULL, count);
-        out = PyBytes_AS_STRING(values);
+        write = PyBytes_AS_STRING(values);
 
         count -= lines * cols;
 
-        in_original = in;
+        write_original = write;
 
-        for (j = 0; j < (int)cols; j++)
+        for (j = 0; j < (Py_ssize_t)cols; j++)
         {
-            in = in_original + j;
-            for (i = 0; i < (int)lines; i++, in += (int)cols, out++)
-                *out = *in;
+            write = write_original + j;
+            for (i = 0; i < (Py_ssize_t)lines; i++)
+            {
+                *write = *read++;
+                write += cols;
+            }
         }
 
         if (count)
-            memcpy(out, in_original + (int)(lines * cols), (int)count);
-    }
+            memcpy(write_original + (Py_ssize_t)(lines * cols), read, (Py_ssize_t)count);
 
-    return values;
+        return values;
+    }
 }
 
 // Our Module's Function Definition struct

@@ -252,7 +252,7 @@ class TestMDF(unittest.TestCase):
         for out in SUPPORTED_VERSIONS:
             for input_file in Path(TestMDF.tempdir_general.name).iterdir():
                 for compression in range(3):
-                    print(input_file, out)
+                    print(input_file, out, compression)
 
                     with MDF(input_file) as mdf:
                         mdf.configure(read_fragment_size=8000)
@@ -276,10 +276,10 @@ class TestMDF(unittest.TestCase):
                                     vals = mdf.get(group=i, index=j, samples_only=True)[0]
                                     if not np.array_equal(vals, v * (j - 1)):
                                         equal = False
+                                        print(outfile)
                                         print(vals, len(vals))
                                         print(v * (j - 1), len(v))
 
-                                        input(outfile)
                                         raise Exception
                             elif i == 1:
                                 v = np.ones(cycles, dtype=np.int64)
