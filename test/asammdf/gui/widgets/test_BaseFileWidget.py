@@ -27,20 +27,13 @@ class TestFileWidget(TestBase):
         self.addCleanup(patcher.stop)
 
     def tearDown(self):
-        if not self.testResult.wasSuccessful():
-            self.widget.grab().save(
-                os.path.join(self.screenshots, f"{sys.platform}_{platform.python_version()}_{self.id()}.png")
-            )
+        self.widget.grab().save(os.path.join(self.screenshots, f"{self.id()}.png"))
         if self.widget:
             self.widget.close()
             self.widget.destroy()
             self.widget.deleteLater()
         self.mc_ErrorDialog.reset_mock()
         super().tearDown()
-
-    def run(self, result=None):
-        self.testResult = unittest.TestResult()
-        unittest.TestCase.run(self, self.testResult)
 
     def setUpFileWidget(self, *args, measurement_file, default):
         """

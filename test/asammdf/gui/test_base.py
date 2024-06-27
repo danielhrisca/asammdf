@@ -53,8 +53,10 @@ class TestBase(unittest.TestCase):
 
     resource = os.path.normpath(os.path.join(os.path.dirname(__file__), "resources"))
     test_workspace = os.path.join(os.path.dirname(__file__), "test_workspace")
-    screenshots = os.path.join(os.path.dirname(__file__).split("test")[0], "screenshots")
-    # platform_path = os.path.normpath(os.path.join(screenshots, sys.platform))
+    screenshots = os.path.join(
+        os.path.dirname(__file__).split("test")[0], "screenshots", sys.platform, platform.python_version()
+    )
+    # save_ss_here = os.path.normpath(os.path.join(screenshots, sys.platform, platform.python_version()))
     # save_ss_here = os.path.normpath(os.path.join(platform_path, platform.python_version().replace(".", "_")))
     patchers = []
     # MockClass ErrorDialog
