@@ -54,8 +54,8 @@ class TestBase(unittest.TestCase):
     resource = os.path.normpath(os.path.join(os.path.dirname(__file__), "resources"))
     test_workspace = os.path.join(os.path.dirname(__file__), "test_workspace")
     screenshots = os.path.join(os.path.dirname(__file__).split("test")[0], "screenshots")
-    platform_path = os.path.normpath(os.path.join(screenshots, sys.platform))
-    save_ss_here = os.path.normpath(os.path.join(platform_path, platform.python_version().replace(".", "_")))
+    # platform_path = os.path.normpath(os.path.join(screenshots, sys.platform))
+    # save_ss_here = os.path.normpath(os.path.join(platform_path, platform.python_version().replace(".", "_")))
     patchers = []
     # MockClass ErrorDialog
     mc_ErrorDialog = None
@@ -100,10 +100,10 @@ class TestBase(unittest.TestCase):
             shutil.rmtree(self.test_workspace)
         if not os.path.exists(self.screenshots):
             os.makedirs(self.screenshots)
-        if not os.path.exists(self.platform_path):
-            os.makedirs(self.platform_path)
-        if not os.path.exists(self.save_ss_here):
-            os.makedirs(self.save_ss_here)
+        # if not os.path.exists(self.platform_path):
+        #     os.makedirs(self.platform_path)
+        # if not os.path.exists(self.save_ss_here):
+        #     os.makedirs(self.save_ss_here)
 
         os.makedirs(self.test_workspace)
         self.mc_ErrorDialog.reset_mock()

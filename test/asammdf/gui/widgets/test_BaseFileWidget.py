@@ -24,11 +24,13 @@ class TestFileWidget(TestBase):
         self.addCleanup(patcher.stop)
 
     def tearDown(self):
+        path_ = os.path.join(self.screenshots, f"{sys.platform}_{platform.python_version()}_{self.id()}.png")
         if hasattr(self._outcome.result, "failures") and hasattr(self._outcome.result, "errors"):
-            if (self._outcome.result.failures or self._outcome.result.errors) and self.save_ss_here is not None:
-                self.widget.grab().save(
-                    os.path.join(self.screenshots, f"{sys.platform}_{platform.python_version()}_{self.id()}.png")
-                )
+            if self._outcome.result.failures or self._outcome.result.errors:
+                self.widget.grab().save(path_)
+                print(path_)
+        self.widget.grab().save(os.path.join(self.screenshots, "last_ss.png"))
+
         if self.widget:
             self.widget.close()
             self.widget.destroy()
