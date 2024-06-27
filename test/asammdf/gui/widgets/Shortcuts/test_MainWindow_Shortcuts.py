@@ -41,7 +41,7 @@ class TestShortcuts(TestBase):
         if self.mw:
             self.destroyMW()
 
-    def test_key_F11(self):
+    def test_fullscreen_shortcut(self):
         """
         Test scope:
             Ensure that F11 shortcut will toggle full-screen mode for opened file widget,
@@ -82,7 +82,7 @@ class TestShortcuts(TestBase):
             if isinstance(w, FileWidget):
                 self.assertFalse(w.isVisible())
 
-    def test_keys_F2__F3__F4(self):
+    def test_create_plot__numeric__tabular_sub_window_shortcut(self):
         """
         Test scope:
             Ensure that Plot, Numeric and Tabular sub-windows can be created by pressing keys F2, F3 and F4

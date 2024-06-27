@@ -47,7 +47,7 @@ class TestTableViewShortcuts(TestFileWidget):
             self.widget.destroy()
             self.widget.deleteLater()
 
-    def test_key_Delete(self):
+    def test_delete_shortcut(self):
         """
         Test Scope:
             - Ensure that key Delete will remove selected channels
@@ -88,7 +88,7 @@ class TestTableViewShortcuts(TestFileWidget):
         # Evaluate
         self.assertEqual(len(self.table_view.backend.signals), 0)
 
-    def test_key_Ctrl_Shift_R(self):
+    def test_set_color_range_shortcut(self):
         """
         Test Scope:
             Check if color range is triggered after pressing key Ctrl+R.
@@ -140,7 +140,7 @@ class TestTableViewShortcuts(TestFileWidget):
             else:  #
                 self.assertListEqual(value, [])
 
-    def test_key_Ctrl_Shift_C(self):
+    def test_copy_display_properties_shortcut(self):
         """
         Test Scope:
             - Ensure that key "Ctrl+Shift+C" can copy display properties of selected item
@@ -180,7 +180,7 @@ class TestTableViewShortcuts(TestFileWidget):
         # Evaluate
         mo_instance.return_value.clipboard.return_value.setText.assert_called_with(json.dumps(expected_ch_info))
 
-    def test_key_Ctrl_Shift_V(self):
+    def test_paste_display_properties_shortcut(self):
         """
         Test Scope:
             - Ensure that key "Ctrl+Shift+V" can paste from clipboard display properties to selected item.
@@ -257,7 +257,7 @@ class TestNumericShortcuts(TestFileWidget):
             self.widget.destroy()
             self.widget.deleteLater()
 
-    def test_keys_Ctrl_H__Ctrl_B__Ctrl_P__Ctrl_T(self):
+    def test_ascii__bin__hex__physical_shortcuts(self):
         """
         Test Scope:
             Check if values is converted to int, hex, bin after pressing combination of key "Ctrl+<H>|<B>|<P>"
@@ -321,7 +321,7 @@ class TestNumericShortcuts(TestFileWidget):
         self.assertEqual(self.table_view.backend.signals[0].format, ascii_format)
         self.assertEqual(self.table_view.model().format, ascii_format)
 
-    def test_keys_Left__Right(self):
+    def test_move_timestamp_cursor_left__right_shortcuts(self):
         """
         Test Scope:
             Check that Arrow Keys: Left & Right ensure navigation on channels evolution.
@@ -358,7 +358,7 @@ class TestNumericShortcuts(TestFileWidget):
         # Evaluate
         self.assertEqual(self.numeric.timestamp_slider.value(), expected_ts_slider_value)
 
-    def test_key_Ctrl_S(self):
+    def test_save_active_subplot_channels_shortcut(self):
         """
         Test Scope:
             Check if by pressing "Ctrl+S" is saved in the new measurement file only active channels.
@@ -403,7 +403,7 @@ class TestNumericShortcuts(TestFileWidget):
             self.assertIn(name, mdf_file.channels_db.keys())
         mdf_file.close()
 
-    def test_keys_Ctrl_Left_and_Right_Buckets(self):
+    def test_increase__decrease_font_shortcuts(self):
         """
         Test scope:
             Ensure that Ctrl+[ and Ctrl+] will change font size
@@ -424,7 +424,7 @@ class TestNumericShortcuts(TestFileWidget):
         QTest.keySequence(self.numeric, QKeySequence(self.shortcuts["increase_font"]))
         self.assertGreater(font_size, self.numeric.font().pointSize())
 
-    def test_key_Shift_G(self):
+    def test_go_to_timestamp_shortcut(self):
         """
         Test scope:
             Ensure that Shift+G switch to selected timestamp

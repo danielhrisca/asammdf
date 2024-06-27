@@ -67,7 +67,7 @@ class TestPlotShortcuts(TestPlotWidget):
                 self.widget.destroy()
                 self.widget.deleteLater()
 
-    def test_key_M(self):
+    def test_statistics_shortcut(self):
         """
         Test Scope:
             To check if after pressing key "M", info about the selected channel is displayed properly,
@@ -122,7 +122,7 @@ class TestPlotShortcuts(TestPlotWidget):
             # The default message is displayed instead of channel name
             self.assertNotEqual(self.plot.info._name, default_message)
 
-    def test_key_2(self):
+    def test_focused_mode_shortcut(self):
         """
         Test Scope:
             To check if is displayed only selected channel after pressing key "2"
@@ -199,7 +199,7 @@ class TestPlotShortcuts(TestPlotWidget):
         self.assertTrue(Pixmap.has_color(pixmap, self.channels[1].color.name()))
         self.assertTrue(Pixmap.has_color(pixmap, self.channels[2].color.name()))
 
-    def test_keys_Ctrl_H_Ctrl_B_Ctrl_P_Ctrl_T(self):
+    def test_ascii__bin__hex__physical_shortcuts(self):
         """
         Test Scope:
             Check if values are converted to hex, bin, phys and ascii after pressing the combination of key
@@ -266,10 +266,10 @@ class TestPlotShortcuts(TestPlotWidget):
         self.assertNotEqual(physical, ascii_value)
         self.assertEqual(physical_hours, ascii_int)
 
-    def test_keys_Alt_R_Alt_S(self):
+    def test_raw__scaled_samples_shortcuts(self):
         """
         Test Scope:
-            Check functionality of key "Alt+I" and "Alt+S". They must convert samples to raw and scaled forms.
+            Check functionality of key "Alt+R" and "Alt+S". They must convert samples to raw and scaled forms.
         Events:
             - Display 1 signal on plot
             - Press "Alt+R"
@@ -302,7 +302,7 @@ class TestPlotShortcuts(TestPlotWidget):
         # Signal line style = Dash line
         self.assertEqual(self.plot.plot.signals[0].pen.style(), Qt.PenStyle.SolidLine)
 
-    def test_key_Ctrl_I(self):
+    def test_insert_bookmark_shortcut(self):
         """
         Test Scope:
             Check if bookmark is created after pressing key "Ctrl+I"
@@ -325,7 +325,7 @@ class TestPlotShortcuts(TestPlotWidget):
         self.assertTrue(self.plot.show_bookmarks)
         self.assertEqual(self.plot.plot.bookmarks[len(self.plot.plot.bookmarks) - 1].message, self.id())
 
-    def test_key_Alt_I(self):
+    def test_toggle_bookmarks_shortcut(self):
         """
         Test Scope:
             Check functionality of key "Ctrl+I". It must toggle bookmarks visibility on plot.
@@ -349,7 +349,7 @@ class TestPlotShortcuts(TestPlotWidget):
         # Evaluate
         self.assertFalse(self.plot.show_bookmarks)
 
-    def test_key_Ctrl_G(self):
+    def test_edit_y_axis_scaling_shortcut(self):
         """
         Test Scope:
             Check if signal is changed his Y limits by setting it with ScaleDialog object called with "Ctrl+G"
@@ -410,7 +410,7 @@ class TestPlotShortcuts(TestPlotWidget):
         # Evaluate y_range tuple
         self.assertTupleEqual(self.plot.plot.signals[0].y_range, expected_y_range)
 
-    def test_key_C(self):
+    def test_color_shortcut(self):
         """
         Test Scope:
             - Ensure that channel color is changed.
@@ -471,7 +471,7 @@ class TestPlotShortcuts(TestPlotWidget):
                 self.assertEqual(color.name(), self.channels[1].color.name())
                 self.assertEqual(color.name(), self.channels[2].color.name())
 
-    def test_keys_Ctrl_C__Ctrl_V(self):
+    def test_copy__paste_channel_structure_shortcut(self):
         """
         Test Scope:
             - Ensure that selected channel is copied to clipboard and pasted into a plot.
@@ -530,7 +530,7 @@ class TestPlotShortcuts(TestPlotWidget):
         self.assertEqual(original_origin_uuid, replica.origin_uuid)
         self.assertEqual(original_signal, replica.signal)
 
-    def test_keys_Ctrl_Shift_C__Ctrl_Shift_V(self):
+    def test_copy__paste_display_properties_shortcuts(self):
         """
         Test Scope:
             Check if only display properties of selected channels is copied on another channel
@@ -570,7 +570,7 @@ class TestPlotShortcuts(TestPlotWidget):
         self.assertEqual(self.channels[1].signal.y_range[0], self.channels[2].signal.y_range[0])
         self.assertEqual(self.channels[1].signal.y_range[1], self.channels[2].signal.y_range[1])
 
-    def test_keys_Ctrl_Left_and_Right_Buckets(self):
+    def test_increase__decrease_font_shortcuts(self):
         """
         Test scope:
             Ensure that Ctrl+[ and Ctrl+] will change font size
@@ -591,7 +591,7 @@ class TestPlotShortcuts(TestPlotWidget):
         QTest.keySequence(self.plot, QKeySequence(self.shortcuts["increase_font"]))
         self.assertGreater(font_size, self.plot.font().pointSize())
 
-    def test_keys_Backspace__Shift_Backspace__Shift_W(self):
+    def test_navigate_trough_zoom_history_shortcuts(self):
         """
         Test Scope:
             Test functionality of keys Backspace, Shift+Backspace, Shift+W.

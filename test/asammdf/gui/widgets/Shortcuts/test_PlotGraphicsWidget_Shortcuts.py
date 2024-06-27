@@ -79,7 +79,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             self.widget.destroy()
             self.widget.deleteLater()
 
-    def test_key_Y(self):
+    def test_lock_unlock_range_shortcut(self):
         """
         Test Scope:
             Check if Range Selection cursor is locked/unlocked after pressing key Y.
@@ -251,7 +251,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         clean_pixmap = self.pg.grab()
         self.assertTrue(Pixmap.is_black(clean_pixmap))
 
-    def test_key_X(self):
+    def test_zoom_to_range_shortcut(self):
         """
         Test Scope:
             Check if fitting between cursors is released after pressing key "X".
@@ -330,7 +330,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertAlmostEqual(self.pg.x_range[1], x_range[1], delta=0.001)
 
     @unittest.skipIf(sys.platform != "win32", "Unpredicted linux failed test")
-    def test_keys_S__Shift_S__Shift_F__F(self):
+    def test_fit__stack_shortcuts(self):
         """
         Test Scope:
             Check if:
@@ -366,7 +366,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["stack_all"]))
         self.processEvents()
         # Evaluate
-        with self.subTest("test_shortcut_S"):
+        with self.subTest("test_stack_all_shortcut"):
             # First 2 lines
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 2))))
             # Top
@@ -412,7 +412,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         for _ in range(50):
             self.processEvents()
         # Evaluate
-        with self.subTest("test_shortcut_Shift_F"):
+        with self.subTest("test_fit_selected_shortcut"):
             # First line
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 1))))
             # Top
@@ -453,7 +453,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["stack_selected"]))
         self.avoid_blinking_issue(self.plot.channel_selection)
         # Evaluate
-        with self.subTest("test_shortcut_Shift_S"):
+        with self.subTest("test_stack_selected_shortcut"):
             # First line
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 1))))
             # Top
@@ -492,90 +492,90 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             QTest.keySequence(self.pg, QKeySequence(self.shortcuts["fit_all"]))
             self.avoid_blinking_issue(self.plot.channel_selection)
             # Evaluate
-            with self.subTest("test_shortcut_F"):
-                # First line
-                self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 1))))
-                # Top
-                pixmap = self.pg.grab(QRect(0, 0, self.pg.width(), int(self.pg.height() / 3)))
-                self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-                self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-                self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
-                # Midd
-                pixmap = self.pg.grab(
-                    QRect(
-                        0,
-                        int(self.pg.height() / 3),
-                        self.pg.width(),
-                        int(self.pg.height() / 3),
+        with self.subTest("test_fit_all_shortcut"):
+            # First line
+            self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 1))))
+            # Top
+            pixmap = self.pg.grab(QRect(0, 0, self.pg.width(), int(self.pg.height() / 3)))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
+            # Midd
+            pixmap = self.pg.grab(
+                QRect(
+                    0,
+                    int(self.pg.height() / 3),
+                    self.pg.width(),
+                    int(self.pg.height() / 3),
+                )
+            )
+            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
+            # Bottom
+            pixmap = self.pg.grab(
+                QRect(
+                    0,
+                    int(self.pg.height() / 3) * 2,
+                    self.pg.width(),
+                    int(self.pg.height() / 3),
+                )
+            )
+            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
+            # Last line
+            self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, self.pg.height() - 1, self.pg.width(), 1))))
+            # deselect all channels
+            for channel in self.channels:
+                self.mouseDClick_WidgetItem(channel)
+
+            # search if all channels are fitted into extremes
+            self.mouseDClick_WidgetItem(channel_35)
+            extremes = Pixmap.search_signal_extremes_by_ax(
+                self.pg.grab(), signal_color=channel_35.color.name(), ax="x"
+            )
+            for x in range(self.pg.height() - 1):
+                column = self.pg.grab(QRect(x, 0, 1, self.pg.height()))
+                if x < extremes[0] - 1:
+                    self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
+                elif extremes[0] <= x <= extremes[1]:
+                    self.assertTrue(
+                        Pixmap.has_color(column, channel_35.color.name()),
+                        f"column {x} doesn't have color of channel 35",
                     )
-                )
-                self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-                self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-                self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
-                # Bottom
-                pixmap = self.pg.grab(
-                    QRect(
-                        0,
-                        int(self.pg.height() / 3) * 2,
-                        self.pg.width(),
-                        int(self.pg.height() / 3),
+                else:
+                    self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
+
+            self.mouseDClick_WidgetItem(channel_35)
+            self.mouseDClick_WidgetItem(channel_36)
+            for x in range(self.pg.height() - 1):
+                column = self.pg.grab(QRect(x, 0, 1, self.pg.height()))
+                if x < extremes[0] - 1:
+                    self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
+                elif extremes[0] <= x <= extremes[1]:
+                    self.assertTrue(
+                        Pixmap.has_color(column, channel_36.color.name()),
+                        f"column {x} doesn't have color of channel 36",
                     )
-                )
-                self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-                self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-                self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
-                # Last line
-                self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, self.pg.height() - 1, self.pg.width(), 1))))
-                # deselect all channels
-                for channel in self.channels:
-                    self.mouseDClick_WidgetItem(channel)
+                else:
+                    self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
 
-                # search if all channels are fitted into extremes
-                self.mouseDClick_WidgetItem(channel_35)
-                extremes = Pixmap.search_signal_extremes_by_ax(
-                    self.pg.grab(), signal_color=channel_35.color.name(), ax="x"
-                )
-                for x in range(self.pg.height() - 1):
-                    column = self.pg.grab(QRect(x, 0, 1, self.pg.height()))
-                    if x < extremes[0] - 1:
-                        self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
-                    elif extremes[0] <= x <= extremes[1]:
-                        self.assertTrue(
-                            Pixmap.has_color(column, channel_35.color.name()),
-                            f"column {x} doesn't have color of channel 35",
-                        )
-                    else:
-                        self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
+            self.mouseDClick_WidgetItem(channel_37)
+            self.mouseDClick_WidgetItem(channel_36)
+            for x in range(self.pg.height() - 1):
+                column = self.pg.grab(QRect(x, 0, 1, self.pg.height()))
+                if x < extremes[0] - 1:
+                    self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
+                elif extremes[0] <= x <= extremes[1]:
+                    self.assertTrue(
+                        Pixmap.has_color(column, channel_37.color.name()),
+                        f"column {x} doesn't have color of channel 37",
+                    )
+                else:
+                    self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
 
-                self.mouseDClick_WidgetItem(channel_35)
-                self.mouseDClick_WidgetItem(channel_36)
-                for x in range(self.pg.height() - 1):
-                    column = self.pg.grab(QRect(x, 0, 1, self.pg.height()))
-                    if x < extremes[0] - 1:
-                        self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
-                    elif extremes[0] <= x <= extremes[1]:
-                        self.assertTrue(
-                            Pixmap.has_color(column, channel_36.color.name()),
-                            f"column {x} doesn't have color of channel 36",
-                        )
-                    else:
-                        self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
-
-                self.mouseDClick_WidgetItem(channel_37)
-                self.mouseDClick_WidgetItem(channel_36)
-                for x in range(self.pg.height() - 1):
-                    column = self.pg.grab(QRect(x, 0, 1, self.pg.height()))
-                    if x < extremes[0] - 1:
-                        self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
-                    elif extremes[0] <= x <= extremes[1]:
-                        self.assertTrue(
-                            Pixmap.has_color(column, channel_37.color.name()),
-                            f"column {x} doesn't have color of channel 37",
-                        )
-                    else:
-                        self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
-
-    def test_key_G(self):
+    def test_grid_shortcut(self):
         """
         Test Scope:
             Check if grid is created properly after pressing key "G".
@@ -657,7 +657,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                 self.assertFalse(self.pg.x_axis.grid)
                 self.assertFalse(self.pg.y_axis.grid)
 
-    def test_key_Shift_G(self):
+    def test_go_to_timestamp_shortcut(self):
         """
         Test scope:
             Ensure that Shift+G will switchto selected timestamp
@@ -693,7 +693,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
 
         self.assertAlmostEqual(expected_pos, pos, delta=0.01)
 
-    def test_keys_I__Shift_I__O__Shift_O(self):
+    def test_zoom_in__out_shortcuts(self):
         """
         Test Scope:
             Check if zooming is released after pressing keys "I", "Shift+I", "O", "Shift+O".
@@ -782,7 +782,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertAlmostEqual(y_zoom_out_range[0], expected_y_zoom_out_range[0], delta=0.0001)
         self.assertAlmostEqual(y_zoom_out_range[1], expected_y_zoom_out_range[1], delta=0.0001)
 
-    def test_key_R(self):
+    def test_range_shortcut(self):
         """
         Test Scope:
             Check if Range Selection rectangle is painted over the plot.
@@ -899,7 +899,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         clear_pixmap = self.pg.grab()
         self.assertTrue(Pixmap.is_black(clear_pixmap))
 
-    def test_key_Ctrl_S(self):
+    def test_save_active_subplot_channels_shortcut(self):
         """
         Test Scope:
             Check if by pressing "Ctrl+S" is saved in the new measurement file only active channels.
@@ -953,7 +953,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             self.assertNotIn(name, mdf_file.channels_db.keys())
         mdf_file.close()
 
-    def test_keys_Left__Right__Ctrl_Left__Ctrl_Right(self):
+    def test_move_cursor_left__right_shortcuts(self):
         """
         Test Scope:
             Check that Arrow Keys: Left & Right ensure navigation on channels evolution.
@@ -1050,7 +1050,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertEqual(ch.signal.timestamps[pos], self.pg.cursor1.getXPos())
 
     @unittest.skipIf(sys.platform != "win32", "RuntimeError. C++ object <<ViewBoxWithCursor>> already deleted.")
-    def test_key_Shift_Arrows(self):
+    def test_shift_channels_shortcut(self):
         """
         Test Scope:
             Check that Shift + Arrow Keys ensure moving of selected channels.
@@ -1120,7 +1120,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertLess(old_from_to_x_channel_37[0], new_from_to_x_channel_37[0])
         self.assertLess(old_from_to_x_channel_37[1], new_from_to_x_channel_37[1])
 
-    def test_key_H(self):
+    def test_test_honeywell_shortcut(self):
         """
         Test Scope:
             Check if honeywell function is applied to signal after pressing key "H"
@@ -1172,7 +1172,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertNotEqual(delta_full_screen_x_range, delta_normal_screen_x_range)
         self.assertAlmostEqual(delta_full_screen_x_range, expected_full_screen_honey_range, delta=0.0001)
 
-    def test_key_W(self):
+    def test_home_shortcuts(self):
         """
         Check if the signal is fitted properly after pressing key "W".
         Events:
@@ -1229,7 +1229,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             else:
                 self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
 
-    def test_key_Insert(self):
+    def test_insert_computation_shortcut(self):
         """
         Test Scope:
             Check Insert key shortcut action

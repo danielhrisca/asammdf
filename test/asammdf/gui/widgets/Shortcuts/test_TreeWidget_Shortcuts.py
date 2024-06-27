@@ -40,7 +40,7 @@ class TestTreeWidgetShortcuts(TestFileWidget):
             self.widget.destroy()
             self.widget.deleteLater()
 
-    def test_key_Space(self):
+    def test_toggle_select_channel_shortcut(self):
         """
         Test scope:
             Check if by pressing key Space, check status of tree item is changed
@@ -122,7 +122,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
             self.widget.destroy()
             self.widget.deleteLater()
 
-    def test_key_Shift_Delete(self):
+    def test_delete_shortcut(self):
         """
         Test Scope:
             - Ensure that key Delete will remove selected channels.
@@ -164,7 +164,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         # Evaluate
         self.assertEqual(self.ctw.topLevelItemCount(), 0)
 
-    def test_key_Ctrl_Insert(self):
+    def test_add_pattern_based_channel_group_shortcut(self):
         """
         Test Scope:
             Check if a new pattern-based channel group can be created by pressing shortcut "Ctrl+Insert"
@@ -226,7 +226,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
             # To avoid duplicates
             items.remove(channel_name)
 
-    def test_key_Shift_Insert(self):
+    def test_add_channel_group(self):
         """
         Test Scope:
             Check if a new channel group can be created by pressing shortcut "Shift+Insert"
@@ -246,7 +246,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         mo_QInputDialog.getText.assert_called()
         self.assertEqual(self.ctw.topLevelItem(0).name, self.id())
 
-    def test_key_Space(self):
+    def test_select_channel_shortcut(self):
         """
         Test scope:
             Ensure that key Space change checks state for selected item.
@@ -291,7 +291,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         QTest.keySequence(self.ctw, QKeySequence(self.shortcuts["toggle_check_state"]))
         self.assertEqual(self.ctw.topLevelItem(0).checkState(0), Qt.CheckState.Checked)
 
-    def test_key_C(self):
+    def test_color_shortcut(self):
         """
         Test Scope:
             - Ensure that channel color is changed.
@@ -342,7 +342,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
                     self.assertNotIn(channel.color.name(), previous_ch_colors)
                     self.assertEqual(channel.color.name(), color.name())
 
-    def test_key_Ctrl_Shift_C(self):
+    def test_copy_display_properties_shortcut(self):
         """
         Test Scope:
             - Ensure that key "Ctrl+Shift+C" can copy display properties of selected item
@@ -367,7 +367,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         # Evaluate
         mo_instance.return_value.clipboard.return_value.setText.assert_called_with(ch_0_display_properties)
 
-    def test_key_Ctrl_Shift_V(self):
+    def test_paste_display_properties_shortcut(self):
         """
         Test Scope:
             - Ensure that key "Ctrl+Shift+V" can paste from clipboard display properties to selected item.
@@ -400,7 +400,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
             self.ctw.topLevelItem(0).get_display_properties(), self.ctw.topLevelItem(1).get_display_properties()
         )
 
-    def test_key_Ctrl_N(self):
+    def test_copy_names_shortcut(self):
         """
         Test Scope:
             - Ensure that key "Ctrl+Shift+V" can paste from clipboard display properties to selected item.
@@ -441,7 +441,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
             # Evaluate
             mo_instance.return_value.clipboard.return_value.setText.assert_called_with(expected_cb_all_items_call)
 
-    def test_key_Ctrl_R(self):
+    def test_set_color_range_shortcut(self):
         """
         Test Scope:
             Check if color range is triggered after pressing key Ctrl+R.

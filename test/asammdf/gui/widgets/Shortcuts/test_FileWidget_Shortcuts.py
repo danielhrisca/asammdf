@@ -43,7 +43,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
             self.widget.destroy()
             self.widget.deleteLater()
 
-    def test_key_Ctrl_F(self):
+    def test_search_and_select_channels_shortcut(self):
         """
         Test Scope:
             Check if advanced search widget is called by shortcut Ctrl+S and founded items are added to plot.
@@ -73,7 +73,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
             mock.patch("asammdf.gui.widgets.file.AdvancedSearch") as mo_AdvancedSearch,
             mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mo_WindowSelectionDialog,
         ):
-            with self.subTest("test_Ctrl_F_new_window"):
+            with self.subTest("test_search_shortcut_new_window"):
                 mo_AdvancedSearch.return_value.result = matrix_items
                 mo_AdvancedSearch.return_value.pattern_window = False
                 mo_WindowSelectionDialog.return_value.dialog.return_value = 1  # Ok
@@ -98,7 +98,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
                     self.assertIn(item.name, matrix_items.values())
                     iterator += 1
 
-            with self.subTest("test_Ctrl_F_pattern_window"):
+            with self.subTest("test_search_shortcut_pattern_window"):
                 # Setup
                 mo_AdvancedSearch.return_value.pattern_window = True
                 mo_AdvancedSearch.return_value.result = {
@@ -166,7 +166,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
                     self.assertIn(item.name, final_items.values())
                     iterator += 1
 
-    def test_key_Shift_V__Shift_H__Shift_T__Shift_C(self):
+    def test_cascade__grid__vertically__horizontally_sub_windows_shortcuts(self):
         """
         Test Scope:
             - To check if sub-windows layout can be properly changed to vertically, horizontally and grid one
@@ -267,7 +267,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
         self.assertEqual(len(width), 1)
         self.assertIn(len(height), range(1, 4))
 
-    def test_key_Shift_Alt_F(self):
+    def test_toggle_sub_windows_frame_shortcut(self):
         """
         Test Scope:
             Check if sub-windows frame was toggled after pressing keys "Shift+Alt+F"
@@ -313,7 +313,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
             previous_size.height(), self.widget.mdi_area.subWindowList()[0].widget().frameSize().height()
         )
 
-    def test_key_Shift_L(self):
+    def test_toggle_channel_list_shortcut(self):
         """
         Test Scope:
             Check if by pressing the combination of keys "Shift+L", visibility of a channel list is changed
@@ -349,7 +349,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
         self.assertTrue(self.widget.channel_view.isVisible())
         self.assertGreater(self.widget.splitter.sizes()[0], 0)
 
-    def test_key_Period(self):
+    def test_toggle_dots_shortcut(self):
         """
         Test Scope:
             Check if dots appear on plot after pressing key Period

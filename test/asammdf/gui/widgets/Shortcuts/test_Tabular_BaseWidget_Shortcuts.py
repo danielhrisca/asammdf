@@ -50,7 +50,7 @@ class TestDataTableViewShortcuts(TestFileWidget):
             self.widget.destroy()
             self.widget.deleteLater()
 
-    def test_key_Ctrl_R(self):
+    def test_set_color_range_shortcut(self):
         """
             Test Scope:
                 Ensure that after pressing key Ctrl+R, range editor will be triggered
@@ -193,7 +193,7 @@ class TestTabularBaseShortcuts(TestFileWidget):
             self.widget.destroy()
             self.widget.deleteLater()
 
-    def test_keys_Ctrl_H__Ctrl_B__Ctrl_P(self):
+    def test_bin__hex__physical_shortcuts(self):
         """
             Test scope:
                 Ensure that data format is changed after pressing keys
@@ -260,7 +260,7 @@ class TestTabularBaseShortcuts(TestFileWidget):
         self.assertTrue(phys_data.isdecimal())
         self.assertEqual(int(phys_data), int(data))
 
-    def test_key_Ctrl_S(self):
+    def test_save_active_subplot_channels_shortcut(self):
         """
             Test scope:
                 Ensure that window Save as file was called
@@ -308,7 +308,7 @@ class TestTabularBaseShortcuts(TestFileWidget):
         self.assertEqual(len(expected_channels), 0)
         mdf_file.close()
 
-    def test_keys_Ctrl_Left_and_Right_Buckets(self):
+    def test_increase__decrease_font_shortcuts(self):
         """
         Test scope:
             Ensure that Ctrl+[ and Ctrl+] will change font size
@@ -330,7 +330,7 @@ class TestTabularBaseShortcuts(TestFileWidget):
         self.assertGreater(font_size, self.tabular.tree.dataView.font().pointSize())
 
 
-@skipIf(platform != "win32", "Failed on linux")
+@skipIf(platform != "win32", "Failed on linux. Shortcut can copy only value for one cell")
 class TestDataFrameViewerShortcuts(TestFileWidget):
     def setUp(self):
         """
@@ -365,7 +365,7 @@ class TestDataFrameViewerShortcuts(TestFileWidget):
             self.widget.destroy()
             self.widget.deleteLater()
 
-    def test_keys_Ctrl_C(self):
+    def test_copy_shortcut(self):
         """
             Test scope:
                 Ensure that Ctrl+C shortcut will copy value from selected row to clipboard
