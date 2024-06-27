@@ -27,7 +27,10 @@ class TestFileWidget(TestBase):
         self.addCleanup(patcher.stop)
 
     def tearDown(self):
-        self.widget.grab().save(os.path.join(self.screenshots, f"{self.id()}.png"))
+        path_ = os.path.join(self.screenshots, self.__module__)
+        if not os.path.exists(path_):
+            os.makedirs(path_)
+        self.widget.grab().save(os.path.join(path_, f"{self.id()}.png"))
         if self.widget:
             self.widget.close()
             self.widget.destroy()
