@@ -3,7 +3,6 @@ import json
 from json import JSONDecodeError
 import pathlib
 import re
-import sys
 from unittest import mock
 from unittest.mock import ANY
 

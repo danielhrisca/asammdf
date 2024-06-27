@@ -1,5 +1,4 @@
 import pathlib
-import sys
 import threading as td
 from unittest import mock
 

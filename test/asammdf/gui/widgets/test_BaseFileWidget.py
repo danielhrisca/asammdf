@@ -1,8 +1,8 @@
 import json
 import os
 import platform
-import sys
 from random import randint
+import sys
 from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets
@@ -26,8 +26,8 @@ class TestFileWidget(TestBase):
     def tearDown(self):
         if hasattr(self._outcome.result, "failures") and hasattr(self._outcome.result, "errors"):
             if (self._outcome.result.failures or self._outcome.result.errors) and self.save_ss_here is not None:
-                self.widget.grab().save(os.path.join(
-                    self.screenshots, f"{sys.platform}_{platform.python_version()}_{self.id()}.png")
+                self.widget.grab().save(
+                    os.path.join(self.screenshots, f"{sys.platform}_{platform.python_version()}_{self.id()}.png")
                 )
         if self.widget:
             self.widget.close()
