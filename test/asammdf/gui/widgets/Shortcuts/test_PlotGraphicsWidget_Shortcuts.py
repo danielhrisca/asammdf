@@ -532,9 +532,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
 
             # search if all channels are fitted into extremes
             self.mouseDClick_WidgetItem(channel_35)
-            extremes = Pixmap.search_signal_extremes_by_ax(
-                self.pg.grab(), signal_color=channel_35.color.name(), ax="x"
-            )
+            extremes = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), signal_color=channel_35.color.name(), ax="x")
             for x in range(self.pg.height() - 1):
                 column = self.pg.grab(QRect(x, 0, 1, self.pg.height()))
                 if x < extremes[0] - 1:
