@@ -1,6 +1,7 @@
 import json
 import os
 import platform
+import unittest
 from random import randint
 import sys
 from unittest import mock
@@ -14,6 +15,8 @@ from test.asammdf.gui.test_base import TestBase
 
 
 class TestFileWidget(TestBase):
+    testResult = None
+
     def setUp(self):
         super().setUp()
         self.widget = None
@@ -24,19 +27,20 @@ class TestFileWidget(TestBase):
         self.addCleanup(patcher.stop)
 
     def tearDown(self):
-        path_ = os.path.join(self.screenshots, f"{sys.platform}_{platform.python_version()}_{self.id()}.png")
-        if hasattr(self._outcome.result, "failures") and hasattr(self._outcome.result, "errors"):
-            if self._outcome.result.failures or self._outcome.result.errors:
-                self.widget.grab().save(path_)
-                print(path_)
-        self.widget.grab().save(os.path.join(self.screenshots, "last_ss.png"))
-
+        if not self.testResult.wasSuccessful():
+            self.widget.grab().save(
+                os.path.join(self.screenshots, f"{sys.platform}_{platform.python_version()}_{self.id()}.png")
+            )
         if self.widget:
             self.widget.close()
             self.widget.destroy()
             self.widget.deleteLater()
         self.mc_ErrorDialog.reset_mock()
         super().tearDown()
+
+    def run(self, result=None):
+        self.testResult = result
+        unittest.TestCase.run(self, result)
 
     def setUpFileWidget(self, *args, measurement_file, default):
         """

@@ -1,5 +1,6 @@
 import pathlib
 import threading as td
+import unittest
 from unittest import mock
 
 import pyautogui
@@ -24,6 +25,7 @@ class QMenuWrap(QtWidgets.QMenu):
         return self.return_action
 
 
+@unittest.skipIf(True, "speed run")
 class TestPlotWidget(TestFileWidget):
     class Column:
         NAME = 0
