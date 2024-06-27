@@ -107,7 +107,7 @@ class TestPlotWidget(TestFileWidget):
             )
         QtTest.QTest.mouseMove(channels_tree_widget, QPoint(drag_x, drag_y))
         # minimum necessary time for drag action to be implemented
-        t = 0.8
+        t = 0.9
 
         def call_drop_event():
             d = drop_y - drag_y

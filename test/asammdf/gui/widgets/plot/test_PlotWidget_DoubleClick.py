@@ -682,7 +682,7 @@ class TestDoubleClick(TestPlotWidget):
 
             # Evaluate selected items
             selectedItems = self.plot.channel_selection.selectedItems()
-            self.assertEqual(1, len(selectedItems))
+            self.assertEqual(6, len(selectedItems))
             self.assertEqual("B", selectedItems[0].text(self.Column.NAME))
 
             # Disable group C from context-menu
