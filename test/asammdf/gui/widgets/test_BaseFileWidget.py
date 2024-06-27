@@ -39,8 +39,8 @@ class TestFileWidget(TestBase):
         super().tearDown()
 
     def run(self, result=None):
-        self.testResult = result
-        unittest.TestCase.run(self, result)
+        self.testResult = unittest.TestResult()
+        unittest.TestCase.run(self, self.testResult)
 
     def setUpFileWidget(self, *args, measurement_file, default):
         """
