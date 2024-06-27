@@ -27,7 +27,7 @@ class TestFileWidget(TestBase):
         if hasattr(self._outcome.result, "failures") and hasattr(self._outcome.result, "errors"):
             if (self._outcome.result.failures or self._outcome.result.errors) and self.save_ss_here is not None:
                 self.widget.grab().save(os.path.join(
-                    self.screenshots, f"{sys.platform}_{platform.python_version().split(".")[1]}_{self.id()}.png")
+                    self.screenshots, f"{sys.platform}_{platform.python_version()}_{self.id()}.png")
                 )
         if self.widget:
             self.widget.close()
