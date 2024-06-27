@@ -4,7 +4,7 @@ from json import JSONDecodeError
 import pathlib
 import re
 import sys
-from unittest import mock, skipIf
+from unittest import mock
 from unittest.mock import ANY
 
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
@@ -845,9 +845,6 @@ class TestContextMenu(TestPlotWidget):
             self.assertNotEqual(previous_c_color, current_c_color)
             self.assertNotEqual(current_b_color, current_c_color)
 
-    @skipIf(
-        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
-    )
     def test_Action_CopyDisplayProperties_Group(self):
         """
         Test Scope:
@@ -940,9 +937,6 @@ class TestContextMenu(TestPlotWidget):
                 self.assertIsInstance(content, dict)
                 self.assertTrue(content["type"] == "group")
 
-    @skipIf(
-        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
-    )
     def test_Action_PasteDisplayProperties_Group(self):
         """
         Test Scope:
@@ -1051,9 +1045,6 @@ class TestContextMenu(TestPlotWidget):
             # Evaluate
             self.assertEqual(group_channel_a_properties, group_channel_b_properties)
 
-    @skipIf(
-        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
-    )
     def test_Action_CopyChannelStructure_Group(self):
         """
         Test Scope:
@@ -1086,9 +1077,6 @@ class TestContextMenu(TestPlotWidget):
             for channel_properties in content:
                 self.assertIsInstance(channel_properties, dict)
 
-    @skipIf(
-        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
-    )
     def test_Action_PasteChannelStructure_Group(self):
         """
         Test Scope:
@@ -1129,9 +1117,6 @@ class TestContextMenu(TestPlotWidget):
         self.assertEqual(channels_count + 1, self.plot.channel_selection.topLevelItemCount())
         self.assertEqual(2, len(self.plot.channel_selection.findItems("FirstGroup", QtCore.Qt.MatchFlags())))
 
-    @skipIf(
-        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
-    )
     def test_Menu_EnableDisable_Action_DisableSelected(self):
         """
         Test Scope:
@@ -1181,9 +1166,6 @@ class TestContextMenu(TestPlotWidget):
 
         self.assertEqual(QtCore.Qt.CheckState.Unchecked, group_channel.checkState(self.Column.NAME))
 
-    @skipIf(
-        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
-    )
     def test_Menu_EnableDisable_Action_DeactivateGroups_Group(self):
         """
         Test Scope:
@@ -1248,9 +1230,6 @@ class TestContextMenu(TestPlotWidget):
             child = group_a_channel.child(child_index)
             self.assertEqual(True, child.isDisabled())
 
-    @skipIf(
-        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
-    )
     def test_Menu_EnableDisable_Action_DisableAll(self):
         """
         Test Scope:
@@ -1298,9 +1277,6 @@ class TestContextMenu(TestPlotWidget):
             if item.type() != item.Info:
                 self.assertEqual(QtCore.Qt.CheckState.Unchecked, item.checkState(self.Column.NAME))
 
-    @skipIf(
-        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
-    )
     def test_Menu_EnableDisable_Action_EnableSelected(self):
         """
         Test Scope:
@@ -1357,9 +1333,6 @@ class TestContextMenu(TestPlotWidget):
 
         self.assertEqual(QtCore.Qt.CheckState.Checked, group_channel.checkState(self.Column.NAME))
 
-    @skipIf(
-        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
-    )
     def test_Menu_EnableDisable_Action_EnableAll(self):
         """
         Test Scope:

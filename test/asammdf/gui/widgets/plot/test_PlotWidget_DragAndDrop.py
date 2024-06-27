@@ -130,9 +130,6 @@ class TestDragAndDrop(TestPlotWidget):
             iterator += 1
         self.assertListEqual(selected_channels, plot_channels)
 
-    @unittest.skipIf(
-        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'"
-    )
     def test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toSamePlotCS(self):
         """
         Test Scope:

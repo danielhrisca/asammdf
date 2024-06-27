@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import sys
-from unittest import mock, skipIf
+from unittest import mock
 
 from PySide6 import QtCore, QtGui, QtTest
 
@@ -62,9 +62,6 @@ class TestDoubleClick(TestPlotWidget):
         self.mouseDClick_WidgetItem(plot_channel)
         self.assertEqual(QtCore.Qt.CheckState.Checked, plot_channel.checkState(0))
 
-    @skipIf(
-        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
-    )
     def test_EnableDisable_Group(self):
         """
         Test Scope: Validate that doubleClick operation will activate deactivate groups.
@@ -178,9 +175,6 @@ class TestDoubleClick(TestPlotWidget):
                 msg=f"Color of channel {plot_channel_0.text(self.Column.NAME)} is not present on plot.",
             )
 
-    @skipIf(
-        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
-    )
     def test_EnableDisable_ParentGroup(self):
         """
         Test Scope:
@@ -319,9 +313,6 @@ class TestDoubleClick(TestPlotWidget):
                     msg=f"Color for Channel: {channel.text(self.Column.NAME)} not present on 'plot'",
                 )
 
-    @skipIf(
-        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
-    )
     def test_EnableDisable_Subgroup(self):
         """
         Test Scope:
@@ -448,9 +439,6 @@ class TestDoubleClick(TestPlotWidget):
                     msg=f"Color for Channel: {channel.text(self.Column.NAME)} not present on 'plot'",
                 )
 
-    @skipIf(
-        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
-    )
     def test_EnableDisable_Preserve_Subgroup_State_0(self):
         """
         Test Scope:
@@ -580,9 +568,6 @@ class TestDoubleClick(TestPlotWidget):
                     msg=f"Color for Channel: {channel.text(self.Column.NAME)} not present on 'plot'",
                 )
 
-    @skipIf(
-        sys.platform != "win32", "FileNotFoundError: [Errno 2] No such file or directory: '/home/runner/.Xauthority'."
-    )
     def test_EnableDisable_Preserve_Subgroup_State_1(self):
         """
         Test Scope:

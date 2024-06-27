@@ -3,8 +3,7 @@ import sys
 import threading as td
 from unittest import mock
 
-if sys.platform == "win32":
-    import pyautogui
+import pyautogui
 from PySide6 import QtCore, QtTest, QtWidgets
 from PySide6.QtCore import QCoreApplication, QPoint, QPointF, Qt
 from PySide6.QtGui import QInputDevice, QPointingDevice, QWheelEvent
