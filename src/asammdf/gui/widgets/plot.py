@@ -2240,7 +2240,11 @@ class Plot(QtWidgets.QWidget):
             palette.setBrush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.WindowText, brush)
             palette.setBrush(QtGui.QPalette.ColorGroup.Inactive, QtGui.QPalette.ColorRole.WindowText, brush)
 
-            brush = QtGui.QBrush(item._current_background_color)
+            brush = QtGui.QBrush(
+                item._current_background_color
+                if item._current_background_color is not None
+                else QtCore.Qt.BrushStyle.NoBrush
+            )
             palette.setBrush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.Window, brush)
             palette.setBrush(QtGui.QPalette.ColorGroup.Inactive, QtGui.QPalette.ColorRole.Window, brush)
 
