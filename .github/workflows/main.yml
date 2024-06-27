@@ -48,7 +48,7 @@ jobs:
         if: failure()
         with:
           name: test_ss
-          path: ${{ github.workspace }}/screenshots/
+          path: ${{ github.workspace }}/screenshots/**/*.png
 
       - name: Stop Xvfb
         if: matrix.os == 'ubuntu-22.04'
