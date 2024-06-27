@@ -46,10 +46,9 @@ class TestTabChannels(TestFileWidget):
                 QtCore.Qt.MouseButton.LeftButton,
             )
             # Evaluate
-            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 10)
             widget_types = self.get_sub_windows()
             self.assertIn("Plot", widget_types)
-            self.fail("Test for git server")
 
     @mock.patch("asammdf.gui.widgets.file.ErrorDialog")
     def test_PushButton_LoadOfflineWindows_DSPF(self, mc_file_ErrorDialog):
