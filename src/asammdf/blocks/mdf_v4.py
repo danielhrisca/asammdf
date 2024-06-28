@@ -23,6 +23,7 @@ import sys
 from tempfile import gettempdir, NamedTemporaryFile
 from traceback import format_exc
 from typing import Any, overload
+import warnings
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from typing_extensions import Literal
@@ -8360,8 +8361,10 @@ class MDF4(MDF_Common):
         """
 
         if raster is not None:
-            PendingDeprecationWarning(
-                "the argument raster is deprecated since version 5.13.0 " "and will be removed in a future release"
+            warnings.warn(
+                "the argument raster is deprecated since version 5.13.0 and will be removed in a future release",
+                PendingDeprecationWarning,
+                stacklevel=1,
             )
         if self._master is not None:
             return self._master

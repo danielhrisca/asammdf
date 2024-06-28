@@ -3187,7 +3187,7 @@ class WithMDIArea:
 
         widget.plot.update()
 
-        for channel in widget.plot.signals:
+        for channel in widget.plot.signals:  # noqa: PLR1704
             if channel.uuid == uuid:
                 continue
 

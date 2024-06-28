@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # asammdf documentation build configuration file, created by
 # sphinx-quickstart on Wed Jul 12 06:05:15 2017.
@@ -18,12 +17,11 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
-import sys
 
 # BASE_DIR = os.path.abspath("..")
 # sys.path.insert(0, BASE_DIR)
 
-with open(os.path.join("..", "src", "asammdf", "version.py"), "r") as f:
+with open(os.path.join("..", "src", "asammdf", "version.py")) as f:
     for line in f:
         if line.startswith("__version__"):
             asam_version = line.split("=")[-1].strip().strip("'")

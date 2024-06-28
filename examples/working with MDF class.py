@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
 """
 *asammdf* MDF usage example
 """
+
 import numpy as np
 
 from asammdf import MDF, Signal

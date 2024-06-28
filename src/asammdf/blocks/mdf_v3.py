@@ -19,6 +19,7 @@ from tempfile import NamedTemporaryFile
 import time
 from traceback import format_exc
 from typing import Any, overload
+import warnings
 import xml.etree.ElementTree as ET
 
 from numpy import (
@@ -3176,8 +3177,10 @@ class MDF3(MDF_Common):
             return self._master
 
         if raster is not None:
-            PendingDeprecationWarning(
-                "the argument raster is deprecated since version 5.13.0 " "and will be removed in a future release"
+            warnings.warn(
+                "the argument raster is deprecated since version 5.13.0 and will be removed in a future release",
+                PendingDeprecationWarning,
+                stacklevel=1,
             )
 
         fragment = data
@@ -3772,7 +3775,7 @@ class MDF3(MDF_Common):
 
             result = {}
 
-            for group_index, channels in gps.items():
+            for group_index, channels in gps.items():  # noqa: PLR1704
                 group = self.groups[group_index]
 
                 channel_dependencies = [group.channel_dependencies[ch_nr] for ch_nr in channels]

@@ -74,13 +74,13 @@ class TestBase(unittest.TestCase):
         else:
             duration = abs(duration)
 
-        w.showNormal()
+        widget.showNormal()
 
         loop = QtCore.QEventLoop()
         QtCore.QTimer.singleShot(int(duration * 1000), loop.quit)
         loop.exec_()
 
-        w.showNormal()
+        widget.showNormal()
 
     @staticmethod
     def processEvents(timeout=0.001):
