@@ -126,6 +126,7 @@ class ViewBoxWithCursor(pg.ViewBox):
     sigCursorMoved = QtCore.Signal(object)
     sigZoomChanged = QtCore.Signal(object)
     sigZoomFinished = QtCore.Signal(object)
+    hover_at = QtCore.Signal(object)
 
     X_zoom = QtCore.QKeyCombination(
         QtCore.Qt.KeyboardModifier.ShiftModifier,
@@ -151,6 +152,8 @@ class ViewBoxWithCursor(pg.ViewBox):
     def __init__(self, plot, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.setAcceptHoverEvents(True)
+
         self.menu.setParent(None)
         self.menu.deleteLater()
         self.menu = None
@@ -168,6 +171,9 @@ class ViewBoxWithCursor(pg.ViewBox):
 
     def __repr__(self):
         return "ASAM ViewBox"
+
+    def hoverMoveEvent(self, event):
+        self.hover_at.emit(self.mapSceneToView(event.scenePos()))
 
     def setMouseMode(self, mode):
         """

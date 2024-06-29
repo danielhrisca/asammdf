@@ -28,12 +28,16 @@ class FormatedAxis(pg.AxisItem):
 
         super().__init__(*args, **kwargs)
 
+        self.setAcceptHoverEvents(True)
+
         self._settings = QtCore.QSettings()
 
         self.format = "phys"
         self.mode = "phys"
         self.text_conversion = None
         self.origin = None
+
+        self.hovering = False
 
         self._label_with_unit = ""
 
@@ -239,6 +243,18 @@ class FormatedAxis(pg.AxisItem):
             if lv is None:
                 return
             return lv.mouseClickEvent(event)
+
+    def hoverEnterEvent(self, event):
+        self.hovering = True
+        self.picture = None
+        self.update()
+        super().hoverEnterEvent(event)
+
+    def hoverLeaveEvent(self, event):
+        self.hovering = False
+        self.picture = None
+        self.update()
+        super().hoverLeaveEvent(event)
 
     def resizeEvent(self, ev=None):
         if self.orientation in ("left", "right"):
@@ -501,6 +517,10 @@ class FormatedAxis(pg.AxisItem):
         p.setRenderHint(p.RenderHint.Antialiasing, False)
         p.setRenderHint(p.RenderHint.TextAntialiasing, True)
 
+        bounding = self.boundingRect().toAlignedRect()
+        bounding.setSize(bounding.size() * ratio)
+        bounding.moveTo(bounding.topLeft() * ratio)
+
         ## draw long line along axis
         pen, p1, p2 = axisSpec
         p.setPen(pen)
@@ -515,9 +535,7 @@ class FormatedAxis(pg.AxisItem):
         if self.style["tickFont"] is not None:
             p.setFont(self.style["tickFont"])
         p.setPen(self.textPen())
-        bounding = self.boundingRect().toAlignedRect()
-        bounding.setSize(bounding.size() * ratio)
-        bounding.moveTo(bounding.topLeft() * ratio)
+
         p.setClipRect(bounding)
         for rect, flags, text in textSpecs:
             p.drawText(rect, int(flags), text)
@@ -532,7 +550,17 @@ class FormatedAxis(pg.AxisItem):
         if self.picture is None:
             try:
                 picture = QtGui.QPixmap(ceil(width * ratio), ceil(height * ratio))
-                picture.fill(self.background)
+
+                if self.hovering:
+                    if self.background == fn.mkColor("#000000"):
+                        bk = fn.mkColor("#202020")
+                    else:
+                        bk = fn.mkColor("#DFDFDF")
+
+                else:
+                    bk = self.background
+
+                picture.fill(bk)
 
                 painter = QtGui.QPainter()
                 painter.begin(picture)
@@ -545,6 +573,10 @@ class FormatedAxis(pg.AxisItem):
 
                     if specs is not None:
                         self.drawPicture(painter, *specs, ratio)
+
+                    bounding = self.boundingRect().toAlignedRect()
+                    bounding.setSize(bounding.size() * ratio)
+                    bounding.moveTo(bounding.topLeft() * ratio)
 
                     if self.minus is not None:
                         painter.drawPixmap(
