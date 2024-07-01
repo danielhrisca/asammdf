@@ -15,19 +15,19 @@
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout">
    <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
    <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
    <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
    <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
    <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
    <item>
     <widget class="QDoubleSpinBox" name="value">
@@ -71,19 +71,19 @@
      <widget class="QWidget" name="page">
       <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0">
        <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
        <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
        <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
        <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
        <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
        <item>
         <widget class="QLineEdit" name="text">
@@ -97,19 +97,19 @@
      <widget class="QWidget" name="page_2">
       <layout class="QHBoxLayout" name="horizontalLayout_3">
        <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
        <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
        <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
        <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
        <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
        <item>
         <widget class="QPushButton" name="conversion_btn">

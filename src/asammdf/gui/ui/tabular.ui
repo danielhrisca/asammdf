@@ -15,31 +15,31 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,0">
    <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
    <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
    <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
    <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
    <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
     </layout>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
      <item>
       <widget class="QComboBox" name="format_selection">
@@ -123,19 +123,19 @@
      </property>
      <layout class="QGridLayout" name="gridLayout_3" columnstretch="0,0,0,1">
       <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
       <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
       <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
       <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
       <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
       <item row="0" column="0">
        <widget class="QPushButton" name="add_filter_btn">
@@ -214,19 +214,19 @@
         </property>
         <layout class="QGridLayout" name="gridLayout">
          <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
          <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
          <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
          <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
          <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
          <item row="0" column="0">
           <widget class="QTextEdit" name="query">

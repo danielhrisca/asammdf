@@ -27,19 +27,19 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
    <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
    <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
    <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
    <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
    <item>
     <layout class="QHBoxLayout" name="layout" stretch="0,0">

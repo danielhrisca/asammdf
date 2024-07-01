@@ -15,19 +15,19 @@
   </property>
   <layout class="QGridLayout" name="gridLayout_9" columnstretch="2,1">
    <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
    <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
    <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
    <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
    <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
    <item row="1" column="0">
     <widget class="QSplitter" name="splitter">
@@ -54,19 +54,19 @@
        </attribute>
        <layout class="QGridLayout" name="gridLayout_7" columnstretch="0,1">
         <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
         <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
         <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
         <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
         <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
         <item row="0" column="0" colspan="2">
          <widget class="QCheckBox" name="concatenate_sync">
@@ -188,19 +188,19 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_5">
         <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
         <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
         <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
         <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
         <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
         <item>
          <widget class="QScrollArea" name="scrollArea_3">
@@ -218,24 +218,24 @@
            </property>
            <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,1,0">
             <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
             <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
             <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
             <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
             <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_14">
               <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
               <item>
                <widget class="QComboBox" name="filter_view">
@@ -271,7 +271,7 @@
               <item>
                <layout class="QHBoxLayout" name="horizontalLayout_5">
                 <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
                 <item>
                  <widget class="QPushButton" name="load_filter_list_btn">
@@ -349,7 +349,7 @@
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_13">
               <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
               <item>
                <widget class="QLabel" name="label_3">
@@ -376,19 +376,19 @@
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_15" stretch="0,0,0,0,1,0">
               <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
               <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
               <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
               <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
               <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
               <item>
                <widget class="QGroupBox" name="cut_group">
@@ -403,19 +403,19 @@
                 </property>
                 <layout class="QGridLayout" name="gridLayout_23">
                  <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <item row="0" column="0">
                   <widget class="QLabel" name="label_62">
@@ -487,19 +487,19 @@
                 </property>
                 <layout class="QGridLayout" name="gridLayout_24" columnstretch="0,1,0">
                  <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <item row="0" column="0">
                   <widget class="QRadioButton" name="raster_type_step">
@@ -581,19 +581,19 @@
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_21">
                  <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <item>
                   <widget class="QComboBox" name="output_format">
@@ -637,19 +637,19 @@
                    <widget class="QWidget" name="MDF_2">
                     <layout class="QGridLayout" name="gridLayout_25" columnstretch="0,0">
                      <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <item row="3" column="0" colspan="2">
                       <widget class="QCheckBox" name="mdf_split">
@@ -715,19 +715,19 @@
                        </property>
                        <layout class="QGridLayout" name="gridLayout_26" rowstretch="1,0" columnstretch="0,1">
                         <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                         <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                         <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                         <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                         <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
                         <item row="1" column="0">
                          <widget class="QPushButton" name="scramble_btn">
@@ -787,19 +787,19 @@
                    <widget class="QWidget" name="HDF5_2">
                     <layout class="QGridLayout" name="gridLayout_17">
                      <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <item row="8" column="1">
                       <widget class="QComboBox" name="empty_channels"/>
@@ -888,19 +888,19 @@
                    <widget class="QWidget" name="MAT_2">
                     <layout class="QGridLayout" name="gridLayout_18">
                      <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <item row="10" column="0">
                       <widget class="QLabel" name="label_41">
@@ -1009,19 +1009,19 @@
                    <widget class="QWidget" name="CSV">
                     <layout class="QGridLayout" name="gridLayout_2">
                      <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
                      <item row="10" column="1">
                       <widget class="QLineEdit" name="escapechar">
@@ -1212,19 +1212,19 @@
                 </property>
                 <layout class="QGridLayout" name="gridLayout">
                  <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
                  <item row="0" column="0">
                   <widget class="QLineEdit" name="modify_output_folder">
@@ -1292,19 +1292,19 @@
        </attribute>
        <layout class="QGridLayout" name="gridLayout_8" columnstretch="0,1">
         <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
         <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
         <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
         <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
         <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
         <item row="0" column="0" colspan="2">
          <widget class="QCheckBox" name="stack_sync">
@@ -1423,19 +1423,19 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_4">
         <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
         <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
         <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
         <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
         <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
         <item>
          <widget class="QScrollArea" name="scrollArea">
@@ -1453,19 +1453,19 @@
            </property>
            <layout class="QGridLayout" name="gridLayout_3" columnstretch="0,0,0">
             <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
             <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
             <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
             <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
             <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
             <item row="2" column="1">
              <widget class="QGroupBox" name="groupBox_3">
@@ -1474,19 +1474,19 @@
               </property>
               <layout class="QGridLayout" name="gridLayout_10">
                <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
                <item row="9" column="2">
                 <widget class="QLineEdit" name="lineterminator_bus">
@@ -1697,19 +1697,19 @@
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout">
                 <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
                 <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                 <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                 <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                 <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                 <item>
                  <widget class="QPushButton" name="load_can_database_btn">
@@ -1733,19 +1733,19 @@
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_2">
                 <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
                 <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                 <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                 <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                 <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                 <item>
                  <widget class="QPushButton" name="load_lin_database_btn">
@@ -1768,7 +1768,7 @@
             <item row="1" column="0" colspan="2">
              <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1">
               <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
               <item>
                <widget class="QLabel" name="label">
@@ -1809,19 +1809,19 @@
               </property>
               <layout class="QGridLayout" name="gridLayout_5">
                <property name="leftMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                <property name="topMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                <property name="rightMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                <property name="bottomMargin">
-  <number>3</number>
+  <number>2</number>
 </property>
                <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
                <item row="0" column="1">
                 <widget class="QComboBox" name="extract_bus_compression">
@@ -1891,7 +1891,7 @@
    <item row="1" column="1">
     <layout class="QVBoxLayout" name="list_layout">
      <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
      <item>
       <widget class="MinimalListWidget" name="files_list"/>
@@ -1899,7 +1899,7 @@
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <property name="spacing">
-  <number>3</number>
+  <number>2</number>
 </property>
        <item>
         <widget class="QPushButton" name="sort_by_start_time_btn">

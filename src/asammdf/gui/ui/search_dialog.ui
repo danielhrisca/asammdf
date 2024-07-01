@@ -18,19 +18,19 @@
   </property>
   <layout class="QGridLayout" name="gridLayout_2">
    <property name="leftMargin">
-    <number>3</number>
+    <number>2</number>
    </property>
    <property name="topMargin">
-    <number>3</number>
+    <number>2</number>
    </property>
    <property name="rightMargin">
-    <number>3</number>
+    <number>2</number>
    </property>
    <property name="bottomMargin">
-    <number>3</number>
+    <number>2</number>
    </property>
    <property name="spacing">
-    <number>3</number>
+    <number>2</number>
    </property>
    <item row="0" column="0">
     <widget class="QTabWidget" name="tabs">
@@ -47,19 +47,19 @@
       </attribute>
       <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,1,0,0,1,0">
        <property name="leftMargin">
-        <number>3</number>
+        <number>2</number>
        </property>
        <property name="topMargin">
-        <number>3</number>
+        <number>2</number>
        </property>
        <property name="rightMargin">
-        <number>3</number>
+        <number>2</number>
        </property>
        <property name="bottomMargin">
-        <number>3</number>
+        <number>2</number>
        </property>
        <property name="spacing">
-        <number>3</number>
+        <number>2</number>
        </property>
        <item row="0" column="0">
         <widget class="QLineEdit" name="search_box">
@@ -250,7 +250,7 @@
        <item row="3" column="0" colspan="5">
         <layout class="QHBoxLayout" name="horizontalLayout_2">
          <property name="spacing">
-          <number>3</number>
+          <number>2</number>
          </property>
          <item>
           <spacer name="horizontalSpacer_4">
@@ -311,7 +311,7 @@
        <item row="6" column="0" colspan="5">
         <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0,0,0">
          <property name="spacing">
-          <number>3</number>
+          <number>2</number>
          </property>
          <item>
           <widget class="QPushButton" name="cancel_btn">
@@ -391,19 +391,19 @@
       </attribute>
       <layout class="QGridLayout" name="gridLayout_3" rowstretch="0,0,0,0,0,0,0,0,0,0,1,0" columnstretch="0,0,0,1,0,0">
        <property name="leftMargin">
-        <number>3</number>
+        <number>2</number>
        </property>
        <property name="topMargin">
-        <number>3</number>
+        <number>2</number>
        </property>
        <property name="rightMargin">
-        <number>3</number>
+        <number>2</number>
        </property>
        <property name="bottomMargin">
-        <number>3</number>
+        <number>2</number>
        </property>
        <property name="spacing">
-        <number>3</number>
+        <number>2</number>
        </property>
        <item row="4" column="2">
         <widget class="QComboBox" name="filter_type">
@@ -646,7 +646,7 @@
        <item row="9" column="2">
         <layout class="QHBoxLayout" name="horizontalLayout_3">
          <property name="spacing">
-          <number>3</number>
+          <number>2</number>
          </property>
          <item>
           <widget class="QDoubleSpinBox" name="y_range_min">
