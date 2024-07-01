@@ -3842,6 +3842,8 @@ class WithMDIArea:
         plot.show_overlapping_alias.connect(self._show_overlapping_alias)
         plot.show_properties.connect(self._show_info)
 
+        m = [sig for sig in signals.values() if sig.name == 'Fsf_abs']
+
         plot.add_new_channels(signals, mime_data)
 
         # plot.show()

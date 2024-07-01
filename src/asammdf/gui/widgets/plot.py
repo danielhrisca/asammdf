@@ -2070,6 +2070,8 @@ class Plot(QtWidgets.QWidget):
                 item.precision = description.get("precision", 3)
 
                 if description.get("conversion", None):
+                    if description['name'] == 'Fsf_abs':
+                        x = 1
                     conversion = from_dict(description["conversion"])
                     item.signal.flags |= Signal.Flags.user_defined_conversion
                     item.set_conversion(conversion)

@@ -96,7 +96,7 @@ class Ui_VRTT_Widget(object):
 
         self.retranslateUi(VRTT_Widget)
 
-        self.mode.setCurrentIndex(1)
+        self.mode.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(VRTT_Widget)

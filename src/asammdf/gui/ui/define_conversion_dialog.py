@@ -422,8 +422,8 @@ class Ui_ConversionDialog(object):
         self.retranslateUi(ConversionDialog)
 
         self.tabs.setCurrentIndex(0)
-        self.vtt_mode.setCurrentIndex(1)
-        self.vrtt_mode.setCurrentIndex(1)
+        self.vtt_mode.setCurrentIndex(0)
+        self.vrtt_mode.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(ConversionDialog)
