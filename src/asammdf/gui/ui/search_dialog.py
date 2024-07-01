@@ -123,6 +123,14 @@ class Ui_SearchDialog(object):
 
         self.horizontalLayout_2.addItem(self.horizontalSpacer_5)
 
+        self.show_alias_btn = QPushButton(self.tab)
+        self.show_alias_btn.setObjectName(u"show_alias_btn")
+        icon1 = QIcon()
+        icon1.addFile(u":/info.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.show_alias_btn.setIcon(icon1)
+
+        self.horizontalLayout_2.addWidget(self.show_alias_btn)
+
 
         self.gridLayout.addLayout(self.horizontalLayout_2, 3, 0, 1, 5)
 
@@ -131,35 +139,35 @@ class Ui_SearchDialog(object):
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.cancel_btn = QPushButton(self.tab)
         self.cancel_btn.setObjectName(u"cancel_btn")
-        icon1 = QIcon()
-        icon1.addFile(u":/erase.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.cancel_btn.setIcon(icon1)
+        icon2 = QIcon()
+        icon2.addFile(u":/erase.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.cancel_btn.setIcon(icon2)
         self.cancel_btn.setAutoDefault(False)
 
         self.horizontalLayout.addWidget(self.cancel_btn)
 
-        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.horizontalSpacer_2 = QSpacerItem(20, 16, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout.addItem(self.horizontalSpacer_2)
 
         self.apply_btn = QPushButton(self.tab)
         self.apply_btn.setObjectName(u"apply_btn")
-        icon2 = QIcon()
-        icon2.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.apply_btn.setIcon(icon2)
+        icon3 = QIcon()
+        icon3.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.apply_btn.setIcon(icon3)
         self.apply_btn.setAutoDefault(False)
 
         self.horizontalLayout.addWidget(self.apply_btn)
 
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.horizontalSpacer = QSpacerItem(10, 16, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout.addItem(self.horizontalSpacer)
 
         self.add_window_btn = QPushButton(self.tab)
         self.add_window_btn.setObjectName(u"add_window_btn")
-        icon3 = QIcon()
-        icon3.addFile(u":/plus.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.add_window_btn.setIcon(icon3)
+        icon4 = QIcon()
+        icon4.addFile(u":/plus.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.add_window_btn.setIcon(icon4)
         self.add_window_btn.setAutoDefault(False)
 
         self.horizontalLayout.addWidget(self.add_window_btn)
@@ -170,9 +178,9 @@ class Ui_SearchDialog(object):
 
         self.gridLayout.setRowStretch(2, 1)
         self.gridLayout.setRowStretch(5, 1)
-        icon4 = QIcon()
-        icon4.addFile(u":/search.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.tabs.addTab(self.tab, icon4, "")
+        icon5 = QIcon()
+        icon5.addFile(u":/search.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.tabs.addTab(self.tab, icon5, "")
         self.tab_2 = QWidget()
         self.tab_2.setObjectName(u"tab_2")
         self.gridLayout_3 = QGridLayout(self.tab_2)
@@ -244,9 +252,9 @@ class Ui_SearchDialog(object):
 
         self.define_ranges_btn = QPushButton(self.tab_2)
         self.define_ranges_btn.setObjectName(u"define_ranges_btn")
-        icon5 = QIcon()
-        icon5.addFile(u":/range.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.define_ranges_btn.setIcon(icon5)
+        icon6 = QIcon()
+        icon6.addFile(u":/range.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.define_ranges_btn.setIcon(icon6)
 
         self.gridLayout_3.addWidget(self.define_ranges_btn, 7, 2, 1, 1)
 
@@ -294,14 +302,14 @@ class Ui_SearchDialog(object):
 
         self.apply_pattern_btn = QPushButton(self.tab_2)
         self.apply_pattern_btn.setObjectName(u"apply_pattern_btn")
-        self.apply_pattern_btn.setIcon(icon2)
+        self.apply_pattern_btn.setIcon(icon3)
         self.apply_pattern_btn.setAutoDefault(False)
 
         self.gridLayout_3.addWidget(self.apply_pattern_btn, 11, 5, 1, 1)
 
         self.cancel_pattern_btn = QPushButton(self.tab_2)
         self.cancel_pattern_btn.setObjectName(u"cancel_pattern_btn")
-        self.cancel_pattern_btn.setIcon(icon1)
+        self.cancel_pattern_btn.setIcon(icon2)
         self.cancel_pattern_btn.setAutoDefault(False)
 
         self.gridLayout_3.addWidget(self.cancel_pattern_btn, 11, 1, 1, 1)
@@ -392,6 +400,7 @@ class Ui_SearchDialog(object):
         ___qtreewidgetitem1.setText(1, QCoreApplication.translate("SearchDialog", u"Group", None));
         ___qtreewidgetitem1.setText(0, QCoreApplication.translate("SearchDialog", u"Name", None));
         self.add_btn.setText(QCoreApplication.translate("SearchDialog", u"Add to selection", None))
+        self.show_alias_btn.setText(QCoreApplication.translate("SearchDialog", u"Show overlapping alias", None))
         self.cancel_btn.setText(QCoreApplication.translate("SearchDialog", u"Cancel", None))
         self.apply_btn.setText(QCoreApplication.translate("SearchDialog", u"Apply", None))
         self.add_window_btn.setText(QCoreApplication.translate("SearchDialog", u"Add window", None))
