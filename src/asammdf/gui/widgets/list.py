@@ -556,3 +556,23 @@ class MinimalListWidget(QtWidgets.QListWidget):
             )
             painter.drawText(self.viewport().rect(), QtCore.Qt.AlignmentFlag.AlignCenter, elided_text)
             painter.restore()
+
+    def search(self, attribute="", value=None):
+        index = None
+        count = self.count()
+        for row in range(count):
+            item = self.item(row)
+
+            if hasattr(item, attribute):
+                if getattr(item, attribute) == value:
+                    index = row
+                    break
+            else:
+                widget = self.itemWidget(item)
+
+                if hasattr(widget, attribute):
+                    if getattr(widget, attribute) == value:
+                        index = row
+                        break
+
+        return index
