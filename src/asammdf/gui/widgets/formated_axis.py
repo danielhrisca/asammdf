@@ -553,9 +553,9 @@ class FormatedAxis(pg.AxisItem):
 
                 if self.hovering:
                     if self.background == fn.mkColor("#000000"):
-                        bk = fn.mkColor("#202020")
+                        bk = fn.mkColor("#323232")
                     else:
-                        bk = fn.mkColor("#DFDFDF")
+                        bk = fn.mkColor("#CDCDCD")
 
                 else:
                     bk = self.background
