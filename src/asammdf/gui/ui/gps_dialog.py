@@ -30,16 +30,16 @@ class Ui_GPSDialog(object):
         GPSDialog.setWindowIcon(icon)
         GPSDialog.setSizeGripEnabled(True)
         self.gridLayout = QGridLayout(GPSDialog)
-        self.gridLayout.setSpacing(2)
+        self.gridLayout.setSpacing(1)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.gridLayout.setContentsMargins(2, 2, 2, 2)
+        self.gridLayout.setContentsMargins(1, 1, 1, 1)
         self.label_3 = QLabel(GPSDialog)
         self.label_3.setObjectName(u"label_3")
 
         self.gridLayout.addWidget(self.label_3, 0, 0, 1, 3)
 
         self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setSpacing(2)
+        self.horizontalLayout.setSpacing(1)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 

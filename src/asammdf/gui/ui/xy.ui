@@ -15,24 +15,24 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,0">
    <property name="spacing">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="leftMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="topMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="rightMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="bottomMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <item>
     <layout class="QHBoxLayout" name="plot_layout">
      <property name="spacing">
-  <number>2</number>
+  <number>1</number>
 </property>
     </layout>
    </item>
@@ -43,19 +43,19 @@
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1,0">
       <property name="spacing">
-  <number>2</number>
+  <number>1</number>
 </property>
       <property name="leftMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
       <property name="topMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
       <property name="rightMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
       <property name="bottomMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
       <item>
        <widget class="QDoubleSpinBox" name="timestamp">
@@ -110,19 +110,19 @@
      </property>
      <layout class="QGridLayout" name="gridLayout" columnstretch="0,1,0">
       <property name="leftMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
       <property name="topMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
       <property name="rightMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
       <property name="bottomMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
       <property name="spacing">
-  <number>2</number>
+  <number>1</number>
 </property>
       <item row="0" column="0">
        <widget class="QLabel" name="label">

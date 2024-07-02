@@ -22,19 +22,19 @@
   </property>
   <layout class="QVBoxLayout" name="layout" stretch="0,1,0,0">
    <property name="spacing">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="leftMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="topMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="rightMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="bottomMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <item>
     <widget class="QLabel" name="error_message">
@@ -46,7 +46,7 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <property name="spacing">
-  <number>2</number>
+  <number>1</number>
 </property>
      <item>
       <spacer name="verticalSpacer">
@@ -66,7 +66,7 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,0,0,0">
      <property name="spacing">
-  <number>2</number>
+  <number>1</number>
 </property>
      <item>
       <spacer name="horizontalSpacer">

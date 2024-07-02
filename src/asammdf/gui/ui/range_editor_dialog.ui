@@ -21,19 +21,19 @@
   </property>
   <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,0,0,1,0,0" columnstretch="1,0">
    <property name="leftMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="topMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="rightMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="bottomMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="spacing">
-  <number>2</number>
+  <number>1</number>
 </property>
    <item row="0" column="0" rowspan="7">
     <widget class="MinimalListWidget" name="ranges">

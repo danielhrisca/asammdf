@@ -15,24 +15,24 @@
   </property>
   <layout class="QVBoxLayout" name="map_layout">
    <property name="spacing">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="leftMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="topMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="rightMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="bottomMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0,1,0">
      <property name="spacing">
-  <number>2</number>
+  <number>1</number>
 </property>
      <item>
       <widget class="QDoubleSpinBox" name="timestamp">

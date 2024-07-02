@@ -1432,7 +1432,7 @@ class Plot(QtWidgets.QWidget):
         )
 
         hbox = QtWidgets.QHBoxLayout()
-        hbox.setSpacing(3)
+        hbox.setSpacing(1)
         hbox.setContentsMargins(1, 1, 1, 1)
 
         vbox.addLayout(hbox)
@@ -3581,7 +3581,7 @@ class PlotGraphics(pg.PlotWidget):
         self._last_size = self.geometry()
         self._settings = QtCore.QSettings()
 
-        self.setContentsMargins(5, 5, 5, 5)
+        self.setContentsMargins(1, 1, 1, 1)
         self.xrange_changed.connect(self.xrange_changed_handle)
         self.with_dots = with_dots
 

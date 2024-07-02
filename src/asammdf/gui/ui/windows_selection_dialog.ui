@@ -15,19 +15,19 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <property name="spacing">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="leftMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="topMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="rightMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <property name="bottomMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
    <item>
     <widget class="QGroupBox" name="groupBox">
@@ -39,19 +39,19 @@
      </property>
      <layout class="QVBoxLayout" name="lay">
       <property name="spacing">
-  <number>2</number>
+  <number>1</number>
 </property>
       <property name="leftMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
       <property name="topMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
       <property name="rightMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
       <property name="bottomMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
       <item>
        <widget class="QScrollArea" name="scrollArea">
@@ -75,24 +75,24 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_3">
           <property name="spacing">
-  <number>2</number>
+  <number>1</number>
 </property>
           <property name="leftMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
           <property name="topMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
           <property name="rightMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
           <property name="bottomMargin">
-  <number>2</number>
+  <number>1</number>
 </property>
           <item>
            <layout class="QVBoxLayout" name="selection_layout">
             <property name="spacing">
-  <number>2</number>
+  <number>1</number>
 </property>
            </layout>
           </item>
