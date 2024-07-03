@@ -25,6 +25,7 @@ from numpy import (
     arange,
     array,
     array_equal,
+    ascontiguousarray,
     column_stack,
     concatenate,
     dtype,
@@ -48,7 +49,7 @@ from ..signal import Signal
 from ..types import ChannelsType, CompressionType, RasterType, StrPathType
 from . import v2_v3_constants as v23c
 from .conversion_utils import conversion_transfer
-from .cutils import get_channel_raw_bytes
+from .cutils import data_block_from_arrays, get_channel_raw_bytes
 from .mdf_common import MDF_Common
 from .options import get_global_option
 from .source_utils import Source
@@ -1568,9 +1569,26 @@ class MDF3(MDF_Common):
 
                 new_gp.sorted = True
 
-                samples = fromarrays(new_fields, dtype=new_types)
+                try:
+                    samples = fromarrays(new_fields, dtype=new_types)
+                    block = samples.tobytes()
+                except:
+                    struct_fields = []
+                    for samples in new_fields:
+                        size = samples.dtype.itemsize
 
-                block = samples.tobytes()
+                        if len(samples.shape) > 1:
+                            shape = samples.shape[1:]
+
+                            for dim in shape:
+                                size *= dim
+
+                        if not samples.flags["C_CONTIGUOUS"]:
+                            samples = ascontiguousarray(samples)
+
+                        struct_fields.append((samples, size))
+
+                    block = data_block_from_arrays(struct_fields, cycles_nr)
 
                 new_gp.data_location = v23c.LOCATION_TEMPORARY_FILE
                 if cycles_nr:
