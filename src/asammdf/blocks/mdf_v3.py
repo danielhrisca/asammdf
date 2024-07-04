@@ -1232,7 +1232,8 @@ class MDF3(MDF_Common):
             gp_dep.append(None)
 
             fields.append(timestamps)
-            types.append((name, timestamps.dtype))
+
+            types.append((field_names.get_unique_name(name), timestamps.dtype))
 
             offset += t_size
             ch_cntr += 1
@@ -2178,8 +2179,7 @@ class MDF3(MDF_Common):
             gp_dep.append(None)
 
             fields.append(timestamps)
-            types.append((name, timestamps.dtype))
-            field_names.get_unique_name(name)
+            types.append((field_names.get_unique_name(name), timestamps.dtype))
 
             offset += t_size
             ch_cntr += 1
