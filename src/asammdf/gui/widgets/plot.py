@@ -1432,7 +1432,7 @@ class Plot(QtWidgets.QWidget):
         )
 
         hbox = QtWidgets.QHBoxLayout()
-        hbox.setSpacing(3)
+        hbox.setSpacing(1)
         hbox.setContentsMargins(1, 1, 1, 1)
 
         vbox.addLayout(hbox)
@@ -3547,14 +3547,6 @@ class PlotGraphics(pg.PlotWidget):
         self.initial_x_range = "adjust"
         super().__init__(viewBox=viewBox)
 
-        # del self.plotItem.vb
-        # self.plotItem.vb = ViewBox(parent=self.plotItem)
-        #
-        # self.plotItem.vb.sigStateChanged.connect(self.plotItem.viewStateChanged)
-        # self.plotItem.vb.sigRangeChanged.connect(self.plotItem.sigRangeChanged)
-        # self.plotItem.vb.sigXRangeChanged.connect(self.plotItem.sigXRangeChanged)
-        # self.plotItem.vb.sigYRangeChanged.connect(self.plotItem.sigYRangeChanged)
-        # self.plotItem.layout.addItem(self.plotItem.vb, 2, 1)
         self.plotItem.vb.setLeftButtonAction(Plot.mouse_mode)
 
         self.lock = Lock()
@@ -3589,7 +3581,7 @@ class PlotGraphics(pg.PlotWidget):
         self._last_size = self.geometry()
         self._settings = QtCore.QSettings()
 
-        self.setContentsMargins(5, 5, 5, 5)
+        self.setContentsMargins(1, 1, 1, 1)
         self.xrange_changed.connect(self.xrange_changed_handle)
         self.with_dots = with_dots
 

@@ -30,16 +30,16 @@ class Ui_ErrorDialog(object):
         ErrorDialog.setWindowIcon(icon)
         ErrorDialog.setSizeGripEnabled(True)
         self.layout = QVBoxLayout(ErrorDialog)
-        self.layout.setSpacing(3)
+        self.layout.setSpacing(1)
         self.layout.setObjectName(u"layout")
-        self.layout.setContentsMargins(3, 3, 3, 3)
+        self.layout.setContentsMargins(1, 1, 1, 1)
         self.error_message = QLabel(ErrorDialog)
         self.error_message.setObjectName(u"error_message")
 
         self.layout.addWidget(self.error_message)
 
         self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setSpacing(3)
+        self.horizontalLayout_2.setSpacing(1)
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
@@ -49,7 +49,7 @@ class Ui_ErrorDialog(object):
         self.layout.addLayout(self.horizontalLayout_2)
 
         self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setSpacing(3)
+        self.horizontalLayout.setSpacing(1)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 

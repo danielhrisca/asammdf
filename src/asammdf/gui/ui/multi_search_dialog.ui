@@ -18,19 +18,19 @@
   </property>
   <layout class="QGridLayout" name="grid_layout" columnstretch="1,0,0,0,0,0">
    <property name="leftMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
    <property name="topMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
    <property name="rightMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
    <property name="bottomMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
    <property name="spacing">
-  <number>3</number>
+  <number>1</number>
 </property>
    <item row="0" column="0">
     <widget class="QComboBox" name="match_kind">
@@ -110,7 +110,7 @@
    <item row="9" column="0" colspan="6">
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0">
      <property name="spacing">
-  <number>3</number>
+  <number>1</number>
 </property>
      <item>
       <widget class="QPushButton" name="cancel_btn">

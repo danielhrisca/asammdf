@@ -28,19 +28,19 @@
   </property>
   <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,1,0,0,0,0,0" columnstretch="0,0,0,0,0">
    <property name="leftMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
    <property name="topMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
    <property name="rightMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
    <property name="bottomMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
    <property name="spacing">
-  <number>3</number>
+  <number>1</number>
 </property>
    <item row="5" column="1" colspan="4">
     <widget class="QPlainTextEdit" name="comment"/>
@@ -59,19 +59,19 @@
      </property>
      <layout class="QGridLayout" name="gridLayout_8">
       <property name="leftMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
       <property name="topMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
       <property name="rightMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
       <property name="bottomMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
       <property name="spacing">
-  <number>3</number>
+  <number>1</number>
 </property>
       <item row="1" column="2">
        <spacer name="horizontalSpacer_8">
@@ -233,19 +233,19 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout">
       <property name="spacing">
-  <number>3</number>
+  <number>1</number>
 </property>
       <property name="leftMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
       <property name="topMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
       <property name="rightMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
       <property name="bottomMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
       <item>
        <widget class="QScrollArea" name="scrollArea">
@@ -269,19 +269,19 @@
          </property>
          <layout class="QGridLayout" name="arg_layout">
           <property name="leftMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
           <property name="topMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
           <property name="rightMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
           <property name="bottomMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
           <property name="spacing">
-  <number>3</number>
+  <number>1</number>
 </property>
           <item row="0" column="2">
            <widget class="QPushButton" name="show_definition_btn">
@@ -344,22 +344,22 @@
      </property>
      <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1">
       <property name="leftMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
       <property name="topMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
       <property name="rightMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
       <property name="bottomMargin">
-  <number>3</number>
+  <number>1</number>
 </property>
       <property name="horizontalSpacing">
-  <number>3</number>
+  <number>1</number>
 </property>
       <property name="verticalSpacing">
-  <number>3</number>
+  <number>1</number>
 </property>
       <item row="0" column="0">
        <widget class="QRadioButton" name="sample_by_sample">
