@@ -47,7 +47,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: matrix.os matrix.python-version "FTSS"
+          name: matrix.os/matrix.python-version
           path: '**/screenshots/**'
 
       - name: Stop Xvfb
