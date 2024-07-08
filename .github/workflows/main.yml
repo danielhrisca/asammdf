@@ -47,8 +47,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: test_ss
-          path: '**/screenshots*/**'
+          name: "{{ matrix.os }}_{{ matrix.python-version }}_FTSS"
+          path: '**/screenshots/**'
 
       - name: Stop Xvfb
         if: matrix.os == 'ubuntu-22.04'
