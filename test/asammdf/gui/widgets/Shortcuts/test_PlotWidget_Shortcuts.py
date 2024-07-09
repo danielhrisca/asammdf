@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import os.path
 from unittest import mock
 
 from PySide6.QtCore import QPoint, QRect, Qt
@@ -393,22 +394,28 @@ class TestPlotShortcuts(TestPlotWidget):
             mo_ScaleDialog.return_value.scaling.value.return_value = scale
             # Press Ctrl+Shift+C
             QTest.keySequence(self.plot, QKeySequence(self.shortcuts["edit_y_axis_scaling"]))
+
+        # Evaluate
+
         # Evaluate that ScaleDialog object was created, and it's exec() method was called
         mo_ScaleDialog.return_value.exec.assert_called()
         self.processEvents(1)
 
+        # Evaluate y_range tuple
+        self.assertTupleEqual(self.plot.plot.signals[0].y_range, expected_y_range)
+
         # Top
         pixmap = self.plot.plot.grab(QRect(0, 0, self.plot.plot.width(), int(self.plot.plot.height() / 2)))
+        pixmap.save(os.path.join(self.screenshots, "no_bug_at_scaling.png"))
         # Evaluate plot, top half of plot must contain channel color
         self.assertTrue(Pixmap.has_color(pixmap, self.channels[0].color.name()))
         # Bottom
         pixmap = self.plot.plot.grab(
             QRect(0, int(self.plot.plot.height() / 2 + 1), self.plot.plot.width(), int(self.plot.plot.height() / 2))
         )
-        # Evaluate plot, bottom half of plot must  not contain channel color
+        pixmap.save(os.path.join(self.screenshots, "bug_at_scaling.png"))
+        # Evaluate plot, bottom half of plot must not contain channel color
         self.assertFalse(Pixmap.has_color(pixmap, self.channels[0].color.name()))
-        # Evaluate y_range tuple
-        self.assertTupleEqual(self.plot.plot.signals[0].y_range, expected_y_range)
 
     def test_color_shortcut(self):
         """
