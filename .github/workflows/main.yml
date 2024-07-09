@@ -45,7 +45,7 @@ jobs:
         run: tox
 
       - uses: actions/upload-artifact@v4
-        if: failure() && matrix.os == 'windows-latest'  # replace with 'ubuntu-22.04' to see ss from linux failed tests
+        if: failure() && matrix.os == 'ubuntu-22.04'  # 'ubuntu-22.04' or 'windows-latest'
         with:
           path: '**/screenshots/**'
           name: ${{ matrix.python-version }}

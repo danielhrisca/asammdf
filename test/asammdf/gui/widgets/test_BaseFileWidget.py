@@ -30,12 +30,8 @@ class TestFileWidget(TestBase):
         path_ = os.path.join(self.screenshots, self.__module__)
         if not os.path.exists(path_):
             os.makedirs(path_)
-        if hasattr(self._outcome, "result"):
-            if hasattr(self._outcome.result, "failures"):
-                if self._outcome.result.failures:
-                    self.widget.grab().save(os.path.join(path_, f"fail_{self.id().split('.')[-1]}.png"))
-        else:
-            self.widget.grab().save(os.path.join(path_, f"{self.id().split('.')[-1]}.png"))
+
+        self.widget.grab().save(os.path.join(path_, f"{self.id().split('.')[-1]}.png"))
 
         if self.widget:
             self.widget.close()
