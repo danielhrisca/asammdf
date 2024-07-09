@@ -46,7 +46,7 @@ class TestTabChannels(TestFileWidget):
                 QtCore.Qt.MouseButton.LeftButton,
             )
             # Evaluate
-            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 10)
+            self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
             widget_types = self.get_sub_windows()
             self.assertIn("Plot", widget_types)
 

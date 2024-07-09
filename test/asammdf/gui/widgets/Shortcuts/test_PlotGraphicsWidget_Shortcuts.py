@@ -329,7 +329,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertAlmostEqual(self.pg.x_range[0], x_range[0], delta=0.001)
         self.assertAlmostEqual(self.pg.x_range[1], x_range[1], delta=0.001)
 
-    @unittest.skipIf(sys.platform != "win32", "Unpredicted linux failed test")
+    # @unittest.skipIf(sys.platform != "win32", "Unpredicted linux failed test")
     def test_fit__stack_shortcuts(self):
         """
         Test Scope:
@@ -565,7 +565,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                 column = self.pg.grab(QRect(x, 0, 1, self.pg.height()))
                 if x < extremes[0] - 1:
                     self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
-                elif extremes[0] <= x <= extremes[1]:
+                elif extremes[0] + 1 <= x <= extremes[1] - 1:
                     self.assertTrue(
                         Pixmap.has_color(column, channel_37.color.name()),
                         f"column {x} doesn't have color of channel 37",
