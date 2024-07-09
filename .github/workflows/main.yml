@@ -48,7 +48,7 @@ jobs:
         if: failure()
         with:
           path: '**/screenshots/**'
-          name: matrix.python-version
+          name: ${{ RUNNER_OS }}
 
       - name: Stop Xvfb
         if: matrix.os == 'ubuntu-22.04'
