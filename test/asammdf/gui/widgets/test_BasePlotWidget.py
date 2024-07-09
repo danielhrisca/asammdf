@@ -25,7 +25,6 @@ class QMenuWrap(QtWidgets.QMenu):
         return self.return_action
 
 
-@unittest.skipIf(True, "speed run")
 class TestPlotWidget(TestFileWidget):
     class Column:
         NAME = 0

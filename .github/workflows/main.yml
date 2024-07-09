@@ -50,17 +50,17 @@ jobs:
         run: echo ${{ runner.environment }}
 
 
-      - uses: actions/upload-artifact@v4
-        if: failure() && matrix.os == 'ubuntu-22.04'
-        with:
-          path: '**/screenshots/**'
-          name: ${{ job.container.id }}
+#      - uses: actions/upload-artifact@v4
+#        if: failure() && matrix.os == 'ubuntu-22.04'
+#        with:
+#          path: '**/screenshots/**'
+#          name: ${{ job.container.id }}
 
       - uses: actions/upload-artifact@v4
-        if: failure() && matrix.os == 'windows-latest'
+        if: failure() && matrix.os == 'windows-latest'  # replace with 'ubuntu-22.04' to see ss from linux failed tests
         with:
           path: '**/screenshots/**'
-          name: ${{ runner.environment }} # matrix.python-version
+          name: ${{ matrix.python-version }}
 
       - name: Stop Xvfb
         if: matrix.os == 'ubuntu-22.04'
