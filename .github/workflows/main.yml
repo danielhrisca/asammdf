@@ -45,10 +45,16 @@ jobs:
         run: tox
 
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: failure() && matrix.os == 'ubuntu-22.04'
         with:
           path: '**/screenshots/**'
-          name: ${{ github.env }}
+          name: ${{ matrix.python-version }}
+
+      - uses: actions/upload-artifact@v4
+        if: failure() && matrix.os == 'windows'
+        with:
+          path: '**/screenshots/**'
+          name: ${{ matrix.python-version }}
 
       - name: Stop Xvfb
         if: matrix.os == 'ubuntu-22.04'
