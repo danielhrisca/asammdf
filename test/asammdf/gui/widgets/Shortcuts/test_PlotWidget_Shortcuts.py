@@ -406,14 +406,12 @@ class TestPlotShortcuts(TestPlotWidget):
 
         # Top
         pixmap = self.plot.plot.grab(QRect(0, 0, self.plot.plot.width(), int(self.plot.plot.height() / 2)))
-        pixmap.save(os.path.join(self.screenshots, "no_bug_at_scaling.png"))
         # Evaluate plot, top half of plot must contain channel color
         self.assertTrue(Pixmap.has_color(pixmap, self.channels[0].color.name()))
         # Bottom
         pixmap = self.plot.plot.grab(
-            QRect(0, int(self.plot.plot.height() / 2 + 1), self.plot.plot.width(), int(self.plot.plot.height() / 2))
+            QRect(0, int(self.plot.plot.height() / 2 + 2), self.plot.plot.width(), int(self.plot.plot.height() / 2 - 2))
         )
-        pixmap.save(os.path.join(self.screenshots, "bug_at_scaling.png"))
         # Evaluate plot, bottom half of plot must not contain channel color
         self.assertFalse(Pixmap.has_color(pixmap, self.channels[0].color.name()))
 
