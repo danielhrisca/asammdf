@@ -54,13 +54,13 @@ jobs:
         if: failure() && matrix.os == 'ubuntu-22.04'
         with:
           path: '**/screenshots/**'
-          name: ${{ github.run_id }}
+          name: ${{ job.container.id }}
 
       - uses: actions/upload-artifact@v4
         if: failure() && matrix.os == 'windows-latest'
         with:
           path: '**/screenshots/**'
-          name: ${{ matrix.python-version }}
+          name: ${{ runner.environment }} # matrix.python-version
 
       - name: Stop Xvfb
         if: matrix.os == 'ubuntu-22.04'
