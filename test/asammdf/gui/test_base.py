@@ -323,6 +323,7 @@ if sys.platform == "win32":
         time.sleep(0.01)
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, end.x(), end.y(), 0, 0)
         time.sleep(0.05)
+
 else:
 
     def dnd_worker(start, end):
