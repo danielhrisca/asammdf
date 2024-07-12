@@ -320,14 +320,9 @@ if sys.platform == "win32":
                 end.y(),
             )
         )
+        time.sleep(0.01)
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, end.x(), end.y(), 0, 0)
         time.sleep(0.05)
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, end.x(), end.y(), 0, 0)
-
-        # Perform the mouse left-button down and up events
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, end.x(), end.y(), 0, 0)
-        time.sleep(0.05)  # Small delay to simulate a real click
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, end.x(), end.y(), 0, 0)
-
 else:
 
     def dnd_worker(start, end):
