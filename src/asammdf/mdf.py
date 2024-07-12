@@ -725,7 +725,7 @@ class MDF:
             self._read_fragment_size = int(read_fragment_size)
 
         if write_fragment_size is not None:
-            self._write_fragment_size = min(int(write_fragment_size), 4 * 2**20)
+            self._write_fragment_size = min(int(write_fragment_size), 4 * 1024 * 1024)
 
         if use_display_names is not None:
             self._use_display_names = bool(use_display_names)
@@ -2802,7 +2802,12 @@ class MDF:
 
         return stacked
 
-    def iter_channels(self, skip_master: bool = True, copy_master: bool = True, raw: bool = False) -> Iterator[Signal]:
+    def iter_channels(
+        self,
+        skip_master: bool = True,
+        copy_master: bool = True,
+        raw: bool | dict[str, bool] = False,
+    ) -> Iterator[Signal]:
         """generator that yields a *Signal* for each non-master channel
 
         Parameters
@@ -2814,7 +2819,18 @@ class MDF:
         raw : bool
             return raw channels instead of converted; default *False*
 
+            .. versionchanged:: 8.0.0
+
+                provide individual raw mode based on a dict. If the parameters is given
+                as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
+                are the channel names and the values are the boolean raw values for each channel.
+
+
         """
+
+        if isinstance(raw, dict):
+            if "__default__" not in raw:
+                raise MdfException("The raw argument given as dict must contain the __default__ key")
 
         for index in self.virtual_groups:
             channels = [
@@ -2836,7 +2852,7 @@ class MDF:
         use_display_names: bool = False,
         time_as_date: bool = False,
         reduce_memory_usage: bool = False,
-        raw: bool = False,
+        raw: bool | dict[str, bool] = False,
         ignore_value2text_conversions: bool = False,
         only_basenames: bool = False,
     ) -> Iterator[pd.DataFrame]:
@@ -2864,6 +2880,12 @@ class MDF:
             the dataframe will contain the raw channel values
 
             .. versionadded:: 5.21.0
+
+            .. versionchanged:: 8.0.0
+
+                provide individual raw mode based on a dict. If the parameters is given
+                as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
+                are the channel names and the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions (False) : bool
             valid only for the channels that have value to text conversions and
@@ -3118,7 +3140,6 @@ class MDF:
             t_epoch = self.header.start_time.timestamp() + delta
             mdf.header.start_time = datetime.fromtimestamp(t_epoch)
         else:
-            delta = 0
             new_raster = None
             mdf.header.start_time = self.header.start_time
 
@@ -3173,7 +3194,7 @@ class MDF:
         self,
         channels: ChannelsType,
         record_offset: int = 0,
-        raw: bool = False,
+        raw: bool | dict[str, bool] = False,
         copy_master: bool = True,
         ignore_value2text_conversions: bool = False,
         record_count: int | None = None,
@@ -3197,8 +3218,15 @@ class MDF:
 
         record_offset : int
             record number offset; optimization to get the last part of signal samples
-        raw : bool
+        raw : bool | dict[str, bool]
             get raw channel samples; default *False*
+
+            .. versionchanged:: 8.0.0
+
+                provide individual raw mode based on a dict. If the parameters is given
+                as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
+                are the channel names and the values are the boolean raw values for each channel.
+
         copy_master : bool
             option to get a new timestamps array for each selected Signal or to
             use a shared array for channels of the same channel group; default *True*
@@ -3207,7 +3235,7 @@ class MDF:
             if *raw=False*. If this is True then the raw numeric values will be
             used, and the conversion will not be applied.
 
-            .. versionadded:: 5.8.0
+            .. versionchanged:: 5.8.0
 
         validate (False) : bool
             consider the invalidation bits
@@ -3260,6 +3288,15 @@ class MDF:
         ]
 
         """
+
+        if isinstance(raw, dict):
+            if "__default__" not in raw:
+                raise MdfException("The raw argument given as dict must contain the __default__ key")
+
+            __default__ = raw["__default__"]
+            raw_dict = True
+        else:
+            raw_dict = False
 
         virtual_groups = self.included_channels(channels=channels, minimal=False, skip_master=False)
 
@@ -3340,8 +3377,8 @@ class MDF:
             for signal in signals:
                 signal.timestamps = signal.timestamps.copy()
 
-        if not raw:
-            for signal in signals:
+        for signal in signals:
+            if (raw_dict and not raw.get(signal.name, __default__)) or (not raw_dict and not raw):
                 conversion = signal.conversion
                 if conversion:
                     samples = conversion.convert(
@@ -3728,7 +3765,7 @@ class MDF:
         use_display_names: bool = False,
         time_as_date: bool = False,
         reduce_memory_usage: bool = False,
-        raw: bool = False,
+        raw: bool | dict[str, bool] = False,
         ignore_value2text_conversions: bool = False,
         only_basenames: bool = False,
     ) -> pd.DataFrame:
@@ -3746,10 +3783,16 @@ class MDF:
             reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can reprezent the values found
             in integer columns; default *False*
-        raw (False) : bool
+        raw (False) : bool | dict[str, bool]
             the dataframe will contain the raw channel values
 
             .. versionadded:: 5.7.0
+
+            .. versionchanged:: 8.0.0
+
+                provide individual raw mode based on a dict. If the parameters is given
+                as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
+                are the channel names and the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions (False) : bool
             valid only for the channels that have value to text conversions and
@@ -3823,7 +3866,7 @@ class MDF:
         use_display_names: bool = False,
         time_as_date: bool = False,
         reduce_memory_usage: bool = False,
-        raw: bool = False,
+        raw: bool | dict[str, bool] = False,
         ignore_value2text_conversions: bool = False,
         use_interpolation: bool = True,
         only_basenames: bool = False,
@@ -3878,6 +3921,13 @@ class MDF:
             in integer columns; default *False*
         raw (False) : bool
             the columns will contain the raw values
+
+            .. versionchanged:: 8.0.0
+
+                provide individual raw mode based on a dict. If the parameters is given
+                as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
+                are the channel names and the values are the boolean raw values for each channel.
+
         ignore_value2text_conversions (False) : bool
             valid only for the channels that have value to text conversions and
             if *raw=False*. If this is True then the raw numeric values will be
@@ -3908,6 +3958,15 @@ class MDF:
 
         """
 
+        if isinstance(raw, dict):
+            if "__default__" not in raw:
+                raise MdfException("The raw argument given as dict must contain the __default__ key")
+
+            __default__ = raw["__default__"]
+            raw_dict = True
+        else:
+            raw_dict = False
+
         if channels:
             mdf = self.filter(channels)
 
@@ -3935,7 +3994,6 @@ class MDF:
         else:
             # channels is None
 
-            df = {}
             self._set_temporary_master(None)
 
             masters = {index: self.get_master(index) for index in self.virtual_groups}
@@ -3959,6 +4017,8 @@ class MDF:
                     master = np.array([], dtype="<f4")
 
             master_ = master
+            if time_from_zero and len(master_):
+                master_ -= master_[0]
             channel_count = sum(len(gp.channels) - 1 for gp in self.groups) + 1
             # approximation with all float64 dtype
             itemsize = channel_count * 8
@@ -4026,8 +4086,8 @@ class MDF:
                                 )
                                 sig.timestamps = master if virtual_group.cycles_nr == 0 else group_master
 
-                    if not raw:
-                        for signal in signals:
+                    for signal in signals:
+                        if (raw_dict and not raw.get(signal.name, __default__)) or (not raw_dict and not raw):
                             conversion = signal.conversion
                             if conversion:
                                 samples = conversion.convert(
@@ -4208,8 +4268,6 @@ class MDF:
 
                     new_index = self.header.start_time + delta
                     df.set_index(new_index, inplace=True)
-                elif time_from_zero and len(master):
-                    df.set_index(df.index - df.index[0], inplace=True)
 
                 yield df
 
@@ -4223,7 +4281,7 @@ class MDF:
         use_display_names: bool = False,
         time_as_date: bool = False,
         reduce_memory_usage: bool = False,
-        raw: bool = False,
+        raw: bool | dict[str, bool] = False,
         ignore_value2text_conversions: bool = False,
         use_interpolation: bool = True,
         only_basenames: bool = False,
@@ -4277,6 +4335,12 @@ class MDF:
 
             .. versionadded:: 5.7.0
 
+            .. versionchanged:: 8.0.0
+
+                provide individual raw mode based on a dict. If the parameters is given
+                as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
+                are the channel names and the values are the boolean raw values for each channel.
+
         ignore_value2text_conversions (False) : bool
             valid only for the channels that have value to text conversions and
             if *raw=False*. If this is True then the raw numeric values will be
@@ -4309,6 +4373,15 @@ class MDF:
         dataframe : pandas.DataFrame
 
         """
+        if isinstance(raw, dict):
+            if "__default__" not in raw:
+                raise MdfException("The raw argument given as dict must contain the __default__ key")
+
+            __default__ = raw["__default__"]
+            raw_dict = True
+        else:
+            raw_dict = False
+
         if channels is not None:
             mdf = self.filter(channels)
 
@@ -4406,8 +4479,8 @@ class MDF:
                         )
                         sig.timestamps = master if virtual_group.cycles_nr == 0 else group_master
 
-            if not raw:
-                for signal in signals:
+            for signal in signals:
+                if (raw_dict and not raw.get(signal.name, __default__)) or (not raw_dict and not raw):
                     conversion = signal.conversion
                     if conversion:
                         samples = conversion.convert(

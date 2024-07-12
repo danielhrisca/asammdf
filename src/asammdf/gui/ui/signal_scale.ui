@@ -14,12 +14,30 @@
    <string>Dialog</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_3">
+   <property name="leftMargin">
+  <number>1</number>
+</property>
+   <property name="topMargin">
+  <number>1</number>
+</property>
+   <property name="rightMargin">
+  <number>1</number>
+</property>
+   <property name="bottomMargin">
+  <number>1</number>
+</property>
+   <property name="spacing">
+  <number>1</number>
+</property>
    <item row="5" column="0" colspan="2">
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,0,0,0">
+     <property name="spacing">
+  <number>1</number>
+</property>
      <item>
       <spacer name="horizontalSpacer_6">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
@@ -43,7 +61,7 @@
      <item>
       <spacer name="horizontalSpacer_7">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
@@ -69,7 +87,7 @@
    <item row="4" column="1">
     <spacer name="verticalSpacer">
      <property name="orientation">
-      <enum>Qt::Vertical</enum>
+      <enum>Qt::Orientation::Vertical</enum>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
@@ -85,6 +103,21 @@
       <string>Keyboard shortcuts</string>
      </property>
      <layout class="QGridLayout" name="gridLayout">
+      <property name="leftMargin">
+  <number>1</number>
+</property>
+      <property name="topMargin">
+  <number>1</number>
+</property>
+      <property name="rightMargin">
+  <number>1</number>
+</property>
+      <property name="bottomMargin">
+  <number>1</number>
+</property>
+      <property name="spacing">
+  <number>1</number>
+</property>
       <item row="2" column="0">
        <widget class="QPushButton" name="fit_btn">
         <property name="text">
@@ -102,7 +135,7 @@
          <string>F or Shift+F</string>
         </property>
         <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
         </property>
        </widget>
       </item>
@@ -123,7 +156,7 @@
          <string>O or Shift+O</string>
         </property>
         <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
         </property>
        </widget>
       </item>
@@ -144,7 +177,7 @@
          <string>I or Shift+I</string>
         </property>
         <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
         </property>
        </widget>
       </item>
@@ -210,7 +243,7 @@
       </size>
      </property>
      <property name="frameShape">
-      <enum>QFrame::Box</enum>
+      <enum>QFrame::Shape::Box</enum>
      </property>
      <property name="lineWidth">
       <number>2</number>
@@ -226,6 +259,21 @@
       <string>Expected signal values</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_4">
+      <property name="leftMargin">
+  <number>1</number>
+</property>
+      <property name="topMargin">
+  <number>1</number>
+</property>
+      <property name="rightMargin">
+  <number>1</number>
+</property>
+      <property name="bottomMargin">
+  <number>1</number>
+</property>
+      <property name="spacing">
+  <number>1</number>
+</property>
       <item row="0" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
@@ -275,6 +323,21 @@
       <string>Screen levels</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
+      <property name="leftMargin">
+  <number>1</number>
+</property>
+      <property name="topMargin">
+  <number>1</number>
+</property>
+      <property name="rightMargin">
+  <number>1</number>
+</property>
+      <property name="bottomMargin">
+  <number>1</number>
+</property>
+      <property name="spacing">
+  <number>1</number>
+</property>
       <item row="3" column="0">
        <widget class="QLabel" name="label_10">
         <property name="text">

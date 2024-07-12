@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import json
+import sys
 from json import JSONDecodeError
 import pathlib
 import re
-import sys
 import unittest
 from unittest import mock
 from unittest.mock import ANY
@@ -713,6 +713,7 @@ class TestContextMenu(TestPlotWidget):
             child = group_a_channel.child(child_index)
             self.assertEqual(True, child.isDisabled())
 
+    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Menu_EnableDisable_Action_EnableAll(self):
         """
         Test Scope:
@@ -759,6 +760,7 @@ class TestContextMenu(TestPlotWidget):
             if item.type() != item.Info:
                 self.assertEqual(QtCore.Qt.CheckState.Checked, item.checkState(self.Column.NAME))
 
+    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Menu_EnableDisable_Action_DisableAll(self):
         """
         Test Scope:
@@ -805,6 +807,7 @@ class TestContextMenu(TestPlotWidget):
             if item.type() != item.Info:
                 self.assertEqual(QtCore.Qt.CheckState.Unchecked, item.checkState(self.Column.NAME))
 
+    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Menu_EnableDisable_Action_EnableSelected(self):
         """
         Test Scope:

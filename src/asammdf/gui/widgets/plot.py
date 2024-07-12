@@ -184,9 +184,8 @@ class PlotSignal(Signal):
             flags=signal.flags,
         )
 
-        self._pos = np.empty(2 * PLOT_BUFFER_SIZE, dtype="i4")
-        self._plot_samples = np.empty(2 * PLOT_BUFFER_SIZE, dtype="i1")
-        self._plot_timestamps = np.empty(2 * PLOT_BUFFER_SIZE, dtype="f8")
+        self._pos = self._plot_samples = self._plot_timestamps = None
+        self._enable = False
 
         self.path = None
 
@@ -201,7 +200,7 @@ class PlotSignal(Signal):
         self.precision = getattr(signal, "precision", 3)
 
         self._mode = "raw"
-        self._enable = getattr(signal, "enable", 3)
+        self.enable = getattr(signal, "enable", False)
 
         self.format = getattr(signal, "format", "phys")
 
@@ -1319,7 +1318,8 @@ class Plot(QtWidgets.QWidget):
     edit_channel_request = QtCore.Signal(object, object)
     region_moved_signal = QtCore.Signal(object, list)
     region_removed_signal = QtCore.Signal(object)
-    show_properties = QtCore.Signal(list)
+    show_overlapping_alias = QtCore.Signal(object)
+    show_properties = QtCore.Signal(object)
     splitter_moved = QtCore.Signal(object, int)
     pattern_group_added = QtCore.Signal(object, object)
     verify_bookmarks = QtCore.Signal(list, object)
@@ -1432,7 +1432,7 @@ class Plot(QtWidgets.QWidget):
         )
 
         hbox = QtWidgets.QHBoxLayout()
-        hbox.setSpacing(3)
+        hbox.setSpacing(1)
         hbox.setContentsMargins(1, 1, 1, 1)
 
         vbox.addLayout(hbox)
@@ -1706,6 +1706,7 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.itemSelectionChanged.connect(self.channel_selection_changed)
         self.channel_selection.add_channels_request.connect(self.add_channels_request)
         self.channel_selection.set_time_offset.connect(self.plot.set_time_offset)
+        self.channel_selection.show_overlapping_alias.connect(self._show_overlapping_alias)
         self.channel_selection.show_properties.connect(self._show_properties)
         self.channel_selection.insert_computation.connect(self.plot.insert_computation)
         self.channel_selection.edit_computation.connect(self.plot.edit_computation)
@@ -1837,6 +1838,13 @@ class Plot(QtWidgets.QWidget):
                         children.append(item)
 
                         del items_pool[uuid]
+
+                if root and root.type() == ChannelsTreeItem.Group and root.pattern:
+                    y_range = root.pattern.get("y_range", (0, 100))
+
+                    item.y_range = y_range
+                    if item.uuid == self.plot.current_uuid:
+                        self.plot.viewbox.setYRange(*y_range, padding=0)
 
             if root is None:
                 root = self.channel_selection.invisibleRootItem()
@@ -2031,6 +2039,13 @@ class Plot(QtWidgets.QWidget):
             else:
                 if destination.type() == ChannelsTreeItem.Group:
                     destination.addChildren(children)
+                    if destination.pattern:
+                        y_range = destination.pattern.get("y_range", (0, 100))
+                        for child in children:
+                            self.plot.set_y_range(child.uuid, y_range, emit=False)
+
+                        if child.uuid == self.plot.current_uuid:
+                            self.plot.viewbox.setYRange(*y_range, padding=0)
                 else:
                     parent = destination.parent() or self.channel_selection.invisibleRootItem()
                     index = parent.indexOfChild(destination)
@@ -2070,7 +2085,6 @@ class Plot(QtWidgets.QWidget):
             self.channel_selection.refresh()
 
         self.adjust_splitter(initial=initial)
-
         self.current_uuid_changed(self.plot.current_uuid)
         self.plot._can_paint = True
         self.plot.update()
@@ -2226,7 +2240,11 @@ class Plot(QtWidgets.QWidget):
             palette.setBrush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.WindowText, brush)
             palette.setBrush(QtGui.QPalette.ColorGroup.Inactive, QtGui.QPalette.ColorRole.WindowText, brush)
 
-            brush = QtGui.QBrush(item._current_background_color)
+            brush = QtGui.QBrush(
+                item._current_background_color
+                if item._current_background_color is not None
+                else QtCore.Qt.BrushStyle.NoBrush
+            )
             palette.setBrush(QtGui.QPalette.ColorGroup.Active, QtGui.QPalette.ColorRole.Window, brush)
             palette.setBrush(QtGui.QPalette.ColorGroup.Inactive, QtGui.QPalette.ColorRole.Window, brush)
 
@@ -2840,34 +2858,37 @@ class Plot(QtWidgets.QWidget):
             event.accept()
 
         elif key == QtCore.Qt.Key.Key_I and modifiers == QtCore.Qt.KeyboardModifier.AltModifier:
-            self.show_bookmarks = not self.show_bookmarks
-            if self.show_bookmarks:
-                self.bookmark_btn.setFlat(False)
-            else:
-                self.bookmark_btn.setFlat(True)
-
-            for bookmark in self.plot.bookmarks:
-                bookmark.visible = self.show_bookmarks
-
-            self.plot.update()
+            self.toggle_bookmarks(not self.show_bookmarks)
             event.accept()
 
         elif key == QtCore.Qt.Key.Key_G and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
             selected_items = [
-                item for item in self.channel_selection.selectedItems() if item.type() == ChannelsTreeItem.Channel
+                item for item in self.channel_selection.selectedItems() if item.type() != ChannelsTreeItem.Info
             ]
 
+            channel_items = [item for item in selected_items if item.type() == ChannelsTreeItem.Channel]
+
+            if not channel_items:
+                channel_items = [item.first_signal() for item in selected_items]
+                channel_items = [item for item in channel_items if item is not None]
+
             if selected_items:
-                uuids = [item.uuid for item in selected_items]
+                uuids = [item.uuid for item in channel_items]
 
                 signals = {}
-                indexes = []
                 for i, uuid in enumerate(uuids):
                     sig, idx = self.plot.signal_by_uuid(uuid)
                     if i == 0:
                         y_range = sig.y_range
-                    indexes.append(idx)
                     signals[sig.name] = sig
+
+                if not signals:
+                    signals["Demo signal"] = Signal(
+                        name="Demo signal",
+                        samples=[],
+                        timestamps=[],
+                    )
+                    y_range = (0, 100)
 
                 diag = ScaleDialog(signals, y_range, parent=self)
 
@@ -2880,10 +2901,8 @@ class Plot(QtWidgets.QWidget):
 
                     y_range = y_bottom, y_top
 
-                    # TO DO: should we update the axis here?
-
-                    for idx in indexes:
-                        self.plot.signals[idx].y_range = y_range
+                    for item in selected_items:
+                        item.y_range = y_range
 
                     self.zoom_changed()
 
@@ -3211,7 +3230,12 @@ class Plot(QtWidgets.QWidget):
         self.plot.cursor1.setPos(stamp)
         self.cursor_move_finished()
 
-    def _show_properties(self, uuid):
+    def _show_overlapping_alias(self, origin_uuid, uuid):
+        for sig in self.plot.signals:
+            if sig.uuid == uuid:
+                self.show_overlapping_alias.emit(sig)
+
+    def _show_properties(self, origin_uuid, uuid):
         for sig in self.plot.signals:
             if sig.uuid == uuid:
                 if sig.flags & Signal.Flags.computed:
@@ -3223,7 +3247,7 @@ class Plot(QtWidgets.QWidget):
                         raise
 
                 else:
-                    self.show_properties.emit([sig.group_index, sig.channel_index, sig])
+                    self.show_properties.emit(sig)
 
     def to_config(self):
         def item_to_config(tree, root):
@@ -3308,12 +3332,17 @@ class Plot(QtWidgets.QWidget):
         if hide is not None:
             self.show_bookmarks = hide
 
-        key_event = QtGui.QKeyEvent(
-            QtCore.QEvent.Type.KeyPress,
-            QtCore.Qt.Key.Key_I,
-            QtCore.Qt.KeyboardModifier.AltModifier,
-        )
-        self.keyPressEvent(key_event)
+        self.show_bookmarks = not self.show_bookmarks
+
+        if self.show_bookmarks:
+            self.bookmark_btn.setFlat(False)
+        else:
+            self.bookmark_btn.setFlat(True)
+
+        for bookmark in self.plot.bookmarks:
+            bookmark.visible = self.show_bookmarks
+
+        self.plot.update()
 
         if not self.show_bookmarks:
             png = ":/bookmark.png"
@@ -3518,14 +3547,6 @@ class PlotGraphics(pg.PlotWidget):
         self.initial_x_range = "adjust"
         super().__init__(viewBox=viewBox)
 
-        # del self.plotItem.vb
-        # self.plotItem.vb = ViewBox(parent=self.plotItem)
-        #
-        # self.plotItem.vb.sigStateChanged.connect(self.plotItem.viewStateChanged)
-        # self.plotItem.vb.sigRangeChanged.connect(self.plotItem.sigRangeChanged)
-        # self.plotItem.vb.sigXRangeChanged.connect(self.plotItem.sigXRangeChanged)
-        # self.plotItem.vb.sigYRangeChanged.connect(self.plotItem.sigYRangeChanged)
-        # self.plotItem.layout.addItem(self.plotItem.vb, 2, 1)
         self.plotItem.vb.setLeftButtonAction(Plot.mouse_mode)
 
         self.lock = Lock()
@@ -3560,7 +3581,7 @@ class PlotGraphics(pg.PlotWidget):
         self._last_size = self.geometry()
         self._settings = QtCore.QSettings()
 
-        self.setContentsMargins(5, 5, 5, 5)
+        self.setContentsMargins(1, 1, 1, 1)
         self.xrange_changed.connect(self.xrange_changed_handle)
         self.with_dots = with_dots
 
@@ -4272,7 +4293,7 @@ class PlotGraphics(pg.PlotWidget):
         return self._grid_pixmap
 
     def dropEvent(self, e):
-        if e.source() is self.parent().parent().channel_selection:
+        if e.source() is self.plot_parent.channel_selection:
             super().dropEvent(e)
         else:
             data = e.mimeData()
@@ -4515,7 +4536,7 @@ class PlotGraphics(pg.PlotWidget):
                 key == QtCore.Qt.Key.Key_F and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier and not self.locked
             ):
                 self.block_zoom_signal = True
-                parent = self.parent().parent()
+                parent = self.plot_parent
                 uuids = [
                     item.uuid
                     for item in parent.channel_selection.selectedItems()
@@ -4742,7 +4763,7 @@ class PlotGraphics(pg.PlotWidget):
 
             elif key == QtCore.Qt.Key.Key_S and modifier == QtCore.Qt.KeyboardModifier.NoModifier and not self.locked:
                 self.block_zoom_signal = True
-                parent = self.parent().parent()
+                parent = self.plot_parent
                 uuids = []
 
                 iterator = QtWidgets.QTreeWidgetItemIterator(parent.channel_selection)
@@ -4849,7 +4870,7 @@ class PlotGraphics(pg.PlotWidget):
                 key == QtCore.Qt.Key.Key_S and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier and not self.locked
             ):
                 self.block_zoom_signal = True
-                parent = self.parent().parent()
+                parent = self.plot_parent
                 uuids = [
                     item.uuid
                     for item in parent.channel_selection.selectedItems()
@@ -5037,7 +5058,7 @@ class PlotGraphics(pg.PlotWidget):
                 key in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_Right)
                 and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
             ):
-                parent = self.parent().parent()
+                parent = self.plot_parent
                 uuids = list(
                     {
                         item.uuid
@@ -5068,7 +5089,7 @@ class PlotGraphics(pg.PlotWidget):
                 )
                 and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
             ):
-                parent = self.parent().parent()
+                parent = self.plot_parent
                 uuids = list(
                     {
                         item.uuid
@@ -5684,7 +5705,8 @@ class PlotGraphics(pg.PlotWidget):
 
             axis.picture = None
 
-        sig.trim(*sig.trim_info, force=True)
+        if sig.trim_info is not None:
+            sig.trim(*sig.trim_info, force=True)
 
         self.update()
 
@@ -5843,7 +5865,8 @@ class PlotGraphics(pg.PlotWidget):
                 if len(self._timebase_db[id_]) == 0:
                     del self._timebase_db[id_]
 
-                sig.trim(*sig.trim_info, force=True)
+                if sig.trim_info is not None:
+                    sig.trim(*sig.trim_info, force=True)
         else:
             for sig in signals:
                 if not len(sig.timestamps):
@@ -5859,7 +5882,8 @@ class PlotGraphics(pg.PlotWidget):
                 if len(self._timebase_db[id_]) == 0:
                     del self._timebase_db[id_]
 
-                sig.trim(*sig.trim_info, force=True)
+                if sig.trim_info is not None:
+                    sig.trim(*sig.trim_info, force=True)
 
         self._compute_all_timebase()
 
@@ -5961,6 +5985,18 @@ class PlotGraphics(pg.PlotWidget):
 
     def update(self, *args, pixmap=None, **kwargs):
         self._pixmap = pixmap
+
+        for idx, sig in enumerate(self.signals):
+
+            if sig.individual_axis:
+                axis = self.get_axis(idx)
+                if tuple(axis.range) != tuple(sig.y_range):
+                    axis.setRange(*sig.y_range)
+
+            if sig.uuid == self.current_uuid:
+                if tuple(self.y_axis.range) != tuple(sig.y_range):
+                    self.y_axis.setRange(*sig.y_range)
+
         if self.viewbox:
             self.viewbox.update()
 

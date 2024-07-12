@@ -820,7 +820,7 @@ def as_non_byte_sized_signed_int(integer_array: NDArray[Any], bit_length: int) -
         truncated_integers = integer_array & ((1 << bit_length) - 1)  # Zero out the unwanted bits
     return where(
         truncated_integers >> bit_length - 1,  # sign bit as a truth series (True when negative)
-        (2**bit_length - truncated_integers) * -1,  # when negative, do two's complement
+        (2**bit_length - truncated_integers) * np.int8(-1),  # when negative, do two's complement
         truncated_integers,  # when positive, return the truncated int
     )
 
@@ -1240,6 +1240,8 @@ class Group:
         "single_channel_dtype",
         "uses_ld",
         "read_split_count",
+        "uuid",
+        "index",
     )
 
     def __init__(self, data_group: DataGroupType) -> None:
@@ -1255,6 +1257,8 @@ class Group:
         self.uses_ld = False
         self.read_split_count = 0
         self.data_blocks_info_generator = iter(EMPTY_TUPLE)
+        self.uuid = ""
+        self.index = 0
 
     def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
@@ -1638,6 +1642,7 @@ def master_using_raster(mdf: MDF_v2_v3_v4, raster: RasterType, endpoint: bool = 
             group = mdf.groups[group_index]
             cycles_nr = group.channel_group.cycles_nr
             if cycles_nr:
+
                 master_min = mdf.get_master(group_index, record_offset=0, record_count=1)
                 if len(master_min):
                     t_min.append(master_min[0])

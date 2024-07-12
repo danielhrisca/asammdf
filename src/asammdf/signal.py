@@ -147,6 +147,7 @@ class Signal:
             self.encoding = encoding
             self.group_index = group_index
             self.channel_index = channel_index
+            self._invalidation_bits = None
 
             if source:
                 if not isinstance(source, Source):
@@ -158,14 +159,6 @@ class Signal:
             else:
                 self.bit_count = bit_count
 
-            if invalidation_bits is not None:
-                if not isinstance(invalidation_bits, np.ndarray):
-                    invalidation_bits = np.array(invalidation_bits)
-                if invalidation_bits.shape[0] != samples.shape[0]:
-                    message = "{} samples and invalidation bits length mismatch ({} vs {})"
-                    message = message.format(name, samples.shape[0], invalidation_bits.shape[0])
-                    logger.exception(message)
-                    raise MdfException(message)
             self.invalidation_bits = invalidation_bits
 
             if conversion:
@@ -187,6 +180,27 @@ class Signal:
                 self.virtual_master_conversion = conversion
             else:
                 self.virtual_master_conversion = None
+
+    @property
+    def invalidation_bits(self):
+        return self._invalidation_bits
+
+    @invalidation_bits.setter
+    def invalidation_bits(self, value):
+        if value is None:
+            self._invalidation_bits = None
+
+        else:
+            if not isinstance(value, InvalidationArray):
+                value = InvalidationArray(value)
+
+            if value.shape[0] != self.samples.shape[0]:
+                message = "{} samples and invalidation bits length mismatch ({} vs {})"
+                message = message.format(self.name, self.samples.shape[0], value.shape[0])
+                logger.exception(message)
+                raise MdfException(message)
+
+            self._invalidation_bits = value
 
     def __repr__(self):
         return f"""<Signal {self.name}:
@@ -1449,6 +1463,23 @@ class Signal:
             virtual_conversion=self.virtual_conversion,
             virtual_master_conversion=self.virtual_master_conversion,
         )
+
+
+ORIGIN_UNKNOWN = (-1, -1)
+
+
+class InvalidationArray(np.ndarray):
+    ORIGIN_UNKNOWN = ORIGIN_UNKNOWN
+
+    def __new__(cls, input_array, origin=ORIGIN_UNKNOWN):
+        obj = np.asarray(input_array).view(cls)
+        obj.origin = origin
+        return obj
+
+    def __array_finalize__(self, obj):
+        if obj is None:
+            return
+        self.origin = getattr(obj, "origin", ORIGIN_UNKNOWN)
 
 
 if __name__ == "__main__":

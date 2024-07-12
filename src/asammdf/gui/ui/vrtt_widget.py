@@ -23,10 +23,11 @@ class Ui_VRTT_Widget(object):
     def setupUi(self, VRTT_Widget):
         if not VRTT_Widget.objectName():
             VRTT_Widget.setObjectName(u"VRTT_Widget")
-        VRTT_Widget.resize(496, 46)
+        VRTT_Widget.resize(512, 48)
         self.horizontalLayout = QHBoxLayout(VRTT_Widget)
+        self.horizontalLayout.setSpacing(1)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.horizontalLayout.setContentsMargins(-1, 2, -1, 2)
+        self.horizontalLayout.setContentsMargins(1, 1, 1, 1)
         self.label = QLabel(VRTT_Widget)
         self.label.setObjectName(u"label")
 
@@ -68,7 +69,9 @@ class Ui_VRTT_Widget(object):
         self.page = QWidget()
         self.page.setObjectName(u"page")
         self.horizontalLayout_2 = QHBoxLayout(self.page)
+        self.horizontalLayout_2.setSpacing(1)
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.horizontalLayout_2.setContentsMargins(1, 1, 1, 1)
         self.text = QLineEdit(self.page)
         self.text.setObjectName(u"text")
 
@@ -78,7 +81,9 @@ class Ui_VRTT_Widget(object):
         self.page_2 = QWidget()
         self.page_2.setObjectName(u"page_2")
         self.horizontalLayout_3 = QHBoxLayout(self.page_2)
+        self.horizontalLayout_3.setSpacing(1)
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.horizontalLayout_3.setContentsMargins(1, 1, 1, 1)
         self.conversion_btn = QPushButton(self.page_2)
         self.conversion_btn.setObjectName(u"conversion_btn")
 

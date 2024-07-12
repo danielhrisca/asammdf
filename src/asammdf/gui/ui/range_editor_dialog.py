@@ -29,11 +29,13 @@ class Ui_RangeDialog(object):
         RangeDialog.setSizeGripEnabled(True)
         RangeDialog.setModal(True)
         self.gridLayout = QGridLayout(RangeDialog)
+        self.gridLayout.setSpacing(1)
         self.gridLayout.setObjectName(u"gridLayout")
+        self.gridLayout.setContentsMargins(1, 1, 1, 1)
         self.ranges = MinimalListWidget(RangeDialog)
         self.ranges.setObjectName(u"ranges")
-        self.ranges.setDragDropMode(QAbstractItemView.InternalMove)
-        self.ranges.setDefaultDropAction(Qt.MoveAction)
+        self.ranges.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.ranges.setDefaultDropAction(Qt.DropAction.MoveAction)
 
         self.gridLayout.addWidget(self.ranges, 0, 0, 7, 1)
 

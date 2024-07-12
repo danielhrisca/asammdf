@@ -14,8 +14,26 @@
    <string>Form</string>
   </property>
   <layout class="QVBoxLayout" name="map_layout">
+   <property name="spacing">
+  <number>1</number>
+</property>
+   <property name="leftMargin">
+  <number>1</number>
+</property>
+   <property name="topMargin">
+  <number>1</number>
+</property>
+   <property name="rightMargin">
+  <number>1</number>
+</property>
+   <property name="bottomMargin">
+  <number>1</number>
+</property>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0,1,0">
+     <property name="spacing">
+  <number>1</number>
+</property>
      <item>
       <widget class="QDoubleSpinBox" name="timestamp">
        <property name="suffix">
@@ -42,7 +60,7 @@
         <number>99999</number>
        </property>
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
        </property>
        <property name="invertedAppearance">
         <bool>false</bool>
@@ -51,7 +69,7 @@
         <bool>false</bool>
        </property>
        <property name="tickPosition">
-        <enum>QSlider::NoTicks</enum>
+        <enum>QSlider::TickPosition::NoTicks</enum>
        </property>
        <property name="tickInterval">
         <number>1</number>

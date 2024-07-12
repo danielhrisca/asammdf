@@ -26,7 +26,9 @@ class Ui_Attachment(object):
             Attachment.setObjectName(u"Attachment")
         Attachment.resize(717, 205)
         self.horizontalLayout = QHBoxLayout(Attachment)
+        self.horizontalLayout.setSpacing(1)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalLayout.setContentsMargins(1, 1, 1, 1)
         self.number = QLabel(Attachment)
         self.number.setObjectName(u"number")
 

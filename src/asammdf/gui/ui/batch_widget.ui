@@ -14,14 +14,29 @@
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_9" columnstretch="2,1">
+   <property name="leftMargin">
+  <number>1</number>
+</property>
+   <property name="topMargin">
+  <number>1</number>
+</property>
+   <property name="rightMargin">
+  <number>1</number>
+</property>
+   <property name="bottomMargin">
+  <number>1</number>
+</property>
+   <property name="spacing">
+  <number>1</number>
+</property>
    <item row="1" column="0">
     <widget class="QSplitter" name="splitter">
      <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+      <enum>Qt::Orientation::Horizontal</enum>
      </property>
      <widget class="QTabWidget" name="aspects">
       <property name="tabPosition">
-       <enum>QTabWidget::West</enum>
+       <enum>QTabWidget::TabPosition::West</enum>
       </property>
       <property name="currentIndex">
        <number>0</number>
@@ -38,6 +53,21 @@
         <string>Concatenate</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_7" columnstretch="0,1">
+        <property name="leftMargin">
+  <number>1</number>
+</property>
+        <property name="topMargin">
+  <number>1</number>
+</property>
+        <property name="rightMargin">
+  <number>1</number>
+</property>
+        <property name="bottomMargin">
+  <number>1</number>
+</property>
+        <property name="spacing">
+  <number>1</number>
+</property>
         <item row="0" column="0" colspan="2">
          <widget class="QCheckBox" name="concatenate_sync">
           <property name="text">
@@ -71,7 +101,7 @@
         <item row="3" column="0" colspan="2">
          <widget class="Line" name="line_5">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
          </widget>
         </item>
@@ -98,7 +128,7 @@
         <item row="7" column="0" colspan="2">
          <widget class="Line" name="line_6">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
          </widget>
         </item>
@@ -133,7 +163,7 @@
         <item row="8" column="1">
          <spacer name="verticalSpacer_4">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Orientation::Vertical</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -157,6 +187,21 @@
         <string>conv</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_5">
+        <property name="spacing">
+  <number>1</number>
+</property>
+        <property name="leftMargin">
+  <number>1</number>
+</property>
+        <property name="topMargin">
+  <number>1</number>
+</property>
+        <property name="rightMargin">
+  <number>1</number>
+</property>
+        <property name="bottomMargin">
+  <number>1</number>
+</property>
         <item>
          <widget class="QScrollArea" name="scrollArea_3">
           <property name="widgetResizable">
@@ -167,13 +212,31 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>810</width>
-             <height>674</height>
+             <width>832</width>
+             <height>698</height>
             </rect>
            </property>
            <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,1,0">
+            <property name="spacing">
+  <number>1</number>
+</property>
+            <property name="leftMargin">
+  <number>1</number>
+</property>
+            <property name="topMargin">
+  <number>1</number>
+</property>
+            <property name="rightMargin">
+  <number>1</number>
+</property>
+            <property name="bottomMargin">
+  <number>1</number>
+</property>
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_14">
+              <property name="spacing">
+  <number>1</number>
+</property>
               <item>
                <widget class="QComboBox" name="filter_view">
                 <item>
@@ -207,6 +270,9 @@
               </item>
               <item>
                <layout class="QHBoxLayout" name="horizontalLayout_5">
+                <property name="spacing">
+  <number>1</number>
+</property>
                 <item>
                  <widget class="QPushButton" name="load_filter_list_btn">
                   <property name="toolTip">
@@ -266,7 +332,7 @@
                 <item>
                  <spacer name="horizontalSpacer_5">
                   <property name="orientation">
-                   <enum>Qt::Horizontal</enum>
+                   <enum>Qt::Orientation::Horizontal</enum>
                   </property>
                   <property name="sizeHint" stdset="0">
                    <size>
@@ -282,6 +348,9 @@
             </item>
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_13">
+              <property name="spacing">
+  <number>1</number>
+</property>
               <item>
                <widget class="QLabel" name="label_3">
                 <property name="text">
@@ -292,7 +361,7 @@
               <item>
                <widget class="QListWidget" name="selected_filter_channels">
                 <property name="viewMode">
-                 <enum>QListView::ListMode</enum>
+                 <enum>QListView::ViewMode::ListMode</enum>
                 </property>
                 <property name="uniformItemSizes">
                  <bool>true</bool>
@@ -307,20 +376,20 @@
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_15" stretch="0,0,0,0,1,0">
               <property name="spacing">
-               <number>2</number>
-              </property>
+  <number>1</number>
+</property>
               <property name="leftMargin">
-               <number>2</number>
-              </property>
+  <number>1</number>
+</property>
               <property name="topMargin">
-               <number>2</number>
-              </property>
+  <number>1</number>
+</property>
               <property name="rightMargin">
-               <number>2</number>
-              </property>
+  <number>1</number>
+</property>
               <property name="bottomMargin">
-               <number>2</number>
-              </property>
+  <number>1</number>
+</property>
               <item>
                <widget class="QGroupBox" name="cut_group">
                 <property name="title">
@@ -334,20 +403,20 @@
                 </property>
                 <layout class="QGridLayout" name="gridLayout_23">
                  <property name="leftMargin">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <property name="topMargin">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <property name="rightMargin">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <property name="bottomMargin">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <property name="spacing">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <item row="0" column="0">
                   <widget class="QLabel" name="label_62">
                    <property name="text">
@@ -418,20 +487,20 @@
                 </property>
                 <layout class="QGridLayout" name="gridLayout_24" columnstretch="0,1,0">
                  <property name="leftMargin">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <property name="topMargin">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <property name="rightMargin">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <property name="bottomMargin">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <property name="spacing">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <item row="0" column="0">
                   <widget class="QRadioButton" name="raster_type_step">
                    <property name="text">
@@ -474,10 +543,10 @@
                     <bool>false</bool>
                    </property>
                    <property name="insertPolicy">
-                    <enum>QComboBox::InsertAtBottom</enum>
+                    <enum>QComboBox::InsertPolicy::InsertAtBottom</enum>
                    </property>
                    <property name="sizeAdjustPolicy">
-                    <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
+                    <enum>QComboBox::SizeAdjustPolicy::AdjustToMinimumContentsLengthWithIcon</enum>
                    </property>
                   </widget>
                  </item>
@@ -512,20 +581,20 @@
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_21">
                  <property name="spacing">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <property name="leftMargin">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <property name="topMargin">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <property name="rightMargin">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <property name="bottomMargin">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <item>
                   <widget class="QComboBox" name="output_format">
                    <item>
@@ -567,6 +636,21 @@
                    </property>
                    <widget class="QWidget" name="MDF_2">
                     <layout class="QGridLayout" name="gridLayout_25" columnstretch="0,0">
+                     <property name="leftMargin">
+  <number>1</number>
+</property>
+                     <property name="topMargin">
+  <number>1</number>
+</property>
+                     <property name="rightMargin">
+  <number>1</number>
+</property>
+                     <property name="bottomMargin">
+  <number>1</number>
+</property>
+                     <property name="spacing">
+  <number>1</number>
+</property>
                      <item row="3" column="0" colspan="2">
                       <widget class="QCheckBox" name="mdf_split">
                        <property name="text">
@@ -597,7 +681,7 @@
                      <item row="1" column="0" colspan="2">
                       <widget class="Line" name="line_17">
                        <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
+                        <enum>Qt::Orientation::Horizontal</enum>
                        </property>
                       </widget>
                      </item>
@@ -630,6 +714,21 @@
                         <string>Scramble</string>
                        </property>
                        <layout class="QGridLayout" name="gridLayout_26" rowstretch="1,0" columnstretch="0,1">
+                        <property name="leftMargin">
+  <number>1</number>
+</property>
+                        <property name="topMargin">
+  <number>1</number>
+</property>
+                        <property name="rightMargin">
+  <number>1</number>
+</property>
+                        <property name="bottomMargin">
+  <number>1</number>
+</property>
+                        <property name="spacing">
+  <number>1</number>
+</property>
                         <item row="1" column="0">
                          <widget class="QPushButton" name="scramble_btn">
                           <property name="text">
@@ -644,7 +743,7 @@
                         <item row="1" column="1">
                          <spacer name="horizontalSpacer_24">
                           <property name="orientation">
-                           <enum>Qt::Horizontal</enum>
+                           <enum>Qt::Orientation::Horizontal</enum>
                           </property>
                           <property name="sizeHint" stdset="0">
                            <size>
@@ -688,27 +787,27 @@
                    <widget class="QWidget" name="HDF5_2">
                     <layout class="QGridLayout" name="gridLayout_17">
                      <property name="leftMargin">
-                      <number>2</number>
-                     </property>
+  <number>1</number>
+</property>
                      <property name="topMargin">
-                      <number>2</number>
-                     </property>
+  <number>1</number>
+</property>
                      <property name="rightMargin">
-                      <number>2</number>
-                     </property>
+  <number>1</number>
+</property>
                      <property name="bottomMargin">
-                      <number>2</number>
-                     </property>
+  <number>1</number>
+</property>
                      <property name="spacing">
-                      <number>2</number>
-                     </property>
+  <number>1</number>
+</property>
                      <item row="8" column="1">
                       <widget class="QComboBox" name="empty_channels"/>
                      </item>
                      <item row="9" column="0">
                       <spacer name="verticalSpacer_12">
                        <property name="orientation">
-                        <enum>Qt::Vertical</enum>
+                        <enum>Qt::Orientation::Vertical</enum>
                        </property>
                        <property name="sizeHint" stdset="0">
                         <size>
@@ -738,7 +837,7 @@
                      <item row="4" column="0" colspan="2">
                       <widget class="Line" name="line_32">
                        <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
+                        <enum>Qt::Orientation::Horizontal</enum>
                        </property>
                       </widget>
                      </item>
@@ -789,20 +888,20 @@
                    <widget class="QWidget" name="MAT_2">
                     <layout class="QGridLayout" name="gridLayout_18">
                      <property name="leftMargin">
-                      <number>2</number>
-                     </property>
+  <number>1</number>
+</property>
                      <property name="topMargin">
-                      <number>2</number>
-                     </property>
+  <number>1</number>
+</property>
                      <property name="rightMargin">
-                      <number>2</number>
-                     </property>
+  <number>1</number>
+</property>
                      <property name="bottomMargin">
-                      <number>2</number>
-                     </property>
+  <number>1</number>
+</property>
                      <property name="spacing">
-                      <number>2</number>
-                     </property>
+  <number>1</number>
+</property>
                      <item row="10" column="0">
                       <widget class="QLabel" name="label_41">
                        <property name="text">
@@ -830,7 +929,7 @@
                      <item row="11" column="0">
                       <spacer name="verticalSpacer_13">
                        <property name="orientation">
-                        <enum>Qt::Vertical</enum>
+                        <enum>Qt::Orientation::Vertical</enum>
                        </property>
                        <property name="sizeHint" stdset="0">
                         <size>
@@ -843,7 +942,7 @@
                      <item row="4" column="0" colspan="2">
                       <widget class="Line" name="line_33">
                        <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
+                        <enum>Qt::Orientation::Horizontal</enum>
                        </property>
                       </widget>
                      </item>
@@ -910,20 +1009,20 @@
                    <widget class="QWidget" name="CSV">
                     <layout class="QGridLayout" name="gridLayout_2">
                      <property name="leftMargin">
-                      <number>2</number>
-                     </property>
+  <number>1</number>
+</property>
                      <property name="topMargin">
-                      <number>2</number>
-                     </property>
+  <number>1</number>
+</property>
                      <property name="rightMargin">
-                      <number>2</number>
-                     </property>
+  <number>1</number>
+</property>
                      <property name="bottomMargin">
-                      <number>2</number>
-                     </property>
+  <number>1</number>
+</property>
                      <property name="spacing">
-                      <number>2</number>
-                     </property>
+  <number>1</number>
+</property>
                      <item row="10" column="1">
                       <widget class="QLineEdit" name="escapechar">
                        <property name="inputMask">
@@ -1031,7 +1130,7 @@
                      <item row="4" column="0" colspan="2">
                       <widget class="Line" name="line_34">
                        <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
+                        <enum>Qt::Orientation::Horizontal</enum>
                        </property>
                       </widget>
                      </item>
@@ -1113,20 +1212,20 @@
                 </property>
                 <layout class="QGridLayout" name="gridLayout">
                  <property name="leftMargin">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <property name="topMargin">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <property name="rightMargin">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <property name="bottomMargin">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <property name="spacing">
-                  <number>2</number>
-                 </property>
+  <number>1</number>
+</property>
                  <item row="0" column="0">
                   <widget class="QLineEdit" name="modify_output_folder">
                    <property name="placeholderText">
@@ -1154,7 +1253,7 @@
               <item>
                <spacer name="verticalSpacer_14">
                 <property name="orientation">
-                 <enum>Qt::Vertical</enum>
+                 <enum>Qt::Orientation::Vertical</enum>
                 </property>
                 <property name="sizeHint" stdset="0">
                  <size>
@@ -1192,6 +1291,21 @@
         <string>Stack</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_8" columnstretch="0,1">
+        <property name="leftMargin">
+  <number>1</number>
+</property>
+        <property name="topMargin">
+  <number>1</number>
+</property>
+        <property name="rightMargin">
+  <number>1</number>
+</property>
+        <property name="bottomMargin">
+  <number>1</number>
+</property>
+        <property name="spacing">
+  <number>1</number>
+</property>
         <item row="0" column="0" colspan="2">
          <widget class="QCheckBox" name="stack_sync">
           <property name="text">
@@ -1225,7 +1339,7 @@
         <item row="3" column="0" colspan="2">
          <widget class="Line" name="line_8">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
          </widget>
         </item>
@@ -1269,14 +1383,14 @@
         <item row="7" column="0" colspan="2">
          <widget class="Line" name="line_7">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
          </widget>
         </item>
         <item row="8" column="1">
          <spacer name="verticalSpacer_7">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Orientation::Vertical</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -1308,6 +1422,21 @@
         <string>Bus logging</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_4">
+        <property name="spacing">
+  <number>1</number>
+</property>
+        <property name="leftMargin">
+  <number>1</number>
+</property>
+        <property name="topMargin">
+  <number>1</number>
+</property>
+        <property name="rightMargin">
+  <number>1</number>
+</property>
+        <property name="bottomMargin">
+  <number>1</number>
+</property>
         <item>
          <widget class="QScrollArea" name="scrollArea">
           <property name="widgetResizable">
@@ -1318,11 +1447,26 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>810</width>
-             <height>674</height>
+             <width>832</width>
+             <height>698</height>
             </rect>
            </property>
            <layout class="QGridLayout" name="gridLayout_3" columnstretch="0,0,0">
+            <property name="leftMargin">
+  <number>1</number>
+</property>
+            <property name="topMargin">
+  <number>1</number>
+</property>
+            <property name="rightMargin">
+  <number>1</number>
+</property>
+            <property name="bottomMargin">
+  <number>1</number>
+</property>
+            <property name="spacing">
+  <number>1</number>
+</property>
             <item row="2" column="1">
              <widget class="QGroupBox" name="groupBox_3">
               <property name="title">
@@ -1330,20 +1474,20 @@
               </property>
               <layout class="QGridLayout" name="gridLayout_10">
                <property name="leftMargin">
-                <number>2</number>
-               </property>
+  <number>1</number>
+</property>
                <property name="topMargin">
-                <number>2</number>
-               </property>
+  <number>1</number>
+</property>
                <property name="rightMargin">
-                <number>2</number>
-               </property>
+  <number>1</number>
+</property>
                <property name="bottomMargin">
-                <number>2</number>
-               </property>
+  <number>1</number>
+</property>
                <property name="spacing">
-                <number>2</number>
-               </property>
+  <number>1</number>
+</property>
                <item row="9" column="2">
                 <widget class="QLineEdit" name="lineterminator_bus">
                  <property name="text">
@@ -1354,7 +1498,7 @@
                <item row="12" column="1" colspan="3">
                 <widget class="Line" name="line_13">
                  <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
+                  <enum>Qt::Orientation::Horizontal</enum>
                  </property>
                 </widget>
                </item>
@@ -1553,20 +1697,20 @@
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout">
                 <property name="spacing">
-                 <number>2</number>
-                </property>
+  <number>1</number>
+</property>
                 <property name="leftMargin">
-                 <number>2</number>
-                </property>
+  <number>1</number>
+</property>
                 <property name="topMargin">
-                 <number>2</number>
-                </property>
+  <number>1</number>
+</property>
                 <property name="rightMargin">
-                 <number>2</number>
-                </property>
+  <number>1</number>
+</property>
                 <property name="bottomMargin">
-                 <number>2</number>
-                </property>
+  <number>1</number>
+</property>
                 <item>
                  <widget class="QPushButton" name="load_can_database_btn">
                   <property name="text">
@@ -1589,20 +1733,20 @@
                </attribute>
                <layout class="QVBoxLayout" name="verticalLayout_2">
                 <property name="spacing">
-                 <number>2</number>
-                </property>
+  <number>1</number>
+</property>
                 <property name="leftMargin">
-                 <number>2</number>
-                </property>
+  <number>1</number>
+</property>
                 <property name="topMargin">
-                 <number>2</number>
-                </property>
+  <number>1</number>
+</property>
                 <property name="rightMargin">
-                 <number>2</number>
-                </property>
+  <number>1</number>
+</property>
                 <property name="bottomMargin">
-                 <number>2</number>
-                </property>
+  <number>1</number>
+</property>
                 <item>
                  <widget class="QPushButton" name="load_lin_database_btn">
                   <property name="text">
@@ -1623,6 +1767,9 @@
             </item>
             <item row="1" column="0" colspan="2">
              <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1">
+              <property name="spacing">
+  <number>1</number>
+</property>
               <item>
                <widget class="QLabel" name="label">
                 <property name="text">
@@ -1643,7 +1790,7 @@
               <item>
                <spacer name="horizontalSpacer">
                 <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
+                 <enum>Qt::Orientation::Horizontal</enum>
                 </property>
                 <property name="sizeHint" stdset="0">
                  <size>
@@ -1662,24 +1809,24 @@
               </property>
               <layout class="QGridLayout" name="gridLayout_5">
                <property name="leftMargin">
-                <number>2</number>
-               </property>
+  <number>1</number>
+</property>
                <property name="topMargin">
-                <number>2</number>
-               </property>
+  <number>1</number>
+</property>
                <property name="rightMargin">
-                <number>2</number>
-               </property>
+  <number>1</number>
+</property>
                <property name="bottomMargin">
-                <number>2</number>
-               </property>
+  <number>1</number>
+</property>
                <property name="spacing">
-                <number>2</number>
-               </property>
+  <number>1</number>
+</property>
                <item row="0" column="1">
                 <widget class="QComboBox" name="extract_bus_compression">
                  <property name="sizeAdjustPolicy">
-                  <enum>QComboBox::AdjustToContents</enum>
+                  <enum>QComboBox::SizeAdjustPolicy::AdjustToContents</enum>
                  </property>
                 </widget>
                </item>
@@ -1700,7 +1847,7 @@
                <item row="3" column="0" colspan="2">
                 <widget class="Line" name="line_12">
                  <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
+                  <enum>Qt::Orientation::Horizontal</enum>
                  </property>
                 </widget>
                </item>
@@ -1718,7 +1865,7 @@
                <item row="1" column="1">
                 <widget class="QComboBox" name="extract_bus_format">
                  <property name="sizeAdjustPolicy">
-                  <enum>QComboBox::AdjustToContents</enum>
+                  <enum>QComboBox::SizeAdjustPolicy::AdjustToContents</enum>
                  </property>
                 </widget>
                </item>
@@ -1743,11 +1890,17 @@
    </item>
    <item row="1" column="1">
     <layout class="QVBoxLayout" name="list_layout">
+     <property name="spacing">
+  <number>1</number>
+</property>
      <item>
       <widget class="MinimalListWidget" name="files_list"/>
      </item>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_3">
+       <property name="spacing">
+  <number>1</number>
+</property>
        <item>
         <widget class="QPushButton" name="sort_by_start_time_btn">
          <property name="text">

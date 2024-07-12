@@ -27,6 +27,7 @@ import asammdf.mdf as mdf_module
 from ...blocks.utils import extract_mime_names
 from ..ui.numeric_offline import Ui_NumericDisplay
 from ..utils import FONT_SIZE
+from .tree import substitude_mime_uuids
 
 HERE = Path(__file__).resolve().parent
 
@@ -52,6 +53,8 @@ class SignalOnline:
         conversion=None,
         exists=True,
         format="phys",
+        color="#505050",
+        y_range=(0, 100),
     ):
         self.name = name
         self.raw = raw
@@ -62,6 +65,10 @@ class SignalOnline:
         self.exists = exists
         self.configured_from_device = True
         self.format = format
+        self.y_range = y_range
+
+        color = color or "#505050"
+        self.color = fn.mkColor(color)
 
     @property
     def origin_uuid(self):
@@ -112,6 +119,28 @@ class SignalOffline:
         self.name = signal.name
         self.unit = signal.unit
         self.format = getattr(signal, "format", "phys")
+
+        if not hasattr(signal, "color"):
+            self.color = fn.mkColor("#505050")
+
+        if not hasattr(signal, "y_range"):
+            self.y_range = (0, 100)
+
+    @property
+    def y_range(self):
+        return self.signal.y_range
+
+    @y_range.setter
+    def y_range(self, value):
+        self.signal.y_range = value
+
+    @property
+    def color(self):
+        return self.signal.color
+
+    @color.setter
+    def color(self, value):
+        self.signal.color = value
 
     def reset(self):
         self.signal = None
@@ -537,12 +566,13 @@ class TableModel(QtCore.QAbstractTableModel):
                 value,
                 ranges=channel_ranges,
                 default_background_color=self.background_color,
-                default_font_color=self.font_color,
+                default_font_color=signal.color,
             )
 
             return new_background_color if new_background_color != self.background_color else None
 
         elif role == QtCore.Qt.ItemDataRole.ForegroundRole:
+
             channel_ranges = self.view.ranges[signal.entry]
             raw_cell = self.backend.get_signal_value(signal, 1)
             scaled_cell = self.backend.get_signal_value(signal, 2)
@@ -563,10 +593,10 @@ class TableModel(QtCore.QAbstractTableModel):
                 value,
                 ranges=channel_ranges,
                 default_background_color=self.background_color,
-                default_font_color=self.font_color,
+                default_font_color=signal.color,
             )
 
-            return new_font_color if new_font_color != self.font_color else None
+            return new_font_color
 
         elif role == QtCore.Qt.ItemDataRole.TextAlignmentRole:
             if col:
@@ -778,12 +808,19 @@ class TableView(QtWidgets.QTableView):
             if not selected_items:
                 return
             else:
+                precision = self.model().float_precision
                 row = list(selected_items)[0]
                 signal = self.backend.signals[row]
 
                 info = {
                     "format": signal.format,
                     "ranges": copy_ranges(self.ranges[signal.entry]),
+                    "type": "channel",
+                    "color": signal.color.name(),
+                    "precision": precision,
+                    "ylink": False,
+                    "individual_axis": False,
+                    "y_range": signal.y_range,
                 }
 
                 for range_info in info["ranges"]:
@@ -816,9 +853,100 @@ class TableView(QtWidgets.QTableView):
                     signal = self.backend.signals[row]
 
                     signal.format = info["format"]
+                    signal.color = fn.mkColor(info["color"])
+                    signal.y_range = info["y_range"]
                     self.ranges[signal.entry] = copy_ranges(info["ranges"])
 
                 self.backend.update()
+
+        elif modifiers == QtCore.Qt.KeyboardModifier.NoModifier and key == QtCore.Qt.Key.Key_C:
+            event.accept()
+
+            selected_items = [index.row() for index in self.selectedIndexes() if index.isValid()]
+
+            if selected_items:
+                signal = self.backend.signals[selected_items[0]]
+                color = signal.color
+
+                color = QtWidgets.QColorDialog.getColor(color, parent=self)
+                if color.isValid():
+                    for row in set(selected_items):
+                        signal = self.backend.signals[row]
+                        signal.color = color
+
+        elif modifiers == QtCore.Qt.KeyboardModifier.ControlModifier and key == QtCore.Qt.Key.Key_N:
+            event.accept()
+            selected_items = []
+
+            for index in self.selectedIndexes():
+                if not index.isValid():
+                    continue
+
+                if (row := index.row()) not in selected_items:
+                    selected_items.append(row)
+
+            if not selected_items:
+                return
+            else:
+                text = "\n".join(self.backend.signals[row].name for row in selected_items)
+
+            QtWidgets.QApplication.instance().clipboard().setText(text)
+
+        elif modifiers == QtCore.Qt.KeyboardModifier.ControlModifier and key == QtCore.Qt.Key.Key_C:
+            event.accept()
+
+            selected_items = []
+
+            for index in self.selectedIndexes():
+                if not index.isValid():
+                    continue
+
+                if (row := index.row()) not in selected_items:
+                    selected_items.append(row)
+
+            data = []
+            numeric_mode = self.backend.numeric.mode
+
+            for row in selected_items:
+                signal = self.backend.signals[row]
+
+                entry = signal.entry if numeric_mode == "online" else signal.signal.entry
+
+                group_index, channel_index = entry
+
+                ranges = copy_ranges(self.ranges[signal.entry])
+
+                for range_info in ranges:
+                    range_info["font_color"] = range_info["font_color"].color().name()
+                    range_info["background_color"] = range_info["background_color"].color().name()
+
+                info = {
+                    "name": signal.name,
+                    "computation": {},
+                    "computed": False,
+                    "group_index": group_index,
+                    "channel_index": channel_index,
+                    "ranges": ranges,
+                    "origin_uuid": str(entry[0]) if numeric_mode == "online" else signal.signal.origin_uuid,
+                    "type": "channel",
+                    "uuid": os.urandom(6).hex(),
+                    "color": signal.color.name(),
+                }
+
+                data.append(info)
+
+            data = substitude_mime_uuids(data, None, force=True)
+            QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data))
+
+        elif modifiers == QtCore.Qt.KeyboardModifier.ControlModifier and key == QtCore.Qt.Key.Key_V:
+            event.accept()
+            try:
+                data = QtWidgets.QApplication.instance().clipboard().text()
+                data = json.loads(data)
+                data = substitude_mime_uuids(data, random_uuid=True)
+                self.add_channels_request.emit(data)
+            except:
+                pass
 
         else:
             super().keyPressEvent(event)
@@ -831,12 +959,19 @@ class TableView(QtWidgets.QTableView):
         else:
             mime_data = QtCore.QMimeData()
 
-        selected_items = [index.row() for index in indexes if index.isValid()]
+        selected_items = []
+
+        for index in self.selectedIndexes():
+            if not index.isValid():
+                continue
+
+            if (row := index.row()) not in selected_items:
+                selected_items.append(row)
 
         data = []
         numeric_mode = self.backend.numeric.mode
 
-        for row in sorted(set(selected_items)):
+        for row in selected_items:
             signal = self.backend.signals[row]
 
             entry = signal.entry if numeric_mode == "online" else signal.signal.entry
@@ -852,13 +987,14 @@ class TableView(QtWidgets.QTableView):
             info = {
                 "name": signal.name,
                 "computation": {},
-                "computed": True,
+                "computed": False,
                 "group_index": group_index,
                 "channel_index": channel_index,
                 "ranges": ranges,
                 "origin_uuid": str(entry[0]) if numeric_mode == "online" else signal.signal.origin_uuid,
                 "type": "channel",
                 "uuid": os.urandom(6).hex(),
+                "color": signal.color.name(),
             }
 
             data.append(info)
@@ -1291,6 +1427,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         else:
             backend = OnlineBackEnd(None, self)
         self.channels = NumericViewer(backend)
+        self.backend = backend
 
         self.channels.dataView.ranges = {}
 
@@ -1388,20 +1525,205 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         action.setChecked(header.isHidden())
         menu.addAction(action)
 
+        menu.addSeparator()
+
+        submenu = QtWidgets.QMenu("Copy")
+        submenu.setIcon(QtGui.QIcon(":/copy.png"))
+        submenu.addAction("Copy names [Ctrl+N]")
+        submenu.addAction("Copy names and values")
+        menu.addMenu(submenu)
+
+        submenu = QtWidgets.QMenu("Tree structure")
+        submenu.setIcon(QtGui.QIcon(":/structure.png"))
+        submenu.addAction("Copy display properties [Ctrl+Shift+C]")
+        submenu.addAction("Paste display properties [Ctrl+Shift+V]")
+        submenu.addAction("Copy channel structure [Ctrl+C]")
+        submenu.addAction("Paste channel structure [Ctrl+V]")
+        menu.addMenu(submenu)
+
+        menu.addSeparator()
+
+        submenu = QtWidgets.QMenu("Edit")
+        submenu.setIcon(QtGui.QIcon(":/edit.png"))
+
+        submenu.addAction("Set color [C]")
+        submenu.addAction("Set random color")
+        submenu.addAction("Set color ranges [Ctrl+R]")
+        menu.addMenu(submenu)
+
+        menu.addSeparator()
+
+        submenu = QtWidgets.QMenu("Display")
+        submenu.addAction("Ascii\t[Ctrl+T]")
+        submenu.addAction("Bin\t[Ctrl+B]")
+        submenu.addAction("Hex\t[Ctrl+H]")
+        submenu.addAction("Physical\t[Ctrl+P]")
+        menu.addMenu(submenu)
+
+        menu.addSeparator()
+        menu.addAction(QtGui.QIcon(":/erase.png"), "Delete [Del]")
+
         action = menu.exec_(self.mapToGlobal(position))
 
         if action is None:
             return
 
-        if action.text() == "Automatic set columns width":
+        action_text = action.text()
+
+        if action_text == "Copy names [Ctrl+N]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_N, QtCore.Qt.KeyboardModifier.ControlModifier
+            )
+            self.keyPressEvent(event)
+
+        elif action_text == "Copy names and values":
+            texts = []
+            precision = self.float_precision.currentIndex() - 1
+
+            t = self.timestamp.value()
+
+            if precision == -1:
+                t = str(t)
+            else:
+                template = f"{{:.{precision}f}}"
+                t = template.format(t)
+
+            selected_items = []
+
+            for index in self.channels.dataView.selectedIndexes():
+                if not index.isValid():
+                    continue
+
+                if (row := index.row()) not in selected_items:
+                    selected_items.append(row)
+
+            model = self.channels.dataView.model()
+
+            for row in selected_items:
+                texts.append(
+                    ", ".join(
+                        [
+                            model.data(model.createIndex(row, HeaderView.NameColumn)),
+                            t,
+                            f"{model.data(model.createIndex(row, HeaderView.RawColumn))}",
+                            f"{model.data(model.createIndex(row, HeaderView.ScaledColumn))}{model.data(model.createIndex(row, HeaderView.UnitColumn))}",
+                        ]
+                    )
+                )
+
+            QtWidgets.QApplication.instance().clipboard().setText("\n".join(texts))
+
+        elif action_text == "Copy channel structure [Ctrl+C]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress,
+                QtCore.Qt.Key.Key_C,
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+            )
+            self.keyPressEvent(event)
+
+        elif action_text == "Paste channel structure [Ctrl+V]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress,
+                QtCore.Qt.Key.Key_V,
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+            )
+            self.keyPressEvent(event)
+
+        elif action_text == "Copy display properties [Ctrl+Shift+C]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress,
+                QtCore.Qt.Key.Key_C,
+                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+            )
+            self.keyPressEvent(event)
+
+        elif action_text == "Paste display properties [Ctrl+Shift+V]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress,
+                QtCore.Qt.Key.Key_V,
+                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+            )
+            self.keyPressEvent(event)
+
+        elif action_text == "Copy display properties [Ctrl+Shift+C]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress,
+                QtCore.Qt.Key.Key_C,
+                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+            )
+            self.keyPressEvent(event)
+
+        elif action_text == "Paste display properties [Ctrl+Shift+V]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress,
+                QtCore.Qt.Key.Key_V,
+                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+            )
+            self.keyPressEvent(event)
+
+        elif action_text == "Automatic set columns width":
             header.numeric_viewer.auto_size_header()
-        elif action.text() == "Hide header and controls":
+        elif action_text == "Hide header and controls":
             if action.isChecked():
                 header.hide()
                 self.controls.hide()
             else:
                 header.show()
                 self.controls.show()
+
+        elif action_text == "Set color [C]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress,
+                QtCore.Qt.Key.Key_C,
+                QtCore.Qt.KeyboardModifier.NoModifier,
+            )
+            self.keyPressEvent(event)
+
+        elif action_text == "Set color ranges [Ctrl+R]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress,
+                QtCore.Qt.Key.Key_R,
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+            )
+            self.keyPressEvent(event)
+
+        elif action_text == "Set random color":
+            selected_items = {index.row() for index in self.channels.dataView.selectedIndexes() if index.isValid()}
+
+            for row in selected_items:
+                while True:
+                    rgb = os.urandom(3)
+                    if 100 <= sum(rgb) <= 650:
+                        break
+
+                self.backend.signals[row].color = fn.mkColor(f"#{rgb.hex()}")
+
+        elif action_text == "Ascii\t[Ctrl+T]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_T, QtCore.Qt.KeyboardModifier.ControlModifier
+            )
+            self.keyPressEvent(event)
+        elif action_text == "Bin\t[Ctrl+B]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_B, QtCore.Qt.KeyboardModifier.ControlModifier
+            )
+            self.keyPressEvent(event)
+        elif action_text == "Hex\t[Ctrl+H]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_H, QtCore.Qt.KeyboardModifier.ControlModifier
+            )
+            self.keyPressEvent(event)
+        elif action_text == "Physical\t[Ctrl+P]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_P, QtCore.Qt.KeyboardModifier.ControlModifier
+            )
+            self.keyPressEvent(event)
+
+        elif action_text == "Delete [Del]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Delete, QtCore.Qt.KeyboardModifier.NoModifier
+            )
+            self.keyPressEvent(event)
 
     def add_new_channels(self, channels, mime_data=None):
         if self.mode == "online":
@@ -1417,6 +1739,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                             entry=entry,
                             unit=sig.unit,
                             format=getattr(sig, "format", "phys"),
+                            color=getattr(sig, "color", "#505050"),
                         )
                     )
 
@@ -1486,6 +1809,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     "name": signal.name,
                     "ranges": ranges,
                     "format": signal.format,
+                    "color": signal.color.name(),
                 }
             )
 

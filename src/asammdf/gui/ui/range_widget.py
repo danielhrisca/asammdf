@@ -31,7 +31,9 @@ class Ui_RangeWidget(object):
         RangeWidget.setMinimumSize(QSize(0, 41))
         RangeWidget.setMaximumSize(QSize(16777215, 41))
         self.horizontalLayout = QHBoxLayout(RangeWidget)
+        self.horizontalLayout.setSpacing(1)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalLayout.setContentsMargins(1, 1, 1, 1)
         self.label = QLabel(RangeWidget)
         self.label.setObjectName(u"label")
 
@@ -56,7 +58,7 @@ class Ui_RangeWidget(object):
 
         self.name = QLabel(RangeWidget)
         self.name.setObjectName(u"name")
-        self.name.setAlignment(Qt.AlignCenter)
+        self.name.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.horizontalLayout.addWidget(self.name)
 

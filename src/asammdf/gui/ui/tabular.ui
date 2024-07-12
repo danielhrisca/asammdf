@@ -14,15 +14,33 @@
    <string>Form</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,0">
+   <property name="spacing">
+  <number>1</number>
+</property>
+   <property name="leftMargin">
+  <number>1</number>
+</property>
+   <property name="topMargin">
+  <number>1</number>
+</property>
+   <property name="rightMargin">
+  <number>1</number>
+</property>
+   <property name="bottomMargin">
+  <number>1</number>
+</property>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <property name="spacing">
-      <number>0</number>
-     </property>
+  <number>1</number>
+</property>
     </layout>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <property name="spacing">
+  <number>1</number>
+</property>
      <item>
       <widget class="QComboBox" name="format_selection">
        <item>
@@ -75,7 +93,7 @@
      <item>
       <spacer name="horizontalSpacer_3">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
@@ -104,6 +122,21 @@
       <string>Filters</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3" columnstretch="0,0,0,1">
+      <property name="leftMargin">
+  <number>1</number>
+</property>
+      <property name="topMargin">
+  <number>1</number>
+</property>
+      <property name="rightMargin">
+  <number>1</number>
+</property>
+      <property name="bottomMargin">
+  <number>1</number>
+</property>
+      <property name="spacing">
+  <number>1</number>
+</property>
       <item row="0" column="0">
        <widget class="QPushButton" name="add_filter_btn">
         <property name="text">
@@ -118,7 +151,7 @@
       <item row="0" column="1">
        <spacer name="horizontalSpacer">
         <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+         <enum>Qt::Orientation::Horizontal</enum>
         </property>
         <property name="sizeHint" stdset="0">
          <size>
@@ -142,7 +175,7 @@
       <item row="0" column="3">
        <spacer name="horizontalSpacer_2">
         <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+         <enum>Qt::Orientation::Horizontal</enum>
         </property>
         <property name="sizeHint" stdset="0">
          <size>
@@ -181,20 +214,20 @@
         </property>
         <layout class="QGridLayout" name="gridLayout">
          <property name="leftMargin">
-          <number>0</number>
-         </property>
+  <number>1</number>
+</property>
          <property name="topMargin">
-          <number>0</number>
-         </property>
+  <number>1</number>
+</property>
          <property name="rightMargin">
-          <number>0</number>
-         </property>
+  <number>1</number>
+</property>
          <property name="bottomMargin">
-          <number>0</number>
-         </property>
+  <number>1</number>
+</property>
          <property name="spacing">
-          <number>0</number>
-         </property>
+  <number>1</number>
+</property>
          <item row="0" column="0">
           <widget class="QTextEdit" name="query">
            <property name="sizePolicy">

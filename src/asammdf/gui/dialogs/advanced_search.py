@@ -3,6 +3,7 @@ import re
 from traceback import format_exc
 
 from natsort import natsorted
+import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...blocks.utils import extract_xml_comment
@@ -74,6 +75,13 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.cancel_pattern_btn.clicked.connect(self._cancel_pattern)
         self.define_ranges_btn.clicked.connect(self._define_ranges)
 
+        self.y_range_min.setMinimum(-np.inf)
+        self.y_range_min.setMaximum(np.inf)
+        self.y_range_min.setValue(0)
+        self.y_range_max.setMinimum(-np.inf)
+        self.y_range_max.setMaximum(np.inf)
+        self.y_range_max.setValue(100)
+
         self.search_box.setFocus()
 
         self._return_names = return_names
@@ -113,6 +121,10 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             self.ranges = pattern["ranges"]
             self.integer_format.setCurrentText(pattern.get("integer_format", "phys"))
 
+            y_range = sorted(pattern.get("y_range", (0, 100)))
+            self.y_range_min.setValue(y_range[0])
+            self.y_range_max.setValue(y_range[1])
+
         self.setWindowTitle(window_title)
 
         self.matches.setColumnWidth(self.NameColumn, 450)
@@ -130,6 +142,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.filter_type.currentIndexChanged.connect(self.update_pattern_matches)
         self.filter_value.valueChanged.connect(self.update_pattern_matches)
         self.raw.stateChanged.connect(self.update_pattern_matches)
+        self.show_alias_btn.clicked.connect(self.show_overlapping_alias)
         self.update_pattern_matches()
 
         self.showMaximized()
@@ -355,6 +368,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             "ranges": self.ranges,
             "name": self.name.text().strip(),
             "integer_format": self.integer_format.currentText(),
+            "y_range": sorted([self.y_range_min.value(), self.y_range_max.value()]),
         }
 
         if not self.result["pattern"]:
@@ -421,6 +435,45 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             self.selection.setColumnWidth(index, new_size)
         if self.matches.columnWidth(index) != new_size:
             self.matches.setColumnWidth(index, new_size)
+
+    def show_overlapping_alias(
+        self,
+    ):
+        items = self.matches.selectedItems() or self.selection.selectedItems()
+        if not items:
+            return
+        else:
+            item = items[0]
+            group_index, index = int(item.text(self.GroupColumn)), int(item.text(self.ChannelColumn))
+
+        try:
+            channel = self.mdf.get_channel_metadata(group=group_index, index=index)
+            info = (channel.data_type, channel.byte_offset, channel.bit_count)
+            position = (group_index, index)
+            alias = {}
+            for gp_index, gp in enumerate(self.mdf.groups):
+                for ch_index, ch in enumerate(gp.channels):
+                    if (gp_index, ch_index) != position and (ch.data_type, ch.byte_offset, ch.bit_count) == info:
+                        alias[ch.name] = (gp_index, ch_index)
+
+            if alias:
+                alias_text = "\n".join(
+                    f"{name} - group {gp_index} index {ch_index}" for name, (gp_index, ch_index) in alias.items()
+                )
+                MessageBox.information(
+                    self,
+                    f"{channel.name} - other overlapping alias",
+                    f"{channel.name} has the following overlapping alias channels:\n\n{alias_text}",
+                )
+            else:
+                MessageBox.information(
+                    self,
+                    f"{channel.name} - no other overlapping alias",
+                    f"No other overlapping alias channels found for {channel.name}",
+                )
+
+        except:
+            print(format_exc())
 
     def update_pattern_matches(self, *args):
         from ..widgets.mdi_area import extract_signals_using_pattern

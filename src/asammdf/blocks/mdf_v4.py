@@ -5,7 +5,7 @@ ASAM MDF version 4 file format module
 from __future__ import annotations
 
 import bisect
-from collections import defaultdict
+from collections import defaultdict, deque
 from collections.abc import Iterator, Sequence
 from copy import deepcopy
 from datetime import datetime
@@ -71,7 +71,7 @@ from numpy.typing import NDArray
 from pandas import DataFrame
 
 from .. import tool
-from ..signal import Signal
+from ..signal import InvalidationArray, Signal
 from ..types import (
     BusType,
     ChannelsType,
@@ -170,6 +170,7 @@ from .cutils import (
     extract,
     get_channel_raw_bytes,
     get_vlsd_max_sample_size,
+    reverse_transposition,
     sort_data_block,
 )
 
@@ -300,7 +301,7 @@ class MDF4(MDF_Common):
 
         self._closed = False
 
-        self.temporary_folder = kwargs.get("temporary_folder", None)
+        self.temporary_folder = kwargs.get("temporary_folder", get_global_option("temporary_folder"))
 
         if channels is None:
             self.load_filter = set()
@@ -365,6 +366,8 @@ class MDF4(MDF_Common):
 
                 if version >= "4.10" and flags:
                     tmpdir = Path(gettempdir())
+                    if self.temporary_folder:
+                        tmpdir = Path(self.temporary_folder)
                     self.name = tmpdir / f"{os.urandom(6).hex()}_{Path(name).name}"
                     shutil.copy(name, self.name)
                     self._file = open(self.name, "rb+")
@@ -598,6 +601,7 @@ class MDF4(MDF_Common):
             total_size = 0
             inval_total_size = 0
             block_type = b"##DT"
+            record_size = 0
 
             for new_group in new_groups:
                 channel_group = new_group.channel_group
@@ -1249,9 +1253,8 @@ class MDF4(MDF_Common):
                             cols = param
                             lines = original_size // cols
 
-                            nd = frombuffer(new_data[: lines * cols], dtype=uint8)
-                            nd = nd.reshape((cols, lines))
-                            new_data = nd.T.ravel().tobytes() + new_data[lines * cols :]
+                            new_data = reverse_transposition(new_data, lines, cols)
+
                         elif block_type == v4c.DZ_BLOCK_LZ:
                             new_data = lz_decompress(new_data)
 
@@ -1292,9 +1295,8 @@ class MDF4(MDF_Common):
                             cols = param
                             lines = original_size // cols
 
-                            nd = frombuffer(new_data[: lines * cols], dtype=uint8)
-                            nd = nd.reshape((cols, lines))
-                            new_data = nd.T.ravel().tobytes() + new_data[lines * cols :]
+                            new_data = reverse_transposition(new_data, lines, cols)
+
                         elif block_type == v4c.DZ_BLOCK_LZ:
                             new_data = lz_decompress(new_data)
 
@@ -1334,7 +1336,7 @@ class MDF4(MDF_Common):
         invalidation_offset = 0
         has_yielded = False
         _count = 0
-        data_group = group.data_group
+
         data_blocks_info_generator = group.data_blocks_info_generator
         channel_group = group.channel_group
 
@@ -1478,9 +1480,8 @@ class MDF4(MDF_Common):
                     cols = param
                     lines = original_size // cols
 
-                    nd = frombuffer(new_data[: lines * cols], dtype=uint8)
-                    nd = nd.reshape((cols, lines))
-                    new_data = nd.T.ravel().tobytes() + new_data[lines * cols :]
+                    new_data = reverse_transposition(new_data, lines, cols)
+
                 elif block_type == v4c.DZ_BLOCK_LZ:
                     new_data = lz_decompress(new_data)
 
@@ -2573,14 +2574,14 @@ class MDF4(MDF_Common):
             self._invalidation_cache[(group_index, offset, _count)] = invalidation
 
         ch_invalidation_pos = channel.pos_invalidation_bit
-        pos_byte, pos_offset = ch_invalidation_pos // 8, ch_invalidation_pos % 8
+        pos_byte, pos_offset = divmod(ch_invalidation_pos, 8)
 
         mask = 1 << pos_offset
 
         invalidation_bits = invalidation[:, pos_byte] & mask
-        invalidation_bits = invalidation_bits.astype(bool)
+        invalidation_bits = invalidation_bits.view(bool)
 
-        return invalidation_bits
+        return InvalidationArray(invalidation_bits, (group_index, ch_invalidation_pos))
 
     def append(
         self,
@@ -2692,7 +2693,9 @@ class MDF4(MDF_Common):
 
                     if different:
                         times = [s.timestamps for s in signals]
-                        t = unique(concatenate(times)).astype(float64)
+                        t = unique(concatenate(times))
+                        if t.dtype != float64:
+                            t = t.astype(float64)
                         signals = [
                             s.interp(
                                 t,
@@ -2728,17 +2731,14 @@ class MDF4(MDF_Common):
         gp.channel_group.acq_source = source_block
         gp.channel_group.comment = comment
         gp.record = record = []
+        inval_bits = {InvalidationArray.ORIGIN_UNKNOWN: []}
 
         if any(sig.invalidation_bits is not None for sig in signals):
             invalidation_bytes_nr = 1
             gp.channel_group.invalidation_bytes_nr = invalidation_bytes_nr
 
-            inval_bits = []
-
         else:
             invalidation_bytes_nr = 0
-            inval_bits = []
-        inval_cntr = 0
 
         self.groups.append(gp)
 
@@ -2848,7 +2848,9 @@ class MDF4(MDF_Common):
                 # time channel doesn't have channel dependencies
                 gp_dep.append(None)
 
-                fields.append((t.tobytes(), t.itemsize))
+                if not t.flags["C_CONTIGUOUS"]:
+                    t = np.ascontiguousarray(t)
+                fields.append((t, t.itemsize))
 
                 offset += t_size // 8
                 ch_cntr += 1
@@ -2934,12 +2936,13 @@ class MDF4(MDF_Common):
                         "flags": 0,
                     }
 
-                    if invalidation_bytes_nr:
-                        if signal.invalidation_bits is not None:
-                            inval_bits.append(signal.invalidation_bits)
-                            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                            kwargs["pos_invalidation_bit"] = inval_cntr
-                            inval_cntr += 1
+                    if invalidation_bytes_nr and signal.invalidation_bits is not None:
+                        if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                            inval_bits[origin].append(signal.invalidation_bits)
+                        else:
+                            inval_bits[origin] = signal.invalidation_bits
+                        kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["pos_invalidation_bit"] = origin
 
                     ch = Channel(**kwargs)
                     ch.name = name
@@ -2986,7 +2989,9 @@ class MDF4(MDF_Common):
                     for _name in ch.display_names:
                         self.channels_db.add(_name, entry)
 
-                    fields.append((offsets.tobytes(), 8))
+                    if not offsets.flags["C_CONTIGUOUS"]:
+                        offsets = np.ascontiguousarray(offsets)
+                    fields.append((offsets, 8))
 
                     ch_cntr += 1
 
@@ -3043,10 +3048,12 @@ class MDF4(MDF_Common):
                         kwargs["attachment_addr"] = 0
 
                     if invalidation_bytes_nr and signal.invalidation_bits is not None:
-                        inval_bits.append(signal.invalidation_bits)
+                        if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                            inval_bits[origin].append(signal.invalidation_bits)
+                        else:
+                            inval_bits[origin] = signal.invalidation_bits
                         kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
-                        kwargs["pos_invalidation_bit"] = inval_cntr
-                        inval_cntr += 1
+                        kwargs["pos_invalidation_bit"] = origin
 
                     ch = Channel(**kwargs)
                     ch.name = name
@@ -3092,7 +3099,9 @@ class MDF4(MDF_Common):
 
                     offset += byte_size
 
-                    fields.append((samples.tobytes(), byte_size))
+                    if not samples.flags["C_CONTIGUOUS"]:
+                        samples = np.ascontiguousarray(samples)
+                    fields.append((samples, byte_size))
 
                     gp_sdata.append(None)
                     entry = (dg_cntr, ch_cntr)
@@ -3171,6 +3180,8 @@ class MDF4(MDF_Common):
 
                     vals = signal.samples.tobytes()
 
+                    if not vals.flags["C_CONTIGUOUS"]:
+                        vals = np.ascontiguousarray(vals)
                     fields.append((vals, 6))
                     byte_size = 6
                     s_type = v4c.DATA_TYPE_CANOPEN_TIME
@@ -3196,6 +3207,8 @@ class MDF4(MDF_Common):
                             vals.append(signal.samples[field])
                     vals = fromarrays(vals).tobytes()
 
+                    if not vals.flags["C_CONTIGUOUS"]:
+                        vals = np.ascontiguousarray(vals)
                     fields.append((vals, 7))
                     byte_size = 7
                     s_type = v4c.DATA_TYPE_CANOPEN_DATE
@@ -3216,10 +3229,12 @@ class MDF4(MDF_Common):
                     "flags": 0,
                 }
                 if invalidation_bytes_nr and signal.invalidation_bits is not None:
-                    inval_bits.append(signal.invalidation_bits)
-                    kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                    kwargs["pos_invalidation_bit"] = inval_cntr
-                    inval_cntr += 1
+                    if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                        inval_bits[origin].append(signal.invalidation_bits)
+                    else:
+                        inval_bits[origin] = signal.invalidation_bits
+                    kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["pos_invalidation_bit"] = origin
 
                 ch = Channel(**kwargs)
                 ch.name = name
@@ -3263,7 +3278,6 @@ class MDF4(MDF_Common):
                     ch_cntr,
                     struct_self,
                     new_fields,
-                    inval_cntr,
                 ) = self._append_structure_composition(
                     gp,
                     signal,
@@ -3273,7 +3287,6 @@ class MDF4(MDF_Common):
                     defined_texts,
                     invalidation_bytes_nr,
                     inval_bits,
-                    inval_cntr,
                 )
                 fields.extend(new_fields)
 
@@ -3345,12 +3358,13 @@ class MDF4(MDF_Common):
                     "flags": 0,
                 }
 
-                if invalidation_bytes_nr:
-                    if signal.invalidation_bits is not None:
-                        inval_bits.append(signal.invalidation_bits)
-                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                        kwargs["pos_invalidation_bit"] = inval_cntr
-                        inval_cntr += 1
+                if invalidation_bytes_nr and signal.invalidation_bits is not None:
+                    if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                        inval_bits[origin].append(signal.invalidation_bits)
+                    else:
+                        inval_bits[origin] = signal.invalidation_bits
+                    kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["pos_invalidation_bit"] = origin
 
                 ch = Channel(**kwargs)
                 ch.name = name
@@ -3390,7 +3404,9 @@ class MDF4(MDF_Common):
                     size *= dim
                 offset += size
 
-                fields.append((samples.tobytes(), size))
+                if not samples.flags["C_CONTIGUOUS"]:
+                    samples = np.ascontiguousarray(samples)
+                fields.append((samples, size))
 
                 gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
@@ -3427,12 +3443,13 @@ class MDF4(MDF_Common):
                         "flags": 0,
                     }
 
-                    if invalidation_bytes_nr:
-                        if signal.invalidation_bits is not None:
-                            inval_bits.append(signal.invalidation_bits)
-                            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                            kwargs["pos_invalidation_bit"] = inval_cntr
-                            inval_cntr += 1
+                    if invalidation_bytes_nr and signal.invalidation_bits is not None:
+                        if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                            inval_bits[origin].append(signal.invalidation_bits)
+                        else:
+                            inval_bits[origin] = signal.invalidation_bits
+                        kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["pos_invalidation_bit"] = origin
 
                     ch = Channel(**kwargs)
                     ch.name = name
@@ -3458,7 +3475,10 @@ class MDF4(MDF_Common):
                         byte_size *= dim
                     offset += byte_size
 
-                    fields.append((samples.tobytes(), byte_size))
+                    if not samples.flags["C_CONTIGUOUS"]:
+                        samples = np.ascontiguousarray(samples)
+
+                    fields.append((samples, byte_size))
 
                     gp_sdata.append(None)
                     self.channels_db.add(name, entry)
@@ -3580,10 +3600,12 @@ class MDF4(MDF_Common):
 
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
-                        inval_bits.append(signal.invalidation_bits)
-                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                        kwargs["pos_invalidation_bit"] = inval_cntr
-                        inval_cntr += 1
+                        if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                            inval_bits[origin].append(signal.invalidation_bits)
+                        else:
+                            inval_bits[origin] = signal.invalidation_bits
+                        kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["pos_invalidation_bit"] = origin
 
                 ch = Channel(**kwargs)
                 ch.name = name
@@ -3630,7 +3652,10 @@ class MDF4(MDF_Common):
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
 
-                fields.append((offsets.tobytes(), 8))
+                if not offsets.flags["C_CONTIGUOUS"]:
+                    offsets = np.ascontiguousarray(offsets)
+
+                fields.append((offsets, 8))
 
                 ch_cntr += 1
 
@@ -3638,6 +3663,13 @@ class MDF4(MDF_Common):
                 gp_dep.append(None)
 
         if invalidation_bytes_nr:
+            unknown_origin = inval_bits.pop(InvalidationArray.ORIGIN_UNKNOWN)
+
+            _pos_map = {key: idx for idx, key in enumerate(inval_bits)}
+
+            _unknown_pos_map = deque(list(range(len(inval_bits), len(inval_bits) + len(unknown_origin))))
+
+            inval_bits = list(inval_bits.values()) + unknown_origin
             invalidation_bytes_nr = len(inval_bits)
 
             for _ in range(8 - invalidation_bytes_nr % 8):
@@ -3648,10 +3680,17 @@ class MDF4(MDF_Common):
 
             gp.channel_group.invalidation_bytes_nr = invalidation_bytes_nr
 
-            inval_bits = np.fliplr(np.packbits(array(inval_bits).T).reshape((cycles_nr, invalidation_bytes_nr)))
+            inval_bits = np.fliplr(np.packbits(array(inval_bits).T).reshape((cycles_nr, invalidation_bytes_nr))).ravel()
 
             if self.version < "4.20":
-                fields.append((inval_bits.tobytes(), invalidation_bytes_nr))
+                fields.append((inval_bits, invalidation_bytes_nr))
+
+            for ch in gp.channels:
+                if ch.flags & v4c.FLAG_CN_INVALIDATION_PRESENT:
+                    if (origin := ch.pos_invalidation_bit) == InvalidationArray.ORIGIN_UNKNOWN:
+                        ch.pos_invalidation_bit = _unknown_pos_map.popleft()
+                    else:
+                        ch.pos_invalidation_bit = _pos_map[origin]
 
         gp.channel_group.cycles_nr = cycles_nr
         gp.channel_group.samples_byte_nr = offset
@@ -4239,6 +4278,9 @@ class MDF4(MDF_Common):
 
                 field_name = field_names.get_unique_name(name)
 
+                if not samples.flags["C_CONTIGUOUS"]:
+                    samples = np.ascontiguousarray(samples)
+
                 fields.append(samples)
                 dtype_pair = field_name, samples.dtype, shape
                 types.append(dtype_pair)
@@ -4314,6 +4356,9 @@ class MDF4(MDF_Common):
 
                     samples = signal.samples[name]
                     shape = samples.shape[1:]
+
+                    if not samples.flags["C_CONTIGUOUS"]:
+                        samples = np.ascontiguousarray(samples)
                     fields.append(samples)
                     types.append((field_name, samples.dtype, shape))
 
@@ -4863,7 +4908,6 @@ class MDF4(MDF_Common):
         defined_texts: dict[str, int],
         invalidation_bytes_nr: int,
         inval_bits: list[NDArray[Any]],
-        inval_cntr: int,
     ) -> tuple[
         int,
         int,
@@ -4871,7 +4915,6 @@ class MDF4(MDF_Common):
         tuple[int, int],
         list[NDArray[Any]],
         list[tuple[str, dtype[Any], tuple[int, ...]]],
-        int,
     ]:
         si_map = self._si_map
 
@@ -4931,10 +4974,12 @@ class MDF4(MDF_Common):
             flags_ = 0
 
         if invalidation_bytes_nr and signal.invalidation_bits is not None:
-            inval_bits.append(signal.invalidation_bits)
-            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-            kwargs["pos_invalidation_bit"] = inval_cntr
-            inval_cntr += 1
+            if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                inval_bits[origin].append(signal.invalidation_bits)
+            else:
+                inval_bits[origin] = signal.invalidation_bits
+            kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+            kwargs["pos_invalidation_bit"] = origin
 
         ch = Channel(**kwargs)
         ch.name = name
@@ -5030,10 +5075,12 @@ class MDF4(MDF_Common):
 
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
-                        inval_bits.append(signal.invalidation_bits)
-                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                        kwargs["pos_invalidation_bit"] = inval_cntr
-                        inval_cntr += 1
+                        if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                            inval_bits[origin].append(signal.invalidation_bits)
+                        else:
+                            inval_bits[origin] = signal.invalidation_bits
+                        kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["pos_invalidation_bit"] = origin
 
                 ch = Channel(**kwargs)
                 ch.name = name
@@ -5054,7 +5101,10 @@ class MDF4(MDF_Common):
 
                 offset += byte_size
 
-                fields.append((samples.tobytes(), byte_size))
+                if not samples.flags["C_CONTIGUOUS"]:
+                    samples = np.ascontiguousarray(samples)
+
+                fields.append((samples, byte_size))
 
                 gp_sdata.append(None)
                 self.channels_db.add(name, entry)
@@ -5143,10 +5193,12 @@ class MDF4(MDF_Common):
 
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
-                        inval_bits.append(signal.invalidation_bits)
-                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                        kwargs["pos_invalidation_bit"] = inval_cntr
-                        inval_cntr += 1
+                        if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                            inval_bits[origin].append(signal.invalidation_bits)
+                        else:
+                            inval_bits[origin] = signal.invalidation_bits
+                        kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["pos_invalidation_bit"] = origin
 
                 ch = Channel(**kwargs)
                 ch.name = name
@@ -5177,7 +5229,10 @@ class MDF4(MDF_Common):
                     size *= dim
                 offset += size
 
-                fields.append((samples.tobytes(), size))
+                if not samples.flags["C_CONTIGUOUS"]:
+                    samples = np.ascontiguousarray(samples)
+
+                fields.append((samples, size))
 
                 gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
@@ -5225,10 +5280,12 @@ class MDF4(MDF_Common):
 
                     if invalidation_bytes_nr:
                         if signal.invalidation_bits is not None:
-                            inval_bits.append(signal.invalidation_bits)
-                            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                            kwargs["pos_invalidation_bit"] = inval_cntr
-                            inval_cntr += 1
+                            if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                                inval_bits[origin].append(signal.invalidation_bits)
+                            else:
+                                inval_bits[origin] = signal.invalidation_bits
+                            kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                            kwargs["pos_invalidation_bit"] = origin
 
                     ch = Channel(**kwargs)
                     ch.name = name
@@ -5245,7 +5302,10 @@ class MDF4(MDF_Common):
                         byte_size *= dim
                     offset += byte_size
 
-                    fields.append((samples.tobytes(), byte_size))
+                    if not samples.flags["C_CONTIGUOUS"]:
+                        samples = np.ascontiguousarray(samples)
+
+                    fields.append((samples, byte_size))
 
                     gp_sdata.append(None)
                     self.channels_db.add(name, entry)
@@ -5265,7 +5325,6 @@ class MDF4(MDF_Common):
                     ch_cntr,
                     sub_structure,
                     new_fields,
-                    inval_cntr,
                 ) = self._append_structure_composition(
                     grp,
                     struct,
@@ -5275,12 +5334,11 @@ class MDF4(MDF_Common):
                     defined_texts,
                     invalidation_bytes_nr,
                     inval_bits,
-                    inval_cntr,
                 )
                 dep_list.append(sub_structure)
                 fields.extend(new_fields)
 
-        return offset, dg_cntr, ch_cntr, struct_self, fields, inval_cntr
+        return offset, dg_cntr, ch_cntr, struct_self, fields
 
     def _append_structure_composition_column_oriented(
         self,
@@ -5742,7 +5800,7 @@ class MDF4(MDF_Common):
         stream = self._tempfile
 
         fields = []
-        inval_bits = []
+        inval_bits = {InvalidationArray.ORIGIN_UNKNOWN: []}
 
         added_cycles = len(signals[0][0])
 
@@ -5753,18 +5811,25 @@ class MDF4(MDF_Common):
                 s_type, s_size = fmt_to_datatype_v4(signal.dtype, signal.shape)
                 byte_size = s_size // 8 or 1
 
-                fields.append((signal.tobytes(), byte_size))
+                if not signal.flags["C_CONTIGUOUS"]:
+                    signal = np.ascontiguousarray(signal)
+
+                fields.append((signal, byte_size))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
-                    inval_bits.append(invalidation_bits)
+                    if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                        inval_bits[origin].append(invalidation_bits)
+                    else:
+                        inval_bits[origin] = invalidation_bits
 
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
                 names = signal.dtype.names
 
                 if names == v4c.CANOPEN_TIME_FIELDS:
-                    vals = signal.tobytes()
+                    if not signal.flags["C_CONTIGUOUS"]:
+                        signal = np.ascontiguousarray(signal)
 
-                    fields.append((vals, 6))
+                    fields.append((signal, 6))
 
                 else:
                     vals = []
@@ -5775,13 +5840,22 @@ class MDF4(MDF_Common):
                     fields.append((vals, 7))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
-                    inval_bits.append(invalidation_bits)
+                    if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                        inval_bits[origin].append(invalidation_bits)
+                    else:
+                        inval_bits[origin] = invalidation_bits
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 if invalidation_bytes_nr and invalidation_bits is not None:
-                    inval_bits.append(invalidation_bits)
+                    if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                        inval_bits[origin].append(invalidation_bits)
+                    else:
+                        inval_bits[origin] = invalidation_bits
 
-                fields.append((signal.tobytes(), signal.dtype.itemsize))
+                if not signal.flags["C_CONTIGUOUS"]:
+                    signal = np.ascontiguousarray(signal)
+
+                fields.append((signal, signal.dtype.itemsize))
 
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 names = signal.dtype.names
@@ -5794,10 +5868,16 @@ class MDF4(MDF_Common):
                 for dim in shape:
                     size *= dim
 
-                fields.append((samples.tobytes(), size))
+                if not samples.flags["C_CONTIGUOUS"]:
+                    samples = np.ascontiguousarray(samples)
+
+                fields.append((samples, size))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
-                    inval_bits.append(invalidation_bits)
+                    if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                        inval_bits[origin].append(invalidation_bits)
+                    else:
+                        inval_bits[origin] = invalidation_bits
 
                 for name in names[1:]:
                     samples = signal[name]
@@ -5807,10 +5887,16 @@ class MDF4(MDF_Common):
                     for dim in shape:
                         size *= dim
 
-                    fields.append((samples.tobytes(), size))
+                    if not samples.flags["C_CONTIGUOUS"]:
+                        samples = np.ascontiguousarray(samples)
+
+                    fields.append((samples, size))
 
                     if invalidation_bytes_nr and invalidation_bits is not None:
-                        inval_bits.append(invalidation_bits)
+                        if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                            inval_bits[origin].append(invalidation_bits)
+                        else:
+                            inval_bits[origin] = invalidation_bits
 
             else:
                 if self.compact_vlsd:
@@ -5852,7 +5938,9 @@ class MDF4(MDF_Common):
                         stream.write(b"".join(data))
 
                     offsets += cur_offset
-                    fields.append((offsets.tobytes(), 8))
+                    if not offsets.flags["C_CONTIGUOUS"]:
+                        offsets = np.ascontiguousarray(offsets)
+                    fields.append((offsets, 8))
 
                 else:
                     cur_offset = sum(blk.original_size for blk in gp.get_signal_data_blocks(i))
@@ -5879,28 +5967,39 @@ class MDF4(MDF_Common):
                         values.tofile(stream)
 
                     offsets += cur_offset
-                    fields.append((offsets.tobytes(), 8))
+                    if not offsets.flags["C_CONTIGUOUS"]:
+                        offsets = np.ascontiguousarray(offsets)
+                    fields.append((offsets, 8))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
-                    inval_bits.append(invalidation_bits)
+                    if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                        inval_bits[origin].append(invalidation_bits)
+                    else:
+                        inval_bits[origin] = invalidation_bits
 
         if invalidation_bytes_nr:
-            invalidation_bytes_nr = len(inval_bits)
+            unknown_origin = inval_bits.pop(InvalidationArray.ORIGIN_UNKNOWN)
+
+            _pos_map = {key: idx for idx, key in enumerate(inval_bits)}
+
+            _unknown_pos_map = deque(list(range(len(inval_bits), len(inval_bits) + len(unknown_origin))))
+
+            inval_bits = list(inval_bits.values()) + unknown_origin
             cycles_nr = len(inval_bits[0])
+            invalidation_bytes_nr = len(inval_bits)
 
             for _ in range(8 - invalidation_bytes_nr % 8):
                 inval_bits.append(zeros(cycles_nr, dtype=bool))
 
             inval_bits.reverse()
-
             invalidation_bytes_nr = len(inval_bits) // 8
 
             gp.channel_group.invalidation_bytes_nr = invalidation_bytes_nr
 
-            inval_bits = np.fliplr(np.packbits(array(inval_bits).T).reshape((cycles_nr, invalidation_bytes_nr)))
+            inval_bits = np.fliplr(np.packbits(array(inval_bits).T).reshape((cycles_nr, invalidation_bytes_nr))).ravel()
 
             if self.version < "4.20":
-                fields.append((inval_bits.tobytes(), invalidation_bytes_nr))
+                fields.append((inval_bits, invalidation_bytes_nr))
 
         samples = data_block_from_arrays(fields, added_cycles)
         size = len(samples)
@@ -8113,7 +8212,7 @@ class MDF4(MDF_Common):
             count = self._read_fragment_size // record_size or 1
         else:
             if version < "4.20":
-                count = 16 * 1024 * 1024 // record_size or 1
+                count = 64 * 1024 * 1024 // record_size or 1
             else:
                 count = 128 * 1024 * 1024 // record_size or 1
 
@@ -8222,6 +8321,8 @@ class MDF4(MDF_Common):
             idx += 1
             yield signals
 
+        grp.read_split_count = 0
+
     def get_master(
         self,
         index: int,
@@ -8299,8 +8400,8 @@ class MDF4(MDF_Common):
                 t += offset
             else:
                 t = array([], dtype=float64)
-            virtual_conv = {"a": 1, "b": 0}
             metadata = ("timestamps", v4c.SYNC_TYPE_TIME)
+
         else:
             time_ch = group.channels[time_ch_nr]
             time_conv = time_ch.conversion
@@ -8309,20 +8410,15 @@ class MDF4(MDF_Common):
             metadata = (time_name, time_ch.sync_type)
 
             if time_ch.channel_type == v4c.CHANNEL_TYPE_VIRTUAL_MASTER:
-                t = arange(cycles_nr, dtype=float64)
-                t += offset
-                t = time_conv.convert(t)
 
                 if record_count is None:
-                    t = t[record_offset:]
+                    t = arange(record_offset, cycles_nr, 1, dtype=float64)
                 else:
-                    t = t[record_offset : record_offset + record_count]
+                    t = arange(record_offset, record_offset + record_count, 1, dtype=float64)
 
-                virtual_conv = time_conv
+                t = time_conv.convert(t)
 
             else:
-                virtual_conv = None
-
                 # check if the channel group contains just the master channel
                 # and that there are no padding bytes
                 if len(group.channels) == 1 and time_ch.dtype_fmt.itemsize == record_size:
@@ -9560,7 +9656,7 @@ class MDF4(MDF_Common):
                         channel.next_ch_addr = group_channels[j + 1].address
                     group_channels[-1].next_ch_addr = 0
 
-                # channel dependecies
+                # channel dependencies
                 j = len(channels) - 1
                 while j >= 0:
                     dep_list = gp.channel_dependencies[j]

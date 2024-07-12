@@ -1554,13 +1554,17 @@ MultiRasterSeparator;&
     def clear_filter(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
-        while item := iterator.value():
-            item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-
-            if item.parent() is None:
-                item.setExpanded(False)
-
-            iterator += 1
+        if self.filter_view.currentIndex() == 1:
+            while item := iterator.value():
+                if item.parent() is None:
+                    item.setExpanded(False)
+                else:
+                    item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+                iterator += 1
+        else:
+            while item := iterator.value():
+                item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+                iterator += 1
 
     def clear_channels(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
@@ -1764,7 +1768,7 @@ MultiRasterSeparator;&
 
     def scramble(self, event):
         self._progress = setup_progress(parent=self)
-        self._progress.qfinished.connect(self.scramble_finished)
+        self._progress.finished.connect(self.scramble_finished)
 
         self._progress.run_thread_with_progress(
             target=self.scramble_thread,
@@ -1828,7 +1832,7 @@ MultiRasterSeparator;&
             return
 
         self._progress = setup_progress(parent=self)
-        self._progress.qfinished.connect(self.extract_bus_logging_finished)
+        self._progress.finished.connect(self.extract_bus_logging_finished)
 
         self._progress.run_thread_with_progress(
             target=self.extract_bus_logging_thread,
@@ -1978,7 +1982,7 @@ MultiRasterSeparator;&
             return
 
         self._progress = setup_progress(parent=self)
-        self._progress.qfinished.connect(self.extract_bus_csv_logging_finished)
+        self._progress.finished.connect(self.extract_bus_csv_logging_finished)
 
         self._progress.run_thread_with_progress(
             target=self.extract_bus_csv_logging_thread,
@@ -2609,24 +2613,15 @@ MultiRasterSeparator;&
 
         channels = []
 
-        if self.filter_view.currentText() == "Internal file structure":
-            while item := iterator.value():
+        while item := iterator.value():
+            iterator += 1
 
-                group, index = item.entry
+            group, index = item.entry
+            if index == 0xFFFFFFFFFFFFFFFF:
+                continue
 
-                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                    if index != 0xFFFFFFFFFFFFFFFF:
-                        channels.append((None, group, index))
-
-                iterator += 1
-        else:
-            while item := iterator.value():
-
-                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                    group, index = item.entry
-                    channels.append((None, group, index))
-
-                iterator += 1
+            if item.checkState(0) == QtCore.Qt.CheckState.Checked:
+                channels.append((item.name, group, index))
 
         needs_filter = self.selected_filter_channels.count() > 0
 
@@ -2727,7 +2722,7 @@ MultiRasterSeparator;&
             return
 
         self._progress = setup_progress(parent=self)
-        self._progress.qfinished.connect(self.apply_processing_finished)
+        self._progress.finished.connect(self.apply_processing_finished)
 
         self._progress.run_thread_with_progress(
             target=self.apply_processing_thread,

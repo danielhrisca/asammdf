@@ -30,8 +30,9 @@ class Ui_MultiSearchDialog(object):
         MultiSearchDialog.resize(1028, 549)
         MultiSearchDialog.setSizeGripEnabled(True)
         self.grid_layout = QGridLayout(MultiSearchDialog)
+        self.grid_layout.setSpacing(1)
         self.grid_layout.setObjectName(u"grid_layout")
-        self.grid_layout.setContentsMargins(9, 9, 9, 9)
+        self.grid_layout.setContentsMargins(1, 1, 1, 1)
         self.match_kind = QComboBox(MultiSearchDialog)
         self.match_kind.addItem("")
         self.match_kind.addItem("")
@@ -78,6 +79,7 @@ class Ui_MultiSearchDialog(object):
         self.grid_layout.addWidget(self.show_measurement_list_btn, 0, 2, 1, 2)
 
         self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setSpacing(1)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.cancel_btn = QPushButton(MultiSearchDialog)
         self.cancel_btn.setObjectName(u"cancel_btn")
@@ -99,7 +101,7 @@ class Ui_MultiSearchDialog(object):
 
         self.add_btn = QPushButton(MultiSearchDialog)
         self.add_btn.setObjectName(u"add_btn")
-        self.add_btn.setFocusPolicy(Qt.TabFocus)
+        self.add_btn.setFocusPolicy(Qt.FocusPolicy.TabFocus)
         icon1 = QIcon()
         icon1.addFile(u":/left.png", QSize(), QIcon.Normal, QIcon.Off)
         self.add_btn.setIcon(icon1)

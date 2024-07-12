@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>154</width>
+    <width>168</width>
     <height>46</height>
    </rect>
   </property>
@@ -27,20 +27,20 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
-    <number>3</number>
-   </property>
+  <number>1</number>
+</property>
    <property name="leftMargin">
-    <number>2</number>
-   </property>
+  <number>1</number>
+</property>
    <property name="topMargin">
-    <number>2</number>
-   </property>
+  <number>1</number>
+</property>
    <property name="rightMargin">
-    <number>2</number>
-   </property>
+  <number>1</number>
+</property>
    <property name="bottomMargin">
-    <number>2</number>
-   </property>
+  <number>1</number>
+</property>
    <item>
     <layout class="QHBoxLayout" name="layout" stretch="0,0">
      <item>
@@ -101,10 +101,10 @@
         <string>MAIN CLOCK</string>
        </property>
        <property name="textFormat">
-        <enum>Qt::PlainText</enum>
+        <enum>Qt::TextFormat::PlainText</enum>
        </property>
        <property name="textInteractionFlags">
-        <set>Qt::LinksAccessibleByMouse</set>
+        <set>Qt::TextInteractionFlag::LinksAccessibleByMouse</set>
        </property>
       </widget>
      </item>

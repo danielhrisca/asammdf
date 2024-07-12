@@ -22,13 +22,13 @@ class Ui_ChannelBarDisplay(object):
     def setupUi(self, ChannelBarDisplay):
         if not ChannelBarDisplay.objectName():
             ChannelBarDisplay.setObjectName(u"ChannelBarDisplay")
-        ChannelBarDisplay.resize(154, 46)
+        ChannelBarDisplay.resize(168, 46)
         ChannelBarDisplay.setMinimumSize(QSize(40, 46))
         ChannelBarDisplay.setMaximumSize(QSize(16777215, 46))
         self.verticalLayout = QVBoxLayout(ChannelBarDisplay)
-        self.verticalLayout.setSpacing(3)
+        self.verticalLayout.setSpacing(1)
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.verticalLayout.setContentsMargins(2, 2, 2, 2)
+        self.verticalLayout.setContentsMargins(1, 1, 1, 1)
         self.layout = QHBoxLayout()
         self.layout.setObjectName(u"layout")
         self.color_btn = QPushButton(ChannelBarDisplay)
@@ -55,8 +55,8 @@ class Ui_ChannelBarDisplay(object):
         self.name.setMinimumSize(QSize(130, 40))
         self.name.setMaximumSize(QSize(16777215, 40))
         self.name.setMouseTracking(False)
-        self.name.setTextFormat(Qt.PlainText)
-        self.name.setTextInteractionFlags(Qt.LinksAccessibleByMouse)
+        self.name.setTextFormat(Qt.TextFormat.PlainText)
+        self.name.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse)
 
         self.layout.addWidget(self.name)
 

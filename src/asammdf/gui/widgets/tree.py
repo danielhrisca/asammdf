@@ -389,7 +389,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     itemsDeleted = QtCore.Signal(list)
     set_time_offset = QtCore.Signal(list)
     add_channels_request = QtCore.Signal(list)
-    show_properties = QtCore.Signal(object)
+    show_properties = QtCore.Signal(str, str)
+    show_overlapping_alias = QtCore.Signal(str, str)
     insert_computation = QtCore.Signal(str)
     edit_computation = QtCore.Signal(object)
     pattern_group_added = QtCore.Signal(object)
@@ -815,6 +816,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             except:
                 return
 
+            plot = self.plot.plot
+
             if info["type"] == "channel":
                 info["color"] = fn.mkColor(info["color"])
 
@@ -833,9 +836,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     )
 
                     if item.type() == ChannelsTreeItem.Channel:
-                        plot = item.treeWidget().plot.plot
                         sig, index = plot.signal_by_uuid(item.uuid)
                         sig.y_range = info["y_range"]
+
+                        if plot.current_uuid == sig.uuid:
+                            plot.viewbox.setYRange(*sig.y_range, padding=0)
 
                         item.set_ranges(info["ranges"])
 
@@ -849,6 +854,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 for item in selected_items:
                     if item.type() in (ChannelsTreeItem.Channel, ChannelsTreeItem.Group):
                         item.set_ranges(info["ranges"])
+
+            plot.update()
 
         elif modifiers == QtCore.Qt.KeyboardModifier.ShiftModifier and key in (
                 QtCore.Qt.Key.Key_Up,
@@ -1034,8 +1041,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         menu.addAction("Toggle details")
 
-        if item and item.type() == ChannelsTreeItem.Channel:
+        if item and item.type() == ChannelsTreeItem.Channel and item.exists:
             menu.addAction("File/Computation properties")
+            menu.addAction("Show overlapping alias")
         elif item and item.type() == ChannelsTreeItem.Group:
             menu.addAction("Group properties")
 
@@ -1425,9 +1433,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if len(selected_items) == 1:
                 item = selected_items[0]
                 if item.type() == ChannelsTreeItem.Channel:
-                    self.show_properties.emit(item.uuid)
+                    self.show_properties.emit(item.origin_uuid, item.uuid)
                 elif item.type() == ChannelsTreeItem.Group:
                     item.show_info()
+
+        elif action_text == "Show overlapping alias":
+            selected_items = self.selectedItems()
+            if len(selected_items) == 1:
+                item = selected_items[0]
+                if item.type() == ChannelsTreeItem.Channel:
+                    self.show_overlapping_alias.emit(item.origin_uuid, item.uuid)
 
         elif action_text == "Edit this computed channel":
             self.edit_computation.emit(item)
@@ -2046,6 +2061,20 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         self.exists = exists
 
+    def first_signal(self):
+        if self.type() == self.Group:
+            count = self.childCount()
+            for i in range(count):
+                item = self.child(i)
+                if item.type() == self.Channel:
+                    return item
+
+            for i in range(count):
+                item = self.child(i)
+                if item.type() == self.Group:
+                    if item_first_signal := item.first_signal():
+                        return item_first_signal
+
     def filter_computed(self):
         if self.type() == self.Channel:
             hide = not (self.signal.flags & Signal.Flags.computed)
@@ -2508,6 +2537,35 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         if self.type() == self.Channel:
             self.set_value(update=True)
+
+    @property
+    def y_range(self):
+        type = self.type()
+        if type == self.Channel:
+            return self.signal.y_range
+        elif type == self.Group:
+            count = self.childCount()
+            if count:
+                for row in range(count):
+                    return self.child(row).y_range
+            else:
+                return (0, 1)
+        else:
+            return (0, 1)
+
+    @y_range.setter
+    def y_range(self, value):
+        if self.type() == self.Channel:
+            self.signal.y_range = value
+
+        elif self.type() == self.Group:
+            if self.pattern:
+                self.pattern["y_range"] = value
+
+            count = self.childCount()
+            for row in range(count):
+                child = self.child(row)
+                child.y_range = value
 
 
 class ChannnelGroupDialog(QtWidgets.QDialog):

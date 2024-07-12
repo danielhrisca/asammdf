@@ -27,8 +27,11 @@ class Ui_ScaleDialog(object):
             ScaleDialog.setObjectName(u"ScaleDialog")
         ScaleDialog.resize(1091, 678)
         self.gridLayout_3 = QGridLayout(ScaleDialog)
+        self.gridLayout_3.setSpacing(1)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
+        self.gridLayout_3.setContentsMargins(1, 1, 1, 1)
         self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setSpacing(1)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.horizontalSpacer_6 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
@@ -65,7 +68,9 @@ class Ui_ScaleDialog(object):
         self.groupBox_2 = QGroupBox(ScaleDialog)
         self.groupBox_2.setObjectName(u"groupBox_2")
         self.gridLayout = QGridLayout(self.groupBox_2)
+        self.gridLayout.setSpacing(1)
         self.gridLayout.setObjectName(u"gridLayout")
+        self.gridLayout.setContentsMargins(1, 1, 1, 1)
         self.fit_btn = QPushButton(self.groupBox_2)
         self.fit_btn.setObjectName(u"fit_btn")
         icon2 = QIcon()
@@ -76,7 +81,7 @@ class Ui_ScaleDialog(object):
 
         self.label_3 = QLabel(self.groupBox_2)
         self.label_3.setObjectName(u"label_3")
-        self.label_3.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+        self.label_3.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
         self.gridLayout.addWidget(self.label_3, 2, 1, 1, 1)
 
@@ -90,7 +95,7 @@ class Ui_ScaleDialog(object):
 
         self.label = QLabel(self.groupBox_2)
         self.label.setObjectName(u"label")
-        self.label.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+        self.label.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
         self.gridLayout.addWidget(self.label, 1, 1, 1, 1)
 
@@ -104,7 +109,7 @@ class Ui_ScaleDialog(object):
 
         self.label_2 = QLabel(self.groupBox_2)
         self.label_2.setObjectName(u"label_2")
-        self.label_2.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+        self.label_2.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
 
         self.gridLayout.addWidget(self.label_2, 0, 1, 1, 1)
 
@@ -147,7 +152,7 @@ class Ui_ScaleDialog(object):
         self.plot.setObjectName(u"plot")
         self.plot.setMinimumSize(QSize(750, 600))
         self.plot.setMaximumSize(QSize(750, 600))
-        self.plot.setFrameShape(QFrame.Box)
+        self.plot.setFrameShape(QFrame.Shape.Box)
         self.plot.setLineWidth(2)
 
         self.gridLayout_3.addWidget(self.plot, 1, 0, 4, 1)
@@ -155,7 +160,9 @@ class Ui_ScaleDialog(object):
         self.groupBox_3 = QGroupBox(ScaleDialog)
         self.groupBox_3.setObjectName(u"groupBox_3")
         self.gridLayout_4 = QGridLayout(self.groupBox_3)
+        self.gridLayout_4.setSpacing(1)
         self.gridLayout_4.setObjectName(u"gridLayout_4")
+        self.gridLayout_4.setContentsMargins(1, 1, 1, 1)
         self.label_5 = QLabel(self.groupBox_3)
         self.label_5.setObjectName(u"label_5")
 
@@ -188,7 +195,9 @@ class Ui_ScaleDialog(object):
         self.groupBox_4 = QGroupBox(ScaleDialog)
         self.groupBox_4.setObjectName(u"groupBox_4")
         self.gridLayout_2 = QGridLayout(self.groupBox_4)
+        self.gridLayout_2.setSpacing(1)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
+        self.gridLayout_2.setContentsMargins(1, 1, 1, 1)
         self.label_10 = QLabel(self.groupBox_4)
         self.label_10.setObjectName(u"label_10")
 
