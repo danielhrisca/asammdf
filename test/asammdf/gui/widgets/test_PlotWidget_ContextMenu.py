@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import json
-import sys
 from json import JSONDecodeError
 import pathlib
 import re
+import sys
 import unittest
 from unittest import mock
 from unittest.mock import ANY

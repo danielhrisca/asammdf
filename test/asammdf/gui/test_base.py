@@ -23,9 +23,9 @@ from unittest import mock
 
 import numpy as np
 import pyqtgraph
+from PySide6 import QtCore, QtGui, QtTest, QtWidgets
 import win32api
 import win32con
-from PySide6 import QtCore, QtGui, QtTest, QtWidgets
 
 from asammdf.gui.utils import excepthook
 
@@ -80,13 +80,13 @@ class TestBase(unittest.TestCase):
         else:
             duration = abs(duration)
 
-        w.showNormal()
+        widget.showNormal()
 
         loop = QtCore.QEventLoop()
         QtCore.QTimer.singleShot(int(duration * 1000), loop.quit)
         loop.exec_()
 
-        w.showNormal()
+        widget.showNormal()
 
     @staticmethod
     def processEvents(timeout=0.001):

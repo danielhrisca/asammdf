@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import time
 
 from PySide6 import QtCore, QtGui, QtTest
 
