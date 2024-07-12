@@ -66,7 +66,7 @@ class TestContextMenu(TestPlotWidget):
     def test_Action_SearchItem_NonexistentChannel(self):
         """
         Test Scope:
-            Ensure that action 'Search Item' call 'QtWidgets.QInputDialog.getText' in order to get a channel name.
+            Ensure that action 'Search Item' call 'QtWidgets.QInputDialog.getText' to get a channel name.
             The Dialog is filled with non-existing channel name.
         Events:
             - Open Context Menu
@@ -374,8 +374,6 @@ class TestContextMenu(TestPlotWidget):
             else:
                 self.assertIsInstance(content, dict)
                 self.assertTrue(content["type"] == "group")
-
-        self.manual_use(self.widget)
 
     @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Action_PasteDisplayProperties_Group(self):

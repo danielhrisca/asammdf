@@ -115,7 +115,7 @@ class TestDoubleClick(TestPlotWidget):
             self.assertEqual(0, first_group.childCount())
             DragAndDrop(
                 src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
+                dst_widget=self.plot.channel_selection,
                 src_pos=drag_position,
                 dst_pos=QtCore.QPoint(97, 57),
             )
@@ -247,7 +247,7 @@ class TestDoubleClick(TestPlotWidget):
                 self.assertEqual(0, groups[group_name].childCount())
                 DragAndDrop(
                     src_widget=self.plot.channel_selection,
-                    dst_widget=self.plot.channel_selection.viewport(),
+                    dst_widget=self.plot.channel_selection,
                     src_pos=drag_position,
                     dst_pos=drop_position,
                 )
@@ -259,7 +259,7 @@ class TestDoubleClick(TestPlotWidget):
             drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
             DragAndDrop(
                 src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
+                dst_widget=self.plot.channel_selection,
                 src_pos=drag_position,
                 dst_pos=drop_position,
             )
@@ -268,7 +268,7 @@ class TestDoubleClick(TestPlotWidget):
             drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
             DragAndDrop(
                 src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
+                dst_widget=self.plot.channel_selection,
                 src_pos=drag_position,
                 dst_pos=drop_position,
             )
@@ -407,7 +407,7 @@ class TestDoubleClick(TestPlotWidget):
                 self.assertEqual(0, groups[group_name].childCount())
                 DragAndDrop(
                     src_widget=self.plot.channel_selection,
-                    dst_widget=self.plot.channel_selection.viewport(),
+                    dst_widget=self.plot.channel_selection,
                     src_pos=drag_position,
                     dst_pos=drop_position,
                 )
@@ -419,7 +419,7 @@ class TestDoubleClick(TestPlotWidget):
             drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
             DragAndDrop(
                 src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
+                dst_widget=self.plot.channel_selection,
                 src_pos=drag_position,
                 dst_pos=drop_position,
             )
@@ -428,7 +428,7 @@ class TestDoubleClick(TestPlotWidget):
             drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
             DragAndDrop(
                 src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
+                dst_widget=self.plot.channel_selection,
                 src_pos=drag_position,
                 dst_pos=drop_position,
             )
@@ -556,7 +556,7 @@ class TestDoubleClick(TestPlotWidget):
                 self.assertEqual(0, groups[group_name].childCount())
                 DragAndDrop(
                     src_widget=self.plot.channel_selection,
-                    dst_widget=self.plot.channel_selection.viewport(),
+                    dst_widget=self.plot.channel_selection,
                     src_pos=drag_position,
                     dst_pos=drop_position,
                 )
@@ -568,7 +568,7 @@ class TestDoubleClick(TestPlotWidget):
             drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
             DragAndDrop(
                 src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
+                dst_widget=self.plot.channel_selection,
                 src_pos=drag_position,
                 dst_pos=drop_position,
             )
@@ -577,7 +577,7 @@ class TestDoubleClick(TestPlotWidget):
             drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
             DragAndDrop(
                 src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
+                dst_widget=self.plot.channel_selection,
                 src_pos=drag_position,
                 dst_pos=drop_position,
             )
@@ -709,7 +709,7 @@ class TestDoubleClick(TestPlotWidget):
                 self.assertEqual(0, groups[group_name].childCount())
                 DragAndDrop(
                     src_widget=self.plot.channel_selection,
-                    dst_widget=self.plot.channel_selection.viewport(),
+                    dst_widget=self.plot.channel_selection,
                     src_pos=drag_position,
                     dst_pos=drop_position,
                 )
@@ -721,7 +721,7 @@ class TestDoubleClick(TestPlotWidget):
             drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
             DragAndDrop(
                 src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
+                dst_widget=self.plot.channel_selection,
                 src_pos=drag_position,
                 dst_pos=drop_position,
             )
@@ -730,7 +730,7 @@ class TestDoubleClick(TestPlotWidget):
             drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
             DragAndDrop(
                 src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection.viewport(),
+                dst_widget=self.plot.channel_selection,
                 src_pos=drag_position,
                 dst_pos=drop_position,
             )

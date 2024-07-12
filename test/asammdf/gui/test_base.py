@@ -16,11 +16,15 @@ import os
 import pathlib
 import shutil
 import sys
+import threading
 import time
 import unittest
 from unittest import mock
 
+import numpy as np
 import pyqtgraph
+import win32api
+import win32con
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
 
 from asammdf.gui.utils import excepthook
@@ -64,7 +68,7 @@ class TestBase(unittest.TestCase):
         """
         Execute Widget for debug/development purpose.
         """
-        widget.showNormal()
+        widget.showMaximized()
         app.exec()
 
     @staticmethod
@@ -143,76 +147,6 @@ class TestBase(unittest.TestCase):
             widget.visualItemRect(qitem).center(),
         )
         self.processEvents(0.5)
-
-
-class DragAndDrop:
-    _previous_position = None
-
-    def __init__(self, src_widget, dst_widget, src_pos, dst_pos):
-
-        QtCore.QCoreApplication.processEvents()
-        if hasattr(src_widget, "viewport"):
-            source_viewport = src_widget.viewport()
-        else:
-            source_viewport = src_widget
-            # Move to Destination Widget
-        if hasattr(dst_widget, "viewport"):
-            destination_viewport = dst_widget  # .viewport()
-        else:
-            destination_viewport = dst_widget
-
-        # Hack QDrag object
-        mo_QDrag = QtGui.QDrag(src_widget)
-        mock.patch.object(mo_QDrag, "exec").start()
-        mock.patch.object(mo_QDrag, "setMimeData", wraps=mo_QDrag.setMimeData).start()
-
-        with mock.patch(f"{src_widget.__module__}.QtGui.QDrag", return_value=mo_QDrag):
-            # TODO: Stimulate startDrag with MousePress and MouseMove
-            QtTest.QTest.mousePress(
-                source_viewport,
-                QtCore.Qt.MouseButton.LeftButton,
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                src_pos
-            )
-            _ = 0
-            while not mo_QDrag.exec.called:
-                QtTest.QTest.mouseMove(source_viewport, src_pos + QtCore.QPoint(0, _))
-                QtCore.QCoreApplication.instance().processEvents()
-                _ += 1
-            # src_widget.startDrag(QtCore.Qt.DropAction.MoveAction)
-
-            drag_event = QtGui.QDragEnterEvent(
-                dst_pos,
-                QtCore.Qt.DropAction.MoveAction,
-                mo_QDrag.setMimeData.call_args[0][0],
-                QtCore.Qt.MouseButton.LeftButton,
-                QtCore.Qt.KeyboardModifier.NoModifier
-            )
-            with mock.patch.object(drag_event, "source", return_value=src_widget):
-                dst_widget.dragEnterEvent(drag_event)
-            QtCore.QCoreApplication.instance().processEvents()
-
-            move_event = QtGui.QDragMoveEvent(
-                dst_pos,
-                QtCore.Qt.DropAction.MoveAction,
-                mo_QDrag.setMimeData.call_args[0][0],
-                QtCore.Qt.MouseButton.LeftButton,
-                QtCore.Qt.KeyboardModifier.NoModifier
-            )
-            with mock.patch.object(move_event, "source", return_value=src_widget):
-                dst_widget.dragMoveEvent(move_event)
-            QtCore.QCoreApplication.instance().processEvents()
-
-            drop_event = QtGui.QDropEvent(
-                dst_pos,
-                QtCore.Qt.DropAction.MoveAction,
-                mo_QDrag.setMimeData.call_args[0][0],
-                QtCore.Qt.MouseButton.NoButton,
-                QtCore.Qt.KeyboardModifier.NoModifier
-            )
-            with mock.patch.object(drop_event, "source", return_value=src_widget):
-                dst_widget.dropEvent(drop_event)
-            QtCore.QCoreApplication.instance().processEvents()
 
 
 class Pixmap:
@@ -314,7 +248,57 @@ class Pixmap:
                     break
                 count += 1
             else:
-                if count == image.height() - 3:
+                if count >= image.height() - 3:
                     cursors.append(x)
 
         return cursors
+
+
+class DragAndDrop:
+    def __init__(self, src_widget, dst_widget, src_pos, dst_pos):
+        src_offset = dst_offset = QtCore.QPoint(0, 1)
+        if hasattr(src_widget, "header"):
+            src_offset = QtCore.QPoint(0, src_widget.header().geometry().height() + 1)
+        if hasattr(dst_widget, "header"):
+            dst_offset = QtCore.QPoint(0, dst_widget.header().geometry().height() + 1)
+
+        t_move = threading.Thread(
+            target=dnd_worker,
+            args=(
+                src_widget.mapToGlobal(src_pos) + src_offset,
+                dst_widget.mapToGlobal(dst_pos) + dst_offset,
+            ),
+        )
+        t_move.start()
+
+        while t_move.is_alive():
+            QtWidgets.QApplication.instance().processEvents()
+            time.sleep(0.001)
+        QtWidgets.QApplication.instance().processEvents()
+
+
+def dnd_worker(start, end):
+    x_vals = np.linspace(start.x(), end.x(), 10)
+    y_vals = np.linspace(start.y(), end.y(), len(x_vals))
+    print(x_vals, y_vals)
+
+    # Move the mouse to the starting position
+    win32api.SetCursorPos((start.x(), start.y()))
+
+    # Perform left mouse button down event
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, start.x(), start.y(), 0, 0)
+
+    # Move the mouse to the ending position
+    for x, y in zip(x_vals, y_vals):
+        win32api.SetCursorPos((int(x), int(y)))
+        time.sleep(0.01)
+
+    # Perform left mouse button up event
+    win32api.SetCursorPos(
+        (
+            end.x(),
+            end.y(),
+        )
+    )
+    time.sleep(0.01)
+    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, end.x(), end.y(), 0, 0)

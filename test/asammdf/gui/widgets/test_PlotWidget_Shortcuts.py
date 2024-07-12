@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import time
+
 from PySide6 import QtCore, QtGui, QtTest
 
 from test.asammdf.gui.test_base import Pixmap
@@ -129,6 +131,7 @@ class TestShortcuts(TestPlotWidget):
         if not plot.hide_axes_btn.isFlat():
             QtTest.QTest.mouseClick(plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
 
+        self.processEvents()
         # Save PixMap of clear plot
         clear_pixmap = plot.plot.viewport().grab()
         self.assertTrue(Pixmap.is_black(clear_pixmap))
