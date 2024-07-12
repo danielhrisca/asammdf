@@ -56,13 +56,13 @@ def substitude_mime_uuids(mime, uuid=None, force=False, random_uuid=False):
 
 
 def add_children(
-        widget,
-        channels,
-        channel_dependencies,
-        signals,
-        entries=None,
-        origin_uuid=None,
-        version="4.11",
+    widget,
+    channels,
+    channel_dependencies,
+    signals,
+    entries=None,
+    origin_uuid=None,
+    version="4.11",
 ):
     children = []
     if entries is not None:
@@ -240,22 +240,6 @@ class TreeWidget(QtWidgets.QTreeWidget):
         else:
             super().keyPressEvent(event)
 
-    def dragEnterEvent(self, event):
-        print("TW_dragEnterEvent")
-        super().dragEnterEvent(event)
-
-    def dragMoveEvent(self, event):
-        print("TW_dragMoveEvent: ", event)
-        super().dragMoveEvent(event)
-
-    def dragLeaveEvent(self, event):
-        print("TW_dragLeaveEvent")
-        super().dragLeaveEvent(event)
-
-    def dropEvent(self, event):
-        print("TW_dropEvent")
-        super().dropEvent(event)
-
     def startDrag(self, supportedActions):
         def get_data(item):
             data = []
@@ -271,15 +255,15 @@ class TreeWidget(QtWidgets.QTreeWidget):
                         if child.entry[1] != 0xFFFFFFFFFFFFFFFF:
                             data.append(
                                 {
-                                    "name":          child.name,
-                                    "group_index":   child.entry[0],
+                                    "name": child.name,
+                                    "group_index": child.entry[0],
                                     "channel_index": child.entry[1],
-                                    "type":          "channel",
-                                    "ranges":        [],
-                                    "uuid":          os.urandom(6).hex(),
-                                    "origin_uuid":   child.origin_uuid,
-                                    "computed":      False,
-                                    "computation":   None,
+                                    "type": "channel",
+                                    "ranges": [],
+                                    "uuid": os.urandom(6).hex(),
+                                    "origin_uuid": child.origin_uuid,
+                                    "computed": False,
+                                    "computation": None,
                                 }
                             )
 
@@ -287,15 +271,15 @@ class TreeWidget(QtWidgets.QTreeWidget):
                 if item.entry[1] != 0xFFFFFFFFFFFFFFFF:
                     data.append(
                         {
-                            "name":          item.name,
-                            "group_index":   item.entry[0],
+                            "name": item.name,
+                            "group_index": item.entry[0],
                             "channel_index": item.entry[1],
-                            "type":          "channel",
-                            "ranges":        [],
-                            "uuid":          os.urandom(6).hex(),
-                            "origin_uuid":   item.origin_uuid,
-                            "computed":      False,
-                            "computation":   None,
+                            "type": "channel",
+                            "ranges": [],
+                            "uuid": os.urandom(6).hex(),
+                            "origin_uuid": item.origin_uuid,
+                            "computed": False,
+                            "computation": None,
                         }
                     )
 
@@ -313,7 +297,6 @@ class TreeWidget(QtWidgets.QTreeWidget):
 
         mimeData.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
 
-        print("TW_startDrag")
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)
         drag.exec(QtCore.Qt.DropAction.MoveAction)
@@ -410,12 +393,12 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     IndividualAxisColumn = 4
 
     def __init__(
-            self,
-            hide_missing_channels=False,
-            hide_disabled_channels=False,
-            plot=None,
-            *args,
-            **kwargs,
+        self,
+        hide_missing_channels=False,
+        hide_disabled_channels=False,
+        plot=None,
+        *args,
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.plot = plot
@@ -489,7 +472,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 self.verticalScrollBar().setValue(pos)
 
     def startDrag(self, supportedActions):
-        print("startDrag")
         selected_items = validate_drag_items(self.invisibleRootItem(), self.selectedItems(), [])
 
         mimeData = QtCore.QMimeData()
@@ -504,30 +486,25 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         drag.exec(QtCore.Qt.DropAction.MoveAction)
 
     def dragEnterEvent(self, e):
-        print("dragEnterEvent: ", e)
         self.autoscroll_timer.start()
         self.autoscroll_mouse_pos = e.answerRect().y()
         e.accept()
 
     def dragLeaveEvent(self, e):
-        print("dragLeaveEvent")
         self.autoscroll_timer.stop()
         self.autoscroll_mouse_pos = None
         e.accept()
 
     def dragMoveEvent(self, e):
-        print("dragMoveEvent: ", e)
         self.autoscroll_mouse_pos = e.answerRect().y()
         e.accept()
 
     def dropEvent(self, e):
-        print("dropEvent: ", e)
         self.autoscroll_timer.stop()
         self.autoscroll_mouse_pos = None
         self.drop_target = None
 
         if e.source() is self:
-            print("Source Matched:")
             item = self.itemAt(6, 6)
             self.blockSignals(True)
             super().dropEvent(e)
@@ -787,8 +764,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.plot.plot.update()
 
         elif (
-                modifiers == (QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier)
-                and key == QtCore.Qt.Key.Key_C
+            modifiers == (QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier)
+            and key == QtCore.Qt.Key.Key_C
         ):
             event.accept()
             selected_items = [
@@ -802,8 +779,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 QtWidgets.QApplication.instance().clipboard().setText(clipboard_text)
 
         elif (
-                modifiers == (QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier)
-                and key == QtCore.Qt.Key.Key_V
+            modifiers == (QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier)
+            and key == QtCore.Qt.Key.Key_V
         ):
             event.accept()
             info = QtWidgets.QApplication.instance().clipboard().text()
@@ -858,10 +835,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             plot.update()
 
         elif modifiers == QtCore.Qt.KeyboardModifier.ShiftModifier and key in (
-                QtCore.Qt.Key.Key_Up,
-                QtCore.Qt.Key.Key_Down,
-                QtCore.Qt.Key.Key_Left,
-                QtCore.Qt.Key.Key_Right,
+            QtCore.Qt.Key.Key_Up,
+            QtCore.Qt.Key.Key_Down,
+            QtCore.Qt.Key.Key_Left,
+            QtCore.Qt.Key.Key_Right,
         ):
             event.ignore()
         else:
@@ -1163,8 +1140,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                 for item in selected_items:
                     if item.type() in (
-                            ChannelsTreeItem.Channel,
-                            ChannelsTreeItem.Group,
+                        ChannelsTreeItem.Channel,
+                        ChannelsTreeItem.Group,
                     ):
                         item.set_conversion(conversion)
 
@@ -1365,8 +1342,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     self.plot.cursor_moved(plot.cursor1)
 
         elif action_text in (
-                "Relative time base shift",
-                "Set time base start offset",
+            "Relative time base shift",
+            "Set time base start offset",
         ):
             selected_items = self.selectedItems()
             if selected_items:
@@ -1547,9 +1524,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                 while item := iterator.value():
                     if (
-                            item is not start_item
-                            and item.type() in (ChannelsTreeItem.Channel, ChannelsTreeItem.Group)
-                            and compiled_pattern.search(item.name)
+                        item is not start_item
+                        and item.type() in (ChannelsTreeItem.Channel, ChannelsTreeItem.Group)
+                        and compiled_pattern.search(item.name)
                     ):
                         self.scrollToItem(item)
                         self.setCurrentItem(item)
@@ -1571,8 +1548,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                             break
 
                         if item.type() in (
-                                ChannelsTreeItem.Channel,
-                                ChannelsTreeItem.Group,
+                            ChannelsTreeItem.Channel,
+                            ChannelsTreeItem.Group,
                         ) and compiled_pattern.search(item.name):
                             self.scrollToItem(item)
                             self.setCurrentItem(item)
@@ -1601,8 +1578,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             while item := iterator.value():
                 if item.type() in (
-                        ChannelsTreeItem.Channel,
-                        ChannelsTreeItem.Group,
+                    ChannelsTreeItem.Channel,
+                    ChannelsTreeItem.Group,
                 ) and compiled_pattern.fullmatch(item.name):
                     self.scrollToItem(item)
                     self.setCurrentItem(item)
@@ -1617,8 +1594,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     break
 
                 if item.type() in (
-                        ChannelsTreeItem.Channel,
-                        ChannelsTreeItem.Group,
+                    ChannelsTreeItem.Channel,
+                    ChannelsTreeItem.Group,
                 ) and compiled_pattern.search(item.name):
                     self.scrollToItem(item)
                     self.setCurrentItem(item)
@@ -1687,8 +1664,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.setFont(font)
 
         dark = (
-                QtWidgets.QApplication.instance().palette().window().color().value()
-                < QtWidgets.QApplication.instance().palette().windowText().color().value()
+            QtWidgets.QApplication.instance().palette().window().color().value()
+            < QtWidgets.QApplication.instance().palette().windowText().color().value()
         )
 
         if dark:
@@ -1704,8 +1681,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     def set_style(self):
 
         dark = (
-                QtWidgets.QApplication.instance().palette().window().color().value()
-                < QtWidgets.QApplication.instance().palette().windowText().color().value()
+            QtWidgets.QApplication.instance().palette().window().color().value()
+            < QtWidgets.QApplication.instance().palette().windowText().color().value()
         )
 
         item = QtWidgets.QTreeWidgetItem()
@@ -1793,18 +1770,18 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     IndividualAxisColumn = 4
 
     def __init__(
-            self,
-            type,
-            signal=None,
-            name="",
-            pattern=None,
-            parent=None,
-            uuid="",
-            check=None,
-            ranges=None,
-            origin_uuid=None,
-            background_color=None,
-            expanded=False,
+        self,
+        type,
+        signal=None,
+        name="",
+        pattern=None,
+        parent=None,
+        uuid="",
+        check=None,
+        ranges=None,
+        origin_uuid=None,
+        background_color=None,
+        expanded=False,
     ):
         super().__init__(parent, type)
         self.exists = True
@@ -2122,19 +2099,19 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     def get_display_properties(self):
         if self.type() == ChannelsTreeItem.Group:
             info = {
-                "type":   "group",
+                "type": "group",
                 "ranges": copy_ranges(self.ranges),
             }
 
         elif self.type() == ChannelsTreeItem.Channel:
             info = {
-                "type":            "channel",
-                "color":           self.color.name(),
-                "precision":       self.precision,
-                "ylink":           self.checkState(self.CommonAxisColumn) == QtCore.Qt.CheckState.Checked,
+                "type": "channel",
+                "color": self.color.name(),
+                "precision": self.precision,
+                "ylink": self.checkState(self.CommonAxisColumn) == QtCore.Qt.CheckState.Checked,
                 "individual_axis": self.checkState(self.IndividualAxisColumn) == QtCore.Qt.CheckState.Checked,
-                "format":          self.format,
-                "ranges":          copy_ranges(self.ranges),
+                "format": self.format,
+                "ranges": copy_ranges(self.ranges),
             }
 
             if self.signal.flags & Signal.Flags.user_defined_conversion:
@@ -2583,15 +2560,15 @@ class ChannnelGroupDialog(QtWidgets.QDialog):
             self.setWindowTitle(f"<{name}> pattern group details")
 
             for i, key in enumerate(
-                    (
-                            "name",
-                            "pattern",
-                            "match_type",
-                            "case_sensitive",
-                            "filter_type",
-                            "filter_value",
-                            "raw",
-                    )
+                (
+                    "name",
+                    "pattern",
+                    "match_type",
+                    "case_sensitive",
+                    "filter_type",
+                    "filter_value",
+                    "raw",
+                )
             ):
                 widget = QtWidgets.QLabel(str(pattern.get(key, "False")))
 
