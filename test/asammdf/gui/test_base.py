@@ -24,8 +24,10 @@ from unittest import mock
 import numpy as np
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
-import win32api
-import win32con
+
+if sys.platform == "win32":
+    import win32api
+    import win32con
 
 from asammdf.gui.utils import excepthook
 
@@ -293,28 +295,32 @@ class DragAndDrop:
         QtWidgets.QApplication.instance().processEvents()
 
 
-def dnd_worker(start, end):
-    x_vals = np.linspace(start.x(), end.x(), 10)
-    y_vals = np.linspace(start.y(), end.y(), len(x_vals))
-    print(x_vals, y_vals)
+if sys.platform == "win32":
+    def dnd_worker(start, end):
+        x_vals = np.linspace(start.x(), end.x(), 10)
+        y_vals = np.linspace(start.y(), end.y(), len(x_vals))
+        print(x_vals, y_vals)
 
-    # Move the mouse to the starting position
-    win32api.SetCursorPos((start.x(), start.y()))
+        # Move the mouse to the starting position
+        win32api.SetCursorPos((start.x(), start.y()))
 
-    # Perform left mouse button down event
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, start.x(), start.y(), 0, 0)
+        # Perform left mouse button down event
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, start.x(), start.y(), 0, 0)
 
-    # Move the mouse to the ending position
-    for x, y in zip(x_vals, y_vals):
-        win32api.SetCursorPos((int(x), int(y)))
-        time.sleep(0.01)
+        # Move the mouse to the ending position
+        for x, y in zip(x_vals, y_vals):
+            win32api.SetCursorPos((int(x), int(y)))
+            time.sleep(0.01)
 
-    # Perform left mouse button up event
-    win32api.SetCursorPos(
-        (
-            end.x(),
-            end.y(),
+        # Perform left mouse button up event
+        win32api.SetCursorPos(
+            (
+                end.x(),
+                end.y(),
+            )
         )
-    )
-    time.sleep(0.01)
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, end.x(), end.y(), 0, 0)
+        time.sleep(0.01)
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, end.x(), end.y(), 0, 0)
+else:
+    def dnd_worker(start, end):
+        pass
