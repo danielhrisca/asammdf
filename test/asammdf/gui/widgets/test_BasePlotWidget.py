@@ -103,7 +103,7 @@ class TestPlotWidget(TestFileWidget):
         else:
             drop_x, drop_y = (
                 channels_tree_widget.visualItemRect(dst).center().x(),
-                channels_tree_widget.visualItemRect(dst).center().y() + 25,
+                channels_tree_widget.visualItemRect(dst).center().y() + 20,
             )
         QtTest.QTest.mouseMove(channels_tree_widget, QPoint(drag_x, drag_y))
         # minimum necessary time for drag action to be implemented
@@ -116,7 +116,7 @@ class TestPlotWidget(TestFileWidget):
             else:
                 pyautogui.drag(0, d, duration=t)
 
-        timer = td.Timer(0.001, call_drop_event)
+        timer = td.Timer(0.0001, call_drop_event)
         timer.start()
         self.manual_use(self.widget, duration=t + 0.002)
 
