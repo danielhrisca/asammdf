@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-import sys
-import unittest
 from unittest import mock
 
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
