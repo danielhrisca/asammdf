@@ -21,6 +21,7 @@ class TestDragAndDrop(TestPlotWidget):
 
         self.create_window(window_type="Plot")
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+        self.processEvents()
 
     def test_Plot_ChannelSelection_DragAndDrop_fromFile_toPlot_0(self):
         """
