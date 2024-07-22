@@ -3187,12 +3187,12 @@ class WithMDIArea:
 
         widget.plot.update()
 
-        for channel in widget.plot.signals:
-            if channel.uuid == uuid:
+        for _channel in widget.plot.signals:
+            if _channel.uuid == uuid:
                 continue
 
-            if channel.flags & channel.Flags.computed:
-                required_channels = set(get_required_from_computed(channel.computation))
+            if _channel.flags & _channel.Flags.computed:
+                required_channels = set(get_required_from_computed(_channel.computation))
                 if old_name in required_channels:
                     item = widget.item_by_uuid
 

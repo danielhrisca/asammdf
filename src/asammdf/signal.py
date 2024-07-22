@@ -114,9 +114,9 @@ class Signal:
                         encodings = ["utf-8", "latin-1"]
                     else:
                         encodings = [encoding, "utf-8", "latin-1"]
-                    for encoding in encodings:
+                    for _encoding in encodings:
                         try:
-                            samples = encode(samples, encoding)
+                            samples = encode(samples, _encoding)
                             break
                         except:
                             continue

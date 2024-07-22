@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import unittest
+import sys
 from unittest import mock
 
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
@@ -8,7 +8,6 @@ from test.asammdf.gui.test_base import DragAndDrop
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
-@unittest.skip("Timers cannot be started/stopped from another thread.")
 class TestDragAndDrop(TestPlotWidget):
     # Note: Test Plot Widget through FileWidget.
 
@@ -21,6 +20,7 @@ class TestDragAndDrop(TestPlotWidget):
 
         self.create_window(window_type="Plot")
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+        self.processEvents()
 
     def test_Plot_ChannelSelection_DragAndDrop_fromFile_toPlot_0(self):
         """
@@ -129,13 +129,6 @@ class TestDragAndDrop(TestPlotWidget):
             iterator += 1
         self.assertListEqual(selected_channels, plot_channels)
 
-    @unittest.skip("Test applicable just for Windows.")
-    # Test is applicable just for Windows because of Drag and Drop implementation.
-    # In order to perform this operation, two threads are needed, one to startDrag operation and the other one to move
-    # the cursor and Release/drop the item.
-    # It may happen that drag operation or drop operation to lead on starting/stopping internal QTimers.
-    # On Linux, closing any QTimer/QThread in other one thread than parent leads to Segmentation Fault.
-    # Windows behaves differently on startDrag operation.
     def test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot(self):
         """
         Test Scope:
@@ -252,7 +245,7 @@ class TestDragAndDrop(TestPlotWidget):
             third_channel = third_channel.text(self.Column.NAME)
             DragAndDrop(
                 src_widget=plot.channel_selection,
-                dst_widget=plot.channel_selection.viewport(),
+                dst_widget=plot.channel_selection,
                 src_pos=drag_position,
                 dst_pos=drop_position,
             )
@@ -283,7 +276,7 @@ class TestDragAndDrop(TestPlotWidget):
             third_channel = third_channel.text(self.Column.NAME)
             DragAndDrop(
                 src_widget=plot.channel_selection,
-                dst_widget=plot.channel_selection.viewport(),
+                dst_widget=plot.channel_selection,
                 src_pos=drag_position,
                 dst_pos=drop_position,
             )
@@ -329,7 +322,7 @@ class TestDragAndDrop(TestPlotWidget):
                 self.assertEqual(0, first_group.childCount())
                 DragAndDrop(
                     src_widget=plot.channel_selection,
-                    dst_widget=plot.channel_selection.viewport(),
+                    dst_widget=plot.channel_selection,
                     src_pos=drag_position,
                     dst_pos=drop_position,
                 )
@@ -351,7 +344,7 @@ class TestDragAndDrop(TestPlotWidget):
                 drop_position = plot.channel_selection.visualItemRect(first_group.child(0)).center()
                 DragAndDrop(
                     src_widget=plot.channel_selection,
-                    dst_widget=plot.channel_selection.viewport(),
+                    dst_widget=plot.channel_selection,
                     src_pos=drag_position,
                     dst_pos=drop_position,
                 )
@@ -388,7 +381,7 @@ class TestDragAndDrop(TestPlotWidget):
                 drop_position = plot.channel_selection.visualItemRect(second_group).center()
                 DragAndDrop(
                     src_widget=plot.channel_selection,
-                    dst_widget=plot.channel_selection.viewport(),
+                    dst_widget=plot.channel_selection,
                     src_pos=drag_position,
                     dst_pos=drop_position,
                 )
@@ -415,7 +408,7 @@ class TestDragAndDrop(TestPlotWidget):
             drop_position = plot.channel_selection.visualItemRect(first_group).center()
             DragAndDrop(
                 src_widget=plot.channel_selection,
-                dst_widget=plot.channel_selection.viewport(),
+                dst_widget=plot.channel_selection,
                 src_pos=drag_position,
                 dst_pos=drop_position,
             )
@@ -446,7 +439,7 @@ class TestDragAndDrop(TestPlotWidget):
             drop_position = plot.channel_selection.rect().center()
             DragAndDrop(
                 src_widget=plot.channel_selection,
-                dst_widget=plot.channel_selection.viewport(),
+                dst_widget=plot.channel_selection,
                 src_pos=drag_position,
                 dst_pos=drop_position,
             )
@@ -474,6 +467,7 @@ class TestDragAndDrop(TestPlotWidget):
         # Event
         channel_tree = self.widget.channels_tree
         plot_0 = self.widget.mdi_area.subWindowList()[0].widget()
+        plot_0.showNormal()
         # Random Channels
         channel_0 = channel_tree.topLevelItem(8)
         channel_1 = channel_tree.topLevelItem(13)
@@ -497,6 +491,7 @@ class TestDragAndDrop(TestPlotWidget):
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
 
         plot_1 = self.widget.mdi_area.subWindowList()[1].widget()
+        plot_1.showNormal()
 
         # Drag one Channel from FileWidget channel_tree to Plot_0
         drag_position = channel_tree.visualItemRect(channel_1).center()
@@ -511,6 +506,11 @@ class TestDragAndDrop(TestPlotWidget):
             dst_pos=drop_position,
         )
         self.assertEqual(1, plot_1.channel_selection.topLevelItemCount())
+
+        # Tile horizontally
+        if sys.platform != "win32":
+            QtTest.QTest.keySequence(plot_0.plot, "Shift+H")
+            self.processEvents()
 
         # Select the channel from 'Plot 0' and drag it to 'Plot 1'
         # Drag one Channel from FileWidget channel_tree to Plot_0

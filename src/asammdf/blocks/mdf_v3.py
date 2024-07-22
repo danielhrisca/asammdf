@@ -3194,7 +3194,7 @@ class MDF3(MDF_Common):
             return self._master
 
         if raster is not None:
-            PendingDeprecationWarning(
+            raise PendingDeprecationWarning(
                 "the argument raster is deprecated since version 5.13.0 " "and will be removed in a future release"
             )
 
@@ -3790,10 +3790,10 @@ class MDF3(MDF_Common):
 
             result = {}
 
-            for group_index, channels in gps.items():
+            for group_index, _channels in gps.items():
                 group = self.groups[group_index]
 
-                channel_dependencies = [group.channel_dependencies[ch_nr] for ch_nr in channels]
+                channel_dependencies = [group.channel_dependencies[ch_nr] for ch_nr in _channels]
 
                 if minimal:
                     for dep in channel_dependencies:
@@ -3802,15 +3802,15 @@ class MDF3(MDF_Common):
                         for gp_nr, ch_nr in dep.referenced_channels:
                             if gp_nr == group_index:
                                 try:
-                                    channels.remove(ch_nr)
+                                    _channels.remove(ch_nr)
                                 except KeyError:
                                     pass
 
                 gp_master = self.masters_db.get(group_index, None)
-                if skip_master and gp_master is not None and gp_master in channels and len(channels) > 1:
-                    channels.remove(gp_master)
+                if skip_master and gp_master is not None and gp_master in _channels and len(_channels) > 1:
+                    _channels.remove(gp_master)
 
-                result[group_index] = {group_index: sorted(channels)}
+                result[group_index] = {group_index: sorted(_channels)}
 
         return result
 
