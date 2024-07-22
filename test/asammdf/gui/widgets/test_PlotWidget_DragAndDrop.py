@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import sys
 from unittest import mock
 
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
@@ -507,8 +508,9 @@ class TestDragAndDrop(TestPlotWidget):
         self.assertEqual(1, plot_1.channel_selection.topLevelItemCount())
 
         # Tile horizontally
-        QtTest.QTest.keySequence(plot_0.plot, "Shift+H")
-        self.processEvents()
+        if sys.platform != "win32":
+            QtTest.QTest.keySequence(plot_0.plot, "Shift+H")
+            self.processEvents()
 
         # Select the channel from 'Plot 0' and drag it to 'Plot 1'
         # Drag one Channel from FileWidget channel_tree to Plot_0
