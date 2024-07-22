@@ -494,6 +494,7 @@ class TestDragAndDrop(TestPlotWidget):
 
         # Tile horizontally
         QtTest.QTest.keySequence(plot_0.plot, "Shift+H")
+        self.processEvents()
 
         # Drag one Channel from FileWidget channel_tree to Plot_0
         drag_position = channel_tree.visualItemRect(channel_1).center()
