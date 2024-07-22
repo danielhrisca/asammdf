@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'signal_scale.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -40,7 +40,7 @@ class Ui_ScaleDialog(object):
         self.cancel_btn = QPushButton(ScaleDialog)
         self.cancel_btn.setObjectName(u"cancel_btn")
         icon = QIcon()
-        icon.addFile(u":/erase.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/erase.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.cancel_btn.setIcon(icon)
 
         self.horizontalLayout.addWidget(self.cancel_btn)
@@ -52,7 +52,7 @@ class Ui_ScaleDialog(object):
         self.apply_btn = QPushButton(ScaleDialog)
         self.apply_btn.setObjectName(u"apply_btn")
         icon1 = QIcon()
-        icon1.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon1.addFile(u":/checkmark.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.apply_btn.setIcon(icon1)
 
         self.horizontalLayout.addWidget(self.apply_btn)
@@ -74,7 +74,7 @@ class Ui_ScaleDialog(object):
         self.fit_btn = QPushButton(self.groupBox_2)
         self.fit_btn.setObjectName(u"fit_btn")
         icon2 = QIcon()
-        icon2.addFile(u":/fit.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon2.addFile(u":/fit.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.fit_btn.setIcon(icon2)
 
         self.gridLayout.addWidget(self.fit_btn, 2, 0, 1, 1)
@@ -88,7 +88,7 @@ class Ui_ScaleDialog(object):
         self.zoom_out_btn = QPushButton(self.groupBox_2)
         self.zoom_out_btn.setObjectName(u"zoom_out_btn")
         icon3 = QIcon()
-        icon3.addFile(u":/zoom-out.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon3.addFile(u":/zoom-out.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.zoom_out_btn.setIcon(icon3)
 
         self.gridLayout.addWidget(self.zoom_out_btn, 1, 0, 1, 1)
@@ -102,7 +102,7 @@ class Ui_ScaleDialog(object):
         self.fast_shift_up_btn = QPushButton(self.groupBox_2)
         self.fast_shift_up_btn.setObjectName(u"fast_shift_up_btn")
         icon4 = QIcon()
-        icon4.addFile(u":/shift_up.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon4.addFile(u":/shift_up.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.fast_shift_up_btn.setIcon(icon4)
 
         self.gridLayout.addWidget(self.fast_shift_up_btn, 5, 0, 1, 1)
@@ -116,7 +116,7 @@ class Ui_ScaleDialog(object):
         self.shift_down_btn = QPushButton(self.groupBox_2)
         self.shift_down_btn.setObjectName(u"shift_down_btn")
         icon5 = QIcon()
-        icon5.addFile(u":/down.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon5.addFile(u":/down.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.shift_down_btn.setIcon(icon5)
 
         self.gridLayout.addWidget(self.shift_down_btn, 4, 0, 1, 1)
@@ -124,7 +124,7 @@ class Ui_ScaleDialog(object):
         self.shift_up_btn = QPushButton(self.groupBox_2)
         self.shift_up_btn.setObjectName(u"shift_up_btn")
         icon6 = QIcon()
-        icon6.addFile(u":/up.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon6.addFile(u":/up.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.shift_up_btn.setIcon(icon6)
 
         self.gridLayout.addWidget(self.shift_up_btn, 3, 0, 1, 1)
@@ -132,7 +132,7 @@ class Ui_ScaleDialog(object):
         self.zoom_in_btn = QPushButton(self.groupBox_2)
         self.zoom_in_btn.setObjectName(u"zoom_in_btn")
         icon7 = QIcon()
-        icon7.addFile(u":/zoom-in.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon7.addFile(u":/zoom-in.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.zoom_in_btn.setIcon(icon7)
 
         self.gridLayout.addWidget(self.zoom_in_btn, 0, 0, 1, 1)
@@ -140,7 +140,7 @@ class Ui_ScaleDialog(object):
         self.fast_shift_down_btn = QPushButton(self.groupBox_2)
         self.fast_shift_down_btn.setObjectName(u"fast_shift_down_btn")
         icon8 = QIcon()
-        icon8.addFile(u":/shift_down.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon8.addFile(u":/shift_down.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.fast_shift_down_btn.setIcon(icon8)
 
         self.gridLayout.addWidget(self.fast_shift_down_btn, 6, 0, 1, 1)

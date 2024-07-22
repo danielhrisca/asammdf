@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'functions_manager.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -37,7 +37,7 @@ class Ui_FunctionsManager(object):
         self.add_btn = QPushButton(FunctionsManager)
         self.add_btn.setObjectName(u"add_btn")
         icon = QIcon()
-        icon.addFile(u":/plus.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/plus.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.add_btn.setIcon(icon)
         self.add_btn.setIconSize(QSize(24, 24))
 
@@ -46,7 +46,7 @@ class Ui_FunctionsManager(object):
         self.erase_btn = QPushButton(FunctionsManager)
         self.erase_btn.setObjectName(u"erase_btn")
         icon1 = QIcon()
-        icon1.addFile(u":/erase.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon1.addFile(u":/erase.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.erase_btn.setIcon(icon1)
         self.erase_btn.setIconSize(QSize(24, 24))
 
@@ -55,7 +55,7 @@ class Ui_FunctionsManager(object):
         self.import_btn = QPushButton(FunctionsManager)
         self.import_btn.setObjectName(u"import_btn")
         icon2 = QIcon()
-        icon2.addFile(u":/open.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon2.addFile(u":/open.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.import_btn.setIcon(icon2)
         self.import_btn.setIconSize(QSize(24, 24))
 
@@ -64,7 +64,7 @@ class Ui_FunctionsManager(object):
         self.export_btn = QPushButton(FunctionsManager)
         self.export_btn.setObjectName(u"export_btn")
         icon3 = QIcon()
-        icon3.addFile(u":/save.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon3.addFile(u":/save.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.export_btn.setIcon(icon3)
         self.export_btn.setIconSize(QSize(24, 24))
 
@@ -89,7 +89,7 @@ class Ui_FunctionsManager(object):
         self.check_syntax_btn = QPushButton(self.function_group)
         self.check_syntax_btn.setObjectName(u"check_syntax_btn")
         icon4 = QIcon()
-        icon4.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon4.addFile(u":/checkmark.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.check_syntax_btn.setIcon(icon4)
 
         self.horizontalLayout_3.addWidget(self.check_syntax_btn)
@@ -97,7 +97,7 @@ class Ui_FunctionsManager(object):
         self.store_btn = QPushButton(self.function_group)
         self.store_btn.setObjectName(u"store_btn")
         icon5 = QIcon()
-        icon5.addFile(u":/shift_down.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon5.addFile(u":/shift_down.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.store_btn.setIcon(icon5)
 
         self.horizontalLayout_3.addWidget(self.store_btn)

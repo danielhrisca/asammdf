@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'bus_database_manager.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -41,7 +41,7 @@ class Ui_BusDatabaseManager(object):
         self.load_can_database_btn = QPushButton(self.tab)
         self.load_can_database_btn.setObjectName(u"load_can_database_btn")
         icon = QIcon()
-        icon.addFile(u":/open.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/open.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.load_can_database_btn.setIcon(icon)
 
         self.gridLayout_4.addWidget(self.load_can_database_btn, 0, 0, 1, 1)

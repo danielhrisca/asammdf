@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'multi_search_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -73,7 +73,7 @@ class Ui_MultiSearchDialog(object):
         self.show_measurement_list_btn = QPushButton(MultiSearchDialog)
         self.show_measurement_list_btn.setObjectName(u"show_measurement_list_btn")
         icon = QIcon()
-        icon.addFile(u":/info.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/info.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.show_measurement_list_btn.setIcon(icon)
 
         self.grid_layout.addWidget(self.show_measurement_list_btn, 0, 2, 1, 2)
@@ -103,7 +103,7 @@ class Ui_MultiSearchDialog(object):
         self.add_btn.setObjectName(u"add_btn")
         self.add_btn.setFocusPolicy(Qt.FocusPolicy.TabFocus)
         icon1 = QIcon()
-        icon1.addFile(u":/left.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon1.addFile(u":/left.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.add_btn.setIcon(icon1)
 
         self.grid_layout.addWidget(self.add_btn, 6, 1, 1, 1)

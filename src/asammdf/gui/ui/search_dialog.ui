@@ -63,17 +63,11 @@
        </property>
        <item row="0" column="0">
         <widget class="QLineEdit" name="search_box">
-         <property name="focusPolicy">
-          <enum>Qt::FocusPolicy::NoFocus</enum>
-         </property>
-         <property name="inputMask">
-          <string/>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
          <property name="placeholderText">
           <string>channel name pattern</string>
+         </property>
+         <property name="clearButtonEnabled">
+          <bool>true</bool>
          </property>
         </widget>
        </item>

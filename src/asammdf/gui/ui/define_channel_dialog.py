@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'define_channel_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -29,7 +29,7 @@ class Ui_ComputedChannel(object):
         ComputedChannel.resize(723, 552)
         ComputedChannel.setMaximumSize(QSize(16777215, 16777215))
         icon = QIcon()
-        icon.addFile(u":/plus.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/plus.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         ComputedChannel.setWindowIcon(icon)
         ComputedChannel.setSizeGripEnabled(True)
         self.gridLayout = QGridLayout(ComputedChannel)
@@ -84,7 +84,7 @@ class Ui_ComputedChannel(object):
         self.trigger_search_btn = QPushButton(self.groupBox_3)
         self.trigger_search_btn.setObjectName(u"trigger_search_btn")
         icon1 = QIcon()
-        icon1.addFile(u":/search.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon1.addFile(u":/search.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.trigger_search_btn.setIcon(icon1)
 
         self.gridLayout_8.addWidget(self.trigger_search_btn, 4, 3, 1, 1)
@@ -158,7 +158,7 @@ class Ui_ComputedChannel(object):
         self.show_definition_btn = QPushButton(self.args_widget)
         self.show_definition_btn.setObjectName(u"show_definition_btn")
         icon2 = QIcon()
-        icon2.addFile(u":/info.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon2.addFile(u":/info.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.show_definition_btn.setIcon(icon2)
 
         self.arg_layout.addWidget(self.show_definition_btn, 0, 2, 1, 1)

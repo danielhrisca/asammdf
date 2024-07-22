@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'file_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -80,7 +80,7 @@ class Ui_file_widget(object):
         self.load_channel_list_btn = QPushButton(self.verticalLayoutWidget)
         self.load_channel_list_btn.setObjectName(u"load_channel_list_btn")
         icon = QIcon()
-        icon.addFile(u":/open.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/open.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.load_channel_list_btn.setIcon(icon)
 
         self.buttons_layout.addWidget(self.load_channel_list_btn)
@@ -92,7 +92,7 @@ class Ui_file_widget(object):
         self.save_channel_list_btn = QPushButton(self.verticalLayoutWidget)
         self.save_channel_list_btn.setObjectName(u"save_channel_list_btn")
         icon1 = QIcon()
-        icon1.addFile(u":/save.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon1.addFile(u":/save.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.save_channel_list_btn.setIcon(icon1)
 
         self.buttons_layout.addWidget(self.save_channel_list_btn)
@@ -100,7 +100,7 @@ class Ui_file_widget(object):
         self.select_all_btn = QPushButton(self.verticalLayoutWidget)
         self.select_all_btn.setObjectName(u"select_all_btn")
         icon2 = QIcon()
-        icon2.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon2.addFile(u":/checkmark.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.select_all_btn.setIcon(icon2)
 
         self.buttons_layout.addWidget(self.select_all_btn)
@@ -108,7 +108,7 @@ class Ui_file_widget(object):
         self.clear_channels_btn = QPushButton(self.verticalLayoutWidget)
         self.clear_channels_btn.setObjectName(u"clear_channels_btn")
         icon3 = QIcon()
-        icon3.addFile(u":/erase.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon3.addFile(u":/erase.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.clear_channels_btn.setIcon(icon3)
 
         self.buttons_layout.addWidget(self.clear_channels_btn)
@@ -116,7 +116,7 @@ class Ui_file_widget(object):
         self.advanced_search_btn = QPushButton(self.verticalLayoutWidget)
         self.advanced_search_btn.setObjectName(u"advanced_search_btn")
         icon4 = QIcon()
-        icon4.addFile(u":/search.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon4.addFile(u":/search.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.advanced_search_btn.setIcon(icon4)
 
         self.buttons_layout.addWidget(self.advanced_search_btn)
@@ -124,7 +124,7 @@ class Ui_file_widget(object):
         self.create_window_btn = QPushButton(self.verticalLayoutWidget)
         self.create_window_btn.setObjectName(u"create_window_btn")
         icon5 = QIcon()
-        icon5.addFile(u":/graph.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon5.addFile(u":/graph.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.create_window_btn.setIcon(icon5)
 
         self.buttons_layout.addWidget(self.create_window_btn)
@@ -136,7 +136,7 @@ class Ui_file_widget(object):
         self.load_embedded_channel_list_btn = QPushButton(self.verticalLayoutWidget)
         self.load_embedded_channel_list_btn.setObjectName(u"load_embedded_channel_list_btn")
         icon6 = QIcon()
-        icon6.addFile(u":/load_embed.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon6.addFile(u":/load_embed.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.load_embedded_channel_list_btn.setIcon(icon6)
 
         self.buttons_layout.addWidget(self.load_embedded_channel_list_btn)
@@ -144,7 +144,7 @@ class Ui_file_widget(object):
         self.save_embedded_channel_list_btn = QPushButton(self.verticalLayoutWidget)
         self.save_embedded_channel_list_btn.setObjectName(u"save_embedded_channel_list_btn")
         icon7 = QIcon()
-        icon7.addFile(u":/attach.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon7.addFile(u":/attach.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.save_embedded_channel_list_btn.setIcon(icon7)
 
         self.buttons_layout.addWidget(self.save_embedded_channel_list_btn)
@@ -416,7 +416,7 @@ class Ui_file_widget(object):
         self.scramble_btn = QPushButton(self.groupBox_9)
         self.scramble_btn.setObjectName(u"scramble_btn")
         icon8 = QIcon()
-        icon8.addFile(u":/scramble.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon8.addFile(u":/scramble.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.scramble_btn.setIcon(icon8)
 
         self.gridLayout_20.addWidget(self.scramble_btn, 1, 0, 1, 1)
@@ -754,7 +754,7 @@ class Ui_file_widget(object):
         self.horizontalLayout.addWidget(self.scrollArea)
 
         icon9 = QIcon()
-        icon9.addFile(u":/convert.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon9.addFile(u":/convert.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.aspects.addTab(self.modify, icon9, "")
         self.extract_bus_tab = QWidget()
         self.extract_bus_tab.setObjectName(u"extract_bus_tab")
@@ -888,7 +888,7 @@ class Ui_file_widget(object):
         self.extract_bus_csv_btn = QPushButton(self.groupBox_3)
         self.extract_bus_csv_btn.setObjectName(u"extract_bus_csv_btn")
         icon10 = QIcon()
-        icon10.addFile(u":/csv.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon10.addFile(u":/csv.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.extract_bus_csv_btn.setIcon(icon10)
 
         self.gridLayout_6.addWidget(self.extract_bus_csv_btn, 14, 2, 1, 1)
@@ -950,7 +950,7 @@ class Ui_file_widget(object):
         self.extract_bus_btn = QPushButton(self.groupBox_2)
         self.extract_bus_btn.setObjectName(u"extract_bus_btn")
         icon11 = QIcon()
-        icon11.addFile(u":/down.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon11.addFile(u":/down.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.extract_bus_btn.setIcon(icon11)
 
         self.gridLayout_5.addWidget(self.extract_bus_btn, 4, 1, 1, 2)
@@ -1052,7 +1052,7 @@ class Ui_file_widget(object):
         self.gridLayout_9.addWidget(self.info, 0, 0, 1, 1)
 
         icon12 = QIcon()
-        icon12.addFile(u":/info.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon12.addFile(u":/info.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.aspects.addTab(self.info_tab, icon12, "")
         self.attachments_tab = QWidget()
         self.attachments_tab.setObjectName(u"attachments_tab")

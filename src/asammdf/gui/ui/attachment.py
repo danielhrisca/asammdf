@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'attachment.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -45,7 +45,7 @@ class Ui_Attachment(object):
         self.extract_btn = QPushButton(Attachment)
         self.extract_btn.setObjectName(u"extract_btn")
         icon = QIcon()
-        icon.addFile(u":/export.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/export.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.extract_btn.setIcon(icon)
 
         self.horizontalLayout.addWidget(self.extract_btn)

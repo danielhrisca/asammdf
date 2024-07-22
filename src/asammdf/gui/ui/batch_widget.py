@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'batch_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -115,7 +115,7 @@ class Ui_batch_widget(object):
         self.concatenate_btn = QPushButton(self.concatenate_tab)
         self.concatenate_btn.setObjectName(u"concatenate_btn")
         icon = QIcon()
-        icon.addFile(u":/plus.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/plus.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.concatenate_btn.setIcon(icon)
 
         self.gridLayout_7.addWidget(self.concatenate_btn, 9, 1, 1, 1)
@@ -164,7 +164,7 @@ class Ui_batch_widget(object):
         self.load_filter_list_btn = QPushButton(self.scrollAreaWidgetContents_3)
         self.load_filter_list_btn.setObjectName(u"load_filter_list_btn")
         icon1 = QIcon()
-        icon1.addFile(u":/open.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon1.addFile(u":/open.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.load_filter_list_btn.setIcon(icon1)
 
         self.horizontalLayout_5.addWidget(self.load_filter_list_btn)
@@ -172,7 +172,7 @@ class Ui_batch_widget(object):
         self.save_filter_list_btn = QPushButton(self.scrollAreaWidgetContents_3)
         self.save_filter_list_btn.setObjectName(u"save_filter_list_btn")
         icon2 = QIcon()
-        icon2.addFile(u":/save.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon2.addFile(u":/save.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.save_filter_list_btn.setIcon(icon2)
 
         self.horizontalLayout_5.addWidget(self.save_filter_list_btn)
@@ -180,7 +180,7 @@ class Ui_batch_widget(object):
         self.clear_filter_btn = QPushButton(self.scrollAreaWidgetContents_3)
         self.clear_filter_btn.setObjectName(u"clear_filter_btn")
         icon3 = QIcon()
-        icon3.addFile(u":/erase.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon3.addFile(u":/erase.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.clear_filter_btn.setIcon(icon3)
 
         self.horizontalLayout_5.addWidget(self.clear_filter_btn)
@@ -188,7 +188,7 @@ class Ui_batch_widget(object):
         self.advanced_serch_filter_btn = QPushButton(self.scrollAreaWidgetContents_3)
         self.advanced_serch_filter_btn.setObjectName(u"advanced_serch_filter_btn")
         icon4 = QIcon()
-        icon4.addFile(u":/search.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon4.addFile(u":/search.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.advanced_serch_filter_btn.setIcon(icon4)
 
         self.horizontalLayout_5.addWidget(self.advanced_serch_filter_btn)
@@ -399,7 +399,7 @@ class Ui_batch_widget(object):
         self.scramble_btn = QPushButton(self.groupBox_12)
         self.scramble_btn.setObjectName(u"scramble_btn")
         icon5 = QIcon()
-        icon5.addFile(u":/scramble.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon5.addFile(u":/scramble.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.scramble_btn.setIcon(icon5)
 
         self.gridLayout_26.addWidget(self.scramble_btn, 1, 0, 1, 1)
@@ -739,7 +739,7 @@ class Ui_batch_widget(object):
         self.apply_btn = QPushButton(self.scrollAreaWidgetContents_3)
         self.apply_btn.setObjectName(u"apply_btn")
         icon6 = QIcon()
-        icon6.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon6.addFile(u":/checkmark.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.apply_btn.setIcon(icon6)
 
         self.verticalLayout_15.addWidget(self.apply_btn)
@@ -755,7 +755,7 @@ class Ui_batch_widget(object):
         self.verticalLayout_5.addWidget(self.scrollArea_3)
 
         icon7 = QIcon()
-        icon7.addFile(u":/convert.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon7.addFile(u":/convert.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.aspects.addTab(self.convert_tab, icon7, "")
         self.stack_tab = QWidget()
         self.stack_tab.setObjectName(u"stack_tab")
@@ -833,7 +833,7 @@ class Ui_batch_widget(object):
         self.stack_btn = QPushButton(self.stack_tab)
         self.stack_btn.setObjectName(u"stack_btn")
         icon8 = QIcon()
-        icon8.addFile(u":/stack.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon8.addFile(u":/stack.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.stack_btn.setIcon(icon8)
 
         self.gridLayout_8.addWidget(self.stack_btn, 9, 1, 1, 1)
@@ -950,7 +950,7 @@ class Ui_batch_widget(object):
         self.extract_bus_csv_btn = QPushButton(self.groupBox_3)
         self.extract_bus_csv_btn.setObjectName(u"extract_bus_csv_btn")
         icon9 = QIcon()
-        icon9.addFile(u":/csv.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon9.addFile(u":/csv.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.extract_bus_csv_btn.setIcon(icon9)
 
         self.gridLayout_10.addWidget(self.extract_bus_csv_btn, 13, 1, 1, 3)
@@ -1086,7 +1086,7 @@ class Ui_batch_widget(object):
         self.extract_bus_btn = QPushButton(self.groupBox_2)
         self.extract_bus_btn.setObjectName(u"extract_bus_btn")
         icon10 = QIcon()
-        icon10.addFile(u":/down.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon10.addFile(u":/down.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.extract_bus_btn.setIcon(icon10)
 
         self.gridLayout_5.addWidget(self.extract_bus_btn, 4, 0, 1, 2)
@@ -1128,7 +1128,7 @@ class Ui_batch_widget(object):
         self.sort_by_start_time_btn = QPushButton(batch_widget)
         self.sort_by_start_time_btn.setObjectName(u"sort_by_start_time_btn")
         icon11 = QIcon()
-        icon11.addFile(u":/clock.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon11.addFile(u":/clock.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.sort_by_start_time_btn.setIcon(icon11)
 
         self.verticalLayout_3.addWidget(self.sort_by_start_time_btn)
@@ -1136,7 +1136,7 @@ class Ui_batch_widget(object):
         self.sort_alphabetically_btn = QPushButton(batch_widget)
         self.sort_alphabetically_btn.setObjectName(u"sort_alphabetically_btn")
         icon12 = QIcon()
-        icon12.addFile(u":/alphabetical_sorting.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon12.addFile(u":/alphabetical_sorting.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.sort_alphabetically_btn.setIcon(icon12)
 
         self.verticalLayout_3.addWidget(self.sort_alphabetically_btn)

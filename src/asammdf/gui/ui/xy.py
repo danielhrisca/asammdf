@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'xy.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -90,7 +90,7 @@ class Ui_XYDisplay(object):
         self.x_search_btn = QPushButton(self.groupBox_2)
         self.x_search_btn.setObjectName(u"x_search_btn")
         icon = QIcon()
-        icon.addFile(u":/search.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/search.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.x_search_btn.setIcon(icon)
 
         self.gridLayout.addWidget(self.x_search_btn, 0, 2, 1, 1)

@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'main_window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -32,7 +32,7 @@ class Ui_PyMDFMainWindow(object):
         sizePolicy.setHeightForWidth(PyMDFMainWindow.sizePolicy().hasHeightForWidth())
         PyMDFMainWindow.setSizePolicy(sizePolicy)
         icon = QIcon()
-        icon.addFile(u":/asammdf.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/asammdf.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         PyMDFMainWindow.setWindowIcon(icon)
         self.action_memory_minimum = QAction(PyMDFMainWindow)
         self.action_memory_minimum.setObjectName(u"action_memory_minimum")

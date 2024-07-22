@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'search_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -44,7 +44,7 @@ class Ui_SearchDialog(object):
         self.gridLayout.setContentsMargins(1, 1, 1, 1)
         self.search_box = QLineEdit(self.tab)
         self.search_box.setObjectName(u"search_box")
-        self.search_box.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.search_box.setClearButtonEnabled(True)
 
         self.gridLayout.addWidget(self.search_box, 0, 0, 1, 1)
 
@@ -113,7 +113,7 @@ class Ui_SearchDialog(object):
         self.add_btn.setObjectName(u"add_btn")
         self.add_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         icon = QIcon()
-        icon.addFile(u":/shift_down.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/shift_down.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.add_btn.setIcon(icon)
         self.add_btn.setAutoDefault(False)
 
@@ -126,7 +126,7 @@ class Ui_SearchDialog(object):
         self.show_alias_btn = QPushButton(self.tab)
         self.show_alias_btn.setObjectName(u"show_alias_btn")
         icon1 = QIcon()
-        icon1.addFile(u":/info.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon1.addFile(u":/info.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.show_alias_btn.setIcon(icon1)
 
         self.horizontalLayout_2.addWidget(self.show_alias_btn)
@@ -140,7 +140,7 @@ class Ui_SearchDialog(object):
         self.cancel_btn = QPushButton(self.tab)
         self.cancel_btn.setObjectName(u"cancel_btn")
         icon2 = QIcon()
-        icon2.addFile(u":/erase.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon2.addFile(u":/erase.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.cancel_btn.setIcon(icon2)
         self.cancel_btn.setAutoDefault(False)
 
@@ -153,7 +153,7 @@ class Ui_SearchDialog(object):
         self.apply_btn = QPushButton(self.tab)
         self.apply_btn.setObjectName(u"apply_btn")
         icon3 = QIcon()
-        icon3.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon3.addFile(u":/checkmark.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.apply_btn.setIcon(icon3)
         self.apply_btn.setAutoDefault(False)
 
@@ -166,7 +166,7 @@ class Ui_SearchDialog(object):
         self.add_window_btn = QPushButton(self.tab)
         self.add_window_btn.setObjectName(u"add_window_btn")
         icon4 = QIcon()
-        icon4.addFile(u":/plus.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon4.addFile(u":/plus.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.add_window_btn.setIcon(icon4)
         self.add_window_btn.setAutoDefault(False)
 
@@ -179,7 +179,7 @@ class Ui_SearchDialog(object):
         self.gridLayout.setRowStretch(2, 1)
         self.gridLayout.setRowStretch(5, 1)
         icon5 = QIcon()
-        icon5.addFile(u":/search.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon5.addFile(u":/search.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.tabs.addTab(self.tab, icon5, "")
         self.tab_2 = QWidget()
         self.tab_2.setObjectName(u"tab_2")
@@ -253,7 +253,7 @@ class Ui_SearchDialog(object):
         self.define_ranges_btn = QPushButton(self.tab_2)
         self.define_ranges_btn.setObjectName(u"define_ranges_btn")
         icon6 = QIcon()
-        icon6.addFile(u":/range.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon6.addFile(u":/range.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.define_ranges_btn.setIcon(icon6)
 
         self.gridLayout_3.addWidget(self.define_ranges_btn, 7, 2, 1, 1)
@@ -370,8 +370,6 @@ class Ui_SearchDialog(object):
 
     def retranslateUi(self, SearchDialog):
         SearchDialog.setWindowTitle(QCoreApplication.translate("SearchDialog", u"Dialog", None))
-        self.search_box.setInputMask("")
-        self.search_box.setText("")
         self.search_box.setPlaceholderText(QCoreApplication.translate("SearchDialog", u"channel name pattern", None))
         self.status.setText(QCoreApplication.translate("SearchDialog", u"No results", None))
         self.match_kind.setItemText(0, QCoreApplication.translate("SearchDialog", u"Wildcard", None))

@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'gps_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -26,7 +26,7 @@ class Ui_GPSDialog(object):
             GPSDialog.setObjectName(u"GPSDialog")
         GPSDialog.resize(623, 190)
         icon = QIcon()
-        icon.addFile(u":/globe.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/globe.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         GPSDialog.setWindowIcon(icon)
         GPSDialog.setSizeGripEnabled(True)
         self.gridLayout = QGridLayout(GPSDialog)
@@ -71,7 +71,7 @@ class Ui_GPSDialog(object):
         self.search_latitude_btn = QPushButton(GPSDialog)
         self.search_latitude_btn.setObjectName(u"search_latitude_btn")
         icon1 = QIcon()
-        icon1.addFile(u":/search.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon1.addFile(u":/search.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.search_latitude_btn.setIcon(icon1)
 
         self.gridLayout.addWidget(self.search_latitude_btn, 2, 2, 1, 1)
