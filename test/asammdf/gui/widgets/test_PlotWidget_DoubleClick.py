@@ -9,7 +9,6 @@ from test.asammdf.gui.test_base import DragAndDrop, Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
-@unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
 class TestDoubleClick(TestPlotWidget):
     # Note: Test Plot Widget through FileWidget.
     def setUp(self):

@@ -375,7 +375,6 @@ class TestContextMenu(TestPlotWidget):
                 self.assertIsInstance(content, dict)
                 self.assertTrue(content["type"] == "group")
 
-    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Action_PasteDisplayProperties_Group(self):
         """
         Test Scope:
@@ -556,7 +555,6 @@ class TestContextMenu(TestPlotWidget):
 
         self.processEvents(0.2)
 
-    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Action_CopyChannelStructure_Group(self):
         """
         Test Scope:
@@ -589,7 +587,6 @@ class TestContextMenu(TestPlotWidget):
             for channel_properties in content:
                 self.assertIsInstance(channel_properties, dict)
 
-    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Action_PasteChannelStructure_Group(self):
         """
         Test Scope:
@@ -648,7 +645,6 @@ class TestContextMenu(TestPlotWidget):
         # Evaluate
         self.assertEqual(False, self.plot_channel_a.isDisabled())
 
-    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Menu_EnableDisable_Action_DeactivateGroups_Group(self):
         """
         Test Scope:
@@ -713,7 +709,6 @@ class TestContextMenu(TestPlotWidget):
             child = group_a_channel.child(child_index)
             self.assertEqual(True, child.isDisabled())
 
-    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Menu_EnableDisable_Action_EnableAll(self):
         """
         Test Scope:
@@ -760,7 +755,6 @@ class TestContextMenu(TestPlotWidget):
             if item.type() != item.Info:
                 self.assertEqual(QtCore.Qt.CheckState.Checked, item.checkState(self.Column.NAME))
 
-    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Menu_EnableDisable_Action_DisableAll(self):
         """
         Test Scope:
@@ -807,7 +801,6 @@ class TestContextMenu(TestPlotWidget):
             if item.type() != item.Info:
                 self.assertEqual(QtCore.Qt.CheckState.Unchecked, item.checkState(self.Column.NAME))
 
-    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Menu_EnableDisable_Action_EnableSelected(self):
         """
         Test Scope:
@@ -864,7 +857,6 @@ class TestContextMenu(TestPlotWidget):
 
         self.assertEqual(QtCore.Qt.CheckState.Checked, group_channel.checkState(self.Column.NAME))
 
-    @unittest.skipIf(sys.platform != "win32", "Timers cannot be started/stopped from another thread.")
     def test_Menu_EnableDisable_Action_DisableSelected(self):
         """
         Test Scope:

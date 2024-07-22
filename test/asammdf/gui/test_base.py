@@ -293,7 +293,7 @@ class DragAndDrop:
 
         while t_move.is_alive():
             QtWidgets.QApplication.instance().processEvents()
-            time.sleep(0.001)
+            time.sleep(0.01)
 
         time.sleep(0.05)
         QtWidgets.QApplication.instance().processEvents()
