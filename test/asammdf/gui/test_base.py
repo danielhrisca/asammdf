@@ -22,6 +22,7 @@ import unittest
 from unittest import mock
 
 import numpy as np
+import pyautogui
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
 
@@ -291,35 +292,39 @@ class DragAndDrop:
 
         while t_move.is_alive():
             QtWidgets.QApplication.instance().processEvents()
-            time.sleep(0.01)
+            time.sleep(0.001)
+
+        time.sleep(0.05)
         QtWidgets.QApplication.instance().processEvents()
 
 
-if sys.platform == "win32":
+def dnd_worker(start, end):
+    x_vals = np.linspace(start.x(), end.x(), 10)
+    y_vals = np.linspace(start.y(), end.y(), len(x_vals))
 
-    def dnd_worker(start, end):
-        x_vals = np.linspace(start.x(), end.x(), 10)
-        y_vals = np.linspace(start.y(), end.y(), len(x_vals))
-        print(x_vals, y_vals)
-
-        # Move the mouse to the starting position
+    if sys.platform == "win32":
         win32api.SetCursorPos((start.x(), start.y()))
-
         # Perform left mouse button down event
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, start.x(), start.y(), 0, 0)
-
         # Move the mouse to the ending position
         for x, y in zip(x_vals, y_vals):
             win32api.SetCursorPos((int(x), int(y)))
             time.sleep(0.01)
-
         # Perform left mouse button up event
         win32api.SetCursorPos((end.x(), end.y()))
         time.sleep(0.01)
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, end.x(), end.y(), 0, 0)
         time.sleep(0.1)
 
-else:
-
-    def dnd_worker(start, end):
-        pass
+    else:
+        # Move the mouse to the starting position
+        pyautogui.moveTo(start.x(), start.y())
+        # Perform left mouse button down event
+        pyautogui.mouseDown()
+        # Move the mouse to the ending position
+        for x, y in zip(x_vals, y_vals):
+            pyautogui.moveTo(int(x), int(y))
+            time.sleep(0.001)
+        # Perform left mouse button up event
+        pyautogui.moveTo(end.x(), end.y())
+        pyautogui.mouseUp()
