@@ -492,10 +492,6 @@ class TestDragAndDrop(TestPlotWidget):
         plot_1 = self.widget.mdi_area.subWindowList()[1].widget()
         plot_1.showNormal()
 
-        # Tile horizontally
-        QtTest.QTest.keySequence(plot_0.plot, "Shift+H")
-        self.processEvents()
-
         # Drag one Channel from FileWidget channel_tree to Plot_0
         drag_position = channel_tree.visualItemRect(channel_1).center()
         drop_position = plot_1.channel_selection.viewport().rect().center()
@@ -509,6 +505,10 @@ class TestDragAndDrop(TestPlotWidget):
             dst_pos=drop_position,
         )
         self.assertEqual(1, plot_1.channel_selection.topLevelItemCount())
+
+        # Tile horizontally
+        QtTest.QTest.keySequence(plot_0.plot, "Shift+H")
+        self.processEvents()
 
         # Select the channel from 'Plot 0' and drag it to 'Plot 1'
         # Drag one Channel from FileWidget channel_tree to Plot_0
