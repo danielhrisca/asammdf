@@ -295,7 +295,7 @@ class DragAndDrop:
             QtWidgets.QApplication.instance().processEvents()
             time.sleep(0.01)
 
-        time.sleep(0.05)
+        time.sleep(0.1)
         QtWidgets.QApplication.instance().processEvents()
 
 

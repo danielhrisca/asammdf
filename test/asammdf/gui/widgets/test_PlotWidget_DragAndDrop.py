@@ -129,13 +129,6 @@ class TestDragAndDrop(TestPlotWidget):
             iterator += 1
         self.assertListEqual(selected_channels, plot_channels)
 
-    @unittest.skipIf(sys.platform != "win32", "Test applicable just for Windows.")
-    # Test is applicable just for Windows because of Drag and Drop implementation.
-    # In order to perform this operation, two threads are needed, one to startDrag operation and the other one to move
-    # the cursor and Release/drop the item.
-    # It may happen that drag operation or drop operation to lead on starting/stopping internal QTimers.
-    # On Linux, closing any QTimer/QThread in other one thread than parent leads to Segmentation Fault.
-    # Windows behaves differently on startDrag operation.
     def test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot(self):
         """
         Test Scope:

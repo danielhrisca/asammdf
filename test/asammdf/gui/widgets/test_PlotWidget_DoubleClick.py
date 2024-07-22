@@ -116,7 +116,7 @@ class TestDoubleClick(TestPlotWidget):
                 src_widget=self.plot.channel_selection,
                 dst_widget=self.plot.channel_selection,
                 src_pos=drag_position,
-                dst_pos=QtCore.QPoint(97, 57),
+                dst_pos=drop_position,
             )
             # PreEvaluate: Ensure that channel was added to group
             self.assertEqual(1, first_group.childCount())
