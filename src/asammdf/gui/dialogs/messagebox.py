@@ -100,6 +100,9 @@ This message will be closed in {self.timeout}s
             if screen_rect.contains(pos):
                 rect.moveCenter(screen_rect.center())
                 break
+        else:
+            screen_rect = screen.availableGeometry()
+            rect.moveCenter(screen_rect.center())
 
         self.setGeometry(rect)
 
