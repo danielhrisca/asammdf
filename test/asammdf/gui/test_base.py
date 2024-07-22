@@ -293,10 +293,12 @@ class DragAndDrop:
 
         while t_move.is_alive():
             QtWidgets.QApplication.instance().processEvents()
-            time.sleep(0.01)
+            time.sleep(0.001)
 
-        time.sleep(0.1)
-        QtWidgets.QApplication.instance().processEvents()
+        time.sleep(0.2)
+        for _ in range(10):
+            QtWidgets.QApplication.instance().processEvents()
+            time.sleep(0.001)
 
 
 def dnd_worker(start, end):
@@ -310,12 +312,11 @@ def dnd_worker(start, end):
         # Move the mouse to the ending position
         for x, y in zip(x_vals, y_vals):
             win32api.SetCursorPos((int(x), int(y)))
-            time.sleep(0.01)
+            time.sleep(0.02)
         # Perform left mouse button up event
         win32api.SetCursorPos((end.x(), end.y()))
-        time.sleep(0.01)
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, end.x(), end.y(), 0, 0)
-        time.sleep(0.1)
+        time.sleep(0.2)
 
     else:
         # Move the mouse to the starting position

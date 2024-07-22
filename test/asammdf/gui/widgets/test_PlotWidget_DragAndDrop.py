@@ -494,6 +494,9 @@ class TestDragAndDrop(TestPlotWidget):
         plot_1 = self.widget.mdi_area.subWindowList()[1].widget()
         plot_1.showNormal()
 
+        # Tile horizontally
+        QtTest.QTest.keySequence(plot_0.plot, "Shift+H")
+
         # Drag one Channel from FileWidget channel_tree to Plot_0
         drag_position = channel_tree.visualItemRect(channel_1).center()
         drop_position = plot_1.channel_selection.viewport().rect().center()
