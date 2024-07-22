@@ -22,13 +22,14 @@ import unittest
 from unittest import mock
 
 import numpy as np
-import pyautogui
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
 
 if sys.platform == "win32":
     import win32api
     import win32con
+else:
+    import pyautogui
 
 from asammdf.gui.utils import excepthook
 
