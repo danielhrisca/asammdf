@@ -291,7 +291,7 @@ class DragAndDrop:
 
         while t_move.is_alive():
             QtWidgets.QApplication.instance().processEvents()
-            time.sleep(0.001)
+            time.sleep(0.01)
         QtWidgets.QApplication.instance().processEvents()
 
 
@@ -314,15 +314,10 @@ if sys.platform == "win32":
             time.sleep(0.01)
 
         # Perform left mouse button up event
-        win32api.SetCursorPos(
-            (
-                end.x(),
-                end.y(),
-            )
-        )
+        win32api.SetCursorPos((end.x(), end.y()))
         time.sleep(0.01)
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, end.x(), end.y(), 0, 0)
-        time.sleep(0.05)
+        time.sleep(0.1)
 
 else:
 
