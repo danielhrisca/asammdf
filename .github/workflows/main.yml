@@ -13,8 +13,6 @@ jobs:
       matrix:
         os: [ windows-latest, ubuntu-22.04, macos-latest ]
         python-version: [ "3.9", "3.10", "3.11", "3.12" ]
-        os: [ ubuntu-22.04, macos-latest, windows-latest ]
-        python-version: [ "3.9", "3.10", "3.11", "3.12" ]
       fail-fast: false
 
     steps:

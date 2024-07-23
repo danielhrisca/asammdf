@@ -26,12 +26,6 @@ import numpy as np
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
 
-if sys.platform == "win32":
-    import win32api
-    import win32con
-else:
-    import pyautogui
-
 from asammdf.gui.utils import excepthook
 
 if sys.platform == "win32":
@@ -195,16 +189,6 @@ class DragAndDrop:
     def __init__(self, src_widget, dst_widget, src_pos, dst_pos):
 
         QtCore.QCoreApplication.processEvents()
-        # if hasattr(src_widget, "viewport"):
-        #     source_viewport = src_widget.viewport()
-        # else:
-        #     source_viewport = src_widget
-        # # Move to Destination Widget
-        # if hasattr(dst_widget, "viewport"):
-        #     destination_viewport = dst_widget.viewport()
-        # else:
-        #     destination_viewport = dst_widget
-
         # hack QDrag object
         with mock.patch(f"{src_widget.__module__}.QtGui.QDrag") as mo_QDrag:
             src_widget.startDrag(QtCore.Qt.DropAction.MoveAction)
@@ -230,7 +214,6 @@ class DragAndDrop:
             )
             with mock.patch.object(event, "source", return_value=src_widget):
                 dst_widget.dropEvent(event)
-
         QtCore.QCoreApplication.processEvents()
 
 
@@ -457,61 +440,3 @@ class Pixmap:
                 line = y
                 break
         return line
-
-
-class DragAndDrop:
-    def __init__(self, src_widget, dst_widget, src_pos, dst_pos):
-        src_offset = dst_offset = QtCore.QPoint(0, 1)
-        if hasattr(src_widget, "header"):
-            src_offset = QtCore.QPoint(0, src_widget.header().geometry().height() + 1)
-        if hasattr(dst_widget, "header"):
-            dst_offset = QtCore.QPoint(0, dst_widget.header().geometry().height() + 1)
-
-        t_move = threading.Thread(
-            target=dnd_worker,
-            args=(
-                src_widget.mapToGlobal(src_pos) + src_offset,
-                dst_widget.mapToGlobal(dst_pos) + dst_offset,
-            ),
-        )
-        t_move.start()
-
-        while t_move.is_alive():
-            QtWidgets.QApplication.instance().processEvents()
-            time.sleep(0.001)
-
-        time.sleep(0.2)
-        for _ in range(10):
-            QtWidgets.QApplication.instance().processEvents()
-            time.sleep(0.001)
-
-
-def dnd_worker(start, end):
-    x_vals = np.linspace(start.x(), end.x(), 10)
-    y_vals = np.linspace(start.y(), end.y(), len(x_vals))
-
-    if sys.platform == "win32":
-        win32api.SetCursorPos((start.x(), start.y()))
-        # Perform left mouse button down event
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, start.x(), start.y(), 0, 0)
-        # Move the mouse to the ending position
-        for x, y in zip(x_vals, y_vals):
-            win32api.SetCursorPos((int(x), int(y)))
-            time.sleep(0.02)
-        # Perform left mouse button up event
-        win32api.SetCursorPos((end.x(), end.y()))
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, end.x(), end.y(), 0, 0)
-        time.sleep(0.2)
-
-    else:
-        # Move the mouse to the starting position
-        pyautogui.moveTo(start.x(), start.y())
-        # Perform left mouse button down event
-        pyautogui.mouseDown()
-        # Move the mouse to the ending position
-        for x, y in zip(x_vals, y_vals):
-            pyautogui.moveTo(int(x), int(y))
-            time.sleep(0.001)
-        # Perform left mouse button up event
-        pyautogui.moveTo(end.x(), end.y())
-        pyautogui.mouseUp()
