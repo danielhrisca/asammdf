@@ -3194,7 +3194,7 @@ class MDF3(MDF_Common):
             return self._master
 
         if raster is not None:
-            PendingDeprecationWarning(
+            raise PendingDeprecationWarning(
                 "the argument raster is deprecated since version 5.13.0 " "and will be removed in a future release"
             )
 
