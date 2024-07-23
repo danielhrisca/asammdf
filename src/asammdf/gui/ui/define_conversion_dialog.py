@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'define_conversion_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -31,7 +31,7 @@ class Ui_ConversionDialog(object):
         ConversionDialog.resize(937, 501)
         ConversionDialog.setMaximumSize(QSize(16777215, 16777215))
         icon = QIcon()
-        icon.addFile(u":/plus.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/plus.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         ConversionDialog.setWindowIcon(icon)
         ConversionDialog.setSizeGripEnabled(True)
         self.gridLayout = QGridLayout(ConversionDialog)

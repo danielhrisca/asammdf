@@ -60,7 +60,8 @@ class TestFileWidget(TestBase):
             )
         else:
             self.widget = FileWidget(measurement_file, *args)
-        self.widget.showNormal()
+        self.widget.showMaximized()
+        self.widget.activateWindow()
         self.processEvents()
 
     def create_window(self, window_type, channels_names=(), channels_indexes=()):

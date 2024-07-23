@@ -1,5 +1,9 @@
 name: tests
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on: [ push, pull_request ]
 
 jobs:
@@ -8,6 +12,8 @@ jobs:
     strategy:
       matrix:
         os: [ windows-latest, ubuntu-22.04, macos-latest ]
+        python-version: [ "3.9", "3.10", "3.11", "3.12" ]
+        os: [ ubuntu-22.04, macos-latest, windows-latest ]
         python-version: [ "3.9", "3.10", "3.11", "3.12" ]
       fail-fast: false
 
@@ -37,6 +43,10 @@ jobs:
       - name: Start Xvfb
         if: matrix.os == 'ubuntu-22.04'
         run: |
+          Xvfb :0 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          export DISPLAY=:0
+          touch ~/.Xauthority
+
           Xvfb :0 -screen 0 1024x768x24 > /dev/null 2>&1 &
           export DISPLAY=:0
 

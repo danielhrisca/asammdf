@@ -17,12 +17,20 @@ import pathlib
 import platform
 import shutil
 import sys
+import threading
 import time
 import unittest
 from unittest import mock
 
+import numpy as np
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
+
+if sys.platform == "win32":
+    import win32api
+    import win32con
+else:
+    import pyautogui
 
 from asammdf.gui.utils import excepthook
 
@@ -69,11 +77,14 @@ class TestBase(unittest.TestCase):
     def manual_use(w, duration=None):
         """
         Execute Widget for debug/development purpose.
+
         Parameters
         ----------
         duration : float | None
             duration in seconds
         """
+        widget.showMaximized()
+        app.exec()
         if duration is None:
             duration = 3600
         else:
@@ -83,7 +94,7 @@ class TestBase(unittest.TestCase):
 
         loop = QtCore.QEventLoop()
         QtCore.QTimer.singleShot(int(duration * 1000), loop.quit)
-        loop.exec()
+        loop.exec_()
 
         w.showNormal()
 
@@ -345,6 +356,7 @@ class Pixmap:
         image = pixmap.toImage()
 
         cursors = []
+        possible_cursor = None
 
         for x in range(image.width()):
             count = 0
@@ -353,6 +365,14 @@ class Pixmap:
                 # Skip Black
                 if color.name() == Pixmap.COLOR_BACKGROUND:
                     continue
+                if not possible_cursor:
+                    possible_cursor = color.name()
+                if possible_cursor != color.name():
+                    break
+                count += 1
+            else:
+                if count >= image.height() - 3:
+                    cursors.append(x)
                 if color.name() == Pixmap.COLOR_CURSOR:
                     count += 1
             if count >= image.height() / 2 - 1:  # For Y shortcut tests, one cursor is a discontinuous line
@@ -437,3 +457,61 @@ class Pixmap:
                 line = y
                 break
         return line
+
+
+class DragAndDrop:
+    def __init__(self, src_widget, dst_widget, src_pos, dst_pos):
+        src_offset = dst_offset = QtCore.QPoint(0, 1)
+        if hasattr(src_widget, "header"):
+            src_offset = QtCore.QPoint(0, src_widget.header().geometry().height() + 1)
+        if hasattr(dst_widget, "header"):
+            dst_offset = QtCore.QPoint(0, dst_widget.header().geometry().height() + 1)
+
+        t_move = threading.Thread(
+            target=dnd_worker,
+            args=(
+                src_widget.mapToGlobal(src_pos) + src_offset,
+                dst_widget.mapToGlobal(dst_pos) + dst_offset,
+            ),
+        )
+        t_move.start()
+
+        while t_move.is_alive():
+            QtWidgets.QApplication.instance().processEvents()
+            time.sleep(0.001)
+
+        time.sleep(0.2)
+        for _ in range(10):
+            QtWidgets.QApplication.instance().processEvents()
+            time.sleep(0.001)
+
+
+def dnd_worker(start, end):
+    x_vals = np.linspace(start.x(), end.x(), 10)
+    y_vals = np.linspace(start.y(), end.y(), len(x_vals))
+
+    if sys.platform == "win32":
+        win32api.SetCursorPos((start.x(), start.y()))
+        # Perform left mouse button down event
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, start.x(), start.y(), 0, 0)
+        # Move the mouse to the ending position
+        for x, y in zip(x_vals, y_vals):
+            win32api.SetCursorPos((int(x), int(y)))
+            time.sleep(0.02)
+        # Perform left mouse button up event
+        win32api.SetCursorPos((end.x(), end.y()))
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, end.x(), end.y(), 0, 0)
+        time.sleep(0.2)
+
+    else:
+        # Move the mouse to the starting position
+        pyautogui.moveTo(start.x(), start.y())
+        # Perform left mouse button down event
+        pyautogui.mouseDown()
+        # Move the mouse to the ending position
+        for x, y in zip(x_vals, y_vals):
+            pyautogui.moveTo(int(x), int(y))
+            time.sleep(0.001)
+        # Perform left mouse button up event
+        pyautogui.moveTo(end.x(), end.y())
+        pyautogui.mouseUp()

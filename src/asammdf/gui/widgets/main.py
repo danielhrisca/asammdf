@@ -1161,8 +1161,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         else:
             file_names = [file_name]
 
-        for file_name in file_names:
-            file_name = Path(file_name)
+        for _file_name in file_names:
+            file_name = Path(_file_name)
             index = self.files.count()
 
             try:

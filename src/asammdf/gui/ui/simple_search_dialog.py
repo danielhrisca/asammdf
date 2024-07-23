@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'simple_search_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -68,7 +68,7 @@ class Ui_SimpleSearchDialog(object):
         self.add_btn = QPushButton(SimpleSearchDialog)
         self.add_btn.setObjectName(u"add_btn")
         icon = QIcon()
-        icon.addFile(u":/left.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/left.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.add_btn.setIcon(icon)
 
         self.gridLayout.addWidget(self.add_btn, 3, 1, 1, 1)

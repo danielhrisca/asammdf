@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'error_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -26,7 +26,7 @@ class Ui_ErrorDialog(object):
             ErrorDialog.setObjectName(u"ErrorDialog")
         ErrorDialog.resize(622, 114)
         icon = QIcon()
-        icon.addFile(u":/error.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/error.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         ErrorDialog.setWindowIcon(icon)
         ErrorDialog.setSizeGripEnabled(True)
         self.layout = QVBoxLayout(ErrorDialog)

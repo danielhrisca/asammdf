@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'tabular.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -78,7 +78,7 @@ class Ui_TabularDisplay(object):
         self.toggle_filters_btn = QPushButton(TabularDisplay)
         self.toggle_filters_btn.setObjectName(u"toggle_filters_btn")
         icon = QIcon()
-        icon.addFile(u":/down.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/down.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.toggle_filters_btn.setIcon(icon)
 
         self.horizontalLayout_2.addWidget(self.toggle_filters_btn)
@@ -95,7 +95,7 @@ class Ui_TabularDisplay(object):
         self.add_filter_btn = QPushButton(self.filters_group)
         self.add_filter_btn.setObjectName(u"add_filter_btn")
         icon1 = QIcon()
-        icon1.addFile(u":/plus.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon1.addFile(u":/plus.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.add_filter_btn.setIcon(icon1)
 
         self.gridLayout_3.addWidget(self.add_filter_btn, 0, 0, 1, 1)
@@ -107,7 +107,7 @@ class Ui_TabularDisplay(object):
         self.apply_filters_btn = QPushButton(self.filters_group)
         self.apply_filters_btn.setObjectName(u"apply_filters_btn")
         icon2 = QIcon()
-        icon2.addFile(u":/filter.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon2.addFile(u":/filter.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.apply_filters_btn.setIcon(icon2)
 
         self.gridLayout_3.addWidget(self.apply_filters_btn, 0, 2, 1, 1)

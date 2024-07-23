@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'numeric_offline.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.0
+## Created by: Qt User Interface Compiler version 6.7.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -43,7 +43,7 @@ class Ui_NumericDisplay(object):
         self.toggle_controls_btn = QPushButton(self.controls)
         self.toggle_controls_btn.setObjectName(u"toggle_controls_btn")
         icon = QIcon()
-        icon.addFile(u":/down.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon.addFile(u":/down.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.toggle_controls_btn.setIcon(icon)
 
         self.gridLayout_2.addWidget(self.toggle_controls_btn, 0, 3, 1, 1)
@@ -164,7 +164,7 @@ class Ui_NumericDisplay(object):
         self.backward = QPushButton(self.search_group)
         self.backward.setObjectName(u"backward")
         icon1 = QIcon()
-        icon1.addFile(u":/right.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon1.addFile(u":/right.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.backward.setIcon(icon1)
 
         self.horizontalLayout_3.addWidget(self.backward)
@@ -176,7 +176,7 @@ class Ui_NumericDisplay(object):
         self.forward = QPushButton(self.search_group)
         self.forward.setObjectName(u"forward")
         icon2 = QIcon()
-        icon2.addFile(u":/left.png", QSize(), QIcon.Normal, QIcon.Off)
+        icon2.addFile(u":/left.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.forward.setIcon(icon2)
 
         self.horizontalLayout_3.addWidget(self.forward)
