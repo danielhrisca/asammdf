@@ -1,9 +1,6 @@
 import json
 import os
-import platform
-import unittest
 from random import randint
-import sys
 from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets

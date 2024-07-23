@@ -1,6 +1,5 @@
 import pathlib
 import threading as td
-import unittest
 from unittest import mock
 
 import pyautogui

@@ -137,7 +137,7 @@ class TestTableViewShortcuts(TestFileWidget):
             if row_0 is True:  # Evaluate range for first row
                 self.assertDictEqual(value[0], expected_value[0])
                 row_0 = False
-            else:  #
+            else:
                 self.assertListEqual(value, [])
 
     def test_copy_display_properties_shortcut(self):

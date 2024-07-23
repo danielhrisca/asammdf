@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import os.path
 from unittest import mock
 
 from PySide6.QtCore import QPoint, QRect, Qt

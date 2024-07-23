@@ -14,15 +14,12 @@ class DragAndDrop
 """
 import os
 import pathlib
-import platform
 import shutil
 import sys
-import threading
 import time
 import unittest
 from unittest import mock
 
-import numpy as np
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
 
@@ -77,8 +74,6 @@ class TestBase(unittest.TestCase):
         duration : float | None
             duration in seconds
         """
-        widget.showMaximized()
-        app.exec()
         if duration is None:
             duration = 3600
         else:

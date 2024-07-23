@@ -108,7 +108,7 @@ class TestDataTableViewShortcuts(TestFileWidget):
             if col_0 is True:  # Evaluate range for first row
                 self.assertDictEqual(value[0], range_editor_result[0])
                 col_0 = False
-            else:  #
+            else:
                 self.assertListEqual(value, [])
 
         # Evaluate cell color
