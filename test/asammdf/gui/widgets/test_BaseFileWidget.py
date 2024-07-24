@@ -58,6 +58,7 @@ class TestFileWidget(TestBase):
         else:
             self.widget = FileWidget(measurement_file, *args)
         self.processEvents()
+        self.widget.showNormal()
 
     def create_window(self, window_type, channels_names=(), channels_indexes=()):
         channel_tree = self.widget.channels_tree
@@ -76,10 +77,6 @@ class TestFileWidget(TestBase):
             QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.MouseButton.LeftButton)
             widget_types = self.get_sub_windows()
             self.assertIn(window_type, widget_types)
-
-        for window in self.widget.mdi_area.subWindowList():
-            if isinstance(window.widget(), Plot):
-                window.widget().channel_selection.headerItem().setSizeHint(0, QtCore.QSize(50, 25))
 
     @staticmethod
     def find_channel(channel_tree, channel_name=None, channel_index=None):

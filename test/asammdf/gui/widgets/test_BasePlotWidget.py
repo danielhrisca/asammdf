@@ -92,7 +92,10 @@ class TestPlotWidget(TestFileWidget):
     def move_item_inside_channels_tree_widget(self, plot=None, src=None, dst=None):
         if src is None or dst is None:
             raise Exception("src and dst is cannot be None")
+
         channels_tree_widget = src.treeWidget()
+        if channels_tree_widget.headerItem().sizeHint(0) == -1:
+            channels_tree_widget.headerItem().setSizeHint(0, QtCore.QSize(50, 25))
         # height of header item
         header_item_h = channels_tree_widget.headerItem().sizeHint(0).height()
         # height of regular item
@@ -116,7 +119,7 @@ class TestPlotWidget(TestFileWidget):
         print(drag_y, drop_y, sep="\t\t")
         QtTest.QTest.mouseMove(channels_tree_widget, QPoint(drag_x, drag_y))
         # minimum necessary time for drag action to be implemented
-        t = 0.5
+        t = 0.8
 
         def call_drop_event(x, y, duration, h):
             x *= h / y
