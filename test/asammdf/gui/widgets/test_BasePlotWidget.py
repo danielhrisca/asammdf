@@ -94,7 +94,7 @@ class TestPlotWidget(TestFileWidget):
             raise Exception("src and dst is cannot be None")
 
         channels_tree_widget = src.treeWidget()
-        if channels_tree_widget.headerItem().sizeHint(0) == -1:
+        if channels_tree_widget.headerItem().sizeHint(0).height() == -1:
             channels_tree_widget.headerItem().setSizeHint(0, QtCore.QSize(50, 25))
         # height of header item
         header_item_h = channels_tree_widget.headerItem().sizeHint(0).height()
@@ -116,7 +116,6 @@ class TestPlotWidget(TestFileWidget):
                 channels_tree_widget.visualItemRect(dst).center().x(),
                 channels_tree_widget.visualItemRect(dst).center().y() + header_item_h + int(item_h * correction),
             )
-        print(drag_y, drop_y, sep="\t\t")
         QtTest.QTest.mouseMove(channels_tree_widget, QPoint(drag_x, drag_y))
         # minimum necessary time for drag action to be implemented
         t = 0.8
@@ -127,7 +126,7 @@ class TestPlotWidget(TestFileWidget):
 
         timer = td.Timer(0.0001, call_drop_event, args=(int(drag_x * 0.5), drop_y - drag_y, t, item_h))
         timer.start()
-        self.manual_use(self.widget, duration=t + 0.2)
+        self.manual_use(self.widget, duration=t + 0.002)
 
     def wheel_action(self, w: QWidget, x: float, y: float, angle_delta: int):
         """
