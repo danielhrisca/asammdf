@@ -1,5 +1,6 @@
 import pathlib
 import threading as td
+import time
 from unittest import mock
 
 import pyautogui
@@ -97,22 +98,26 @@ class TestPlotWidget(TestFileWidget):
         header_item_h = channels_tree_widget.headerItem().sizeHint(0).height()
         # height of regular item
         item_h = channels_tree_widget.visualItemRect(src).height()
+        correction = 0.2
         # start drag coordinates
         drag_x, drag_y = (
             channels_tree_widget.visualItemRect(src).center().x(),
-            channels_tree_widget.visualItemRect(src).center().y() + header_item_h + int(item_h / 4),
+            channels_tree_widget.visualItemRect(src).center().y() + header_item_h + int(item_h * correction),
         )
         # stop drag (drop) coordinates
-        if dst is channels_tree_widget:
+        if dst is channels_tree_widget:  # destination is channel tree widget
             drop_x, drop_y = dst.rect().center().x(), dst.rect().center().y()
         else:
+            if dst.type() == dst.Channel:  # for insertion below channel
+                correction = 0.5
             drop_x, drop_y = (
                 channels_tree_widget.visualItemRect(dst).center().x(),
-                channels_tree_widget.visualItemRect(dst).center().y() + header_item_h + int(item_h * 0.25),
+                channels_tree_widget.visualItemRect(dst).center().y() + header_item_h + int(item_h * correction),
             )
+        print(drag_y, drop_y, sep="\t\t")
         QtTest.QTest.mouseMove(channels_tree_widget, QPoint(drag_x, drag_y))
         # minimum necessary time for drag action to be implemented
-        t = 0.4
+        t = 0.5
 
         def call_drop_event(x, y, duration, h):
             x *= h / y
@@ -121,8 +126,6 @@ class TestPlotWidget(TestFileWidget):
         timer = td.Timer(0.0001, call_drop_event, args=(int(drag_x * 0.5), drop_y - drag_y, t, item_h))
         timer.start()
         self.manual_use(self.widget, duration=t + 0.2)
-
-        self.processEvents(0.01)
 
     def wheel_action(self, w: QWidget, x: float, y: float, angle_delta: int):
         """
