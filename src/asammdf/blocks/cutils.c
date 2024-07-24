@@ -1,4 +1,5 @@
 #define NPY_NO_DEPRECATED_API NPY_1_22_API_VERSION
+#define Py_LIMITED_API 0x030900f0
 
 #define PY_SSIZE_T_CLEAN 1
 #include <Python.h>
@@ -60,9 +61,9 @@ static PyObject *sort_data_block(PyObject *self, PyObject *args)
             last = item;
         }
 
-        buf = (unsigned char *)PyBytes_AS_STRING(signal_data);
+        buf = (unsigned char *)PyBytes_AsString(signal_data);
         orig = buf;
-        size = (uint64_t)PyBytes_GET_SIZE(signal_data);
+        size = (uint64_t)PyBytes_Size(signal_data);
         end = buf + size;
 
         while ((buf + id_size) < end)
@@ -217,7 +218,7 @@ static PyObject *extract(PyObject *self, PyObject *args)
             list_count = (Py_ssize_t)PyList_Size(offsets_list);
             for (i = 0; i < list_count; i++)
             {
-                offset = (int64_t)PyLong_AsLongLong(PyList_GET_ITEM(offsets_list, i));
+                offset = (int64_t)PyLong_AsLongLong(PyList_GetItem(offsets_list, i));
                 if ((offset + 4) > max_size)
                     break;
                 size = calc_size(&buf[offset]);
@@ -255,7 +256,7 @@ static PyObject *extract(PyObject *self, PyObject *args)
                 for (i = 0; i < count; i++)
                 {
                     addr2 = (unsigned char *)PyArray_GETPTR2(vals, i, 0);
-                    offset = (int64_t)PyLong_AsLongLong(PyList_GET_ITEM(offsets_list, i));
+                    offset = (int64_t)PyLong_AsLongLong(PyList_GetItem(offsets_list, i));
                     size = calc_size(&buf[offset]);
                     memcpy(addr2, &buf[offset + 4], size);
                 }
@@ -294,7 +295,7 @@ static PyObject *extract(PyObject *self, PyObject *args)
                 for (i = 0; i < count; i++)
                 {
                     addr2 = (unsigned char *)PyArray_GETPTR1(vals, i);
-                    offset = (int64_t)PyLong_AsLongLong(PyList_GET_ITEM(offsets_list, i));
+                    offset = (int64_t)PyLong_AsLongLong(PyList_GetItem(offsets_list, i));
                     size = calc_size(&buf[offset]);
                     memcpy(addr2, &buf[offset + 4], size);
                 }
@@ -326,7 +327,7 @@ static PyObject *lengths(PyObject *self, PyObject *args)
         for (i = 0; i < (Py_ssize_t)count; i++)
         {
             item = PyList_GetItem(lst, i);
-            PyTuple_SetItem(values, i, PyLong_FromSsize_t(PyBytes_GET_SIZE(item)));
+            PyTuple_SetItem(values, i, PyLong_FromSsize_t(PyBytes_Size(item)));
         }
     }
 
@@ -361,7 +362,7 @@ static PyObject *get_vlsd_offsets(PyObject *self, PyObject *args)
             h_result = PyArray_GETPTR1(values, i);
             item = PyList_GetItem(lst, i);
             *((uint64_t *)h_result) = current_size;
-            current_size += (uint64_t)PyBytes_GET_SIZE(item);
+            current_size += (uint64_t)PyBytes_Size(item);
         }
     }
 
@@ -389,7 +390,7 @@ static PyObject *get_vlsd_max_sample_size(PyObject *self, PyObject *args)
     {
         offsets_array = (uint64_t *)PyArray_GETPTR1((PyArrayObject *)offsets, 0);
         inptr = PyBytes_AsString(data);
-        data_end = inptr + PyBytes_GET_SIZE(data);
+        data_end = inptr + PyBytes_Size(data);
 
         for (i = 0; i < count; i++, offsets_array++)
         {
@@ -1249,7 +1250,7 @@ static PyObject *get_channel_raw_bytes(PyObject *self, PyObject *args)
     }
     else
     {
-        size = PyBytes_GET_SIZE(data_block);
+        size = PyBytes_Size(data_block);
         if (!record_size)
         {
             out = PyByteArray_FromStringAndSize(NULL, 0);
@@ -1331,7 +1332,7 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
     else
     {
         cycles = PyLong_AsLongLong(cycles_obj);
-        size = PyList_GET_SIZE(data_blocks);
+        size = PyList_Size(data_blocks);
 
         if (!size)
         {
@@ -1346,15 +1347,15 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
             for (Py_ssize_t i = 0; i < size; i++)
             {
 
-                item = PyList_GET_ITEM(data_blocks, i);
-                array = PyTuple_GET_ITEM(item, 0);
+                item = PyList_GetItem(data_blocks, i);
+                array = PyTuple_GetItem(item, 0);
                 if (!PyArray_IS_C_CONTIGUOUS(array))
                 {
                     copy_array = PyArray_NewCopy((PyArrayObject *)array, NPY_CORDER);
                     array = copy_array;
                     copy_array = NULL;
                 }
-                itemsize = PyTuple_GET_ITEM(item, 1);
+                itemsize = PyTuple_GetItem(item, 1);
                 block_info[i].data = PyArray_BYTES((PyArrayObject *)array);
                 block_info[i].itemsize = (int64_t)PyLong_AsLongLong(itemsize);
                 total_size += block_info[i].itemsize;
@@ -1466,17 +1467,17 @@ static PyObject *reverse_transposition(PyObject *self, PyObject *args)
     {
         if (PyBytes_Check(data))
         {
-            read = PyBytes_AS_STRING(data);
-            count = PyBytes_GET_SIZE(data);
+            read = PyBytes_AsString(data);
+            count = PyBytes_Size(data);
         }
         else
         {
-            read = PyByteArray_AS_STRING(data);
-            count = PyByteArray_GET_SIZE(data);
+            read = PyByteArray_AsString(data);
+            count = PyByteArray_Size(data);
         }
 
         values = PyBytes_FromStringAndSize(NULL, count);
-        write = PyBytes_AS_STRING(values);
+        write = PyBytes_AsString(values);
 
         count -= lines * cols;
 

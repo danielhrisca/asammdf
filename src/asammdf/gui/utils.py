@@ -9,7 +9,7 @@ import random
 import re
 import sys
 from textwrap import indent
-from threading import Thread
+from threading import Lock, Thread
 from time import sleep
 import traceback
 from traceback import format_exc
@@ -272,6 +272,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.result = self.NONE
         self.thread_finished = True
         self.close_on_finish = True
+        self.lock = Lock()
 
         self._closed = False
 
@@ -315,9 +316,10 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         return self.result
 
     def processEvents(self):
-        loop = QtCore.QEventLoop()
-        QtCore.QTimer.singleShot(20, loop.quit)
-        loop.exec()
+        with self.lock:
+            loop = QtCore.QEventLoop()
+            QtCore.QTimer.singleShot(20, loop.quit)
+            loop.exec()
 
     def receive_result(self, result):
         self.result = result
