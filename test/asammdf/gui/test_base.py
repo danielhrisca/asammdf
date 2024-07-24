@@ -373,9 +373,8 @@ class Pixmap:
                 # Count straight vertical line pixels with COLOR_CURSOR color
                 if color.name() == Pixmap.COLOR_CURSOR:
                     count += 1
-            else:
-                if count >= (image.height() - 1) / 2 - 1:  # For Y shortcut tests, one cursor is a discontinuous line
-                    cursors.append(x)
+            if count >= (image.height() - 1) / 2 - 1:  # For Y shortcut tests, one cursor is a discontinuous line
+                cursors.append(x)
         return cursors
 
     @staticmethod
