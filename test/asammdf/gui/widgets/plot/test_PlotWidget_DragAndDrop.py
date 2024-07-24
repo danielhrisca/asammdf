@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import sys
 from unittest import mock
 
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
@@ -20,7 +19,6 @@ class TestDragAndDrop(TestPlotWidget):
 
         self.create_window(window_type="Plot")
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-        self.processEvents()
 
     def test_Plot_ChannelSelection_DragAndDrop_fromFile_toPlot_0(self):
         """
@@ -44,6 +42,7 @@ class TestDragAndDrop(TestPlotWidget):
         channel_tree = self.widget.channels_tree
         plot = self.widget.mdi_area.subWindowList()[0].widget()
         item = channel_tree.topLevelItem(0)
+        item.setSelected(True)
         channel_name = item.text(self.Column.NAME)
         drag_position = channel_tree.visualItemRect(item).center()
         drop_position = plot.channel_selection.viewport().rect().center()
@@ -129,7 +128,7 @@ class TestDragAndDrop(TestPlotWidget):
             iterator += 1
         self.assertListEqual(selected_channels, plot_channels)
 
-    def test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toPlot(self):
+    def test_Plot_ChannelSelection_DragAndDrop_fromPlotCS_toSamePlotCS(self):
         """
         Test Scope:
             - Test DragAndDrop Action from Plot.channel_selection to Plot.channel_selection
@@ -237,18 +236,11 @@ class TestDragAndDrop(TestPlotWidget):
             # DragAndDrop first channel to 3rd position.
             first_channel = plot.channel_selection.topLevelItem(0)
             third_channel = plot.channel_selection.topLevelItem(2)
-            # Get Positions
-            drag_position = plot.channel_selection.visualItemRect(first_channel).center()
-            drop_position = plot.channel_selection.visualItemRect(third_channel).center()
+            self.move_item_inside_channels_tree_widget(src=first_channel, dst=third_channel)
             # Get Names
             first_channel = first_channel.text(self.Column.NAME)
             third_channel = third_channel.text(self.Column.NAME)
-            DragAndDrop(
-                src_widget=plot.channel_selection,
-                dst_widget=plot.channel_selection,
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+
             # Evaluate
             # First channel position was changed.
             new_first_channel = plot.channel_selection.topLevelItem(0).text(self.Column.NAME)
@@ -265,21 +257,14 @@ class TestDragAndDrop(TestPlotWidget):
             second_channel = plot.channel_selection.topLevelItem(1)
             third_channel = plot.channel_selection.topLevelItem(2)
             last_channel = plot.channel_selection.topLevelItem(5)
-            # Get Positions
-            drag_position = plot.channel_selection.visualItemRect(third_channel).center()
-            drop_position = plot.channel_selection.visualItemRect(last_channel).center()
             # Select
             second_channel.setSelected(True)
             third_channel.setSelected(True)
+            self.move_item_inside_channels_tree_widget(src=third_channel, dst=last_channel)
             # Get Names
             second_channel = second_channel.text(self.Column.NAME)
             third_channel = third_channel.text(self.Column.NAME)
-            DragAndDrop(
-                src_widget=plot.channel_selection,
-                dst_widget=plot.channel_selection,
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+
             # Evaluate
             new_second_channel = plot.channel_selection.topLevelItem(1).text(self.Column.NAME)
             new_third_channel = plot.channel_selection.topLevelItem(2).text(self.Column.NAME)
@@ -313,19 +298,14 @@ class TestDragAndDrop(TestPlotWidget):
                 first_channel = plot.channel_selection.topLevelItem(1)
                 if first_channel.text(self.Column.NAME) == duplicated_channel:
                     first_channel = plot.channel_selection.topLevelItem(2)
-
-                drag_position = plot.channel_selection.visualItemRect(first_channel).center()
-                drop_position = plot.channel_selection.visualItemRect(first_group).center()
                 # Get the Name of first channel
+                first_channel_ = first_channel
                 first_channel = first_channel.text(self.Column.NAME)
+
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, first_group.childCount())
-                DragAndDrop(
-                    src_widget=plot.channel_selection,
-                    dst_widget=plot.channel_selection,
-                    src_pos=drag_position,
-                    dst_pos=drop_position,
-                )
+                self.move_item_inside_channels_tree_widget(src=first_channel_, dst=first_group)
+
                 # Evaluate
                 self.assertEqual(1, first_group.childCount())
                 self.assertEqual(first_channel, first_group.child(0).text(self.Column.NAME))
@@ -339,15 +319,8 @@ class TestDragAndDrop(TestPlotWidget):
                         break
                 else:
                     self.fail("Duplicate Channel is not found anymore.")
-                drag_position = plot.channel_selection.visualItemRect(second_channel).center()
-                # Now drop over the first item from group.
-                drop_position = plot.channel_selection.visualItemRect(first_group.child(0)).center()
-                DragAndDrop(
-                    src_widget=plot.channel_selection,
-                    dst_widget=plot.channel_selection,
-                    src_pos=drag_position,
-                    dst_pos=drop_position,
-                )
+                self.move_item_inside_channels_tree_widget(src=second_channel, dst=first_group)
+
                 # Evaluate
                 self.assertEqual(2, first_group.childCount())
                 self.assertEqual(duplicated_channel, first_group.child(1).text(self.Column.NAME))
@@ -377,14 +350,8 @@ class TestDragAndDrop(TestPlotWidget):
                 last_channel_1 = plot.channel_selection.topLevelItem(plot.channel_selection.topLevelItemCount() - 2)
                 last_channel_0.setSelected(True)
                 last_channel_1.setSelected(True)
-                drag_position = plot.channel_selection.visualItemRect(last_channel_1).center()
-                drop_position = plot.channel_selection.visualItemRect(second_group).center()
-                DragAndDrop(
-                    src_widget=plot.channel_selection,
-                    dst_widget=plot.channel_selection,
-                    src_pos=drag_position,
-                    dst_pos=drop_position,
-                )
+                self.move_item_inside_channels_tree_widget(src=last_channel_1, dst=second_group)
+
                 # Evaluate
                 self.assertEqual(2, second_group.childCount())
                 self.assertEqual(4, plot.channel_selection.topLevelItemCount())
@@ -404,14 +371,8 @@ class TestDragAndDrop(TestPlotWidget):
                     break
             else:
                 self.fail("Groups are not present on Plot Channel Selection.")
-            drag_position = plot.channel_selection.visualItemRect(second_group).center()
-            drop_position = plot.channel_selection.visualItemRect(first_group).center()
-            DragAndDrop(
-                src_widget=plot.channel_selection,
-                dst_widget=plot.channel_selection,
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=second_group, dst=first_group)
+
             # Evaluate
             self.assertEqual(3, first_group.childCount())
             self.assertEqual(3, plot.channel_selection.topLevelItemCount())
@@ -435,14 +396,8 @@ class TestDragAndDrop(TestPlotWidget):
                     break
             else:
                 self.fail("SecondGroup is not present on Plot Channel Selection.")
-            drag_position = plot.channel_selection.visualItemRect(second_group).center()
-            drop_position = plot.channel_selection.rect().center()
-            DragAndDrop(
-                src_widget=plot.channel_selection,
-                dst_widget=plot.channel_selection,
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=second_group, dst=plot.channel_selection)
+
             # Evaluate
             self.assertEqual(2, first_group.childCount())
             self.assertEqual(4, plot.channel_selection.topLevelItemCount())
@@ -467,7 +422,6 @@ class TestDragAndDrop(TestPlotWidget):
         # Event
         channel_tree = self.widget.channels_tree
         plot_0 = self.widget.mdi_area.subWindowList()[0].widget()
-        plot_0.showNormal()
         # Random Channels
         channel_0 = channel_tree.topLevelItem(8)
         channel_1 = channel_tree.topLevelItem(13)
@@ -475,7 +429,7 @@ class TestDragAndDrop(TestPlotWidget):
         # Drag one Channel from FileWidget channel_tree to Plot_0
         drag_position = channel_tree.visualItemRect(channel_0).center()
         drop_position = plot_0.channel_selection.viewport().rect().center()
-
+        self.mouseClick_WidgetItem(channel_0)
         # PreEvaluation
         self.assertEqual(0, plot_0.channel_selection.topLevelItemCount())
         DragAndDrop(
@@ -491,12 +445,11 @@ class TestDragAndDrop(TestPlotWidget):
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
 
         plot_1 = self.widget.mdi_area.subWindowList()[1].widget()
-        plot_1.showNormal()
 
         # Drag one Channel from FileWidget channel_tree to Plot_0
         drag_position = channel_tree.visualItemRect(channel_1).center()
         drop_position = plot_1.channel_selection.viewport().rect().center()
-
+        self.mouseClick_WidgetItem(channel_1)
         # PreEvaluation
         self.assertEqual(0, plot_1.channel_selection.topLevelItemCount())
         DragAndDrop(
@@ -507,18 +460,13 @@ class TestDragAndDrop(TestPlotWidget):
         )
         self.assertEqual(1, plot_1.channel_selection.topLevelItemCount())
 
-        # Tile horizontally
-        if sys.platform != "win32":
-            QtTest.QTest.keySequence(plot_0.plot, "Shift+H")
-            self.processEvents()
-
         # Select the channel from 'Plot 0' and drag it to 'Plot 1'
         # Drag one Channel from FileWidget channel_tree to Plot_0
         plot_0_channel = plot_0.channel_selection.topLevelItem(0)
         plot_0_channel_name = plot_0_channel.text(self.Column.NAME)
         drag_position = plot_0.channel_selection.visualItemRect(plot_0_channel).center()
         drop_position = plot_1.channel_selection.viewport().rect().center()
-
+        self.mouseClick_WidgetItem(plot_0_channel)
         # PreEvaluation
         self.assertEqual(1, plot_1.channel_selection.topLevelItemCount())
         DragAndDrop(
@@ -561,7 +509,7 @@ class TestDragAndDrop(TestPlotWidget):
         # Drag one Channel from FileWidget channel_tree to Plot_0
         drag_position = channel_tree.visualItemRect(channel_0).center()
         drop_position = plot_0.channel_selection.viewport().rect().center()
-
+        self.mouseClick_WidgetItem(channel_0)
         # PreEvaluation
         self.assertEqual(0, plot_0.channel_selection.topLevelItemCount())
         DragAndDrop(
@@ -584,7 +532,7 @@ class TestDragAndDrop(TestPlotWidget):
         # Drag one Channel from FileWidget channel_tree to Numeric_0
         drag_position = channel_tree.visualItemRect(channel_1).center()
         drop_position = numeric.channels.dataView.viewport().rect().center()
-
+        self.mouseClick_WidgetItem(channel_1)
         DragAndDrop(
             src_widget=channel_tree,
             dst_widget=numeric.channels.dataView,
@@ -593,6 +541,8 @@ class TestDragAndDrop(TestPlotWidget):
         )
         # Evaluate
         numeric_data = numeric.channels.dataView
+        # Select first row
+        numeric_data.selectRow(0)
         numeric_channel = numeric_data.model().data(numeric_data.model().index(0, 0))
         self.assertEqual(channel_1.text(self.Column.NAME), numeric_channel)
 

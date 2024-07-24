@@ -3,7 +3,7 @@ from unittest import mock
 
 from PySide6 import QtCore, QtGui, QtTest
 
-from test.asammdf.gui.test_base import DragAndDrop, Pixmap
+from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
@@ -103,19 +103,11 @@ class TestDoubleClick(TestPlotWidget):
             else:
                 self.fail("FirstGroup is not present on Plot Channel Selection.")
             first_group.setExpanded(True)
-            # Get the First Item that will be moved
-            drag_position = self.plot.channel_selection.visualItemRect(plot_channel_0).center()
-            drop_position = self.plot.channel_selection.visualItemRect(first_group).center()
             # Get the Name of the first channel
             first_channel = plot_channel_0.text(self.Column.NAME)
             # PreEvaluation: Ensure that group has no child
             self.assertEqual(0, first_group.childCount())
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection,
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=plot_channel_0, dst=first_group)
             # PreEvaluate: Ensure that channel was added to group
             self.assertEqual(1, first_group.childCount())
             self.assertEqual(first_channel, first_group.child(0).text(self.Column.NAME))
@@ -237,39 +229,16 @@ class TestDoubleClick(TestPlotWidget):
 
             # Get the First Item that will be moved
             for group_name, plot_channel in zip(("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c)):
-                drag_position = self.plot.channel_selection.visualItemRect(plot_channel).center()
-                drop_position = self.plot.channel_selection.visualItemRect(groups[group_name]).center()
-
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
-                DragAndDrop(
-                    src_widget=self.plot.channel_selection,
-                    dst_widget=self.plot.channel_selection,
-                    src_pos=drag_position,
-                    dst_pos=drop_position,
-                )
+                self.move_item_inside_channels_tree_widget(src=plot_channel, dst=groups[group_name])
                 self.assertEqual(1, groups[group_name].childCount())
                 self.processEvents()
 
             # Move Group C inside Group B
-            drag_position = self.plot.channel_selection.visualItemRect(groups["C"]).center()
-            drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection,
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=groups["C"], dst=groups["B"])
             # Move Group B inside Group A
-            drag_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
-            drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection,
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
-
+            self.move_item_inside_channels_tree_widget(src=groups["B"], dst=groups["A"])
             groups["A"].setExpanded(True)
             groups["B"].setExpanded(True)
             groups["C"].setExpanded(True)
@@ -397,38 +366,16 @@ class TestDoubleClick(TestPlotWidget):
 
             # Get the First Item that will be moved
             for group_name, plot_channel in zip(("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c)):
-                drag_position = self.plot.channel_selection.visualItemRect(plot_channel).center()
-                drop_position = self.plot.channel_selection.visualItemRect(groups[group_name]).center()
-
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
-                DragAndDrop(
-                    src_widget=self.plot.channel_selection,
-                    dst_widget=self.plot.channel_selection,
-                    src_pos=drag_position,
-                    dst_pos=drop_position,
-                )
+                self.move_item_inside_channels_tree_widget(src=plot_channel, dst=groups[group_name])
                 self.assertEqual(1, groups[group_name].childCount())
                 self.processEvents()
 
             # Move Group C inside Group B
-            drag_position = self.plot.channel_selection.visualItemRect(groups["C"]).center()
-            drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection,
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=groups["C"], dst=groups["B"])
             # Move Group B inside Group A
-            drag_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
-            drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection,
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=groups["B"], dst=groups["A"])
 
             groups["A"].setExpanded(True)
             groups["B"].setExpanded(True)
@@ -546,38 +493,17 @@ class TestDoubleClick(TestPlotWidget):
 
             # Get the First Item that will be moved
             for group_name, plot_channel in zip(("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c)):
-                drag_position = self.plot.channel_selection.visualItemRect(plot_channel).center()
-                drop_position = self.plot.channel_selection.visualItemRect(groups[group_name]).center()
-
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
-                DragAndDrop(
-                    src_widget=self.plot.channel_selection,
-                    dst_widget=self.plot.channel_selection,
-                    src_pos=drag_position,
-                    dst_pos=drop_position,
-                )
+                self.move_item_inside_channels_tree_widget(src=plot_channel, dst=groups[group_name])
+
                 self.processEvents(0.05)
                 self.assertEqual(1, groups[group_name].childCount())
 
             # Move Group C inside Group B
-            drag_position = self.plot.channel_selection.visualItemRect(groups["C"]).center()
-            drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection,
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=groups["C"], dst=groups["B"])
             # Move Group B inside Group A
-            drag_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
-            drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection,
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=groups["B"], dst=groups["A"])
 
             groups["A"].setExpanded(True)
             groups["B"].setExpanded(True)
@@ -699,38 +625,17 @@ class TestDoubleClick(TestPlotWidget):
 
             # Get the First Item that will be moved
             for group_name, plot_channel in zip(("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c)):
-                drag_position = self.plot.channel_selection.visualItemRect(plot_channel).center()
-                drop_position = self.plot.channel_selection.visualItemRect(groups[group_name]).center()
-
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
-                DragAndDrop(
-                    src_widget=self.plot.channel_selection,
-                    dst_widget=self.plot.channel_selection,
-                    src_pos=drag_position,
-                    dst_pos=drop_position,
-                )
+                self.move_item_inside_channels_tree_widget(src=plot_channel, dst=groups[group_name])
+
                 self.processEvents(0.05)
                 self.assertEqual(1, groups[group_name].childCount())
 
             # Move Group C inside Group B
-            drag_position = self.plot.channel_selection.visualItemRect(groups["C"]).center()
-            drop_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection,
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=groups["C"], dst=groups["B"])
             # Move Group B inside Group A
-            drag_position = self.plot.channel_selection.visualItemRect(groups["B"]).center()
-            drop_position = self.plot.channel_selection.visualItemRect(groups["A"]).center()
-            DragAndDrop(
-                src_widget=self.plot.channel_selection,
-                dst_widget=self.plot.channel_selection,
-                src_pos=drag_position,
-                dst_pos=drop_position,
-            )
+            self.move_item_inside_channels_tree_widget(src=groups["B"], dst=groups["A"])
 
             groups["A"].setExpanded(True)
             groups["B"].setExpanded(True)

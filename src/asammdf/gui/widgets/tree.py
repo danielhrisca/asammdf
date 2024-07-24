@@ -693,6 +693,28 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     if item.type() != item.Info:
                         item.color = color
 
+        elif modifiers == QtCore.Qt.KeyboardModifier.ControlModifier and key == QtCore.Qt.Key.Key_X:
+            event.accept()
+            selected_items = validate_drag_items(self.invisibleRootItem(), self.selectedItems(), [])
+            data = get_data(self.plot, selected_items, uuids_only=False)
+            data = substitude_mime_uuids(data, None, force=True)
+            QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data))
+
+            if self.can_delete_items:
+                deleted = list(set(get_data(self.plot, selected_items, uuids_only=True)))
+                self.setUpdatesEnabled(False)
+                self.clearSelection()
+                root = self.invisibleRootItem()
+                for item in selected_items:
+                    (item.parent() or root).removeChild(item)
+
+                self.setUpdatesEnabled(True)
+                self.refresh()
+
+                if deleted:
+                    self.itemsDeleted.emit(deleted)
+                self.update_channel_groups_count()
+
         elif modifiers == QtCore.Qt.KeyboardModifier.ControlModifier and key == QtCore.Qt.Key.Key_C:
             event.accept()
             selected_items = validate_drag_items(self.invisibleRootItem(), self.selectedItems(), [])

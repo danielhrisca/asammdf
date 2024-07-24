@@ -1,12 +1,19 @@
+import json
+import os
+from random import randint
 from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets
 
 from asammdf.gui.widgets.file import FileWidget
+from asammdf.gui.widgets.numeric import Numeric
+from asammdf.gui.widgets.plot import Plot
 from test.asammdf.gui.test_base import TestBase
 
 
 class TestFileWidget(TestBase):
+    testResult = None
+
     def setUp(self):
         super().setUp()
         self.widget = None
@@ -17,6 +24,12 @@ class TestFileWidget(TestBase):
         self.addCleanup(patcher.stop)
 
     def tearDown(self):
+        path_ = os.path.join(self.screenshots, self.__module__)
+        if not os.path.exists(path_):
+            os.makedirs(path_)
+
+        self.widget.grab().save(os.path.join(path_, f"{self.id().split('.')[-1]}.png"))
+
         if self.widget:
             self.widget.close()
             self.widget.destroy()
@@ -44,9 +57,8 @@ class TestFileWidget(TestBase):
             )
         else:
             self.widget = FileWidget(measurement_file, *args)
-        self.widget.showMaximized()
-        self.widget.activateWindow()
         self.processEvents()
+        self.widget.showNormal()
 
     def create_window(self, window_type, channels_names=(), channels_indexes=()):
         channel_tree = self.widget.channels_tree
@@ -63,7 +75,7 @@ class TestFileWidget(TestBase):
             mc_WindowSelectionDialog.return_value.selected_type.return_value = window_type
             # - Press PushButton "Create Window"
             QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.MouseButton.LeftButton)
-            widget_types = self.get_subwindows()
+            widget_types = self.get_sub_windows()
             self.assertIn(window_type, widget_types)
 
     @staticmethod
@@ -83,7 +95,93 @@ class TestFileWidget(TestBase):
                 iterator += 1
         return selected_channel
 
-    def get_subwindows(self):
+    def add_channels(self, channels_list: list, widget=None):
+        """
+        Add channels to the widget from a list using channels indexes or channels names
+        Add channels to the list <self.channels>
+
+        Parameters
+            channel_list: a list with existent channels names and indexes;
+            widget: the widget where the channels will be inserted.
+
+        Returns
+            None: if one channel or widget does not exist;
+            self.channels: if all channels were found.
+        """
+        if channels_list is None:
+            channels_list = [randint(5, self.widget.channels_tree.topLevelItemCount() - 10)]
+        if not isinstance(channels_list, list):
+            return []
+        # Ensure "Natural sort" mode for channel view
+        self.widget.channel_view.setCurrentIndex(0)
+        self.processEvents(0.1)
+        windows_list = self.widget.mdi_area.subWindowList()
+        if len(windows_list) == 0:
+            return []
+        else:
+            if widget is None:
+                widget = windows_list[0].widget()
+            else:
+                if widget not in [w.widget() for w in windows_list]:
+                    return []
+
+        channels = []
+        for channel in channels_list:
+            found_channel = None
+            if isinstance(channel, int):
+                found_channel = self.find_channel(channel_tree=self.widget.channels_tree, channel_index=channel)
+            elif isinstance(channel, str):
+                found_channel = self.find_channel(channel_tree=self.widget.channels_tree, channel_name=channel)
+            self.processEvents(0.1)
+            if found_channel is not None:
+                channels.append(found_channel)
+        self.assertEqual(
+            len(channels_list),
+            len(channels),
+            msg=f"Not all channels from given list was found!      \n"
+            f"Given channels:\n{channels_list} \nFounded channels: \n"
+            f"\n{channels}\n++++++++++++++++++++\nwidget:\t\t{widget}",
+        )
+
+        # add channels to channel selection
+        self.widget.add_new_channels([channel.name for channel in channels], widget)
+
+        if isinstance(widget, Numeric):
+            cw = widget.channels.dataView
+            self.channels = cw.backend.signals
+        elif isinstance(widget, Plot):
+            cw = widget.channel_selection
+            self.channels = [cw.topLevelItem(_) for _ in range(cw.topLevelItemCount())]
+        else:
+            return []
+        self.processEvents(0.01)
+        return self.channels
+
+    def load_shortcuts_from_json_file(self, widget):
+        """
+        Used to store widget shortcuts into variable "self.shortcuts"
+
+        Parameters
+        ----------
+            widget: tested widget
+
+        Returns
+        -------
+            None: if class not exist in json
+            Dict: if class was found; dict contains all shortcuts applied to selected class
+        """
+        # get a json path
+        json_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "Shortcuts", "Shortcuts.json"))
+        widget_name = widget.__class__.__name__
+        self.shortcuts = None
+        with open(json_path) as json_file:
+            data = json.load(json_file)
+            if widget_name in data.keys():
+                self.shortcuts = data[widget_name][0]
+        json_file.close()
+        return self.shortcuts
+
+    def get_sub_windows(self):
         widget_types = sorted(w.widget().__class__.__name__ for w in self.widget.mdi_area.subWindowList())
         return widget_types
 

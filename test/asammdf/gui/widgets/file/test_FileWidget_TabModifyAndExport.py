@@ -114,9 +114,9 @@ class TestTabModifyAndExport(TestFileWidget):
             with mock.patch("asammdf.gui.widgets.file.QtWidgets.QFileDialog.getSaveFileName") as mc_getSaveFileName:
                 mc_getSaveFileName.return_value = str(saved_file), None
                 QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-                self.processEvents()
+                self.processEvents(1)
         # Wait for thread to finish
-        self.processEvents(0.1)
+        self.processEvents(1)
 
         # Evaluate
         self.assertTrue(saved_file.exists())

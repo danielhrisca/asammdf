@@ -30,9 +30,9 @@ class TestPushButtons(TestPlotWidget):
         self.assertTrue(Pixmap.is_black(clear_pixmap))
 
         # Add Channels to Plot
-        self.plot_tree_channel_0 = self.add_channel_to_plot(plot=self.plot, channel_name=self.channel_0_name)
-        self.assertEqual(1, self.plot.channel_selection.topLevelItemCount())
-        self.plot_tree_channel_1 = self.add_channel_to_plot(plot=self.plot, channel_name=self.channel_1_name)
+        self.add_channels([self.channel_0_name, self.channel_1_name])
+        self.plot_tree_channel_0 = self.channels[0]
+        self.plot_tree_channel_1 = self.channels[1]
         self.assertEqual(2, self.plot.channel_selection.topLevelItemCount())
 
         # Identify PlotSignal
@@ -192,7 +192,7 @@ class TestPushButtons(TestPlotWidget):
         QtTest.QTest.mouseClick(
             self.plot.channel_selection.viewport(),
             QtCore.Qt.MouseButton.LeftButton,
-            QtCore.Qt.KeyboardModifiers(),
+            QtCore.Qt.KeyboardModifier.NoModifier,
             self.plot.channel_selection.visualItemRect(self.plot_tree_channel_1).center(),
         )
         # Process flash until signal is present on plot.
@@ -278,7 +278,7 @@ class TestPushButtons(TestPlotWidget):
         QtTest.QTest.mouseClick(
             self.plot.channel_selection.viewport(),
             QtCore.Qt.MouseButton.LeftButton,
-            QtCore.Qt.KeyboardModifiers(),
+            QtCore.Qt.KeyboardModifier.NoModifier,
             self.plot.channel_selection.visualItemRect(self.plot_tree_channel_1).center(),
         )
         self.plot.plot.setFocus()

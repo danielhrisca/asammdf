@@ -1,0 +1,153 @@
+{
+  "FileWidget": [
+    {
+      "search": "Ctrl+F",
+      "toggle_full_screen": "F11",
+      "tile_sub_windows_vertically": "Shift+V",
+      "tile_sub_windows_horizontally": "Shift+H",
+      "cascade_sub_windows": "Shift+C",
+      "tile_sub_windows_in_a_grid": "Shift+T",
+      "toggle_sub_windows_frames": "Shift+Alt+F",
+      "toggle_channel_view": "Shift+L",
+      "set_line_style": "."
+    }
+  ],
+
+  "TableView": [
+    {
+      "delete_items": "Delete",
+      "set_color_ranges": "Ctrl+R",
+      "copy_display_properties": "Ctrl+Shift+C",
+      "paste_display_properties": "Ctrl+Shift+V"
+    }
+  ],
+
+  "MainWindow": [
+    {
+      "toggle_full-screen": "F11",
+      "create_plot_window": "F2",
+      "create_numeric_window": "F3",
+      "create_tabular_window": "F4"
+    }
+  ],
+
+  "Numeric": [
+    {
+      "bin": "Ctrl+B",
+      "hex": "Ctrl+H",
+      "physical": "Ctrl+P",
+      "ascii": "Ctrl+T",
+      "move_cursor_left_1x": "Left",
+      "move_cursor_right_1x": "Right",
+      "save_active_subplot_channels": "Ctrl+S",
+      "increase_font": "Ctrl+[",
+      "decrease_font": "Ctrl+]",
+      "go_to_timestamp": "Shift+G"
+    }
+  ],
+
+  "Plot": [
+    {
+      "statistics": "M",
+      "focused_mode": "2",
+      "bin": "Ctrl+B",
+      "hex": "Ctrl+H",
+      "physical": "Ctrl+P",
+      "ascii": "Ctrl+T",
+      "raw_samples": "Alt+R",
+      "scaled_samples": "Alt+S",
+      "insert_bookmark": "Ctrl+I",
+      "toggle_bookmarks": "Alt+I",
+      "edit_y_axis_scaling": "Ctrl+G",
+      "range": "R",
+      "set_color": "C",
+      "copy_channel_structure": "Ctrl+C",
+      "copy_display_properties": "Ctrl+Shift+C",
+      "paste_channel_structure": "Ctrl+V",
+      "paste_display_properties": "Ctrl+Shift+V",
+      "increase_font": "Ctrl+[",
+      "decrease_font": "Ctrl+]",
+      "undo_zoom": "Backspace",
+      "redo_zoom": "Shift+Backspace",
+      "x_default_zoom": "Shift+W"
+    }
+  ],
+
+  "PlotGraphics": [
+    {
+      "toggle_range": "Y",
+      "zoom_to_range": "X",
+      "fit_all": "F",
+      "fit_selected": "Shift+F",
+      "grid": "G",
+      "go_to_timestamp": "Shift+G",
+      "x_zoom_in": "I",
+      "x_zoom_out": "O",
+      "y_zoom_in": "Shift+I",
+      "y_zoom_out": "Shift+O",
+      "range": "R",
+      "save_active_subplot_channels": "Ctrl+S",
+      "stack_all": "S",
+      "stack_selected": "Shift+S",
+      "move_cursor_left_1x": "Left",
+      "move_cursor_right_1x": "Right",
+      "move_cursor_left_20x": "Ctrl+Left",
+      "move_cursor_right_20x": "Ctrl+Right",
+      "shift_channels_left": "Shift+Left",
+      "shift_channels_right": "Shift+Right",
+      "shift_channels_up_1x": "Shift+Up",
+      "shift_channels_down_1x": "Shift+Down",
+      "shift_channels_up_10x": "Shift+PgUp",
+      "shift_channels_down_10x": "Shift+PgDown",
+      "honeywell": "H",
+      "home": "W",
+      "insert_computation": "Insert"
+    }
+  ],
+
+  "DataTableView": [
+    {
+      "set_color_range": "Ctrl+R"
+    }
+  ],
+
+  "Tabular": [
+    {
+      "bin": "Ctrl+B",
+      "hex": "Ctrl+H",
+      "physical": "Ctrl+P",
+      "save_active_subplot_channels": "Ctrl+S",
+      "increase_font": "Ctrl+[",
+      "decrease_font": "Ctrl+]"
+    }
+  ],
+
+  "DataFrameViewer": [
+    {
+      "copy": "Ctrl+C"
+    }
+  ],
+
+  "TreeWidget": [
+    {
+      "toggle_check_state": "Space"
+    }
+  ],
+
+  "ChannelsTreeWidget": [
+    {
+      "delete_items": "Delete",
+      "add_pattern_based_group": "Ctrl+Insert",
+      "add_channel_group": "Shift+Insert",
+      "toggle_check_state": "Space",
+      "set_color": "C",
+      "copy_channel_structure": "Ctrl+C",
+      "paste_channel_structure": "Ctrl+V",
+      "copy_names": "Ctrl+N",
+      "set_color_range": "Ctrl+R",
+      "copy_display_properties": "Ctrl+Shift+C",
+      "paste_display_properties": "Ctrl+Shift+V"
+    }
+  ]
+
+}

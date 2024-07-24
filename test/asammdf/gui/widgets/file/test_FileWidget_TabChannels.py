@@ -14,6 +14,12 @@ from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 class TestTabChannels(TestFileWidget):
     def tearDown(self):
+        if self.mc_ErrorDialog.call_args:
+            if (
+                "<class 'RuntimeError'>" in self.mc_ErrorDialog.call_args.kwargs["message"]
+                and self.mc_ErrorDialog.call_count == 1
+            ):
+                self.mc_ErrorDialog.reset_mock()
         self.mc_ErrorDialog.assert_not_called()
         self.mc_widget_ed.assert_not_called()
         super().tearDown()
@@ -41,7 +47,7 @@ class TestTabChannels(TestFileWidget):
             )
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-            widget_types = self.get_subwindows()
+            widget_types = self.get_sub_windows()
             self.assertIn("Plot", widget_types)
 
     @mock.patch("asammdf.gui.widgets.file.ErrorDialog")
@@ -170,7 +176,7 @@ class TestTabChannels(TestFileWidget):
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
                 mc_ErrorDialog.assert_called()
                 mc_ErrorDialog.reset_mock()
-                widget_types = self.get_subwindows()
+                widget_types = self.get_sub_windows()
                 self.assertNotIn("Plot", widget_types)
 
         # Case 4
@@ -191,7 +197,7 @@ class TestTabChannels(TestFileWidget):
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
                 mc_ErrorDialog.assert_called()
                 mc_ErrorDialog.reset_mock()
-                widget_types = self.get_subwindows()
+                widget_types = self.get_sub_windows()
                 self.assertNotIn("Numeric", widget_types)
 
         # Case 5
@@ -212,7 +218,7 @@ class TestTabChannels(TestFileWidget):
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
                 mc_ErrorDialog.assert_called()
                 mc_ErrorDialog.reset_mock()
-                widget_types = self.get_subwindows()
+                widget_types = self.get_sub_windows()
                 self.assertNotIn("Tabular", widget_types)
 
         # Case 6
@@ -229,7 +235,7 @@ class TestTabChannels(TestFileWidget):
                 # Evaluate
                 mo_load_window.assert_called()
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 3)
-                widget_types = self.get_subwindows()
+                widget_types = self.get_sub_windows()
                 self.assertListEqual(["Numeric", "Plot", "Tabular"], widget_types)
 
         mc_file_ErrorDialog.assert_not_called()
@@ -446,7 +452,7 @@ class TestTabChannels(TestFileWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
         while iterator.value():
             item = iterator.value()
-            self.assertTrue(item.checkState(0) == QtCore.Qt.CheckState.Checked)
+            self.assertTrue(item.checkState(0))
             iterator += 1
 
         # Clear all
@@ -454,7 +460,7 @@ class TestTabChannels(TestFileWidget):
         while iterator.value():
             item = iterator.value()
             item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-            self.assertFalse(item.checkState(0) == QtCore.Qt.CheckState.Checked)
+            self.assertEqual(item.checkState(0), QtCore.Qt.CheckState.Unchecked)
             iterator += 1
 
         # Switch ComboBox to "Internal file structure"
@@ -466,7 +472,7 @@ class TestTabChannels(TestFileWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
         while iterator.value():
             item = iterator.value()
-            self.assertTrue(item.checkState(0) == QtCore.Qt.CheckState.Checked)
+            self.assertTrue(item.checkState(0))
             iterator += 1
 
         # Switch ComboBox to "Selected channels only"
@@ -476,7 +482,7 @@ class TestTabChannels(TestFileWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
         while iterator.value():
             item = iterator.value()
-            self.assertTrue(item.checkState(0) == QtCore.Qt.CheckState.Checked)
+            self.assertTrue(item.checkState(0))
             iterator += 1
 
     def test_PushButton_ClearAll(self):
@@ -584,7 +590,7 @@ class TestTabChannels(TestFileWidget):
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.channels_tree)
                 while iterator.value():
                     item = iterator.value()
-                    self.assertFalse(item.checkState(0) == QtCore.Qt.CheckState.Checked)
+                    self.assertEqual(item.checkState(0), QtCore.Qt.CheckState.Unchecked)
                     iterator += 1
 
         # Case 1:
@@ -644,7 +650,7 @@ class TestTabChannels(TestFileWidget):
                     iterator += 1
                 self.assertEqual(2, checked_channels)
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-                widget_types = self.get_subwindows()
+                widget_types = self.get_sub_windows()
                 self.assertIn("Plot", widget_types)
 
     def test_PushButton_CreateWindow(self):
@@ -696,7 +702,7 @@ class TestTabChannels(TestFileWidget):
                 QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.MouseButton.LeftButton)
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
-            widget_types = self.get_subwindows()
+            widget_types = self.get_sub_windows()
             self.assertIn("Plot", widget_types)
 
         # Case 2:
@@ -711,7 +717,7 @@ class TestTabChannels(TestFileWidget):
                 QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.MouseButton.LeftButton)
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 2)
-            widget_types = self.get_subwindows()
+            widget_types = self.get_sub_windows()
             self.assertIn("Numeric", widget_types)
             numeric_data = self.widget.mdi_area.subWindowList()[1].widget().channels.dataView
             numeric_channel = numeric_data.model().data(numeric_data.model().index(0, 0))
@@ -726,7 +732,7 @@ class TestTabChannels(TestFileWidget):
                 QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.MouseButton.LeftButton)
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 3)
-            widget_types = self.get_subwindows()
+            widget_types = self.get_sub_windows()
             self.assertIn("Tabular", widget_types)
 
         # Case 4:
@@ -738,7 +744,7 @@ class TestTabChannels(TestFileWidget):
                 QtTest.QTest.mouseClick(self.widget.create_window_btn, QtCore.Qt.MouseButton.LeftButton)
             # Evaluate
             self.assertEqual(len(self.widget.mdi_area.subWindowList()), 4)
-            widget_types = self.get_subwindows()
+            widget_types = self.get_sub_windows()
             self.assertIn("Plot", widget_types)
             plot_widget = self.widget.mdi_area.subWindowList()[3].widget()
             plot_channel = plot_widget.channel_selection.topLevelItem(0).text(0)
@@ -767,9 +773,10 @@ class TestTabChannels(TestFileWidget):
         QtTest.QTest.mouseClick(
             self.widget.channels_tree.viewport(),
             QtCore.Qt.MouseButton.LeftButton,
-            QtCore.Qt.KeyboardModifiers(),
+            QtCore.Qt.KeyboardModifier.NoModifier,
             first_item_center,
         )
+        self.processEvents()
         # Case 0:
         with mock.patch(
             "asammdf.gui.widgets.file.ChannelGroupInfoDialog",
@@ -778,7 +785,7 @@ class TestTabChannels(TestFileWidget):
             QtTest.QTest.mouseDClick(
                 self.widget.channels_tree.viewport(),
                 QtCore.Qt.MouseButton.LeftButton,
-                QtCore.Qt.KeyboardModifiers(),
+                QtCore.Qt.KeyboardModifier.NoModifier,
                 first_item_center,
             )
             # Evaluate
@@ -798,9 +805,10 @@ class TestTabChannels(TestFileWidget):
         QtTest.QTest.mouseClick(
             self.widget.channels_tree.viewport(),
             QtCore.Qt.MouseButton.LeftButton,
-            QtCore.Qt.KeyboardModifiers(),
+            QtCore.Qt.KeyboardModifier.NoModifier,
             child_item_center,
         )
+        self.processEvents()
         with mock.patch(
             "asammdf.gui.widgets.file.ChannelInfoDialog",
             wraps=ChannelInfoDialog,
@@ -808,7 +816,7 @@ class TestTabChannels(TestFileWidget):
             QtTest.QTest.mouseDClick(
                 self.widget.channels_tree.viewport(),
                 QtCore.Qt.MouseButton.LeftButton,
-                QtCore.Qt.KeyboardModifiers(),
+                QtCore.Qt.KeyboardModifier.NoModifier,
                 child_item_center,
             )
             # Evaluate

@@ -16,20 +16,12 @@ import os
 import pathlib
 import shutil
 import sys
-import threading
 import time
 import unittest
 from unittest import mock
 
-import numpy as np
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
-
-if sys.platform == "win32":
-    import win32api
-    import win32con
-else:
-    import pyautogui
 
 from asammdf.gui.utils import excepthook
 
@@ -59,7 +51,12 @@ class TestBase(unittest.TestCase):
     longMessage = False
 
     resource = os.path.normpath(os.path.join(os.path.dirname(__file__), "resources"))
-    test_workspace = os.path.join(os.path.join(os.path.dirname(__file__), "test_workspace"))
+    test_workspace = os.path.join(os.path.dirname(__file__), "test_workspace")
+    screenshots = os.path.join(os.path.dirname(__file__).split("test")[0], "screenshots")
+    #     os.path.dirname(__file__).split("test")[0], f"screenshots_{sys.platform}_{platform.python_version()}"
+    # )
+    # save_ss_here = os.path.normpath(os.path.join(screenshots, sys.platform, platform.python_version()))
+    # save_ss_here = os.path.normpath(os.path.join(platform_path, platform.python_version().replace(".", "_")))
     patchers = []
     # MockClass ErrorDialog
     mc_ErrorDialog = None
@@ -68,7 +65,7 @@ class TestBase(unittest.TestCase):
         return self._testMethodDoc
 
     @staticmethod
-    def manual_use(widget, duration=None):
+    def manual_use(w, duration=None):
         """
         Execute Widget for debug/development purpose.
 
@@ -77,32 +74,39 @@ class TestBase(unittest.TestCase):
         duration : float | None
             duration in seconds
         """
-        widget.showMaximized()
-        app.exec()
         if duration is None:
             duration = 3600
         else:
             duration = abs(duration)
 
-        widget.showNormal()
+        w.showNormal()
 
         loop = QtCore.QEventLoop()
         QtCore.QTimer.singleShot(int(duration * 1000), loop.quit)
         loop.exec_()
 
-        widget.showNormal()
+        w.showNormal()
 
     @staticmethod
     def processEvents(timeout=0.001):
-        app.sendPostedEvents()
-
-        loop = QtCore.QEventLoop()
-        QtCore.QTimer.singleShot(int(timeout * 1000), loop.quit)
-        loop.exec_()
+        QtCore.QCoreApplication.processEvents()
+        QtCore.QCoreApplication.sendPostedEvents()
+        QtCore.QEventLoop.processEvents(QtCore.QEventLoop())
+        if timeout:
+            time.sleep(timeout)
+            QtCore.QCoreApplication.processEvents()
+            QtCore.QCoreApplication.sendPostedEvents()
 
     def setUp(self) -> None:
         if os.path.exists(self.test_workspace):
             shutil.rmtree(self.test_workspace)
+        if not os.path.exists(self.screenshots):
+            os.makedirs(self.screenshots)
+        # if not os.path.exists(self.platform_path):
+        #     os.makedirs(self.platform_path)
+        # if not os.path.exists(self.save_ss_here):
+        #     os.makedirs(self.save_ss_here)
+
         os.makedirs(self.test_workspace)
         self.mc_ErrorDialog.reset_mock()
         self.processEvents()
@@ -129,7 +133,7 @@ class TestBase(unittest.TestCase):
         QtTest.QTest.mouseClick(
             qitem,
             QtCore.Qt.MouseButton.LeftButton,
-            QtCore.Qt.KeyboardModifiers(),
+            QtCore.Qt.KeyboardModifier.NoModifier,
             QtCore.QPoint(2, qitem.height() / 2),
         )
         self.processEvents()
@@ -148,7 +152,7 @@ class TestBase(unittest.TestCase):
         QtTest.QTest.mouseClick(
             widget.viewport(),
             QtCore.Qt.MouseButton.LeftButton,
-            QtCore.Qt.KeyboardModifiers(),
+            QtCore.Qt.KeyboardModifier.NoModifier,
             widget.visualItemRect(qitem).center(),
         )
         self.processEvents(0.5)
@@ -163,10 +167,49 @@ class TestBase(unittest.TestCase):
         QtTest.QTest.mouseDClick(
             widget.viewport(),
             QtCore.Qt.MouseButton.LeftButton,
-            QtCore.Qt.KeyboardModifiers(),
+            QtCore.Qt.KeyboardModifier.NoModifier,
             widget.visualItemRect(qitem).center(),
         )
         self.processEvents(0.5)
+
+    def avoid_blinking_issue(self, w):
+        self.processEvents(0.01)
+        # To avoid blinking issue, click on a center of widget
+        QtTest.QTest.mouseClick(
+            w, QtCore.Qt.MouseButton.LeftButton, QtCore.Qt.KeyboardModifier.NoModifier, w.rect().center()
+        )
+
+
+class DragAndDrop:
+    def __init__(self, src_widget, dst_widget, src_pos, dst_pos):
+
+        QtCore.QCoreApplication.processEvents()
+        # hack QDrag object
+        with mock.patch(f"{src_widget.__module__}.QtGui.QDrag") as mo_QDrag:
+            src_widget.startDrag(QtCore.Qt.DropAction.MoveAction)
+            mo_QDrag.assert_called()
+            mime_data = mo_QDrag.return_value.setMimeData.call_args.args[0]
+
+            event = QtGui.QDragEnterEvent(
+                dst_pos,
+                QtCore.Qt.DropAction.MoveAction,
+                mime_data,
+                QtCore.Qt.MouseButton.LeftButton,
+                QtCore.Qt.KeyboardModifier.NoModifier,
+            )
+            with mock.patch.object(event, "source", return_value=src_widget):
+                dst_widget.dragEnterEvent(event)
+
+            event = QtGui.QDropEvent(
+                dst_pos,
+                QtCore.Qt.DropAction.MoveAction,
+                mime_data,
+                QtCore.Qt.MouseButton.LeftButton,
+                QtCore.Qt.KeyboardModifier.NoModifier,
+            )
+            with mock.patch.object(event, "source", return_value=src_widget):
+                dst_widget.dropEvent(event)
+        QtCore.QCoreApplication.processEvents()
 
 
 class Pixmap:
@@ -218,7 +261,7 @@ class Pixmap:
                 if _x < x or _y < y:
                     continue
                 # De unde 2?
-                elif (_x > width - x) or (_y > height - y - 3):
+                elif (_x > width - x) or (_y > height - y - 2):
                     break
                 if color.name() != color_name:
                     print(x, y, width, height)
@@ -228,8 +271,17 @@ class Pixmap:
 
     @staticmethod
     def has_color(pixmap, color_name):
+        """
+        Return True if "pixmap" has "color_name" color
+        """
         image = pixmap.toImage()
-
+        if not isinstance(color_name, str):
+            if hasattr(color_name, "color"):
+                color_name = color_name.color.name()
+            elif hasattr(color_name, "name"):
+                color_name = color_name.name()
+            else:
+                raise SyntaxError(f"Object {color_name} doesn't have the attribute <<color>> or <<name()>>")
         for y in range(image.height()):
             for x in range(image.width()):
                 color = QtGui.QColor(image.pixel(x, y))
@@ -239,6 +291,16 @@ class Pixmap:
 
     @staticmethod
     def color_names(pixmap):
+        """
+
+        Parameters
+        ----------
+        pixmap: QPixmap object of PlotGraphics object
+
+        Returns
+        -------
+        All colors from pixmap including default colors
+        """
         color_names = set()
 
         image = pixmap.toImage()
@@ -249,7 +311,56 @@ class Pixmap:
         return color_names
 
     @staticmethod
+    def color_names_exclude_defaults(pixmap):
+        """
+
+        Parameters
+        ----------
+        pixmap: QPixmap object of PlotGraphics object
+
+        Returns
+        -------
+        All colors from pixmap excluding default colors
+        """
+        color_names = set()
+        defaults = (Pixmap.COLOR_BACKGROUND, Pixmap.COLOR_CURSOR, Pixmap.COLOR_RANGE)
+        image = pixmap.toImage()
+        for y in range(image.height()):
+            for x in range(image.width()):
+                color = QtGui.QColor(image.pixel(x, y))
+                if color not in defaults:
+                    color_names.add(color.name())
+        return color_names
+
+    @staticmethod
+    def color_map(pixmap):
+        """
+        return dict, where:
+            > keys are line of pixmap
+            > values is a list of color names ordered by columns of pixmap
+        """
+        color_dict = {}
+        line = []
+        image = pixmap.toImage()
+        for y in range(image.height()):
+            for x in range(image.width()):
+                line.append(QtGui.QColor(image.pixel(x, y)).name())
+            color_dict[y] = line
+            line = []
+        return color_dict
+
+    @staticmethod
     def cursors_x(pixmap):
+        """
+
+        Parameters
+        ----------
+        pixmap: QPixmap object of PlotGraphics object
+
+        Returns
+        -------
+        list of cursors line from pixmap
+        """
         image = pixmap.toImage()
 
         cursors = []
@@ -259,74 +370,87 @@ class Pixmap:
             count = 0
             for y in range(image.height()):
                 color = QtGui.QColor(image.pixel(x, y))
-                # Skip Black
-                if color.name() == Pixmap.COLOR_BACKGROUND:
-                    continue
-                if not possible_cursor:
-                    possible_cursor = color.name()
-                if possible_cursor != color.name():
-                    break
-                count += 1
-            else:
-                if count >= image.height() - 3:
-                    cursors.append(x)
-
+                # Count straight vertical line pixels with COLOR_CURSOR color
+                if color.name() == Pixmap.COLOR_CURSOR:
+                    count += 1
+            if count >= (image.height() - 1) / 2 - 1:  # For Y shortcut tests, one cursor is a discontinuous line
+                cursors.append(x)
         return cursors
 
+    @staticmethod
+    def search_signal_extremes_by_ax(pixmap, signal_color, ax: str):
+        """
+        Return column where signal start and end
+        If ax = Y: Return a list with extremes of signal by 0Y axes
+        If ax = X: Return a list with extremes of signal by 0X axes
+        """
+        if not isinstance(signal_color, str):
+            if hasattr(signal_color, "color"):
+                signal_color = signal_color.color.name()
+            elif hasattr(signal_color, "name"):
+                signal_color = signal_color.name()
+            else:
+                raise SyntaxError(f"Object {signal_color} doesn't have the attribute <<color>> or <<name()>>")
+        from_to = []
+        image = pixmap.toImage()
+        if ax in ("x", "X"):
+            for x in range(image.width()):
+                for y in range(image.height()):
+                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                        from_to.append(x)
+                        break
+                if from_to:
+                    break
+            if not from_to:
+                return
+            for x in range(image.width(), from_to[0], -1):
+                for y in range(image.height()):
+                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                        from_to.append(x)
+                        break
+                if len(from_to) == 2:
+                    break
+            return from_to
 
-class DragAndDrop:
-    def __init__(self, src_widget, dst_widget, src_pos, dst_pos):
-        src_offset = dst_offset = QtCore.QPoint(0, 1)
-        if hasattr(src_widget, "header"):
-            src_offset = QtCore.QPoint(0, src_widget.header().geometry().height() + 1)
-        if hasattr(dst_widget, "header"):
-            dst_offset = QtCore.QPoint(0, dst_widget.header().geometry().height() + 1)
+        elif ax in ("y", "Y"):
+            for y in range(image.height()):
+                for x in range(image.width()):
+                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                        from_to.append(y)
+                        break
+                if from_to:
+                    break
+            if not from_to:
+                return
 
-        t_move = threading.Thread(
-            target=dnd_worker,
-            args=(
-                src_widget.mapToGlobal(src_pos) + src_offset,
-                dst_widget.mapToGlobal(dst_pos) + dst_offset,
-            ),
-        )
-        t_move.start()
+            for y in range(image.height(), from_to[0], -1):
+                for x in range(image.width()):
+                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                        from_to.append(y)
+                        break
+                if len(from_to) == 2:
+                    break
+            return from_to
 
-        while t_move.is_alive():
-            QtWidgets.QApplication.instance().processEvents()
-            time.sleep(0.001)
+    @staticmethod
+    def search_y_of_signal_in_column(pixmap_column, signal_color):
+        """
+        Return the first pixel line number where the signal color was found.
+        """
+        image = pixmap_column.toImage()
+        if image.width() > 1:
+            raise TypeError(f"<<{image.width()} != 1>>. Please check pixmap width!")
+        if not isinstance(signal_color, str):
+            if hasattr(signal_color, "color"):
+                signal_color = signal_color.color.name()
+            elif hasattr(signal_color, "name"):
+                signal_color = signal_color.name()
+            else:
+                raise SyntaxError(f"Object {signal_color} doesn't have the attribute <<color>> or <<name()>>")
 
-        time.sleep(0.2)
-        for _ in range(10):
-            QtWidgets.QApplication.instance().processEvents()
-            time.sleep(0.001)
-
-
-def dnd_worker(start, end):
-    x_vals = np.linspace(start.x(), end.x(), 10)
-    y_vals = np.linspace(start.y(), end.y(), len(x_vals))
-
-    if sys.platform == "win32":
-        win32api.SetCursorPos((start.x(), start.y()))
-        # Perform left mouse button down event
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, start.x(), start.y(), 0, 0)
-        # Move the mouse to the ending position
-        for x, y in zip(x_vals, y_vals):
-            win32api.SetCursorPos((int(x), int(y)))
-            time.sleep(0.02)
-        # Perform left mouse button up event
-        win32api.SetCursorPos((end.x(), end.y()))
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, end.x(), end.y(), 0, 0)
-        time.sleep(0.2)
-
-    else:
-        # Move the mouse to the starting position
-        pyautogui.moveTo(start.x(), start.y())
-        # Perform left mouse button down event
-        pyautogui.mouseDown()
-        # Move the mouse to the ending position
-        for x, y in zip(x_vals, y_vals):
-            pyautogui.moveTo(int(x), int(y))
-            time.sleep(0.001)
-        # Perform left mouse button up event
-        pyautogui.moveTo(end.x(), end.y())
-        pyautogui.mouseUp()
+        line = None
+        for y in range(image.height()):
+            if QtGui.QColor(image.pixel(0, y)).name() == signal_color:
+                line = y
+                break
+        return line
