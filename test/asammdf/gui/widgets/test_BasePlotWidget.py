@@ -93,31 +93,34 @@ class TestPlotWidget(TestFileWidget):
         if src is None or dst is None:
             raise Exception("src and dst is cannot be None")
         channels_tree_widget = src.treeWidget()
+        # height of header item
+        header_item_h = channels_tree_widget.headerItem().sizeHint(0).height()
+        # height of regular item
+        item_h = channels_tree_widget.visualItemRect(src).height()
+        # start drag coordinates
         drag_x, drag_y = (
             channels_tree_widget.visualItemRect(src).center().x(),
-            channels_tree_widget.visualItemRect(src).center().y() + 25,
+            channels_tree_widget.visualItemRect(src).center().y() + header_item_h + int(item_h / 4),
         )
+        # stop drag (drop) coordinates
         if dst is channels_tree_widget:
             drop_x, drop_y = dst.rect().center().x(), dst.rect().center().y()
         else:
             drop_x, drop_y = (
                 channels_tree_widget.visualItemRect(dst).center().x(),
-                channels_tree_widget.visualItemRect(dst).center().y() + 25,
+                channels_tree_widget.visualItemRect(dst).center().y() + header_item_h + int(item_h * 0.25),
             )
         QtTest.QTest.mouseMove(channels_tree_widget, QPoint(drag_x, drag_y))
         # minimum necessary time for drag action to be implemented
-        t = 1
+        t = 0.4
 
-        def call_drop_event(arg):
-            duration = arg.pop()
-            distance = drop_y - drag_y
-            if distance > 25:
-                duration /= 2
-            pyautogui.drag(0, distance, duration=duration)
+        def call_drop_event(x, y, duration, h):
+            x *= h / y
+            pyautogui.drag(int(x), y, duration=duration)
 
-        timer = td.Timer(0.0001, call_drop_event, (t,))
+        timer = td.Timer(0.0001, call_drop_event, args=(int(drag_x * 0.5), drop_y - drag_y, t, item_h))
         timer.start()
-        self.manual_use(self.widget, duration=t + 0.002)
+        self.manual_use(self.widget, duration=t + 0.2)
 
         self.processEvents(0.01)
 

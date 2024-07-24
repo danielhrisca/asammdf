@@ -272,7 +272,7 @@ class Pixmap:
     @staticmethod
     def has_color(pixmap, color_name):
         """
-        Return True if Pixmap has selected color
+        Return True if "pixmap" has "color_name" color
         """
         image = pixmap.toImage()
         if not isinstance(color_name, str):
@@ -291,6 +291,16 @@ class Pixmap:
 
     @staticmethod
     def color_names(pixmap):
+        """
+
+        Parameters
+        ----------
+        pixmap: QPixmap object of PlotGraphics object
+
+        Returns
+        -------
+        All colors from pixmap including default colors
+        """
         color_names = set()
 
         image = pixmap.toImage()
@@ -302,6 +312,16 @@ class Pixmap:
 
     @staticmethod
     def color_names_exclude_defaults(pixmap):
+        """
+
+        Parameters
+        ----------
+        pixmap: QPixmap object of PlotGraphics object
+
+        Returns
+        -------
+        All colors from pixmap excluding default colors
+        """
         color_names = set()
         defaults = (Pixmap.COLOR_BACKGROUND, Pixmap.COLOR_CURSOR, Pixmap.COLOR_RANGE)
         image = pixmap.toImage()
@@ -331,6 +351,16 @@ class Pixmap:
 
     @staticmethod
     def cursors_x(pixmap):
+        """
+
+        Parameters
+        ----------
+        pixmap: QPixmap object of PlotGraphics object
+
+        Returns
+        -------
+        list of cursors line from pixmap
+        """
         image = pixmap.toImage()
 
         cursors = []
@@ -340,22 +370,12 @@ class Pixmap:
             count = 0
             for y in range(image.height()):
                 color = QtGui.QColor(image.pixel(x, y))
-                # Skip Black
-                if color.name() == Pixmap.COLOR_BACKGROUND:
-                    continue
-                if not possible_cursor:
-                    possible_cursor = color.name()
-                if possible_cursor != color.name():
-                    break
-                count += 1
-            else:
-                if count >= image.height() - 3:
-                    cursors.append(x)
+                # Count straight vertical line pixels with COLOR_CURSOR color
                 if color.name() == Pixmap.COLOR_CURSOR:
                     count += 1
-            if count >= image.height() / 2 - 1:  # For Y shortcut tests, one cursor is a discontinuous line
-                cursors.append(x)
-
+            else:
+                if count >= (image.height() - 1) / 2 - 1:  # For Y shortcut tests, one cursor is a discontinuous line
+                    cursors.append(x)
         return cursors
 
     @staticmethod
