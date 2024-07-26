@@ -93,28 +93,33 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         try:
             from h5py import File as HDF5
+
             formats.append("HDF5")
         except ImportError:
             pass
 
         try:
             from hdf5storage import savemat
+
             formats.append("MAT")
         except ImportError:
             try:
                 from scipy.io import savemat
+
                 formats.append("MAT")
             except ImportError:
                 pass
 
         try:
             from h5py import File as HDF5
+
             formats.append("HDF5")
         except ImportError:
             pass
 
         try:
             from fastparquet import write as write_parquet
+
             formats.append("Parquet")
         except ImportError:
             pass

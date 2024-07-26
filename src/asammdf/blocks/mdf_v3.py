@@ -204,7 +204,7 @@ class MDF3(MDF_Common):
 
         self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
         self._tempfile.write(b"\0")
-        self._file = None
+        self._file = self._mapped_file = None
 
         self._remove_source_from_channel_names = kwargs.get("remove_source_from_channel_names", False)
 
@@ -236,7 +236,6 @@ class MDF3(MDF_Common):
         self.vlsd_max_length = {}
 
         self._delete_on_close = False
-        self._mapped_file = None
 
         progress = kwargs.get("progress", None)
 
@@ -262,6 +261,9 @@ class MDF3(MDF_Common):
                 except:
                     if self._file:
                         self._file.close()
+                    if self._mapped_file:
+                        self._mapped_file.close()
+                    self._file = self._mapped_file = None
                     raise
         else:
             self._from_filelike = False

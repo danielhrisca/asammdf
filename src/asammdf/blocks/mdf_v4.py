@@ -311,7 +311,7 @@ class MDF4(MDF_Common):
             self.use_load_filter = True
 
         self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
-        self._file = None
+        self._file = self._mapped_file = None
 
         self._read_fragment_size = get_global_option("read_fragment_size")
         self._write_fragment_size = get_global_option("write_fragment_size")
@@ -347,7 +347,6 @@ class MDF4(MDF_Common):
         self._tempfile.write(b"\0")
 
         self._delete_on_close = False
-        self._mapped_file = None
 
         progress = kwargs.get("progress", None)
 
@@ -390,6 +389,9 @@ class MDF4(MDF_Common):
                 except:
                     if self._file:
                         self._file.close()
+                    if self._mapped_file:
+                        self._mapped_file.close()
+                    self._file = self._mapped_file = None
                     raise
 
         else:
