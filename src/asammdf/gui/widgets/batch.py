@@ -89,6 +89,39 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             widget.insertItems(0, ("no compression", "deflate", "transposed deflate"))
             widget.setCurrentText("transposed deflate")
 
+        formats = ["MDF", "ASC", "CSV"]
+
+        try:
+            from h5py import File as HDF5
+            formats.append("HDF5")
+        except ImportError:
+            pass
+
+        try:
+            from hdf5storage import savemat
+            formats.append("MAT")
+        except ImportError:
+            try:
+                from scipy.io import savemat
+                formats.append("MAT")
+            except ImportError:
+                pass
+
+        try:
+            from h5py import File as HDF5
+            formats.append("HDF5")
+        except ImportError:
+            pass
+
+        try:
+            from fastparquet import write as write_parquet
+            formats.append("Parquet")
+        except ImportError:
+            pass
+
+        self.output_format.addItems(formats)
+        self.output_format.setCurrentIndex(0)
+
         self.concatenate_btn.clicked.connect(self.concatenate)
         self.scramble_btn.clicked.connect(self.scramble)
         self.stack_btn.clicked.connect(self.stack)

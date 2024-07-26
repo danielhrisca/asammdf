@@ -353,6 +353,39 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 self.mat_format.insertItems(0, ("7.3",))
             self.oned_as.insertItems(0, ("row", "column"))
 
+            formats = ["MDF", "ASC", "CSV"]
+
+            try:
+                from h5py import File as HDF5
+                formats.append("HDF5")
+            except ImportError:
+                pass
+
+            try:
+                from hdf5storage import savemat
+                formats.append("MAT")
+            except ImportError:
+                try:
+                    from scipy.io import savemat
+                    formats.append("MAT")
+                except ImportError:
+                    pass
+
+            try:
+                from h5py import File as HDF5
+                formats.append("HDF5")
+            except ImportError:
+                pass
+
+            try:
+                from fastparquet import write as write_parquet
+                formats.append("Parquet")
+            except ImportError:
+                pass
+
+            self.output_format.addItems(formats)
+            self.output_format.setCurrentIndex(0)
+
             self.output_format.currentTextChanged.connect(self.output_format_changed)
 
             # self.channels_tree.itemChanged.connect(self.select)
