@@ -29,7 +29,6 @@
 import bisect
 import datetime
 import logging
-import threading
 from traceback import format_exc
 
 import numpy as np
@@ -46,6 +45,7 @@ from ...blocks.utils import (
     csv_bytearray2hex,
     extract_mime_names,
     pandas_query_compatible,
+    timeit,
 )
 from ..dialogs.range_editor import RangeEditor
 from ..ui.tabular import Ui_TabularDisplay
@@ -66,6 +66,9 @@ MONOSPACE_FONT = None
 
 
 class TabularTreeItem(QtWidgets.QTreeWidgetItem):
+
+    DEFAULT_FLAGS = QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsSelectable
+
     def __init__(self, column_types, int_format, ranges=None, *args, **kwargs):
         self.column_types = column_types
         self.int_format = int_format
@@ -139,6 +142,7 @@ class DataFrameStorage:
         super().__init__()
 
         self.df = df
+        self.df.cached_size = df.shape
         self.df_unfiltered = df
         self.tabular = tabular
 
@@ -286,10 +290,10 @@ class DataTableModel(QtCore.QAbstractTableModel):
         pass
 
     def columnCount(self, parent=None):
-        return self.pgdf.df.columns.shape[0]
+        return self.pgdf.df.cached_size[0]
 
     def rowCount(self, parent=None):
-        return len(self.pgdf.df)
+        return self.pgdf.df.cached_size[1]
 
     # Returns the data from the DataFrame
     def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
@@ -357,7 +361,7 @@ class DataTableModel(QtCore.QAbstractTableModel):
                     return int(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
 
     def flags(self, index):
-        return QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsSelectable
+        return TabularTreeItem.DEFAULT_FLAGS
 
     def setData(self, index, value, role=None):
         pass
@@ -1356,11 +1360,13 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                     new_df.drop(columns=to_drop, inplace=True)
                 self.query.setText(" ".join(filters))
                 new_df.rename(columns=original_names, inplace=True)
+                new_df.cached_size = new_df.shape
                 self.tree.pgdf.df = new_df
                 self.tree.pgdf.data_changed()
         else:
             self.query.setText("")
             df.rename(columns=original_names, inplace=True)
+            df.cached_size = df.shape
             self.tree.pgdf.df = df
             self.tree.pgdf.data_changed()
 
@@ -1439,7 +1445,10 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         ]
         signals = signals[names]
 
-        self.tree.pgdf.df_unfiltered = self.tree.pgdf.df = pd.concat([self.tree.pgdf.df_unfiltered, signals], axis=1)
+        df = pd.concat([self.tree.pgdf.df_unfiltered, signals], axis=1)
+        df.cached_size = df.shape
+
+        self.tree.pgdf.df_unfiltered = self.tree.pgdf.df = df
         self.ranges = ranges
 
         if filtered:
@@ -1918,7 +1927,12 @@ class DataFrameViewer(QtWidgets.QWidget):
 
         # Iterate over the data view rows and check the width of each to determine the max width for the column
         # Only check the first N rows for performance. If there is larger content in cells below it will be cut off
-        N = 100
+        N = 40000 // self.dataView.model().columnCount()
+        if N > 100:
+            N = 100
+        elif N < 5:
+            N = 5
+
         for i in range(self.dataView.model().rowCount())[:N]:
             mi = self.dataView.model().index(i, column_index)
             text = self.dataView.model().data(mi)
@@ -1981,6 +1995,7 @@ class DataFrameViewer(QtWidgets.QWidget):
         else:
             self.dataView.keyPressEvent(event)
 
+    @timeit
     def copy(self, header=False):
         """
         Copy the selected cells to clipboard in an Excel-pasteable format
@@ -1991,25 +2006,25 @@ class DataFrameViewer(QtWidgets.QWidget):
 
         # Copy from data, columns, or index depending on which has focus
         if header or self.dataView.hasFocus():
-            indexes = self.dataView.selectionModel().selection().indexes()
-            rows = [ix.row() for ix in indexes]
-            cols = [ix.column() for ix in indexes]
+            selection_model = self.dataView.selectionModel()
+            rows = [i for i in range(self.pgdf.df.cached_size[1]) if selection_model.rowIntersectsSelection(i)]
+            cols = [i for i in range(self.pgdf.df.cached_size[0]) if selection_model.columnIntersectsSelection(i)]
 
             temp_df = self.pgdf.df
             df = temp_df.iloc[min(rows) : max(rows) + 1, min(cols) : max(cols) + 1]
 
         elif self.indexHeader.hasFocus():
-            indexes = self.indexHeader.selectionModel().selection().indexes()
-            rows = [ix.row() for ix in indexes]
-            cols = [ix.column() for ix in indexes]
+            selection_model = self.indexHeader.selectionModel()
+            rows = [i for i in range(self.pgdf.df.cached_size[1]) if selection_model.rowIntersectsSelection(i)]
+            cols = [i for i in range(self.pgdf.df.cached_size[0]) if selection_model.columnIntersectsSelection(i)]
 
             temp_df = self.pgdf.df.index.to_frame()
             df = temp_df.iloc[min(rows) : max(rows) + 1, min(cols) : max(cols) + 1]
 
         elif self.columnHeader.hasFocus():
-            indexes = self.columnHeader.selectionModel().selection().indexes()
-            rows = [ix.row() for ix in indexes]
-            cols = [ix.column() for ix in indexes]
+            selection_model = self.columnHeader.selectionModel()
+            rows = [i for i in range(self.pgdf.df.cached_size[1]) if selection_model.rowIntersectsSelection(i)]
+            cols = [i for i in range(self.pgdf.df.cached_size[0]) if selection_model.columnIntersectsSelection(i)]
 
             # Column header should be horizontal so we transpose
             temp_df = self.pgdf.df.columns.to_frame().transpose()
@@ -2026,6 +2041,11 @@ class DataFrameViewer(QtWidgets.QWidget):
                     col = pd.Series([fmt.format(val) for val in col], index=df.index)
                     df[name] = col
 
+        for name in df.columns:
+            col = df[name]
+            if isinstance(col.values[0], (bytes, np.bytes_)):
+                df[name] = pd.Series(col, dtype=pd.StringDtype())
+
         if self.dataView.model().float_precision != -1:
             decimals = self.dataView.model().float_precision
             for name in df.columns:
@@ -2040,24 +2060,18 @@ class DataFrameViewer(QtWidgets.QWidget):
         # If I try to use df.to_clipboard without starting new thread, large selections give access denied error
         if df.shape == (1, 1):
             # Special case for single-cell copy, excel=False removes the trailing \n character.
-            threading.Thread(
-                target=lambda df: df.to_clipboard(
-                    index=header,
-                    header=header,
-                    excel=False,
-                    float_format=float_format,
-                ),
-                args=(df,),
-            ).start()
+            df.to_clipboard(
+                index=header,
+                header=header,
+                excel=False,
+                float_format=float_format,
+            )
         else:
-            threading.Thread(
-                target=lambda df: df.to_clipboard(
-                    index=header,
-                    header=header,
-                    float_format=float_format,
-                ),
-                args=(df,),
-            ).start()
+            df.to_clipboard(
+                index=header,
+                header=header,
+                float_format=float_format,
+            )
 
     def show_column_menu(self, column_ix_or_name):
         if isinstance(self.pgdf.df.columns, pd.MultiIndex):
