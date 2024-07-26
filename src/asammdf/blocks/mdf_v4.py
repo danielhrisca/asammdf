@@ -358,34 +358,39 @@ class MDF4(MDF_Common):
                 self._from_filelike = True
                 self._read(mapped=False, progress=progress)
             else:
-                with open(name, "rb") as stream:
-                    identification = FileIdentificationBlock(stream=stream)
-                    version = identification["version_str"]
-                    version = version.decode("utf-8").strip(" \n\t\0")
-                    flags = identification["unfinalized_standard_flags"]
+                try:
+                    with open(name, "rb") as stream:
+                        identification = FileIdentificationBlock(stream=stream)
+                        version = identification["version_str"]
+                        version = version.decode("utf-8").strip(" \n\t\0")
+                        flags = identification["unfinalized_standard_flags"]
 
-                if version >= "4.10" and flags:
-                    tmpdir = Path(gettempdir())
-                    if self.temporary_folder:
-                        tmpdir = Path(self.temporary_folder)
-                    self.name = tmpdir / f"{os.urandom(6).hex()}_{Path(name).name}"
-                    shutil.copy(name, self.name)
-                    self._file = open(self.name, "rb+")
-                    self._from_filelike = False
-                    self._delete_on_close = True
-                    self._read(mapped=False, progress=progress)
-                else:
-                    if sys.maxsize < 2**32:
-                        self.name = Path(name)
-                        self._file = open(self.name, "rb")
+                    if version >= "4.10" and flags:
+                        tmpdir = Path(gettempdir())
+                        if self.temporary_folder:
+                            tmpdir = Path(self.temporary_folder)
+                        self.name = tmpdir / f"{os.urandom(6).hex()}_{Path(name).name}"
+                        shutil.copy(name, self.name)
+                        self._file = open(self.name, "rb+")
                         self._from_filelike = False
+                        self._delete_on_close = True
                         self._read(mapped=False, progress=progress)
                     else:
-                        self.name = Path(name)
-                        self._mapped_file = open(self.name, "rb")
-                        self._file = mmap.mmap(self._mapped_file.fileno(), 0, access=mmap.ACCESS_READ)
-                        self._from_filelike = False
-                        self._read(mapped=True, progress=progress)
+                        if sys.maxsize < 2**32:
+                            self.name = Path(name)
+                            self._file = open(self.name, "rb")
+                            self._from_filelike = False
+                            self._read(mapped=False, progress=progress)
+                        else:
+                            self.name = Path(name)
+                            self._mapped_file = open(self.name, "rb")
+                            self._file = mmap.mmap(self._mapped_file.fileno(), 0, access=mmap.ACCESS_READ)
+                            self._from_filelike = False
+                            self._read(mapped=True, progress=progress)
+                except:
+                    if self._file:
+                        self._file.close()
+                    raise
 
         else:
             self._from_filelike = False
