@@ -1927,7 +1927,7 @@ class DataFrameViewer(QtWidgets.QWidget):
 
         # Iterate over the data view rows and check the width of each to determine the max width for the column
         # Only check the first N rows for performance. If there is larger content in cells below it will be cut off
-        N = 40000 // self.dataView.model().columnCount()
+        N = 40000 // (self.dataView.model().columnCount() or 40000)
         if N > 100:
             N = 100
         elif N < 5:
