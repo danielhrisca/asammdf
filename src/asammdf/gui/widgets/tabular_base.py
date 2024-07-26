@@ -290,10 +290,10 @@ class DataTableModel(QtCore.QAbstractTableModel):
         pass
 
     def columnCount(self, parent=None):
-        return self.pgdf.df.cached_size[0]
+        return self.pgdf.df.cached_size[1]
 
     def rowCount(self, parent=None):
-        return self.pgdf.df.cached_size[1]
+        return self.pgdf.df.cached_size[0]
 
     # Returns the data from the DataFrame
     def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
@@ -2007,24 +2007,24 @@ class DataFrameViewer(QtWidgets.QWidget):
         # Copy from data, columns, or index depending on which has focus
         if header or self.dataView.hasFocus():
             selection_model = self.dataView.selectionModel()
-            rows = [i for i in range(self.pgdf.df.cached_size[1]) if selection_model.rowIntersectsSelection(i)]
-            cols = [i for i in range(self.pgdf.df.cached_size[0]) if selection_model.columnIntersectsSelection(i)]
+            rows = [i for i in range(self.pgdf.df.cached_size[0]) if selection_model.rowIntersectsSelection(i)]
+            cols = [i for i in range(self.pgdf.df.cached_size[1]) if selection_model.columnIntersectsSelection(i)]
 
             temp_df = self.pgdf.df
             df = temp_df.iloc[min(rows) : max(rows) + 1, min(cols) : max(cols) + 1]
 
         elif self.indexHeader.hasFocus():
             selection_model = self.indexHeader.selectionModel()
-            rows = [i for i in range(self.pgdf.df.cached_size[1]) if selection_model.rowIntersectsSelection(i)]
-            cols = [i for i in range(self.pgdf.df.cached_size[0]) if selection_model.columnIntersectsSelection(i)]
+            rows = [i for i in range(self.pgdf.df.cached_size[0]) if selection_model.rowIntersectsSelection(i)]
+            cols = [i for i in range(self.pgdf.df.cached_size[1]) if selection_model.columnIntersectsSelection(i)]
 
             temp_df = self.pgdf.df.index.to_frame()
             df = temp_df.iloc[min(rows) : max(rows) + 1, min(cols) : max(cols) + 1]
 
         elif self.columnHeader.hasFocus():
             selection_model = self.columnHeader.selectionModel()
-            rows = [i for i in range(self.pgdf.df.cached_size[1]) if selection_model.rowIntersectsSelection(i)]
-            cols = [i for i in range(self.pgdf.df.cached_size[0]) if selection_model.columnIntersectsSelection(i)]
+            rows = [i for i in range(self.pgdf.df.cached_size[0]) if selection_model.rowIntersectsSelection(i)]
+            cols = [i for i in range(self.pgdf.df.cached_size[1]) if selection_model.columnIntersectsSelection(i)]
 
             # Column header should be horizontal so we transpose
             temp_df = self.pgdf.df.columns.to_frame().transpose()
