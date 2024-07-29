@@ -1,4 +1,5 @@
 import logging
+import re
 
 import dateutil.tz
 import numpy as np
@@ -13,6 +14,15 @@ from .tabular_base import TabularBase
 
 logger = logging.getLogger("asammdf.gui")
 LOCAL_TIMEZONE = dateutil.tz.tzlocal()
+DATA_BYTES = re.compile(r"(?P<data>.*?Data ?)Bytes(?P<cntr>_\d+)?")
+
+
+def data_length_name(match):
+    result = f'{match.group("data")}Length'
+    if cntr := match.group("cntr"):
+        result += cntr
+
+    return result
 
 
 class Tabular(TabularBase):
@@ -39,28 +49,21 @@ class Tabular(TabularBase):
             signals.set_index(index, inplace=True)
             dropped = {}
 
+            columns = list(signals.columns)
+            columns.remove("Index")
+
             for name_ in signals.columns:
                 col = signals[name_]
 
                 if col.dtype.kind == "O":
-                    if name_.endswith("DataBytes"):
+                    if match := DATA_BYTES.fullmatch(name_):
+                        length_name = data_length_name(match)
                         try:
-                            sizes = signals[name_.replace("DataBytes", "DataLength")].astype("u2")
-                        except:
+                            sizes = signals[length_name].fillna(value=65535).astype("u2")
+                            sizes = [val if val != 65535 else None for val in sizes.to_list()]
+                        except KeyError:
                             sizes = None
-                        dropped[name_] = pd.Series(
-                            csv_bytearray2hex(
-                                col,
-                                sizes,
-                            ),
-                            index=signals.index,
-                        )
 
-                    elif name_.endswith("Data Bytes"):
-                        try:
-                            sizes = signals[name_.replace("Data Bytes", "Data Length")].astype("u2")
-                        except:
-                            sizes = None
                         dropped[name_] = pd.Series(
                             csv_bytearray2hex(
                                 col,
@@ -87,9 +90,13 @@ class Tabular(TabularBase):
                 else:
                     self.signals_descr[name_] = 0
 
-            signals = signals.drop(columns=["Index", *list(dropped)])
-            for name, s in dropped.items():
-                signals[name] = s
+            if dropped:
+
+                signals = signals.drop(columns=["Index", *list(dropped)])
+                for name, s in dropped.items():
+                    signals[name] = s
+
+                signals = signals[columns]
 
             names = list(signals.columns)
             names = [

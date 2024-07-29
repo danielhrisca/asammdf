@@ -309,7 +309,7 @@ class DataTableModel(QtCore.QAbstractTableModel):
             cell_is_na = pd.isna(cell)
 
             if type(cell_is_na) == bool and cell_is_na:
-                return "NaN"
+                return "●"
             elif isinstance(cell, (bytes, np.bytes_)):
                 return cell.decode("utf-8", "replace")
             else:

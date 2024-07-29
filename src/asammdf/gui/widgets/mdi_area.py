@@ -29,6 +29,7 @@ from ...blocks.utils import (
     extract_xml_comment,
     load_can_database,
     MdfException,
+    UniqueDB,
 )
 from ...blocks.v4_blocks import EventBlock, HeaderBlock
 from ...signal import Signal
@@ -1163,6 +1164,7 @@ class WithMDIArea:
                         channels=uuids_signals,
                         ignore_value2text_conversions=self.ignore_value2text_conversions,
                         time_from_zero=False,
+                        use_interpolation=QtCore.QSettings().value("tabular_interpolation", True, type=bool),
                     )
 
                     dfs.append(selected_signals)
@@ -2906,6 +2908,7 @@ class WithMDIArea:
         return w, plot
 
     def _add_tabular_window(self, names):
+
         if names and isinstance(names[0], str):
             signals_ = [
                 (
@@ -2937,7 +2940,7 @@ class WithMDIArea:
                 if (entry["group_index"], entry["channel_index"]) != (NOT_FOUND, NOT_FOUND)
             ]
 
-        signals_ = natsorted(signals_)
+        signals_ = natsorted(signals_, key=lambda x: (x["group_index"], x["name"], x["channel_index"]))
 
         uuids = {entry["origin_uuid"] for entry in signals_}
 
@@ -2946,6 +2949,8 @@ class WithMDIArea:
         start = []
 
         for uuid in uuids:
+            unique_names = UniqueDB()
+
             uuids_signals = [
                 (entry["name"], entry["group_index"], entry["channel_index"])
                 for entry in signals_
@@ -2960,16 +2965,19 @@ class WithMDIArea:
 
             if not hasattr(self, "mdf"):
                 # MainWindow => comparison plots
+                for entry in signals_:
+                    if entry["origin_uuid"] != uuid:
+                        continue
 
-                ranges.update(
-                    {
-                        f"{file_index+1}: {entry['name']}": entry["ranges"]
-                        for entry in signals_
-                        if entry["origin_uuid"] == uuid
-                    }
-                )
+                    name = unique_names.get_unique_name(entry["name"])
+
+                    ranges[f"{file_index+1}: {name}"] = entry["ranges"]
             else:
-                ranges.update({entry["name"]: entry["ranges"] for entry in signals_ if entry["origin_uuid"] == uuid})
+                for entry in signals_:
+                    if entry["origin_uuid"] != uuid:
+                        continue
+                    name = unique_names.get_unique_name(entry["name"])
+                    ranges[name] = entry["ranges"]
 
             start.append(file.mdf.header.start_time)
 
@@ -2994,6 +3002,7 @@ class WithMDIArea:
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
                 time_from_zero=False,
                 empty_channels="zeros",
+                use_interpolation=QtCore.QSettings().value("tabular_interpolation", True, type=bool),
             )
 
             if not hasattr(self, "mdf"):
@@ -3982,6 +3991,7 @@ class WithMDIArea:
             channels=signals_,
             time_from_zero=False,
             ignore_value2text_conversions=self.ignore_value2text_conversions,
+            use_interpolation=QtCore.QSettings().value("tabular_interpolation", True, type=bool),
         )
 
         found = set(signals.columns)

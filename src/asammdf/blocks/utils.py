@@ -1703,7 +1703,10 @@ def csv_bytearray2hex(val, size: int | None = None) -> str:
     if size is not None:
         val = val.tobytes()[:size].hex(" ", 1).upper()
     else:
-        val = val.tobytes().hex(" ", 1).upper()
+        try:
+            val = val.tobytes().hex(" ", 1).upper()
+        except:
+            val = "●"
 
     return val
 

@@ -2024,6 +2024,22 @@ class MDF:
         else:
             version = validate_version_argument(version)
 
+        _raise_on_multiple_occurrences = self._raise_on_multiple_occurrences
+        self._raise_on_multiple_occurrences = False
+
+        names_map = {}
+        for item in channels:
+            if isinstance(item, str):
+                entry = self._validate_channel_selection(item)
+                name = item
+            else:
+                if name := item[0]:
+                    entry = self._validate_channel_selection(*item)
+                else:
+                    continue
+            names_map[entry] = name
+        self._raise_on_multiple_occurrences = _raise_on_multiple_occurrences
+
         # group channels by group index
         gps = self.included_channels(channels=channels)
 
@@ -2063,6 +2079,10 @@ class MDF:
 
                 if idx == 0:
                     if sigs:
+                        for sig in sigs:
+                            entry = sig.group_index, sig.channel_index
+                            if entry in names_map:
+                                sig.name = names_map[entry]
                         cg = self.groups[group_index].channel_group
                         cg_nr = mdf.append(
                             sigs,
@@ -4373,6 +4393,7 @@ class MDF:
         dataframe : pandas.DataFrame
 
         """
+        print("use_interpolation", use_interpolation)
         if isinstance(raw, dict):
             if "__default__" not in raw:
                 raise MdfException("The raw argument given as dict must contain the __default__ key")

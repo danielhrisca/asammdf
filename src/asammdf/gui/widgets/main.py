@@ -321,7 +321,17 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         submenu.setToolTipsVisible(True)
         menu.addMenu(submenu)
 
+        # tabular interpolation
+        subplot_action = QtGui.QAction("Tabular windows interpolation", menu)
+        subplot_action.setCheckable(True)
+        state = self._settings.value("tabular_interpolation", True, type=bool)
+        subplot_action.toggled.connect(self.set_tabular_interpolation_option)
+        subplot_action.setChecked(state)
+        menu.addAction(subplot_action)
+
         submenu = QtWidgets.QMenu("Cursor", self.menubar)
+
+        # cursor
 
         action = QtGui.QAction("Color")
         action.triggered.connect(partial(self.edit_cursor_options, action=action))
@@ -1100,6 +1110,11 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         for i in range(count):
             self.files.widget(i).set_subplots_link(self.subplots_link)
+
+    def set_tabular_interpolation_option(self, state):
+        if isinstance(state, str):
+            state = True if state == "true" else False
+        self._settings.setValue("tabular_interpolation", state)
 
     def set_ignore_value2text_conversions_option(self, state):
         if isinstance(state, str):
