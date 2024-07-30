@@ -90,11 +90,11 @@ class Tabular(TabularBase):
                 else:
                     self.signals_descr[name_] = 0
 
-            if dropped:
+            signals = signals.drop(columns=["Index", *list(dropped)])
+            for name, s in dropped.items():
+                signals[name] = s
 
-                signals = signals.drop(columns=["Index", *list(dropped)])
-                for name, s in dropped.items():
-                    signals[name] = s
+            if dropped:
 
                 signals = signals[columns]
 

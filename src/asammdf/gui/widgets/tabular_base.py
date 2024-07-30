@@ -2061,8 +2061,8 @@ class DataFrameViewer(QtWidgets.QWidget):
         if df.shape == (1, 1):
             # Special case for single-cell copy, excel=False removes the trailing \n character.
             df.to_clipboard(
-                index=header,
-                header=header,
+                index=False,
+                header=False,
                 excel=False,
                 float_format=float_format,
             )
