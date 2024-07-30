@@ -1207,7 +1207,7 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
     args = inspect.signature(func)
     kwargs = {}
     for i, (arg_name, arg) in enumerate(args.parameters.items()):
-        kwargs[arg_name] = random.randint(1, 2**64)
+        kwargs[arg_name] = random.randint(1, 256)
 
     trace = ""
 
@@ -1220,6 +1220,7 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
     except:
         sample_by_sample = False
         trace = f"Sample by sample: {format_exc()}"
+        print(f"Sample by sample {kwargs=}: {format_exc()}")
     else:
         if not isinstance(res, (int, float)):
             sample_by_sample = False

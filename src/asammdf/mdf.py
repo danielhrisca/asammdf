@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from functools import reduce
 import gzip
-from io import BytesIO
+from io import BufferedIOBase, BytesIO
 import logging
 import os
 from pathlib import Path
@@ -233,7 +233,7 @@ class MDF:
 
         if name:
             if is_file_like(name):
-                if isinstance(name, BytesIO):
+                if isinstance(name, (BytesIO, BufferedIOBase)):
                     original_name = None
                     file_stream = name
                     do_close = False
@@ -4393,7 +4393,6 @@ class MDF:
         dataframe : pandas.DataFrame
 
         """
-        print("use_interpolation", use_interpolation)
         if isinstance(raw, dict):
             if "__default__" not in raw:
                 raise MdfException("The raw argument given as dict must contain the __default__ key")
