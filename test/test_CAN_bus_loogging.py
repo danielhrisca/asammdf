@@ -4,6 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 import urllib
+import urllib.request
 from zipfile import ZipFile
 
 import numpy as np
