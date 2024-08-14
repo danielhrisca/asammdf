@@ -14,6 +14,8 @@ def _cmd_line_parser():
 def main(measurements=None):
     os.environ["QT_API"] = "pyside6"
     os.environ["PYQTGRAPH_QT_LIB"] = "PySide6"
+    if "QT_ENABLE_HIGHDPI_SCALING" not in os.environ:
+        os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
 
     alternative_sitepacakges = os.environ.get("ASAMMDF_PYTHONPATH", "")
 
