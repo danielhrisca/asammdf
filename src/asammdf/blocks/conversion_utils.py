@@ -13,8 +13,6 @@ from . import v2_v3_constants as v3c
 from . import v4_blocks as v4b
 from . import v4_constants as v4c
 
-__all__ = ["conversion_transfer", "from_dict"]
-
 
 def conversion_transfer(
     conversion: ChannelConversionType, version: int = 3, copy: bool = False
@@ -268,6 +266,28 @@ def conversion_transfer(
     return conversion
 
 
+def inverse_conversion(conversion: ChannelConversionType) -> v4b.ChannelConversion | None:
+
+    if isinstance(conversion, v3b.ChannelConversion):
+        conversion = conversion_transfer(conversion, version=4)
+
+    if conversion:
+        conversion = to_dict(conversion)
+
+        if "a" in conversion:
+            conversion["conversion_type"] = v4c.CONVERSION_TYPE_LIN
+            conversion["a"], conversion["b"] = 1 / conversion["a"], conversion["b"] / conversion["a"]
+            conversion = v4b.ChannelConversion(**conversion)
+
+        else:
+            conversion = None
+
+    else:
+        conversion = None
+
+    return conversion
+
+
 def from_dict(conversion: dict[str, Any]) -> v4b.ChannelConversion:
     conversion = dict(conversion)
 
@@ -293,7 +313,7 @@ def from_dict(conversion: dict[str, Any]) -> v4b.ChannelConversion:
         while f"phys_{nr}" in conversion:
             nr += 1
         conversion["val_param_nr"] = nr * 2
-        if "interpolation" in conversion:
+        if conversion.get("interpolation", False):
             conversion["conversion_type"] = v4c.CONVERSION_TYPE_TABI
         else:
             conversion["conversion_type"] = v4c.CONVERSION_TYPE_TAB
