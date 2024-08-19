@@ -1676,8 +1676,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
     def setColumnWidth(self, column, width):
         if column not in (self.CommonAxisColumn, self.IndividualAxisColumn):
-            if width < MINIMUM_COLUMN_WIDTH:
-                width = MINIMUM_COLUMN_WIDTH
+            width = max(width, MINIMUM_COLUMN_WIDTH)
             super().setColumnWidth(column, width)
 
     def set_font_size(self, size):

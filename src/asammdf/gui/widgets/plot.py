@@ -2549,8 +2549,7 @@ class Plot(QtWidgets.QWidget):
         font = self.font()
         size = font.pointSize()
         pos = bisect.bisect_left(FONT_SIZE, size) - 1
-        if pos < 0:
-            pos = 0
+        pos = max(pos, 0)
         new_size = FONT_SIZE[pos]
 
         self.set_font_size(new_size)

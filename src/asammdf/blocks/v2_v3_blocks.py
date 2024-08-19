@@ -1688,8 +1688,7 @@ address: {hex(self.address)}
                 keys.append(f"param_val_{i}")
                 keys.append(f"text_{i}")
 
-        if self.block_len > v23c.MAX_UINT16:
-            self.block_len = v23c.MAX_UINT16
+        self.block_len = min(self.block_len, v23c.MAX_UINT16)
         result = pack(fmt, *[self[key] for key in keys])
         return result
 

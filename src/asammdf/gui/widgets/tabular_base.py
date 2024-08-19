@@ -1686,8 +1686,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             return
 
         idx = self._filtered_ts_series.searchsorted(stamp, side="right") - 1
-        if idx < 0:
-            idx = 0
+        idx = max(idx, 0)
 
         self.tree.dataView.selectRow(idx)
 
@@ -1705,8 +1704,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         font = self.tree.dataView.font()
         size = font.pointSize()
         pos = bisect.bisect_left(FONT_SIZE, size) - 1
-        if pos < 0:
-            pos = 0
+        pos = max(pos, 0)
         new_size = FONT_SIZE[pos]
 
         self.set_font_size(new_size)

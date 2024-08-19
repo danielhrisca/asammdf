@@ -160,8 +160,7 @@ class SignalOffline:
             if sig.samples.size:
                 idx = searchsorted(sig.timestamps, timestamp, side="right")
                 idx -= 1
-                if idx < 0:
-                    idx = 0
+                idx = max(idx, 0)
 
                 self.raw = sig.raw_samples[idx]
                 self.scaled = sig.phys_samples[idx]
@@ -472,8 +471,7 @@ class OfflineBackEnd:
             return stamp
 
         idx = np.searchsorted(self.timebase, stamp)
-        if idx > max_idx:
-            idx = max_idx
+        idx = min(idx, max_idx)
 
         return self.timebase[idx]
 
@@ -2188,8 +2186,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         font = self.font()
         size = font.pointSize()
         pos = bisect.bisect_left(FONT_SIZE, size) - 1
-        if pos < 0:
-            pos = 0
+        pos = max(pos, 0)
         new_size = FONT_SIZE[pos]
 
         self.set_font_size(new_size)

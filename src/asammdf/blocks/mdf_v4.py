@@ -1393,8 +1393,7 @@ class MDF4(MDF_Common):
                     y_axis = CONVERT
 
                     idx = searchsorted(CHANNEL_COUNT, channels_nr, side="right") - 1
-                    if idx < 0:
-                        idx = 0
+                    idx = max(idx, 0)
                     split_size = y_axis[idx]
 
                     split_size = split_size // samples_size

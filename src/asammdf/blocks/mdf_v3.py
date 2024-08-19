@@ -333,8 +333,7 @@ class MDF3(MDF_Common):
                     y_axis = CONVERT
 
                     idx = searchsorted(CHANNEL_COUNT, channels_nr, side="right") - 1
-                    if idx < 0:
-                        idx = 0
+                    idx = max(idx, 0)
                     split_size = y_axis[idx]
 
                     split_size = split_size // samples_size
@@ -1332,8 +1331,7 @@ class MDF3(MDF_Common):
                     "version": version,
                 }
 
-                if s_size < 8:
-                    s_size = 8
+                s_size = max(s_size, 8)
 
                 channel = Channel(**kargs)
                 channel.name = signal.name
@@ -1533,8 +1531,7 @@ class MDF3(MDF_Common):
                         "version": version,
                     }
 
-                    if s_size < 8:
-                        s_size = 8
+                    s_size = max(s_size, 8)
 
                     channel = Channel(**kargs)
                     channel.name = name
@@ -1705,8 +1702,7 @@ class MDF3(MDF_Common):
                     "version": version,
                 }
 
-                if s_size < 8:
-                    s_size = 8
+                s_size = max(s_size, 8)
 
                 new_record.append(None)
 
@@ -1780,8 +1776,7 @@ class MDF3(MDF_Common):
                         "version": version,
                     }
 
-                    if s_size < 8:
-                        s_size = 8
+                    s_size = max(s_size, 8)
 
                     channel = Channel(**kargs)
                     channel.name = name
@@ -1871,8 +1866,7 @@ class MDF3(MDF_Common):
                         "version": version,
                     }
 
-                    if s_size < 8:
-                        s_size = 8
+                    s_size = max(s_size, 8)
 
                     new_record.append(None)
 
@@ -1938,8 +1932,7 @@ class MDF3(MDF_Common):
                             "version": version,
                         }
 
-                        if s_size < 8:
-                            s_size = 8
+                        s_size = max(s_size, 8)
 
                         new_record.append(
                             (
@@ -2225,8 +2218,7 @@ class MDF3(MDF_Common):
                 "version": version,
             }
 
-            if s_size < 8:
-                s_size = 8
+            s_size = max(s_size, 8)
 
             channel = Channel(**kargs)
             channel.name = name
