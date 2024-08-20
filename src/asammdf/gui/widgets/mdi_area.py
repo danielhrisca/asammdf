@@ -3165,11 +3165,7 @@ class WithMDIArea:
         signal.comment = channel["computation"].get("channel_comment", "")
         signal.uuid = channel.get("uuid", os.urandom(6).hex())
 
-        if channel["flags"] & Signal.Flags.user_defined_conversion:
-            signal.conversion = from_dict(channel["conversion"])
-            signal.flags |= signal.Flags.user_defined_conversion
-
-        if channel["flags"] & Signal.Flags.user_defined_name:
+        if item.signal.flags & Signal.Flags.user_defined_name:
             signal.original_name = channel.name
             signal.name = channel.get("user_defined_name", "") or ""
             signal.flags |= signal.Flags.user_defined_name
@@ -3180,6 +3176,11 @@ class WithMDIArea:
 
         item.signal.samples = item.signal.raw_samples = item.signal.phys_samples = signal.samples
         item.signal.timestamps = signal.timestamps
+
+        if item.signal.flags & Signal.Flags.user_defined_conversion:
+            item.set_conversion(item.signal.conversion)
+            signal.flags |= signal.Flags.user_defined_conversion
+
         item.signal.trim(force=True)
         item.signal.computation = signal.computation
         item.signal._compute_basic_stats()
