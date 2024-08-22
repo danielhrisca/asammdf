@@ -3956,7 +3956,7 @@ class MDF:
             if *raw=False*. If this is True then the raw numeric values will be
             used, and the conversion will not be applied.
         use_interpolation (True) : bool
-            option to perform interpoaltions when multiple timestamp raster are
+            option to perform interpolations when multiple timestamp raster are
             present. If *False* then dataframe columns will be automatically
             filled with NaN's were the dataframe index values are not found in
             the current column's timestamps
@@ -4372,7 +4372,7 @@ class MDF:
             .. versionadded:: 5.8.0
 
         use_interpolation (True) : bool
-            option to perform interpoaltions when multiple timestamp raster are
+            option to perform interpolations when multiple timestamp raster are
             present. If *False* then dataframe columns will be automatically
             filled with NaN's were the dataframe index values are not found in
             the current column's timestamps
