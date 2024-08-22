@@ -3829,6 +3829,9 @@ class MDF:
 
             .. versionadded:: 5.8.0
 
+        time_from_zero : bool
+            adjust time channel to start from 0; default *True*
+
         empty_channels ("skip") : str
             behaviour for channels without samples; the options are *skip* or
             *zeros*; default is *skip*
