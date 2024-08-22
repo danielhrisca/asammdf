@@ -843,7 +843,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                         item.set_ranges(info["ranges"])
 
-                        if "conversion" in info:
+                        if "conversion" in info and not item.signal.flags & Signal.Flags.computed:
                             item.set_conversion(from_dict(info["conversion"]))
 
                     elif item.type() == ChannelsTreeItem.Group:
