@@ -1307,10 +1307,55 @@ class MDF4(MDF_Common):
                         elif block_type == v4c.DZ_BLOCK_LZ:
                             new_data = lz_decompress(new_data)
 
-                        if current_offset + original_size > end_offset:
+                        if current_offset + original_size > end_offset + 4:
                             start_index = max(0, start_offset - current_offset)
-                            (last_sample_size,) = UINT32_uf(new_data, end_offset - current_offset)
-                            data.append(new_data[start_index : end_offset - current_offset + last_sample_size + 4])
+                            start_of_last_sample_index = end_offset - current_offset
+                            start_of_last_sample_index_in_data = end_offset - start_offset
+                            old_data = bytearray()
+                            for i in range(0, len(data)):
+                                old_data.extend(bytearray(data[i]))
+                            is_lengthfield_completely_in_data = (
+                                start_of_last_sample_index_in_data + 4
+                            ) < len(old_data)
+                            is_lengthfield_partially_in_data_and_newData = (
+                                not is_lengthfield_completely_in_data
+                            ) and start_of_last_sample_index_in_data < len(old_data)
+                            if is_lengthfield_completely_in_data:
+                                last_sample_lengthfield = old_data[
+                                    start_of_last_sample_index_in_data : start_of_last_sample_index_in_data
+                                    + 4
+                                ]
+                            elif is_lengthfield_partially_in_data_and_newData:
+                                last_sample_lengthfield = old_data[
+                                    start_of_last_sample_index_in_data:
+                                ]
+                                last_sample_lengthfield += new_data[
+                                    start_index : start_index + 4
+                                ]
+                            else:
+                                last_sample_lengthfield = new_data[
+                                    start_of_last_sample_index : start_of_last_sample_index
+                                    + 4
+                                ]
+                            (last_sample_size,) = UINT32_uf(last_sample_lengthfield, 0)
+
+                            does_data_of_last_sample_extend_into_next_block = (
+                                current_offset + original_size
+                                < end_offset + 4 + last_sample_size
+                            )
+                            if does_data_of_last_sample_extend_into_next_block:
+                                data.append(new_data[start_index:])
+                                current_offset += original_size
+                                continue
+
+                            data.append(
+                                new_data[
+                                    start_index : end_offset
+                                    - current_offset
+                                    + last_sample_size
+                                    + 4
+                                ]
+                            )
 
                             break
 
