@@ -1228,13 +1228,13 @@ class MDF4(MDF_Common):
 
         """
 
-        data = []
-
         if group is not None and index is not None:
             info_blocks = group.signal_data[index]
 
             if info_blocks is not None:
                 if start_offset is None and end_offset is None:
+                    data = []
+
                     for info in group.get_signal_data_blocks(index):
                         address, original_size, compressed_size, block_type, param = (
                             info.address,
@@ -1267,9 +1267,15 @@ class MDF4(MDF_Common):
 
                         data.append(new_data)
 
+                    data = b"".join(data)
+
                 else:
+
+                    data = bytearray()
+
                     start_offset = int(start_offset)
                     end_offset = int(end_offset)
+                    last_sample_start = end_offset - start_offset
 
                     current_offset = 0
 
@@ -1307,22 +1313,23 @@ class MDF4(MDF_Common):
                         elif block_type == v4c.DZ_BLOCK_LZ:
                             new_data = lz_decompress(new_data)
 
-                        if current_offset + original_size > end_offset:
-                            start_index = max(0, start_offset - current_offset)
-                            (last_sample_size,) = UINT32_uf(new_data, end_offset - current_offset)
-                            data.append(new_data[start_index : end_offset - current_offset + last_sample_size + 4])
-
-                            break
-
+                        if start_offset > current_offset:
+                            data.extend(new_data[start_offset - current_offset :])
                         else:
-                            if start_offset > current_offset:
-                                data.append(new_data[start_offset - current_offset :])
-                            else:
-                                data.append(new_data)
+                            data.extend(new_data)
 
-                            current_offset += original_size
+                        current_offset += original_size
 
-                data = b"".join(data)
+                        if (current_data_size := len(data)) >= last_sample_start + 4:
+                            (last_sample_size,) = UINT32_uf(data, last_sample_start)
+                            required_size = last_sample_start + 4 + last_sample_size
+                            if required_size <= current_data_size:
+                                data = bytes(data[:required_size])
+                                break
+
+                    else:
+                        data = bytes(data)
+
             else:
                 data = b""
         else:
