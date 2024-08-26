@@ -266,13 +266,14 @@ def conversion_transfer(
     return conversion
 
 
-def inverse_conversion(conversion: ChannelConversionType) -> v4b.ChannelConversion | None:
+def inverse_conversion(conversion: ChannelConversionType | dict | None) -> v4b.ChannelConversion | None:
 
     if isinstance(conversion, v3b.ChannelConversion):
         conversion = conversion_transfer(conversion, version=4)
 
     if conversion:
-        conversion = to_dict(conversion)
+        if not isinstance(conversion, dict):
+            conversion = to_dict(conversion)
 
         if "a" in conversion:
             conversion["conversion_type"] = v4c.CONVERSION_TYPE_LIN
