@@ -299,6 +299,7 @@ def inverse_conversion(conversion: ChannelConversionType | dict | None) -> v4b.C
                         "P6": a,
                         "conversion_type": v4c.CONVERSION_TYPE_RAT,
                     }
+                    conv = v4b.ChannelConversion(**conv)
 
             elif a == 0 and d == 0:
 
@@ -314,6 +315,7 @@ def inverse_conversion(conversion: ChannelConversionType | dict | None) -> v4b.C
                         "P6": -b,
                         "conversion_type": v4c.CONVERSION_TYPE_RAT,
                     }
+                    conv = v4b.ChannelConversion(**conv)
 
         else:
             conv = None
