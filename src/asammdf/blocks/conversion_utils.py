@@ -276,17 +276,52 @@ def inverse_conversion(conversion: ChannelConversionType | dict | None) -> v4b.C
             conversion = to_dict(conversion)
 
         if "a" in conversion:
-            conversion["conversion_type"] = v4c.CONVERSION_TYPE_LIN
-            conversion["a"], conversion["b"] = 1 / conversion["a"], conversion["b"] / conversion["a"]
-            conversion = v4b.ChannelConversion(**conversion)
+            conv = {
+                "conversion_type": v4c.CONVERSION_TYPE_LIN,
+                "a": 1 / conversion["a"],
+                "b": conversion["b"] / conversion["a"],
+            }
+            conv = v4b.ChannelConversion(**conv)
+
+        elif "P1" in conversion:
+            a, b, c, d, e, f = (conversion[f"P{i}"] for i in range(1, 7))
+
+            if e == 0 and f == 0:
+                if d == 0 and a == 0:
+                    conv = None
+                else:
+                    conv = {
+                        "P1": 0,
+                        "P2": e,
+                        "P3": -b,
+                        "P4": 0,
+                        "P5": -d,
+                        "P6": a,
+                        "conversion_type": v4c.CONVERSION_TYPE_RAT,
+                    }
+
+            elif a == 0 and d == 0:
+
+                if e == 0 and b == 0:
+                    conv = None
+                else:
+                    conv = {
+                        "P1": 0,
+                        "P2": -f,
+                        "P3": c,
+                        "P4": 0,
+                        "P5": e,
+                        "P6": -b,
+                        "conversion_type": v4c.CONVERSION_TYPE_RAT,
+                    }
 
         else:
-            conversion = None
+            conv = None
 
     else:
-        conversion = None
+        conv = None
 
-    return conversion
+    return conv
 
 
 def from_dict(conversion: dict[str, Any]) -> v4b.ChannelConversion:
