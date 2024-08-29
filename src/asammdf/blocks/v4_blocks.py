@@ -1311,7 +1311,7 @@ unit: {self.unit}
             if key.endswith("addr") or key.startswith("text_"):
                 lines.append(template.format(key, hex(val)))
             elif isinstance(val, float):
-                lines.append(template.format(key, round(val, 6)))
+                lines.append(template.format(key, val))
             else:
                 if isinstance(val, bytes):
                     lines.append(template.format(key, val.strip(b"\0")))
@@ -2152,7 +2152,7 @@ comment: {self.comment}
             if key.endswith("addr") or key.startswith("text_"):
                 lines.append(template.format(key, hex(val)))
             elif isinstance(val, float):
-                lines.append(template.format(key, round(val, 6)))
+                lines.append(template.format(key, val))
             else:
                 if isinstance(val, bytes):
                     lines.append(template.format(key, val.strip(b"\0")))
@@ -4071,7 +4071,7 @@ formula: {self.formula}
             if key.endswith("addr") or key.startswith("text_"):
                 lines.append(template.format(key, hex(val)))
             elif isinstance(val, float):
-                lines.append(template.format(key, round(val, 6)))
+                lines.append(template.format(key, val))
             else:
                 if isinstance(val, bytes):
                     lines.append(template.format(key, val.strip(b"\0")))
