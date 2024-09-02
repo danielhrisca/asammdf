@@ -432,6 +432,16 @@ def from_dict(conversion: dict[str, Any]) -> v4b.ChannelConversion:
             conversion["default_addr"] = from_dict(val)
         conversion = v4b.ChannelConversion(**conversion)
 
+    elif "default_addr" in conversion:
+        conversion["conversion_type"] = v4c.CONVERSION_TYPE_TABX
+        val = conversion["default_addr"]
+        if isinstance(val, str):
+            conversion["default_addr"] = val.encode("utf-8")
+        elif isinstance(val, dict):
+            conversion["default_addr"] = from_dict(val)
+        conversion["ref_param_nr"] = 1
+        conversion = v4b.ChannelConversion(**conversion)
+
     else:
         conversion = v4b.ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_NON)
 
