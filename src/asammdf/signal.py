@@ -1305,28 +1305,31 @@ class Signal:
             virtual_master_conversion=self.virtual_master_conversion,
         )
 
-    def __getitem__(self, val: int | slice | ArrayLike) -> Signal:
-        return Signal(
-            self.samples[val],
-            self.timestamps[val],
-            self.unit,
-            self.name,
-            self.conversion,
-            self.comment,
-            self.raw,
-            self.master_metadata,
-            self.display_names,
-            self.attachment,
-            self.source,
-            self.bit_count,
-            invalidation_bits=self.invalidation_bits[val] if self.invalidation_bits is not None else None,
-            encoding=self.encoding,
-            group_index=self.group_index,
-            channel_index=self.channel_index,
-            flags=self.flags,
-            virtual_conversion=self.virtual_conversion,
-            virtual_master_conversion=self.virtual_master_conversion,
-        )
+    def __getitem__(self, val: int | slice | ArrayLike | str) -> Signal:
+        if isinstance(val, str):
+            return self.samples[val]
+        else:
+            return Signal(
+                self.samples[val],
+                self.timestamps[val],
+                self.unit,
+                self.name,
+                self.conversion,
+                self.comment,
+                self.raw,
+                self.master_metadata,
+                self.display_names,
+                self.attachment,
+                self.source,
+                self.bit_count,
+                invalidation_bits=self.invalidation_bits[val] if self.invalidation_bits is not None else None,
+                encoding=self.encoding,
+                group_index=self.group_index,
+                channel_index=self.channel_index,
+                flags=self.flags,
+                virtual_conversion=self.virtual_conversion,
+                virtual_master_conversion=self.virtual_master_conversion,
+            )
 
     def __setitem__(self, idx: int | slice | ArrayLike, val: Any) -> None:
         self.samples[idx] = val
