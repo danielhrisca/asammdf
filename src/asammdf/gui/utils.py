@@ -333,7 +333,6 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         return self.result
 
     def setLabelText(self, text):
-        self.msg.append(text)
         super().setLabelText(text)
 
     def processEvents(self):
