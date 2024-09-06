@@ -1,3 +1,4 @@
+from collections import namedtuple
 import ctypes
 from datetime import datetime
 from functools import partial, reduce
@@ -9,7 +10,7 @@ import random
 import re
 import sys
 from textwrap import indent
-from threading import Lock, Thread
+from threading import Thread
 from time import sleep
 import traceback
 from traceback import format_exc
@@ -19,7 +20,6 @@ import numpy as np
 import pandas as pd
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtCore import QThreadPool
 
 from ..blocks.options import FloatInterpolation, IntegerInterpolation
 from ..blocks.utils import NONE, TERMINATED
@@ -215,8 +215,7 @@ def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progr
         return thr.output
 
 
-class WorkerSignals(QtCore.QObject):
-    finished = QtCore.Signal()
+class QWorkerThread(QtCore.QThread):
     error = QtCore.Signal(object)
     result = QtCore.Signal(object)
 
@@ -228,35 +227,63 @@ class WorkerSignals(QtCore.QObject):
     setMaximum = QtCore.Signal(int)
     setValue = QtCore.Signal(int)
 
+    _SIGNALS = namedtuple(
+        "_SIGNALS",
+        [
+            "finished",
+            "error",
+            "result",
+            "setLabelText",
+            "setWindowTitle",
+            "setWindowIcon",
+            "setMinimum",
+            "setMaximum",
+            "setValue",
+        ],
+    )
 
-class Worker(QtCore.QRunnable):
     def __init__(self, function, *args, **kwargs):
-
-        super().__init__()
+        super().__init__(parent=kwargs.pop("parent", None))
         self.function = function
         self.args = args
+
+        self.signals = self._SIGNALS(
+            self.finished,
+            self.error,
+            self.result,
+            self.setLabelText,
+            self.setWindowTitle,
+            self.setWindowIcon,
+            self.setMinimum,
+            self.setMaximum,
+            self.setValue,
+        )
 
         args = inspect.signature(function)
         if "progress" in args.parameters:
             kwargs["progress"] = self
 
         self.kwargs = kwargs
-        self.signals = WorkerSignals()
         self.stop = False
         self.TERMINATED = TERMINATED
 
-    @QtCore.Slot()
     def run(self):
+        """
+        Your code goes in this method
+        """
         try:
             result = self.function(*self.args, **self.kwargs)
         except:
             traceback.print_exc()
             exctype, value = sys.exc_info()[:2]
-            self.signals.error.emit((exctype, value, traceback.format_exc()))
+            self.error.emit((exctype, value, traceback.format_exc()))
         else:
-            self.signals.result.emit(result)
-        finally:
-            self.signals.finished.emit()
+            self.result.emit(result)
+
+        self.kwargs = self.args = None
+
+    def requestInterruption(self):
+        self.stop = True
 
 
 class ProgressDialog(QtWidgets.QProgressDialog):
@@ -266,60 +293,51 @@ class ProgressDialog(QtWidgets.QProgressDialog):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.threadpool = QThreadPool()
-        self.worker = None
+        self.thread = None
         self.error = None
         self.result = self.NONE
-        self.thread_finished = True
         self.close_on_finish = True
-        self.lock = Lock()
+        self.hide_on_finish = False
 
-        self._closed = False
+        self.canceled.connect(partial(self.close, reject=True))
 
-    def accept(self):
-        self._closed = True
-        return super().accept()
-
-    def reject(self):
-        self._closed = True
-        return super().reject()
-
-    def run_thread_with_progress(self, target, args, kwargs, wait_here=False, close_on_finish=True):
+    def run_thread_with_progress(
+        self, target, args, kwargs, wait_here=False, close_on_finish=True, hide_on_finish=False
+    ):
         self.show()
         self.result = self.NONE
         self.error = None
         self.thread_finished = False
 
         self.close_on_finish = close_on_finish
+        self.hide_on_finish = hide_on_finish
 
-        self.worker = Worker(target, *args, **kwargs)
-        self.worker.signals.result.connect(self.receive_result)
-        self.worker.signals.finished.connect(self.thread_complete)
-        self.worker.signals.error.connect(self.receive_error)
+        self.thread = QWorkerThread(target, parent=self, *args, **kwargs)
+        self.thread.result.connect(self.receive_result)
+        self.thread.finished.connect(self.thread_complete)
+        self.thread.error.connect(self.receive_error)
+        self.thread.setLabelText.connect(self.setLabelText)
+        self.thread.setWindowIcon.connect(self.setWindowIcon)
+        self.thread.setWindowTitle.connect(self.setWindowTitle)
+        self.thread.setValue.connect(self.setValue)
+        self.thread.setMinimum.connect(self.setMinimum)
+        self.thread.setMaximum.connect(self.setMaximum)
 
-        self.worker.signals.setLabelText.connect(self.setLabelText)
-        self.worker.signals.setWindowIcon.connect(self.setWindowIcon)
-        self.worker.signals.setWindowTitle.connect(self.setWindowTitle)
-        self.worker.signals.setValue.connect(self.setValue)
-        self.worker.signals.setMinimum.connect(self.setMinimum)
-        self.worker.signals.setMaximum.connect(self.setMaximum)
-
-        self.canceled.connect(partial(self.close, reject=True))
-
-        self.threadpool.start(self.worker)
+        self.thread.start()
 
         if wait_here:
             loop = QtCore.QEventLoop()
-            self.worker.signals.finished.connect(loop.quit)
+            self.thread.finished.connect(loop.quit)
             loop.exec()
 
         return self.result
 
+    def setLabelText(self, text):
+        self.msg.append(text)
+        super().setLabelText(text)
+
     def processEvents(self):
-        with self.lock:
-            loop = QtCore.QEventLoop()
-            QtCore.QTimer.singleShot(20, loop.quit)
-            loop.exec()
+        pass
 
     def receive_result(self, result):
         self.result = result
@@ -328,19 +346,31 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.error = error
 
     def thread_complete(self):
-        self.thread_finished = True
         self.processEvents()
+        if self.hide_on_finish:
+            self.hide()
+
+        self.thread.result.disconnect(self.receive_result)
+        self.thread.finished.disconnect(self.thread_complete)
+        self.thread.error.disconnect(self.receive_error)
+        self.thread.setLabelText.disconnect(self.setLabelText)
+        self.thread.setWindowIcon.disconnect(self.setWindowIcon)
+        self.thread.setWindowTitle.disconnect(self.setWindowTitle)
+        self.thread.setValue.disconnect(self.setValue)
+        self.thread.setMinimum.disconnect(self.setMinimum)
+        self.thread.setMaximum.disconnect(self.setMaximum)
+        self.thread = None
+
         if self.close_on_finish:
             QtCore.QTimer.singleShot(50, self.accept)
 
     def close(self, reject=False):
-        self._closed = True
 
-        if not self.thread_finished:
-            self.worker.stop = True
+        if self.thread and not self.thread.isFinished():
+            self.thread.requestInterruption()
 
             loop = QtCore.QEventLoop()
-            self.worker.signals.finished.connect(loop.quit)
+            self.thread.finished.connect(loop.quit)
             loop.exec()
 
         if reject:
@@ -348,7 +378,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         else:
             self.accept()
 
-        self.deleteLater()
+        self.hide()
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_Escape and event.modifiers() == QtCore.Qt.KeyboardModifier.NoModifier:
@@ -356,12 +386,6 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             self.close()
         else:
             super().keyPressEvent(event)
-
-    def show(self):
-        if not self._closed:
-            super().show()
-        else:
-            self.hide()
 
     def setWindowIcon(self, icon):
         if isinstance(icon, str):
