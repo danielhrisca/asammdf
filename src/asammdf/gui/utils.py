@@ -279,8 +279,8 @@ class QWorkerThread(QtCore.QThread):
             self.error.emit((exctype, value, traceback.format_exc()))
         else:
             self.result.emit(result)
-
-        self.kwargs = self.args = None
+        finally:
+            self.kwargs = self.args = None
 
     def requestInterruption(self):
         self.stop = True
@@ -377,6 +377,10 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         else:
             self.accept()
 
+        self.hide()
+
+    def exec(self):
+        super().exec()
         self.hide()
 
     def keyPressEvent(self, event):
