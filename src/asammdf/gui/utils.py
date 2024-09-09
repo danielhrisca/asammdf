@@ -299,6 +299,8 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.close_on_finish = True
         self.hide_on_finish = False
 
+        self.setMinimumDuration(0)
+
         self.canceled.connect(partial(self.close, reject=True))
 
     def run_thread_with_progress(
