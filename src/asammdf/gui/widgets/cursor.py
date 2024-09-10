@@ -436,6 +436,7 @@ class Region(pg.LinearRegionItem):
 
         self._boundingRectCache = None
         self._clipItemBoundsCache = None
+        self.moving_cursor = None
 
         # note LinearRegionItem.Horizontal and LinearRegionItem.Vertical
         # are kept for backward compatibility.
@@ -461,6 +462,8 @@ class Region(pg.LinearRegionItem):
             l.sigPositionChangeFinished.connect(self.lineMoveFinished)
         self.lines[0].sigPositionChanged.connect(self._line0Moved)
         self.lines[1].sigPositionChanged.connect(self._line1Moved)
+        self.lines[0].sigPositionChanged.connect(self.update_moving_cursor)
+        self.lines[1].sigPositionChanged.connect(self.update_moving_cursor)
 
         if brush is None:
             brush = QtGui.QBrush(QtGui.QColor(0, 0, 255, 50))
@@ -473,6 +476,9 @@ class Region(pg.LinearRegionItem):
         self.setHoverBrush(hoverBrush)
 
         self.setMovable(movable)
+
+    def update_moving_cursor(self, cursor):
+        self.moving_cursor = cursor
 
     def paint(self, p, *args, plot=None, uuid=None):
         if plot:

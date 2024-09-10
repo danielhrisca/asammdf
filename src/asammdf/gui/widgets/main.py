@@ -650,8 +650,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.triggered.connect(
             partial(
                 self.plot_action,
-                key=QtCore.Qt.Key_G,
-                modifier=QtCore.Qt.ShiftModifier,
+                key=QtCore.Qt.Key.Key_G,
+                modifier=QtCore.Qt.KeyboardModifier.ShiftModifier,
             )
         )
         action.setShortcut(QtGui.QKeySequence("Shift+G"))

@@ -5574,6 +5574,8 @@ class PlotGraphics(pg.PlotWidget):
                 else:
                     self.region.lines[i].pen.setStyle(QtCore.Qt.PenStyle.SolidLine)
         self.range_modified_finished.emit(region)
+        if self.region.moving_cursor is not None:
+            self.cursor1.setPos(self.region.moving_cursor.pos())
 
     def range_modified_handler(self, region):
         if self.region_lock is not None:
@@ -5582,6 +5584,8 @@ class PlotGraphics(pg.PlotWidget):
                     self.region.lines[i].pen.setStyle(QtCore.Qt.PenStyle.DashDotDotLine)
                 else:
                     self.region.lines[i].pen.setStyle(QtCore.Qt.PenStyle.SolidLine)
+        if self.region.moving_cursor is not None:
+            self.cursor1.setPos(self.region.moving_cursor.pos())
 
     def scale_curve_to_pixmap(self, x, y, y_range, x_start, delta):
         if self.py:
