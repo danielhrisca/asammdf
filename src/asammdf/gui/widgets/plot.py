@@ -4692,15 +4692,17 @@ class PlotGraphics(pg.PlotWidget):
                     self.region.sigRegionChanged.connect(self.range_modified_handler)
                     self.region.sigRegionChangeFinished.connect(self.range_modified_finished_handler)
                     start, stop = self.viewbox.viewRange()[0]
+                    view_range = abs(stop - start)
                     start, stop = (
                         start + 0.1 * (stop - start),
                         stop - 0.1 * (stop - start),
                     )
-                    self.region.setRegion((start, stop))
 
-                    if self.cursor1 is not None:
+                    if self.cursor1 is not None and abs(self.cursor1.value() - stop) >= 0.1 * view_range:
                         self.cursor1.hide()
                         self.region.setRegion(tuple(sorted((self.cursor1.value(), stop))))
+                    else:
+                        self.region.setRegion((start, stop))
 
                 else:
                     self.region_lock = None
