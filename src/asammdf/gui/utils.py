@@ -490,10 +490,26 @@ def compute_signal(
                 f"{description['function']} not found in the user defined functions",
             )
 
+            import bisect
+            import collections
+            import itertools
+            import random
+            import struct
+
+            _builtins = dict(collections.__builtins__)
+            for key in ("breakpoint", "compile", "eval", "exec", "input", "open", "__import__"):
+                del _builtins[key]
+
             _globals = {
+                "bisect": bisect,
+                "collections": collections,
+                "itertools": itertools,
                 "math": math,
                 "np": np,
                 "pd": pd,
+                "random": random,
+                "struct": struct,
+                "__builtins__": _builtins,
             }
 
             for function_name, definition in functions.items():
