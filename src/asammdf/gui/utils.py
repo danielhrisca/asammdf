@@ -1,13 +1,17 @@
+import bisect
+import collections
 from collections import namedtuple
 import ctypes
 from datetime import datetime
 from functools import partial, reduce
 import inspect
 from io import StringIO
+import itertools
 import math
 import os
 import random
 import re
+import struct
 import sys
 from textwrap import indent
 from threading import Thread
@@ -26,6 +30,14 @@ from ..blocks.utils import NONE, TERMINATED
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
 from .dialogs.messagebox import MessageBox
+
+_BUILTINS = dict(collections.__builtins__)
+for key in ("breakpoint", "compile", "eval", "exec", "input", "open", "__import__"):
+    del _BUILTINS[key]
+
+for module in (bisect, collections, itertools, random, struct, math, pd, np):
+    if hasattr(module, "__builtins__"):
+        module.__builtins__ = dict(_BUILTINS)
 
 ERROR_ICON = None
 RANGE_INDICATOR_ICON = None
@@ -490,16 +502,6 @@ def compute_signal(
                 f"{description['function']} not found in the user defined functions",
             )
 
-            import bisect
-            import collections
-            import itertools
-            import random
-            import struct
-
-            _builtins = dict(collections.__builtins__)
-            for key in ("breakpoint", "compile", "eval", "exec", "input", "open", "__import__"):
-                del _builtins[key]
-
             _globals = {
                 "bisect": bisect,
                 "collections": collections,
@@ -509,7 +511,7 @@ def compute_signal(
                 "pd": pd,
                 "random": random,
                 "struct": struct,
-                "__builtins__": _builtins,
+                "__builtins__": dict(_BUILTINS),
             }
 
             for function_name, definition in functions.items():
