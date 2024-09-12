@@ -1475,7 +1475,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
                     channels[name] = comment
 
-                dlg = FunctionsManagerDialog(file.functions, channels, parent=self)
+                dlg = FunctionsManagerDialog(
+                    file.functions, channels, parent=self, global_variables=file.global_variables
+                )
                 dlg.setModal(True)
                 dlg.exec_()
 
@@ -1483,7 +1485,14 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     original_definitions = dlg.original_definitions
                     modified_definitions = dlg.modified_definitions
 
-                    file.update_functions(original_definitions, modified_definitions)
+                    if file.global_variables != dlg.global_variables:
+                        new_global_variables = dlg.global_variables
+                    else:
+                        new_global_variables = file.global_variables
+
+                    file.update_functions(
+                        original_definitions, modified_definitions, new_global_variables=new_global_variables
+                    )
 
     def bus_database_manager(self):
         dlg = BusDatabaseManagerDialog(parent=self)

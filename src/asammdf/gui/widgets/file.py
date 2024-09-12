@@ -1056,6 +1056,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         config["windows"] = windows
         config["active_window"] = current_window.windowTitle() if current_window else ""
         config["functions"] = self.functions
+        config["global_variables"] = self.global_variables
 
         return config
 
@@ -1271,6 +1272,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.loaded_display_file = Path(info.get("display_file_name", "")), b""
 
             self.functions.update(info.get("functions", {}))
+            self.global_variables += info.get("global_variables", "")
 
         if channels:
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
@@ -1334,8 +1336,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                     "definition": definition,
                                 }
 
-            if new_functions:
-                self.update_functions({}, new_functions)
+            if new_functions or info.get("global_variables", "") != self.global_variables:
+                self.update_functions({}, new_functions, self.global_variables + info.get("global_variables", ""))
 
         self.clear_windows()
 

@@ -42,6 +42,7 @@ from ..utils import (
     computation_to_python_function,
     compute_signal,
     copy_ranges,
+    generate_python_function_globals,
     replace_computation_dependency,
 )
 from .can_bus_trace import CANBusTrace
@@ -1028,6 +1029,7 @@ class WithMDIArea:
         self._busy = False
 
         self.functions = {}
+        self.global_variables = ""
 
     def add_pattern_group(self, plot, group):
         signals = extract_signals_using_pattern(
@@ -1425,6 +1427,7 @@ class WithMDIArea:
                             required_channels,
                             all_timebase,
                             self.functions,
+                            self.global_variables,
                         )
                         signal.name = channel["name"]
                         signal.unit = channel["unit"]
@@ -2738,6 +2741,7 @@ class WithMDIArea:
                     required_channels,
                     all_timebase,
                     self.functions,
+                    self.global_variables,
                 )
                 signal.name = channel["name"]
                 signal.unit = channel["unit"]
@@ -3153,6 +3157,7 @@ class WithMDIArea:
             required_channels,
             all_timebase,
             self.functions,
+            self.global_variables,
         )
         signal.name = channel["name"]
         signal.unit = channel["unit"]
@@ -3648,6 +3653,7 @@ class WithMDIArea:
                     required_channels,
                     all_timebase,
                     self.functions,
+                    self.global_variables,
                 )
                 signal.color = channel["color"]
                 signal.flags |= signal.Flags.computed
@@ -4427,7 +4433,8 @@ class WithMDIArea:
 
         self._busy = False
 
-    def update_functions(self, original_definitions, modified_definitions):
+    def update_functions(self, original_definitions, modified_definitions, new_global_variables):
+        self.global_variables = new_global_variables
         # new definitions
         new_functions = [info for uuid, info in modified_definitions.items() if uuid not in original_definitions]
 
@@ -4473,7 +4480,7 @@ class WithMDIArea:
                         if item.signal.flags & item.signal.Flags.computed:
                             function = item.signal.computation["function"]
 
-                            if function in changed:
+                            if new_global_variables or function in changed:
                                 try:
                                     item.signal.computation["function"] = translation[
                                         item.signal.computation["function"]
@@ -4481,7 +4488,7 @@ class WithMDIArea:
 
                                     func_name = item.signal.computation["function"]
                                     definition = self.functions[func_name]
-                                    _globals = {}
+                                    _globals = generate_python_function_globals()
                                     exec(definition.replace("\t", "    "), _globals)
                                     func = _globals[func_name]
 

@@ -482,6 +482,7 @@ def compute_signal(
     measured_signals,
     all_timebase,
     functions,
+    global_variables="",
 ):
     required_channels = {}
     for key, sig in measured_signals.items():
@@ -502,17 +503,12 @@ def compute_signal(
                 f"{description['function']} not found in the user defined functions",
             )
 
-            _globals = {
-                "bisect": bisect,
-                "collections": collections,
-                "itertools": itertools,
-                "math": math,
-                "np": np,
-                "pd": pd,
-                "random": random,
-                "struct": struct,
-                "__builtins__": dict(_BUILTINS),
-            }
+            _globals = generate_python_function_globals()
+
+            trace = generate_python_variables(global_variables, _globals)
+
+            if trace:
+                raise Exception(trace)
 
             for function_name, definition in functions.items():
                 _func, _trace = generate_python_function(definition, _globals)
@@ -1173,6 +1169,40 @@ def draw_color_icon(color):
     return QtGui.QIcon(pix)
 
 
+def generate_python_variables(definition: str, in_globals: Union[dict, None] = None) -> Union[str, None]:
+    trace = None
+
+    if not isinstance(definition, str):
+        trace = "The function definition must be a string"
+
+    elif in_globals and not isinstance(in_globals, dict):
+        trace = "'in_globals' must be a dict"
+    else:
+
+        _globals = in_globals or generate_python_function_globals()
+
+        try:
+            exec(definition, _globals)
+        except:
+            trace = format_exc()
+
+    return trace
+
+
+def generate_python_function_globals() -> dict:
+    return {
+        "bisect": bisect,
+        "collections": collections,
+        "itertools": itertools,
+        "math": math,
+        "np": np,
+        "pd": pd,
+        "random": random,
+        "struct": struct,
+        "__builtins__": dict(_BUILTINS),
+    }
+
+
 def generate_python_function(definition: str, in_globals: Union[dict, None] = None) -> tuple:
     trace = None
     func = None
@@ -1186,14 +1216,7 @@ def generate_python_function(definition: str, in_globals: Union[dict, None] = No
 
     definition = definition.replace("\t", "    ")
 
-    _globals = in_globals or {}
-    _globals.update(
-        {
-            "math": math,
-            "np": np,
-            "pd": pd,
-        }
-    )
+    _globals = in_globals or generate_python_function_globals()
 
     if not definition:
         trace = "The function definition must not be empty"

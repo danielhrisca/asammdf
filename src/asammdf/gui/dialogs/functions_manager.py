@@ -13,6 +13,7 @@ class FunctionsManagerDialog(QtWidgets.QDialog):
         channels=None,
         selected_definition="",
         prefix="",
+        global_variables="",
         *args,
         **kwargs,
     ):
@@ -27,6 +28,7 @@ class FunctionsManagerDialog(QtWidgets.QDialog):
 
         self.original_definitions = {}
         self.modified_definitions = {}
+        self.global_variables = ""
 
         for name, info in definitions.items():
             self.original_definitions[info["uuid"]] = {
@@ -41,7 +43,7 @@ class FunctionsManagerDialog(QtWidgets.QDialog):
         self.setSizeGripEnabled(True)
         self.setWindowFlags(QtCore.Qt.WindowType.Window)
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
-        self.widget = FunctionsManager(deepcopy(definitions), channels, selected_definition)
+        self.widget = FunctionsManager(deepcopy(definitions), channels, selected_definition, global_variables)
 
         self.verticalLayout.addWidget(self.widget)
 
@@ -78,6 +80,8 @@ class FunctionsManagerDialog(QtWidgets.QDialog):
                 "name": name,
                 "definition": info["definition"],
             }
+
+        self.global_variables = self.widget.globals_definition.toPlainText()
 
         self.close()
 

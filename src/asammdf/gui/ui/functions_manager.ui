@@ -13,208 +13,290 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout_2" columnstretch="1,2">
-   <property name="leftMargin">
-  <number>1</number>
-</property>
-   <property name="topMargin">
-  <number>1</number>
-</property>
-   <property name="rightMargin">
-  <number>1</number>
-</property>
-   <property name="bottomMargin">
-  <number>1</number>
-</property>
+  <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
-  <number>1</number>
-</property>
-   <item row="0" column="0">
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <property name="spacing">
-  <number>1</number>
-</property>
-     <item>
-      <widget class="QPushButton" name="add_btn">
-       <property name="text">
-        <string>Add</string>
-       </property>
-       <property name="icon">
-        <iconset resource="resource.qrc">
-         <normaloff>:/plus.png</normaloff>:/plus.png</iconset>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>24</width>
-         <height>24</height>
-        </size>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="erase_btn">
-       <property name="toolTip">
-        <string/>
-       </property>
-       <property name="text">
-        <string>Delete all</string>
-       </property>
-       <property name="icon">
-        <iconset resource="resource.qrc">
-         <normaloff>:/erase.png</normaloff>:/erase.png</iconset>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>24</width>
-         <height>24</height>
-        </size>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="import_btn">
-       <property name="text">
-        <string>Load definitions</string>
-       </property>
-       <property name="icon">
-        <iconset resource="resource.qrc">
-         <normaloff>:/open.png</normaloff>:/open.png</iconset>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>24</width>
-         <height>24</height>
-        </size>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="export_btn">
-       <property name="text">
-        <string>Save definitions</string>
-       </property>
-       <property name="icon">
-        <iconset resource="resource.qrc">
-         <normaloff>:/save.png</normaloff>:/save.png</iconset>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>24</width>
-         <height>24</height>
-        </size>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <spacer name="horizontalSpacer_5">
-       <property name="orientation">
-        <enum>Qt::Orientation::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-    </layout>
-   </item>
-   <item row="0" column="1" rowspan="2">
-    <widget class="QGroupBox" name="function_group">
-     <property name="title">
-      <string>Function definition</string>
+    <number>1</number>
+   </property>
+   <property name="leftMargin">
+    <number>1</number>
+   </property>
+   <property name="topMargin">
+    <number>1</number>
+   </property>
+   <property name="rightMargin">
+    <number>1</number>
+   </property>
+   <property name="bottomMargin">
+    <number>1</number>
+   </property>
+   <item>
+    <widget class="QTabWidget" name="tabs">
+     <property name="currentIndex">
+      <number>0</number>
      </property>
-     <layout class="QGridLayout" name="gridLayout" rowstretch="1,0">
-      <property name="leftMargin">
-  <number>1</number>
-</property>
-      <property name="topMargin">
-  <number>1</number>
-</property>
-      <property name="rightMargin">
-  <number>1</number>
-</property>
-      <property name="bottomMargin">
-  <number>1</number>
-</property>
-      <property name="spacing">
-  <number>1</number>
-</property>
-      <item row="1" column="0" colspan="2">
-       <layout class="QHBoxLayout" name="horizontalLayout_3">
-        <property name="spacing">
-  <number>1</number>
-</property>
-        <item>
-         <widget class="QPushButton" name="check_syntax_btn">
-          <property name="text">
-           <string>Check syntax</string>
+     <widget class="QWidget" name="tab">
+      <attribute name="title">
+       <string>Functions</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_2">
+       <property name="leftMargin">
+        <number>1</number>
+       </property>
+       <property name="topMargin">
+        <number>1</number>
+       </property>
+       <property name="rightMargin">
+        <number>1</number>
+       </property>
+       <property name="bottomMargin">
+        <number>1</number>
+       </property>
+       <property name="spacing">
+        <number>1</number>
+       </property>
+       <item row="0" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <property name="spacing">
+          <number>1</number>
+         </property>
+         <item>
+          <widget class="QPushButton" name="add_btn">
+           <property name="text">
+            <string>Add</string>
+           </property>
+           <property name="icon">
+            <iconset resource="resource.qrc">
+             <normaloff>:/plus.png</normaloff>:/plus.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>24</width>
+             <height>24</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="erase_btn">
+           <property name="toolTip">
+            <string/>
+           </property>
+           <property name="text">
+            <string>Delete all</string>
+           </property>
+           <property name="icon">
+            <iconset resource="resource.qrc">
+             <normaloff>:/erase.png</normaloff>:/erase.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>24</width>
+             <height>24</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="import_btn">
+           <property name="text">
+            <string>Load definitions</string>
+           </property>
+           <property name="icon">
+            <iconset resource="resource.qrc">
+             <normaloff>:/open.png</normaloff>:/open.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>24</width>
+             <height>24</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="export_btn">
+           <property name="text">
+            <string>Save definitions</string>
+           </property>
+           <property name="icon">
+            <iconset resource="resource.qrc">
+             <normaloff>:/save.png</normaloff>:/save.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>24</width>
+             <height>24</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_5">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item row="0" column="1" rowspan="2">
+        <widget class="QGroupBox" name="function_group">
+         <property name="title">
+          <string>Function definition</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout" rowstretch="0,0">
+          <property name="leftMargin">
+           <number>1</number>
           </property>
-          <property name="icon">
-           <iconset resource="resource.qrc">
-            <normaloff>:/checkmark.png</normaloff>:/checkmark.png</iconset>
+          <property name="topMargin">
+           <number>1</number>
           </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="store_btn">
-          <property name="text">
-           <string>Store function changes</string>
+          <property name="rightMargin">
+           <number>1</number>
           </property>
-          <property name="icon">
-           <iconset resource="resource.qrc">
-            <normaloff>:/shift_down.png</normaloff>:/shift_down.png</iconset>
+          <property name="bottomMargin">
+           <number>1</number>
           </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Orientation::Horizontal</enum>
+          <property name="spacing">
+           <number>1</number>
           </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="0" column="0" colspan="2">
-       <widget class="QPlainTextEdit" name="function_definition">
-        <property name="font">
-         <font>
-          <family>Consolas</family>
-         </font>
-        </property>
-        <property name="horizontalScrollBarPolicy">
-         <enum>Qt::ScrollBarPolicy::ScrollBarAsNeeded</enum>
-        </property>
-        <property name="lineWrapMode">
-         <enum>QPlainTextEdit::LineWrapMode::NoWrap</enum>
-        </property>
-        <property name="tabStopDistance">
-         <double>140.000000000000000</double>
-        </property>
-        <property name="placeholderText">
-         <string>function code</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="MinimalListWidget" name="functions_list">
-     <property name="minimumSize">
-      <size>
-       <width>300</width>
-       <height>0</height>
-      </size>
-     </property>
+          <item row="0" column="0" colspan="2">
+           <widget class="QPlainTextEdit" name="function_definition">
+            <property name="font">
+             <font>
+              <family>Consolas</family>
+             </font>
+            </property>
+            <property name="horizontalScrollBarPolicy">
+             <enum>Qt::ScrollBarPolicy::ScrollBarAsNeeded</enum>
+            </property>
+            <property name="lineWrapMode">
+             <enum>QPlainTextEdit::LineWrapMode::NoWrap</enum>
+            </property>
+            <property name="tabStopDistance">
+             <double>140.000000000000000</double>
+            </property>
+            <property name="placeholderText">
+             <string>function code</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0" colspan="2">
+           <layout class="QHBoxLayout" name="horizontalLayout_3">
+            <property name="spacing">
+             <number>1</number>
+            </property>
+            <item>
+             <widget class="QPushButton" name="check_syntax_btn">
+              <property name="text">
+               <string>Check syntax</string>
+              </property>
+              <property name="icon">
+               <iconset resource="resource.qrc">
+                <normaloff>:/checkmark.png</normaloff>:/checkmark.png</iconset>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="store_btn">
+              <property name="text">
+               <string>Store function changes</string>
+              </property>
+              <property name="icon">
+               <iconset resource="resource.qrc">
+                <normaloff>:/shift_down.png</normaloff>:/shift_down.png</iconset>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="MinimalListWidget" name="functions_list">
+         <property name="minimumSize">
+          <size>
+           <width>300</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_2">
+      <attribute name="title">
+       <string>Glolbal variables</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <property name="leftMargin">
+        <number>1</number>
+       </property>
+       <property name="topMargin">
+        <number>1</number>
+       </property>
+       <property name="rightMargin">
+        <number>1</number>
+       </property>
+       <property name="bottomMargin">
+        <number>1</number>
+       </property>
+       <property name="spacing">
+        <number>1</number>
+       </property>
+       <item row="0" column="0" colspan="2">
+        <widget class="QPlainTextEdit" name="globals_definition">
+         <property name="tabStopDistance">
+          <double>140.000000000000000</double>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QPushButton" name="check_globals_syntax_btn">
+         <property name="text">
+          <string>Check syntax</string>
+         </property>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/checkmark.png</normaloff>:/checkmark.png</iconset>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>637</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
   </layout>
