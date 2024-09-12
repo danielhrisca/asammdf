@@ -137,7 +137,6 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         }
 
         self.functions_list.clear()
-        self.functions_list.addItem("GLOBALS")
         names = natsorted(self.definitions)
         self.functions_list.addItems(names)
 

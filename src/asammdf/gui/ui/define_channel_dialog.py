@@ -114,7 +114,7 @@ class Ui_ComputedChannel(object):
 
         self.label_8 = QLabel(ComputedChannel)
         self.label_8.setObjectName(u"label_8")
-        self.label_8.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignTop)
+        self.label_8.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
 
         self.gridLayout.addWidget(self.label_8, 5, 0, 1, 1)
 
@@ -145,12 +145,12 @@ class Ui_ComputedChannel(object):
         self.verticalLayout.setContentsMargins(1, 1, 1, 1)
         self.scrollArea = QScrollArea(self.groupBox)
         self.scrollArea.setObjectName(u"scrollArea")
-        self.scrollArea.setFrameShape(QFrame.NoFrame)
+        self.scrollArea.setFrameShape(QFrame.Shape.NoFrame)
         self.scrollArea.setLineWidth(0)
         self.scrollArea.setWidgetResizable(True)
         self.args_widget = QWidget()
         self.args_widget.setObjectName(u"args_widget")
-        self.args_widget.setGeometry(QRect(0, 0, 713, 69))
+        self.args_widget.setGeometry(QRect(0, 0, 717, 71))
         self.arg_layout = QGridLayout(self.args_widget)
         self.arg_layout.setSpacing(1)
         self.arg_layout.setObjectName(u"arg_layout")
@@ -193,33 +193,39 @@ class Ui_ComputedChannel(object):
         self.groupBox_2 = QGroupBox(ComputedChannel)
         self.groupBox_2.setObjectName(u"groupBox_2")
         self.gridLayout_2 = QGridLayout(self.groupBox_2)
+        self.gridLayout_2.setSpacing(1)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
-        self.gridLayout_2.setHorizontalSpacing(1)
-        self.gridLayout_2.setVerticalSpacing(1)
         self.gridLayout_2.setContentsMargins(1, 1, 1, 1)
+        self.complete_signal = QRadioButton(self.groupBox_2)
+        self.complete_signal.setObjectName(u"complete_signal")
+        self.complete_signal.setChecked(False)
+
+        self.gridLayout_2.addWidget(self.complete_signal, 2, 0, 1, 1)
+
+        self.label_25 = QLabel(self.groupBox_2)
+        self.label_25.setObjectName(u"label_25")
+
+        self.gridLayout_2.addWidget(self.label_25, 2, 1, 1, 1)
+
+        self.label_24 = QLabel(self.groupBox_2)
+        self.label_24.setObjectName(u"label_24")
+        self.label_24.setTextFormat(Qt.TextFormat.RichText)
+        self.label_24.setWordWrap(False)
+
+        self.gridLayout_2.addWidget(self.label_24, 0, 1, 1, 1)
+
         self.sample_by_sample = QRadioButton(self.groupBox_2)
         self.sample_by_sample.setObjectName(u"sample_by_sample")
         self.sample_by_sample.setChecked(True)
 
         self.gridLayout_2.addWidget(self.sample_by_sample, 0, 0, 1, 1)
 
-        self.label_24 = QLabel(self.groupBox_2)
-        self.label_24.setObjectName(u"label_24")
-        self.label_24.setTextFormat(Qt.RichText)
-        self.label_24.setWordWrap(False)
+        self.line = QFrame(self.groupBox_2)
+        self.line.setObjectName(u"line")
+        self.line.setFrameShape(QFrame.Shape.HLine)
+        self.line.setFrameShadow(QFrame.Shadow.Sunken)
 
-        self.gridLayout_2.addWidget(self.label_24, 0, 1, 1, 1)
-
-        self.complete_signal = QRadioButton(self.groupBox_2)
-        self.complete_signal.setObjectName(u"complete_signal")
-        self.complete_signal.setChecked(False)
-
-        self.gridLayout_2.addWidget(self.complete_signal, 1, 0, 1, 1)
-
-        self.label_25 = QLabel(self.groupBox_2)
-        self.label_25.setObjectName(u"label_25")
-
-        self.gridLayout_2.addWidget(self.label_25, 1, 1, 1, 1)
+        self.gridLayout_2.addWidget(self.line, 1, 1, 1, 1)
 
         self.gridLayout_2.setColumnStretch(1, 1)
 
@@ -269,16 +275,6 @@ class Ui_ComputedChannel(object):
         self.label_9.setText(QCoreApplication.translate("ComputedChannel", u"Name", None))
         self.label.setText(QCoreApplication.translate("ComputedChannel", u"Arguments:", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("ComputedChannel", u"Computation mode", None))
-        self.sample_by_sample.setText(QCoreApplication.translate("ComputedChannel", u"sample by sample", None))
-        self.label_24.setText(QCoreApplication.translate("ComputedChannel", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
-"<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\n"
-"p, li { white-space: pre-wrap; }\n"
-"hr { height: 1px; border-width: 0; }\n"
-"</style></head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n"
-"<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\"><li style=\" font-family:'MS Shell Dlg 2'; font-size:8pt;\" style=\" margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">the function will be called several times for each of the individual time stamp in the time base</li>\n"
-"<li style=\" font-family:'MS Shell Dlg 2'; font-size:8pt;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">earch argument will receive the signal sample at the"
-                        " current time stamp</li>\n"
-"<li style=\" font-family:'MS Shell Dlg 2'; font-size:8pt;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">the<span style=\" font-weight:700; font-style:italic;\"> t</span> argument will receive the current time stamp value</li></ul></body></html>", None))
         self.complete_signal.setText(QCoreApplication.translate("ComputedChannel", u"complete signal", None))
         self.label_25.setText(QCoreApplication.translate("ComputedChannel", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\n"
@@ -289,4 +285,15 @@ class Ui_ComputedChannel(object):
 "<li style=\" font-family:'MS Shell Dlg 2'; font-size:8pt;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">each argument will receive the complete signal ndarray</li></ul>\n"
 "<ul style=\"margin-top: 0px; margin-bottom:"
                         " 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\"><li style=\" font-family:'MS Shell Dlg 2'; font-size:8pt;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">the<span style=\" font-style:italic;\"> </span><span style=\" font-weight:700; font-style:italic;\">t</span><span style=\" font-style:italic;\"> </span>argument will receive the complete time base ndarray</li></ul></body></html>", None))
+        self.label_24.setText(QCoreApplication.translate("ComputedChannel", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"hr { height: 1px; border-width: 0; }\n"
+"</style></head><body style=\" font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;\">\n"
+"<ul style=\"margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;\"><li style=\" font-family:'MS Shell Dlg 2'; font-size:8pt;\" style=\" margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">the function will be called several times for each of the individual time stamp in the time base</li>\n"
+"<li style=\" font-family:'MS Shell Dlg 2'; font-size:8pt;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">earch argument will receive the signal sample at the"
+                        " current time stamp</li>\n"
+"<li style=\" font-family:'MS Shell Dlg 2'; font-size:8pt;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">the<span style=\" font-weight:700; font-style:italic;\"> t</span> argument will receive the current time stamp value</li></ul></body></html>", None))
+        self.sample_by_sample.setText(QCoreApplication.translate("ComputedChannel", u"sample by sample", None))
     # retranslateUi
+
