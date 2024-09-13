@@ -1272,7 +1272,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.loaded_display_file = Path(info.get("display_file_name", "")), b""
 
             self.functions.update(info.get("functions", {}))
-            self.global_variables += info.get("global_variables", "")
+            self.global_variables = f'{self.global_variables}\n{info.get("global_variables", "")}'
 
         if channels:
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
@@ -1337,7 +1337,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                 }
 
             if new_functions or info.get("global_variables", "") != self.global_variables:
-                self.update_functions({}, new_functions, self.global_variables + info.get("global_variables", ""))
+                self.update_functions({}, new_functions, f'{self.global_variables}\n{info.get("global_variables", "")}')
 
         self.clear_windows()
 
