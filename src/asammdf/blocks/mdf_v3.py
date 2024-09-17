@@ -434,6 +434,7 @@ class MDF3(MDF_Common):
                             data.append(stream.read(min(record_count, size)))
                         else:
                             data.append(stream.read(size))
+
                         cur_size += size
                         offset += size
 
@@ -2042,6 +2043,8 @@ class MDF3(MDF_Common):
 
         block = samples.tobytes()
 
+        self._tempfile.seek(0, 2)
+
         gp.data_location = v23c.LOCATION_TEMPORARY_FILE
         if cycles_nr:
             data_address = tell()
@@ -2058,9 +2061,6 @@ class MDF3(MDF_Common):
                     param=0,
                 )
             )
-
-        else:
-            gp.data_location = v23c.LOCATION_TEMPORARY_FILE
 
         self.virtual_groups_map[dg_cntr] = dg_cntr
         if dg_cntr not in self.virtual_groups:
