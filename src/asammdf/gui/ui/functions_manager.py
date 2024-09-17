@@ -137,6 +137,7 @@ class Ui_FunctionsManager(object):
 
         self.gridLayout_2.addWidget(self.functions_list, 1, 0, 1, 1)
 
+        self.gridLayout_2.setColumnStretch(1, 1)
         self.tabs.addTab(self.tab, "")
         self.tab_2 = QWidget()
         self.tab_2.setObjectName(u"tab_2")
