@@ -2,17 +2,18 @@
 import pathlib
 import shutil
 import time
+from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets
 
 from asammdf import mdf
-from test.asammdf.gui.widgets.test_BaseBatchWidget import *
+from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 
 # Note: If it's possible and make sense, use self.subTests
 # to avoid initializing widgets multiple times and consume time.
 
 
-class TestTabModifyAndExport(TestFileWidget):
+class TestTabModifyAndExport(TestBatchWidget):
     def test_PushButton_ScrambleTexts(self):
         """
         Events:

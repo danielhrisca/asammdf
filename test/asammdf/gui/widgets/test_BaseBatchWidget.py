@@ -7,7 +7,7 @@ from asammdf.gui.widgets.batch import BatchWidget
 from test.asammdf.gui.test_base import TestBase
 
 
-class TestFileWidget(TestBase):
+class TestBatchWidget(TestBase):
     testResult = None
 
     def setUp(self):

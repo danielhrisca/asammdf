@@ -326,7 +326,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.close_on_finish = close_on_finish
         self.hide_on_finish = hide_on_finish
 
-        self.thread = QWorkerThread(target, parent=self, *args, **kwargs)
+        self.thread = QWorkerThread(target, *args, parent=self, **kwargs)
         self.thread.result.connect(self.receive_result)
         self.thread.finished.connect(self.thread_complete)
         self.thread.error.connect(self.receive_error)
