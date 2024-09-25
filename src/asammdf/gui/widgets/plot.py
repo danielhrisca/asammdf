@@ -2211,6 +2211,7 @@ class Plot(QtWidgets.QWidget):
             for item in self.channel_selection.selectedItems():
                 set_focused(item)
 
+            self.plot.trim()
             self.plot.update()
         else:
             if update:
@@ -2229,6 +2230,7 @@ class Plot(QtWidgets.QWidget):
 
                     iterator += 1
 
+                self.plot.trim()
                 self.plot.update()
 
     def channel_selection_item_changed(self, top_left, bottom_right, roles):
