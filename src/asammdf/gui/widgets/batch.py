@@ -263,7 +263,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 return
 
     def scramble_finished(self):
-        self._progress.close()
         self._progress = None
 
     def scramble(self, event):
@@ -434,7 +433,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             self.output_info_bus.setPlainText("\n".join(message))
 
-        self._progress.close()
         self._progress = None
 
     def extract_bus_csv_logging(self, event):
@@ -668,7 +666,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 item.setSizeHint(widget.sizeHint())
 
     def concatenate_finished(self):
-        self._progress.close()
         self._progress = None
 
     def concatenate(self, event=None):
@@ -826,7 +823,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             return result
 
     def stack_finished(self):
-        self._progress.close()
         self._progress = None
 
     def stack(self, event):
@@ -1330,7 +1326,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         return Options(options)
 
     def apply_processing_finished(self):
-        self._progress.close()
         self._progress = None
 
     def apply_processing(self, event):
