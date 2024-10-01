@@ -375,7 +375,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.thread = None
 
         if self.close_on_finish:
-            QtCore.QTimer.singleShot(50, self.accept)
+            QtCore.QTimer.singleShot(50, self.close)
 
     def close(self, reject=False):
 

@@ -2197,6 +2197,7 @@ class Plot(QtWidgets.QWidget):
     def channel_selection_changed(self, update=False):
         def set_focused(item):
             if item.type() == item.Channel:
+                item.signal.path = None
                 item.signal.enable = True
 
             elif item.type() == item.Group:
@@ -2210,10 +2211,12 @@ class Plot(QtWidgets.QWidget):
             for item in self.channel_selection.selectedItems():
                 set_focused(item)
 
+            self.plot.trim()
             self.plot.update()
         else:
             if update:
                 for signal in self.plot.signals:
+                    signal.path = None
                     signal.enable = False
 
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
@@ -2227,6 +2230,7 @@ class Plot(QtWidgets.QWidget):
 
                     iterator += 1
 
+                self.plot.trim()
                 self.plot.update()
 
     def channel_selection_item_changed(self, top_left, bottom_right, roles):
