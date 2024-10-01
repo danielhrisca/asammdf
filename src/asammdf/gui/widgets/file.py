@@ -1804,7 +1804,6 @@ MultiRasterSeparator;&
             path = Path(self.file_name)
             self.open_new_files.emit([str(path.with_suffix(f".scrambled{path.suffix}"))])
 
-        self._progress.close()
         self._progress = None
 
     def scramble(self, event):
@@ -1824,7 +1823,6 @@ MultiRasterSeparator;&
             self.output_info_bus.setPlainText("\n".join(message))
             self.open_new_files.emit([str(file_name)])
 
-        self._progress.close()
         self._progress = None
 
     def extract_bus_logging(self, event):
@@ -1971,7 +1969,6 @@ MultiRasterSeparator;&
 
             self.output_info_bus.setPlainText("\n".join(message))
 
-        self._progress.close()
         self._progress = None
 
     def extract_bus_csv_logging(self, event):
@@ -2780,7 +2777,7 @@ MultiRasterSeparator;&
         )
 
     def apply_processing_finished(self):
-        self._progress.close()
+
         self._progress = None
 
     def apply_processing_thread(self, file_name, opts, version, needs_filter, channels, progress=None):
