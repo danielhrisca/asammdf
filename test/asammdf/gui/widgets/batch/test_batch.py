@@ -43,6 +43,7 @@ class TestTabModifyAndExport(TestBatchWidget):
             iterator += 1
             channels.append(item.name)
 
+        self.processEvents(1)
         # Evaluate
         scrambled_filepath = pathlib.Path(self.test_workspace, "ASAP2_Demo_V171.scrambled.mf4")
         self.assertTrue(scrambled_filepath.exists())
@@ -57,6 +58,7 @@ class TestTabModifyAndExport(TestBatchWidget):
         for name in channels:
             self.assertNotIn(name, mdf_file.channels_db.keys())
         mdf_file.close()
+        self.processEvents(1)
 
     def test_ExportMDF(self):
         """
@@ -103,26 +105,12 @@ class TestTabModifyAndExport(TestBatchWidget):
 
         self.widget.output_format.setCurrentText("MDF")
 
-        # # Case 0:
-        # self.processEvents()
-        # with self.subTest("test_ExportMDF_0"):
-        #     file_count = len(os.listdir(self.test_workspace))
-        #     with mock.patch("asammdf.gui.widgets.batch.QtWidgets.QFileDialog.getSaveFileName") as mc_getSaveFileName:
-        #         mc_getSaveFileName.return_value = None, None
-        #         QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-        #         self.processEvents()
-        #     # Evaluate
-        #     self.assertEqual(file_count, len(os.listdir(self.test_workspace)))
-        #     # Progress is not created
-
-        # Case 1:
-        with self.subTest("test_ExportMDF_1"):
-            self.processEvents()
-            saved_file = pathlib.Path(self.test_workspace, f"{self.id()}.mf4")
-            with mock.patch("asammdf.gui.widgets.batch.QtWidgets.QFileDialog.getSaveFileName") as mc_getSaveFileName:
-                mc_getSaveFileName.return_value = str(saved_file), None
-                QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-                self.processEvents(1)
+        self.processEvents()
+        saved_file = pathlib.Path(self.test_workspace, "ASAP2_Demo_V171.modified.mf4")
+        with mock.patch("asammdf.gui.widgets.batch.QtWidgets.QFileDialog.getSaveFileName") as mc_getSaveFileName:
+            mc_getSaveFileName.return_value = str(saved_file), None
+            QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
+            self.processEvents(1)
         # Wait for thread to finish
         self.processEvents(1)
 
@@ -137,3 +125,6 @@ class TestTabModifyAndExport(TestBatchWidget):
         # Evaluate
         for name in channels:
             self.assertIn(name, mdf_file.channels_db.keys())
+
+        mdf_file.close()
+        self.processEvents(1)
