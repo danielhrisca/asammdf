@@ -42,6 +42,7 @@ import numpy as np
 
 from .. import tool
 from . import v4_constants as v4c
+from .cutils import bytes_dtype_size
 from .utils import (
     block_fields,
     escape_xml_string,
@@ -3359,13 +3360,10 @@ class ChannelConversion(_ChannelConversionBase):
                                 vals[idx[idx_]], ignore_value2text_conversions=ignore_value2text_conversions
                             )
 
-                all_bytes = True
-                for v in ret.tolist():
-                    if not isinstance(v, bytes):
-                        all_bytes = False
-                        break
-
-                if not all_bytes:
+                size = bytes_dtype_size(ret)
+                if size >= 0:
+                    ret = ret.astype(f"S{size}")
+                else:
                     try:
                         ret = ret.astype("f8")
                     except:
@@ -3373,9 +3371,6 @@ class ChannelConversion(_ChannelConversionBase):
                             ret = ret.astype(bytes)
                         elif not as_object:
                             ret = np.array([np.nan if isinstance(v, bytes) else v for v in ret.tolist()])
-
-                else:
-                    ret = ret.astype(bytes)
 
                 ret = ret.reshape(shape)
                 values = np.rec.fromarrays(
@@ -3439,13 +3434,10 @@ class ChannelConversion(_ChannelConversionBase):
                                     values[idx_], ignore_value2text_conversions=ignore_value2text_conversions
                                 )
 
-                all_bytes = True
-                for v in ret.tolist():
-                    if not isinstance(v, bytes):
-                        all_bytes = False
-                        break
-
-                if not all_bytes:
+                size = bytes_dtype_size(ret)
+                if size >= 0:
+                    ret = ret.astype(f"S{size}")
+                else:
                     try:
                         ret = ret.astype("f8")
                     except:
@@ -3453,8 +3445,6 @@ class ChannelConversion(_ChannelConversionBase):
                             ret = ret.astype(bytes)
                         elif not as_object:
                             ret = np.array([np.nan if isinstance(v, bytes) else v for v in ret.tolist()])
-                else:
-                    ret = ret.astype(bytes)
 
                 values = ret
 
@@ -3690,13 +3680,10 @@ class ChannelConversion(_ChannelConversionBase):
                         except:
                             raise
 
-            all_bytes = True
-            for v in ret.tolist():
-                if not isinstance(v, bytes):
-                    all_bytes = False
-                    break
-
-            if not all_bytes:
+            size = bytes_dtype_size(ret)
+            if size >= 0:
+                ret = ret.astype(f"S{size}")
+            else:
                 try:
                     ret = ret.astype("f8")
                 except:
@@ -3704,8 +3691,6 @@ class ChannelConversion(_ChannelConversionBase):
                         ret = ret.astype(bytes)
                     elif not as_object:
                         ret = np.array([np.nan if isinstance(v, bytes) else v for v in ret.tolist()])
-            else:
-                ret = ret.astype(bytes)
 
             values = ret
 
