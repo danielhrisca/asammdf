@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from functools import partial
-from hashlib import sha1
+from hashlib import md5
 import json
 import os
 from pathlib import Path
@@ -1078,7 +1078,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             file_name = Path(file_name).with_suffix(".dspf")
             file_name.write_text(json.dumps(self.to_config(), indent=2))
 
-            worker = sha1()
+            worker = md5()
             worker.update(file_name.read_bytes())
             self.loaded_display_file = file_name, worker.hexdigest()
 
@@ -1261,7 +1261,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             else:
                 return
 
-            worker = sha1()
+            worker = md5()
             worker.update(file_name.read_bytes())
             self.loaded_display_file = file_name, worker.hexdigest()
 
