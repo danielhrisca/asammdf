@@ -127,7 +127,7 @@ class TestBase(unittest.TestCase):
     def tearDown(self):
         self.processEvents()
         if self.test_workspace and pathlib.Path(self.test_workspace).exists():
-            shutil.rmtree(self.test_workspace)
+            shutil.rmtree(self.test_workspace, ignore_errors=True)
 
     def mouseClick_RadioButton(self, qitem):
         QtTest.QTest.mouseClick(

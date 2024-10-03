@@ -203,7 +203,7 @@ class TestContextMenu(TestPlotWidget):
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             pattern_name = re.escape(self.plot_channel_a.text(self.Column.NAME))
             pattern_unit = re.escape(self.plot_channel_a.text(self.Column.UNIT))
-            self.assertRegex(clipboard, expected_regex=f"{pattern_name}, t = \d+[.]?\d+s, \d+[.]?\d+{pattern_unit}")
+            self.assertRegex(clipboard, expected_regex=f"{pattern_name}, t = \\d+[.]?\\d+s, \\d+[.]?\\d+{pattern_unit}")
 
         with self.subTest("2Channels"):
             self.plot_channel_a.setSelected(True)
@@ -216,7 +216,7 @@ class TestContextMenu(TestPlotWidget):
             for channel in (self.plot_channel_a, self.plot_channel_b):
                 pattern_name = re.escape(channel.text(self.Column.NAME))
                 pattern_unit = re.escape(channel.text(self.Column.UNIT))
-                expected_regex.append(f"{pattern_name}, t = \d+[.]?\d+s, \d+[.]?\d+{pattern_unit}")
+                expected_regex.append(f"{pattern_name}, t = \\d+[.]?\\d+s, \\d+[.]?\\d+{pattern_unit}")
 
             self.assertRegex(clipboard, "\\n".join(expected_regex))
 

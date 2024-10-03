@@ -45,7 +45,7 @@ class TestTabModifyAndExport(TestBatchWidget):
 
         self.processEvents(1)
         # Evaluate
-        scrambled_filepath = pathlib.Path(self.test_workspace, "ASAP2_Demo_V171.scrambled.mf4")
+        scrambled_filepath = pathlib.Path(self.test_workspace, file.replace(".", ".scrambled."))
         self.assertTrue(scrambled_filepath.exists())
         # Wait for Thread to finish
         time.sleep(0.1)
