@@ -1,5 +1,5 @@
 #define NPY_NO_DEPRECATED_API NPY_1_22_API_VERSION
-#define Py_LIMITED_API 0x030900f0
+//#define Py_LIMITED_API 0x030900f0
 
 #define PY_SSIZE_T_CLEAN 1
 #include <Python.h>
@@ -1500,6 +1500,39 @@ static PyObject *reverse_transposition(PyObject *self, PyObject *args)
     }
 }
 
+static PyObject *bytes_dtype_size(PyObject *self, PyObject *args)
+{
+    Py_ssize_t i = 0, j = 0;
+    Py_ssize_t count, size = 0, current_size=0;
+    PyObject *data, *values, **pointer;
+    char *read, *write_original, *write;
+    bool all_bytes = true;
+
+    if (!PyArg_ParseTuple(args, "O", &data))
+    {
+        return NULL;
+    }
+    else
+    {
+        count = (Py_ssize_t) *PyArray_SHAPE(data);
+        pointer = (PyObject **)PyArray_GETPTR1((PyArrayObject *)data, 0);
+        for (i=0; i<count; i++, pointer++) {
+            if (!PyBytes_Check(*pointer)) {
+                all_bytes = false;
+                size = -1;
+                break;
+            }
+            
+            current_size = PyBytes_GET_SIZE(*pointer);
+            
+            if (current_size > size) size = current_size;
+        }
+
+        return PyLong_FromSsize_t(size);
+    }
+}
+
+
 // Our Module's Function Definition struct
 // We require this `NULL` to signal the end of our method
 // definition
@@ -1514,6 +1547,7 @@ static PyMethodDef myMethods[] = {
     {"data_block_from_arrays", data_block_from_arrays, METH_VARARGS, "data_block_from_arrays"},
     {"get_idx_with_edges", get_idx_with_edges, METH_VARARGS, "get_idx_with_edges"},
     {"reverse_transposition", reverse_transposition, METH_VARARGS, "reverse_transposition"},
+    {"bytes_dtype_size", bytes_dtype_size, METH_VARARGS, "bytes_dtype_size"},
 
     {NULL, NULL, 0, NULL}};
 
