@@ -191,4 +191,3 @@ class Ui_FunctionsManager(object):
         self.check_globals_syntax_btn.setText(QCoreApplication.translate("FunctionsManager", u"Check syntax", None))
         self.tabs.setTabText(self.tabs.indexOf(self.tab_2), QCoreApplication.translate("FunctionsManager", u"Glolbal variables", None))
     # retranslateUi
-

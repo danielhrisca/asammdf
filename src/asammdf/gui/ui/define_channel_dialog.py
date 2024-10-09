@@ -296,4 +296,3 @@ class Ui_ComputedChannel(object):
 "<li style=\" font-family:'MS Shell Dlg 2'; font-size:8pt;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">the<span style=\" font-weight:700; font-style:italic;\"> t</span> argument will receive the current time stamp value</li></ul></body></html>", None))
         self.sample_by_sample.setText(QCoreApplication.translate("ComputedChannel", u"sample by sample", None))
     # retranslateUi
-
