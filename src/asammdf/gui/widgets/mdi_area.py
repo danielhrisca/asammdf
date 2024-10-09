@@ -3399,6 +3399,7 @@ class WithMDIArea:
 
         sections_width = window_info["configuration"].get("header_sections_width", [])
         if sections_width:
+            numeric.channels.columnHeader.columns_width = dict(enumerate(sections_width))
             sections_width = reversed(list(enumerate(sections_width)))
             for column_index, width in sections_width:
                 numeric.channels.columnHeader.setColumnWidth(column_index, width)

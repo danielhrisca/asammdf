@@ -2530,7 +2530,7 @@ MultiRasterSeparator;&
 
             self.info.expandAll()
 
-            self.info.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+            self.info.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Interactive)
 
     def toggle_frames(self, event=None):
         self._frameless_windows = not self._frameless_windows
