@@ -1,7 +1,7 @@
 canmatrix[arxml,dbc]>=1.0
 lz4
 numexpr
-numpy>=1.23.0
+numpy<2.0.0
 pandas
 typing_extensions
 isal; platform_machine == "x86_64" or platform_machine == "AMD64"
@@ -24,3 +24,4 @@ keyring
 pyinstaller
 scipy
 sympy
+fsspec==2024.6.1
