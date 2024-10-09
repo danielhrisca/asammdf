@@ -1,8 +1,7 @@
 #!/usr/bin/env python
+import os.path
 import pathlib
-import shutil
 import time
-from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets
 
@@ -27,10 +26,8 @@ class TestTabModifyAndExport(TestBatchWidget):
         file = "ASAP2_Demo_V171.mf4"
         # Setup
         measurement_file = str(pathlib.Path(self.resource, file))
-        shutil.copy(measurement_file, self.test_workspace)
-        filepath = str(pathlib.Path(self.test_workspace, file))
         # Event
-        self.setUpBatchWidget(measurement_files=[filepath], default=None)
+        self.setUpBatchWidget(measurement_files=[measurement_file], default=None)
 
         # Go to Tab: "Modify & Export": Index 1
         self.widget.aspects.setCurrentIndex(1)
@@ -45,7 +42,7 @@ class TestTabModifyAndExport(TestBatchWidget):
 
         self.processEvents(1)
         # Evaluate
-        scrambled_filepath = pathlib.Path(self.test_workspace, file.replace(".", ".scrambled."))
+        scrambled_filepath = pathlib.Path(self.resource, file.replace(".", ".scrambled."))
         self.assertTrue(scrambled_filepath.exists())
         # Wait for Thread to finish
         time.sleep(0.1)
@@ -59,6 +56,7 @@ class TestTabModifyAndExport(TestBatchWidget):
             self.assertNotIn(name, mdf_file.channels_db.keys())
         mdf_file.close()
         self.processEvents(1)
+        os.remove(scrambled_filepath)
 
     def test_ExportMDF(self):
         """
@@ -79,16 +77,16 @@ class TestTabModifyAndExport(TestBatchWidget):
         """
         # Setup
         file = "ASAP2_Demo_V171.mf4"
-        measurement_file = pathlib.Path(self.resource, file)
-        shutil.copy(measurement_file, self.test_workspace)
-        filepath = str(pathlib.Path(self.test_workspace, file))
+        measurement_file = str(pathlib.Path(self.resource, file))
+        # shutil.copy(measurement_file, self.test_workspace)
+        # filepath = pathlib.Path(self.test_workspace, file)
         # Event
-        self.setUpBatchWidget(measurement_files=[filepath], default=None)
+        self.setUpBatchWidget(measurement_files=[measurement_file], default=None)
         # Go to Tab: "Modify & Export": Index 1
         self.widget.aspects.setCurrentIndex(1)
         self.widget.filter_view.setCurrentText("Natural sort")
 
-        count = 3
+        count = 5
         selected_channels = []
         iterator = QtWidgets.QTreeWidgetItemIterator(self.widget.filter_tree)
         while iterator.value() and count:
@@ -106,25 +104,25 @@ class TestTabModifyAndExport(TestBatchWidget):
         self.widget.output_format.setCurrentText("MDF")
 
         self.processEvents()
-        saved_file = pathlib.Path(self.test_workspace, "ASAP2_Demo_V171.modified.mf4")
-        with mock.patch("asammdf.gui.widgets.batch.QtWidgets.QFileDialog.getSaveFileName") as mc_getSaveFileName:
-            mc_getSaveFileName.return_value = str(saved_file), None
-            QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-            self.processEvents(1)
+        saved_file = pathlib.Path(self.resource, file.replace(".", ".modified."))
+        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents(1)
         # Wait for thread to finish
         self.processEvents(1)
 
         # Evaluate
         self.assertTrue(saved_file.exists())
 
-        channels = []
         # get saved file as MDF
         process_bus_logging = ("process_bus_logging", True)
         mdf_file = mdf.MDF(saved_file, process_bus_logging=process_bus_logging)
 
+        selected_channels.append("time")
         # Evaluate
-        for name in channels:
+        self.assertEqual(len(selected_channels), len(mdf_file.channels_db.keys()))
+        for name in selected_channels:
             self.assertIn(name, mdf_file.channels_db.keys())
 
         mdf_file.close()
         self.processEvents(1)
+        os.remove(saved_file)

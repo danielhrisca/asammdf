@@ -99,13 +99,12 @@ class TestBase(unittest.TestCase):
 
     def setUp(self) -> None:
         if os.path.exists(self.test_workspace):
-            shutil.rmtree(self.test_workspace)
+            try:
+                shutil.rmtree(self.test_workspace)
+            except PermissionError as e:
+                print(e)
         if not os.path.exists(self.screenshots):
             os.makedirs(self.screenshots)
-        # if not os.path.exists(self.platform_path):
-        #     os.makedirs(self.platform_path)
-        # if not os.path.exists(self.save_ss_here):
-        #     os.makedirs(self.save_ss_here)
 
         os.makedirs(self.test_workspace)
         self.mc_ErrorDialog.reset_mock()
@@ -127,7 +126,10 @@ class TestBase(unittest.TestCase):
     def tearDown(self):
         self.processEvents()
         if self.test_workspace and pathlib.Path(self.test_workspace).exists():
-            shutil.rmtree(self.test_workspace, ignore_errors=True)
+            try:
+                shutil.rmtree(self.test_workspace)
+            except PermissionError as e:
+                print(e)
 
     def mouseClick_RadioButton(self, qitem):
         QtTest.QTest.mouseClick(
