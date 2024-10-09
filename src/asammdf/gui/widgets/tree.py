@@ -937,13 +937,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addAction("Add pattern based channel group [Ctrl+Insert]")
         menu.addSeparator()
 
-        submenu = QtWidgets.QMenu("Copy")
+        submenu = QtWidgets.QMenu("Copy names")
         submenu.setIcon(QtGui.QIcon(":/copy.png"))
         submenu.addAction("Copy names [Ctrl+N]")
         submenu.addAction("Copy names and values")
         menu.addMenu(submenu)
 
-        submenu = QtWidgets.QMenu("Tree structure")
+        submenu = QtWidgets.QMenu("Display structure")
         submenu.setIcon(QtGui.QIcon(":/structure.png"))
         submenu.addAction("Copy display properties [Ctrl+Shift+C]")
         submenu.addAction("Paste display properties [Ctrl+Shift+V]")
@@ -1009,7 +1009,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 submenu.addAction("Edit group")
         menu.addMenu(submenu)
 
-        submenu = QtWidgets.QMenu("Display")
+        submenu = QtWidgets.QMenu("Display mode")
         # submenu.setIcon(QtGui.QIcon(":/edit.png"))
         submenu.addAction("Ascii\t[Ctrl+T]")
         submenu.addAction("Bin\t[Ctrl+B]")
