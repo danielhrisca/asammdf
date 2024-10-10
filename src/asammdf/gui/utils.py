@@ -156,7 +156,9 @@ VARIABLE_GET_DATA = re.compile(r"get_data\s*\(\s*\"(?P<var>[^\"]+)")
 C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
 FUNC_NAME = re.compile(r"def\s+(?P<name>\S+)\s*\(")
 IMPORT = re.compile(r"^\s*import\s+")
+IMPORT_INNER = re.compile(r";\s*import\s+")
 FROM_IMPORT = re.compile(r"^\s*from\s+\S+\s+import\s+")
+FROM_INNER_IMPORT = re.compile(r";\s*from\s+\S+\s+import\s+")
 
 
 def excepthook(exc_type, exc_value, tracebackobj):
@@ -1173,7 +1175,7 @@ def draw_color_icon(color):
 
 def contains_imports(string):
     for line in string.splitlines():
-        if IMPORT.match(line) or FROM_IMPORT.match(line):
+        if IMPORT.match(line) or FROM_IMPORT.match(line) or IMPORT_INNER.search(line) or FROM_INNER_IMPORT.search(line):
             return True
 
     return False
