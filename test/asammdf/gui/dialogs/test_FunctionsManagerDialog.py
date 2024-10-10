@@ -221,7 +221,9 @@ class TestPushButtons(TestBase):
         self.assertTrue(saved_file.exists())
         with open(saved_file) as fpr:
             content = json.load(fpr)
-            self.assertDictEqual(content, {"Function1": "def Function1(t=0):\n    return 0"})
+            self.assertDictEqual(
+                content, {"Function1": "def Function1(t=0):\n    return 0", "__global_variables__": ""}
+            )
 
     def test_PushButton_CheckSyntax_0(self):
         """
@@ -310,6 +312,7 @@ class TestPushButtons(TestBase):
         """
         # Events:
         QtTest.QTest.mouseClick(self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.mouseClick_WidgetItem(self.fm.widget.functions_list.item(0))
 
         source = inspect.getsource(maximum)
         self.fm.widget.function_definition.clear()
