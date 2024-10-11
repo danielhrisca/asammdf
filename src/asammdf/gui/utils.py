@@ -243,8 +243,8 @@ class QWorkerThread(QtCore.QThread):
     setMaximum = QtCore.Signal(int)
     setValue = QtCore.Signal(int)
 
-    _SIGNALS = namedtuple(
-        "_SIGNALS",
+    SIGNALS_TEMPLATE = namedtuple(
+        "SIGNALS_TEMPLATE",
         [
             "finished",
             "error",
@@ -263,7 +263,7 @@ class QWorkerThread(QtCore.QThread):
         self.function = function
         self.args = args
 
-        self.signals = self._SIGNALS(
+        self.signals = self.SIGNALS_TEMPLATE(
             self.finished,
             self.error,
             self.result,
