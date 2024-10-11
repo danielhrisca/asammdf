@@ -400,6 +400,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.clear_channels_btn.clicked.connect(self.clear_channels)
             self.select_all_btn.clicked.connect(self.select_all_channels)
 
+            self.info.setColumnWidth(0, 200)
+
             self.aspects.setCurrentIndex(0)
 
             self.aspects.currentChanged.connect(self.aspect_changed)

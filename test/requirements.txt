@@ -1,6 +1,6 @@
 natsort
 numexpr
-numpy>=1.23.0
+numpy<2.0.0
 pandas
 psutil
 pyautogui
@@ -10,7 +10,7 @@ pytest-cov
 canmatrix[arxml,dbc]>=1.0
 lz4
 typing_extensions
-PySide6
+PySide6==6.7.3
 pyqtgraph
 python-dateutil
 isal; platform_machine == "x86_64" or platform_machine == "AMD64"
