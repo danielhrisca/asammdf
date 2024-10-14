@@ -1,7 +1,7 @@
+from collections.abc import Sequence
 import os
+import pathlib
 from unittest import mock
-
-from natsort import natsorted
 
 from asammdf.gui.widgets.batch import BatchWidget
 from test.asammdf.gui.test_base import TestBase
@@ -33,10 +33,10 @@ class TestBatchWidget(TestBase):
         self.mc_ErrorDialog.reset_mock()
         super().tearDown()
 
-    def setUpBatchWidget(self, *args, measurement_files: list, default):
+    def setUpBatchWidget(self, *args, measurement_files: Sequence[str], default):
         """
-        Created because for a lot of testcases,
-        we do not need other parameters for FileWidget initialization.
+        Created because a lot of testcases,
+        we do not need other parameters for BatchWidget initialization.
         """
         if default:
             self.widget = BatchWidget(
@@ -45,5 +45,11 @@ class TestBatchWidget(TestBase):
         else:
             self.widget = BatchWidget(*args)
         self.processEvents()
-        self.widget.files_list.addItems(natsorted(measurement_files))
+        for file in measurement_files:
+            self.assertTrue(pathlib.Path(file).exists())
+        self.widget.files_list.addItems(measurement_files)
+
+        # Evaluate that all files was opened
+        self.assertEqual(self.widget.files_list.count(), len(measurement_files))
+
         self.widget.showNormal()
