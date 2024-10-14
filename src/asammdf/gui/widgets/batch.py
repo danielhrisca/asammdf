@@ -845,7 +845,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         compression = self.stack_compression.currentIndex()
 
         if version < "4.00":
-            outpmout_file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+            output_file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
                 "Select output measurement file",
                 "",
