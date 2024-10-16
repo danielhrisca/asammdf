@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from PySide6 import QtCore, QtTest
-from PySide6.QtTest import QTest
 
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
