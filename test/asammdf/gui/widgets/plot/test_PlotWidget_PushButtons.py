@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from PySide6 import QtCore, QtTest
+from PySide6.QtTest import QTest
 
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
@@ -309,3 +310,78 @@ class TestPushButtons(TestPlotWidget):
         # Ensure that delta char is not present on channel values even if button is pressed
         self.assertNotIn("Δ", self.plot_tree_channel_0.text(self.Column.VALUE))
         self.assertNotIn("Δ", self.plot_tree_channel_1.text(self.Column.VALUE))
+
+    def test_Plot_ChannelSelection_PushButton_ToggleBookmarks(self):
+        """
+        Events:
+            - Display 1 signal on plot
+            - Press 3 times `Toggle bookmarks` button
+        Evaluate:
+            - Evaluate that bookmarks are not displayed before pressing `Toggle bookmarks` button
+            - Evaluate that bookmarks are displayed after pressing `Toggle bookmarks` button first time
+            - Evaluate that bookmarks are not displayed after pressing `Toggle bookmarks` button second time
+        """
+        if self.plot.show_bookmarks:
+            # Press `Toggle bookmarks` button
+            QtTest.QTest.mouseClick(self.plot.bookmark_btn, QtCore.Qt.MouseButton.LeftButton)
+            # Evaluate
+            self.assertFalse(self.plot.show_bookmarks)
+        # Press `Toggle bookmarks` button
+        QtTest.QTest.mouseClick(self.plot.bookmark_btn, QtCore.Qt.MouseButton.LeftButton)
+        # Evaluate
+        self.assertTrue(self.plot.show_bookmarks)
+        # Press `Toggle bookmarks` button
+        QtTest.QTest.mouseClick(self.plot.bookmark_btn, QtCore.Qt.MouseButton.LeftButton)
+        # Evaluate
+        self.assertFalse(self.plot.show_bookmarks)
+
+    def test_Plot_ChannelSelection_PushButton_HideAxes(self):
+        """
+        Events:
+            - Display 1 signal on plot
+            - Press 3 times `Show axes` button
+        Evaluate:
+            - Evaluate that bookmarks are not displayed before pressing `Hide axes` button
+            - Evaluate that bookmarks are displayed after pressing `Hide axes` button first time
+            - Evaluate that bookmarks are not displayed after pressing `Hide axes` button second time
+            _ Evaluate that only y_axis color are the same as selected channel color
+        """
+        if self.plot.plot.y_axis.isVisible() or self.plot.plot.x_axis.isVisible():
+            QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
+            # Evaluate
+            self.assertFalse(self.plot.plot.y_axis.isVisible())
+            self.assertFalse(self.plot.plot.x_axis.isVisible())
+
+        # Press `Show axes` button
+        QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+
+        # Evaluate
+        self.assertTrue(self.plot.plot.y_axis.isVisible())
+        self.assertTrue(self.plot.plot.x_axis.isVisible())
+
+        with self.subTest("test pen color of axes"):
+            self.assertNotEqual(self.plot_tree_channel_0.color.name(), self.plot_tree_channel_1.color.name())
+            x_axis_color = self.plot.plot.x_axis.pen().color().name()
+
+            # Event
+            self.mouseClick_WidgetItem(self.plot_tree_channel_0)
+            self.processEvents()
+
+            # Evaluate
+            self.assertEqual(x_axis_color, self.plot.plot.x_axis.pen().color().name())
+            self.assertEqual(self.plot.plot.y_axis.pen().color().name(), self.plot_tree_channel_0.color.name())
+
+            # Event
+            self.mouseClick_WidgetItem(self.plot_tree_channel_1)
+            self.processEvents()
+
+            # Evaluate
+            self.assertEqual(x_axis_color, self.plot.plot.x_axis.pen().color().name())
+            self.assertEqual(self.plot.plot.y_axis.pen().color().name(), self.plot_tree_channel_1.color.name())
+
+        # Press `Hide axes` button
+        QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
+        # Evaluate
+        self.assertFalse(self.plot.plot.y_axis.isVisible())
+        self.assertFalse(self.plot.plot.x_axis.isVisible())

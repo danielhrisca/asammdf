@@ -2,9 +2,9 @@ name: coveralls
 
 on:
   push:
-    branches: [master, development]
+    branches: [ master, development ]
   pull_request:
-    branches: [master, development]
+    branches: [ master, development ]
 
 jobs:
   coveralls:
@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.9"
+          python-version: "3.12"
 
       - name: Install packages
         shell: bash
@@ -39,7 +39,7 @@ jobs:
           export DISPLAY=:0
 
       - name: Run coverage
-        run: tox -e py39
+        run: tox -e py312
 
       - name: Stop Xvfb
         if: matrix.os == 'ubuntu-latest'
