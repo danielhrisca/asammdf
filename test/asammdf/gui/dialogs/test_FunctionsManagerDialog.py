@@ -312,6 +312,7 @@ class TestPushButtons(TestBase):
         """
         # Events:
         QtTest.QTest.mouseClick(self.fm.widget.add_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.mouseClick_WidgetItem(self.fm.widget.functions_list.item(0))
 
         source = inspect.getsource(maximum)
         self.fm.widget.function_definition.clear()
