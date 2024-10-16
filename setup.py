@@ -112,7 +112,7 @@ setup(
             "lxml>=4.9.2",
             "natsort",
             "psutil",
-            "PySide6==6.7.3",
+            "PySide6==6.7.0",
             "pyqtgraph",
             "pyqtlet2",
             "packaging",
