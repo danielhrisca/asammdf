@@ -2224,7 +2224,7 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
         return sorted(c_functions)
 
     dsp = Path(file).read_bytes().replace(b"\0", b"")
-    dsp = lxml.etree.fromstring(dsp)
+    dsp = lxml.etree.fromstring(dsp, parser=lxml.etree.XMLParser(recover=True))
 
     conversions = parse_conversions(dsp.find("COMPU_METHODS"))
 
