@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import time
+
 from PySide6 import QtCore, QtTest
 
 from test.asammdf.gui.test_base import Pixmap
@@ -337,7 +339,7 @@ class TestPushButtons(TestPlotWidget):
     def test_Plot_ChannelSelection_PushButton_HideAxes(self):
         """
         Events:
-            - Display 1 signal on plot
+            - Display 2 signal on plot
             - Press 3 times `Show axes` button
         Evaluate:
             - Evaluate that bookmarks are not displayed before pressing `Hide axes` button
@@ -384,3 +386,174 @@ class TestPushButtons(TestPlotWidget):
         # Evaluate
         self.assertFalse(self.plot.plot.y_axis.isVisible())
         self.assertFalse(self.plot.plot.x_axis.isVisible())
+
+    def test_Plot_ChannelSelection_PushButton_Lock(self):
+        """
+        Events:
+            - Display 2 signal on plot
+            - Press `Lock` button in order to lock y-axis
+            - Move signal using drag-and-drop technique on both axis
+            - Press `Lock` button in order to lock y-axis
+            - Move signal using drag-and-drop technique on both axis
+
+        Evaluate:
+            - Evaluate that if y-axis is locked, signal cannot be moved only on y-axis and common axis column is hidden
+            - Evaluate that if y-axis is unlocked, signal can be moved on both x and y axes
+              and common axis column isn't hidden
+        """
+
+        def move_signal(x, y):
+            def drag_and_drop():
+                center = self.plot.plot.viewport().geometry().center()
+                QtTest.QTest.mouseMove(self.plot.plot.viewport(), QtCore.QPoint(center.x() + x, center.y() + y))
+
+                QtTest.QTest.mouseRelease(
+                    self.plot.plot.viewport(),
+                    QtCore.Qt.MouseButton.LeftButton,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
+                    QtCore.QPoint(center.x() + x, center.y() + y),
+                    20,
+                )
+
+            self.mouseClick_WidgetItem(self.plot_tree_channel_0)
+            QtCore.QTimer.singleShot(100, drag_and_drop)
+            QtTest.QTest.mousePress(self.plot.plot.viewport(), QtCore.Qt.MouseButton.LeftButton)
+
+        if self.plot.locked:
+            QtTest.QTest.mouseClick(self.plot.lock_btn, QtCore.Qt.MouseButton.LeftButton)
+            # Evaluate
+            self.assertFalse(self.plot.locked)
+            self.assertFalse(self.plot.channel_selection.isColumnHidden(self.plot.channel_selection.CommonAxisColumn))
+
+        # Evaluate that signal wasn't moved on x-axis
+        self.assertIsNone(self.plot_graph_channel_0.trim_info)
+
+        # Press `Lock` button
+        QtTest.QTest.mouseClick(self.plot.lock_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+        sig_0_y_range = self.plot_graph_channel_0.y_range
+
+        # move channels on plot graphics
+        move_signal(50, 50)
+        self.processEvents(0.1)
+
+        # Evaluate
+        self.assertTrue(self.plot.locked)
+        self.assertTrue(self.plot.channel_selection.isColumnHidden(self.plot.channel_selection.CommonAxisColumn))
+        self.assertTupleEqual(sig_0_y_range, self.plot_graph_channel_0.y_range)
+        self.assertIsNotNone(self.plot_graph_channel_0.trim_info)
+
+        # Press `Lock` button
+        QtTest.QTest.mouseClick(self.plot.lock_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+
+        # get trim info
+        trim_info = self.plot_graph_channel_0.trim_info
+
+        # move channels on plot graphics
+        move_signal(-50, 50)
+        self.processEvents(0.1)
+
+        # Evaluate
+        self.assertFalse(self.plot.locked)
+        self.assertFalse(self.plot.channel_selection.isColumnHidden(self.plot.channel_selection.CommonAxisColumn))
+        self.assertNotEqual(sig_0_y_range, self.plot_graph_channel_0.y_range)
+        for _ in range(len(trim_info)):
+            self.assertGreaterEqual(self.plot_graph_channel_0.trim_info[_], trim_info[_])
+
+    def test_Plot_ChannelSelection_PushButtons_Zoom(self):
+        """
+        This method will test 4 buttons: zoom in, zoom out, undo zoom, redo zoom.
+        Precondition:
+            - Zoom history is clean - trim info must be None
+            - Cursor is on center of plot. This step is required for easiest evaluation
+
+        # Event
+            - Press button `Zoom in`
+            - Press button `Undo zoom`
+            - Press button `Redo zoom`
+            - Press button `Zoom out`
+            - Press button `Zoom in`
+
+        # Evaluate
+            - Evaluate that `zoom` action was performed (zoom in will be tested at the end)
+            - Evaluate that `undo zoom` action was performed
+            - Evaluate that `redo zoom` action was performed and
+             channels timestamp trim info is equal with its value before undo zoom action was performed
+            - Evaluate that zoom `out action` was performed
+            - Evaluate that zoom `in action` was performed
+
+        """
+        # Precondition
+        self.assertIsNone(self.plot_graph_channel_0.trim_info)
+        QtTest.QTest.mouseClick(self.plot.plot.viewport(), QtCore.Qt.MouseButton.LeftButton)
+
+        from PySide6.QtWidgets import QPushButton as Btn
+
+        buttons = self.plot.findChildren(Btn)
+        zoom_in_btn = "Zoom in"
+        zoom_out_btn = "Zoom out"
+        for btn in buttons:
+            if btn.toolTip() == zoom_in_btn:
+                zoom_in_btn = btn
+                continue
+            elif btn.toolTip() == zoom_out_btn:
+                zoom_out_btn = btn
+                continue
+
+        # buttons was found
+        self.assertIsInstance(zoom_in_btn, Btn)
+        self.assertIsInstance(zoom_out_btn, Btn)
+
+        # Event
+        QtTest.QTest.mouseClick(zoom_in_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+        trim_info_0 = self.plot_graph_channel_0.trim_info
+
+        # Evaluate
+        self.assertIsNotNone(trim_info_0)  # zoom was performed
+
+        # Store previous zoom
+        prev_zoom = trim_info_0[1] - trim_info_0[0]
+
+        # Event
+        QtTest.QTest.mouseClick(self.plot.undo_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+        trim_info_1 = self.plot_graph_channel_0.trim_info
+
+        # Evaluate
+        self.assertGreater(trim_info_1[1] - trim_info_1[0], prev_zoom)
+
+        # Store previous zoom
+        prev_zoom = trim_info_1[1] - trim_info_1[0]
+
+        # Event
+        QtTest.QTest.mouseClick(self.plot.redo_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+        trim_info_2 = self.plot_graph_channel_0.trim_info
+
+        # Evaluate
+        self.assertLess(trim_info_2[1] - trim_info_2[0], prev_zoom)
+        self.assertTupleEqual(trim_info_0, trim_info_2)
+
+        prev_zoom = trim_info_2[1] - trim_info_2[0]
+
+        # Event
+        QtTest.QTest.mouseClick(zoom_out_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+        trim_info_3 = self.plot_graph_channel_0.trim_info
+
+        # Evaluate
+        self.assertGreater(trim_info_3[1] - trim_info_3[0], prev_zoom)
+
+        # store previous zoom
+        prev_zoom = trim_info_3[1] - trim_info_3[0]
+
+        # Event
+        QtTest.QTest.mouseClick(zoom_in_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+        trim_info_4 = self.plot_graph_channel_0.trim_info
+
+        # Evaluate
+        self.assertLess(trim_info_4[1] - trim_info_4[0], prev_zoom)
+        self.assertTupleEqual(trim_info_2, trim_info_4)
