@@ -561,26 +561,33 @@ class TestPushButtons(TestPlotWidget):
 
     def test_Plot_ChannelSelection_PushButtons_CMD(self):
         """
-        This method will test 4 buttons: zoom in, zoom out, undo zoom, redo zoom.
+        This method will test 6 actions from Cmd menu: Home, Honeywell, Fit, Stack, Increase font, Decrease font.
+
         Precondition:
-            - Zoom history is clean - trim info must be None
-            - Cursor is on center of plot. This step is required for easiest evaluation
+            - No zoom actions performed. Y range for both signals are identical and timestamp trim info is None
 
         # Event
-            - Press button `Zoom in`
-            - Press button `Undo zoom`
-            - Press button `Redo zoom`
-            - Press button `Zoom out`
-            - Press button `Zoom in`
+            -[0] Press `Cmd` button to open menu, after that select `Stack` action from menu
+            -[1] Press `Cmd` button to open menu, after that select `Fit` action from menu
+            -[2] Press `Cmd` button to open menu, after that select `Honeywell` action from menu
+            -[3] Press `Cmd` button to open menu, after that select `Home` action from menu
+            -[4] Press `Cmd` button to open menu, after that check common axis checkboxes
+              and select `Stack` action from menu
+            -[5] Press `Cmd` button to open menu, after that select `Increase font` action from menu
+            -[6] Press `Cmd` button to open menu, after that select `Decrease font` action from menu
 
         # Evaluate
-            - Evaluate that `zoom` action was performed (zoom in will be tested at the end)
-            - Evaluate that `undo zoom` action was performed
-            - Evaluate that `redo zoom` action was performed and
-             channels timestamp trim info is equal with its value before undo zoom action was performed
-            - Evaluate that zoom `out action` was performed
-            - Evaluate that zoom `in action` was performed
+            -[0] Evaluate that signals Y ranges were modified,
+              also Y range for first signal is less than Y range of second signal timestamp trim info is None
+            -[1] Evaluate that signals Y ranges for both signals are identical, timestamp trim info is still None
+            -[2] Evaluate that signals Y ranges for both signals are identical, timestamp trim info was modified,
+              also trim info for both signals are identical
+            -[3] Evaluate that signals Y ranges for both signals are identical, also timestamp trim info are identical,
+              timestamp range became greater
+            -[4] Evaluate that signals Y ranges for both signals are identical, also timestamp trim info are identical
 
+            -[5] Evaluate that widget font size was increased
+            -[6] Evaluate that widget font size was decreased
         """
 
         def click_on_cmd_action(btn: QBtn, action_text: str):
@@ -596,10 +603,7 @@ class TestPushButtons(TestPlotWidget):
             QtTest.QTest.keyClick(btn.menu(), QtCore.Qt.Key.Key_Enter)
 
         # Precondition
-        ch_0_y_range = self.plot_graph_channel_0.y_range
-        ch_1_y_range = self.plot_graph_channel_1.y_range
-        self.assertTupleEqual(ch_0_y_range, ch_1_y_range)
-
+        self.assertTupleEqual(self.plot_graph_channel_0.y_range, self.plot_graph_channel_1.y_range)
         self.assertIsNone(self.plot_graph_channel_0.trim_info)
         self.assertIsNone(self.plot_graph_channel_1.trim_info)
 
@@ -621,7 +625,7 @@ class TestPushButtons(TestPlotWidget):
             self.assertLess(self.plot_graph_channel_0.y_range[0], self.plot_graph_channel_1.y_range[0])
             self.assertLess(self.plot_graph_channel_0.y_range[1], self.plot_graph_channel_1.y_range[1])
 
-            self.assertIsNone(self.plot_graph_channel_0.trim_info)
+            self.assertIsNone(self.plot_graph_channel_0.trim_info)  # zoom on timestamp axis wasn't performed
             self.assertIsNone(self.plot_graph_channel_1.trim_info)
 
             # Event
@@ -629,9 +633,7 @@ class TestPushButtons(TestPlotWidget):
             self.processEvents(0.1)
 
             # Evaluate
-            self.assertEqual(self.plot_graph_channel_0.y_range[0], self.plot_graph_channel_1.y_range[0])
-            self.assertEqual(self.plot_graph_channel_0.y_range[1], self.plot_graph_channel_1.y_range[1])
-
+            self.assertTupleEqual(self.plot_graph_channel_0.y_range, self.plot_graph_channel_1.y_range)
             self.assertIsNone(self.plot_graph_channel_0.trim_info)
             self.assertIsNone(self.plot_graph_channel_1.trim_info)
 
