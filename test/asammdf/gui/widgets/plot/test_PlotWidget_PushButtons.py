@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 import time
+import unittest
+from unittest import mock
 
 from PySide6 import QtCore, QtTest
+from PySide6.QtWidgets import QPushButton as QBtn
 
 from test.asammdf.gui.test_base import Pixmap
-from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
+from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget, QMenuWrap
 
 
 class TestPushButtons(TestPlotWidget):
@@ -488,9 +491,7 @@ class TestPushButtons(TestPlotWidget):
         self.assertIsNone(self.plot_graph_channel_0.trim_info)
         QtTest.QTest.mouseClick(self.plot.plot.viewport(), QtCore.Qt.MouseButton.LeftButton)
 
-        from PySide6.QtWidgets import QPushButton as Btn
-
-        buttons = self.plot.findChildren(Btn)
+        buttons = self.plot.findChildren(QBtn)
         zoom_in_btn = "Zoom in"
         zoom_out_btn = "Zoom out"
         for btn in buttons:
@@ -502,8 +503,8 @@ class TestPushButtons(TestPlotWidget):
                 continue
 
         # buttons was found
-        self.assertIsInstance(zoom_in_btn, Btn)
-        self.assertIsInstance(zoom_out_btn, Btn)
+        self.assertIsInstance(zoom_in_btn, QBtn)
+        self.assertIsInstance(zoom_out_btn, QBtn)
 
         # Event
         QtTest.QTest.mouseClick(zoom_in_btn, QtCore.Qt.MouseButton.LeftButton)
@@ -557,3 +558,136 @@ class TestPushButtons(TestPlotWidget):
         # Evaluate
         self.assertLess(trim_info_4[1] - trim_info_4[0], prev_zoom)
         self.assertTupleEqual(trim_info_2, trim_info_4)
+
+    def test_Plot_ChannelSelection_PushButtons_CMD(self):
+        """
+        This method will test 4 buttons: zoom in, zoom out, undo zoom, redo zoom.
+        Precondition:
+            - Zoom history is clean - trim info must be None
+            - Cursor is on center of plot. This step is required for easiest evaluation
+
+        # Event
+            - Press button `Zoom in`
+            - Press button `Undo zoom`
+            - Press button `Redo zoom`
+            - Press button `Zoom out`
+            - Press button `Zoom in`
+
+        # Evaluate
+            - Evaluate that `zoom` action was performed (zoom in will be tested at the end)
+            - Evaluate that `undo zoom` action was performed
+            - Evaluate that `redo zoom` action was performed and
+             channels timestamp trim info is equal with its value before undo zoom action was performed
+            - Evaluate that zoom `out action` was performed
+            - Evaluate that zoom `in action` was performed
+
+        """
+
+        def click_on_cmd_action(btn: QBtn, action_text: str):
+            for n, action in enumerate(btn.menu().actions(), 1):
+                if action.text() == action_text:
+                    break
+            else:
+                n = 0
+            QtTest.QTest.mouseClick(btn, QtCore.Qt.MouseButton.LeftButton)
+            for _ in range(n):
+                QtTest.QTest.keyClick(btn.menu(), QtCore.Qt.Key.Key_Down)
+                QtTest.QTest.qWait(100)
+            QtTest.QTest.keyClick(btn.menu(), QtCore.Qt.Key.Key_Enter)
+
+        # Precondition
+        ch_0_y_range = self.plot_graph_channel_0.y_range
+        ch_1_y_range = self.plot_graph_channel_1.y_range
+        self.assertTupleEqual(ch_0_y_range, ch_1_y_range)
+
+        self.assertIsNone(self.plot_graph_channel_0.trim_info)
+        self.assertIsNone(self.plot_graph_channel_1.trim_info)
+
+        buttons = self.plot.findChildren(QBtn)
+        cmd_btn = "Cmd"
+        for btn in buttons:
+            if btn.text() == cmd_btn:
+                cmd_btn = btn
+                break
+
+        self.processEvents(0.1)
+
+        with self.subTest("PlotGraphics tests"):
+            # Event
+            click_on_cmd_action(cmd_btn, "Stack")
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertLess(self.plot_graph_channel_0.y_range[0], self.plot_graph_channel_1.y_range[0])
+            self.assertLess(self.plot_graph_channel_0.y_range[1], self.plot_graph_channel_1.y_range[1])
+
+            self.assertIsNone(self.plot_graph_channel_0.trim_info)
+            self.assertIsNone(self.plot_graph_channel_1.trim_info)
+
+            # Event
+            click_on_cmd_action(cmd_btn, "Fit")
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertEqual(self.plot_graph_channel_0.y_range[0], self.plot_graph_channel_1.y_range[0])
+            self.assertEqual(self.plot_graph_channel_0.y_range[1], self.plot_graph_channel_1.y_range[1])
+
+            self.assertIsNone(self.plot_graph_channel_0.trim_info)
+            self.assertIsNone(self.plot_graph_channel_1.trim_info)
+
+            # Event
+            click_on_cmd_action(cmd_btn, "Honeywell")
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertEqual(self.plot_graph_channel_0.y_range[0], self.plot_graph_channel_1.y_range[0])
+            self.assertEqual(self.plot_graph_channel_0.y_range[1], self.plot_graph_channel_1.y_range[1])
+            self.assertTupleEqual(self.plot_graph_channel_0.trim_info, self.plot_graph_channel_1.trim_info)
+
+            # save previous trim info
+            prev_trim_info = self.plot_graph_channel_0.trim_info[1] - self.plot_graph_channel_0.trim_info[0]
+            # Event
+            click_on_cmd_action(cmd_btn, "Home")
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertEqual(self.plot_graph_channel_0.y_range[0], self.plot_graph_channel_1.y_range[0])
+            self.assertEqual(self.plot_graph_channel_0.y_range[1], self.plot_graph_channel_1.y_range[1])
+            self.assertLess(
+                prev_trim_info, self.plot_graph_channel_0.trim_info[1] - self.plot_graph_channel_0.trim_info[0]
+            )
+            self.assertTupleEqual(self.plot_graph_channel_0.trim_info, self.plot_graph_channel_1.trim_info)
+
+            # Event
+            # Set checked individual axis for both channels
+            common_axis_column = self.plot_tree_channel_0.CommonAxisColumn
+            if self.plot_tree_channel_0.checkState(common_axis_column) == QtCore.Qt.CheckState.Unchecked:
+                self.plot_tree_channel_0.setCheckState(common_axis_column, QtCore.Qt.CheckState.Checked)
+            if self.plot_tree_channel_1.checkState(common_axis_column) == QtCore.Qt.CheckState.Unchecked:
+                self.plot_tree_channel_1.setCheckState(common_axis_column, QtCore.Qt.CheckState.Checked)
+
+            click_on_cmd_action(cmd_btn, "Stack")
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertTupleEqual(self.plot_graph_channel_0.y_range, self.plot_graph_channel_1.y_range)
+            self.assertTupleEqual(self.plot_graph_channel_0.trim_info, self.plot_graph_channel_1.trim_info)
+
+        with self.subTest("text actions tests"):
+            prev_text_size = self.plot.font().pointSize()
+
+            # Event
+            click_on_cmd_action(cmd_btn, "Increase font")
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertGreater(self.plot.font().pointSize(), prev_text_size)
+
+            prev_text_size = self.plot.font().pointSize()
+
+            # Event
+            click_on_cmd_action(cmd_btn, "Decrease font")
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertLess(self.plot.font().pointSize(), prev_text_size)
