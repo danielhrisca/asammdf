@@ -1532,13 +1532,13 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         menu.addSeparator()
 
-        submenu = QtWidgets.QMenu("Copy")
+        submenu = QtWidgets.QMenu("Copy names")
         submenu.setIcon(QtGui.QIcon(":/copy.png"))
         submenu.addAction("Copy names [Ctrl+N]")
         submenu.addAction("Copy names and values")
         menu.addMenu(submenu)
 
-        submenu = QtWidgets.QMenu("Tree structure")
+        submenu = QtWidgets.QMenu("Display structure")
         submenu.setIcon(QtGui.QIcon(":/structure.png"))
         submenu.addAction("Copy display properties [Ctrl+Shift+C]")
         submenu.addAction("Paste display properties [Ctrl+Shift+V]")
@@ -1558,7 +1558,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         menu.addSeparator()
 
-        submenu = QtWidgets.QMenu("Display")
+        submenu = QtWidgets.QMenu("Display mode")
         submenu.addAction("Ascii\t[Ctrl+T]")
         submenu.addAction("Bin\t[Ctrl+B]")
         submenu.addAction("Hex\t[Ctrl+H]")

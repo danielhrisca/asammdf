@@ -180,7 +180,12 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                         # check channel group source name
 
                         if cg_source and (
-                            pattern.fullmatch(cg_source.name or "") or pattern.fullmatch(cg_source.path or "")
+                            pattern.fullmatch(cg_source.name or "")
+                            or pattern.fullmatch(cg_source.path or "")
+                            or pattern.fullmatch(cg_source.name or "")
+                            or pattern.fullmatch(cg_source.comment or "")
+                            or pattern.fullmatch(group.channel_group.name)
+                            or pattern.fullmatch(group.channel_group.comment)
                         ):
                             matches.update(
                                 {
