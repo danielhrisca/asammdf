@@ -1,13 +1,10 @@
 #!/usr/bin/env python
-import time
-import unittest
-from unittest import mock
 
 from PySide6 import QtCore, QtTest
 from PySide6.QtWidgets import QPushButton as QBtn
 
 from test.asammdf.gui.test_base import Pixmap
-from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget, QMenuWrap
+from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestPushButtons(TestPlotWidget):
