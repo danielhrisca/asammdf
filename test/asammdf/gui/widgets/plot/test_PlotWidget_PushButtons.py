@@ -435,7 +435,7 @@ class TestPushButtons(TestPlotWidget):
 
         # move channels on plot graphics
         move_signal(50, 50)
-        self.processEvents(0.1)
+        self.processEvents(1)
 
         # Evaluate
         self.assertTrue(self.plot.locked)
@@ -452,7 +452,7 @@ class TestPushButtons(TestPlotWidget):
 
         # move channels on plot graphics
         move_signal(-50, 50)
-        self.processEvents(0.1)
+        self.processEvents(1)
 
         # Evaluate
         self.assertFalse(self.plot.locked)
