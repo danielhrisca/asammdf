@@ -748,20 +748,20 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     def output_format_changed(self, name):
         if name == "MDF":
-            self.output_options.setCurrentIndex(0)
+            self.output_options.setCurrentWidget(self.MDF)
         elif name == "MAT":
-            self.output_options.setCurrentIndex(2)
+            self.output_options.setCurrentWidget(self.MAT)
 
             self.export_compression_mat.clear()
             self.export_compression_mat.addItems(["enabled", "disabled"])
             self.export_compression_mat.setCurrentIndex(0)
         elif name == "CSV":
-            self.output_options.setCurrentIndex(3)
+            self.output_options.setCurrentWidget(self.CSV)
         elif name == "ASC":
-            self.output_options.setCurrentIndex(4)
+            self.output_options.setCurrentWidget(self.page)
 
         else:
-            self.output_options.setCurrentIndex(1)
+            self.output_options.setCurrentWidget(self.HDF5)
             if name == "Parquet":
                 self.export_compression.setEnabled(True)
                 self.export_compression.clear()
