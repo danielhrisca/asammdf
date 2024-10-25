@@ -3,12 +3,20 @@ import os
 import pathlib
 from unittest import mock
 
+from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
+
+from asammdf import mdf
 from asammdf.gui.widgets.batch import BatchWidget
 from test.asammdf.gui.test_base import TestBase
 
 
 class TestBatchWidget(TestBase):
     testResult = None
+    concatenate_aspect = 0
+    modify_aspect = 1
+    stack_aspect = 3
+    bus_aspect = 4
 
     def setUp(self):
         super().setUp()
@@ -53,3 +61,34 @@ class TestBatchWidget(TestBase):
         self.assertEqual(self.widget.files_list.count(), len(measurement_files))
 
         self.widget.showNormal()
+
+    def cut_file(self, start_time, end_time):
+        # Setup for Cut
+        self.widget.cut_group.setChecked(True)
+        self.widget.cut_start.setValue(start_time)
+        self.widget.cut_stop.setValue(end_time)
+        # Ensure output format
+        self.widget.output_format.setCurrentText("MDF")
+        # Ensure output folder
+        self.widget.modify_output_folder.setText(str(self.test_workspace))
+
+        # Mouse click on Apply button
+        QTest.mouseClick(self.widget.apply_btn, Qt.MouseButton.LeftButton)
+        # Wait for thread to finish
+        self.processEvents(2)
+
+    class OpenMDF:
+        def __init__(self, file_path):
+            self.mdf = None
+            self._file_path = file_path
+            self._process_bus_logging = ("process_bus_logging", True)
+
+        def __enter__(self):
+            self.mdf = mdf.MDF(self._file_path, process_bus_logging=self._process_bus_logging)
+            return self.mdf
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            for exc in (exc_type, exc_val, exc_tb):
+                if exc is not None:
+                    raise exc
+            self.mdf.close()
