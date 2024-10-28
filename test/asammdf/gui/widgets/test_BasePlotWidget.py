@@ -118,14 +118,13 @@ class TestPlotWidget(TestFileWidget):
             )
         QtTest.QTest.mouseMove(channels_tree_widget, QPoint(drag_x, drag_y))
         # minimum necessary time for drag action to be implemented
-        t = 0.8
+        t = 1
 
         def call_drop_event(x, y, duration, h):
             x *= h / y
             pyautogui.drag(int(x), y, duration=duration)
 
-        timer = td.Timer(0.0001, call_drop_event, args=(int(drag_x * 0.5), drop_y - drag_y, t, item_h))
-        timer.start()
+        td.Timer(0.0001, call_drop_event, args=(int(drag_x * 0.5), drop_y - drag_y, t, item_h)).start()
         self.manual_use(self.widget, duration=t + 0.002)
 
     def wheel_action(self, w: QWidget, x: float, y: float, angle_delta: int):
