@@ -1,10 +1,11 @@
 from collections.abc import Sequence
 import os
-import pathlib
+from pathlib import Path
+import shutil
 from unittest import mock
 
-from PySide6.QtCore import Qt
-from PySide6.QtTest import QTest
+from PySide6 import QtCore
+from PySide6.QtWidgets import QTreeWidgetItemIterator
 
 from asammdf import mdf
 from asammdf.gui.widgets.batch import BatchWidget
@@ -17,6 +18,7 @@ class TestBatchWidget(TestBase):
     modify_aspect = 1
     stack_aspect = 3
     bus_aspect = 4
+    default_test_file = "ASAP2_Demo_V171.mf4"
 
     def setUp(self):
         super().setUp()
@@ -27,55 +29,67 @@ class TestBatchWidget(TestBase):
         self.mc_widget_ed = patcher.start()
         self.addCleanup(patcher.stop)
 
-    def tearDown(self):
-        path_ = os.path.join(self.screenshots, self.__module__)
-        if not os.path.exists(path_):
-            os.makedirs(path_)
+        # copy  mf4 files from resources to test workspace
+        for file in os.listdir(self.resource):
+            if file.endswith(".mf4"):
+                shutil.copyfile(Path(self.resource, file), Path(self.test_workspace, file))
 
-        self.widget.grab().save(os.path.join(path_, f"{self.id().split('.')[-1]}.png"))
+        self.processEvents()
 
-        if self.widget:
-            self.widget.close()
-            self.widget.destroy()
-            self.widget.deleteLater()
-        self.mc_ErrorDialog.reset_mock()
-        super().tearDown()
-
-    def setUpBatchWidget(self, *args, measurement_files: Sequence[str], default):
+    def setUpBatchWidget(self, *args, measurement_files: Sequence[str] | None):
         """
         Created because a lot of testcases,
         we do not need other parameters for BatchWidget initialization.
         """
-        if default:
-            self.widget = BatchWidget(
-                *args,
-            )
+        if measurement_files is None:
+            self.widget = BatchWidget(*args)
+            self.processEvents()
+            self.widget.files_list.addItems([str(Path(self.test_workspace, self.default_test_file))])
+
         else:
             self.widget = BatchWidget(*args)
-        self.processEvents()
-        for file in measurement_files:
-            self.assertTrue(pathlib.Path(file).exists())
-        self.widget.files_list.addItems(measurement_files)
+            self.processEvents()
+            for file in measurement_files:
+                self.assertTrue(Path(file).exists())
+            self.widget.files_list.addItems(measurement_files)
 
-        # Evaluate that all files was opened
-        self.assertEqual(self.widget.files_list.count(), len(measurement_files))
+            # Evaluate that all files was opened
+            self.assertEqual(self.widget.files_list.count(), len(measurement_files))
 
         self.widget.showNormal()
 
-    def cut_file(self, start_time, end_time):
-        # Setup for Cut
-        self.widget.cut_group.setChecked(True)
-        self.widget.cut_start.setValue(start_time)
-        self.widget.cut_stop.setValue(end_time)
-        # Ensure output format
-        self.widget.output_format.setCurrentText("MDF")
-        # Ensure output folder
-        self.widget.modify_output_folder.setText(str(self.test_workspace))
+    def select_channels(self, start=0, end=0) -> list:
+        """
+        Set selected channels from start to end index.
 
-        # Mouse click on Apply button
-        QTest.mouseClick(self.widget.apply_btn, Qt.MouseButton.LeftButton)
-        # Wait for thread to finish
-        self.processEvents(2)
+        Parameters
+        ----------
+        start: first selected channel index
+        end: last selected channel index
+
+        Returns
+        -------
+        channels names list
+        """
+        channels = []
+        iterator = QTreeWidgetItemIterator(self.widget.filter_tree)
+
+        count = 0
+        while iterator.value() and not (count == end):
+            if count >= start:
+                item = iterator.value()
+                item.setCheckState(0, QtCore.Qt.CheckState.Checked)
+                self.assertTrue(item.checkState(0) == QtCore.Qt.CheckState.Checked)
+                channels.append(item.text(0))
+            iterator += 1
+            count += 1
+
+        # Evaluate that channels were added to "selected_filter_channels"
+        for index in range(self.widget.selected_filter_channels.count()):
+            item = self.widget.selected_filter_channels.item(index)
+            self.assertIn(item.text(), channels)
+
+        return channels
 
     class OpenMDF:
         def __init__(self, file_path):

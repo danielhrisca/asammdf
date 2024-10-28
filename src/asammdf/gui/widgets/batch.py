@@ -422,6 +422,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 overwrite=True,
                 progress=progress,
             )
+
+            mdf.close()
+
             if result is TERMINATED:
                 return
 
@@ -618,6 +621,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 add_units=add_units,
                 progress=progress,
             )
+
+            mdf.close()
+
             if result is TERMINATED:
                 return
 
@@ -712,7 +718,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self._progress = setup_progress(parent=self, autoclose=False)
         self._progress.finished.connect(self.concatenate_finished)
 
-        self._progress.run_thread_with_progress(
+        rez = self._progress.run_thread_with_progress(
             target=self.concatenate_thread,
             args=(
                 output_file_name,
@@ -754,6 +760,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             progress=progress,
         )
 
+        for file in files:
+            file.close()
+
         if result is TERMINATED:
             return
         else:
@@ -770,6 +779,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             overwrite=True,
             progress=progress,
         )
+
+        mdf.close()
 
         if result is not TERMINATED:
             return result
@@ -818,6 +829,11 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             overwrite=True,
             progress=progress,
         )
+
+        for file in files:
+            file.close()
+
+        mdf.close()
 
         if result is not TERMINATED:
             return result
@@ -1474,6 +1490,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 if result is TERMINATED:
                     return
                 else:
+                    mdf.close()
                     mdf = result
 
                 mdf.configure(
@@ -1595,8 +1612,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     else:
                         file_name = output_folder / Path(mdf_file.original_name).relative_to(root)
 
-                    print(file_name)
-
                     if not file_name.parent.exists():
                         os.makedirs(file_name.parent, exist_ok=True)
                 else:
@@ -1618,6 +1633,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     overwrite=True,
                     progress=progress,
                 )
+
+                mdf.close()
 
                 if result is TERMINATED:
                     return
@@ -1678,6 +1695,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 }
 
                 target(**kwargs)
+
+            mdf.close()
 
     def change_modify_output_folder(self, event=None):
         folder = QtWidgets.QFileDialog.getExistingDirectory(self, "Select output folder", "")
@@ -1937,6 +1956,8 @@ MultiRasterSeparator;&
                 self.filter_tree.addTopLevelItems(items)
 
                 self.update_selected_filter_channels()
+
+                mdf.close()
 
     def connect_export_updates(self):
         self.output_format.currentTextChanged.connect(self.store_export_setttings)

@@ -125,6 +125,19 @@ class TestBase(unittest.TestCase):
 
     def tearDown(self):
         self.processEvents()
+        path_ = os.path.join(self.screenshots, self.__module__)
+        if not os.path.exists(path_):
+            os.makedirs(path_)
+
+        w = getattr(self, "widget", None)
+        if w:
+            w.grab().save(os.path.join(path_, f"{self.id().split('.')[-1]}.png"))
+            w.close()
+            w.destroy()
+            w.deleteLater()
+
+        self.mc_ErrorDialog.reset_mock()
+
         if self.test_workspace and pathlib.Path(self.test_workspace).exists():
             try:
                 shutil.rmtree(self.test_workspace)
