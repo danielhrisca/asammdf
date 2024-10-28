@@ -180,7 +180,7 @@ class MDF:
         keyword only argument: for MDF4 files parse the XML channel comment to
         search for the display name; XML parsing is quite expensive so setting
         this to *False* can decrease the loading times very much; default
-        *False*
+        *True*
     remove_source_from_channel_names (\*\*kwargs) : bool
         remove source from channel names ("Speed\XCP3" -> "Speed")
     copy_on_get (\*\*kwargs) : bool
