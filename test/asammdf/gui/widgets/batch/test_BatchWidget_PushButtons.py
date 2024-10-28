@@ -11,7 +11,7 @@ from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 
 
 class TestBatchFilesList(TestBatchWidget):
-    test_file = "test_batch_mf4"
+    test_file = "test_batch.mf4"
 
     def test_PushButtons_Sort(self):
         """
