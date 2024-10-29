@@ -125,7 +125,7 @@ class TestBase(unittest.TestCase):
 
     def tearDown(self):
         self.processEvents()
-        path_ = os.path.join(self.screenshots, self.__module__)
+        path_ = os.path.join(self.screenshots, self.id().split("gui.")[-1].rsplit(".", 1)[0])
         if not os.path.exists(path_):
             os.makedirs(path_)
 
