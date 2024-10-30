@@ -15,6 +15,19 @@ class TestPushButtons(TestBatchWidget):
     test_file_1_name = "test_batch_cut_1.mf4"
     output_file_name = "output.mf4"
 
+    def setUp(self):
+        super().setUp()
+
+        self.test_file_0 = Path(self.test_workspace, self.test_file_0_name)
+        self.test_file_1 = Path(self.test_workspace, self.test_file_1_name)
+
+        self.copy_mdf_files_to_workspace()
+        self.setUpBatchWidget(measurement_files=[str(self.test_file_0), str(self.test_file_1)])
+
+        # Go to Tab: Concatenate
+        self.widget.aspects.setCurrentIndex(self.concatenate_aspect)
+        self.processEvents(0.1)
+
     def test_PushButton_Concatenate(self):
         """
         Events:
@@ -26,26 +39,18 @@ class TestPushButtons(TestBatchWidget):
             - New file is created
             - No channel from first file is found in 2nd file (scrambled file)
         """
-        output_file = Path(self.test_workspace, self.output_file_name)
-        test_file_0 = Path(self.test_workspace, self.test_file_0_name)
-        test_file_1 = Path(self.test_workspace, self.test_file_1_name)
-
         # Get evaluation data
+        output_file = Path(self.test_workspace, self.output_file_name)
+
         channels = set()
-        with self.OpenMDF(test_file_0) as mdf_file:
+        with self.OpenMDF(self.test_file_0) as mdf_file:
             for channel in mdf_file.iter_channels():
                 channels.add(channel.name)
-            _min = channel.timestamps.min()
+            expected_min = channel.timestamps.min()
 
-        with self.OpenMDF(test_file_1) as mdf_file:
+        with self.OpenMDF(self.test_file_1) as mdf_file:
             channel = next(mdf_file.iter_channels())
-            _max = channel.timestamps.max()
-
-        # Setup
-        self.setUpBatchWidget(measurement_files=[str(test_file_0), str(test_file_1)])
-        # Go to Tab: Concatenate
-        self.widget.aspects.setCurrentIndex(self.concatenate_aspect)
-        self.processEvents(0.1)
+            expected_max = channel.timestamps.max()
 
         # Event
         with mock.patch("asammdf.gui.widgets.batch.QtWidgets.QFileDialog.getSaveFileName") as mo_getSaveFileName:
@@ -64,5 +69,5 @@ class TestPushButtons(TestBatchWidget):
                 self.assertIn(name, mdf_file.channels_db.keys())
 
             channel = next(mdf_file.iter_channels())
-            self.assertAlmostEqual(channel.timestamps.min(), _min)
-            self.assertAlmostEqual(channel.timestamps.max(), _max)
+            self.assertAlmostEqual(channel.timestamps.min(), expected_min)
+            self.assertAlmostEqual(channel.timestamps.max(), expected_max)

@@ -29,11 +29,6 @@ class TestBatchWidget(TestBase):
         self.mc_widget_ed = patcher.start()
         self.addCleanup(patcher.stop)
 
-        # copy  mf4 files from resources to test workspace
-        for file in os.listdir(self.resource):
-            if file.endswith(".mf4"):
-                shutil.copyfile(Path(self.resource, file), Path(self.test_workspace, file))
-
         self.processEvents()
 
     def setUpBatchWidget(self, *args, measurement_files: Sequence[str] | None):
@@ -57,6 +52,12 @@ class TestBatchWidget(TestBase):
             self.assertEqual(self.widget.files_list.count(), len(measurement_files))
 
         self.widget.showNormal()
+
+    def copy_mdf_files_to_workspace(self):
+        # copy mf4 files from resources to test workspace
+        for file in os.listdir(self.resource):
+            if file.endswith((".mf4", ".mdf")):
+                shutil.copyfile(Path(self.resource, file), Path(self.test_workspace, file))
 
     def select_channels(self, start=0, end=0) -> list:
         """
