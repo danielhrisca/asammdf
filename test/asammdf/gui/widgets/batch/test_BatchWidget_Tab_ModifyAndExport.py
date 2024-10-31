@@ -15,8 +15,8 @@ from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 class TestPushButtons(TestBatchWidget):
 
     def setUp(self):
-        self.copy_mdf_files_to_workspace()
         super().setUp()
+        self.copy_mdf_files_to_workspace()
 
     def test_PushButton_ScrambleTexts(self):
         """

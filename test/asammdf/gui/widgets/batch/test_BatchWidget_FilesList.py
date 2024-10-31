@@ -30,6 +30,7 @@ class TestPushButtons(TestBatchWidget):
         alpha_sort = [str(file_0), str(file_1)]
         time_sort = [str(file_1), str(file_0)]
 
+        self.copy_mdf_files_to_workspace()
         self.setUpBatchWidget(measurement_files=alpha_sort)
 
         # Event
