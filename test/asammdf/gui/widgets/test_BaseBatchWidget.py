@@ -92,6 +92,26 @@ class TestBatchWidget(TestBase):
 
         return channels
 
+    def get_selected_groups(self, channels: list) -> dict:
+        self.widget.filter_view.setCurrentText("Internal file structure")
+        self.processEvents(1)
+
+        groups = {}
+        iterator = QTreeWidgetItemIterator(self.widget.filter_tree)
+        count = 0
+
+        while iterator.value():
+            item = iterator.value()
+            if item.text(0) in channels and item.text(0) != "time":
+                if item.parent().text(0) not in groups.keys():
+                    groups[item.parent().text(0)] = [item.text(0)]
+                else:
+                    groups[item.parent().text(0)].append(item.text(0))
+
+            iterator += 1
+            count += 1
+        return groups
+
     class OpenMDF:
         def __init__(self, file_path):
             self.mdf = None
