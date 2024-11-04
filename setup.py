@@ -112,7 +112,7 @@ setup(
         "gui": [
             "lxml>=4.9.2",
             "natsort",
-            "PySide6==6.7.3",
+            "PySide6",
             "pyqtgraph",
             "pyqtlet2",
             "packaging",
