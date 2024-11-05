@@ -4,6 +4,7 @@ from pathlib import Path
 from random import randint
 from unittest import mock
 
+from h5py import File as HDF5
 import pandas as pd
 from PySide6 import QtCore, QtTest, QtWidgets
 
@@ -13,12 +14,7 @@ from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 # to avoid initializing widgets multiple times and consume time.
 
 
-class TestPushButtons(TestBatchWidget):
-
-    def setUp(self):
-        super().setUp()
-        self.copy_mdf_files_to_workspace()
-
+class TestPushButtonScrambleTexts(TestBatchWidget):
     def test_ScrambleTexts(self):
         """
         Events:
@@ -31,6 +27,8 @@ class TestPushButtons(TestBatchWidget):
             - No channel from first file is found in 2nd file (scrambled file)
         """
         # Setup
+        self.copy_mdf_files_to_workspace()
+
         test_file = Path(self.test_workspace, self.default_test_file)
         scrambled_filepath = Path(self.test_workspace, self.default_test_file.replace(".", ".scrambled."))
 
@@ -60,26 +58,22 @@ class TestPushButtons(TestBatchWidget):
             for name in channels:
                 self.assertNotIn(name, mdf_file.channels_db.keys())
 
-    def test_Apply_as_MDF(self):
+
+class TestPushButtonApply(TestBatchWidget):
+    def setUp(self):
         """
-        When QThreads are running, event-loops needs to be processed.
-        Events:
+        Events
             - Open 'BatchWidget' with valid measurement.
             - Go to Tab: "Modify & Export": Index 1
             - Set "channel_view" to "Natural sort"
             - Select some channels
-            - Ensure that output format is MDF
-            - Press PushButton Apply.
 
-        Evaluate:
-            - File was created.
-            - Ensure that output file has only selected channels
         """
-        # Setup
-        measurement_file = str(Path(self.test_workspace, self.default_test_file))
-        saved_file = Path(self.test_workspace, self.default_test_file.replace(".", ".modified."))
+        super().setUp()
+        self.copy_mdf_files_to_workspace()
+        self.measurement_file = str(Path(self.test_workspace, self.default_test_file))
 
-        self.setUpBatchWidget(measurement_files=[measurement_file])
+        self.setUpBatchWidget(measurement_files=[self.measurement_file])
 
         # Go to Tab: "Modify & Export": Index 1
         self.widget.aspects.setCurrentIndex(self.modify_aspect)
@@ -88,12 +82,28 @@ class TestPushButtons(TestBatchWidget):
         self.processEvents(0.1)
 
         count = self.widget.filter_tree.topLevelItemCount()
-        selected_channels = self.select_channels(randint(0, int(count / 2) - 1), randint(int(count / 2) + 1, count - 1))
+        self.selected_channels = self.select_channels(
+            randint(0, int(count / 2) - 1), randint(int(count / 2) + 1, count - 1)
+        )
 
+    def test_Apply_as_MDF(self):
+        """
+        When QThreads are running, event-loops needs to be processed.
+        Events:
+            - Ensure that output format is MDF
+            - Press PushButton Apply.
+
+        Evaluate:
+            - File was created.
+            - Ensure that output file has only selected channels
+        """
         # Ensure output format
         self.widget.output_format.setCurrentText("MDF")
 
-        # Mouse click on Apply button
+        # Expected result
+        saved_file = Path(self.test_workspace, self.default_test_file.replace(".", ".modified."))
+
+        # Event
         QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
         # Wait for thread to finish
         self.processEvents(2)
@@ -104,17 +114,13 @@ class TestPushButtons(TestBatchWidget):
         # get saved file as MDF
         with self.OpenMDF(saved_file) as mdf_file:
             # Evaluate saved file
-            for channel in selected_channels:
+            for channel in self.selected_channels:
                 self.assertIn(channel, mdf_file.channels_db.keys())
 
     def test_Apply_as_ASC(self):
         """
         When QThreads are running, event-loops needs to be processed.
         Events:
-            - Open 'BatchWidget' with valid measurement.
-            - Go to Tab: "Modify & Export": Index 1
-            - Set "channel_view" to "Natural sort"
-            - Select some channels
             - Ensure that output format is ASC
             - Press PushButton Apply.
 
@@ -122,29 +128,17 @@ class TestPushButtons(TestBatchWidget):
             - File was created.
             - Ensure that output file has only selected channels
         """
-        # Setup
-        measurement_file = str(Path(self.test_workspace, self.default_test_file))
+        # Ensure output format
+        self.widget.output_format.setCurrentText("ASC")
+
+        # Expected results
         saved_file = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".asc"))
-        with self.OpenMDF(measurement_file) as mdf_file:
+        with self.OpenMDF(self.measurement_file) as mdf_file:
             start = mdf_file.start_time.strftime("%a %b %d %I:%M:%S.%f %p %Y")
 
         expected_text = f"date {start}\nbase hex  timestamps absolute\nno internal events logged\n"
 
-        self.setUpBatchWidget(measurement_files=[measurement_file])
-
-        # Go to Tab: "Modify & Export": Index 1
-        self.widget.aspects.setCurrentIndex(self.modify_aspect)
-
-        self.widget.filter_view.setCurrentText("Natural sort")
-        self.processEvents(0.1)
-
-        count = self.widget.filter_tree.topLevelItemCount()
-        selected_channels = self.select_channels(randint(0, int(count / 2) - 1), randint(int(count / 2) + 1, count - 1))
-
-        # Ensure output format
-        self.widget.output_format.setCurrentText("ASC")
-
-        # Mouse click on Apply button
+        # Event
         QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
         # Wait for thread to finish
         self.processEvents(2)
@@ -158,48 +152,27 @@ class TestPushButtons(TestBatchWidget):
         """
         When QThreads are running, event-loops needs to be processed.
         Events:
-            - Open 'BatchWidget' with valid measurement.
-            - Go to Tab: "Modify & Export": Index 1
-            - Set "channel_view" to "Natural sort"
-            - Select some channels
-            - Ensure that output format is MDF
+            - Ensure that output format is CSV
             - Press PushButton Apply.
 
         Evaluate:
             - File was created.
             - Ensure that output file has only selected channels
         """
-        # Setup
-        measurement_file = str(Path(self.test_workspace, self.default_test_file))
-        self.setUpBatchWidget(measurement_files=[measurement_file])
-
-        # Go to Tab: "Modify & Export": Index 1
-        self.widget.aspects.setCurrentIndex(self.modify_aspect)
-
-        self.widget.filter_view.setCurrentText("Natural sort")
-        self.processEvents(1)
-
-        count = self.widget.filter_tree.topLevelItemCount()
-        selected_channels = self.select_channels(randint(0, int(count / 2) - 1), randint(int(count / 2) + 1, count - 1))
-        self.processEvents()
-        groups = self.get_selected_groups(channels=selected_channels)
-
-        output_files = [
-            measurement_file.replace(".mf4", f"{group.replace(group[:4], f".ChannelGroup_{nr}").replace(" ", "_")}.csv")
-            for nr, group in enumerate(groups.keys())
-        ]
-
         # Ensure output format
         self.widget.output_format.setCurrentText("CSV")
 
-        # Mouse click on Apply button
+        # Expected results
+        groups = self.get_selected_groups(channels=self.selected_channels)
+
+        # Event
         QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
         # Wait for thread to finish
         self.processEvents(2)
 
         # Evaluate
         for index, group_name, channels_list in enumerate(groups.items()):
-            csv_file = measurement_file.replace(
+            csv_file = self.measurement_file.replace(
                 ".mf4", f"{group_name.replace(group_name[:4], f".ChannelGroup_{index}").replace(" ", "_")}.csv"
             )
             self.assertTrue(Path(csv_file).exists())
@@ -209,6 +182,38 @@ class TestPushButtons(TestBatchWidget):
                 self.assertIn(channel, pandas_tab.columns)
 
         # ToDo is necessary to evaluate dataframe values (for each signal, it's value at specific timestamp)?
+
+    def test_Apply_as_HDF5(self):
+        """
+        When QThreads are running, event-loops needs to be processed.
+        Events:
+            - Ensure that output format is MDF
+            - Press PushButton Apply.
+
+        Evaluate:
+            - File was created.
+            - Ensure that output file has only selected channels
+        """
+        # Ensure output format
+        self.widget.output_format.setCurrentText("HDF5")
+
+        # Expected results
+        hdf5_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".hdf"))
+        groups = self.get_selected_groups(channels=self.selected_channels)
+
+        # Mouse click on Apply button
+        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
+        # Wait for thread to finish
+
+        # Evaluate
+        self.processEvents(2)
+        self.assertTrue(hdf5_path.exists())
+
+        hdf5_file = HDF5(hdf5_path)
+        self.assertEqual(len(hdf5_file.items()) - 1, len(groups))  # 5th item is file path
+        for value, group in zip(hdf5_file.values(), groups.values()):
+            for channel in group:
+                self.assertIn(channel, value)
 
 
 class TestModifyAndExport(TestBatchWidget):
