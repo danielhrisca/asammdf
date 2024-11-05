@@ -70,8 +70,7 @@ class TestPushButtonApply(TestBatchWidget):
 
         """
         super().setUp()
-        self.copy_mdf_files_to_workspace()
-        self.measurement_file = str(Path(self.test_workspace, self.default_test_file))
+        self.measurement_file = str(Path(self.resource, self.default_test_file))
 
         self.setUpBatchWidget(measurement_files=[self.measurement_file])
 
@@ -86,7 +85,16 @@ class TestPushButtonApply(TestBatchWidget):
             randint(0, int(count / 2) - 1), randint(int(count / 2) + 1, count - 1)
         )
 
-    def test_Apply_as_MDF(self):
+        # set test_workspace folder as output folder
+        with mock.patch(
+            "asammdf.gui.widgets.batch.QtWidgets.QFileDialog.getExistingDirectory"
+        ) as mo_getExistingDirectory:
+            mo_getExistingDirectory.return_value = self.test_workspace
+            QtTest.QTest.mouseClick(self.widget.modify_output_folder_btn, QtCore.Qt.MouseButton.LeftButton)
+
+        self.assertEqual(self.widget.modify_output_folder.text().strip(), self.test_workspace)
+
+    def test_output_format_MDF(self):
         """
         When QThreads are running, event-loops needs to be processed.
         Events:
@@ -97,11 +105,11 @@ class TestPushButtonApply(TestBatchWidget):
             - File was created.
             - Ensure that output file has only selected channels
         """
+        # Expected result
+        saved_file = Path(self.test_workspace, self.default_test_file)
+
         # Ensure output format
         self.widget.output_format.setCurrentText("MDF")
-
-        # Expected result
-        saved_file = Path(self.test_workspace, self.default_test_file.replace(".", ".modified."))
 
         # Event
         QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
@@ -117,7 +125,7 @@ class TestPushButtonApply(TestBatchWidget):
             for channel in self.selected_channels:
                 self.assertIn(channel, mdf_file.channels_db.keys())
 
-    def test_Apply_as_ASC(self):
+    def test_output_format_ASC(self):
         """
         When QThreads are running, event-loops needs to be processed.
         Events:
@@ -148,7 +156,7 @@ class TestPushButtonApply(TestBatchWidget):
         with open(saved_file) as asc_file:
             self.assertEqual(asc_file.read(), expected_text)
 
-    def test_Apply_as_CSV(self):
+    def test_output_format_CSV(self):
         """
         When QThreads are running, event-loops needs to be processed.
         Events:
@@ -183,7 +191,7 @@ class TestPushButtonApply(TestBatchWidget):
 
         # ToDo is necessary to evaluate dataframe values (for each signal, it's value at specific timestamp)?
 
-    def test_Apply_as_HDF5(self):
+    def test_output_format_HDF5(self):
         """
         When QThreads are running, event-loops needs to be processed.
         Events:
@@ -215,42 +223,7 @@ class TestPushButtonApply(TestBatchWidget):
             for channel in group:
                 self.assertIn(channel, value)
 
-
-class TestModifyAndExport(TestBatchWidget):
-    def setUp(self):
-        """
-        Events
-            - Open 'BatchWidget' with valid measurement.
-            - Select random channels
-            - Set test workspace folder as output folder
-
-        Evaluate
-            - Modify output folder line text is equal to test workspace folder
-        """
-        super().setUp()
-        self.test_file = Path(self.resource, self.default_test_file)
-
-        self.setUpBatchWidget(measurement_files=[str(self.test_file)])
-
-        # Go to Tab: "Modify & Export": Index 1
-        self.widget.aspects.setCurrentIndex(self.modify_aspect)
-        self.widget.filter_view.setCurrentText("Natural sort")
-        self.processEvents(0.1)
-
-        count = self.widget.filter_tree.topLevelItemCount()
-        self.channels = self.select_channels(randint(0, int(count / 2) - 1), randint(int(count / 2) + 1, count - 1))
-        self.output_file = Path(self.test_workspace, self.default_test_file)
-
-        # set test_workspace folder as output folder
-        with mock.patch(
-            "asammdf.gui.widgets.batch.QtWidgets.QFileDialog.getExistingDirectory"
-        ) as mo_getExistingDirectory:
-            mo_getExistingDirectory.return_value = self.test_workspace
-            QtTest.QTest.mouseClick(self.widget.modify_output_folder_btn, QtCore.Qt.MouseButton.LeftButton)
-
-        self.assertEqual(self.widget.modify_output_folder.text().strip(), self.test_workspace)
-
-    def test_cut_group_0(self):
+    def test_cut_checkbox_0(self):
         """
         Events
             - Check cut group checkbox
@@ -266,13 +239,16 @@ class TestModifyAndExport(TestBatchWidget):
             - Timestamps stop for all channels is equal to difference between stop and start time
         """
         # Expected values
-        with self.OpenMDF(self.test_file) as mdf_file:
+
+        self.output_file = Path(self.test_workspace, self.default_test_file)
+
+        with self.OpenMDF(self.measurement_file) as mdf_file:
             self.start_time = mdf_file.start_time.astimezone().replace(tzinfo=None)
             self.ts_min = min(
                 [
                     ch.timestamps.min()
                     for ch in mdf_file.iter_channels()
-                    if ch.timestamps.min() != 0 and ch.name in self.channels
+                    if ch.timestamps.min() != 0 and ch.name in self.selected_channels
                 ]
             )
 
@@ -303,7 +279,7 @@ class TestModifyAndExport(TestBatchWidget):
                 self.assertEqual(channel.timestamps.min(), 0)
                 self.assertEqual(channel.timestamps.max(), stop_cut - start_cut)
 
-    def test_cut_group_1(self):
+    def test_cut_checkbox_1(self):
         """
         Events
             - Check cut group checkbox
@@ -317,13 +293,15 @@ class TestModifyAndExport(TestBatchWidget):
             - Timestamps stop for all channels is equal to difference between stop and start time
         """
         # Expected values
-        with self.OpenMDF(self.test_file) as mdf_file:
+        self.output_file = Path(self.test_workspace, self.default_test_file)
+
+        with self.OpenMDF(self.measurement_file) as mdf_file:
             self.start_time = mdf_file.start_time
             self.ts_min = min(
                 [
                     ch.timestamps.min()
                     for ch in mdf_file.iter_channels()
-                    if ch.timestamps.min() != 0 and ch.name in self.channels
+                    if ch.timestamps.min() != 0 and ch.name in self.selected_channels
                 ]
             )
 
