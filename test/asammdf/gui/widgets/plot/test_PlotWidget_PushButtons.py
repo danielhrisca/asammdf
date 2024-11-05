@@ -335,6 +335,8 @@ class TestPushButtons(TestPlotWidget):
         QtTest.QTest.mouseClick(self.plot.bookmark_btn, QtCore.Qt.MouseButton.LeftButton)
         # Evaluate
         self.assertFalse(self.plot.show_bookmarks)
+        # todo 1: focus mode = false -> plot is not black (have other colors, not only bg and cursor color)
+        # todo 2: add bkmk and test color
 
     def test_Plot_ChannelSelection_PushButton_HideAxes(self):
         """
@@ -386,6 +388,8 @@ class TestPushButtons(TestPlotWidget):
         # Evaluate
         self.assertFalse(self.plot.plot.y_axis.isVisible())
         self.assertFalse(self.plot.plot.x_axis.isVisible())
+
+        # todo: evaluate plot colors (focus on)
 
     def test_Plot_ChannelSelection_PushButton_Lock(self):
         """
