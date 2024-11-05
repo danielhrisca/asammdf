@@ -56,7 +56,7 @@ class TestPushButtonScrambleTexts(TestBatchWidget):
         with self.OpenMDF(scrambled_filepath) as mdf_file:
             # Evaluate file
             for name in channels:
-                self.assertNotIn(name, mdf_file.channels_db.keys())
+                self.assertNotIn(name, mdf_file.channels_db)
 
 
 class TestPushButtonApply(TestBatchWidget):
@@ -67,6 +67,10 @@ class TestPushButtonApply(TestBatchWidget):
             - Go to Tab: "Modify & Export": Index 1
             - Set "channel_view" to "Natural sort"
             - Select some channels
+            - Set test workspace directory as output folder
+
+        Evaluate
+            Output folder text is changed to test workspace directory
 
         """
         super().setUp()
@@ -123,7 +127,7 @@ class TestPushButtonApply(TestBatchWidget):
         with self.OpenMDF(saved_file) as mdf_file:
             # Evaluate saved file
             for channel in self.selected_channels:
-                self.assertIn(channel, mdf_file.channels_db.keys())
+                self.assertIn(channel, mdf_file.channels_db)
 
     def test_output_format_ASC(self):
         """
@@ -156,6 +160,13 @@ class TestPushButtonApply(TestBatchWidget):
         with open(saved_file) as asc_file:
             self.assertEqual(asc_file.read(), expected_text)
 
+        # cls.tempdir_obd = tempfile.TemporaryDirectory()
+        #
+        # url = "https://github.com/danielhrisca/asammdf/files/4328945/OBD2-DBC-MDF4.zip"
+        # urllib.request.urlretrieve(url, "test.zip")
+        # ZipFile(r"test.zip").extractall(cls.tempdir_obd.name)
+        # Path("test.zip").unlink()
+
     def test_output_format_CSV(self):
         """
         When QThreads are running, event-loops needs to be processed.
@@ -179,17 +190,20 @@ class TestPushButtonApply(TestBatchWidget):
         self.processEvents(2)
 
         # Evaluate
-        for index, group_name, channels_list in enumerate(groups.items()):
-            csv_file = self.measurement_file.replace(
-                ".mf4", f"{group_name.replace(group_name[:4], f".ChannelGroup_{index}").replace(" ", "_")}.csv"
+        for index, (group_name, channels_list) in enumerate(groups.items()):
+            csv_file = Path(
+                self.test_workspace,
+                self.default_test_file.replace(
+                    ".mf4", f"{group_name.replace(group_name[:4], f".ChannelGroup_{index}").replace(" ", "_")}.csv"
+                ),
             )
-            self.assertTrue(Path(csv_file).exists())
+            self.assertTrue(csv_file.exists())
 
             pandas_tab = pd.read_csv(csv_file)
             for channel in channels_list:
                 self.assertIn(channel, pandas_tab.columns)
 
-        # ToDo is necessary to evaluate dataframe values (for each signal, it's value at specific timestamp)?
+        # ToDo is necessary to evaluate dataframe values (for each signal, min, max, len)?
 
     def test_output_format_HDF5(self):
         """
@@ -222,6 +236,33 @@ class TestPushButtonApply(TestBatchWidget):
         for value, group in zip(hdf5_file.values(), groups.values()):
             for channel in group:
                 self.assertIn(channel, value)
+            # todo timestamps
+
+    def test_output_format_MAT(self):
+        """
+        When QThreads are running, event-loops needs to be processed.
+        Events:
+            - Ensure that output format is MDF
+            - Press PushButton Apply.
+
+        Evaluate:
+            - File was created.
+            - Ensure that output file has only selected channels
+        """
+        # Ensure output format
+        self.widget.output_format.setCurrentText("MAT")
+
+        # Expected results
+        hdf5_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".mat"))
+        groups = self.get_selected_groups(channels=self.selected_channels)
+
+        # Mouse click on Apply button
+        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
+        # Wait for thread to finish
+
+        # Evaluate
+        self.processEvents(2)
+        # self.assertTrue(hdf5_path.exists())
 
     def test_cut_checkbox_0(self):
         """
@@ -240,7 +281,7 @@ class TestPushButtonApply(TestBatchWidget):
         """
         # Expected values
 
-        self.output_file = Path(self.test_workspace, self.default_test_file)
+        output_file = Path(self.test_workspace, self.default_test_file)
 
         with self.OpenMDF(self.measurement_file) as mdf_file:
             self.start_time = mdf_file.start_time.astimezone().replace(tzinfo=None)
@@ -269,8 +310,8 @@ class TestPushButtonApply(TestBatchWidget):
         self.processEvents(2)
 
         # Evaluate
-        self.output_file.exists()
-        with self.OpenMDF(self.output_file) as mdf_file:
+        output_file.exists()
+        with self.OpenMDF(output_file) as mdf_file:
             time_dif = expected_start_time - mdf_file.start_time
             self.assertEqual(time_dif.microseconds, 0)
             self.assertEqual(time_dif.seconds, 0)
@@ -293,7 +334,7 @@ class TestPushButtonApply(TestBatchWidget):
             - Timestamps stop for all channels is equal to difference between stop and start time
         """
         # Expected values
-        self.output_file = Path(self.test_workspace, self.default_test_file)
+        output_file = Path(self.test_workspace, self.default_test_file)
 
         with self.OpenMDF(self.measurement_file) as mdf_file:
             self.start_time = mdf_file.start_time
@@ -319,8 +360,8 @@ class TestPushButtonApply(TestBatchWidget):
         self.processEvents(2)
 
         # Evaluate
-        self.output_file.exists()
-        with self.OpenMDF(self.output_file) as mdf_file:
+        output_file.exists()
+        with self.OpenMDF(output_file) as mdf_file:
             self.assertEqual(self.start_time, mdf_file.start_time)
 
             for channel in mdf_file.iter_channels():

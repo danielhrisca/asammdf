@@ -42,12 +42,13 @@ class TestPushButtons(TestBatchWidget):
             - All channels from both files is available in new created file
         """
         # Expected values
-        expected_channels = []
+        expected_channels = set()
+
         with self.OpenMDF(self.measurement_file_1) as mdf_file:
-            expected_channels.extend(mdf_file.iter_channels())
+            expected_channels |= set(mdf_file.channels_db)
 
         with self.OpenMDF(self.measurement_file_2) as mdf_file:
-            expected_channels.extend(mdf_file.iter_channels())
+            expected_channels |= set(mdf_file.channels_db)
 
         # Event
         with mock.patch("asammdf.gui.widgets.batch.QtWidgets.QFileDialog.getSaveFileName") as mo_getSaveFileName:
@@ -61,5 +62,4 @@ class TestPushButtons(TestBatchWidget):
 
         # Evaluate saved file
         with self.OpenMDF(self.saved_file) as mdf_file:
-            for channel in mdf_file.iter_channels():
-                self.assertIn(channel.name, expected_channels)
+            self.assertTrue(len(expected_channels - set(mdf_file.channels_db)) == 0)
