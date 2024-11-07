@@ -34,12 +34,6 @@ class TestTreeWidgetShortcuts(TestFileWidget):
         # get shortcuts
         self.assertIsNotNone(self.load_shortcuts_from_json_file(self.tw))
 
-    def tearDown(self):
-        super().tearDown()
-        if self.widget:
-            self.widget.destroy()
-            self.widget.deleteLater()
-
     def test_toggle_select_channel_shortcut(self):
         """
         Test scope:
@@ -115,12 +109,6 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
 
         # get shortcuts
         self.assertIsNotNone(self.load_shortcuts_from_json_file(self.ctw))
-
-    def tearDown(self):
-        super().tearDown()
-        if self.widget:
-            self.widget.destroy()
-            self.widget.deleteLater()
 
     def test_delete_shortcut(self):
         """

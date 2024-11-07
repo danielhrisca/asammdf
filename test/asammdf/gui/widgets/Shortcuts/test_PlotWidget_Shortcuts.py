@@ -6,6 +6,7 @@ from PySide6.QtGui import QColor, QKeySequence
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QMessageBox
 
+from asammdf.gui.utils import COLORS
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
@@ -61,11 +62,8 @@ class TestPlotShortcuts(TestPlotWidget):
     def tearDown(self):
         # Ensure that at the end, button "No" is pressed for MessageBox question window
         with mock.patch("asammdf.gui.widgets.mdi_area.MessageBox.question") as mo_question:
-            mo_question.return_value = QMessageBox.No
+            mo_question.return_value = QMessageBox.StandardButton.No
             super().tearDown()
-            if self.widget:
-                self.widget.destroy()
-                self.widget.deleteLater()
 
     def test_statistics_shortcut(self):
         """
@@ -315,15 +313,44 @@ class TestPlotShortcuts(TestPlotWidget):
             - Evaluate that bookmarks are displayed after pressing "Ctrl+I"
                 and the message of the last bookmark is the first element of the returned list of mock object
         """
+        QTest.mouseClick(
+            self.plot.plot.viewport(), Qt.MouseButton.LeftButton, pos=self.plot.plot.viewport().geometry().center()
+        )
+        self.processEvents()
+        timestamp = self.plot.plot.cursor1.value()
         # mock for bookmark
         with mock.patch("asammdf.gui.widgets.plot.QtWidgets.QInputDialog.getMultiLineText") as mo_getMultiLineText:
             mo_getMultiLineText.return_value = [self.id(), True]
             # Press "Ctrl+I"
             QTest.keySequence(self.plot, QKeySequence(self.shortcuts["insert_bookmark"]))
-        # Evaluate
+
         mo_getMultiLineText.assert_called()
+
+        # Destroy current widget
+        with mock.patch("asammdf.gui.widgets.mdi_area.MessageBox.question") as mo_question:
+            mo_question.return_value = QMessageBox.StandardButton.Yes
+            self.destroy(self.widget)
+
+        # Open file with new bookmark in new File Widget
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
+        self.processEvents(0.1)
+        self.widget.channel_view.setCurrentText("Natural sort")
+        # Select channels -> Press PushButton "Create Window" -> "Plot"
+        self.create_window(window_type="Plot")
+        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 1)
+        self.plot = self.widget.mdi_area.subWindowList()[0].widget()
+        self.processEvents(0.1)
+
+        pg_colors = Pixmap.color_names_exclude_defaults(self.plot.plot.viewport().grab())
+        bookmarks_colors = COLORS[: len(COLORS) - len(self.plot.plot.bookmarks) - 1 : -1]
+
+        # Evaluate
         self.assertTrue(self.plot.show_bookmarks)
         self.assertEqual(self.plot.plot.bookmarks[len(self.plot.plot.bookmarks) - 1].message, self.id())
+        self.assertEqual(self.plot.plot.bookmarks[len(self.plot.plot.bookmarks) - 1].value(), timestamp)
+        for bookmark, color in zip(self.plot.plot.bookmarks, bookmarks_colors):
+            self.assertEqual(bookmark.color, color)
+            self.assertIn(color, pg_colors)
 
     def test_toggle_bookmarks_shortcut(self):
         """

@@ -6,6 +6,7 @@ from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets
 
+from test.asammdf.gui.test_base import OpenMDF
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 # Note: If it's possible and make sense, use self.subTests
@@ -39,15 +40,10 @@ class TestTabModifyAndExport(TestFileWidget):
         scrambled_filepath = pathlib.Path(self.test_workspace, "ASAP2_Demo_V171.scrambled.mf4")
         # Wait for Thread to finish
         time.sleep(0.1)
-        # TearDown Current Widget.
-        self.widget.close()
-        self.widget.destroy()
-        self.widget.deleteLater()
 
-        self.setUpFileWidget(measurement_file=scrambled_filepath, default=True)
-        scrambled_channels = list(self.widget.mdf.channels_db)
-        result = filter(lambda c: c in scrambled_channels, channels)
-        self.assertFalse(any(result))
+        with OpenMDF(scrambled_filepath) as mdf_file:
+            result = filter(lambda c: c in mdf_file.channels_db, channels)
+            self.assertFalse(any(result))
 
     def test_ExportMDF(self):
         """
@@ -122,13 +118,6 @@ class TestTabModifyAndExport(TestFileWidget):
         self.assertTrue(saved_file.exists())
 
         # TearDown Widget
-        self.widget.close()
-        self.widget.destroy()
-        self.widget.deleteLater()
-        self.processEvents()
-
-        self.setUpFileWidget(measurement_file=saved_file, default=True)
-
-        channels = list(self.widget.mdf.channels_db)
-        selected_channels.append("time")
-        self.assertListEqual(sorted(selected_channels), sorted(channels))
+        with OpenMDF(saved_file) as mdf_file:
+            selected_channels.append("time")
+            self.assertListEqual(sorted(selected_channels), sorted(mdf_file.channels_db))
