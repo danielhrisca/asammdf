@@ -1,4 +1,5 @@
 import pathlib
+import shutil
 import threading as td
 from unittest import mock
 
@@ -31,8 +32,6 @@ class TestPlotWidget(TestFileWidget):
         UNIT = 2
         COMMON_AXIS = 3
         INDIVIDUAL_AXIS = 4
-
-    measurement_file = str(pathlib.Path(TestFileWidget.resource, "ASAP2_Demo_V171.mf4"))
 
     def add_channel_to_plot(self, plot=None, channel_name=None, channel_index=None):
         if not plot and self.plot:

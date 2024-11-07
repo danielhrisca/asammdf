@@ -4644,7 +4644,7 @@ class WithMDIArea:
             "You have modified bookmarks.\n\n" "Do you want to save the changes in the measurement file?\n" "",
         )
 
-        if result == MessageBox.No:
+        if result == MessageBox.StandardButton.No:
             return
 
         _password = self.mdf._password

@@ -1,8 +1,12 @@
 #!/usr/bin/env python
+import shutil
+from unittest import mock
 
 from PySide6 import QtCore, QtTest
-from PySide6.QtWidgets import QPushButton as QBtn
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QPushButton as QBtn, QTreeWidgetItemIterator, QMessageBox
 
+from asammdf.gui.utils import COLORS, BLUE
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
@@ -14,8 +18,9 @@ class TestPushButtons(TestPlotWidget):
         self.channel_0_name = "ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
         self.channel_1_name = "ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
 
-        # Event
+        # Open test file in File Widget
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
+
         # Switch ComboBox to "Natural sort"
         self.widget.channel_view.setCurrentText("Natural sort")
         # Press PushButton "Create Window"
@@ -27,6 +32,14 @@ class TestPushButtons(TestPlotWidget):
         if not self.plot.hide_axes_btn.isFlat():
             QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
 
+        # Press PushButton "Hide bookmarks"
+        if not self.plot.bookmark_btn.isFlat():
+            QtTest.QTest.mouseClick(self.plot.bookmark_btn, QtCore.Qt.MouseButton.LeftButton)
+
+        if not self.plot.focused_mode_btn.isFlat():
+            QtTest.QTest.mouseClick(self.plot.focused_mode_btn, QtCore.Qt.MouseButton.LeftButton)
+
+        self.processEvents(0.1)
         # Save PixMap of clear plot
         clear_pixmap = self.plot.plot.viewport().grab()
         self.assertTrue(Pixmap.is_black(clear_pixmap))
@@ -314,29 +327,46 @@ class TestPushButtons(TestPlotWidget):
 
     def test_Plot_ChannelSelection_PushButton_ToggleBookmarks(self):
         """
+        Precondition
+            -
+
         Events:
             - Display 1 signal on plot
             - Press 3 times `Toggle bookmarks` button
+
         Evaluate:
             - Evaluate that bookmarks are not displayed before pressing `Toggle bookmarks` button
             - Evaluate that bookmarks are displayed after pressing `Toggle bookmarks` button first time
             - Evaluate that bookmarks are not displayed after pressing `Toggle bookmarks` button second time
         """
-        if self.plot.show_bookmarks:
-            # Press `Toggle bookmarks` button
-            QtTest.QTest.mouseClick(self.plot.bookmark_btn, QtCore.Qt.MouseButton.LeftButton)
-            # Evaluate
-            self.assertFalse(self.plot.show_bookmarks)
+        # Hide channels
+        iterator = QTreeWidgetItemIterator(self.plot.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            if item.checkState(0) == QtCore.Qt.CheckState.Checked:
+                item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+            iterator += 1
+
         # Press `Toggle bookmarks` button
         QtTest.QTest.mouseClick(self.plot.bookmark_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents(0.1)
+
+        # Get expected colors
+        pg_colors = Pixmap.color_names_exclude_defaults(self.plot.plot.viewport().grab())
+        bookmarks_colors = COLORS[: len(COLORS) - len(self.plot.plot.bookmarks) - 1 : -1]
+
         # Evaluate
         self.assertTrue(self.plot.show_bookmarks)
+        for color in bookmarks_colors:
+            self.assertIn(color, pg_colors)
+        self.assertIn(BLUE, pg_colors)
+
         # Press `Toggle bookmarks` button
         QtTest.QTest.mouseClick(self.plot.bookmark_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
         # Evaluate
         self.assertFalse(self.plot.show_bookmarks)
-        # todo 1: focus mode = false -> plot is not black (have other colors, not only bg and cursor color)
-        # todo 2: add bkmk and test color
+        self.assertTrue(Pixmap.is_black(self.plot.plot.viewport().grab()))
 
     def test_Plot_ChannelSelection_PushButton_HideAxes(self):
         """
@@ -349,6 +379,14 @@ class TestPushButtons(TestPlotWidget):
             - Evaluate that bookmarks are not displayed after pressing `Hide axes` button second time
             _ Evaluate that only y_axis color are the same as selected channel color
         """
+        # Hide channels
+        iterator = QTreeWidgetItemIterator(self.plot.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            if item.checkState(0) == QtCore.Qt.CheckState.Checked:
+                item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+            iterator += 1
+
         if self.plot.plot.y_axis.isVisible() or self.plot.plot.x_axis.isVisible():
             QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
             # Evaluate
@@ -374,6 +412,7 @@ class TestPushButtons(TestPlotWidget):
             # Evaluate
             self.assertEqual(x_axis_color, self.plot.plot.x_axis.pen().color().name())
             self.assertEqual(self.plot.plot.y_axis.pen().color().name(), self.plot_tree_channel_0.color.name())
+            self.assertTrue(Pixmap.has_color(self.plot.plot.viewport().grab(), self.plot_tree_channel_0.color.name()))
 
             # Event
             self.mouseClick_WidgetItem(self.plot_tree_channel_1)
@@ -382,14 +421,14 @@ class TestPushButtons(TestPlotWidget):
             # Evaluate
             self.assertEqual(x_axis_color, self.plot.plot.x_axis.pen().color().name())
             self.assertEqual(self.plot.plot.y_axis.pen().color().name(), self.plot_tree_channel_1.color.name())
+            self.assertTrue(Pixmap.has_color(self.plot.plot.viewport().grab(), self.plot_tree_channel_1.color.name()))
 
         # Press `Hide axes` button
         QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
         # Evaluate
         self.assertFalse(self.plot.plot.y_axis.isVisible())
         self.assertFalse(self.plot.plot.x_axis.isVisible())
-
-        # todo: evaluate plot colors (focus on)
+        self.assertTrue(Pixmap.is_black(self.plot.plot.viewport().grab()))
 
     def test_Plot_ChannelSelection_PushButton_Lock(self):
         """

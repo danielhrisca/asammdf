@@ -1,5 +1,7 @@
 import json
 import os
+import pathlib
+import shutil
 from random import randint
 from unittest import mock
 
@@ -22,6 +24,8 @@ class TestFileWidget(TestBase):
         patcher = mock.patch("asammdf.gui.widgets.file.ErrorDialog")
         self.mc_widget_ed = patcher.start()
         self.addCleanup(patcher.stop)
+
+        self.measurement_file = shutil.copy(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"), self.test_workspace)
 
     def setUpFileWidget(self, *args, measurement_file, default):
         """
