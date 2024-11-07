@@ -967,6 +967,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 mdf,
                 show_add_window=False,
                 show_pattern=False,
+                show_apply=True,
                 parent=self,
                 return_names=True,
             )

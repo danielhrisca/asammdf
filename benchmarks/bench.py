@@ -829,7 +829,7 @@ def main(text_output, fmt):
     output.append("    * {} groups".format(v4_groups))
     output.append("    * {} channels\n\n".format(v4_channels))
 
-    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 1, 1, 1, 1, 1, 0, 0
+    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 1, 1, 1, 1, 1, 1, 1
 
     tests = (
         open_mdf3,
@@ -941,9 +941,9 @@ def main(text_output, fmt):
 
     tests = (
         filter_asam,
-        filter_reader4,
-        filter_reader4_compression,
-        filter_reader4_nodata,
+        # filter_reader4,
+        # filter_reader4_compression,
+        # filter_reader4_nodata,
     )
 
     if tests and FILTER:
