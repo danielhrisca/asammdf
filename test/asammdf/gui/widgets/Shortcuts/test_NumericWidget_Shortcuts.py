@@ -41,12 +41,6 @@ class TestTableViewShortcuts(TestFileWidget):
         # get shortcuts
         self.assertIsNotNone(self.load_shortcuts_from_json_file(self.table_view))
 
-    def tearDown(self):
-        super().tearDown()
-        if self.widget:
-            self.widget.destroy()
-            self.widget.deleteLater()
-
     def test_delete_shortcut(self):
         """
         Test Scope:
@@ -250,12 +244,6 @@ class TestNumericShortcuts(TestFileWidget):
 
         # get shortcuts
         self.assertIsNotNone(self.load_shortcuts_from_json_file(self.numeric))
-
-    def tearDown(self):
-        super().tearDown()
-        if self.widget:
-            self.widget.destroy()
-            self.widget.deleteLater()
 
     def test_ascii__bin__hex__physical_shortcuts(self):
         """

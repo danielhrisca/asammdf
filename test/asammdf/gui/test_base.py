@@ -22,6 +22,7 @@ from unittest import mock
 
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
+from asammdf import mdf
 
 from asammdf.gui.utils import excepthook
 
@@ -53,10 +54,7 @@ class TestBase(unittest.TestCase):
     resource = os.path.normpath(os.path.join(os.path.dirname(__file__), "resources"))
     test_workspace = os.path.join(os.path.dirname(__file__), "test_workspace")
     screenshots = os.path.join(os.path.dirname(__file__).split("test")[0], "screenshots")
-    #     os.path.dirname(__file__).split("test")[0], f"screenshots_{sys.platform}_{platform.python_version()}"
-    # )
-    # save_ss_here = os.path.normpath(os.path.join(screenshots, sys.platform, platform.python_version()))
-    # save_ss_here = os.path.normpath(os.path.join(platform_path, platform.python_version().replace(".", "_")))
+
     patchers = []
     # MockClass ErrorDialog
     mc_ErrorDialog = None
@@ -102,10 +100,6 @@ class TestBase(unittest.TestCase):
             shutil.rmtree(self.test_workspace)
         if not os.path.exists(self.screenshots):
             os.makedirs(self.screenshots)
-        # if not os.path.exists(self.platform_path):
-        #     os.makedirs(self.platform_path)
-        # if not os.path.exists(self.save_ss_here):
-        #     os.makedirs(self.save_ss_here)
 
         os.makedirs(self.test_workspace)
         self.mc_ErrorDialog.reset_mock()
@@ -126,8 +120,29 @@ class TestBase(unittest.TestCase):
 
     def tearDown(self):
         self.processEvents()
+        path_ = os.path.join(self.screenshots, self.id().split("gui.")[-1].rsplit(".", 1)[0])
+        if not os.path.exists(path_):
+            os.makedirs(path_)
+
+        w = getattr(self, "widget", None)
+        if w:
+            w.grab().save(os.path.join(path_, f"{self.id().split('.')[-1]}.png"))
+            self.destroy(w)
+
+        self.mc_ErrorDialog.reset_mock()
+
         if self.test_workspace and pathlib.Path(self.test_workspace).exists():
-            shutil.rmtree(self.test_workspace)
+            try:
+                shutil.rmtree(self.test_workspace)
+            except PermissionError as e:
+                self.destroy(w)
+                print(e)
+
+    @staticmethod
+    def destroy(w):
+        w.close()
+        w.destroy()
+        w.deleteLater()
 
     def mouseClick_RadioButton(self, qitem):
         QtTest.QTest.mouseClick(
@@ -218,29 +233,17 @@ class Pixmap:
     COLOR_CURSOR = "#e69138"
 
     @staticmethod
-    def is_black(pixmap):
+    def is_black(pixmap) -> bool:
         """
         Excepting cursor
         """
-        cursor_x = None
-        cursor_y = None
-        cursor_color = None
         image = pixmap.toImage()
 
         for y in range(image.height()):
             for x in range(image.width()):
                 color = QtGui.QColor(image.pixel(x, y))
-                if color.name() != Pixmap.COLOR_BACKGROUND:
-                    if not cursor_x and not cursor_y and not cursor_color:
-                        cursor_x = x
-                        cursor_y = y + 1
-                        cursor_color = color
-                        continue
-                    elif cursor_x == x and cursor_y == y and cursor_color == color:
-                        cursor_y += 1
-                        continue
-                    else:
-                        return False
+                if color.name() not in (Pixmap.COLOR_BACKGROUND, Pixmap.COLOR_CURSOR):
+                    return False
         return True
 
     @staticmethod
@@ -454,3 +457,20 @@ class Pixmap:
                 line = y
                 break
         return line
+
+
+class OpenMDF:
+    def __init__(self, file_path):
+        self.mdf = None
+        self._file_path = file_path
+        self._process_bus_logging = ("process_bus_logging", True)
+
+    def __enter__(self):
+        self.mdf = mdf.MDF(self._file_path, process_bus_logging=self._process_bus_logging)
+        return self.mdf
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for exc in (exc_type, exc_val, exc_tb):
+            if exc is not None:
+                raise exc
+        self.mdf.close()

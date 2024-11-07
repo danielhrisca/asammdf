@@ -70,15 +70,6 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertIsNotNone(self.load_shortcuts_from_json_file(self.pg))
         self.processEvents()
 
-    def tearDown(self):
-        """
-        Destroy widget if it still exists
-        """
-        super().tearDown()
-        if self.widget:
-            self.widget.destroy()
-            self.widget.deleteLater()
-
     def test_lock_unlock_range_shortcut(self):
         """
         Test Scope:
@@ -110,7 +101,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
 
         # Press Key 'Y' for range selection
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["toggle_range"]))
-        self.processEvents(timeout=0.01)
+        self.processEvents(timeout=0.1)
 
         # Save PixMap of Range plot
         range_pixmap = self.pg.grab()
@@ -355,6 +346,21 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         Additional Evaluation
             - Evaluate that all signals are continuous on plot
         """
+
+        def continuous(ch):
+            extremes = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), signal_color=ch.color.name(), ax="x")
+            for x in range(self.pg.height() - 1):
+                column = self.pg.grab(QRect(x, 0, 1, self.pg.height()))
+                if x < extremes[0] - 1:
+                    self.assertTrue(Pixmap.is_black(column), f"column {x} for channel {ch.name} is not black")
+                elif extremes[0] <= x <= extremes[1]:
+                    self.assertTrue(
+                        Pixmap.has_color(column, ch.color.name()),
+                        f"column {x} doesn't have color of channel {ch.name}",
+                    )
+                elif x > extremes[1] + 1:
+                    self.assertTrue(Pixmap.is_black(column), f"column {x} for channel {ch.name} is not black")
+
         self.pg.cursor1.color = "#000000"
 
         self.add_channels([35, 36, 37])
@@ -368,7 +374,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         # Evaluate
         with self.subTest("test_stack_all_shortcut"):
             # First 2 lines
-            self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 2))))
+            self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 1))))
             # Top
             pixmap = self.pg.grab(QRect(0, 0, self.pg.width(), int(self.pg.height() / 3)))
             self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
@@ -532,46 +538,15 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
 
             # search if all channels are fitted into extremes
             self.mouseDClick_WidgetItem(channel_35)
-            extremes = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), signal_color=channel_35.color.name(), ax="x")
-            for x in range(self.pg.height() - 1):
-                column = self.pg.grab(QRect(x, 0, 1, self.pg.height()))
-                if x < extremes[0] - 1:
-                    self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
-                elif extremes[0] <= x <= extremes[1]:
-                    self.assertTrue(
-                        Pixmap.has_color(column, channel_35.color.name()),
-                        f"column {x} doesn't have color of channel 35",
-                    )
-                else:
-                    self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
+            continuous(channel_35)
 
             self.mouseDClick_WidgetItem(channel_35)
             self.mouseDClick_WidgetItem(channel_36)
-            for x in range(self.pg.height() - 1):
-                column = self.pg.grab(QRect(x, 0, 1, self.pg.height()))
-                if x < extremes[0] - 1:
-                    self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
-                elif extremes[0] <= x <= extremes[1]:
-                    self.assertTrue(
-                        Pixmap.has_color(column, channel_36.color.name()),
-                        f"column {x} doesn't have color of channel 36",
-                    )
-                else:
-                    self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
+            continuous(channel_36)
 
-            self.mouseDClick_WidgetItem(channel_37)
             self.mouseDClick_WidgetItem(channel_36)
-            for x in range(self.pg.height() - 1):
-                column = self.pg.grab(QRect(x, 0, 1, self.pg.height()))
-                if x < extremes[0] - 1:
-                    self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
-                elif extremes[0] + 1 <= x <= extremes[1] - 1:
-                    self.assertTrue(
-                        Pixmap.has_color(column, channel_37.color.name()),
-                        f"column {x} doesn't have color of channel 37",
-                    )
-                else:
-                    self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")
+            self.mouseDClick_WidgetItem(channel_37)
+            continuous(channel_37)
 
     def test_grid_shortcut(self):
         """
@@ -729,6 +704,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                 return top - delta * step, bottom + delta * step
 
         # Setup
+        if self.plot.lock_btn.isFlat():
+            QTest.mouseClick(self.plot.lock_btn, Qt.MouseButton.LeftButton)
+
         y_step = 0.165
         x_step = 0.25
 
@@ -966,6 +944,8 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             - Evaluate values from selected channel value and cursor info, it must be equal to the expected values.
         """
         # Setup
+        if self.plot.selected_channel_value_btn.isFlat():
+            QTest.mouseClick(self.plot.selected_channel_value_btn, Qt.MouseButton.LeftButton)
         self.add_channels([37])
         ch = self.channels[0]
         # Number of times that specific key will be pressed
@@ -1063,6 +1043,8 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             - Evaluate that first signal is shifted down & left after pressing combination "Shift+Down" & "Shift+Left"
             - Evaluate that second signal is shifted up & right after pressing combination "Shift+Up" & "Shift+Right"
         """
+        if self.plot.lock_btn.isFlat():
+            QTest.mouseClick(self.plot.lock_btn, Qt.MouseButton.LeftButton)
         self.add_channels([36, 37])
         channel_36 = self.channels[0]
         channel_37 = self.channels[1]

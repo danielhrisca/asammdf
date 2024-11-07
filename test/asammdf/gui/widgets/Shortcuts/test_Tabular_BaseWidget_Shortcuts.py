@@ -44,12 +44,6 @@ class TestDataTableViewShortcuts(TestFileWidget):
         self.assertIsNotNone(self.load_shortcuts_from_json_file(self.dtw))
         self.processEvents(0.01)
 
-    def tearDown(self):
-        super().tearDown()
-        if self.widget:
-            self.widget.destroy()
-            self.widget.deleteLater()
-
     def test_set_color_range_shortcut(self):
         """
             Test Scope:
@@ -186,12 +180,6 @@ class TestTabularBaseShortcuts(TestFileWidget):
         self.tabular = self.widget.mdi_area.subWindowList()[0].widget()
         self.assertIsNotNone(self.load_shortcuts_from_json_file(self.tabular))
         self.processEvents(0.01)
-
-    def tearDown(self):
-        super().tearDown()
-        if self.widget:
-            self.widget.destroy()
-            self.widget.deleteLater()
 
     def test_bin__hex__physical_shortcuts(self):
         """
@@ -358,12 +346,6 @@ class TestDataFrameViewerShortcuts(TestFileWidget):
         self.dfw = self.tabular.tree
         self.assertIsNotNone(self.load_shortcuts_from_json_file(self.dfw))
         self.processEvents(0.01)
-
-    def tearDown(self):
-        super().tearDown()
-        if self.widget:
-            self.widget.destroy()
-            self.widget.deleteLater()
 
     def test_copy_shortcut(self):
         """

@@ -37,12 +37,6 @@ class TestFileWidgetShortcuts(TestFileWidget):
         # Get shortcuts
         self.assertIsNotNone(self.load_shortcuts_from_json_file(self.widget))
 
-    def tearDown(self):
-        super().tearDown()
-        if self.widget:
-            self.widget.destroy()
-            self.widget.deleteLater()
-
     def test_search_and_select_channels_shortcut(self):
         """
         Test Scope:
