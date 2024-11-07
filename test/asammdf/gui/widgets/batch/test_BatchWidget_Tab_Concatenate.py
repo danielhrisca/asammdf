@@ -4,6 +4,7 @@ from unittest import mock
 
 from PySide6 import QtCore, QtTest
 
+from test.asammdf.gui.test_base import OpenMDF
 from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 
 # Note: If it's possible and make sense, use self.subTests
@@ -43,12 +44,12 @@ class TestPushButtons(TestBatchWidget):
         output_file = Path(self.test_workspace, self.output_file_name)
 
         channels = set()
-        with self.OpenMDF(self.test_file_0) as mdf_file:
+        with OpenMDF(self.test_file_0) as mdf_file:
             for channel in mdf_file.iter_channels():
                 channels.add(channel.name)
             expected_min = channel.timestamps.min()
 
-        with self.OpenMDF(self.test_file_1) as mdf_file:
+        with OpenMDF(self.test_file_1) as mdf_file:
             channel = next(mdf_file.iter_channels())
             expected_max = channel.timestamps.max()
 
@@ -63,7 +64,7 @@ class TestPushButtons(TestBatchWidget):
         self.assertTrue(output_file.exists())
 
         # Evaluate
-        with self.OpenMDF(output_file) as mdf_file:
+        with OpenMDF(output_file) as mdf_file:
             # Evaluate saved file
             for name in channels:
                 self.assertIn(name, mdf_file.channels_db.keys())

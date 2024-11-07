@@ -111,19 +111,3 @@ class TestBatchWidget(TestBase):
             iterator += 1
             count += 1
         return groups
-
-    class OpenMDF:
-        def __init__(self, file_path):
-            self.mdf = None
-            self._file_path = file_path
-            self._process_bus_logging = ("process_bus_logging", True)
-
-        def __enter__(self):
-            self.mdf = mdf.MDF(self._file_path, process_bus_logging=self._process_bus_logging)
-            return self.mdf
-
-        def __exit__(self, exc_type, exc_val, exc_tb):
-            for exc in (exc_type, exc_val, exc_tb):
-                if exc is not None:
-                    raise exc
-            self.mdf.close()
