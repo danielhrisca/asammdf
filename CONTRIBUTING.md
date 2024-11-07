@@ -16,10 +16,10 @@ When submitting PR's please take into account:
 
 # Testing
 
-You can use tox to run tests locally. Example for the unit tests with Python version 3.7:
+You can use tox to run tests locally. Example for the unit tests with Python version 3.10:
 
 ```console
-tox -e py27
+tox -e py310
 ```
 
 Otherwise, you can just push and the tests will be run by GitHub Actions.
