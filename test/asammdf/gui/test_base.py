@@ -22,8 +22,8 @@ from unittest import mock
 
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
-from asammdf import mdf
 
+from asammdf import mdf
 from asammdf.gui.utils import excepthook
 
 if sys.platform == "win32":

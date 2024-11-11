@@ -1,8 +1,8 @@
 import json
 import os
 import pathlib
-import shutil
 from random import randint
+import shutil
 from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets

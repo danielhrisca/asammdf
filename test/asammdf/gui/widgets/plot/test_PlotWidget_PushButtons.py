@@ -1,12 +1,10 @@
 #!/usr/bin/env python
-import shutil
-from unittest import mock
 
 from PySide6 import QtCore, QtTest
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QPushButton as QBtn, QTreeWidgetItemIterator, QMessageBox
+from PySide6.QtWidgets import QPushButton as QBtn
+from PySide6.QtWidgets import QTreeWidgetItemIterator
 
-from asammdf.gui.utils import COLORS, BLUE
+from asammdf.gui.utils import BLUE, COLORS
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
