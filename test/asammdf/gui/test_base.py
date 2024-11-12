@@ -20,10 +20,11 @@ import time
 import unittest
 from unittest import mock
 
+from h5py import File as HDF5
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
-from asammdf import mdf
 
+from asammdf import mdf
 from asammdf.gui.utils import excepthook
 
 if sys.platform == "win32":
@@ -462,18 +463,48 @@ class Pixmap:
         return line
 
 
-class OpenMDF:
-    def __init__(self, file_path):
-        self.mdf = None
+class OpenFileContextManager:
+    """
+    Generic class for opening a file using context manager.
+    Methods:
+        __enter__: return opened file object.
+        __exit__: close file object. If exc_type, exc_val, exc_tb, raise exception.
+    """
+
+    def __init__(self, file_path: str | pathlib.Path):
+        """
+        Parameters
+        ----------
+        file_path: file path as str or pathlib.Path object
+        """
+        self.file = None
         self._file_path = file_path
-        self._process_bus_logging = ("process_bus_logging", True)
 
     def __enter__(self):
-        self.mdf = mdf.MDF(self._file_path, process_bus_logging=self._process_bus_logging)
-        return self.mdf
+        pass
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self.file.close()
         for exc in (exc_type, exc_val, exc_tb):
             if exc is not None:
                 raise exc
-        self.mdf.close()
+
+
+class OpenMDF(OpenFileContextManager):
+    """
+    Open MDF file using context manager.
+    """
+
+    def __enter__(self):
+        self.file = mdf.MDF(self._file_path, process_bus_logging=("process_bus_logging", True))
+        return self.file
+
+
+class OpenHDF5(OpenFileContextManager):
+    """
+    Open HDF5 file using context manager.
+    """
+
+    def __enter__(self):
+        self.file = HDF5(self._file_path)
+        return self.file

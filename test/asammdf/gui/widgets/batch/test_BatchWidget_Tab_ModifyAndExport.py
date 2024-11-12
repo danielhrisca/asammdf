@@ -4,14 +4,13 @@ from pathlib import Path
 from random import randint
 from unittest import mock
 
-import scipy
-from h5py import File as HDF5
+import numpy as np
 import pandas as pd
 from PySide6 import QtCore, QtTest, QtWidgets
+import scipy
 
-from test.asammdf.gui.test_base import OpenMDF
+from test.asammdf.gui.test_base import OpenHDF5, OpenMDF
 from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
-
 
 # Note: If it's possible and make sense, use self.subTests
 # to avoid initializing widgets multiple times and consume time.
@@ -88,8 +87,16 @@ class TestPushButtonApply(TestBatchWidget):
         self.processEvents(0.1)
 
         count = self.widget.filter_tree.topLevelItemCount()
+        time_channels = len(
+            [
+                self.widget.filter_tree.topLevelItem(_).text(0)
+                for _ in range(count)
+                if self.widget.filter_tree.topLevelItem(_).text(0) == "time"
+            ]
+        )
+        count -= time_channels
         self.selected_channels = self.select_channels(
-            randint(0, int(count / 2) - 1), randint(int(count / 2) + 1, count - 1)
+            randint(1, int(count / 2) - 1), randint(int(count / 2) + 1, count - 1)
         )
 
         # set test_workspace folder as output folder
@@ -170,16 +177,17 @@ class TestPushButtonApply(TestBatchWidget):
         # ZipFile(r"test.zip").extractall(cls.tempdir_obd.name)
         # Path("test.zip").unlink()
 
-    def test_output_format_CSV(self):
+    def test_output_format_CSV_0(self):
         """
         When QThreads are running, event-loops needs to be processed.
         Events:
-            - Ensure that output format is CSV
+            - Ensure that output format is CSV, no checked checkboxes
             - Press PushButton Apply.
 
         Evaluate:
             - File was created.
             - Ensure that output file has only selected channels
+            - Evaluate CSV files
         """
         # Ensure output format
         self.widget.output_format.setCurrentText("CSV")
@@ -198,25 +206,98 @@ class TestPushButtonApply(TestBatchWidget):
         self.processEvents(3)
 
         # Evaluate
-        for index, (group_name, channels_list) in enumerate(groups.items()):
-            csv_file = Path(
-                self.test_workspace,
-                self.default_test_file.replace(
-                    ".mf4", f"{group_name.replace(group_name[:4], f".ChannelGroup_{index}").replace(" ", "_")}.csv"
-                ),
-            )
-            self.assertTrue(csv_file.exists(), csv_file)
-            pandas_tab = pd.read_csv(csv_file)
-            for channel in channels_list:
-                self.assertIn(channel, pandas_tab.columns)
+        with OpenMDF(self.measurement_file) as mdf_file:
+            for index, (group_name, channels_list) in enumerate(groups.items()):
+                # prepare expected results
+                suffix = group_name.replace(group_name[:4], f".ChannelGroup_{index}").replace(" ", "_") + ".csv"
+                csv_file = Path(self.test_workspace, self.default_test_file.replace(".mf4", suffix))
+                mdf_channels = mdf_file.select(channels_list)
 
-        # ToDo is necessary to evaluate dataframe values (for each signal, min, max, len)
+                # Evaluate if file exist
+                self.assertTrue(csv_file.exists(), csv_file)
+                # Read file as pandas
+                pandas_tab = pd.read_csv(csv_file)
+                for channel in mdf_channels:
+                    self.assertIn(channel.name, pandas_tab.columns)
+                    if not channel.samples.dtype == np.dtype("S6"):  # problematic conversion
+                        self.assertEqual(channel.samples.max(), pandas_tab[channel.name].values.max())
+                        self.assertEqual(channel.samples.min(), pandas_tab[channel.name].values.min())
+                    self.assertEqual(channel.samples.size, pandas_tab[channel.name].values.size)
+                    self.assertAlmostEqual(channel.timestamps.max(), pandas_tab.timestamps.max(), places=15)
+                    self.assertAlmostEqual(channel.timestamps.min(), pandas_tab.timestamps.min(), places=15)
 
-    def test_output_format_HDF5(self):
+    def test_output_format_CSV_1(self):
         """
         When QThreads are running, event-loops needs to be processed.
         Events:
-            - Ensure that output format is MDF
+            - Ensure that output format is CSV, all checkboxes are checked
+            - Press PushButton Apply.
+
+        Evaluate:
+            - File was created.
+            - Ensure that output file has only selected channels
+            - Evaluate CSV files
+        """
+        # Expected output file name
+        csv_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".csv"))
+        # Expected units
+        units = [""]
+
+        # Ensure output format
+        self.widget.output_format.setCurrentText("CSV")
+        # check all checkboxes
+        for checkbox in self.widget.CSV.findChildren(QtWidgets.QCheckBox):
+            if not checkbox.isChecked():
+                self.mouseClick_CheckboxButton(checkbox)
+        self.processEvents(0.01)
+
+        # Event
+        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
+        # Wait for thread to finish
+        self.processEvents(3)
+
+        # Evaluate
+        self.assertTrue(csv_path.exists(), csv_path)
+
+        with OpenMDF(self.measurement_file) as mdf_file:
+            mdf_channels = mdf_file.select(self.selected_channels, raw=True)
+            units.extend(channel.unit for channel in mdf_channels)
+
+            # Get channels timestamps max, min, difference between extremes
+            min_ts = min(channel.timestamps.min() for channel in mdf_channels)
+            max_ts = max(channel.timestamps.max() for channel in mdf_channels)
+            seconds = int(max_ts - min_ts)
+            microseconds = np.floor((max_ts - min_ts - seconds) * pow(10, 6))
+
+            # Read file as pandas
+            pandas_tab = pd.read_csv(csv_path, header=[0, 1])
+            pandas_tab.timestamps = pd.DatetimeIndex(
+                pandas_tab.timestamps.values, yearfirst=True
+            ).values - np.datetime64(mdf_file.start_time)
+
+            # Evaluate timestamps min
+            self.assertEqual(np.timedelta64(pandas_tab.timestamps.values.min(), "us").item().microseconds, 0)
+            self.assertEqual(np.timedelta64(pandas_tab.timestamps.values.min(), "us").item().seconds, 0)
+            # Evaluate timestamps max
+            self.assertEqual(np.timedelta64(pandas_tab.timestamps.values.max(), "us").item().microseconds, microseconds)
+            self.assertEqual(np.timedelta64(pandas_tab.timestamps.values.max(), "us").item().seconds, seconds)
+
+            # Evaluate channels names and units
+            for channel, unit in zip(mdf_channels, units):
+                if channel.display_names:  # DI.<channel name>
+                    display_name, _ = zip(*channel.display_names.items())
+                    channel_name = display_name[0]
+                else:
+                    channel_name = channel.name
+                self.assertIn(channel_name, pandas_tab.columns.get_level_values(0))
+                if channel.unit:
+                    self.assertIn(channel.unit, pandas_tab.columns.get_level_values(1))
+
+    def test_output_format_HDF5_0(self):
+        """
+        When QThreads are running, event-loops needs to be processed.
+        Events:
+            - Ensure that output format is HDF5, no checked checkboxes
             - Press PushButton Apply.
 
         Evaluate:
@@ -230,6 +311,12 @@ class TestPushButtonApply(TestBatchWidget):
         hdf5_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".hdf"))
         groups = self.get_selected_groups(channels=self.selected_channels)
 
+        # uncheck all checkboxes
+        for checkbox in self.widget.HDF5_2.findChildren(QtWidgets.QCheckBox):
+            if checkbox.isChecked():
+                self.mouseClick_CheckboxButton(checkbox)
+        self.processEvents(0.01)
+
         # Mouse click on Apply button
         QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
         # Wait for thread to finish
@@ -238,12 +325,90 @@ class TestPushButtonApply(TestBatchWidget):
         self.processEvents(2)
         self.assertTrue(hdf5_path.exists())
 
-        hdf5_file = HDF5(hdf5_path)
-        self.assertEqual(len(hdf5_file.items()) - 1, len(groups))  # 5th item is file path
-        for value, group in zip(hdf5_file.values(), groups.values()):
-            for channel in group:
-                self.assertIn(channel, value)
-            # todo timestamps
+        with OpenHDF5(hdf5_path) as hdf5_file, OpenMDF(self.measurement_file) as mdf_file:
+            self.assertEqual(len(hdf5_file.items()) - 1, len(groups))  # 5th item is file path
+
+            for mdf_group, hdf5_group in zip(groups.values(), hdf5_file.values()):
+                for name in hdf5_group:
+                    if name != "time":  # Evaluate channels
+                        self.assertIn(name, mdf_group)
+                        mdf_channel = mdf_file.select([name])[0]
+                        hdf5_channel = hdf5_group.get(name)
+                        # Evaluate values from extremes if samples are numbers
+                        if np.issubdtype(mdf_channel.samples.dtype, np.number):
+                            self.assertEqual(mdf_channel.samples.max(), max(hdf5_channel))
+                            self.assertEqual(mdf_channel.samples.min(), min(hdf5_channel))
+                        # Evaluate samples size
+                        self.assertEqual(mdf_channel.samples.size, hdf5_channel.size)
+                    else:  # evaluate timestamps
+                        hdf5_channel = hdf5_group.get(name)  # for evaluation will be used latest mdf channel from group
+                        self.assertEqual(mdf_channel.timestamps.max(), max(hdf5_channel))
+                        self.assertEqual(mdf_channel.timestamps.min(), min(hdf5_channel))
+                        self.assertEqual(mdf_channel.timestamps.size, hdf5_channel.size)
+
+    def test_output_format_HDF5_1(self):
+        """
+        When QThreads are running, event-loops needs to be processed.
+        Events:
+            - Ensure that output format is HDF5, all checkboxes are checked
+            - Press PushButton Apply.
+
+        Evaluate:
+            - File was created.
+            - Ensure that output file has only selected channels
+        """
+        # Ensure output format
+        self.widget.output_format.setCurrentText("HDF5")
+
+        # Expected results
+        hdf5_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".hdf"))
+
+        # check all checkboxes
+        for checkbox in self.widget.HDF5_2.findChildren(QtWidgets.QCheckBox):
+            if not checkbox.isChecked():
+                self.mouseClick_CheckboxButton(checkbox)
+        self.processEvents(0.01)
+
+        # Mouse click on Apply button
+        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
+        # Wait for thread to finish
+
+        # Evaluate
+        self.processEvents(2)
+        self.assertTrue(hdf5_path.exists())
+
+        with OpenHDF5(hdf5_path) as hdf5_file, OpenMDF(self.measurement_file) as mdf_file:
+            self.assertEqual(len(hdf5_file.items()), 1)  # 1 item
+
+            # Prepare results
+            size = 0
+            differences = []
+            hdf5_channels = hdf5_file[str(hdf5_path)]
+
+            for channel in self.selected_channels:  # Evaluate channels
+                _channel = mdf_file.select([channel])[0]  # nu intreba
+                if _channel.display_names:  # DI.<channel name>...
+                    display_name, _ = zip(*_channel.display_names.items())
+                    channel = display_name[0]
+
+                # Because exist 2 channels with identical "DISPLAY" name -_-
+                mdf_channel = mdf_file.select([(channel, _channel.group_index, _channel.channel_index)], raw=True)[0]
+                hdf5_channel = hdf5_channels.get(channel)
+
+                self.assertIn(channel, hdf5_channels)
+
+                # Evaluate extremes
+                self.assertEqual(mdf_channel.samples.max(), max(hdf5_channel))
+                self.assertEqual(mdf_channel.samples.min(), min(hdf5_channel))
+
+                # for feature timestamps evaluation
+                ceva = mdf_channel.timestamps.max() - mdf_channel.timestamps.min()
+                if ceva not in differences:
+                    differences.append(ceva)
+                    size += mdf_channel.timestamps.size
+
+            # Evaluate size of timestamps
+            self.assertEqual(hdf5_channel.size, size)
 
     def test_output_format_MAT(self):
         """

@@ -1,5 +1,3 @@
-import pathlib
-import shutil
 import threading as td
 from unittest import mock
 
