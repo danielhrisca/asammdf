@@ -93,13 +93,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         formats = ["MDF", "ASC", "CSV"]
 
         try:
-            from h5py import File as HDF5
-
-            formats.append("HDF5")
-        except ImportError:
-            pass
-
-        try:
             from hdf5storage import savemat
 
             formats.append("MAT")
