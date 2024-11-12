@@ -8,6 +8,7 @@ pyautogui
 python-xlib; sys_platform=="linux"
 pytest
 pytest-cov
+scipy
 canmatrix[arxml,dbc]>=1.0
 lz4
 typing_extensions
