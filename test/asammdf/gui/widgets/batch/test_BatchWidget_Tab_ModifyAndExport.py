@@ -108,9 +108,23 @@ class TestPushButtonApply(TestBatchWidget):
 
         self.assertEqual(self.widget.modify_output_folder.text().strip(), self.test_workspace)
 
+    def set_up_qWidget(self, name: str, check: bool = True) -> bool:
+        for q_widget in self.widget.output_options.children():
+            if name in q_widget.objectName():
+                break
+        else:
+            return False
+        # uncheck all checkboxes
+        for checkbox in q_widget.findChildren(QtWidgets.QCheckBox):
+            if checkbox.isChecked() != check:
+                self.mouseClick_CheckboxButton(checkbox)
+        self.processEvents(0.01)
+        return True
+
     def test_output_format_MDF(self):
         """
         When QThreads are running, event-loops needs to be processed.
+        Cut and resample features will be tested in separate tests.
         Events:
             - Ensure that output format is MDF
             - Press PushButton Apply.
@@ -128,7 +142,7 @@ class TestPushButtonApply(TestBatchWidget):
         # Event
         QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
         # Wait for thread to finish
-        self.processEvents(2)
+        self.processEvents(3)
 
         # Evaluate
         self.assertTrue(saved_file.exists())
@@ -150,8 +164,9 @@ class TestPushButtonApply(TestBatchWidget):
             - File was created.
             - Ensure that output file has only selected channels
         """
+        name = "ASC"
         # Ensure output format
-        self.widget.output_format.setCurrentText("ASC")
+        self.widget.output_format.setCurrentText(name)
 
         # Expected results
         saved_file = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".asc"))
@@ -163,13 +178,14 @@ class TestPushButtonApply(TestBatchWidget):
         # Event
         QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
         # Wait for thread to finish
-        self.processEvents(2)
+        self.processEvents(3)
 
         # Evaluate
         self.assertTrue(saved_file.exists())
         with open(saved_file) as asc_file:
             self.assertEqual(asc_file.read(), expected_text)
 
+        # ToDo use this file instead of default test file
         # cls.tempdir_obd = tempfile.TemporaryDirectory()
         #
         # url = "https://github.com/danielhrisca/asammdf/files/4328945/OBD2-DBC-MDF4.zip"
@@ -189,14 +205,11 @@ class TestPushButtonApply(TestBatchWidget):
             - Ensure that output file has only selected channels
             - Evaluate CSV files
         """
+        name = "CSV"
         # Ensure output format
-        self.widget.output_format.setCurrentText("CSV")
-        # uncheck all checkboxes
-        for checkbox in self.widget.CSV.findChildren(QtWidgets.QCheckBox):
-            if checkbox.isChecked():
-                self.mouseClick_CheckboxButton(checkbox)
+        self.widget.output_format.setCurrentText(name)
+        self.set_up_qWidget(name, check=False)
 
-        self.processEvents()
         # Expected results
         groups = self.get_selected_groups(channels=self.selected_channels)
 
@@ -219,7 +232,7 @@ class TestPushButtonApply(TestBatchWidget):
                 pandas_tab = pd.read_csv(csv_file)
                 for channel in mdf_channels:
                     self.assertIn(channel.name, pandas_tab.columns)
-                    if not channel.samples.dtype == np.dtype("S6"):  # problematic conversion
+                    if np.issubdtype(channel.samples.dtype, np.number):  # problematic conversion
                         self.assertEqual(channel.samples.max(), pandas_tab[channel.name].values.max())
                         self.assertEqual(channel.samples.min(), pandas_tab[channel.name].values.min())
                     self.assertEqual(channel.samples.size, pandas_tab[channel.name].values.size)
@@ -243,13 +256,10 @@ class TestPushButtonApply(TestBatchWidget):
         # Expected units
         units = [""]
 
+        name = "CSV"
         # Ensure output format
-        self.widget.output_format.setCurrentText("CSV")
-        # check all checkboxes
-        for checkbox in self.widget.CSV.findChildren(QtWidgets.QCheckBox):
-            if not checkbox.isChecked():
-                self.mouseClick_CheckboxButton(checkbox)
-        self.processEvents(0.01)
+        self.widget.output_format.setCurrentText(name)
+        self.set_up_qWidget(name)
 
         # Event
         QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
@@ -293,6 +303,42 @@ class TestPushButtonApply(TestBatchWidget):
                 if channel.unit:
                     self.assertIn(channel.unit, pandas_tab.columns.get_level_values(1))
 
+    def test_output_format_MAT_0(self):
+        """
+        When QThreads are running, event-loops needs to be processed.
+        Events:
+            - Ensure that output format is MAT, no checkboxes checked
+            - Press PushButton Apply.
+
+        Evaluate:
+            - File was created.
+            - Ensure that output file has only selected channels
+        """
+        name = "MAT"
+        # Ensure output format
+        self.widget.output_format.setCurrentText(name)
+        self.set_up_qWidget(name, check=False)
+
+        # Expected results
+        mat_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".mat"))
+        groups = self.get_selected_groups(channels=self.selected_channels)
+
+        # Mouse click on Apply button
+        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
+        # Wait for thread to finish
+        self.processEvents(3)
+
+        # Evaluate
+        self.assertTrue(mat_path.exists())
+
+        mat_file = scipy.io.loadmat(str(mat_path))
+        to_replace = {" ", ".", "[", "]"}
+        for index, channels_list in enumerate(groups.values()):
+            for channel in channels_list:
+                for character in to_replace:
+                    channel = channel.replace(character, "_")
+                self.assertIn(f"DG{index}_{channel}", mat_file)
+
     def test_output_format_HDF5_0(self):
         """
         When QThreads are running, event-loops needs to be processed.
@@ -304,25 +350,21 @@ class TestPushButtonApply(TestBatchWidget):
             - File was created.
             - Ensure that output file has only selected channels
         """
+        name = "HDF5"
         # Ensure output format
-        self.widget.output_format.setCurrentText("HDF5")
+        self.widget.output_format.setCurrentText(name)
+        self.set_up_qWidget(name, check=False)
 
         # Expected results
         hdf5_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".hdf"))
         groups = self.get_selected_groups(channels=self.selected_channels)
 
-        # uncheck all checkboxes
-        for checkbox in self.widget.HDF5_2.findChildren(QtWidgets.QCheckBox):
-            if checkbox.isChecked():
-                self.mouseClick_CheckboxButton(checkbox)
-        self.processEvents(0.01)
-
         # Mouse click on Apply button
         QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
         # Wait for thread to finish
+        self.processEvents(3)
 
         # Evaluate
-        self.processEvents(2)
         self.assertTrue(hdf5_path.exists())
 
         with OpenHDF5(hdf5_path) as hdf5_file, OpenMDF(self.measurement_file) as mdf_file:
@@ -357,24 +399,20 @@ class TestPushButtonApply(TestBatchWidget):
             - File was created.
             - Ensure that output file has only selected channels
         """
+        name = "HDF5"
         # Ensure output format
-        self.widget.output_format.setCurrentText("HDF5")
+        self.widget.output_format.setCurrentText(name)
+        self.set_up_qWidget(name)
 
         # Expected results
         hdf5_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".hdf"))
 
-        # check all checkboxes
-        for checkbox in self.widget.HDF5_2.findChildren(QtWidgets.QCheckBox):
-            if not checkbox.isChecked():
-                self.mouseClick_CheckboxButton(checkbox)
-        self.processEvents(0.01)
-
         # Mouse click on Apply button
         QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
         # Wait for thread to finish
+        self.processEvents(3)
 
         # Evaluate
-        self.processEvents(2)
         self.assertTrue(hdf5_path.exists())
 
         with OpenHDF5(hdf5_path) as hdf5_file, OpenMDF(self.measurement_file) as mdf_file:
@@ -410,43 +448,6 @@ class TestPushButtonApply(TestBatchWidget):
             # Evaluate size of timestamps
             self.assertEqual(hdf5_channel.size, size)
 
-    def test_output_format_MAT(self):
-        """
-        When QThreads are running, event-loops needs to be processed.
-        Events:
-            - Ensure that output format is MAT
-            - Press PushButton Apply.
-
-        Evaluate:
-            - File was created.
-            - Ensure that output file has only selected channels
-        """
-        groups = self.get_selected_groups(channels=self.selected_channels)
-
-        # Ensure output format
-        self.widget.output_format.setCurrentText("MAT")
-
-        # Expected results
-        mat_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".mat"))
-        groups = self.get_selected_groups(channels=self.selected_channels)
-
-        # Mouse click on Apply button
-        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-        # Wait for thread to finish
-
-        self.processEvents(2)
-
-        # Evaluate
-        self.assertTrue(mat_path.exists())
-
-        mat_file = scipy.io.loadmat(str(mat_path))
-        to_replace = {" ", ".", "[", "]"}
-        for index, channels_list in enumerate(groups.values()):
-            for channel in channels_list:
-                for character in to_replace:
-                    channel = channel.replace(character, "_")
-                self.assertIn(f"DG{index}_{channel}", mat_file)
-
     def test_output_format_Parquet(self):
         """
         When QThreads are running, event-loops needs to be processed.
@@ -458,20 +459,18 @@ class TestPushButtonApply(TestBatchWidget):
             - File was created.
             - Ensure that output file has only selected channels
         """
-        groups = self.get_selected_groups(channels=self.selected_channels)
-
+        name = "Parquet"
         # Ensure output format
-        self.widget.output_format.setCurrentText("Parquet")
+        self.widget.output_format.setCurrentText(name)
 
         # Expected results
         parquet_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".parquet"))
-        groups = self.get_selected_groups(channels=self.selected_channels)
+        # groups = self.get_selected_groups(channels=self.selected_channels)
 
         # Mouse click on Apply button
         QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
         # Wait for thread to finish
-
-        self.processEvents(2)
+        self.processEvents(3)
 
         # Evaluate
         self.assertTrue(parquet_path.exists())
@@ -522,7 +521,8 @@ class TestPushButtonApply(TestBatchWidget):
 
         # Event
         QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-        self.processEvents(2)
+        # Wait for thread to finish
+        self.processEvents(3)
 
         # Evaluate
         output_file.exists()
@@ -572,7 +572,8 @@ class TestPushButtonApply(TestBatchWidget):
 
         # Event
         QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-        self.processEvents(2)
+        # Wait for thread to finish
+        self.processEvents(3)
 
         # Evaluate
         output_file.exists()
