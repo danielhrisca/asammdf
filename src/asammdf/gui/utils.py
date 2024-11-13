@@ -33,7 +33,7 @@ from .dialogs.messagebox import MessageBox
 
 _BUILTINS = dict(collections.__builtins__)
 for key in ("breakpoint", "compile", "eval", "exec", "input", "open", "__import__"):
-    del _BUILTINS[key]
+    _BUILTINS.pop(key, None)
 
 for module in (bisect, collections, itertools, random, struct, math, pd, np):
     if hasattr(module, "__builtins__"):
