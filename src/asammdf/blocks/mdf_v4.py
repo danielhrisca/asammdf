@@ -350,6 +350,8 @@ class MDF4(MDF_Common):
 
         progress = kwargs.get("progress", None)
 
+        self._column_storage = False
+
         if name:
             if is_file_like(name):
                 self._file = name
@@ -400,12 +402,13 @@ class MDF4(MDF_Common):
             self.header = HeaderBlock()
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
-            self.name = Path("__new__.mf4")
 
-        if self.version >= "4.20":
-            self._column_storage = kwargs.get("column_storage", True)
-        else:
-            self._column_storage = False
+            if self.version >= "4.20":
+                self._column_storage = kwargs.get("column_storage", True)
+            else:
+                self._column_storage = False
+
+            self.name = Path("__new__.mf4")
 
         self._parent = None
 
@@ -478,6 +481,11 @@ class MDF4(MDF_Common):
         self.identification = FileIdentificationBlock(stream=stream, mapped=mapped)
         version = self.identification["version_str"]
         self.version = version.decode("utf-8").strip(" \n\t\r\0")
+
+        if self.version >= "4.20":
+            self._column_storage = self._kwargs.get("column_storage", True)
+        else:
+            self._column_storage = False
 
         if self.version >= "4.10":
             # Check for finalization past version 4.10

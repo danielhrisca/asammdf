@@ -93,13 +93,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         formats = ["MDF", "ASC", "CSV"]
 
         try:
-            from h5py import File as HDF5
-
-            formats.append("HDF5")
-        except ImportError:
-            pass
-
-        try:
             from hdf5storage import savemat
 
             formats.append("MAT")
@@ -967,6 +960,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 mdf,
                 show_add_window=False,
                 show_pattern=False,
+                show_apply=True,
                 parent=self,
                 return_names=True,
             )
@@ -1686,19 +1680,19 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
     def output_format_changed(self, name):
         if name == "MDF":
-            self.output_options.setCurrentIndex(0)
+            self.output_options.setCurrentWidget(self.MDF_2)
         elif name == "MAT":
-            self.output_options.setCurrentIndex(2)
+            self.output_options.setCurrentWidget(self.MAT_2)
 
             self.export_compression_mat.clear()
             self.export_compression_mat.addItems(["enabled", "disabled"])
             self.export_compression_mat.setCurrentIndex(0)
         elif name == "CSV":
-            self.output_options.setCurrentIndex(3)
+            self.output_options.setCurrentWidget(self.CSV)
         elif name == "ASC":
-            self.output_options.setCurrentIndex(4)
+            self.output_options.setCurrentWidget(self.page)
         else:
-            self.output_options.setCurrentIndex(1)
+            self.output_options.setCurrentWidget(self.HDF5_2)
             if name == "Parquet":
                 self.export_compression.setEnabled(True)
                 self.export_compression.clear()

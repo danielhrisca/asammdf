@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from functools import partial
-from hashlib import sha1
+from hashlib import md5
 import json
 import os
 from pathlib import Path
@@ -356,13 +356,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             formats = ["MDF", "ASC", "CSV"]
 
             try:
-                from h5py import File as HDF5
-
-                formats.append("HDF5")
-            except ImportError:
-                pass
-
-            try:
                 from hdf5storage import savemat
 
                 formats.append("MAT")
@@ -399,6 +392,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.clear_filter_btn.clicked.connect(self.clear_filter)
             self.clear_channels_btn.clicked.connect(self.clear_channels)
             self.select_all_btn.clicked.connect(self.select_all_channels)
+
+            self.info.setColumnWidth(0, 200)
 
             self.aspects.setCurrentIndex(0)
 
@@ -746,20 +741,20 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     def output_format_changed(self, name):
         if name == "MDF":
-            self.output_options.setCurrentIndex(0)
+            self.output_options.setCurrentWidget(self.MDF)
         elif name == "MAT":
-            self.output_options.setCurrentIndex(2)
+            self.output_options.setCurrentWidget(self.MAT)
 
             self.export_compression_mat.clear()
             self.export_compression_mat.addItems(["enabled", "disabled"])
             self.export_compression_mat.setCurrentIndex(0)
         elif name == "CSV":
-            self.output_options.setCurrentIndex(3)
+            self.output_options.setCurrentWidget(self.CSV)
         elif name == "ASC":
-            self.output_options.setCurrentIndex(4)
+            self.output_options.setCurrentWidget(self.page)
 
         else:
-            self.output_options.setCurrentIndex(1)
+            self.output_options.setCurrentWidget(self.HDF5)
             if name == "Parquet":
                 self.export_compression.setEnabled(True)
                 self.export_compression.clear()
@@ -1078,7 +1073,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             file_name = Path(file_name).with_suffix(".dspf")
             file_name.write_text(json.dumps(self.to_config(), indent=2))
 
-            worker = sha1()
+            worker = md5()
             worker.update(file_name.read_bytes())
             self.loaded_display_file = file_name, worker.hexdigest()
 
@@ -1261,7 +1256,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             else:
                 return
 
-            worker = sha1()
+            worker = md5()
             worker.update(file_name.read_bytes())
             self.loaded_display_file = file_name, worker.hexdigest()
 
@@ -2530,7 +2525,7 @@ MultiRasterSeparator;&
 
             self.info.expandAll()
 
-            self.info.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+            self.info.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Interactive)
 
     def toggle_frames(self, event=None):
         self._frameless_windows = not self._frameless_windows

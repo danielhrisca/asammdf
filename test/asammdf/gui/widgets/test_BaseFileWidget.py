@@ -1,6 +1,8 @@
 import json
 import os
+import pathlib
 from random import randint
+import shutil
 from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets
@@ -23,19 +25,7 @@ class TestFileWidget(TestBase):
         self.mc_widget_ed = patcher.start()
         self.addCleanup(patcher.stop)
 
-    def tearDown(self):
-        path_ = os.path.join(self.screenshots, self.__module__)
-        if not os.path.exists(path_):
-            os.makedirs(path_)
-
-        self.widget.grab().save(os.path.join(path_, f"{self.id().split('.')[-1]}.png"))
-
-        if self.widget:
-            self.widget.close()
-            self.widget.destroy()
-            self.widget.deleteLater()
-        self.mc_ErrorDialog.reset_mock()
-        super().tearDown()
+        self.measurement_file = shutil.copy(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"), self.test_workspace)
 
     def setUpFileWidget(self, *args, measurement_file, default):
         """

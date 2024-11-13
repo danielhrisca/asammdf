@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'search_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.2
+## Created by: Qt User Interface Compiler version 6.7.3
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -98,7 +98,7 @@ class Ui_SearchDialog(object):
         self.selection.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.selection.setSortingEnabled(False)
         self.selection.header().setMinimumSectionSize(25)
-        self.selection.header().setProperty("showSortIndicator", False)
+        self.selection.header().setProperty(u"showSortIndicator", False)
 
         self.gridLayout.addWidget(self.selection, 5, 0, 1, 5)
 

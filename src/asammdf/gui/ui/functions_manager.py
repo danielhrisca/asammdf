@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'functions_manager.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.2
+## Created by: Qt User Interface Compiler version 6.7.3
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -191,4 +191,3 @@ class Ui_FunctionsManager(object):
         self.check_globals_syntax_btn.setText(QCoreApplication.translate("FunctionsManager", u"Check syntax", None))
         self.tabs.setTabText(self.tabs.indexOf(self.tab_2), QCoreApplication.translate("FunctionsManager", u"Glolbal variables", None))
     # retranslateUi
-
