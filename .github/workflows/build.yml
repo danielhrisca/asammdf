@@ -1,4 +1,4 @@
-name: build_windows_macos
+name: build_macos
 
 on: [push, pull_request]
 
