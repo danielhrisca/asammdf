@@ -32,7 +32,7 @@ jobs:
         run: |
             pip install build numpy wheel setuptools
             pip install -r requirements_exe_build.txt
-            pip install fsspec==2024.6.1
+            pip install fsspec==2024.6.1 fastparquet==2024.5.0
             python setup.py bdist_wheel
             pip install -e . --no-deps
             pip install cmerg
