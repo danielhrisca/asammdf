@@ -4252,7 +4252,6 @@ class MDF:
                                     df[channel_name] = pd.Series(
                                         sig.samples,
                                         index=sig_index,
-                                        fastpath=True,
                                     )
                             else:
                                 if reduce_memory_usage:
@@ -4264,7 +4263,6 @@ class MDF:
                                 df[channel_name] = pd.Series(
                                     sig.samples,
                                     index=sig_index,
-                                    fastpath=True,
                                 )
 
                     if progress is not None:
@@ -4638,7 +4636,7 @@ class MDF:
                     if sig.samples.dtype.byteorder not in target_byte_order:
                         sig.samples = sig.samples.byteswap().view(sig.samples.dtype.newbyteorder())
 
-                    df[channel_name] = pd.Series(sig.samples, index=sig_index, fastpath=True)
+                    df[channel_name] = pd.Series(sig.samples, index=sig_index)
 
             if progress is not None:
                 if callable(progress):
