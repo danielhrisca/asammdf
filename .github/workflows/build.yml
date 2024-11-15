@@ -32,6 +32,7 @@ jobs:
         run: |
             pip install build numpy wheel setuptools
             pip install -r requirements_exe_build.txt
+            pip install -U fsspec
             python setup.py bdist_wheel
             pip install -e . --no-deps
             pip install cmerg
