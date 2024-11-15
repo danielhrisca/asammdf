@@ -5,7 +5,7 @@ import sys
 
 sys.setrecursionlimit(sys.getrecursionlimit() * 5)
 
-asammdf_path = Path.cwd() / "src" / "asammdf" / "gui" / "asammdfgui.py"
+asammdf_path = Path.cwd() / "src" / "asammdf" / "asammdfgui.py"
 
 block_cipher = None
 added_files = []
