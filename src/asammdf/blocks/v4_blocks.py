@@ -3134,9 +3134,14 @@ class ChannelConversion(_ChannelConversionBase):
 
     def convert(self, values, as_object=False, as_bytes=False, ignore_value2text_conversions=False):
         identical = ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_NON)
+        scalar = False
 
         if not isinstance(values, np.ndarray):
-            values = np.array(values)
+            if isinstance(values, (int, float)):
+                values = np.array([values])
+                scalar = True
+            else:
+                values = np.array(values)
 
         values_count = len(values)
 
@@ -3896,7 +3901,10 @@ class ChannelConversion(_ChannelConversionBase):
 
                 values = np.array(new_values)
 
-        return values
+        if scalar:
+            return values[0]
+        else:
+            return values
 
     def metadata(self, indent: str = "") -> str:
         if self.conversion_type == v4c.CONVERSION_TYPE_NON:
