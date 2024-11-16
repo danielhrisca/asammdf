@@ -1,0 +1,20 @@
+{
+    "recommendations": [
+        "benspaulding.python-manifest-template",
+        "charliermarsh.ruff",
+        "esbenp.prettier-vscode",
+        "fill-labs.dependi",
+        "github.vscode-github-actions",
+        "lextudio.restructuredtext",
+        "ms-python.black-formatter",
+        "ms-python.debugpy",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "njpwerner.autodocstring",
+        "redhat.vscode-yaml",
+        "swyddfa.esbonio",
+        "tamasfe.even-better-toml",
+        "trond-snekvik.simple-rst",
+        "twixes.pypi-assistant"
+    ]
+}

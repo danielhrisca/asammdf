@@ -148,7 +148,7 @@ def get_temporary_filename(path: Path = Path("temporary.mf4"), dir: str | Path |
 
 
 class MDF:
-    """Unified access to MDF v3 and v4 files. Underlying _mdf's attributes and
+    r"""Unified access to MDF v3 and v4 files. Underlying _mdf's attributes and
     methods are linked to the `MDF` object via *setattr*. This is done to expose
     them to the user code and for performance considerations.
 

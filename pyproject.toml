@@ -1,11 +1,12 @@
 [build-system]
-requires = ["numpy", "setuptools", "wheel"]
+requires = ["numpy", "setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 120
+required-version = "24"
 target-version = ['py39']
-extend-exclude = '''
+force-exclude = '''
 ^/src/asammdf/gui/ui
 '''
 
@@ -18,33 +19,35 @@ manylinux-x86_64-image = "manylinux_2_28"
 test-requires = "pytest"
 test-command = "pytest {project}/test"
 build-frontend = "build"
-archs = ["auto64"]  # only build for 64bit architectures
-skip = ["pp*", "*_ppc64le", "*-musllinux*", "*_s390x"]   # skip pypy and irrelevant architectures
+archs = ["auto64"]                        # only build for 64bit architectures
+# skip pypy and irrelevant architectures
+skip = ["pp*", "*_ppc64le", "*-musllinux*", "*_s390x"]
 
 [tool.ruff]
 target-version = "py39"
-exclude = ["./src/asammdf/gui/ui"]
+extend-exclude = ["benchmarks", "ci", "doc", "examples", "./src/asammdf/gui/ui"]
+force-exclude = true
 
 [tool.ruff.lint]
 select = [
-    "B",  # flake8-bugbear
+    "B",   # flake8-bugbear
     "C4",  # flake8-comprehensions
-    "F",  # pyflakes
+    "F",   # pyflakes
     "UP",  # pyupgrade
-    "I",  # isort
-    "PIE",  # flake8-pie
+    "I",   # isort
+    "PIE", # flake8-pie
     "PL",  # pylint
-    "RUF",  # Ruff-specific rules
+    "RUF", # Ruff-specific rules
 ]
 ignore = [
-    "B007",  # unused-loop-control-variable
-    "F841",  # unused-variable
-    "PLC0414",  # useless-import-alias
-    "PLR09",  # too-many-this, too-many-that
-    "PLR2004",  # magic-value-comparison
-    "PLR5501",  # collapsible-else-if
-    "PLW0603",  # global-statement
-    "PLW2901",  # redefined-loop-name
+    "B007",    # unused-loop-control-variable
+    "F841",    # unused-variable
+    "PLC0414", # useless-import-alias
+    "PLR09",   # too-many-this, too-many-that
+    "PLR2004", # magic-value-comparison
+    "PLR5501", # collapsible-else-if
+    "PLW0603", # global-statement
+    "PLW2901", # redefined-loop-name
     "RUF012",  # mutable-class-default
     "RUF015",  # unnecessary-iterable-allocation-for-first-element
 ]

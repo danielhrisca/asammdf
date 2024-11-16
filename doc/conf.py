@@ -17,17 +17,11 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-import sys
 
 # BASE_DIR = os.path.abspath("..")
 # sys.path.insert(0, BASE_DIR)
 
-with open(os.path.join("..", "src", "asammdf", "version.py"), "r") as f:
-    for line in f:
-        if line.startswith("__version__"):
-            asam_version = line.split("=")[-1].strip().strip("'")
-            break
+from asammdf.version import __version__ as asam_version
 
 print("version", asam_version)
 
@@ -77,7 +71,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "asammdf"
-copyright = "2018, Daniel Hrisca"
+copyright = "2024, Daniel Hrisca"
 author = "Daniel Hrisca"
 
 # The version info for the project you're documenting, acts as replacement for
@@ -136,20 +130,20 @@ html_logo = "../asammdf.png"
 
 # -- Options for LaTeX output ---------------------------------------------
 
-latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    #
-    # 'papersize': 'letterpaper',
-    # The font size ('10pt', '11pt' or '12pt').
-    #
-    # 'pointsize': '10pt',
-    # Additional stuff for the LaTeX preamble.
-    #
-    # 'preamble': '',
-    # Latex figure (float) alignment
-    #
-    # 'figure_align': 'htbp',
-}
+# latex_elements = {
+#     # The paper size ('letterpaper' or 'a4paper').
+#     #
+#     # 'papersize': 'letterpaper',
+#     # The font size ('10pt', '11pt' or '12pt').
+#     #
+#     # 'pointsize': '10pt',
+#     # Additional stuff for the LaTeX preamble.
+#     #
+#     # 'preamble': '',
+#     # Latex figure (float) alignment
+#     #
+#     # 'figure_align': 'htbp',
+# }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
