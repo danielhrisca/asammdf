@@ -112,7 +112,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             pass
 
         try:
-            from fastparquet import write as write_parquet  # noqa: F401
+            from pyarrow.parquet import write_table as write_parquet  # noqa: F401
 
             formats.append("Parquet")
         except ImportError:
@@ -220,7 +220,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         if name == "parquet":
             self.export_compression.setEnabled(True)
             self.export_compression.clear()
-            self.export_compression.addItems(["GZIP", "SNAPPY"])
+            self.export_compression.addItems(["GZIP", "SNAPPY", "LZ4"])
             self.export_compression.setCurrentIndex(-1)
         elif name == "hdf5":
             self.export_compression.setEnabled(True)
@@ -1378,12 +1378,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         elif output_format == "Parquet":
             try:
-                from fastparquet import write as write_parquet  # noqa: F401
+                from pyarrow.parquet import write_table as write_parquet  # noqa: F401
+
             except ImportError:
                 MessageBox.critical(
                     self,
                     "export_batch to parquet unavailale",
-                    "fastparquet package not found; export to parquet is unavailable",
+                    "pyarrow package not found; export to parquet is unavailable",
                 )
                 return
 
@@ -1423,7 +1424,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         elif output_format == "Parquet":
             suffix = ".parquet"
-            from fastparquet import write as write_parquet  # noqa: F401
+            from pyarrow.parquet import write_table as write_parquet  # noqa: F401
 
         elif output_format == "CSV":
             suffix = ".csv"
@@ -1715,7 +1716,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             if name == "Parquet":
                 self.export_compression.setEnabled(True)
                 self.export_compression.clear()
-                self.export_compression.addItems(["GZIP", "SNAPPY"])
+                self.export_compression.addItems(["GZIP", "SNAPPY", "LZ4"])
                 self.export_compression.setCurrentIndex(0)
             elif name == "HDF5":
                 self.export_compression.setEnabled(True)

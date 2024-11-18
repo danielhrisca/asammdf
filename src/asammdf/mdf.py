@@ -1151,9 +1151,13 @@ class MDF:
             * `compression` : str
               compression to be used
 
-              * for ``parquet`` : "GZIP" or "SNAPPY"
+              * for ``parquet`` : "GZIP", "SNAPPY" or "LZ4"
               * for ``hfd5`` : "gzip", "lzf" or "szip"
               * for ``mat`` : bool
+
+              .. versionadded:: 8.1.0
+
+                added LZ4 compression after changing to pyarrow
 
             * `time_as_date` (False) : bool
               export time as local timezone datetimee; only valid for CSV export
@@ -1251,9 +1255,11 @@ class MDF:
 
         if fmt == "parquet":
             try:
-                from fastparquet import write as write_parquet
+                from pyarrow import table
+                from pyarrow.parquet import write_table as write_parquet
+
             except ImportError:
-                logger.warning("fastparquet not found; export to parquet is unavailable")
+                logger.warning("pyarrow not found; export to parquet is unavailable")
                 return
 
         elif fmt == "hdf5":
@@ -1944,13 +1950,14 @@ class MDF:
 
         elif fmt == "parquet":
             filename = filename.with_suffix(".parquet")
+            df = table(df)
             if compression:
                 write_parquet(filename, df, compression=compression)
             else:
                 write_parquet(filename, df)
 
         else:
-            message = 'Unsopported export type "{}". ' 'Please select "csv", "excel", "hdf5", "mat" or "pandas"'
+            message = 'Unsupported export type "{}". ' 'Please select "csv", "excel", "hdf5", "mat" or "pandas"'
             message.format(fmt)
             logger.warning(message)
 

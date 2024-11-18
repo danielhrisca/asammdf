@@ -3,7 +3,11 @@ import re
 
 import dateutil.tz
 import numpy as np
-import numpy.core.defchararray as npchar
+
+try:
+    npchar = np.strings
+except:
+    npchar = np.char
 import pandas as pd
 from PySide6 import QtCore, QtWidgets
 

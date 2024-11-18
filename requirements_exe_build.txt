@@ -12,8 +12,7 @@ pyqtgraph
 QtPy
 pyqtlet2
 pyopengl
-h5py 
-fastparquet 
+h5py  
 hdf5storage 
 snappy 
 faust-cchardet
@@ -23,3 +22,4 @@ keyring
 pyinstaller
 scipy
 sympy
+pyarrow

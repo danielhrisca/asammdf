@@ -32,7 +32,11 @@ import logging
 from traceback import format_exc
 
 import numpy as np
-import numpy.core.defchararray as npchar
+
+try:
+    npchar = np.strings
+except:
+    npchar = np.char
 import pandas as pd
 import pyqtgraph.functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets

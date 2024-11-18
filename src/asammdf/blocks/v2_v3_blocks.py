@@ -1413,6 +1413,14 @@ address: {hex(self.address)}
 
     def convert(self, values, as_object=False, as_bytes=False, ignore_value2text_conversions=False):
         conversion_type = self.conversion_type
+        scalar = False
+
+        if not isinstance(values, np.ndarray):
+            if isinstance(values, (int, float)):
+                values = np.array([values])
+                scalar = True
+            else:
+                values = np.array(values)
 
         if conversion_type == v23c.CONVERSION_TYPE_NONE:
             pass
@@ -1621,7 +1629,10 @@ address: {hex(self.address)}
                     )
                     values = expr(values)
 
-        return values
+        if scalar:
+            return values[0]
+        else:
+            return values
 
     def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
