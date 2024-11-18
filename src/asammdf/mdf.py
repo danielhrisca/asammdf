@@ -5292,7 +5292,7 @@ class MDF:
                                 unknown_ids[msg_id].append(True)
                                 continue
 
-                            found_ids[dbc_name].add((msg_id, message.name))
+                            found_ids[dbc_name].add(((msg_id, False, False), message.name))
                             try:
                                 current_not_found_ids.remove((msg_id, message.name))
                             except KeyError:
