@@ -1,6 +1,6 @@
 natsort
 numexpr
-numpy<2.0.0
+numpy
 pandas
 psutil
 pyautogui
