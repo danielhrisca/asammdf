@@ -375,7 +375,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 pass
 
             try:
-                from fastparquet import write as write_parquet  # noqa: F401
+                from pyarrow.parquet import write_table as write_parquet  # noqa: F401
 
                 formats.append("Parquet")
             except ImportError:
@@ -758,7 +758,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             if name == "Parquet":
                 self.export_compression.setEnabled(True)
                 self.export_compression.clear()
-                self.export_compression.addItems(["GZIP", "SNAPPY"])
+                self.export_compression.addItems(["GZIP", "SNAPPY", "LZ4"])
                 self.export_compression.setCurrentIndex(0)
             elif name == "HDF5":
                 self.export_compression.setEnabled(True)
@@ -2704,12 +2704,13 @@ MultiRasterSeparator;&
 
         elif output_format == "Parquet":
             try:
-                from fastparquet import write as write_parquet  # noqa: F401
+                from pyarrow.parquet import write_table as write_parquet  # noqa: F401
+
             except ImportError:
                 MessageBox.critical(
                     self,
                     "Export to parquet unavailale",
-                    "fastparquet package not found; export to parquet is unavailable",
+                    "pyarrow package not found; export to parquet is unavailable",
                 )
                 return
 

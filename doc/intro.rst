@@ -88,7 +88,7 @@ optional dependencies needed for exports
 
 * h5py : for HDF5 export
 * hdf5storage : for Matlab v7.3 .mat export
-* fastparquet : for parquet export
+* pyarrow : for parquet export
 * scipy: for Matlab v4 and v5 .mat export
 
 other optional dependencies

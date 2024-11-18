@@ -103,7 +103,7 @@ setup(
     extras_require={
         "decode": ["faust-cchardet==2.1.19", "chardet"],
         "export": [
-            "fastparquet",
+            "pyarrow",
             "h5py",
             "hdf5storage>=0.1.19",
             "python-snappy",

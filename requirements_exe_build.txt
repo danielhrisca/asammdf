@@ -22,3 +22,4 @@ keyring
 pyinstaller
 scipy
 sympy
+pyarrow
