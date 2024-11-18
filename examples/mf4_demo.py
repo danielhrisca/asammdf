@@ -152,7 +152,7 @@ types = [
 ]
 
 sig = Signal(
-    np.core.records.fromarrays(samples, dtype=np.dtype(types)),
+    np.rec.fromarrays(samples, dtype=np.dtype(types)),
     t,
     name="Channel_lookup_with_axis",
     unit="A",
@@ -166,7 +166,7 @@ samples = [np.ones((cycles, 2, 3), dtype=np.uint64) * 4]
 types = [("Channel_lookup_with_default_axis", "(2, 3)<u8")]
 
 sig = Signal(
-    np.core.records.fromarrays(samples, dtype=np.dtype(types)),
+    np.rec.fromarrays(samples, dtype=np.dtype(types)),
     t,
     name="Channel_lookup_with_default_axis",
     unit="mA",
@@ -198,7 +198,7 @@ types = [
 ]
 
 sig = Signal(
-    np.core.records.fromarrays(samples, dtype=np.dtype(types)),
+    np.rec.fromarrays(samples, dtype=np.dtype(types)),
     t,
     name="Channel_structure_composition",
     comment="Structure channel composition",
@@ -221,7 +221,7 @@ types = [
     ("level44", np.float64),
 ]
 
-l4_arr = np.core.records.fromarrays(l4_arr, dtype=types)
+l4_arr = np.rec.fromarrays(l4_arr, dtype=types)
 
 l3_arr = [
     l4_arr,
@@ -235,7 +235,7 @@ types = [
     ("level33", l4_arr.dtype),
 ]
 
-l3_arr = np.core.records.fromarrays(l3_arr, dtype=types)
+l3_arr = np.rec.fromarrays(l3_arr, dtype=types)
 
 
 l2_arr = [
@@ -245,14 +245,14 @@ l2_arr = [
 
 types = [("level21", l3_arr.dtype), ("level22", l3_arr.dtype)]
 
-l2_arr = np.core.records.fromarrays(l2_arr, dtype=types)
+l2_arr = np.rec.fromarrays(l2_arr, dtype=types)
 
 
 l1_arr = [l2_arr]
 
 types = [("level11", l2_arr.dtype)]
 
-l1_arr = np.core.records.fromarrays(l1_arr, dtype=types)
+l1_arr = np.rec.fromarrays(l1_arr, dtype=types)
 
 
 sigs.append(Signal(l1_arr, t, name="Nested_structures"))

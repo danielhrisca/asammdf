@@ -21,6 +21,7 @@ from traceback import format_exc
 from typing import Any, overload
 import xml.etree.ElementTree as ET
 
+import numpy as np
 from numpy import (
     arange,
     array,
@@ -38,8 +39,14 @@ from numpy import (
     unique,
     zeros,
 )
-from numpy.core.defchararray import decode, encode
-from numpy.core.records import fromarrays, fromstring
+
+try:
+    decode = np.strings.decode
+    encode = np.strings.encode
+except:
+    decode = np.char.decode
+    encode = np.char.encode
+
 from numpy.typing import NDArray
 from pandas import DataFrame
 from typing_extensions import Literal, TypedDict
@@ -603,7 +610,7 @@ class MDF3(MDF_Common):
             ("", f"a{record_size - byte_size - byte_offset}"),
         ]
 
-        vals = fromstring(data, dtype=dtype(types))
+        vals = np.rec.fromstring(data, dtype=dtype(types))
 
         vals = vals["vals"]
 
@@ -1576,7 +1583,7 @@ class MDF3(MDF_Common):
                 new_gp.sorted = True
 
                 try:
-                    samples = fromarrays(new_fields, dtype=new_types)
+                    samples = np.rec.fromarrays(new_fields, dtype=new_types)
                     block = samples.tobytes()
                 except:
                     struct_fields = []
@@ -1986,7 +1993,7 @@ class MDF3(MDF_Common):
 
                 new_gp.sorted = True
 
-                samples = fromarrays(new_fields, dtype=new_types)
+                samples = np.rec.fromarrays(new_fields, dtype=new_types)
 
                 block = samples.tobytes()
 
@@ -2037,7 +2044,7 @@ class MDF3(MDF_Common):
         gp.sorted = True
 
         if signals:
-            samples = fromarrays(fields, dtype=types)
+            samples = np.rec.fromarrays(fields, dtype=types)
         else:
             samples = array([])
 
@@ -2293,7 +2300,7 @@ class MDF3(MDF_Common):
         gp.sorted = True
 
         if df.shape[0]:
-            samples = fromarrays(fields, dtype=types)
+            samples = np.rec.fromarrays(fields, dtype=types)
         else:
             samples = array([])
 
@@ -2479,7 +2486,7 @@ class MDF3(MDF_Common):
                 # data block
                 new_types = dtype(new_types)
 
-                samples = fromarrays(new_fields, dtype=new_types)
+                samples = np.rec.fromarrays(new_fields, dtype=new_types)
                 samples = samples.tobytes()
 
                 record_size = new_gp.channel_group.samples_byte_nr
@@ -2534,7 +2541,7 @@ class MDF3(MDF_Common):
         # data block
         types = dtype(types)
 
-        samples = fromarrays(fields, dtype=types)
+        samples = np.rec.fromarrays(fields, dtype=types)
         samples = samples.tobytes()
 
         if cycles_nr:
@@ -2935,7 +2942,7 @@ class MDF3(MDF_Common):
                     arrays.append(sig.samples)
                     types.append((sig.name, sig.samples.dtype))
 
-                vals = fromarrays(arrays, dtype=types)
+                vals = np.rec.fromarrays(arrays, dtype=types)
 
             elif dep.dependency_type >= v23c.DEPENDENCY_TYPE_NDIM:
                 shape = []
@@ -2971,7 +2978,7 @@ class MDF3(MDF_Common):
                 types = [(channel.name, vals.dtype, record_shape)]
 
                 types = dtype(types)
-                vals = fromarrays(arrays, dtype=types)
+                vals = np.rec.fromarrays(arrays, dtype=types)
 
             if not samples_only or raster:
                 timestamps = self.get_master(

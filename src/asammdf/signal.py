@@ -8,7 +8,11 @@ from textwrap import fill
 from typing import Any
 
 import numpy as np
-from numpy.core.defchararray import encode
+
+try:
+    encode = np.strings.encode
+except:
+    encode = np.char.encode
 from numpy.typing import ArrayLike, DTypeLike, NDArray
 
 from .blocks import v2_v3_blocks as v3b

@@ -65,8 +65,14 @@ from numpy import (
     where,
     zeros,
 )
-from numpy.core.defchararray import decode, encode
-from numpy.core.records import fromarrays, fromstring
+
+try:
+    decode = np.strings.decode
+    encode = np.strings.encode
+except:
+    decode = np.char.decode
+    encode = np.char.encode
+
 from numpy.typing import NDArray
 from pandas import DataFrame
 
@@ -2919,7 +2925,7 @@ class MDF4(MDF_Common):
 
                     types_ = [("o", uint32), ("s", sig_dtype, sig_shape[1:])]
 
-                    data = fromarrays(values, dtype=types_)
+                    data = np.rec.fromarrays(values, dtype=types_)
 
                     data_size = len(data) * data.itemsize
                     if data_size:
@@ -3226,7 +3232,7 @@ class MDF4(MDF_Common):
                             vals.append(signal.samples[field] + (signal.samples["day_of_week"] << 4))
                         else:
                             vals.append(signal.samples[field])
-                    vals = fromarrays(vals).tobytes()
+                    vals = np.rec.fromarrays(vals).tobytes()
 
                     if not vals.flags["C_CONTIGUOUS"]:
                         vals = np.ascontiguousarray(vals)
@@ -3580,7 +3586,7 @@ class MDF4(MDF_Common):
 
                     types_ = [("o", uint32), ("s", sig_dtype)]
 
-                    data = fromarrays(values, dtype=types_)
+                    data = np.rec.fromarrays(values, dtype=types_)
 
                     data_size = len(data) * data.itemsize
                     if data_size:
@@ -4152,7 +4158,7 @@ class MDF4(MDF_Common):
                             vals.append(signal.samples[field] + (signal.samples["day_of_week"] << 4))
                         else:
                             vals.append(signal.samples[field])
-                    samples = fromarrays(vals)
+                    samples = np.rec.fromarrays(vals)
 
                     types.append((name, "V7"))
                     gp.single_channel_dtype = dtype("V7")
@@ -4468,7 +4474,7 @@ class MDF4(MDF_Common):
 
                 types_ = [("o", uint32), ("s", sig_dtype)]
 
-                data = fromarrays(values, dtype=types_)
+                data = np.rec.fromarrays(values, dtype=types_)
 
                 data_size = len(data) * data.itemsize
                 if data_size:
@@ -4806,7 +4812,7 @@ class MDF4(MDF_Common):
 
                 types_ = [("", uint32), ("", sig.dtype)]
 
-                data = fromarrays(values, dtype=types_)
+                data = np.rec.fromarrays(values, dtype=types_)
 
                 data_size = len(data) * data.itemsize
                 if data_size:
@@ -4894,7 +4900,7 @@ class MDF4(MDF_Common):
         gp.sorted = True
 
         if df.shape[0]:
-            samples = fromarrays(fields, dtype=types)
+            samples = np.rec.fromarrays(fields, dtype=types)
         else:
             samples = array([])
 
@@ -5856,7 +5862,7 @@ class MDF4(MDF_Common):
                     vals = []
                     for field in ("ms", "min", "hour", "day", "month", "year"):
                         vals.append(signal[field])
-                    vals = fromarrays(vals).tobytes()
+                    vals = np.rec.fromarrays(vals).tobytes()
 
                     fields.append((vals, 7))
 
@@ -5972,7 +5978,7 @@ class MDF4(MDF_Common):
 
                     types_ = [("", uint32), ("", signal.dtype)]
 
-                    values = fromarrays(values, dtype=types_)
+                    values = np.rec.fromarrays(values, dtype=types_)
 
                     stream.seek(0, 2)
                     addr = stream.tell()
@@ -6157,7 +6163,7 @@ class MDF4(MDF_Common):
                     vals = []
                     for field in ("ms", "min", "hour", "day", "month", "year"):
                         vals.append(signal[field])
-                    samples = fromarrays(vals)
+                    samples = np.rec.fromarrays(vals)
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 samples = signal
@@ -6174,7 +6180,7 @@ class MDF4(MDF_Common):
 
                 types_ = [("", uint32), ("", signal.dtype)]
 
-                values = fromarrays(values, dtype=types_)
+                values = np.rec.fromarrays(values, dtype=types_)
 
                 addr = tell()
                 block_size = len(values) * values.itemsize
@@ -7059,7 +7065,7 @@ class MDF4(MDF_Common):
             types = [(name_, arr.dtype, arr.shape[1:]) for name_, arr in zip(names, arrays)]
             types = dtype(types)
 
-            vals = fromarrays(arrays, dtype=types)
+            vals = np.rec.fromarrays(arrays, dtype=types)
 
         if master_is_required:
             if count > 1:
@@ -7351,7 +7357,7 @@ class MDF4(MDF_Common):
                         dtype_pair = (axisname, axis_values.dtype, shape)
                         types.append(dtype_pair)
 
-            vals = fromarrays(arrays, dtype(types))
+            vals = np.rec.fromarrays(arrays, dtype(types))
 
             if master_is_required:
                 timestamps.append(self.get_master(gp_nr, fragment, one_piece=True))
@@ -7904,7 +7910,7 @@ class MDF4(MDF_Common):
                     "summer_time",
                     "day_of_week",
                 ]
-                vals = fromarrays(arrays, names=names)
+                vals = np.rec.fromarrays(arrays, names=names)
 
             # CANopen time
             elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
@@ -7959,7 +7965,7 @@ class MDF4(MDF_Common):
             ("", f"a{record_size - byte_size - byte_offset}"),
         ]
 
-        vals = fromstring(data, dtype=dtype(types))
+        vals = np.rec.fromstring(data, dtype=dtype(types))
 
         vals = vals["vals"]
 
@@ -10350,7 +10356,7 @@ class MDF4(MDF_Common):
                         cols = param
                         lines = dtblock_raw_size // cols
 
-                        nd = fromstring(new_data[: lines * cols], dtype=uint8)
+                        nd = np.rec.fromstring(new_data[: lines * cols], dtype=uint8)
                         nd = nd.reshape((cols, lines))
                         new_data = nd.T.ravel().tobytes() + new_data[lines * cols :]
 
