@@ -264,7 +264,7 @@ def merge_cantp(payload, ts):
     merging = np.array([], "uint8")
     for frame, t in zip(payload, ts):
         if frame[0] & 0xF0 == INITIAL:
-            expected_size = 256 * (frame[0] & 0x0F) + frame[1]
+            expected_size = np.uint16(256) * (frame[0] & 0x0F) + frame[1]
             merging = np.array(frame[2:8], "uint8")
         if frame[0] & 0xF0 == CONSECUTIVE:
             merging = np.hstack((merging, frame[1:]))
