@@ -4,13 +4,4 @@ sphinx
 sphinx-argparse
 sphinx-rtd-theme
 sphinxcontrib-mermaid
-# canmatrix ImportError workaround
-PyYAML
-xlrd
-XlsxWriter
-xlwt
-canmatrix
-pandas
-numexpr
-lz4
 numpy>=1.23.0

@@ -1,4 +1,5 @@
 import bisect
+import builtins
 import collections
 from collections import namedtuple
 import ctypes
@@ -31,13 +32,9 @@ from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
 from .dialogs.messagebox import MessageBox
 
-_BUILTINS = dict(collections.__builtins__)
+_BUILTINS = vars(builtins).copy()
 for key in ("breakpoint", "compile", "eval", "exec", "input", "open"):
     _BUILTINS.pop(key, None)
-
-for module in (bisect, collections, itertools, random, struct, math, pd, np):
-    if hasattr(module, "__builtins__"):
-        module.__builtins__ = dict(_BUILTINS)
 
 ERROR_ICON = None
 RANGE_INDICATOR_ICON = None
@@ -1216,7 +1213,7 @@ def generate_python_function_globals() -> dict:
         "pd": pd,
         "random": random,
         "struct": struct,
-        "__builtins__": dict(_BUILTINS),
+        "__builtins__": _BUILTINS,
     }
 
 

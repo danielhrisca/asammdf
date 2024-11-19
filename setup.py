@@ -11,10 +11,6 @@ from setuptools import Extension, find_packages, setup
 PROJECT_PATH = Path(__file__).parent
 
 
-with (PROJECT_PATH / "requirements.txt").open() as f:
-    install_requires = [l.strip() for l in f.readlines()]
-
-
 def _get_version():
     with PROJECT_PATH.joinpath("src", "asammdf", "version.py").open() as f:
         line = next(line for line in f if line.startswith("__version__"))
@@ -95,7 +91,17 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=install_requires,
+    install_requires=[
+        "canmatrix[arxml,dbc]>=1.0",
+        "isal; platform_machine == 'x86_64' or platform_machine == 'AMD64'",
+        "lxml>=4.9.3",
+        "lz4",
+        "numexpr",
+        "numpy>=1.23.0",
+        "pandas",
+        "python-dateutil",
+        "typing-extensions",
+    ],
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
     # for example:
@@ -110,7 +116,7 @@ setup(
         ],
         "export_matlab_v5": "scipy",
         "gui": [
-            "lxml>=4.9.2",
+            "asammdf[decode,export]",
             "natsort",
             "PySide6",
             "pyqtgraph",
@@ -135,6 +141,6 @@ setup(
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.
-    entry_points={"console_scripts": ["asammdf = asammdf.app.asammdfgui:main [gui,export,decode]"]},
+    entry_points={"console_scripts": ["asammdf = asammdf.app.asammdfgui:main [gui]"]},
     ext_modules=_get_ext_modules(),
 )

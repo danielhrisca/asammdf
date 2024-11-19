@@ -1,7 +1,5 @@
 numpy
 matplotlib
 asammdf
-mdfreader
-blosc
-numpexpr
+mdfreader[compression]
 psutil

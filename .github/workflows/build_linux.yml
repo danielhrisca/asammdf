@@ -11,32 +11,29 @@ jobs:
         python-version: ["3.10"]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install packages
         run: |
-            pip install build numpy wheel
-            pip install -r requirements_exe_build.txt
-            python setup.py bdist_wheel
-            pip install -e . --no-deps
-            pip install cmerg
+          pip install -r requirements_exe_build.txt
+          python -m build --wheel
 
       - name: Build an executable
         shell: bash
         if: ${{ matrix.python-version == '3.10' }}
         run: |
-            sudo apt update
-            sudo apt install libegl1 libopengl0
-            pyinstaller asammdf.spec --distpath dist/${RUNNER_OS} --noconfirm --clean
+          sudo apt update
+          sudo apt install libegl1 libopengl0
+          pyinstaller asammdf.spec --distpath dist/${RUNNER_OS} --noconfirm --clean
 
       # see: https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
       - name: Archive dist artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/**

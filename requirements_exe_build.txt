@@ -1,25 +1,5 @@
-canmatrix[arxml,dbc]>=1.0
-lz4
-numexpr
-numpy
-pandas
-typing_extensions
-isal; platform_machine == "x86_64" or platform_machine == "AMD64"
-lxml
-natsort 
-PySide6==6.7.3
-pyqtgraph
-QtPy
-pyqtlet2
+--editable .[decode,encryption,export,export_matlab_v5,gui,symbolic_math]
+build
+cmerg
 pyopengl
-h5py  
-hdf5storage 
-snappy 
-faust-cchardet
-chardet
-cryptography
-keyring
 pyinstaller
-scipy
-sympy
-pyarrow
