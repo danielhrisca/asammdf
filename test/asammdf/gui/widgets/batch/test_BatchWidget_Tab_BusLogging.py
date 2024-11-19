@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+import urllib
+import urllib.request
+from pathlib import Path
+from zipfile import ZipFile
 
 from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 
@@ -7,5 +11,16 @@ from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 
 
 class TestPushButtons(TestBatchWidget):
-    default_test_file = "ASAP2_Demo_V171.mf4"
-    class_test_file = "test_batch.mf4"
+    def setUp(self):
+        url = "https://github.com/danielhrisca/asammdf/files/4328945/OBD2-DBC-MDF4.zip"
+        urllib.request.urlretrieve(url, "test.zip")
+        ZipFile(r"test.zip").extractall(self.test_workspace)
+        Path("test.zip").unlink()
+        temp_dir = Path(self.test_workspace)
+
+        # Get test files path
+        mdf_path = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
+        dbc_path = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
+        npy_path = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
+
+        print(mdf_path, dbc_path, npy_path)

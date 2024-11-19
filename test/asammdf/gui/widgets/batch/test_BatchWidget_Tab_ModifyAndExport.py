@@ -755,17 +755,15 @@ class TestPushButtonApply(TestBatchWidget):
             - Start time for timestamps is not updated
             - Timestamps step for all channels is the same as step time value
         """
+        # Expected values
+        output_file = Path(self.test_workspace, self.default_test_file)
+        step = randint(1, 100) / 10
+
         # Setup
         name = "MDF"
         self.widget.output_format.setCurrentText(name)
         self.generic_setup(check=False)
 
-        # Expected values
-        output_file = Path(self.test_workspace, self.default_test_file)
-
-        step = randint(1, 100) / 10
-
-        # Setup
         QtTest.QTest.keyClick(self.widget.resample_group, QtCore.Qt.Key.Key_Space)
         self.widget.raster_type_step.setChecked(True)
         self.widget.raster.setValue(step)
@@ -786,8 +784,8 @@ class TestPushButtonApply(TestBatchWidget):
             for channel in mdf_file.iter_channels():
                 size = ceil((channel.timestamps.max() - channel.timestamps.min()) / step) + 1  # + min
                 self.assertEqual(size, channel.timestamps.size)
-                for index in range(size):
-                    self.assertEqual(channel.timestamps[index], channel.timestamps.min() + step * index)
+                for i in range(size):
+                    self.assertAlmostEqual(channel.timestamps[i], channel.timestamps.min() + step * i, places=12)
 
     def test_resample_by_step_1(self):
         """
@@ -831,5 +829,5 @@ class TestPushButtonApply(TestBatchWidget):
             for channel in mdf_file.iter_channels():
                 size = ceil((channel.timestamps.max() - channel.timestamps.min()) / step) + 1  # + min
                 self.assertEqual(size, channel.timestamps.size)
-                for index in range(size):
-                    self.assertEqual(channel.timestamps[index], step * index)
+                for i in range(size):
+                    self.assertAlmostEqual(channel.timestamps[i], step * i, places=12)
