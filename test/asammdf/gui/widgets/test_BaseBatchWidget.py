@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 import os
 from pathlib import Path
 import shutil
@@ -38,7 +38,6 @@ class TestBatchWidget(TestBase):
         if measurement_files is None:
             self.widget = BatchWidget(*args)
             self.processEvents()
-            self.widget.files_list.addItems([str(Path(self.test_workspace, self.default_test_file))])
 
         else:
             self.widget = BatchWidget(*args)
@@ -58,38 +57,43 @@ class TestBatchWidget(TestBase):
             if file.endswith((".mf4", ".mdf")):
                 shutil.copyfile(Path(self.resource, file), Path(self.test_workspace, file))
 
-    def select_channels(self, start=0, end=0) -> list:
+    def select_channels(self, channels_list: Iterable[str | int]) -> list:
         """
-        Set selected channels from start to end index.
+        Select channels from a list of names or indexes.
 
         Parameters
         ----------
-        start: first selected channel index
-        end: last selected channel index
+        channels_list: a list of channel names or indexes
 
         Returns
         -------
         channels names list
         """
-        channels = []
+        self.selected_channels = []
         iterator = QTreeWidgetItemIterator(self.widget.filter_tree)
 
         count = 0
-        while iterator.value() and not (count == end):
-            if count >= start:
-                item = iterator.value()
+        while iterator.value():
+            item = iterator.value()
+            if (
+                (item.name in channels_list or count in channels_list)
+                and "time" not in item.name.lower()
+                and "$" not in item.name
+            ):  # by name or index, exclde time and calibration channels
                 item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                 self.assertTrue(item.checkState(0) == QtCore.Qt.CheckState.Checked)
-                channels.append(item.text(0))
+                self.selected_channels.append(item.name)
+                self.processEvents()
+
             iterator += 1
             count += 1
 
         # Evaluate that channels were added to "selected_filter_channels"
         for index in range(self.widget.selected_filter_channels.count()):
             item = self.widget.selected_filter_channels.item(index)
-            self.assertIn(item.text(), channels)
+            self.assertIn(item.text(), self.selected_channels)
 
-        return channels
+        return self.selected_channels
 
     def get_selected_groups(self, channels: list) -> dict:
         self.widget.filter_view.setCurrentText("Internal file structure")
