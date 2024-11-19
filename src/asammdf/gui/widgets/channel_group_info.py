@@ -47,7 +47,7 @@ class ChannelGroupInfoWidget(Ui_ChannelGroupInfo, QtWidgets.QWidget):
         else:
             self.record_size = channel_group.samples_byte_nr
 
-        self.wrap.stateChanged.connect(self.wrap_changed)
+        self.wrap.checkStateChanged.connect(self.wrap_changed)
         self._display(self.position)
 
     def wrap_changed(self):

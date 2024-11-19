@@ -5833,6 +5833,9 @@ class MDF4(MDF_Common):
 
         invalidation_bytes_nr = gp.channel_group.invalidation_bytes_nr
         for i, ((signal, invalidation_bits), sig_type) in enumerate(zip(signals, gp.signal_types)):
+            if invalidation_bits is not None and not isinstance(invalidation_bits, InvalidationArray):
+                invalidation_bits = InvalidationArray(invalidation_bits)
+
             # first add the signals in the simple signal list
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
                 s_type, s_size = fmt_to_datatype_v4(signal.dtype, signal.shape)

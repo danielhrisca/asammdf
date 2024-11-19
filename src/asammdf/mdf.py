@@ -148,7 +148,7 @@ def get_temporary_filename(path: Path = Path("temporary.mf4"), dir: str | Path |
 
 
 class MDF:
-    """Unified access to MDF v3 and v4 files. Underlying _mdf's attributes and
+    r"""Unified access to MDF v3 and v4 files. Underlying _mdf's attributes and
     methods are linked to the `MDF` object via *setattr*. This is done to expose
     them to the user code and for performance considerations.
 
@@ -4252,7 +4252,6 @@ class MDF:
                                     df[channel_name] = pd.Series(
                                         sig.samples,
                                         index=sig_index,
-                                        fastpath=True,
                                     )
                             else:
                                 if reduce_memory_usage:
@@ -4264,7 +4263,6 @@ class MDF:
                                 df[channel_name] = pd.Series(
                                     sig.samples,
                                     index=sig_index,
-                                    fastpath=True,
                                 )
 
                     if progress is not None:
@@ -4638,7 +4636,7 @@ class MDF:
                     if sig.samples.dtype.byteorder not in target_byte_order:
                         sig.samples = sig.samples.byteswap().view(sig.samples.dtype.newbyteorder())
 
-                    df[channel_name] = pd.Series(sig.samples, index=sig_index, fastpath=True)
+                    df[channel_name] = pd.Series(sig.samples, index=sig_index)
 
             if progress is not None:
                 if callable(progress):
@@ -5292,7 +5290,7 @@ class MDF:
                                 unknown_ids[msg_id].append(True)
                                 continue
 
-                            found_ids[dbc_name].add((msg_id, message.name))
+                            found_ids[dbc_name].add(((msg_id, False, False), message.name))
                             try:
                                 current_not_found_ids.remove((msg_id, message.name))
                             except KeyError:

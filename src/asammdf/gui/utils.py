@@ -1,4 +1,5 @@
 import bisect
+import builtins
 import collections
 from collections import namedtuple
 import ctypes
@@ -31,13 +32,9 @@ from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
 from .dialogs.messagebox import MessageBox
 
-_BUILTINS = dict(collections.__builtins__)
+_BUILTINS = vars(builtins).copy()
 for key in ("breakpoint", "compile", "eval", "exec", "input", "open"):
     _BUILTINS.pop(key, None)
-
-for module in (bisect, collections, itertools, random, struct, math, pd, np):
-    if hasattr(module, "__builtins__"):
-        module.__builtins__ = dict(_BUILTINS)
 
 ERROR_ICON = None
 RANGE_INDICATOR_ICON = None
@@ -1216,7 +1213,7 @@ def generate_python_function_globals() -> dict:
         "pd": pd,
         "random": random,
         "struct": struct,
-        "__builtins__": dict(_BUILTINS),
+        "__builtins__": _BUILTINS,
     }
 
 
@@ -1298,7 +1295,7 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
     args = inspect.signature(func)
     kwargs = {}
     for i, (arg_name, arg) in enumerate(args.parameters.items()):
-        kwargs[arg_name] = random.randint(1, 256)
+        kwargs[arg_name] = arg.default
 
     trace = ""
 
@@ -1318,7 +1315,7 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
 
     kwargs = {}
     for i, (arg_name, arg) in enumerate(args.parameters.items()):
-        kwargs[arg_name] = np.ones(10000, dtype="i1") * random.randint(1, 2**64)
+        kwargs[arg_name] = np.ones(10000, dtype="i8") * arg.default
 
     # try with complete signal call
     complete_signal = True

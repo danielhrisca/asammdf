@@ -1223,8 +1223,8 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
         self.add_filter_btn.clicked.connect(self.add_filter)
         self.apply_filters_btn.clicked.connect(self.apply_filters)
-        self.time_as_date.stateChanged.connect(self.time_as_date_changed)
-        self.remove_prefix.stateChanged.connect(self.remove_prefix_changed)
+        self.time_as_date.checkStateChanged.connect(self.time_as_date_changed)
+        self.remove_prefix.checkStateChanged.connect(self.remove_prefix_changed)
         self.format_selection.currentTextChanged.connect(self.set_format)
 
         self.toggle_filters_btn.clicked.connect(self.toggle_filters)

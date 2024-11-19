@@ -11,10 +11,10 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
@@ -22,14 +22,14 @@ jobs:
         shell: bash
         run: |
           pip install tox coveralls
-          if [ "$RUNNER_OS" == "Linux" ]; then
-             sudo apt update
-             sudo apt-get install libegl1 libopengl0
-             sudo apt-get install '^libxcb.*-dev' libx11-xcb-dev libglu1-mesa-dev libxrender-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev
-             sudo apt-get install libxcb-xinerama0
-             sudo apt-get install libxkbcommon-x11-0
-             sudo apt-get install xorg
-             sudo apt-get install -y xvfb
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            sudo apt update
+            sudo apt-get install libegl1 libopengl0
+            sudo apt-get install '^libxcb.*-dev' libx11-xcb-dev libglu1-mesa-dev libxrender-dev libxi-dev libxkbcommon-dev libxkbcommon-x11-dev
+            sudo apt-get install libxcb-xinerama0
+            sudo apt-get install libxkbcommon-x11-0
+            sudo apt-get install xorg
+            sudo apt-get install -y xvfb
           fi
 
       - name: Start Xvfb
