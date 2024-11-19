@@ -1295,7 +1295,7 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
     args = inspect.signature(func)
     kwargs = {}
     for i, (arg_name, arg) in enumerate(args.parameters.items()):
-        kwargs[arg_name] = random.randint(1, 256)
+        kwargs[arg_name] = arg.default
 
     trace = ""
 
@@ -1315,7 +1315,7 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
 
     kwargs = {}
     for i, (arg_name, arg) in enumerate(args.parameters.items()):
-        kwargs[arg_name] = np.ones(10000, dtype="i1") * random.randint(1, 2**64)
+        kwargs[arg_name] = np.ones(10000, dtype="i8") * arg.default
 
     # try with complete signal call
     complete_signal = True
