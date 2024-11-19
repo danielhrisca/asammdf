@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import datetime
+from math import ceil
 from pathlib import Path
 from random import randint
 import unittest
@@ -99,7 +100,7 @@ class TestPushButtonApply(TestBatchWidget):
 
         self.assertEqual(self.widget.modify_output_folder.text().strip(), self.test_workspace)
 
-    def generic_setup(self, name: str = "HDF5", check: bool = True):  # HDF5 and Parquet is combined
+    def generic_setup(self, name: str = "MDF", check: bool = True):  # Parquet is removed?
         """
         Add default test file to files list
         Check checkboxes for random channels.
@@ -639,7 +640,7 @@ class TestPushButtonApply(TestBatchWidget):
         # Setup
         name = "MDF"
         self.widget.output_format.setCurrentText(name)
-        self.generic_setup(name=name, check=False)
+        self.generic_setup(check=False)
 
         # Expected values
         output_file = Path(self.test_workspace, self.default_test_file)
@@ -672,10 +673,9 @@ class TestPushButtonApply(TestBatchWidget):
         # Wait for thread to finish
         while self.widget._progress:
             self.processEvents(0.1)
-        self.processEvents(0.1)
 
         # Evaluate
-        output_file.exists()
+        self.assertTrue(output_file.exists())
         with OpenMDF(output_file) as mdf_file:
             time_dif = expected_start_time - mdf_file.start_time
             self.assertEqual(time_dif.microseconds, 0)
@@ -701,7 +701,7 @@ class TestPushButtonApply(TestBatchWidget):
         # Setup
         name = "MDF"
         self.widget.output_format.setCurrentText(name)
-        self.generic_setup(name=name, check=False)
+        self.generic_setup(check=False)
 
         # Expected values
         output_file = Path(self.test_workspace, self.default_test_file)
@@ -733,13 +733,103 @@ class TestPushButtonApply(TestBatchWidget):
         # Wait for thread to finish
         while self.widget._progress:
             self.processEvents(0.1)
-        self.processEvents(0.1)
 
         # Evaluate
-        output_file.exists()
+        self.assertTrue(output_file.exists())
         with OpenMDF(output_file) as mdf_file:
             self.assertEqual(self.start_time, mdf_file.start_time)
 
             for channel in mdf_file.iter_channels():
                 self.assertEqual(channel.timestamps.min(), start_cut)
                 self.assertEqual(channel.timestamps.max(), stop_cut)
+
+    def test_resample_by_step_0(self):
+        """
+        Events
+            - Check resample group checkbox
+            - Set step time
+            - Press Apply bush button
+
+        Evaluate
+            - In test workspace folder was created file with same name as original measurement file
+            - Start time for timestamps is not updated
+            - Timestamps step for all channels is the same as step time value
+        """
+        # Setup
+        name = "MDF"
+        self.widget.output_format.setCurrentText(name)
+        self.generic_setup(check=False)
+
+        # Expected values
+        output_file = Path(self.test_workspace, self.default_test_file)
+
+        step = randint(1, 100) / 10
+
+        # Setup
+        QtTest.QTest.keyClick(self.widget.resample_group, QtCore.Qt.Key.Key_Space)
+        self.widget.raster_type_step.setChecked(True)
+        self.widget.raster.setValue(step)
+        for checkbox in self.widget.resample_group.findChildren(QtWidgets.QCheckBox):
+            if checkbox.isChecked():
+                self.mouseClick_CheckboxButton(checkbox)
+        self.processEvents(0.01)
+
+        # Event
+        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
+        # Wait for thread to finish
+        while self.widget._progress:
+            self.processEvents(0.1)
+
+        # Evaluate
+        self.assertTrue(output_file.exists())
+        with OpenMDF(output_file) as mdf_file:
+            for channel in mdf_file.iter_channels():
+                size = ceil((channel.timestamps.max() - channel.timestamps.min()) / step) + 1  # + min
+                self.assertEqual(size, channel.timestamps.size)
+                for index in range(size):
+                    self.assertEqual(channel.timestamps[index], channel.timestamps.min() + step * index)
+
+    def test_resample_by_step_1(self):
+        """
+        Events
+            - Check resample group checkbox
+            - Set step time
+            - Check Time from zero checkbox
+            - Press Apply bush button
+
+        Evaluate
+            - In test workspace folder was created file with same name as original measurement file
+            - Start time for timestamps is 0
+            - Timestamps step for all channels is the same as step time value
+        """
+        # Expected values
+        output_file = Path(self.test_workspace, self.default_test_file)
+        step = randint(1, 100) / 10
+
+        # Setup
+        name = "MDF"
+        self.widget.output_format.setCurrentText(name)
+        self.generic_setup(check=False)
+
+        QtTest.QTest.keyClick(self.widget.resample_group, QtCore.Qt.Key.Key_Space)
+        self.widget.raster_type_step.setChecked(True)
+        self.widget.raster.setValue(step)
+        for checkbox in self.widget.resample_group.findChildren(QtWidgets.QCheckBox):
+            if not checkbox.isChecked():
+                self.mouseClick_CheckboxButton(checkbox)
+        self.processEvents(0.01)
+
+        # Event
+        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
+        # Wait for thread to finish
+        while self.widget._progress:
+            self.processEvents(0.1)
+
+        # Evaluate
+        self.assertTrue(output_file.exists())
+        with OpenMDF(output_file) as mdf_file:
+            for channel in mdf_file.iter_channels():
+                size = ceil((channel.timestamps.max() - channel.timestamps.min()) / step) + 1  # + min
+                self.assertEqual(size, channel.timestamps.size)
+                for index in range(size):
+                    self.assertEqual(channel.timestamps[index], step * index)
