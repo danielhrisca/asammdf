@@ -279,8 +279,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             message = self._progress.result
 
             self.output_info_bus.setPlainText("\n".join(message))
-
-        self._progress.close()
         self._progress = None
 
     def extract_bus_logging(self, event):
@@ -386,10 +384,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 ]
                 for dbc_name, found_ids in call_info["found_ids"].items():
                     for msg_id, msg_name in sorted(found_ids):
-                        try:
-                            message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
-                        except:
-                            pgn, sa = msg_id
+                        if not msg_id[2]:
+                            msg_id, extended = msg_id[:2]
+                            message.append(f"- 0x{msg_id:X} {extended=} --> {msg_name} in <{dbc_name}>")
+
+                        else:
+                            pgn, sa = msg_id[:2]
                             message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X} --> {msg_name} in <{dbc_name}>")
 
                 message += [
