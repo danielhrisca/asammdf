@@ -129,22 +129,22 @@ logger = logging.getLogger("asammdf")
 __all__ = [
     "CHANNEL_COUNT",
     "CONVERT",
-    "MERGE",
-    "ChannelsDB",
-    "UniqueDB",
-    "MdfException",
-    "get_fmt_v3",
-    "get_fmt_v4",
-    "get_text_v4",
-    "fmt_to_datatype_v3",
-    "fmt_to_datatype_v4",
-    "matlab_compatible",
-    "extract_xml_comment",
-    "validate_version_argument",
     "MDF2_VERSIONS",
     "MDF3_VERSIONS",
     "MDF4_VERSIONS",
+    "MERGE",
     "SUPPORTED_VERSIONS",
+    "ChannelsDB",
+    "MdfException",
+    "UniqueDB",
+    "extract_xml_comment",
+    "fmt_to_datatype_v3",
+    "fmt_to_datatype_v4",
+    "get_fmt_v3",
+    "get_fmt_v4",
+    "get_text_v4",
+    "matlab_compatible",
+    "validate_version_argument",
 ]
 
 CHANNEL_COUNT = (1000, 2000, 10000, 20000)
@@ -1222,26 +1222,26 @@ def get_video_stream_duration(stream: bytes) -> float | None:
 
 class Group:
     __slots__ = (
-        "channels",
         "channel_dependencies",
-        "signal_data",
         "channel_group",
-        "record_size",
-        "sorted",
-        "data_group",
-        "data_location",
+        "channels",
         "data_blocks",
         "data_blocks_info_generator",
-        "record_size",
-        "record",
-        "signal_types",
-        "trigger",
-        "string_dtypes",
-        "single_channel_dtype",
-        "uses_ld",
-        "read_split_count",
-        "uuid",
+        "data_group",
+        "data_location",
         "index",
+        "read_split_count",
+        "record",
+        "record_size",
+        "record_size",
+        "signal_data",
+        "signal_types",
+        "single_channel_dtype",
+        "sorted",
+        "string_dtypes",
+        "trigger",
+        "uses_ld",
+        "uuid",
     )
 
     def __init__(self, data_group: DataGroupType) -> None:
@@ -1312,9 +1312,9 @@ class VirtualChannelGroup:
     handling of this virtual groups"""
 
     __slots__ = (
+        "cycles_nr",
         "groups",
         "record_size",
-        "cycles_nr",
     )
 
     def __init__(self) -> None:
@@ -1470,12 +1470,12 @@ def components(
 class DataBlockInfo:
     __slots__ = (
         "address",
-        "block_type",
-        "original_size",
-        "compressed_size",
-        "param",
-        "invalidation_block",
         "block_limit",
+        "block_type",
+        "compressed_size",
+        "invalidation_block",
+        "original_size",
+        "param",
     )
 
     def __init__(
@@ -1539,11 +1539,11 @@ class InvalidationBlockInfo(DataBlockInfo):
 class SignalDataBlockInfo:
     __slots__ = (
         "address",
-        "original_size",
-        "compressed_size",
-        "param",
         "block_type",
+        "compressed_size",
         "location",
+        "original_size",
+        "param",
     )
 
     def __init__(

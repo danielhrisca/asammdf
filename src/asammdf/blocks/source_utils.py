@@ -14,7 +14,7 @@ from . import v4_constants as v4c
 
 
 class Source:
-    __slots__ = "name", "path", "comment", "source_type", "bus_type"
+    __slots__ = "bus_type", "comment", "name", "path", "source_type"
 
     SOURCE_OTHER = v4c.SOURCE_OTHER
     SOURCE_ECU = v4c.SOURCE_ECU

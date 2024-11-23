@@ -2307,9 +2307,9 @@ class Plot(QtWidgets.QWidget):
                         item.setCheckState(item.NameColumn, QtCore.Qt.CheckState.Checked)
             elif item.type() == item.Group:
                 if (
-                    (Plot.item_double_click_handling == "enable/disable" and button == QtCore.Qt.MouseButton.LeftButton)
-                    or Plot.item_double_click_handling == "expand/collapse"
-                    and button == QtCore.Qt.MouseButton.RightButton
+                    Plot.item_double_click_handling == "enable/disable" and button == QtCore.Qt.MouseButton.LeftButton
+                ) or (
+                    Plot.item_double_click_handling == "expand/collapse" and button == QtCore.Qt.MouseButton.RightButton
                 ):
                     if self.channel_selection.expandsOnDoubleClick():
                         self.channel_selection.setExpandsOnDoubleClick(False)
@@ -3464,9 +3464,8 @@ class Plot(QtWidgets.QWidget):
                 if item.type() == ChannelsTreeItem.Channel:
                     _item_cache[item.uuid] = item
 
-                    if (
-                        item.uuid == self.info_uuid
-                        or item.exists
+                    if item.uuid == self.info_uuid or (
+                        item.exists
                         and (item.checkState(item.NameColumn) == QtCore.Qt.CheckState.Checked or item._is_visible)
                     ):
                         entry = (item.origin_uuid, item.signal.name, item.uuid)
@@ -5264,11 +5263,8 @@ class PlotGraphics(pg.PlotWidget):
             default_connect = curve.opts["connect"]
 
             for i, sig in enumerate(self.signals):
-                if (
-                    not sig.enable
-                    or flash_current_signal > 0
-                    and flash_current_signal % 2 == 0
-                    and sig.uuid == self.current_uuid
+                if not sig.enable or (
+                    flash_current_signal > 0 and flash_current_signal % 2 == 0 and sig.uuid == self.current_uuid
                 ):
                     continue
 
@@ -5526,7 +5522,7 @@ class PlotGraphics(pg.PlotWidget):
 
             rect = None
 
-            if zoom_mode == self.viewbox.X_zoom or zoom_mode in self.viewbox.XY_zoom and self.locked:
+            if zoom_mode == self.viewbox.X_zoom or (zoom_mode in self.viewbox.XY_zoom and self.locked):
                 x1, x2 = sorted([x1, x2])
                 rect = QtCore.QRectF(
                     x1,
