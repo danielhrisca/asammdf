@@ -25,7 +25,7 @@ skip = ["pp*", "*_ppc64le", "*-musllinux*", "*_s390x"]
 
 [tool.ruff]
 target-version = "py39"
-extend-exclude = ["benchmarks", "ci", "doc", "examples", "./src/asammdf/gui/ui"]
+extend-exclude = ["./src/asammdf/gui/ui"]
 force-exclude = true
 
 [tool.ruff.lint]

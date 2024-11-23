@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
 """
 module to generate benchmark graphs from textul result file
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -21,12 +21,7 @@ def generate_graphs(result, topic, aspect, for_doc=False):
         wether the source code is used inside the documentation
 
     """
-    result = result
-    topic = topic
-    aspect = aspect
-    for_doc = for_doc
-
-    with open(result, "r") as f:
+    with open(result) as f:
         lines = f.readlines()
 
     platform = "x86" if "32 bit" in lines[2] else "x64"
@@ -81,14 +76,14 @@ def generate_graphs(result, topic, aspect, for_doc=False):
 
     if aspect == "time":
         if topic == "Get":
-            name = "{}_get_all_channels.png".format(platform)
+            name = f"{platform}_get_all_channels.png"
         else:
-            name = "{}_{}.png".format(platform, topic.lower())
+            name = f"{platform}_{topic.lower()}.png"
     else:
         if topic == "Get":
-            name = "{}_get_all_channels_ram_usage.png".format(platform)
+            name = f"{platform}_get_all_channels_ram_usage.png"
         else:
-            name = "{}_{}_ram_usage.png".format(platform, topic.lower())
+            name = f"{platform}_{topic.lower()}_ram_usage.png"
 
     if for_doc:
         plt.show()
