@@ -150,34 +150,34 @@ class Channel:
     """
 
     __slots__ = (
-        "name",
-        "display_names",
-        "comment",
-        "conversion",
-        "unit",
-        "source",
-        "address",
-        "id",
-        "block_len",
-        "next_ch_addr",
-        "conversion_addr",
-        "source_addr",
-        "component_addr",
-        "comment_addr",
-        "channel_type",
-        "short_name",
-        "description",
-        "start_offset",
-        "bit_count",
-        "data_type",
-        "range_flag",
-        "min_raw_value",
-        "max_raw_value",
-        "sampling_rate",
-        "long_name_addr",
-        "display_name_addr",
         "additional_byte_offset",
+        "address",
+        "bit_count",
+        "block_len",
+        "channel_type",
+        "comment",
+        "comment_addr",
+        "component_addr",
+        "conversion",
+        "conversion_addr",
+        "data_type",
+        "description",
+        "display_name_addr",
+        "display_names",
         "dtype_fmt",
+        "id",
+        "long_name_addr",
+        "max_raw_value",
+        "min_raw_value",
+        "name",
+        "next_ch_addr",
+        "range_flag",
+        "sampling_rate",
+        "short_name",
+        "source",
+        "source_addr",
+        "start_offset",
+        "unit",
     )
 
     def __init__(self, **kwargs) -> None:
@@ -824,26 +824,6 @@ comment: {self.comment}
 
 class _ChannelConversionBase:
     __slots__ = (
-        "unit",
-        "unit_field",
-        "formula",
-        "formula_field",
-        "referenced_blocks",
-        "address",
-        "id",
-        "reserved0",
-        "block_len",
-        "comment_addr",
-        "inv_conv_addr",
-        "conversion_type",
-        "precision",
-        "flags",
-        "ref_param_nr",
-        "val_param_nr",
-        "min_phy_value",
-        "max_phy_value",
-        "a",
-        "b",
         "P1",
         "P2",
         "P3",
@@ -851,6 +831,26 @@ class _ChannelConversionBase:
         "P5",
         "P6",
         "P7",
+        "a",
+        "address",
+        "b",
+        "block_len",
+        "comment_addr",
+        "conversion_type",
+        "flags",
+        "formula",
+        "formula_field",
+        "id",
+        "inv_conv_addr",
+        "max_phy_value",
+        "min_phy_value",
+        "precision",
+        "ref_param_nr",
+        "referenced_blocks",
+        "reserved0",
+        "unit",
+        "unit_field",
+        "val_param_nr",
     )
 
 
@@ -1370,7 +1370,7 @@ address: {hex(self.address)}
 
         for key in keys:
             val = getattr(self, key)
-            if key.endswith("addr") or key.startswith("text_") and isinstance(val, int):
+            if key.endswith("addr") or (key.startswith("text_") and isinstance(val, int)):
                 lines.append(template.format(key, hex(val)))
             elif isinstance(val, float):
                 lines.append(template.format(key, val))
@@ -1871,22 +1871,22 @@ class ChannelExtension:
     """
 
     __slots__ = (
+        "CAN_ch_index",
+        "CAN_id",
+        "ECU_identification",
         "address",
+        "block_len",
+        "comment",
+        "description",
+        "id",
+        "message_name",
+        "module_address",
+        "module_nr",
         "name",
         "path",
-        "comment",
-        "id",
-        "block_len",
-        "type",
-        "module_nr",
-        "module_address",
-        "description",
-        "ECU_identification",
         "reserved0",
-        "CAN_id",
-        "CAN_ch_index",
-        "message_name",
         "sender_name",
+        "type",
     )
 
     def __init__(self, **kwargs) -> None:
@@ -2174,17 +2174,17 @@ class ChannelGroup:
 
     __slots__ = (
         "address",
-        "comment",
-        "id",
         "block_len",
-        "next_cg_addr",
-        "first_ch_addr",
-        "comment_addr",
-        "record_id",
         "ch_nr",
-        "samples_byte_nr",
+        "comment",
+        "comment_addr",
         "cycles_nr",
+        "first_ch_addr",
+        "id",
+        "next_cg_addr",
+        "record_id",
         "sample_reduction_addr",
+        "samples_byte_nr",
     )
 
     def __init__(self, **kwargs) -> None:
@@ -2440,15 +2440,15 @@ class DataGroup:
 
     __slots__ = (
         "address",
-        "id",
         "block_len",
-        "next_dg_addr",
-        "first_cg_addr",
-        "trigger_addr",
-        "data_block_addr",
         "cg_nr",
+        "data_block_addr",
+        "first_cg_addr",
+        "id",
+        "next_dg_addr",
         "record_id_len",
         "reserved0",
+        "trigger_addr",
     )
 
     def __init__(self, **kwargs) -> None:
@@ -2563,17 +2563,17 @@ class FileIdentificationBlock:
 
     __slots__ = (
         "address",
-        "file_identification",
-        "version_str",
-        "program_identification",
         "byte_order",
+        "code_page",
+        "file_identification",
         "float_format",
         "mdf_version",
-        "code_page",
+        "program_identification",
         "reserved0",
         "reserved1",
-        "unfinalized_standard_flags",
         "unfinalized_custom_flags",
+        "unfinalized_standard_flags",
+        "version_str",
     )
 
     def __init__(self, **kwargs) -> None:
@@ -2991,7 +2991,7 @@ class ProgramBlock:
 
     """
 
-    __slots__ = ("address", "id", "block_len", "data")
+    __slots__ = ("address", "block_len", "data", "id")
 
     def __init__(self, **kwargs) -> None:
         super().__init__()
@@ -3060,7 +3060,7 @@ class TextBlock:
 
     """
 
-    __slots__ = ("address", "id", "block_len", "text")
+    __slots__ = ("address", "block_len", "id", "text")
 
     def __init__(self, **kwargs) -> None:
         super().__init__()

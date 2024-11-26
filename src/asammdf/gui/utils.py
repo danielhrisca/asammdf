@@ -870,7 +870,7 @@ def replace_computation_dependency(computation, old_name, new_name):
 
 
 class HelperChannel:
-    __slots__ = "entry", "name", "added"
+    __slots__ = "added", "entry", "name"
 
     def __init__(self, entry, name):
         self.name = name

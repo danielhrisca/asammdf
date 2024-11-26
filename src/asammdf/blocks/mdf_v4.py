@@ -1746,7 +1746,7 @@ class MDF4(MDF_Common):
                     if not new_ch.dtype_fmt:
                         new_ch.dtype_fmt = dtype(get_fmt_v4(data_type, size, ch_type))
 
-                    if bit_offset or new_ch.dtype_fmt.kind in "ui" and size < 64 and size not in (8, 16, 32):
+                    if bit_offset or (new_ch.dtype_fmt.kind in "ui" and size < 64 and size not in (8, 16, 32)):
                         new_ch.standard_C_size = False
 
                     record.append(
@@ -10055,7 +10055,7 @@ class MDF4(MDF_Common):
 
         conversion = channel.conversion
 
-        unit = conversion and conversion.unit or channel.unit or ""
+        unit = (conversion and conversion.unit) or channel.unit or ""
 
         return unit
 

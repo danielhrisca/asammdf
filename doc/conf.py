@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 #
 # asammdf documentation build configuration file, created by
 # sphinx-quickstart on Wed Jul 12 06:05:15 2017.

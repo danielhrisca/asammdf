@@ -6,7 +6,7 @@ import warnings
 try:
     from junitparser import Error, Failure, JUnitXml, Skipped
 except ModuleNotFoundError:
-    warnings.warn("JunitParser is not installed.")
+    warnings.warn("JunitParser is not installed.", stacklevel=1)
 
 ROOT = os.path.normpath(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -159,7 +159,7 @@ def report_style():
         for file in files:
             filepath = os.path.join(root, file)
             print(f"Checking File: {file}")
-            with open(filepath, "r", encoding="cp1252", errors="ignore") as fpr:
+            with open(filepath, encoding="cp1252", errors="ignore") as fpr:
                 content = fpr.read()
             # Extract Summary
             result = re.search(
