@@ -116,7 +116,6 @@ setup(
         ],
         "export_matlab_v5": "scipy",
         "gui": [
-            "asammdf[decode,export]",
             "natsort",
             "PySide6",
             "pyqtgraph",
