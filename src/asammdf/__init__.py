@@ -26,14 +26,14 @@ except ImportError:
     __cextension__ = False
 
 __all__ = [
+    "MDF",
+    "SUPPORTED_VERSIONS",
+    "Signal",
+    "Source",
     "__cextension__",
     "__version__",
     "get_global_option",
     "load_channel_names_from_file",
-    "set_global_option",
-    "MDF",
     "plot",
-    "Signal",
-    "Source",
-    "SUPPORTED_VERSIONS",
+    "set_global_option",
 ]

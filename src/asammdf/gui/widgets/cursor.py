@@ -307,7 +307,7 @@ class Cursor(pg.InfiniteLine):
             plot.px = (plot.x_range[1] - plot.x_range[0]) / rect.width()
             plot.py = rect.height()
 
-            if not self.show_circle and not self.show_horizontal_line or not uuid:
+            if (not self.show_circle and not self.show_horizontal_line) or not uuid:
                 x, y = plot.scale_curve_to_pixmap(
                     position,
                     0,

@@ -58,7 +58,7 @@ sig = Signal(
 sigs.append(sig)
 
 # string channel
-sig = ["String channel sample {}".format(j).encode("ascii") for j in range(cycles)]
+sig = [f"String channel sample {j}".encode("ascii") for j in range(cycles)]
 sig = Signal(
     np.array(sig),
     t,
@@ -75,8 +75,8 @@ sigs.append(sig)
 
 # tabular
 vals = 20
-conversion = {"raw_{}".format(i): i for i in range(vals)}
-conversion.update({"phys_{}".format(i): -i for i in range(vals)})
+conversion = {f"raw_{i}": i for i in range(vals)}
+conversion.update({f"phys_{i}": -i for i in range(vals)})
 sig = Signal(
     np.arange(cycles, dtype=np.uint32) % 20,
     t,
@@ -89,8 +89,8 @@ sigs.append(sig)
 
 # value to text
 vals = 20
-conversion = {"val_{}".format(i): i for i in range(vals)}
-conversion.update({"text_{}".format(i): "key_{}".format(i).encode("ascii") for i in range(vals)})
+conversion = {f"val_{i}": i for i in range(vals)}
+conversion.update({f"text_{i}": f"key_{i}".encode("ascii") for i in range(vals)})
 conversion["default"] = b"default key"
 sig = Signal(
     np.arange(cycles, dtype=np.uint32) % 30,
@@ -103,9 +103,9 @@ sigs.append(sig)
 
 # tabular with range
 vals = 20
-conversion = {"lower_{}".format(i): i * 10 for i in range(vals)}
-conversion.update({"upper_{}".format(i): (i + 1) * 10 for i in range(vals)})
-conversion.update({"phys_{}".format(i): i for i in range(vals)})
+conversion = {f"lower_{i}": i * 10 for i in range(vals)}
+conversion.update({f"upper_{i}": (i + 1) * 10 for i in range(vals)})
+conversion.update({f"phys_{i}": i for i in range(vals)})
 conversion["default"] = -1
 sig = Signal(
     2 * np.arange(cycles, dtype=np.float64),
@@ -119,9 +119,9 @@ sigs.append(sig)
 
 # value range to text
 vals = 20
-conversion = {"lower_{}".format(i): i * 10 for i in range(vals)}
-conversion.update({"upper_{}".format(i): (i + 1) * 10 - 5 for i in range(vals)})
-conversion.update({"text_{}".format(i): "Level {}".format(i) for i in range(vals)})
+conversion = {f"lower_{i}": i * 10 for i in range(vals)}
+conversion.update({f"upper_{i}": (i + 1) * 10 - 5 for i in range(vals)})
+conversion.update({f"text_{i}": f"Level {i}" for i in range(vals)})
 conversion["default"] = b"Unknown level"
 sig = Signal(
     6 * np.arange(cycles, dtype=np.uint64) % 240,

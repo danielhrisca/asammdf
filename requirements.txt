@@ -7,5 +7,5 @@
 black~=24.1  # Aligned with .pre-commit-config.yaml
 build
 pre-commit
-ruff~=0.7.0  # Aligned with .pre-commit-config.yaml
+ruff~=0.8.0  # Aligned with .pre-commit-config.yaml
 tox
