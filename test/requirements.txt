@@ -1,21 +1,22 @@
+PyAutoGUI
+pytest
+pytest-cov
+pytest-timeout
+xmlrunner; python_version < "3.12"
+
+PySide6==6.7.3
+canmatrix[arxml,dbc]>=1.0
 h5py
+isal; platform_machine == "x86_64" or platform_machine == "AMD64"
+lz4
 natsort
 numexpr
 numpy<2.0.0
 pandas
 psutil
 pyautogui
-python-xlib; sys_platform=="linux"
-PyAutoGUI
-pytest
-pytest-cov
-scipy
-canmatrix[arxml,dbc]>=1.0
-lz4
-typing_extensions
-PySide6==6.7.3
 pyqtgraph
 python-dateutil
-isal; platform_machine == "x86_64" or platform_machine == "AMD64"
-pytest-timeout
-xmlrunner; python_version < "3.12"
+python-xlib; sys_platform=="linux"
+scipy
+typing_extensions
