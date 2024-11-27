@@ -12,14 +12,13 @@ class DragAndDrop
     - responsible to perform Drag and Drop operations
      from source widget - specific point, to destination widget - specific point
 """
-import _io
+from collections.abc import Iterable
 import os
 import pathlib
 import shutil
 import sys
 import time
 import unittest
-from collections.abc import Iterable
 from unittest import mock
 
 from h5py import File as HDF5

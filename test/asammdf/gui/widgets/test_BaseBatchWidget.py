@@ -6,7 +6,7 @@ from unittest import mock
 
 from PySide6 import QtCore
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QTreeWidgetItemIterator, QPushButton
+from PySide6.QtWidgets import QPushButton, QTreeWidgetItemIterator
 
 from asammdf.gui.widgets.batch import BatchWidget
 from test.asammdf.gui.test_base import TestBase

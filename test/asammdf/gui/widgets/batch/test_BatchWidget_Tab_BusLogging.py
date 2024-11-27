@@ -1,16 +1,14 @@
 #!/usr/bin/env python
-import os
-import shutil
-import urllib
-import urllib.request
 from pathlib import Path
 from unittest import mock
+import urllib
+import urllib.request
 from zipfile import ZipFile
 
 from PySide6 import QtCore, QtTest
 
 from asammdf.blocks.utils import load_can_database
-from test.asammdf.gui.test_base import OpenMDF, DBC
+from test.asammdf.gui.test_base import DBC, OpenMDF
 from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 
 # Note: If it's possible and make sense, use self.subTests
@@ -20,15 +18,15 @@ from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 class TestPushButtons(TestBatchWidget):
     def setUp(self):
         super().setUp()
-        # url = "https://github.com/danielhrisca/asammdf/files/4328945/OBD2-DBC-MDF4.zip"
-        # urllib.request.urlretrieve(url, "test.zip")
-        # ZipFile(r"test.zip").extractall(self.test_workspace)
-        # Path("test.zip").unlink()
-        #
-        tmp_path = Path("D:\\GHP\\tmp\\asammdf\\BUS")
+        url = "https://github.com/danielhrisca/asammdf/files/4328945/OBD2-DBC-MDF4.zip"
+        urllib.request.urlretrieve(url, "test.zip")
+        ZipFile(r"test.zip").extractall(self.test_workspace)
+        Path("test.zip").unlink()
 
-        for file in tmp_path.iterdir():
-            shutil.copy(file, self.test_workspace)
+        # tmp_path = Path("D:\\GHP\\tmp\\asammdf\\BUS")
+        # for file in tmp_path.iterdir():
+        #     shutil.copy(file, self.test_workspace)
+
         temp_dir = Path(self.test_workspace)
 
         # Get test files path
