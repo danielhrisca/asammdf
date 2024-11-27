@@ -12,12 +12,14 @@ class DragAndDrop
     - responsible to perform Drag and Drop operations
      from source widget - specific point, to destination widget - specific point
 """
+import _io
 import os
 import pathlib
 import shutil
 import sys
 import time
 import unittest
+from collections.abc import Iterable
 from unittest import mock
 
 from h5py import File as HDF5
@@ -201,7 +203,6 @@ class TestBase(unittest.TestCase):
 
 class DragAndDrop:
     def __init__(self, src_widget, dst_widget, src_pos, dst_pos):
-
         QtCore.QCoreApplication.processEvents()
         # hack QDrag object
         with mock.patch(f"{src_widget.__module__}.QtGui.QDrag") as mo_QDrag:
@@ -478,7 +479,12 @@ class OpenFileContextManager:
         file_path: file path as str or pathlib.Path object
         """
         self.file = None
-        self._file_path = file_path
+        if isinstance(file_path, str):
+            self._file_path = pathlib.Path(file_path)
+        else:
+            self._file_path = file_path
+
+        assert self._file_path.exists(), "Provided file does not exist"
 
     def __enter__(self):
         pass
@@ -508,3 +514,56 @@ class OpenHDF5(OpenFileContextManager):
     def __enter__(self):
         self.file = HDF5(self._file_path)
         return self.file
+
+
+class DBC:
+    class BO:
+        def __init__(self, lines: Iterable[str]):
+            for line in lines:
+                if line.startswith("BO_ "):
+                    self.data = line
+
+        def __repr__(self):
+            return self.data
+
+        @property
+        def name(self) -> str:
+            if self.data:
+                return self.data.split()[2].strip(":")
+
+        @property
+        def id(self) -> str:
+            if self.data:
+                return self.data.split()[1]
+
+        @property
+        def data_length(self) -> int:
+            if self.data:
+                return int(self.data.split()[3])
+
+    class SG:
+        def __init__(self, name: str, lines: Iterable[str]):
+            self.name = name
+            self.data = None
+            for line in lines:
+                if "SG_ " in line and name in line:
+                    self.data = line.split("SG_ ")[1]
+
+        def __repr__(self):
+            return self.data
+
+        @property
+        def unit(self) -> str:
+            return self.data.split('"')[1]  # middle value, ex: "blah blah "unit" blah
+
+        @property
+        def bit_count(self) -> int:
+            return int(self.data.split("|")[1].split("@")[0])  # is complicated this CAN :)
+
+        @property
+        def conversion_a(self) -> float:
+            return float(self.data.split("(")[1].split(")")[0].split(",")[0])
+
+        @property
+        def conversion_b(self) -> float:
+            return float(self.data.split("(")[1].split(")")[0].split(",")[1])

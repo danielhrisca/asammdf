@@ -5,7 +5,8 @@ import shutil
 from unittest import mock
 
 from PySide6 import QtCore
-from PySide6.QtWidgets import QTreeWidgetItemIterator
+from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QTreeWidgetItemIterator, QPushButton
 
 from asammdf.gui.widgets.batch import BatchWidget
 from test.asammdf.gui.test_base import TestBase
@@ -15,8 +16,8 @@ class TestBatchWidget(TestBase):
     testResult = None
     concatenate_aspect = 0
     modify_aspect = 1
-    stack_aspect = 3
-    bus_aspect = 4
+    stack_aspect = 2
+    bus_aspect = 3
     default_test_file = "ASAP2_Demo_V171.mf4"
 
     def setUp(self):
@@ -114,3 +115,11 @@ class TestBatchWidget(TestBase):
             iterator += 1
             count += 1
         return groups
+
+    def mouse_click_on_btn_with_progress(self, btn: QPushButton):
+        # Mouse click on button
+        QTest.mouseClick(btn, QtCore.Qt.MouseButton.LeftButton)
+        # Wait for progress bar thread to finish
+        while self.widget._progress:
+            self.processEvents(0.01)
+        self.processEvents()

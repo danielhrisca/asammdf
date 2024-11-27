@@ -21,7 +21,7 @@ from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 # to avoid initializing widgets multiple times and consume time.
 
 
-class TestPushButtonScrambleTexts(TestBatchWidget):
+class TestPushButtonScrambleTexts(TestBatchWidget):  # ToDo evaluate that output file wasn't exist before apply
     def test_ScrambleTexts(self):
         """
         Events:
@@ -100,6 +100,8 @@ class TestPushButtonApply(TestBatchWidget):
 
         self.assertEqual(self.widget.modify_output_folder.text().strip(), self.test_workspace)
 
+        self.tested_btn = self.widget.apply_btn
+
     def generic_setup(self, name: str = "MDF", check: bool = True):  # Parquet is removed?
         """
         Add default test file to files list
@@ -165,11 +167,9 @@ class TestPushButtonApply(TestBatchWidget):
         self.generic_setup(name, check=False)
 
         # Event
-        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-        # Wait for thread to finish
-        while self.widget._progress:
-            self.processEvents(0.1)
+        self.mouse_click_on_btn_with_progress(self.tested_btn)
 
+        self.mouse_click_on_btn_with_progress(self.tested_btn)
         # Evaluate
         self.assertTrue(saved_file.exists())
 
@@ -208,10 +208,7 @@ class TestPushButtonApply(TestBatchWidget):
         self.widget.output_format.setCurrentText("ASC")
 
         # Event
-        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-        # Wait for thread to finish
-        while self.widget._progress:
-            self.processEvents(0.1)
+        self.mouse_click_on_btn_with_progress(self.tested_btn)
 
         # Evaluate
         self.assertTrue(asc_path.exists())
@@ -259,10 +256,7 @@ class TestPushButtonApply(TestBatchWidget):
         groups = self.get_selected_groups(channels=self.selected_channels)
 
         # Event
-        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-        # Wait for thread to finish
-        while self.widget._progress:
-            self.processEvents(0.1)
+        self.mouse_click_on_btn_with_progress(self.tested_btn)
 
         # Evaluate
         with OpenMDF(self.measurement_file) as mdf_file:
@@ -308,10 +302,7 @@ class TestPushButtonApply(TestBatchWidget):
         self.generic_setup(name)
 
         # Event
-        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-        # Wait for thread to finish
-        while self.widget._progress:
-            self.processEvents(0.1)
+        self.mouse_click_on_btn_with_progress(self.tested_btn)
 
         # Evaluate
         self.assertTrue(csv_path.exists(), csv_path)
@@ -371,10 +362,7 @@ class TestPushButtonApply(TestBatchWidget):
         groups = self.get_selected_groups(channels=self.selected_channels)
 
         # Mouse click on Apply button
-        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-        # Wait for thread to finish
-        while self.widget._progress:
-            self.processEvents(0.1)
+        self.mouse_click_on_btn_with_progress(self.tested_btn)
 
         # Evaluate
         self.assertTrue(mat_path.exists())
@@ -407,10 +395,7 @@ class TestPushButtonApply(TestBatchWidget):
         mat_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".mat"))
 
         # Mouse click on Apply button
-        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-        # Wait for thread to finish
-        while self.widget._progress:
-            self.processEvents(0.1)
+        self.mouse_click_on_btn_with_progress(self.tested_btn)
 
         # Prepare results
         size = 0
@@ -468,10 +453,7 @@ class TestPushButtonApply(TestBatchWidget):
         groups = self.get_selected_groups(channels=self.selected_channels)
 
         # Mouse click on Apply button
-        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-        # Wait for thread to finish
-        while self.widget._progress:
-            self.processEvents(0.1)
+        self.mouse_click_on_btn_with_progress(self.tested_btn)
 
         # Evaluate
         self.assertTrue(hdf5_path.exists())
@@ -517,10 +499,7 @@ class TestPushButtonApply(TestBatchWidget):
         self.generic_setup(name)
 
         # Mouse click on Apply button
-        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-        # Wait for thread to finish
-        while self.widget._progress:
-            self.processEvents(0.1)
+        self.mouse_click_on_btn_with_progress(self.tested_btn)
 
         # Evaluate
         self.assertTrue(hdf5_path.exists())
@@ -669,10 +648,7 @@ class TestPushButtonApply(TestBatchWidget):
         self.processEvents(0.01)
 
         # Event
-        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-        # Wait for thread to finish
-        while self.widget._progress:
-            self.processEvents(0.1)
+        self.mouse_click_on_btn_with_progress(self.tested_btn)
 
         # Evaluate
         self.assertTrue(output_file.exists())
@@ -729,10 +705,7 @@ class TestPushButtonApply(TestBatchWidget):
         self.processEvents(0.01)
 
         # Event
-        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-        # Wait for thread to finish
-        while self.widget._progress:
-            self.processEvents(0.1)
+        self.mouse_click_on_btn_with_progress(self.tested_btn)
 
         # Evaluate
         self.assertTrue(output_file.exists())
@@ -773,10 +746,7 @@ class TestPushButtonApply(TestBatchWidget):
         self.processEvents(0.01)
 
         # Event
-        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-        # Wait for thread to finish
-        while self.widget._progress:
-            self.processEvents(0.1)
+        self.mouse_click_on_btn_with_progress(self.tested_btn)
 
         # Evaluate
         self.assertTrue(output_file.exists())
@@ -818,10 +788,7 @@ class TestPushButtonApply(TestBatchWidget):
         self.processEvents(0.01)
 
         # Event
-        QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-        # Wait for thread to finish
-        while self.widget._progress:
-            self.processEvents(0.1)
+        self.mouse_click_on_btn_with_progress(self.tested_btn)
 
         # Evaluate
         self.assertTrue(output_file.exists())
