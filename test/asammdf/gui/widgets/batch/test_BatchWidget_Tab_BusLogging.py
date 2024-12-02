@@ -5,6 +5,7 @@ import urllib
 import urllib.request
 from zipfile import ZipFile
 
+import pandas as pd
 from PySide6 import QtCore, QtTest
 
 from asammdf.blocks.utils import load_can_database
@@ -127,3 +128,33 @@ class TestPushButtons(TestBatchWidget):
             self.assertEqual(max(timestamps_size), size_from_mdf)
             self.assertEqual(min(timestamps_min), min_from_mdf)
             self.assertEqual(max(timestamps_max), max_from_mdf)
+
+    def test_extract_bus_csv_btn_0(self):
+        """
+
+        Returns
+        -------
+
+        """
+        # Precondition
+        for file in Path(self.test_workspace).iterdir():
+            self.assertNotEqual(file.suffix, ".csv")
+        self.assertEqual(self.widget.output_info_bus.toPlainText(), "")
+
+        # Expected results
+        output_file = Path.with_suffix(self.mdf_path, f".bus_logging.mf4")
+
+        # Set Prefix
+        self.widget.prefix.setText(self.id().split(".")[-1])
+
+        # Get new mdf file
+        self.mouse_click_on_btn_with_progress(self.widget.extract_csv_btn)
+
+        # Event
+        self.mouse_click_on_btn_with_progress(self.widget.extract_bus_csv_btn)
+
+        csv_tables = {file: pd.read_csv(file) for file in Path(self.test_workspace).iterdir() if file.suffix == ".csv"}
+        with OpenMDF(output_file) as mdf_file:
+
+            print("ok")
+            x = 5
