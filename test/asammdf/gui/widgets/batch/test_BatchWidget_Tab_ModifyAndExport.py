@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import datetime
+import unittest
 from math import ceil
 from pathlib import Path
 from random import randint
-import unittest
 from unittest import mock
 import urllib
 import urllib.request
@@ -115,19 +115,14 @@ class TestPushButtonApply(TestBatchWidget):
         """
         self.widget.files_list.addItems([str(Path(self.resource, self.default_test_file))])
         self.select_random_channels()
-        self.processEvents()
 
-        for q_widget in self.widget.output_options.children():
+        for q_widget in self.widget.output_format.children():
             if name in q_widget.objectName():
                 break
         else:
             unittest.skip(f"{name} output option widget is not defined")
-        # set checkboxes check state
-        for checkbox in q_widget.findChildren(QtWidgets.QCheckBox):
-            if checkbox.isChecked() != check:
-                self.mouseClick_CheckboxButton(checkbox)
-        if not checkbox:
-            unittest.skip(f"{name} output option widget does not have checkboxes")
+
+        self.toggle_checkboxes(widget=self.widget.output_options, check=check)
 
         self.processEvents(0.01)
 

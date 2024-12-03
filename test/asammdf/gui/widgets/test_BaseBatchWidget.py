@@ -1,12 +1,13 @@
+import unittest
 from collections.abc import Iterable, Sequence
 import os
 from pathlib import Path
 import shutil
 from unittest import mock
 
-from PySide6 import QtCore
+from PySide6 import QtCore, QtWidgets
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QPushButton, QTreeWidgetItemIterator
+from PySide6.QtWidgets import QPushButton, QTreeWidgetItemIterator, QWidget
 
 from asammdf.gui.widgets.batch import BatchWidget
 from test.asammdf.gui.test_base import TestBase
@@ -123,3 +124,9 @@ class TestBatchWidget(TestBase):
         while self.widget._progress:
             self.processEvents(0.01)
         self.processEvents()
+
+    def toggle_checkboxes(self, widget: QWidget, check=True):
+        # set checkboxes check state
+        for checkbox in widget.findChildren(QtWidgets.QCheckBox):
+            if checkbox.isChecked() != check:
+                self.mouseClick_CheckboxButton(checkbox)
