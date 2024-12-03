@@ -43,6 +43,13 @@ class TestPushButtons(TestBatchWidget):
         self.assertEqual(self.widget.lin_database_list.count(), 0)
 
     def load_database(self, path: Path | str | None = None, is_can=True):
+        """
+        Load database to CAN/LIN database list
+        Parameters
+        ----------
+        path := path to .dbc file; if None: default .dbc path will be used
+        is_can := CAN or LIN
+        """
         if not path:
             path = self.dbc_path
         with mock.patch("asammdf.gui.widgets.batch.QtWidgets.QFileDialog.getOpenFileNames") as mo_getOpenFileNames:
@@ -51,6 +58,27 @@ class TestPushButtons(TestBatchWidget):
                 QtTest.QTest.mouseClick(self.widget.load_can_database_btn, QtCore.Qt.MouseButton.LeftButton)
             else:
                 QtTest.QTest.mouseClick(self.widget.load_lin_database_btn, QtCore.Qt.MouseButton.LeftButton)
+
+    def get_prefix(self):
+        """
+        Get prefix for channels names.
+        Example:
+            - 'CAN1.OBD2.'
+        Returns
+        -------
+        prefix: str
+        """
+        # Prepare expected results
+        with OpenMDF(self.mdf_path) as mdf_file, open(self.dbc_path) as dbc_file:
+            for key, value in mdf_file.bus_logging_map.items():
+                if value:
+                    prefix = key
+                    for new_key, new_value in value.items():
+                        if value:
+                            prefix += str(new_key)
+            self.assertTrue(prefix)  # there is a suffix for feature channels
+            prefix += "." + DBC.BO(dbc_file.readlines()).name + "."
+            return prefix
 
     def test_load_can_database_btn(self):
         """
@@ -173,17 +201,22 @@ class TestPushButtons(TestBatchWidget):
             self.assertEqual(max(timestamps_max), max_from_mdf)
 
     def test_extract_bus_csv_btn_0(self):
-        """ """
+        """
+        When QThreads are running, event-loops needs to be processed.
+        Events:
+            - Set prefix text
+            - Ensure that all checkboxes are unchecked
+            - Press PushButton Export to csv.
+
+        Evaluate:
+            - CSV files was created.
+            - New channels was created from .dbc and .mf4 files
+            - CSV files is mf4 channels groups
+            - Channels names and groups names contain prefix
+            - Signals samples are added to CSV
+        """
         # Prepare expected results
-        with OpenMDF(self.mdf_path) as mdf_file, open(self.dbc_path) as dbc_file:
-            for key, value in mdf_file.bus_logging_map.items():
-                if value:
-                    prefix = key
-                    for new_key, new_value in value.items():
-                        if value:
-                            prefix += str(new_key)
-            self.assertTrue(prefix)  # there is a suffix for feature channels
-            prefix += "." + DBC.BO(dbc_file.readlines()).name + "."
+        prefix = self.get_prefix()
         to_replace = [" ", '"', ":"]
 
         # Precondition
@@ -194,7 +227,7 @@ class TestPushButtons(TestBatchWidget):
         self.toggle_checkboxes(widget=self.widget.extract_bus_tab, check=False)  # uncheck all checkboxes
 
         # Expected results
-        output_file = Path.with_suffix(self.mdf_path, f".bus_logging.mf4")
+        output_file = Path.with_suffix(self.mdf_path, ".bus_logging.mf4")
 
         # Set Prefix
         self.widget.prefix.setText(self.id().split(".")[-1])
@@ -247,17 +280,20 @@ class TestPushButtons(TestBatchWidget):
                         self.assertAlmostEqual(ch.timestamps.max(), table.timestamps.max(), places=10)
 
     def test_extract_bus_csv_btn_1(self):
-        """ """
-        # Prepare expected results
-        with OpenMDF(self.mdf_path) as mdf_file, open(self.dbc_path) as dbc_file:
-            for key, value in mdf_file.bus_logging_map.items():
-                if value:
-                    prefix = key
-                    for new_key, new_value in value.items():
-                        if value:
-                            prefix += str(new_key)
-            self.assertTrue(prefix)  # there is a suffix for feature channels
-            prefix += "." + DBC.BO(dbc_file.readlines()).name + "."
+        """
+        Events:
+            - Set prefix text
+            - Ensure that all checkboxes are checked
+            - Press PushButton Export to csv.
+
+        Evaluate:
+            - CSV file is created
+            - Timestamps start from 0 + measurement start time
+            - CSV file contain new channels from .mf4 file
+            - Channels names contain prefix
+            - Signals samples are added to CSV
+        """
+        prefix = self.get_prefix()
         to_replace = [" ", '"', ":"]
 
         # Precondition
@@ -268,8 +304,8 @@ class TestPushButtons(TestBatchWidget):
         self.toggle_checkboxes(widget=self.widget.extract_bus_tab, check=True)  # uncheck all checkboxes
 
         # Expected results
-        csv_path = Path.with_suffix(self.mdf_path, f".bus_logging.csv")
-        output_file = Path.with_suffix(self.mdf_path, f".bus_logging.mf4")
+        csv_path = Path.with_suffix(self.mdf_path, ".bus_logging.csv")
+        output_file = Path.with_suffix(self.mdf_path, ".bus_logging.mf4")
 
         # Set Prefix
         self.widget.prefix.setText(self.id().split(".")[-1])

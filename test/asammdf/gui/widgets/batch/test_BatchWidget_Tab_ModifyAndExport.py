@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import datetime
-import unittest
 from math import ceil
 from pathlib import Path
 from random import randint
+import unittest
 from unittest import mock
 import urllib
 import urllib.request

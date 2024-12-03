@@ -1,4 +1,3 @@
-import unittest
 from collections.abc import Iterable, Sequence
 import os
 from pathlib import Path
@@ -118,6 +117,13 @@ class TestBatchWidget(TestBase):
         return groups
 
     def mouse_click_on_btn_with_progress(self, btn: QPushButton):
+        """
+        Click on the button with progress bar and wait until progress bar will be closed.
+
+        Parameters
+        ----------
+        btn := QPushButton
+        """
         # Mouse click on button
         QTest.mouseClick(btn, QtCore.Qt.MouseButton.LeftButton)
         # Wait for progress bar thread to finish
@@ -126,6 +132,16 @@ class TestBatchWidget(TestBase):
         self.processEvents()
 
     def toggle_checkboxes(self, widget: QWidget, check=True):
+        """
+        Iterate given widget to find QCheckBox items.
+        All founded checkboxes will have 'check' check state
+
+        Parameters
+        ----------
+        widget := widget to iterate
+        check := check state (True/False)
+
+        """
         # set checkboxes check state
         for checkbox in widget.findChildren(QtWidgets.QCheckBox):
             if checkbox.isChecked() != check:
