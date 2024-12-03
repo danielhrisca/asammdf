@@ -176,7 +176,6 @@ from .cutils import (
     extract,
     get_channel_raw_bytes,
     get_vlsd_max_sample_size,
-    reverse_transposition,
     sort_data_block,
 )
 
@@ -1274,7 +1273,18 @@ class MDF4(MDF_Common):
                             cols = param
                             lines = original_size // cols
 
-                            new_data = reverse_transposition(new_data, lines, cols)
+                            matrix_size = lines * cols
+
+                            if matrix_size != original_size:
+                                new_data = (
+                                    frombuffer(new_data[:matrix_size], dtype=uint8)
+                                    .reshape((cols, lines))
+                                    .T.ravel()
+                                    .tobytes()
+                                    + new_data[matrix_size:]
+                                )
+                            else:
+                                new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
 
                         elif block_type == v4c.DZ_BLOCK_LZ:
                             new_data = lz_decompress(new_data)
@@ -1322,7 +1332,18 @@ class MDF4(MDF_Common):
                             cols = param
                             lines = original_size // cols
 
-                            new_data = reverse_transposition(new_data, lines, cols)
+                            matrix_size = lines * cols
+
+                            if matrix_size != original_size:
+                                new_data = (
+                                    frombuffer(new_data[:matrix_size], dtype=uint8)
+                                    .reshape((cols, lines))
+                                    .T.ravel()
+                                    .tobytes()
+                                    + new_data[matrix_size:]
+                                )
+                            else:
+                                new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
 
                         elif block_type == v4c.DZ_BLOCK_LZ:
                             new_data = lz_decompress(new_data)
@@ -1388,6 +1409,8 @@ class MDF4(MDF_Common):
 
         record_offset *= samples_size
 
+        cc = 0
+
         finished = False
         if record_count is not None:
             invalidation_record_count = record_count * invalidation_size
@@ -1427,6 +1450,9 @@ class MDF4(MDF_Common):
 
             split_size = int(split_size)
 
+            buffer = bytearray(split_size)
+            buffer_view = memoryview(buffer)
+
             invalidation_split_size = int(invalidation_split_size)
 
             blocks = iter(group.data_blocks)
@@ -1436,6 +1462,11 @@ class MDF4(MDF_Common):
 
             cur_invalidation_size = 0
             invalidation_data = []
+
+            from time import perf_counter
+
+            t = perf_counter()
+            ss = 0
 
             while True:
                 try:
@@ -1500,14 +1531,23 @@ class MDF4(MDF_Common):
                 seek(address)
                 new_data = read(compressed_size)
 
+                cc += 1
+
                 if block_type == v4c.DZ_BLOCK_DEFLATE:
                     new_data = decompress(new_data, bufsize=original_size)
                 elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
                     new_data = decompress(new_data, bufsize=original_size)
                     cols = param
                     lines = original_size // cols
+                    matrix_size = lines * cols
 
-                    new_data = reverse_transposition(new_data, lines, cols)
+                    if matrix_size != original_size:
+                        new_data = (
+                            frombuffer(new_data[:matrix_size], dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
+                            + new_data[matrix_size:]
+                        )
+                    else:
+                        new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
 
                 elif block_type == v4c.DZ_BLOCK_LZ:
                     new_data = lz_decompress(new_data)
@@ -1560,10 +1600,9 @@ class MDF4(MDF_Common):
                         invalidation_offset = invalidation_record_offset
 
                 while original_size >= split_size - cur_size:
-                    if data:
-                        data.append(new_data[: split_size - cur_size])
+                    if cur_size:
+                        buffer_view[cur_size:] = new_data[: split_size - cur_size]
                         new_data = new_data[split_size - cur_size :]
-                        data_ = b"".join(data)
 
                         if rm and invalidation_size:
                             invalidation_data.append(
@@ -1576,63 +1615,59 @@ class MDF4(MDF_Common):
 
                         if record_count is not None:
                             if rm and invalidation_size:
-                                __data = data_[:record_count]
+                                __data = buffer[:record_count]
                                 _count = len(__data) // samples_size
                                 yield __data, offset // samples_size, _count, invalidation_data_[
                                     :invalidation_record_count
                                 ]
                                 invalidation_record_count -= len(invalidation_data_)
                             else:
-                                __data = data_[:record_count]
+                                __data = buffer[:record_count]
                                 _count = len(__data) // samples_size
                                 yield __data, offset // samples_size, _count, None
                             has_yielded = True
-                            record_count -= len(data_)
+                            record_count -= split_size
                             if record_count <= 0:
                                 finished = True
                                 break
                         else:
                             if rm and invalidation_size:
-                                _count = len(data_) // samples_size
-                                yield data_, offset // samples_size, _count, invalidation_data_
+                                _count = split_size // samples_size
+                                yield buffer, offset // samples_size, _count, invalidation_data_
                             else:
-                                _count = len(data_) // samples_size
-                                yield data_, offset // samples_size, _count, None
+                                _count = split_size // samples_size
+                                yield buffer, offset // samples_size, _count, None
                             has_yielded = True
 
-                        data = []
-
                     else:
-                        data_, new_data = (
-                            new_data[:split_size],
-                            new_data[split_size:],
-                        )
+                        buffer_view[:] = new_data[:split_size]
+                        new_data = new_data[split_size:]
                         if rm and invalidation_size:
                             invalidation_data_ = new_invalidation_data[:invalidation_split_size]
                             new_invalidation_data = new_invalidation_data[invalidation_split_size:]
 
                         if record_count is not None:
                             if rm and invalidation_size:
-                                yield data_[:record_count], offset // samples_size, _count, invalidation_data_[
+                                yield buffer[:record_count], offset // samples_size, _count, invalidation_data_[
                                     :invalidation_record_count
                                 ]
                                 invalidation_record_count -= len(invalidation_data_)
                             else:
-                                __data = data_[:record_count]
+                                __data = buffer[:record_count]
                                 _count = len(__data) // samples_size
                                 yield __data, offset // samples_size, _count, None
                             has_yielded = True
-                            record_count -= len(data_)
+                            record_count -= split_size
                             if record_count <= 0:
                                 finished = True
                                 break
                         else:
                             if rm and invalidation_size:
-                                _count = len(data_) // samples_size
-                                yield data_, offset // samples_size, _count, invalidation_data_
+                                _count = split_size // samples_size
+                                yield buffer, offset // samples_size, _count, invalidation_data_
                             else:
-                                _count = len(data_) // samples_size
-                                yield data_, offset // samples_size, _count, None
+                                _count = split_size // samples_size
+                                yield buffer, offset // samples_size, _count, None
                             has_yielded = True
 
                     offset += split_size
@@ -1646,6 +1681,14 @@ class MDF4(MDF_Common):
                         cur_invalidation_size = 0
                         inv_size -= invalidation_split_size - cur_invalidation_size
 
+                ss += info.original_size
+                t0 = perf_counter()
+                if t0 - t > 5:
+                    print(f"{ss/1024/1024/5:.2f} MB/s\t{split_size=} {cc=}")
+                    t = perf_counter()
+                    ss = 0
+                    cc = 0
+
                 if finished:
                     data = []
                     if rm and invalidation_size:
@@ -1653,7 +1696,7 @@ class MDF4(MDF_Common):
                     break
 
                 if original_size:
-                    data.append(new_data)
+                    buffer_view[cur_size : cur_size + original_size] = new_data
                     cur_size += original_size
                     original_size = 0
 
@@ -1661,8 +1704,8 @@ class MDF4(MDF_Common):
                         invalidation_data.append(new_invalidation_data)
                         cur_invalidation_size += inv_size
 
-            if data:
-                data_ = b"".join(data)
+            if cur_size:
+                data_ = buffer[:cur_size]
                 if rm and invalidation_size:
                     invalidation_data_ = b"".join(invalidation_data)
                 if record_count is not None:
@@ -1685,7 +1728,6 @@ class MDF4(MDF_Common):
                         _count = len(data_) // samples_size
                         yield data_, offset // samples_size, _count, None
                     has_yielded = True
-                data = []
 
             if not has_yielded:
                 if rm and invalidation_size:
@@ -7665,7 +7707,7 @@ class MDF4(MDF_Common):
                         data_bytes = fragment[0]
 
                         if ch_nr == 0 and len(grp.channels) == 1 and channel.dtype_fmt.itemsize == record_size:
-                            buffer.append(data_bytes)
+                            buffer.append(bytearray(data_bytes))
                         else:
                             buffer.append(
                                 get_channel_raw_bytes(
