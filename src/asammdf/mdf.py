@@ -808,6 +808,9 @@ class MDF:
                 else:
                     out.extend(cg_nr, sigs)
 
+                if progress and progress.stop:
+                    return TERMINATED
+
             if progress is not None:
                 if callable(progress):
                     progress(i + 1, groups_nr)
@@ -1045,6 +1048,9 @@ class MDF:
                     out.extend(cg_nr, sigs)
 
                 idx += 1
+
+                if progress and progress.stop:
+                    return TERMINATED
 
             # if the cut interval is not found in the measurement
             # then append a data group with 0 cycles
@@ -2055,17 +2061,10 @@ class MDF:
             **self._kwargs,
         )
 
-        integer_interpolation_mode = self._integer_interpolation
-        float_interpolation_mode = self._float_interpolation
         mdf.configure(from_other=self)
         mdf.header.start_time = self.header.start_time
 
         self.configure(copy_on_get=False)
-
-        if self.name:
-            origin = self.name.name
-        else:
-            origin = "New MDF"
 
         groups_nr = len(gps)
 
@@ -2104,6 +2103,9 @@ class MDF:
 
                 else:
                     mdf.extend(cg_nr, sigs)
+
+                if progress and progress.stop:
+                    return TERMINATED
 
             if progress is not None:
                 if callable(progress):
@@ -2615,6 +2617,9 @@ class MDF:
                             if first_timestamp is None:
                                 first_timestamp = master[0]
 
+                    if progress and progress.stop:
+                        return TERMINATED
+
                 last_timestamps[i] = last_timestamp
 
             mdf.configure(copy_on_get=True)
@@ -2795,6 +2800,9 @@ class MDF:
                             signals[0] = master, None
 
                         stacked.extend(dg_cntr, signals)
+
+                    if progress and progress.stop:
+                        return TERMINATED
 
                 if dg_cntr is not None:
                     for index in range(dg_cntr, len(stacked.groups)):

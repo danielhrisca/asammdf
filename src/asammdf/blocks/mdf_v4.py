@@ -1690,7 +1690,6 @@ class MDF4(MDF_Common):
                     cc = 0
 
                 if finished:
-                    data = []
                     if rm and invalidation_size:
                         invalidation_data = []
                     break
@@ -1698,7 +1697,6 @@ class MDF4(MDF_Common):
                 if original_size:
                     buffer_view[cur_size : cur_size + original_size] = new_data
                     cur_size += original_size
-                    original_size = 0
 
                     if rm and invalidation_size:
                         invalidation_data.append(new_invalidation_data)
