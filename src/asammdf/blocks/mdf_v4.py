@@ -1409,8 +1409,6 @@ class MDF4(MDF_Common):
 
         record_offset *= samples_size
 
-        cc = 0
-
         finished = False
         if record_count is not None:
             invalidation_record_count = record_count * invalidation_size
@@ -1462,11 +1460,6 @@ class MDF4(MDF_Common):
 
             cur_invalidation_size = 0
             invalidation_data = []
-
-            from time import perf_counter
-
-            t = perf_counter()
-            ss = 0
 
             while True:
                 try:
@@ -1530,8 +1523,6 @@ class MDF4(MDF_Common):
 
                 seek(address)
                 new_data = read(compressed_size)
-
-                cc += 1
 
                 if block_type == v4c.DZ_BLOCK_DEFLATE:
                     new_data = decompress(new_data, bufsize=original_size)
@@ -1680,14 +1671,6 @@ class MDF4(MDF_Common):
                         invalidation_data = []
                         cur_invalidation_size = 0
                         inv_size -= invalidation_split_size - cur_invalidation_size
-
-                ss += info.original_size
-                t0 = perf_counter()
-                if t0 - t > 5:
-                    print(f"{ss/1024/1024/5:.2f} MB/s\t{split_size=} {cc=}")
-                    t = perf_counter()
-                    ss = 0
-                    cc = 0
 
                 if finished:
                     if rm and invalidation_size:
@@ -9511,6 +9494,7 @@ class MDF4(MDF_Common):
                             dl_block = DataList(**kwargs)
 
                             for i, data__ in enumerate(data):
+                                
                                 data_ = data__[0]
 
                                 if compression and self.version >= "4.10":
