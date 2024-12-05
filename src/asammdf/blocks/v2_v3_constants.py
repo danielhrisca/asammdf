@@ -230,7 +230,7 @@ COMMON_u = struct.Struct(FMT_COMMON).unpack
 COMMON_uf = struct.Struct(FMT_COMMON).unpack_from
 COMMON_p = struct.Struct(FMT_COMMON).pack
 
-HEADER_POST_320_EXTRA_FMT = "Q2H32s"
+HEADER_POST_320_EXTRA_FMT = "QhH32s"
 HEADER_POST_320_EXTRA_KEYS = (
     "abs_time",
     "tz_offset",
