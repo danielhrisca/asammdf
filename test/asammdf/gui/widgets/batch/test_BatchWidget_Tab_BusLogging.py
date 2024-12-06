@@ -35,10 +35,6 @@ class TestPushButtons(TestBatchWidget):
         # Go to Tab: "Bus logging": Index 3
         self.widget.aspects.setCurrentIndex(self.bus_aspect)
 
-        # Clear CAN & LIN lists
-        self.widget.can_database_list.clear()
-        self.widget.lin_database_list.clear()
-
         # Ensure that CAN & LIN lists are empty
         self.assertEqual(self.widget.can_database_list.count(), 0)
         self.assertEqual(self.widget.lin_database_list.count(), 0)

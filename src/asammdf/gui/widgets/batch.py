@@ -203,7 +203,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.lin_database_list.setItemWidget(item, widget)
             item.setSizeHint(widget.sizeHint())
 
-        self.restore_export_setttings()
+        self.restore_export_settings()
         self.connect_export_updates()
 
     def set_raster_type(self, event):
@@ -1998,7 +1998,7 @@ MultiRasterSeparator;&
         self.mat_format.currentTextChanged.connect(self.store_export_setttings)
         self.oned_as.currentTextChanged.connect(self.store_export_setttings)
 
-    def restore_export_setttings(self):
+    def restore_export_settings(self):
         self.output_format.setCurrentText(self._settings.value("export_batch", "MDF"))
 
         self.mdf_version.setCurrentText(self._settings.setValue("export_batch/MDF/version", "4.10"))

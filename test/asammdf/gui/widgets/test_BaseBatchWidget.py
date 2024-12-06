@@ -1,3 +1,4 @@
+import itertools
 from collections.abc import Iterable, Sequence
 import os
 from pathlib import Path
@@ -28,6 +29,16 @@ class TestBatchWidget(TestBase):
         patcher = mock.patch("asammdf.gui.widgets.file.ErrorDialog")
         self.mc_widget_ed = patcher.start()
         self.addCleanup(patcher.stop)
+
+        patcher_settings = mock.patch("asammdf.gui.widgets.batch.QtCore.QSettings", spec=QtCore.QSettings)
+        self.mc_settings = patcher_settings.start()
+        self.mc_settings.return_value.value.side_effect = itertools.chain(["Natural sort"], itertools.repeat(None))
+        self.mc_settings.return_value.setValue.return_value = None
+        self.addCleanup(patcher_settings.stop)
+
+        patcher_restore = mock.patch.object(BatchWidget, "restore_export_settings")
+        self.mc_restore = patcher_restore.start()
+        self.addCleanup(patcher_restore.stop)
 
         self.processEvents()
 
