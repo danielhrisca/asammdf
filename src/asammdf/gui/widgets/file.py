@@ -2773,7 +2773,6 @@ MultiRasterSeparator;&
         )
 
     def apply_processing_finished(self):
-
         self._progress = None
 
     def apply_processing_thread(self, file_name, opts, version, needs_filter, channels, progress=None):
