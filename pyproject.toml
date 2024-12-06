@@ -78,6 +78,7 @@ Source = "https://github.com/danielhrisca/asammdf"
 metadata.version.provider = "scikit_build_core.metadata.regex"
 metadata.version.input = "src/asammdf/version.py"
 wheel.packages = ["src/asammdf"]
+wheel.py-api = "cp39"
 
 [tool.black]
 line-length = 120

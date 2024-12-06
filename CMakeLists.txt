@@ -16,7 +16,9 @@ find_package(
 
 python_add_library(cutils
                    MODULE
-                   src/asammdf/blocks/cutils.c)
+                   src/asammdf/blocks/cutils.c
+                   WITH_SOABI USE_SABI 3.9)
+
 target_link_libraries(cutils PRIVATE Python::NumPy)
 
 install(TARGETS cutils DESTINATION "asammdf/blocks")
