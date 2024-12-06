@@ -1,6 +1,83 @@
 [build-system]
-requires = ["numpy", "setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core", "numpy"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "asammdf"
+description="ASAM MDF measurement data file parser"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "LGPLv3+" }
+authors = [{ name = "Daniel Hrisca", email = "daniel.hrisca@gmail.com" }]
+dynamic = ["version"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development",
+    "Topic :: Scientific/Engineering",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+keywords = [
+    "read",
+    "reader",
+    "edit",
+    "editor",
+    "parse",
+    "parser",
+    "asam",
+    "mdf",
+    "measurement",
+]
+dependencies = [
+    "canmatrix[arxml,dbc]>=1.0",
+    "isal; platform_machine == 'x86_64' or platform_machine == 'AMD64'",
+    "lxml>=4.9.3",
+    "lz4",
+    "numexpr",
+    "numpy>=1.23.0",
+    "pandas",
+    "python-dateutil",
+    "typing-extensions",
+]
+
+[project.optional-dependencies]
+decode = ["faust-cchardet==2.1.19", "chardet"]
+export = [
+    "pyarrow",
+    "h5py",
+    "hdf5storage>=0.1.19",
+    "python-snappy",
+]
+export_matlab_v5 = ["scipy"]
+gui = [
+    "natsort",
+    "PySide6",
+    "pyqtgraph",
+    "pyqtlet2",
+    "packaging",
+    "QtPy",
+]
+encryption = ["cryptography", "keyring"]
+symbolic_math = ["sympy"]
+filesystem = ["fsspec"]
+
+[project.scripts]
+asammdf = "asammdf.app.asammdfgui:main [gui]"
+
+[project.urls]
+Documentation = "https://asammdf.readthedocs.io/en/master"
+Issues = "https://github.com/danielhrisca/asammdf/issues"
+Source = "https://github.com/danielhrisca/asammdf"
+
+[tool.scikit-build]
+metadata.version.provider = "scikit_build_core.metadata.regex"
+metadata.version.input = "src/asammdf/version.py"
+wheel.packages = ["src/asammdf"]
 
 [tool.black]
 line-length = 120
