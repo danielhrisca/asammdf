@@ -9,6 +9,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
+#define MAX_THREADS 64
+
+#if defined(_WIN32) 
+    #include <windows.h>
+    #include <process.h>
+#else 
+    #include <pthread.h>
+#endif
+
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
 
 #define PY_PRINTF(o)              \
     PyObject_Print(o, stdout, 0); \
@@ -1312,6 +1323,8 @@ static PyObject *get_channel_raw_bytes(PyObject *self, PyObject *args)
     }
 }
 
+int MAX_THR = 8;
+
 static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
 {
     Py_ssize_t count, size, actual_byte_count, delta, invalidation_pos, invalidation_size;
@@ -1355,6 +1368,196 @@ static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
         return out;
     }
 }
+
+typedef struct MyData {
+    uint8_t * inptr;
+    Py_ssize_t size; 
+    Py_ssize_t record_size;
+    Py_ssize_t byte_offset; 
+    Py_ssize_t byte_count;
+    uint8_t * outptr;
+    Py_ssize_t out_size; 
+} MYDATA, *PMYDATA;
+
+typedef struct ChannelInfo {
+    PMYDATA data;
+    Py_ssize_t count; 
+    Py_ssize_t idx; 
+} MyChannelInfo, *PMyChannelInfo;
+
+
+void * get_channel_raw_bytes_C(void *lpParam ) 
+{
+    Py_ssize_t count, actual_byte_count, delta;
+    PMYDATA data;
+    PMyChannelInfo indata;
+    indata = (PMyChannelInfo) lpParam;
+
+    Py_ssize_t signal_count, thread_idx;
+    signal_count = indata->count;
+    thread_idx = indata->idx;
+    data = indata->data;
+    for (Py_ssize_t i = 0; i<thread_idx; i++, data++);
+
+    uint8_t *outptr, *inptr;
+
+    for (int idx = thread_idx; idx < signal_count; idx += MAX_THR) {
+        if (!data->record_size)
+        {
+            data->outptr = NULL;
+            data->out_size = 0;
+        }
+        else if (data->record_size < data->byte_offset + data->byte_count)
+        {
+            inptr = data->inptr;
+            delta = data->byte_offset + data->byte_count - data->record_size;
+            actual_byte_count = data->record_size - data->byte_offset;
+
+            count = data->size / data->record_size;
+
+            outptr = (uint8_t *) malloc(count * data->byte_count);
+            data->outptr = outptr;
+            data->out_size = count * data->byte_count;
+
+            inptr += data->byte_offset;
+
+            for (Py_ssize_t i = 0; i < count; i++)
+            {
+                for (Py_ssize_t j = 0; j < actual_byte_count; j++)
+                    *outptr++ = *inptr++;
+
+                inptr += data->record_size - actual_byte_count;
+                for (Py_ssize_t j = 0; j < delta; j++)
+                {
+                    *outptr++ = 0;
+                }
+            }
+        }
+        else
+        {
+            inptr = data->inptr;
+            count = data->size / data->record_size;
+            outptr = (uint8_t *) malloc(count * data->byte_count);
+            data->outptr = outptr;
+            data->out_size = count * data->byte_count;
+
+            inptr += data->byte_offset;
+
+            delta = data->record_size - data->byte_count;
+
+            for (Py_ssize_t i = 0; i < count; i++)
+            {
+                for (Py_ssize_t j = 0; j < data->byte_count; j++)
+                    *outptr++ = *inptr++;
+                inptr += delta;
+            }
+        }
+
+        for (Py_ssize_t i = 0; i<MAX_THR; i++, data++);
+    }
+
+    return 0;
+}
+
+#ifdef _WIN32
+static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
+{
+    Py_ssize_t count, size, actual_byte_count, delta;
+    PyObject *data_block, *out, *signals, *obj;
+
+    Py_ssize_t record_size, byte_offset, byte_count, max_th;
+    Py_ssize_t signal_count, thread_count, remaining_signals, thread_pos;
+
+    uint8_t *inptr, *outptr; 
+    HANDLE  hThreads[MAX_THREADS] = { NULL };
+    DWORD   dwThreadIdArray[MAX_THREADS];
+    PMYDATA pDataArray;
+
+    PMyChannelInfo ch_info;
+
+    if (!PyArg_ParseTuple(args, "OnOn", &data_block, &record_size, &signals, &max_th))
+    {
+        return 0;
+    }
+    else
+    {
+        MAX_THR = max_th;
+        if (PyBytes_Check(data_block)) {
+            size = PyBytes_Size(data_block);
+            inptr = PyBytes_AsString(data_block);
+        }
+        else {
+            size = PyByteArray_Size(data_block);
+            inptr = PyByteArray_AsString(data_block);
+        }
+
+        signal_count = PyList_Size(signals);
+        pDataArray = (PMYDATA) malloc(sizeof(MYDATA) * signal_count);
+        ch_info = (PMyChannelInfo) malloc(sizeof(MyChannelInfo) * max_th);
+        for (int i=0; i<max_th; i++){
+            ch_info[i].data = pDataArray;
+            ch_info[i].count = signal_count;
+            ch_info[i].idx = i;
+        }
+
+        for (int i=0; i<signal_count; i++) {
+            obj = PyList_GetItem(signals, i);
+
+            pDataArray[i].inptr = (uint8_t *)inptr;
+            pDataArray[i].size = size; 
+            pDataArray[i].record_size = record_size;
+            pDataArray[i].byte_offset = PyLong_AsSsize_t(PyList_GetItem(obj, 0)); 
+            pDataArray[i].byte_count = PyLong_AsSsize_t(PyList_GetItem(obj, 1)); 
+            pDataArray[i].outptr=NULL;
+            pDataArray[i].out_size=0; 
+        }
+
+        if (max_th > 1) {
+
+        Py_BEGIN_ALLOW_THREADS
+        
+        for (int i=0; i< max_th; i++) {
+            hThreads[i] = CreateThread(
+                NULL,
+                0,
+                get_channel_raw_bytes_C,
+                &ch_info[i],
+                0,
+                &dwThreadIdArray[i]
+            );
+        }
+
+        WaitForMultipleObjects(max_th, hThreads, true, INFINITE);
+        for (int i=0; i< max_th; i++) {
+            CloseHandle(hThreads[i]);
+        }
+
+        Py_END_ALLOW_THREADS
+
+        }
+        else {
+            get_channel_raw_bytes_C(&ch_info[0]);
+        }
+
+        out = PyList_New(signal_count);
+        for (int i=0; i<signal_count; i++) {
+            PyList_SetItem(
+                out,
+                i,
+                PyByteArray_FromStringAndSize(pDataArray[i].outptr, pDataArray[i].out_size)
+            );
+            if (pDataArray[i].outptr) free(pDataArray[i].outptr);
+        }
+
+        free(pDataArray);
+
+        free(ch_info);
+
+        return out;
+    }
+}
+#endif
+
 
 struct dtype
 {
@@ -1599,6 +1802,8 @@ static PyMethodDef myMethods[] = {
     {"get_idx_with_edges", get_idx_with_edges, METH_VARARGS, "get_idx_with_edges"},
     {"reverse_transposition", reverse_transposition, METH_VARARGS, "reverse_transposition"},
     {"bytes_dtype_size", bytes_dtype_size, METH_VARARGS, "bytes_dtype_size"},
+    {"get_channel_raw_bytes_parallel", get_channel_raw_bytes_parallel, METH_VARARGS, "get_channel_raw_bytes_parallel"},
+    
 
     {NULL, NULL, 0, NULL}};
 

@@ -1467,6 +1467,7 @@ class MDF4(MDF_Common):
 
             tt = perf_counter()
             ss = 0
+            cc = 0
 
             while True:
                 try:
@@ -1696,7 +1697,7 @@ class MDF4(MDF_Common):
                         cur_invalidation_size += inv_size
 
                 if vv := (perf_counter() - tt) > 5:
-                    print(f'{ss / 1024/1024 / vv:.3f} MB/s  {cc=}')
+                    print(f'{ss / 1024/1024 / vv:.3f} MB/s {cc=}')
                     cc = 0
                     ss = 0
                     tt = perf_counter()
