@@ -8250,6 +8250,10 @@ class MDF4(MDF_Common):
         version = version or self.version
         virtual_channel_group = self.virtual_groups[index]
         record_size = virtual_channel_group.record_size
+        
+        from time import perf_counter
+        
+        tt = perf_counter()
 
         if groups is None:
             groups = self.included_channels(index, skip_master=skip_master)[index]
@@ -8287,8 +8291,11 @@ class MDF4(MDF_Common):
                 fragments = [next(stream) for stream in data_streams]
             except:
                 break
+                
+            if perf_counter() - tt > 90:
+                1/0
 
-            _master = self.get_master(index, data=fragments[master_index])
+            _master = self.get_master(index, data=fragments[master_index], one_piece=True)
             self._set_temporary_master(_master)
 
             if idx == 0:
