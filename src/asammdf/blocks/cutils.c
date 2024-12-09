@@ -1312,18 +1312,16 @@ static PyObject *get_channel_raw_bytes(PyObject *self, PyObject *args)
     }
 }
 
-static PyObject *get_invalidation_bits(PyObject *self, PyObject *args)
+static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
 {
-    Py_ssize_t count, size, actual_byte_count, delta, ch_invalidation_pos, invalidation_size,;
+    Py_ssize_t count, size, actual_byte_count, delta, invalidation_pos, invalidation_size;
     PyObject *data_block, *out;
 
     Py_ssize_t record_size, byte_offset, byte_count;
 
-    uint8_t mask;
+    uint8_t mask, *inptr, *outptr;
 
-    char *inptr, *outptr;
-
-    if (!PyArg_ParseTuple(args, "Onnn", &data_block, &invalidation_size, &invalidation_pos))
+    if (!PyArg_ParseTuple(args, "Onn", &data_block, &invalidation_size, &invalidation_pos))
     {
         return 0;
     }
@@ -1331,11 +1329,11 @@ static PyObject *get_invalidation_bits(PyObject *self, PyObject *args)
     {
         if (PyBytes_Check(data_block)) {
             size = PyBytes_Size(data_block);
-            inptr = PyBytes_AsString(data_block);
+            inptr = (uint8_t *)PyBytes_AsString(data_block);
         }
         else {
             size = PyByteArray_Size(data_block);
-            inptr = PyByteArray_AsString(data_block);
+            inptr = (uint8_t *)PyByteArray_AsString(data_block);
         }
         
         count = size / invalidation_size;
@@ -1596,7 +1594,7 @@ static PyMethodDef myMethods[] = {
     {"sort_data_block", sort_data_block, METH_VARARGS, "sort raw data group block"},
     {"positions", positions, METH_VARARGS, "positions"},
     {"get_channel_raw_bytes", get_channel_raw_bytes, METH_VARARGS, "get_channel_raw_bytes"},
-    {"get_invalidation_bits", get_invalidation_bits, METH_VARARGS, "get_invalidation_bits"},
+    {"get_invalidation_bits_array", get_invalidation_bits_array, METH_VARARGS, "get_invalidation_bits_array"},
     {"data_block_from_arrays", data_block_from_arrays, METH_VARARGS, "data_block_from_arrays"},
     {"get_idx_with_edges", get_idx_with_edges, METH_VARARGS, "get_idx_with_edges"},
     {"reverse_transposition", reverse_transposition, METH_VARARGS, "reverse_transposition"},

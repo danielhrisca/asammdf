@@ -177,6 +177,7 @@ from .cutils import (
     get_channel_raw_bytes,
     get_vlsd_max_sample_size,
     sort_data_block,
+get_invalidation_bits_array,
 )
 
 
@@ -1381,6 +1382,9 @@ class MDF4(MDF_Common):
     ) -> Iterator[tuple[bytes, int, int, bytes | None]]:
         """get group's data block bytes"""
 
+        from time import perf_counter
+        cc = 0
+
         offset = 0
         invalidation_offset = 0
         has_yielded = False
@@ -1461,6 +1465,9 @@ class MDF4(MDF_Common):
             cur_invalidation_size = 0
             invalidation_data = []
 
+            tt = perf_counter()
+            ss = 0
+
             while True:
                 try:
                     info = next(blocks)
@@ -1523,6 +1530,9 @@ class MDF4(MDF_Common):
 
                 seek(address)
                 new_data = read(compressed_size)
+
+                cc += 1
+                ss += original_size
 
                 if block_type == v4c.DZ_BLOCK_DEFLATE:
                     new_data = decompress(new_data, bufsize=original_size)
@@ -1684,6 +1694,12 @@ class MDF4(MDF_Common):
                     if rm and invalidation_size:
                         invalidation_data.append(new_invalidation_data)
                         cur_invalidation_size += inv_size
+
+                if vv := (perf_counter() - tt) > 5:
+                    print(f'{ss / 1024/1024 / vv:.3f} MB/s  {cc=}')
+                    cc = 0
+                    ss = 0
+                    tt = perf_counter()
 
             if cur_size:
                 data_ = buffer[:cur_size]
@@ -2603,12 +2619,14 @@ class MDF4(MDF_Common):
         group = self.groups[group_index]
 
         data_bytes, offset, _count, invalidation_bytes = fragment
-        try:
-            invalidation = self._invalidation_cache[(group_index, offset, _count)]
-        except KeyError:
-            size = group.channel_group.invalidation_bytes_nr
+        invalidation_bytes_nr = group.channel_group.invalidation_bytes_nr
+        ch_invalidation_pos = channel.pos_invalidation_bit
 
-            if invalidation_bytes is None:
+        if invalidation_bytes is None:
+            try:
+                invalidation_bytes = self._invalidation_cache[(group_index, offset, _count)]
+            except KeyError:
+
                 record = group.record
                 if record is None:
                     self._prepare_record(group)
@@ -2617,19 +2635,16 @@ class MDF4(MDF_Common):
                     data_bytes,
                     group.channel_group.samples_byte_nr + group.channel_group.invalidation_bytes_nr,
                     group.channel_group.samples_byte_nr,
-                    size,
+                    invalidation_bytes_nr,
                 )
 
-            invalidation = frombuffer(invalidation_bytes, dtype=f"({size},)u1")
-            self._invalidation_cache[(group_index, offset, _count)] = invalidation
+                self._invalidation_cache[(group_index, offset, _count)] = invalidation_bytes
 
-        ch_invalidation_pos = channel.pos_invalidation_bit
-        pos_byte, pos_offset = divmod(ch_invalidation_pos, 8)
-
-        mask = 1 << pos_offset
-
-        invalidation_bits = invalidation[:, pos_byte] & mask
-        invalidation_bits = invalidation_bits.view(bool)
+        invalidation_bits = get_invalidation_bits_array(
+            invalidation_bytes,
+            invalidation_bytes_nr,
+            ch_invalidation_pos
+        )
 
         return InvalidationArray(invalidation_bits, (group_index, ch_invalidation_pos))
 
