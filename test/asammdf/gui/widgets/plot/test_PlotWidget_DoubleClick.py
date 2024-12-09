@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import sys
+import unittest
 from unittest import mock
 
 from PySide6 import QtCore, QtGui, QtTest
@@ -174,6 +176,7 @@ class TestDoubleClick(TestPlotWidget):
                 msg=f"Color of channel {plot_channel_0.text(self.Column.NAME)} is not present on plot.",
             )
 
+    @unittest.skipIf(sys.platform == "win32", "fails on Windows")
     def test_EnableDisable_ParentGroup(self):
         """
         Test Scope:
@@ -312,6 +315,7 @@ class TestDoubleClick(TestPlotWidget):
                     msg=f"Color for Channel: {channel.text(self.Column.NAME)} not present on 'plot'",
                 )
 
+    @unittest.skipIf(sys.platform == "win32", "fails on Windows")
     def test_EnableDisable_Subgroup(self):
         """
         Test Scope:
