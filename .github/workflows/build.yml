@@ -1,4 +1,4 @@
-name: build_macos
+name: pyinstaller_build
 
 on: [push, pull_request]
 
@@ -7,7 +7,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.12"]
 
     steps:
@@ -18,23 +18,25 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install packages
-        run: |
-          pip install -r requirements_exe_build.txt
-          python -m build --wheel
-
-      - name: Build an executable
+      - name: Install linux libraries
         shell: bash
-        if: ${{ matrix.python-version == '3.12' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          pip install -r requirements_exe_build.txt
-          python -m build --wheel
-          pyinstaller asammdf.spec --distpath dist/${RUNNER_OS} --noconfirm --clean
+          sudo apt update
+          sudo apt install libegl1 libopengl0
+
+      - name: Install Python packages
+        run: |
+          pip install tox
+
+      - name: Build the executable
+        run: |
+          tox -e pyinstaller -- --distpath dist/${{ matrix.os }} --noconfirm --clean
 
       # see: https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
       - name: Archive dist artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist
-          path: dist/**
+          name: pyinstaller-${{ matrix.os }}
+          path: dist/${{ matrix.os }}/**
           if-no-files-found: error
