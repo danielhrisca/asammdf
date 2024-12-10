@@ -9494,7 +9494,7 @@ class MDF4(MDF_Common):
                             dl_block = DataList(**kwargs)
 
                             for i, data__ in enumerate(data):
-                                
+
                                 data_ = data__[0]
 
                                 if compression and self.version >= "4.10":
