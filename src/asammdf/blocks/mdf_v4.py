@@ -175,10 +175,10 @@ from .cutils import (
     data_block_from_arrays,
     extract,
     get_channel_raw_bytes,
+    get_channel_raw_bytes_parallel,
+    get_invalidation_bits_array,
     get_vlsd_max_sample_size,
     sort_data_block,
-    get_channel_raw_bytes_parallel,
-get_invalidation_bits_array,
 )
 
 
@@ -1384,6 +1384,7 @@ class MDF4(MDF_Common):
         """get group's data block bytes"""
 
         from time import perf_counter
+
         cc = 0
 
         offset = 0
@@ -1698,7 +1699,7 @@ class MDF4(MDF_Common):
                         cur_invalidation_size += inv_size
 
                 if (vv := (perf_counter() - tt)) > 5:
-                    print(f'{ss / 1024/1024 / vv:.6f} MB/s {cc=} {vv=}')
+                    print(f"{ss / 1024/1024 / vv:.6f} MB/s {cc=} {vv=}")
                     cc = 0
                     ss = 0
                     tt = perf_counter()
@@ -2642,11 +2643,7 @@ class MDF4(MDF_Common):
 
                 self._invalidation_cache[(group_index, offset, _count)] = invalidation_bytes
 
-        invalidation_bits = get_invalidation_bits_array(
-            invalidation_bytes,
-            invalidation_bytes_nr,
-            ch_invalidation_pos
-        )
+        invalidation_bits = get_invalidation_bits_array(invalidation_bytes, invalidation_bytes_nr, ch_invalidation_pos)
 
         return InvalidationArray(invalidation_bits, (group_index, ch_invalidation_pos))
 
@@ -7614,7 +7611,7 @@ class MDF4(MDF_Common):
                     if ch_nr == 0 and len(grp.channels) == 1 and channel.dtype_fmt.itemsize == record_size:
                         buffer = bytearray(data_bytes)
                     else:
-                        if (rec_offset, rec_count) != (-2, -2): 
+                        if (rec_offset, rec_count) != (-2, -2):
                             buffer = get_channel_raw_bytes(
                                 data_bytes,
                                 record_size + channel_group.invalidation_bytes_nr,
@@ -8270,9 +8267,9 @@ class MDF4(MDF_Common):
         version = version or self.version
         virtual_channel_group = self.virtual_groups[index]
         record_size = virtual_channel_group.record_size
-        
+
         from time import perf_counter
-        
+
         tt = perf_counter()
 
         if groups is None:
@@ -8319,8 +8316,10 @@ class MDF4(MDF_Common):
             for channel_index in channels:
                 channel = grp.channels[channel_index]
 
-                if channel.byte_offset + (
-                        channel.bit_offset + channel.bit_count) / 8 > grp.channel_group.samples_byte_nr:
+                if (
+                    channel.byte_offset + (channel.bit_offset + channel.bit_count) / 8
+                    > grp.channel_group.samples_byte_nr
+                ):
                     ch_info.append([0, 0])
                 elif dependency_list[channel_index]:
                     ch_info.append([0, 0])
@@ -8365,7 +8364,7 @@ class MDF4(MDF_Common):
                     channels_raw_data = get_channel_raw_bytes_parallel(
                         fragment[0],
                         grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr,
-                        group_info[group_index]
+                        group_info[group_index],
                     )
 
                     if idx == 0:
@@ -9586,7 +9585,7 @@ class MDF4(MDF_Common):
                             dl_block = DataList(**kwargs)
 
                             for i, data__ in enumerate(data):
-                                
+
                                 data_ = data__[0]
 
                                 if compression and self.version >= "4.10":
