@@ -1509,7 +1509,6 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         return config
 
     def time_as_date_changed(self, state):
-        s = self.start
         count = self.filters.count()
 
         if state == QtCore.Qt.CheckState.Checked:

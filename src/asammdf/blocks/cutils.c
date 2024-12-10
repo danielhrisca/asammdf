@@ -1780,7 +1780,7 @@ static PyObject *bytes_dtype_size(PyObject *self, PyObject *args)
                 break;
             }
             
-            current_size = PyBytes_GET_SIZE(*pointer);
+            current_size = PyBytes_Size(*pointer);
             
             if (current_size > size) size = current_size;
         }

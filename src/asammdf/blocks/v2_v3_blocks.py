@@ -2729,7 +2729,7 @@ class HeaderBlock:
             self.dg_nr = 0
             try:
                 user = getuser()
-            except ModuleNotFoundError:
+            except (ModuleNotFoundError, OSError):
                 user = ""
             self.author_field = f"{user:\0<32}".encode("latin-1")
             self.department_field = "{:\0<32}".format("").encode("latin-1")
