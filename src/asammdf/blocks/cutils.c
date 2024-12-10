@@ -1323,7 +1323,6 @@ static PyObject *get_channel_raw_bytes(PyObject *self, PyObject *args)
     }
 }
 
-int MAX_THR = 8;
 
 static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
 {
@@ -1401,7 +1400,7 @@ void * get_channel_raw_bytes_C(void *lpParam )
 
     uint8_t *outptr, *inptr;
 
-    for (int idx = thread_idx; idx < signal_count; idx += MAX_THR) {
+    for (int idx = thread_idx; idx < signal_count; idx += MAX_THREADS) {
         if (!data->record_size)
         {
             data->outptr = NULL;
@@ -1453,7 +1452,7 @@ void * get_channel_raw_bytes_C(void *lpParam )
             }
         }
 
-        for (Py_ssize_t i = 0; i<MAX_THR; i++, data++);
+        for (Py_ssize_t i = 0; i<MAX_THREADS; i++, data++);
     }
 
     return 0;
@@ -1465,7 +1464,7 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
     Py_ssize_t count, size, actual_byte_count, delta;
     PyObject *data_block, *out, *signals, *obj;
 
-    Py_ssize_t record_size, byte_offset, byte_count, max_th;
+    Py_ssize_t record_size, byte_offset, byte_count;
     Py_ssize_t signal_count, thread_count, remaining_signals, thread_pos;
 
     uint8_t *inptr, *outptr; 
@@ -1475,13 +1474,12 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
 
     PMyChannelInfo ch_info;
 
-    if (!PyArg_ParseTuple(args, "OnOn", &data_block, &record_size, &signals, &max_th))
+    if (!PyArg_ParseTuple(args, "OnO", &data_block, &record_size, &signals))
     {
         return 0;
     }
     else
     {
-        MAX_THR = max_th;
         if (PyBytes_Check(data_block)) {
             size = PyBytes_Size(data_block);
             inptr = PyBytes_AsString(data_block);
@@ -1493,8 +1491,8 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
 
         signal_count = PyList_Size(signals);
         pDataArray = (PMYDATA) malloc(sizeof(MYDATA) * signal_count);
-        ch_info = (PMyChannelInfo) malloc(sizeof(MyChannelInfo) * max_th);
-        for (int i=0; i<max_th; i++){
+        ch_info = (PMyChannelInfo) malloc(sizeof(MyChannelInfo) * MAX_THREADS);
+        for (int i=0; i<MAX_THREADS; i++){
             ch_info[i].data = pDataArray;
             ch_info[i].count = signal_count;
             ch_info[i].idx = i;
@@ -1512,11 +1510,9 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
             pDataArray[i].out_size=0; 
         }
 
-        if (max_th > 1) {
-
         Py_BEGIN_ALLOW_THREADS
         
-        for (int i=0; i< max_th; i++) {
+        for (int i=0; i< MAX_THREADS; i++) {
             hThreads[i] = CreateThread(
                 NULL,
                 0,
@@ -1527,17 +1523,12 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
             );
         }
 
-        WaitForMultipleObjects(max_th, hThreads, true, INFINITE);
-        for (int i=0; i< max_th; i++) {
+        WaitForMultipleObjects(MAX_THREADS, hThreads, true, INFINITE);
+        for (int i=0; i< MAX_THREADS; i++) {
             CloseHandle(hThreads[i]);
         }
 
         Py_END_ALLOW_THREADS
-
-        }
-        else {
-            get_channel_raw_bytes_C(&ch_info[0]);
-        }
 
         out = PyList_New(signal_count);
         for (int i=0; i<signal_count; i++) {

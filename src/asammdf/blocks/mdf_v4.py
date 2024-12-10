@@ -177,6 +177,7 @@ from .cutils import (
     get_channel_raw_bytes,
     get_vlsd_max_sample_size,
     sort_data_block,
+    get_channel_raw_bytes_parallel,
 get_invalidation_bits_array,
 )
 
@@ -8302,6 +8303,31 @@ class MDF4(MDF_Common):
         self._set_temporary_master(None)
         idx = 0
 
+        group_info = {}
+        for group_index, channels in groups.items():
+            grp = self.groups[group_index]
+            if not grp.single_channel_dtype:
+                self._prepare_record(grp)
+
+            group_info[group_index] = ch_info = []
+            dependency_list = grp.channel_dependencies
+            info = grp.record
+
+            for channel_index in channels:
+                channel = grp.channels[channel_index]
+
+                if channel.byte_offset + (
+                        channel.bit_offset + channel.bit_count) / 8 > grp.channel_group.samples_byte_nr:
+                    ch_info.append([0, 0])
+                elif dependency_list:
+                    ch_info.append([0, 0])
+                else:
+                    if info is not None:
+                        _, byte_size, byte_offset, _ = info
+                        ch_info.append([byte_offset, byte_size])
+                    else:
+                        ch_info.append([0, 0])
+
         while True:
             try:
                 fragments = [next(stream) for stream in data_streams]
@@ -8319,19 +8345,23 @@ class MDF4(MDF_Common):
             else:
                 signals = [(_master, None)]
 
-            vlsd_max_sizes = []
-
             for fragment, (group_index, channels) in zip(fragments, groups.items()):
                 grp = self.groups[group_index]
                 if not grp.single_channel_dtype:
                     self._prepare_record(grp)
 
+                channels_raw_data = get_channel_raw_bytes_parallel(
+                    fragment[0],
+                    grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr,
+                    group_info[group_index]
+                )
+
                 if idx == 0:
-                    for channel_index in channels:
+                    for channel_index, raw_data in zip(channels, channels_raw_data):
                         signal = self.get(
                             group=group_index,
                             index=channel_index,
-                            data=fragment,
+                            data=(raw_data, -1, -1, None) if raw_data else fragment,
                             raw=True,
                             ignore_invalidation_bits=True,
                             samples_only=False,
@@ -8340,11 +8370,11 @@ class MDF4(MDF_Common):
                         signals.append(signal)
 
                 else:
-                    for channel_index in channels:
+                    for channel_index, raw_data in zip(channels, channels_raw_data):
                         signal, invalidation_bits = self.get(
                             group=group_index,
                             index=channel_index,
-                            data=fragment,
+                            data=(raw_data, -1, -1, None) if raw_data else fragment,
                             raw=True,
                             ignore_invalidation_bits=True,
                             samples_only=True,
