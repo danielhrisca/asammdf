@@ -1,4 +1,4 @@
-name: build_linux
+name: pyinstaller_build
 
 on: [push, pull_request]
 
@@ -37,6 +37,6 @@ jobs:
       - name: Archive dist artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist
-          path: dist/**
+          name: pyinstaller-${{ matrix.os }}
+          path: dist/${{ matrix.os }}/**
           if-no-files-found: error
