@@ -5870,8 +5870,14 @@ class MDF4(MDF_Common):
 
         invalidation_bytes_nr = gp.channel_group.invalidation_bytes_nr
         for i, ((signal, invalidation_bits), sig_type) in enumerate(zip(signals, gp.signal_types)):
-            if invalidation_bits is not None and not isinstance(invalidation_bits, InvalidationArray):
-                invalidation_bits = InvalidationArray(invalidation_bits)
+            if invalidation_bytes_nr:
+                if invalidation_bits is not None:
+                    if not isinstance(invalidation_bits, InvalidationArray):
+                        invalidation_bits = InvalidationArray(invalidation_bits)
+                    if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                        inval_bits[origin].append(invalidation_bits)
+                    else:
+                        inval_bits[origin] = invalidation_bits
 
             # first add the signals in the simple signal list
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
@@ -5882,12 +5888,6 @@ class MDF4(MDF_Common):
                     signal = np.ascontiguousarray(signal)
 
                 fields.append((signal, byte_size))
-
-                if invalidation_bytes_nr and invalidation_bits is not None:
-                    if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
-                        inval_bits[origin].append(invalidation_bits)
-                    else:
-                        inval_bits[origin] = invalidation_bits
 
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
                 names = signal.dtype.names
@@ -5906,18 +5906,7 @@ class MDF4(MDF_Common):
 
                     fields.append((vals, 7))
 
-                if invalidation_bytes_nr and invalidation_bits is not None:
-                    if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
-                        inval_bits[origin].append(invalidation_bits)
-                    else:
-                        inval_bits[origin] = invalidation_bits
-
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
-                if invalidation_bytes_nr and invalidation_bits is not None:
-                    if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
-                        inval_bits[origin].append(invalidation_bits)
-                    else:
-                        inval_bits[origin] = invalidation_bits
 
                 if not signal.flags["C_CONTIGUOUS"]:
                     signal = np.ascontiguousarray(signal)
@@ -5940,12 +5929,6 @@ class MDF4(MDF_Common):
 
                 fields.append((samples, size))
 
-                if invalidation_bytes_nr and invalidation_bits is not None:
-                    if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
-                        inval_bits[origin].append(invalidation_bits)
-                    else:
-                        inval_bits[origin] = invalidation_bits
-
                 for name in names[1:]:
                     samples = signal[name]
                     shape = samples.shape[1:]
@@ -5958,12 +5941,6 @@ class MDF4(MDF_Common):
                         samples = np.ascontiguousarray(samples)
 
                     fields.append((samples, size))
-
-                    if invalidation_bytes_nr and invalidation_bits is not None:
-                        if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
-                            inval_bits[origin].append(invalidation_bits)
-                        else:
-                            inval_bits[origin] = invalidation_bits
 
             else:
                 if self.compact_vlsd:
@@ -6038,18 +6015,8 @@ class MDF4(MDF_Common):
                         offsets = np.ascontiguousarray(offsets)
                     fields.append((offsets, 8))
 
-                if invalidation_bytes_nr and invalidation_bits is not None:
-                    if (origin := invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
-                        inval_bits[origin].append(invalidation_bits)
-                    else:
-                        inval_bits[origin] = invalidation_bits
-
         if invalidation_bytes_nr:
             unknown_origin = inval_bits.pop(InvalidationArray.ORIGIN_UNKNOWN)
-
-            _pos_map = {key: idx for idx, key in enumerate(inval_bits)}
-
-            _unknown_pos_map = deque(list(range(len(inval_bits), len(inval_bits) + len(unknown_origin))))
 
             inval_bits = list(inval_bits.values()) + unknown_origin
             cycles_nr = len(inval_bits[0])
@@ -8335,6 +8302,9 @@ class MDF4(MDF_Common):
                 fragments = [next(stream) for stream in data_streams]
             except:
                 break
+
+            if perf_counter() - tt > 120:
+                1/0
 
             # prepare the master
             _master = self.get_master(index, data=fragments[master_index], one_piece=True)
