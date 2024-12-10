@@ -1697,8 +1697,8 @@ class MDF4(MDF_Common):
                         invalidation_data.append(new_invalidation_data)
                         cur_invalidation_size += inv_size
 
-                if vv := (perf_counter() - tt) > 5:
-                    print(f'{ss / 1024/1024 / vv:.3f} MB/s {cc=}')
+                if (vv := (perf_counter() - tt)) > 5:
+                    print(f'{ss / 1024/1024 / vv:.6f} MB/s {cc=} {vv=}')
                     cc = 0
                     ss = 0
                     tt = perf_counter()
@@ -7605,7 +7605,7 @@ class MDF4(MDF_Common):
 
             if one_piece:
                 fragment = data
-                data_bytes = fragment[0]
+                data_bytes, rec_offset, rec_count, _ = fragment
 
                 info = grp.record[ch_nr]
 
@@ -7614,12 +7614,15 @@ class MDF4(MDF_Common):
                     if ch_nr == 0 and len(grp.channels) == 1 and channel.dtype_fmt.itemsize == record_size:
                         buffer = bytearray(data_bytes)
                     else:
-                        buffer = get_channel_raw_bytes(
-                            data_bytes,
-                            record_size + channel_group.invalidation_bytes_nr,
-                            byte_offset,
-                            byte_size,
-                        )
+                        if (rec_offset, rec_count) != (-2, -2): 
+                            buffer = get_channel_raw_bytes(
+                                data_bytes,
+                                record_size + channel_group.invalidation_bytes_nr,
+                                byte_offset,
+                                byte_size,
+                            )
+                        else:
+                            buffer = data_bytes
 
                     vals = frombuffer(buffer, dtype=dtype_)
 
@@ -8319,11 +8322,11 @@ class MDF4(MDF_Common):
                 if channel.byte_offset + (
                         channel.bit_offset + channel.bit_count) / 8 > grp.channel_group.samples_byte_nr:
                     ch_info.append([0, 0])
-                elif dependency_list:
+                elif dependency_list[channel_index]:
                     ch_info.append([0, 0])
                 else:
-                    if info is not None:
-                        _, byte_size, byte_offset, _ = info
+                    if info[channel_index] is not None:
+                        _, byte_size, byte_offset, _ = info[channel_index]
                         ch_info.append([byte_offset, byte_size])
                     else:
                         ch_info.append([0, 0])
@@ -8337,6 +8340,7 @@ class MDF4(MDF_Common):
             if perf_counter() - tt > 90:
                 1/0
 
+            # prepare the master
             _master = self.get_master(index, data=fragments[master_index], one_piece=True)
             self._set_temporary_master(_master)
 
@@ -8350,6 +8354,16 @@ class MDF4(MDF_Common):
                 if not grp.single_channel_dtype:
                     self._prepare_record(grp)
 
+                # print(f'Size = {len(fragment[0]) / 1024 / 1024:.3f} MB')
+
+                # prepare the invalidation bytes for this group and fragment
+                invalidation_bytes = get_channel_raw_bytes(
+                    fragment[0],
+                    grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr,
+                    grp.channel_group.samples_byte_nr,
+                    grp.channel_group.invalidation_bytes_nr,
+                )
+
                 channels_raw_data = get_channel_raw_bytes_parallel(
                     fragment[0],
                     grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr,
@@ -8361,7 +8375,7 @@ class MDF4(MDF_Common):
                         signal = self.get(
                             group=group_index,
                             index=channel_index,
-                            data=(raw_data, -1, -1, None) if raw_data else fragment,
+                            data=(raw_data, -2, -2, invalidation_bytes) if raw_data else fragment,
                             raw=True,
                             ignore_invalidation_bits=True,
                             samples_only=False,
@@ -8374,7 +8388,7 @@ class MDF4(MDF_Common):
                         signal, invalidation_bits = self.get(
                             group=group_index,
                             index=channel_index,
-                            data=(raw_data, -1, -1, None) if raw_data else fragment,
+                            data=(raw_data, -2, -2, invalidation_bytes) if raw_data else fragment,
                             raw=True,
                             ignore_invalidation_bits=True,
                             samples_only=True,
