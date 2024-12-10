@@ -8336,9 +8336,6 @@ class MDF4(MDF_Common):
                 fragments = [next(stream) for stream in data_streams]
             except:
                 break
-                
-            if perf_counter() - tt > 90:
-                1/0
 
             # prepare the master
             _master = self.get_master(index, data=fragments[master_index], one_piece=True)
@@ -8356,45 +8353,73 @@ class MDF4(MDF_Common):
 
                 # print(f'Size = {len(fragment[0]) / 1024 / 1024:.3f} MB')
 
-                # prepare the invalidation bytes for this group and fragment
-                invalidation_bytes = get_channel_raw_bytes(
-                    fragment[0],
-                    grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr,
-                    grp.channel_group.samples_byte_nr,
-                    grp.channel_group.invalidation_bytes_nr,
-                )
+                if len(channels) >= 100:
+                    # prepare the invalidation bytes for this group and fragment
+                    invalidation_bytes = get_channel_raw_bytes(
+                        fragment[0],
+                        grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr,
+                        grp.channel_group.samples_byte_nr,
+                        grp.channel_group.invalidation_bytes_nr,
+                    )
 
-                channels_raw_data = get_channel_raw_bytes_parallel(
-                    fragment[0],
-                    grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr,
-                    group_info[group_index]
-                )
+                    channels_raw_data = get_channel_raw_bytes_parallel(
+                        fragment[0],
+                        grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr,
+                        group_info[group_index]
+                    )
 
-                if idx == 0:
-                    for channel_index, raw_data in zip(channels, channels_raw_data):
-                        signal = self.get(
-                            group=group_index,
-                            index=channel_index,
-                            data=(raw_data, -2, -2, invalidation_bytes) if raw_data else fragment,
-                            raw=True,
-                            ignore_invalidation_bits=True,
-                            samples_only=False,
-                        )
+                    if idx == 0:
+                        for channel_index, raw_data in zip(channels, channels_raw_data):
+                            signal = self.get(
+                                group=group_index,
+                                index=channel_index,
+                                data=(raw_data, -2, -2, invalidation_bytes) if raw_data else fragment,
+                                raw=True,
+                                ignore_invalidation_bits=True,
+                                samples_only=False,
+                            )
 
-                        signals.append(signal)
+                            signals.append(signal)
 
+                    else:
+                        for channel_index, raw_data in zip(channels, channels_raw_data):
+                            signal, invalidation_bits = self.get(
+                                group=group_index,
+                                index=channel_index,
+                                data=(raw_data, -2, -2, invalidation_bytes) if raw_data else fragment,
+                                raw=True,
+                                ignore_invalidation_bits=True,
+                                samples_only=True,
+                            )
+
+                            signals.append((signal, invalidation_bits))
                 else:
-                    for channel_index, raw_data in zip(channels, channels_raw_data):
-                        signal, invalidation_bits = self.get(
-                            group=group_index,
-                            index=channel_index,
-                            data=(raw_data, -2, -2, invalidation_bytes) if raw_data else fragment,
-                            raw=True,
-                            ignore_invalidation_bits=True,
-                            samples_only=True,
-                        )
 
-                        signals.append((signal, invalidation_bits))
+                    if idx == 0:
+                        for channel_index in channels:
+                            signal = self.get(
+                                group=group_index,
+                                index=channel_index,
+                                data=fragment,
+                                raw=True,
+                                ignore_invalidation_bits=True,
+                                samples_only=False,
+                            )
+
+                            signals.append(signal)
+
+                    else:
+                        for channel_index in channels:
+                            signal, invalidation_bits = self.get(
+                                group=group_index,
+                                index=channel_index,
+                                data=fragment,
+                                raw=True,
+                                ignore_invalidation_bits=True,
+                                samples_only=True,
+                            )
+
+                            signals.append((signal, invalidation_bits))
 
                 if version < "4.00":
                     if idx == 0:

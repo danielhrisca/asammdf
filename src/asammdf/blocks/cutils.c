@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
-#define MAX_THREADS 64
+#define MAX_THREADS 4
 
 #if defined(_WIN32) 
     #include <windows.h>
@@ -1458,7 +1458,7 @@ void * get_channel_raw_bytes_C(void *lpParam )
     return 0;
 }
 
-#ifdef _WIN32
+
 static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
 {
     Py_ssize_t count, size, actual_byte_count, delta;
@@ -1468,8 +1468,13 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
     Py_ssize_t signal_count, thread_count, remaining_signals, thread_pos;
 
     uint8_t *inptr, *outptr; 
+    
+#ifdef _WIN32
     HANDLE  hThreads[MAX_THREADS] = { NULL };
     DWORD   dwThreadIdArray[MAX_THREADS];
+#else
+    pthread_t dwThreadIdArray[MAX_THREADS];
+#endif
     PMYDATA pDataArray;
 
     PMyChannelInfo ch_info;
@@ -1511,7 +1516,8 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
         }
 
         Py_BEGIN_ALLOW_THREADS
-        
+
+#ifdef _WIN32     
         for (int i=0; i< MAX_THREADS; i++) {
             hThreads[i] = CreateThread(
                 NULL,
@@ -1527,6 +1533,14 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
         for (int i=0; i< MAX_THREADS; i++) {
             CloseHandle(hThreads[i]);
         }
+#else        
+        for (int i=0; i< MAX_THREADS; i++) {
+            pthread_create(&(dwThreadIdArray[i]), NULL, get_channel_raw_bytes_C, &ch_info[i]);
+        }
+        for (int i=0; i< MAX_THREADS; i++) {
+            pthread_join(dwThreadIdArray[i], NULL);
+        }
+#endif
 
         Py_END_ALLOW_THREADS
 
@@ -1547,7 +1561,6 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
         return out;
     }
 }
-#endif
 
 
 struct dtype
