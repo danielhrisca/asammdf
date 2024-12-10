@@ -10,6 +10,7 @@ from time import perf_counter
 from traceback import format_exc
 from zipfile import ZIP_DEFLATED, ZipFile
 
+import dateutil.tz
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph import Qt
@@ -17,6 +18,7 @@ import pyqtgraph.functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 PLOT_BUFFER_SIZE = 4000
+LOCAL_TIMEZONE = dateutil.tz.tzlocal()
 
 
 from ... import tool as Tool
@@ -3682,7 +3684,7 @@ class PlotGraphics(pg.PlotWidget):
         else:
             fmt = "phys"
         self.x_axis.format = fmt
-        self.x_axis.origin = origin
+        self.x_axis.origin = origin.astimezone(LOCAL_TIMEZONE)
 
         self.y_axis = FormatedAxis(
             "left", maxTickLength=-5, background=self.backgroundBrush().color(), linked_signal=(self, None)
