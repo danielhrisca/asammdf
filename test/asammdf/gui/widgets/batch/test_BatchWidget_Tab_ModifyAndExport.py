@@ -164,7 +164,6 @@ class TestPushButtonApply(TestBatchWidget):
         # Event
         self.mouse_click_on_btn_with_progress(self.tested_btn)
 
-        self.mouse_click_on_btn_with_progress(self.tested_btn)
         # Evaluate
         self.assertTrue(saved_file.exists())
 
@@ -207,6 +206,8 @@ class TestPushButtonApply(TestBatchWidget):
 
         # Evaluate
         self.assertTrue(asc_path.exists())
+
+        # todo import can ASCReader
 
         with open(asc_path) as asc_file:
             self.assertIn(expected_text, asc_file.read())

@@ -64,3 +64,4 @@ class TestPushButtons(TestBatchWidget):
         # Evaluate saved file
         with OpenMDF(self.saved_file) as mdf_file:
             self.assertTrue(len(expected_channels - set(mdf_file.channels_db)) == 0)
+            # todo evaluate samples
