@@ -1,5 +1,0 @@
---editable .[decode,encryption,export,export_matlab_v5,gui,symbolic_math]
-build
-cmerg
-pyopengl
-pyinstaller
