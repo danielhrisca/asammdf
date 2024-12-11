@@ -3784,9 +3784,11 @@ class MDF4(MDF_Common):
 
         del fields
 
+        record_size = offset + invalidation_bytes_nr
+
         if size:
             if self.version < "4.20":
-                block_size = self._write_fragment_size or 20 * 1024 * 1024
+                block_size = 32 * 1024 * 1024 // record_size * record_size
 
                 count = ceil(size / block_size)
 
@@ -3810,7 +3812,6 @@ class MDF4(MDF_Common):
                     )
 
             else:
-                data_address = self._tempfile.tell()
                 gp.uses_ld = True
                 data_address = tell()
 
@@ -6039,43 +6040,55 @@ class MDF4(MDF_Common):
 
         samples = data_block_from_arrays(fields, added_cycles)
         size = len(samples)
+        samples = memoryview(samples)
 
         del fields
 
         stream.seek(0, 2)
         addr = stream.tell()
 
+        record_size = gp.channel_group.samples_byte_nr + gp.channel_group.invalidation_bytes_nr
+
         if size:
             if self.version < "4.20":
-                data = samples
-                raw_size = size
-                data = lz_compress(data, store_size=True)
-                size = len(data)
-                stream.write(data)
-                gp.data_blocks.append(
-                    DataBlockInfo(
-                        address=addr,
-                        block_type=v4c.DZ_BLOCK_LZ,
-                        original_size=raw_size,
-                        compressed_size=size,
-                        param=0,
+                block_size = 32 * 1024 * 1024 // record_size * record_size
+
+                count = ceil(size / block_size)
+
+                print(f"{size / 1024 / 1024: .3f} MB -> {count=} x {block_size / 1024 / 1024: .3f} MB")
+
+                for i in range(count):
+                    data_ = samples[i * block_size : (i + 1) * block_size]
+                    raw_size = len(data_)
+                    data_ = lz_compress(data_, store_size=True)
+
+                    size = len(data_)
+                    data_address = self._tempfile.tell()
+                    self._tempfile.write(data_)
+
+                    gp.data_blocks.append(
+                        DataBlockInfo(
+                            address=data_address,
+                            block_type=v4c.DZ_BLOCK_LZ,
+                            original_size=raw_size,
+                            compressed_size=size,
+                            param=0,
+                        )
                     )
-                )
 
                 gp.channel_group.cycles_nr += added_cycles
                 self.virtual_groups[index].cycles_nr += added_cycles
 
             else:
-                data = samples
                 raw_size = size
-                data = lz_compress(data, store_size=True)
+                data = lz_compress(samples, store_size=True)
                 size = len(data)
                 stream.write(data)
 
                 gp.data_blocks.append(
                     DataBlockInfo(
                         address=addr,
-                        block_type=v4c.DT_BLOCK_LZ,
+                        block_type=v4c.DZ_BLOCK_LZ,
                         original_size=raw_size,
                         compressed_size=size,
                         param=0,
@@ -6097,10 +6110,10 @@ class MDF4(MDF_Common):
                     gp.data_blocks[-1].invalidation_block(
                         InvalidationBlockInfo(
                             address=addr,
-                            block_type=v4c.DT_BLOCK_LZ,
+                            block_type=v4c.DZ_BLOCK_LZ,
                             original_size=raw_size,
                             compressed_size=size,
-                            param=None,
+                            param=0,
                         )
                     )
 
