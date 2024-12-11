@@ -6055,8 +6055,6 @@ class MDF4(MDF_Common):
 
                 count = ceil(size / block_size)
 
-                print(f"{size / 1024 / 1024: .3f} MB -> {count=} x {block_size / 1024 / 1024: .3f} MB")
-
                 for i in range(count):
                     data_ = samples[i * block_size : (i + 1) * block_size]
                     raw_size = len(data_)
@@ -8335,8 +8333,6 @@ class MDF4(MDF_Common):
                 grp = self.groups[group_index]
                 if not grp.single_channel_dtype:
                     self._prepare_record(grp)
-
-                # print(f'Size = {len(fragment[0]) / 1024 / 1024:.3f} MB')
 
                 if 1 and len(channels) >= 100:
                     # prepare the invalidation bytes for this group and fragment

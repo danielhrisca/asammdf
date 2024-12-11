@@ -2413,3 +2413,29 @@ def timeit(func):
         return ret
 
     return timed
+
+
+class Timer:
+
+    def __init__(self, name=""):
+        self.name = name or str(id(self))
+        self.count = 0
+        self.total_time = 0.0
+
+    def __enter__(self):
+        now = perf_counter()
+        self.start = now
+        return self
+
+    def __exit__(self, type, value, traceback):
+        now = perf_counter()
+        self.total_time += now - self.start
+        self.count += 1
+
+    def display(self):
+        print(
+            f"""TIMER {self.name}:
+\t* {self.count} iterations in {self.total_time * 1000:.3f}ms 
+\t* {self.count / self.total_time:.3f} iter/s
+\t* {self.total_time / self.count * 1000:.3f} ms/iter"""
+        )

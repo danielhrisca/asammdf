@@ -1323,7 +1323,6 @@ static PyObject *get_channel_raw_bytes(PyObject *self, PyObject *args)
     }
 }
 
-
 static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
 {
     Py_ssize_t count, size, actual_byte_count, delta, invalidation_pos, invalidation_size;
@@ -1367,6 +1366,7 @@ static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
         return out;
     }
 }
+
 
 typedef struct MyData {
     uint8_t * inptr;
