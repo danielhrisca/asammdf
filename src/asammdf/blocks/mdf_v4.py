@@ -2874,7 +2874,7 @@ class MDF4(MDF_Common):
 
                 ch_cntr += 1
 
-                gp_sig_types.append(v4c.SIGNAL_TYPE_VIRTUAL)
+                gp_sig_types.append((v4c.SIGNAL_TYPE_VIRTUAL, 0))
 
             else:
                 t_type, t_size = fmt_to_datatype_v4(t.dtype, t.shape)
@@ -2919,7 +2919,7 @@ class MDF4(MDF_Common):
                 offset += t_size // 8
                 ch_cntr += 1
 
-                gp_sig_types.append(v4c.SIGNAL_TYPE_SCALAR)
+                gp_sig_types.append((v4c.SIGNAL_TYPE_SCALAR, t_size // 8))
 
         for signal in signals:
             sig = signal
@@ -2944,8 +2944,6 @@ class MDF4(MDF_Common):
                     sig_type = v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
                 else:
                     sig_type = v4c.SIGNAL_TYPE_ARRAY
-
-            gp_sig_types.append(sig_type)
 
             # first add the signals in the simple signal list
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
@@ -3045,6 +3043,7 @@ class MDF4(MDF_Common):
                             0,
                         )
                     )
+                    gp_sig_types.append((sig_type, 8))
 
                     offset += byte_size
 
@@ -3065,6 +3064,8 @@ class MDF4(MDF_Common):
                 else:
                     byte_size = s_size // 8 or 1
                     data_block_addr = 0
+
+                    gp_sig_types.append((sig_type, byte_size))
 
                     if sig_dtype.kind == "u" and signal.bit_count <= 4:
                         s_size = signal.bit_count
@@ -3219,6 +3220,7 @@ class MDF4(MDF_Common):
                         ch.source = new_source
 
                 gp_channels.append(ch)
+                gp_sig_types.append((sig_type, 0))
 
                 gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
@@ -3250,6 +3252,7 @@ class MDF4(MDF_Common):
                     byte_size = 6
                     s_type = v4c.DATA_TYPE_CANOPEN_TIME
                     s_dtype = dtype("V6")
+                    gp_sig_types.append((sig_type, 6))
 
                 else:
                     record.append(
@@ -3277,6 +3280,7 @@ class MDF4(MDF_Common):
                     byte_size = 7
                     s_type = v4c.DATA_TYPE_CANOPEN_DATE
                     s_dtype = dtype("V7")
+                    gp_sig_types.append((sig_type, 7))
 
                 s_size = byte_size * 8
 
@@ -3353,6 +3357,7 @@ class MDF4(MDF_Common):
                     inval_bits,
                 )
                 fields.extend(new_fields)
+                gp_sig_types.append((sig_type, signal.dtype.itemsize))
 
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 # here we have channel arrays or mdf v3 channel dependencies
@@ -3471,6 +3476,7 @@ class MDF4(MDF_Common):
                 if not samples.flags["C_CONTIGUOUS"]:
                     samples = np.ascontiguousarray(samples)
                 fields.append((samples, size))
+                gp_sig_types.append((sig_type, size))
 
                 gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
@@ -3652,6 +3658,7 @@ class MDF4(MDF_Common):
 
                 # compute additional byte offset for large records size
                 byte_size = 8
+                gp_sig_types.append((sig_type, 8))
                 kwargs = {
                     "channel_type": v4c.CHANNEL_TYPE_VLSD,
                     "bit_count": 64,
@@ -5869,7 +5876,7 @@ class MDF4(MDF_Common):
         added_cycles = len(signals[0][0])
 
         invalidation_bytes_nr = gp.channel_group.invalidation_bytes_nr
-        for i, ((signal, invalidation_bits), sig_type) in enumerate(zip(signals, gp.signal_types)):
+        for i, ((signal, invalidation_bits), (sig_type, sig_size)) in enumerate(zip(signals, gp.signal_types)):
             if invalidation_bytes_nr:
                 if invalidation_bits is not None:
                     if not isinstance(invalidation_bits, InvalidationArray):
@@ -5881,13 +5888,11 @@ class MDF4(MDF_Common):
 
             # first add the signals in the simple signal list
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
-                s_type, s_size = fmt_to_datatype_v4(signal.dtype, signal.shape)
-                byte_size = s_size // 8 or 1
 
                 if not signal.flags["C_CONTIGUOUS"]:
                     signal = np.ascontiguousarray(signal)
 
-                fields.append((signal, byte_size))
+                fields.append((signal, sig_size))
 
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
                 names = signal.dtype.names
@@ -5896,7 +5901,7 @@ class MDF4(MDF_Common):
                     if not signal.flags["C_CONTIGUOUS"]:
                         signal = np.ascontiguousarray(signal)
 
-                    fields.append((signal, 6))
+                    fields.append((signal, sig_size))
 
                 else:
                     vals = []
@@ -5904,30 +5909,24 @@ class MDF4(MDF_Common):
                         vals.append(signal[field])
                     vals = np.rec.fromarrays(vals).tobytes()
 
-                    fields.append((vals, 7))
+                    fields.append((vals, sig_size))
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
 
                 if not signal.flags["C_CONTIGUOUS"]:
                     signal = np.ascontiguousarray(signal)
 
-                fields.append((signal, signal.dtype.itemsize))
+                fields.append((signal, sig_size))
 
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 names = signal.dtype.names
 
                 samples = signal[names[0]]
 
-                shape = samples.shape[1:]
-                s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
-                size = s_size // 8
-                for dim in shape:
-                    size *= dim
-
                 if not samples.flags["C_CONTIGUOUS"]:
                     samples = np.ascontiguousarray(samples)
 
-                fields.append((samples, size))
+                fields.append((samples, sig_size))
 
                 for name in names[1:]:
                     samples = signal[name]
@@ -6020,15 +6019,18 @@ class MDF4(MDF_Common):
 
             inval_bits = list(inval_bits.values()) + unknown_origin
             cycles_nr = len(inval_bits[0])
-            invalidation_bytes_nr = len(inval_bits)
+            new_invalidation_bytes_nr = len(inval_bits)
 
-            for _ in range(8 - invalidation_bytes_nr % 8):
+            for _ in range(8 - new_invalidation_bytes_nr % 8):
                 inval_bits.append(zeros(cycles_nr, dtype=bool))
 
             inval_bits.reverse()
-            invalidation_bytes_nr = len(inval_bits) // 8
+            new_invalidation_bytes_nr = len(inval_bits) // 8
 
-            gp.channel_group.invalidation_bytes_nr = invalidation_bytes_nr
+            if new_invalidation_bytes_nr != invalidation_bytes_nr:
+                raise MdfException(
+                    "The invalidation bytes number in the extend methods differs from the one from the append"
+                )
 
             inval_bits = np.fliplr(np.packbits(array(inval_bits).T).reshape((cycles_nr, invalidation_bytes_nr))).ravel()
 
@@ -6838,6 +6840,7 @@ class MDF4(MDF_Common):
                 )
 
         if all_invalid:
+
             invalidation_bits = np.ones(len(vals), dtype=bool)
 
         if samples_only:
@@ -8304,7 +8307,7 @@ class MDF4(MDF_Common):
                 break
 
             if perf_counter() - tt > 120:
-                1/0
+                x = 1 / 0
 
             # prepare the master
             _master = self.get_master(index, data=fragments[master_index], one_piece=True)
@@ -8322,7 +8325,7 @@ class MDF4(MDF_Common):
 
                 # print(f'Size = {len(fragment[0]) / 1024 / 1024:.3f} MB')
 
-                if len(channels) >= 100:
+                if 1 and len(channels) >= 100:
                     # prepare the invalidation bytes for this group and fragment
                     invalidation_bytes = get_channel_raw_bytes(
                         fragment[0],

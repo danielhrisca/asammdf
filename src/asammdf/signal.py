@@ -575,9 +575,12 @@ class Signal:
                             samples = np.append(self.samples[:stop], interpolated.samples, axis=0)
                             timestamps = np.append(self.timestamps[:stop], interpolated.timestamps)
                             if self.invalidation_bits is not None:
-                                invalidation_bits = np.append(
-                                    self.invalidation_bits[:stop],
-                                    interpolated.invalidation_bits,
+                                invalidation_bits = InvalidationArray(
+                                    np.append(
+                                        self.invalidation_bits[:stop],
+                                        interpolated.invalidation_bits,
+                                    ),
+                                    self.invalidation_bits.origin,
                                 )
                             else:
                                 invalidation_bits = None
@@ -650,9 +653,12 @@ class Signal:
                             samples = np.append(interpolated.samples, self.samples[start:], axis=0)
                             timestamps = np.append(interpolated.timestamps, self.timestamps[start:])
                             if self.invalidation_bits is not None:
-                                invalidation_bits = np.append(
-                                    interpolated.invalidation_bits,
-                                    self.invalidation_bits[start:],
+                                invalidation_bits = InvalidationArray(
+                                    np.append(
+                                        interpolated.invalidation_bits,
+                                        self.invalidation_bits[start:],
+                                    ),
+                                    self.invalidation_bits.origin,
                                 )
                             else:
                                 invalidation_bits = None
@@ -738,7 +744,7 @@ class Signal:
                             samples = np.array([], dtype=self.samples.dtype)
                             timestamps = np.array([], dtype=self.timestamps.dtype)
                             if self.invalidation_bits is not None:
-                                invalidation_bits = np.array([], dtype=bool)
+                                invalidation_bits = self.invalidation_bits[0:0]
                             else:
                                 invalidation_bits = None
                     else:
@@ -764,9 +770,12 @@ class Signal:
                                 samples = np.append(samples, interpolated.samples, axis=0)
                                 timestamps = np.append(timestamps, interpolated.timestamps)
                                 if invalidation_bits is not None:
-                                    invalidation_bits = np.append(
-                                        invalidation_bits,
-                                        interpolated.invalidation_bits,
+                                    invalidation_bits = InvalidationArray(
+                                        np.append(
+                                            invalidation_bits,
+                                            interpolated.invalidation_bits,
+                                        ),
+                                        interpolated.invalidation_bits.origin,
                                     )
 
                         if (
@@ -785,9 +794,12 @@ class Signal:
                                 timestamps = np.append(interpolated.timestamps, timestamps)
 
                                 if invalidation_bits is not None:
-                                    invalidation_bits = np.append(
-                                        interpolated.invalidation_bits,
-                                        invalidation_bits,
+                                    invalidation_bits = InvalidationArray(
+                                        np.append(
+                                            interpolated.invalidation_bits,
+                                            invalidation_bits,
+                                        ),
+                                        interpolated.invalidation_bits.origin,
                                     )
 
                     if samples.dtype != self.samples.dtype:
@@ -844,11 +856,19 @@ class Signal:
             if self.invalidation_bits is None and other.invalidation_bits is None:
                 invalidation_bits = None
             elif self.invalidation_bits is None and other.invalidation_bits is not None:
-                invalidation_bits = np.concatenate((np.zeros(len(self), dtype=bool), other.invalidation_bits))
+                invalidation_bits = InvalidationArray(
+                    np.concatenate((np.zeros(len(self), dtype=bool), other.invalidation_bits)),
+                    other.invalidation_bits.origin,
+                )
             elif self.invalidation_bits is not None and other.invalidation_bits is None:
-                invalidation_bits = np.concatenate((self.invalidation_bits, np.zeros(len(other), dtype=bool)))
+                invalidation_bits = InvalidationArray(
+                    np.concatenate((self.invalidation_bits, np.zeros(len(other), dtype=bool))),
+                    self.invalidation_bits.origin,
+                )
             else:
-                invalidation_bits = np.append(self.invalidation_bits, other.invalidation_bits)
+                invalidation_bits = InvalidationArray(
+                    np.append(self.invalidation_bits, other.invalidation_bits), self.invalidation_bits.origin
+                )
 
             result = Signal(
                 np.append(self.samples, other.samples, axis=0),
