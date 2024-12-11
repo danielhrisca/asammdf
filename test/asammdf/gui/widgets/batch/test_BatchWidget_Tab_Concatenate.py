@@ -2,7 +2,7 @@
 from pathlib import Path
 from unittest import mock
 
-from PySide6 import QtCore, QtTest
+import numpy as np
 
 from test.asammdf.gui.test_base import OpenMDF
 from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
@@ -38,7 +38,7 @@ class TestPushButtons(TestBatchWidget):
 
         Evaluate:
             - New file is created
-            - No channel from first file is found in 2nd file (scrambled file)
+            - All channels samples and timestamps from test files are concatenated intro selected output file
         """
         # Get evaluation data
         output_file = Path(self.test_workspace, self.output_file_name)
@@ -52,10 +52,16 @@ class TestPushButtons(TestBatchWidget):
         self.assertTrue(output_file.exists())
 
         # Evaluate
-        with OpenMDF(output_file) as mdf_file, OpenMDF(self.test_file_0) as mdf_0, OpenMDF(self.test_file_1) as mdf_1:
+        with (
+            OpenMDF(output_file) as new_mdf_file,
+            OpenMDF(self.test_file_0) as original_mdf_0,
+            OpenMDF(self.test_file_1) as original_mdf_1,
+        ):
             # Evaluate saved file
-            for channel in mdf_file.iter_channels():
-                channel_from_0 = mdf_0.get(channel.name)
-                channel_from_1 = mdf_1.get(channel.name)
+            for ch in new_mdf_file.iter_channels():
+                if ch.name in original_mdf_0.channels_db:  # avoid `__samples_origin` channel
+                    ch_0 = original_mdf_0.get(ch.name)
+                    ch_1 = original_mdf_1.get(ch.name)
 
-                x = 5
+                    self.assertTrue(np.array_equal(np.concatenate([ch_0.samples, ch_1.samples]), ch.samples))
+                    self.assertTrue(np.array_equal(np.concatenate([ch_0.timestamps, ch_1.timestamps]), ch.timestamps))

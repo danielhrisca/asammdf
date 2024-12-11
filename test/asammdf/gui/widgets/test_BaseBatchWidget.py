@@ -1,5 +1,5 @@
-import itertools
 from collections.abc import Iterable, Sequence
+import itertools
 import os
 from pathlib import Path
 import shutil

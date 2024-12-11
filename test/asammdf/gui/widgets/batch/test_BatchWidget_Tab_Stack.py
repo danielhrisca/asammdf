@@ -40,17 +40,8 @@ class TestPushButtons(TestBatchWidget):
 
         Evaluate:
             - New file is created
-            - All channels from both files is available in new created file
+            - All channels samples and timestamps from both input files can be found in selected output file
         """
-        # Expected values
-        expected_channels = set()
-
-        with OpenMDF(self.measurement_file_1) as mdf_file:
-            expected_channels |= set(mdf_file.channels_db)
-
-        with OpenMDF(self.measurement_file_2) as mdf_file:
-            expected_channels |= set(mdf_file.channels_db)
-
         # Event
         with mock.patch("asammdf.gui.widgets.batch.QtWidgets.QFileDialog.getSaveFileName") as mo_getSaveFileName:
             mo_getSaveFileName.return_value = str(self.saved_file), ""
@@ -62,6 +53,15 @@ class TestPushButtons(TestBatchWidget):
         self.assertTrue(self.saved_file.exists())
 
         # Evaluate saved file
-        with OpenMDF(self.saved_file) as mdf_file:
-            self.assertTrue(len(expected_channels - set(mdf_file.channels_db)) == 0)
-            # todo evaluate samples
+        with (
+            OpenMDF(self.saved_file) as new_mdf_file,
+            OpenMDF(self.measurement_file_1) as mdf_test_file_0,
+            OpenMDF(self.measurement_file_2) as mdf_test_file_1,
+        ):
+            for channel in mdf_test_file_1.iter_channels():
+                new_file_channel = new_mdf_file.get(channel.name)
+                self.assertListEqual(list(channel.samples), list(new_file_channel.samples))
+
+            for channel in mdf_test_file_0.iter_channels():
+                new_file_channel = new_mdf_file.get(channel.name)
+                self.assertListEqual(list(channel.samples), list(new_file_channel.samples))

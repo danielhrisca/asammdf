@@ -9,6 +9,7 @@ import urllib
 import urllib.request
 from zipfile import ZipFile
 
+from can.io import ASCReader
 import numpy as np
 import pandas as pd
 from PySide6 import QtCore, QtTest, QtWidgets
@@ -182,7 +183,7 @@ class TestPushButtonApply(TestBatchWidget):
 
         Evaluate:
             - File was created.
-            - Ensure that output file has only selected channels
+            - Ensure that output file has only selected channels data
         """
         # Get test file from git archive
         mdf_path = self.get_mdf_from_git()
@@ -191,12 +192,6 @@ class TestPushButtonApply(TestBatchWidget):
 
         # Expected results
         asc_path = Path.with_suffix(Path(self.test_workspace, mdf_path.stem), ".asc")
-        with OpenMDF(mdf_path) as mdf_file:
-            start = mdf_file.start_time.strftime("%a %b %d %I:%M:%S.%f %p %Y")
-            mdf_signal = mdf_file.get("CAN_DataFrame", 0)
-
-        columns = ["timestamps", "bus", "id", "directions", "data_start", "data_length"]
-        expected_text = f"date {start}\nbase hex  timestamps absolute\nno internal events logged\n"
 
         # Ensure output format
         self.widget.output_format.setCurrentText("ASC")
@@ -207,29 +202,59 @@ class TestPushButtonApply(TestBatchWidget):
         # Evaluate
         self.assertTrue(asc_path.exists())
 
-        # todo import can ASCReader
+        with OpenMDF(mdf_path) as mdf_file:
+            start_datetime = mdf_file.start_time.strftime("%a %b %d %I:%M:%S.%f %p %Y")
 
-        with open(asc_path) as asc_file:
-            self.assertIn(expected_text, asc_file.read())
+            for index, group in enumerate(mdf_file.groups):
+                names = [ch.name for ch in group.channels if "time" not in ch.name.lower()]
+                if not names:
+                    continue
 
-        asc_table = pd.read_table(asc_path, skiprows=3, header=None, delimiter=" ", skipinitialspace=True, dtype="str")
-        data_len = asc_table.values[0][5]
+                for channel_name in names:
+                    if "." not in channel_name:
+                        break
 
-        columns.extend(f"d{_}" for _ in range(int(data_len)))
-        asc_table.columns = columns
+                if channel_name:
+                    channel = mdf_file.get(channel_name, index)
+                    if not channel.samples.size:
+                        continue
+                    # Open ASC file
+                    with ASCReader(asc_path) as asc_file:
+                        for row, msg in enumerate(asc_file):
+                            if "Error" in channel_name:
+                                self.assertTrue(msg.is_error_frame)
+                                continue
+                            elif "Remote" in channel_name:
+                                self.assertTrue(msg.is_remote_frame)
 
-        self.assertEqual(asc_table.timestamps.size, mdf_signal.timestamps.size)
-        for from_asc, from_mdf in zip(asc_table.timestamps, mdf_signal.timestamps):
-            self.assertAlmostEqual(float(from_asc), from_mdf, places=4)
+                            # Evaluate timestamps
+                            self.assertAlmostEqual(msg.timestamp, channel.timestamps[row], places=10)
 
-        self.assertTrue(all(asc_table.bus) and int(asc_table.bus[0]) == mdf_signal.samples[0][0])
-        self.assertTrue(all(asc_table.data_length) and int(asc_table.data_length[0]) == mdf_signal.samples[0][4])
-        self.assertTrue(all(asc_table.data_start) and asc_table.data_start[0] == "d")
-        self.assertTrue(all(asc_table.directions) and asc_table.directions[0] == "Rx")
-        self.assertTrue(all(asc_table.id) and int(asc_table.id[0], 16) == mdf_signal.samples[0][1])
-        for from_asc, from_mdf in zip(asc_table.values, mdf_signal.samples):
-            for asc_value, mdf_value in zip(from_asc[6:], from_mdf[5]):
-                self.assertEqual(int(asc_value, 16), mdf_value)
+                            # Evaluate other fields
+                            for name in names:
+                                if name.endswith(".ID"):
+                                    self.assertEqual(msg.arbitration_id, channel[name].astype("u4")[row])
+                                elif name.endswith(".DLC"):
+                                    self.assertEqual(msg.dlc, channel[name].astype("u1")[row])
+                                elif name.endswith(".DataBytes"):
+                                    self.assertEqual(msg.data, channel[name][row][: msg.dlc].tobytes())
+                                elif name.endswith(".Dir"):
+                                    self.assertEqual(msg.is_rx, not bool(channel[name].astype("u1")[row]))
+                                elif name.endswith(".ESI"):
+                                    self.assertEqual(msg.error_state_indicator, bool(channel[name].astype("u1")[row]))
+                                    self.assertTrue(msg.is_fd)
+                                elif name.endswith(".BRS"):
+                                    self.assertEqual(msg.bitrate_switch, bool(channel[name].astype("u1")[row]))
+                else:
+                    continue
+
+            self.assertEqual(asc_file.base, "hex")
+            self.assertEqual(asc_file.timestamps_format, "absolute")
+            self.assertFalse(asc_file.internal_events_logged)
+            self.assertEqual(
+                datetime.datetime.strptime(start_datetime, "%a %b %d %I:%M:%S.%f %p %Y"),
+                datetime.datetime.strptime(asc_file.date, "%b %d %I:%M:%S.%f %p %Y"),
+            )
 
     def test_output_format_CSV_0(self):
         """
