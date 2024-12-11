@@ -1375,7 +1375,7 @@ typedef struct MyData {
     Py_ssize_t byte_offset; 
     Py_ssize_t byte_count;
     uint8_t * outptr;
-    Py_ssize_t out_size; 
+    Py_ssize_t cycles; 
 } MYDATA, *PMYDATA;
 
 typedef struct ChannelInfo {
@@ -1407,7 +1407,7 @@ void * get_channel_raw_bytes_C(void *lpParam )
             delta = data->byte_offset + data->byte_count - data->record_size;
             actual_byte_count = data->record_size - data->byte_offset;
 
-            count = data->size / data->record_size;
+            count = data->cycles;
 
             outptr = data->outptr;
             inptr += data->byte_offset;
@@ -1427,7 +1427,7 @@ void * get_channel_raw_bytes_C(void *lpParam )
         else
         {
             inptr = data->inptr;
-            count = data->size / data->record_size;
+            count = data->cycles;
             outptr = data->outptr;
             inptr += data->byte_offset;
 
@@ -1505,7 +1505,7 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
             pDataArray[i].record_size = record_size;
             pDataArray[i].byte_offset = PyLong_AsSsize_t(PyList_GetItem(obj, 0)); 
             pDataArray[i].byte_count = PyLong_AsSsize_t(PyList_GetItem(obj, 1)); 
-            pDataArray[i].out_size=0; 
+            pDataArray[i].cycles=cycles; 
 
             obj = PyByteArray_FromStringAndSize(NULL, pDataArray[i].byte_count * cycles);
             pDataArray[i].outptr= (uint8_t *) PyByteArray_AsString(obj);
@@ -1588,7 +1588,7 @@ static PyObject *data_block_from_arrays_C(void *lpParam )
     for (Py_ssize_t idx = thread_idx; idx < signal_count; idx += MAX_THREADS) {
         record_size = data->record_size;
         step = record_size - data->byte_count;
-        cycles = data->size;
+        cycles = data->cycles;
         byte_count = data->byte_count;
         inptr = data->inptr;
 
@@ -1664,12 +1664,9 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
                 itemsize = PyTuple_GetItem(item, 1);
 
                 pDataArray[i].inptr = (uint8_t *)PyArray_BYTES((PyArrayObject *)array);
-                pDataArray[i].size = cycles; 
-                pDataArray[i].record_size = 0;
+                pDataArray[i].cycles = cycles; 
                 pDataArray[i].byte_offset = total_size; 
                 pDataArray[i].byte_count = PyLong_AsSsize_t(itemsize); 
-                pDataArray[i].outptr=NULL;
-                pDataArray[i].out_size=0; 
 
                 total_size += pDataArray[i].byte_count;
 

@@ -2434,15 +2434,15 @@ class Timer:
 
     def display(self):
         if self.count:
-            for factor, r, unit in ((1e3, 3, 'ms'), (1e6, 6, 'us'), (1e9, 9, 'ns')):
+            for factor, r, unit in ((1e3, 3, "ms"), (1e6, 6, "us"), (1e9, 9, "ns")):
                 tpi = round(self.total_time / self.count, r)
                 if tpi:
                     break
             print(
-            f"""TIMER {self.name}:
+                f"""TIMER {self.name}:
 \t* {self.count} iterations in {self.total_time * 1000:.3f}ms 
 \t* {self.count / self.total_time:.3f} iter/s
 \t* {self.total_time / self.count * factor:.3f} {unit}/iter"""
-        )
+            )
         else:
-            print(f'TIMER {self.name}:\n\t* inactive')
+            print(f"TIMER {self.name}:\n\t* inactive")

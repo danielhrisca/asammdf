@@ -2598,7 +2598,7 @@ class MDF4(MDF_Common):
     def get_invalidation_bits(
         self,
         group_index: int,
-        channel: Channel,
+        pos_invalidation_bit: int,
         fragment: tuple[bytes, int, int, ReadableBufferType | None],
     ) -> NDArray[bool_]:
         """get invalidation indexes for the channel
@@ -2607,8 +2607,8 @@ class MDF4(MDF_Common):
         ----------
         group_index : int
             group index
-        channel : Channel
-            channel object
+        pos_invalidation_bit : int
+            channel invalidation bit position
         fragment : (bytes, int)
             (fragment bytes, fragment offset)
 
@@ -2623,29 +2623,29 @@ class MDF4(MDF_Common):
 
         data_bytes, offset, _count, invalidation_bytes = fragment
         invalidation_bytes_nr = group.channel_group.invalidation_bytes_nr
-        ch_invalidation_pos = channel.pos_invalidation_bit
 
         if invalidation_bytes is None:
-            try:
-                invalidation_bytes = self._invalidation_cache[(group_index, offset, _count)]
-            except KeyError:
+            record = group.record
+            if record is None:
+                self._prepare_record(group)
 
-                record = group.record
-                if record is None:
-                    self._prepare_record(group)
+            invalidation_bytes = get_channel_raw_bytes(
+                data_bytes,
+                group.channel_group.samples_byte_nr + group.channel_group.invalidation_bytes_nr,
+                group.channel_group.samples_byte_nr,
+                invalidation_bytes_nr,
+            )
 
-                invalidation_bytes = get_channel_raw_bytes(
-                    data_bytes,
-                    group.channel_group.samples_byte_nr + group.channel_group.invalidation_bytes_nr,
-                    group.channel_group.samples_byte_nr,
-                    invalidation_bytes_nr,
+        key = (group_index, offset, _count, pos_invalidation_bit)
+        if key not in self._invalidation_cache:
+            for i in range(invalidation_bytes_nr * 8):
+                self._invalidation_cache[(group_index, offset, _count, i)] = InvalidationArray(
+                    get_invalidation_bits_array(invalidation_bytes, invalidation_bytes_nr, pos_invalidation_bit),
+                    (group_index, pos_invalidation_bit),
                 )
+        invalidation_bits = self._invalidation_cache[key]
 
-                self._invalidation_cache[(group_index, offset, _count)] = invalidation_bytes
-
-        invalidation_bits = get_invalidation_bits_array(invalidation_bytes, invalidation_bytes_nr, ch_invalidation_pos)
-
-        return InvalidationArray(invalidation_bits, (group_index, ch_invalidation_pos))
+        return self._invalidation_cache[key]
 
     def append(
         self,
@@ -6989,7 +6989,7 @@ class MDF4(MDF_Common):
                 if master_is_required:
                     timestamps.append(self.get_master(gp_nr, fragment, one_piece=True))
                 if channel_invalidation_present:
-                    invalidation_bits.append(self.get_invalidation_bits(gp_nr, channel, fragment))
+                    invalidation_bits.append(self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment))
 
                 count += 1
         else:
@@ -7018,7 +7018,7 @@ class MDF4(MDF_Common):
                 if master_is_required:
                     timestamps.append(self.get_master(gp_nr, fragment, one_piece=True))
                 if channel_invalidation_present:
-                    invalidation_bits.append(self.get_invalidation_bits(gp_nr, channel, fragment))
+                    invalidation_bits.append(self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment))
 
                 count += 1
 
@@ -7383,7 +7383,7 @@ class MDF4(MDF_Common):
             if master_is_required:
                 timestamps.append(self.get_master(gp_nr, fragment, one_piece=True))
             if channel_invalidation_present:
-                invalidation_bits.append(self.get_invalidation_bits(gp_nr, channel, fragment))
+                invalidation_bits.append(self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment))
 
             channel_values.append(vals)
             count += 1
@@ -7516,7 +7516,7 @@ class MDF4(MDF_Common):
                         )
                     )
                 if channel_invalidation_present:
-                    invalidation_bits.append(self.get_invalidation_bits(gp_nr, channel, fragment))
+                    invalidation_bits.append(self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment))
 
                 channel_values.append(vals)
                 count += 1
@@ -7644,7 +7644,7 @@ class MDF4(MDF_Common):
                     timestamps = None
 
                 if channel_invalidation_present:
-                    invalidation_bits = self.get_invalidation_bits(gp_nr, channel, fragment)
+                    invalidation_bits = self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment)
 
                     if not ignore_invalidation_bits:
                         vals = vals[nonzero(~invalidation_bits)[0]]
@@ -7672,7 +7672,9 @@ class MDF4(MDF_Common):
                         if master_is_required:
                             timestamps.append(self.get_master(gp_nr, fragment, one_piece=True))
                         if channel_invalidation_present:
-                            invalidation_bits.append(self.get_invalidation_bits(gp_nr, channel, fragment))
+                            invalidation_bits.append(
+                                self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment)
+                            )
 
                         channel_values.append(vals)
                     vals = concatenate(channel_values)
@@ -7700,7 +7702,9 @@ class MDF4(MDF_Common):
                         if master_is_required:
                             timestamps.append(self.get_master(gp_nr, fragment, one_piece=True))
                         if channel_invalidation_present:
-                            invalidation_bits.append(self.get_invalidation_bits(gp_nr, channel, fragment))
+                            invalidation_bits.append(
+                                self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment)
+                            )
 
                     if count > 1:
                         buffer = bytearray().join(buffer)
@@ -8333,6 +8337,8 @@ class MDF4(MDF_Common):
                 grp = self.groups[group_index]
                 if not grp.single_channel_dtype:
                     self._prepare_record(grp)
+
+                self._invalidation_cache.clear()
 
                 if 1 and len(channels) >= 100:
                     # prepare the invalidation bytes for this group and fragment
