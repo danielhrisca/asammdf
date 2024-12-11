@@ -3793,7 +3793,7 @@ class MDF4(MDF_Common):
                 for i in range(count):
                     data_ = samples[i * block_size : (i + 1) * block_size]
                     raw_size = len(data_)
-                    data_ = lz_compress(data_)
+                    data_ = lz_compress(data_, store_size=True)
 
                     size = len(data_)
                     data_address = self._tempfile.tell()
@@ -3816,7 +3816,7 @@ class MDF4(MDF_Common):
 
                 data = samples
                 raw_size = len(data)
-                data = lz_compress(data)
+                data = lz_compress(data, store_size=True)
 
                 size = len(data)
                 self._tempfile.write(data)
@@ -3835,7 +3835,7 @@ class MDF4(MDF_Common):
                     addr = tell()
                     data = inval_bits.tobytes()
                     raw_size = len(data)
-                    data = lz_compress(data)
+                    data = lz_compress(data, store_size=True)
                     size = len(data)
                     self._tempfile.write(data)
 
@@ -4634,7 +4634,7 @@ class MDF4(MDF_Common):
 
                 data = samples.tobytes()
                 raw_size = len(data)
-                data = lz_compress(data)
+                data = lz_compress(data, store_size=True)
 
                 size = len(data)
                 write(data)
@@ -4653,7 +4653,7 @@ class MDF4(MDF_Common):
                     addr = tell()
                     data = invalidation_bits.tobytes()
                     raw_size = len(data)
-                    data = lz_compress(data)
+                    data = lz_compress(data, store_size=True)
                     size = len(data)
                     write(data)
 
@@ -6049,7 +6049,7 @@ class MDF4(MDF_Common):
             if self.version < "4.20":
                 data = samples
                 raw_size = size
-                data = lz_compress(data)
+                data = lz_compress(data, store_size=True)
                 size = len(data)
                 stream.write(data)
                 gp.data_blocks.append(
@@ -6068,7 +6068,7 @@ class MDF4(MDF_Common):
             else:
                 data = samples
                 raw_size = size
-                data = lz_compress(data)
+                data = lz_compress(data, store_size=True)
                 size = len(data)
                 stream.write(data)
 
@@ -6090,7 +6090,7 @@ class MDF4(MDF_Common):
 
                     data = inval_bits.tobytes()
                     raw_size = len(data)
-                    data = lz_compress(data)
+                    data = lz_compress(data, store_size=True)
                     size = len(data)
                     stream.write(data)
 
@@ -6212,7 +6212,7 @@ class MDF4(MDF_Common):
             if added_cycles:
                 data = samples.tobytes()
                 raw_size = len(data)
-                data = lz_compress(data)
+                data = lz_compress(data, store_size=True)
 
                 size = len(data)
                 write(data)
@@ -6233,7 +6233,7 @@ class MDF4(MDF_Common):
                     addr = tell()
                     data = invalidation_bits.tobytes()
                     raw_size = len(data)
-                    data = lz_compress(data)
+                    data = lz_compress(data, store_size=True)
                     size = len(data)
                     write(data)
 
@@ -10480,7 +10480,7 @@ class MDF4(MDF_Common):
                             original_size = len(new_data)
                             if original_size:
                                 if compress:
-                                    new_data = lz_compress(new_data)
+                                    new_data = lz_compress(new_data, store_size=True)
                                     compressed_size = len(new_data)
 
                                     write(new_data)
@@ -10562,7 +10562,7 @@ class MDF4(MDF_Common):
                                 original_size = len(new_data)
                                 if original_size:
                                     if compress:
-                                        new_data = lz_compress(new_data)
+                                        new_data = lz_compress(new_data, store_size=True)
                                         compressed_size = len(new_data)
 
                                         write(new_data)
