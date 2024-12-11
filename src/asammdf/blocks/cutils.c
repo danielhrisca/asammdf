@@ -1401,12 +1401,7 @@ void * get_channel_raw_bytes_C(void *lpParam )
     uint8_t *outptr, *inptr;
 
     for (int idx = thread_idx; idx < signal_count; idx += MAX_THREADS) {
-        if (!data->record_size)
-        {
-            data->outptr = NULL;
-            data->out_size = 0;
-        }
-        else if (data->record_size < data->byte_offset + data->byte_count)
+        if (data->record_size < data->byte_offset + data->byte_count)
         {
             inptr = data->inptr;
             delta = data->byte_offset + data->byte_count - data->record_size;
@@ -1414,10 +1409,7 @@ void * get_channel_raw_bytes_C(void *lpParam )
 
             count = data->size / data->record_size;
 
-            outptr = (uint8_t *) malloc(count * data->byte_count);
-            data->outptr = outptr;
-            data->out_size = count * data->byte_count;
-
+            outptr = data->outptr;
             inptr += data->byte_offset;
 
             for (Py_ssize_t i = 0; i < count; i++)
@@ -1436,10 +1428,7 @@ void * get_channel_raw_bytes_C(void *lpParam )
         {
             inptr = data->inptr;
             count = data->size / data->record_size;
-            outptr = (uint8_t *) malloc(count * data->byte_count);
-            data->outptr = outptr;
-            data->out_size = count * data->byte_count;
-
+            outptr = data->outptr;
             inptr += data->byte_offset;
 
             delta = data->record_size - data->byte_count;
@@ -1461,7 +1450,7 @@ void * get_channel_raw_bytes_C(void *lpParam )
 
 static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
 {
-    Py_ssize_t count, size, actual_byte_count, delta;
+    Py_ssize_t count, size, actual_byte_count, delta, cycles;
     PyObject *data_block, *out, *signals, *obj;
 
     Py_ssize_t record_size, byte_offset, byte_count;
@@ -1485,6 +1474,7 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
     }
     else
     {
+         
         if (PyBytes_Check(data_block)) {
             size = PyBytes_Size(data_block);
             inptr = PyBytes_AsString(data_block);
@@ -1493,6 +1483,8 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
             size = PyByteArray_Size(data_block);
             inptr = PyByteArray_AsString(data_block);
         }
+
+        cycles = size / record_size;
 
         signal_count = PyList_Size(signals);
         pDataArray = (PMYDATA) malloc(sizeof(MYDATA) * signal_count);
@@ -1503,6 +1495,8 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
             ch_info[i].idx = i;
         }
 
+
+        out = PyList_New(signal_count);
         for (int i=0; i<signal_count; i++) {
             obj = PyList_GetItem(signals, i);
 
@@ -1511,8 +1505,17 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
             pDataArray[i].record_size = record_size;
             pDataArray[i].byte_offset = PyLong_AsSsize_t(PyList_GetItem(obj, 0)); 
             pDataArray[i].byte_count = PyLong_AsSsize_t(PyList_GetItem(obj, 1)); 
-            pDataArray[i].outptr=NULL;
             pDataArray[i].out_size=0; 
+
+            obj = PyByteArray_FromStringAndSize(NULL, pDataArray[i].byte_count * cycles);
+            pDataArray[i].outptr= (uint8_t *) PyByteArray_AsString(obj);
+
+            PyList_SetItem(
+                out,
+                i,
+                obj
+            );  
+            
         }
 
         Py_BEGIN_ALLOW_THREADS
@@ -1543,16 +1546,6 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
 #endif
 
         Py_END_ALLOW_THREADS
-
-        out = PyList_New(signal_count);
-        for (int i=0; i<signal_count; i++) {
-            PyList_SetItem(
-                out,
-                i,
-                PyByteArray_FromStringAndSize(pDataArray[i].outptr, pDataArray[i].out_size)
-            );
-            if (pDataArray[i].outptr) free(pDataArray[i].outptr);
-        }
 
         free(pDataArray);
 
