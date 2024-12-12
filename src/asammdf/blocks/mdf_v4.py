@@ -164,6 +164,7 @@ EMPTY_TUPLE = ()
 
 # 100 extra steps for the sorting, 1 step after sorting and 1 step at finish
 SORT_STEPS = 102
+DATA_IS_CHANNEL_BYTES = [-2, -2]
 
 
 logger = logging.getLogger("asammdf")
@@ -2628,27 +2629,27 @@ class MDF4(MDF_Common):
         group = self.groups[group_index]
 
         data_bytes, offset, _count, invalidation_bytes = fragment
-        invalidation_bytes_nr = group.channel_group.invalidation_bytes_nr
-
+        
         if invalidation_bytes is None:
+            invalidation_bytes_nr = group.channel_group.invalidation_bytes_nr
+            samples_byte_nr = group.channel_group.samples_byte_nr
             record = group.record
             if record is None:
                 self._prepare_record(group)
 
             invalidation_bytes = get_channel_raw_bytes(
                 data_bytes,
-                group.channel_group.samples_byte_nr + group.channel_group.invalidation_bytes_nr,
-                group.channel_group.samples_byte_nr,
+                samples_byte_nr + invalidation_bytes_nr,
+                samples_byte_nr,
                 invalidation_bytes_nr,
             )
 
         key = (group_index, offset, _count, pos_invalidation_bit)
         if key not in self._invalidation_cache:
-            for i in range(invalidation_bytes_nr * 8):
-                self._invalidation_cache[(group_index, offset, _count, i)] = InvalidationArray(
-                    get_invalidation_bits_array(invalidation_bytes, invalidation_bytes_nr, pos_invalidation_bit),
-                    (group_index, pos_invalidation_bit),
-                )
+            self._invalidation_cache[key] = InvalidationArray(
+                get_invalidation_bits_array(invalidation_bytes, group.channel_group.invalidation_bytes_nr, pos_invalidation_bit),
+                (group_index, pos_invalidation_bit),
+            )
 
         return self._invalidation_cache[key]
 
@@ -6841,19 +6842,28 @@ class MDF4(MDF_Common):
                     )
 
             else:
-                vals, timestamps, invalidation_bits, encoding = self._get_scalar(
-                    channel=channel,
-                    group=grp,
-                    group_index=gp_nr,
-                    channel_index=ch_nr,
-                    dependency_list=dependency_list,
-                    raster=raster,
-                    data=data,
-                    ignore_invalidation_bits=ignore_invalidation_bits,
-                    record_offset=record_offset,
-                    record_count=record_count,
-                    master_is_required=master_is_required,
-                )
+                if (
+                        data
+                        and (fast_path := channel.fast_path) is not None
+                        and not master_is_required
+                        and ignore_invalidation_bits
+                        and not raster
+                ):
+                    vals, timestamps, invalidation_bits, encoding = self._fast_scalar_path(*fast_path, data)
+                else:
+                    vals, timestamps, invalidation_bits, encoding = self._get_scalar(
+                        channel=channel,
+                        group=grp,
+                        group_index=gp_nr,
+                        channel_index=ch_nr,
+                        dependency_list=dependency_list,
+                        raster=raster,
+                        data=data,
+                        ignore_invalidation_bits=ignore_invalidation_bits,
+                        record_offset=record_offset,
+                        record_count=record_count,
+                        master_is_required=master_is_required,
+                    )
 
         if all_invalid:
             invalidation_bits = np.ones(len(vals), dtype=bool)
@@ -7447,6 +7457,39 @@ class MDF4(MDF_Common):
 
         return vals, timestamps, invalidation_bits, None
 
+    def _fast_scalar_path(
+        self,
+        gp_nr,
+        record_size,
+        byte_offset,
+        byte_size,
+        pos_invalidation_bit,
+        # data_type,
+        # channel_type,
+        # bit_count,
+        dtype,
+        data,
+    ):
+        data_bytes, *rec_key, invalidation_bytes = data
+        if rec_key != DATA_IS_CHANNEL_BYTES:
+            buffer = get_channel_raw_bytes(
+                data_bytes,
+                record_size,
+                byte_offset,
+                byte_size,
+            )
+        else:
+            buffer = data_bytes
+
+        vals = frombuffer(buffer, dtype=dtype)
+
+        if pos_invalidation_bit >= 0:
+            invalidation_bits = self.get_invalidation_bits(gp_nr, pos_invalidation_bit, data)
+        else:
+            invalidation_bits = None
+
+        return vals, None, invalidation_bits, None
+
     def _get_scalar(
         self,
         channel: Channel,
@@ -7462,16 +7505,17 @@ class MDF4(MDF_Common):
         master_is_required: bool,
         skip_vlsd: bool = False,
     ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[Any] | None, str | None]:
-        grp = group
-        gp_nr = group_index
-        ch_nr = channel_index
 
+        grp = group
         # get group data
         if data is None:
             data = self._load_data(grp, record_offset=record_offset, record_count=record_count)
             one_piece = False
         else:
             one_piece = True
+
+        gp_nr = group_index
+        ch_nr = channel_index
 
         channel_invalidation_present = channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT)
 
@@ -7638,6 +7682,18 @@ class MDF4(MDF_Common):
                             view = f"{channel_dtype.byteorder}i{vals.itemsize}"
                             if dtype(view) != vals.dtype:
                                 vals = vals.view(view)
+                    elif channel_type == v4c.CHANNEL_TYPE_VALUE and channel.fast_path is None:
+                        channel.fast_path = (
+                            gp_nr,
+                            record_size + channel_group.invalidation_bytes_nr,
+                            byte_offset,
+                            byte_size,
+                            channel.pos_invalidation_bit if channel_invalidation_present else -1,
+                            # data_type,
+                            # channel_type,
+                            # bit_count,
+                            dtype_,
+                        )
 
                 else:
                     vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)

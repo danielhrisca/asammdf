@@ -476,6 +476,7 @@ class Channel:
         "default_X_dg_addr",
         "display_names",
         "dtype_fmt",
+        "fast_path",
         "flags",
         "id",
         "links_nr",
@@ -1020,6 +1021,7 @@ class Channel:
             del self.display_names[self.name]
 
         self.standard_C_size = True
+        self.fast_path = None
 
     def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
