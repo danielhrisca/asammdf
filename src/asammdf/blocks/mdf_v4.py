@@ -3357,7 +3357,7 @@ class MDF4(MDF_Common):
                     inval_bits,
                 )
                 fields.extend(new_fields)
-                gp_sig_types.append((sig_type, signal.dtype.itemsize))
+                gp_sig_types.append((sig_type, signal.samples.dtype.itemsize))
 
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 # here we have channel arrays or mdf v3 channel dependencies
