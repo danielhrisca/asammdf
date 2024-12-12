@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
-#define MAX_THREADS 4
+#define MAX_THREADS 12
 
 #if defined(_WIN32) 
     #include <windows.h>
