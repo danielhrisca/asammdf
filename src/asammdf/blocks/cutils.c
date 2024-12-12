@@ -1563,7 +1563,7 @@ struct dtype
 };
 
 
-static PyObject *data_block_from_arrays_C(void *lpParam )
+void * data_block_from_arrays_C(void *lpParam )
 {
     Py_ssize_t size;
     PyObject *data_blocks, *out = NULL, *item, *array, *copy_array, *itemsize, *cycles_obj;
