@@ -1419,6 +1419,9 @@ class MDF4(MDF_Common):
         if record_count is not None:
             invalidation_record_count = record_count * invalidation_size
             record_count *= samples_size
+            max_size = record_count + invalidation_record_count
+        else:
+            max_size = (invalidation_size + samples_size) * channel_group.cycles_nr
 
         if not samples_size:
             if rm:
@@ -1453,6 +1456,9 @@ class MDF4(MDF_Common):
                 invalidation_split_size = invalidation_size
 
             split_size = int(split_size)
+            if split_size > max_size:
+                invalidation_split_size = (max_size // samples_size) * invalidation_size
+                split_size = max_size
 
             buffer = bytearray(split_size)
             buffer_view = memoryview(buffer)
@@ -2643,7 +2649,6 @@ class MDF4(MDF_Common):
                     get_invalidation_bits_array(invalidation_bytes, invalidation_bytes_nr, pos_invalidation_bit),
                     (group_index, pos_invalidation_bit),
                 )
-        invalidation_bits = self._invalidation_cache[key]
 
         return self._invalidation_cache[key]
 
@@ -6851,7 +6856,6 @@ class MDF4(MDF_Common):
                 )
 
         if all_invalid:
-
             invalidation_bits = np.ones(len(vals), dtype=bool)
 
         if samples_only:
@@ -6928,6 +6932,9 @@ class MDF4(MDF_Common):
             except:
                 debug_channel(self, grp, channel, dependency_list)
                 raise
+
+        if data is None:
+            self._invalidation_cache.clear()
 
         return res
 
@@ -8321,7 +8328,7 @@ class MDF4(MDF_Common):
             except:
                 break
 
-            if perf_counter() - tt > 120:
+            if perf_counter() - tt > 180:
                 x = 1 / 0
 
             # prepare the master
@@ -8364,6 +8371,7 @@ class MDF4(MDF_Common):
                                 raw=True,
                                 ignore_invalidation_bits=True,
                                 samples_only=False,
+                                skip_channel_validation=True,
                             )
 
                             signals.append(signal)
@@ -8377,6 +8385,7 @@ class MDF4(MDF_Common):
                                 raw=True,
                                 ignore_invalidation_bits=True,
                                 samples_only=True,
+                                skip_channel_validation=True,
                             )
 
                             signals.append((signal, invalidation_bits))
@@ -8454,6 +8463,7 @@ class MDF4(MDF_Common):
             yield signals
 
         grp.read_split_count = 0
+        self._invalidation_cache.clear()
 
     def get_master(
         self,
