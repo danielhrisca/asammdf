@@ -1959,14 +1959,14 @@ class MDF4(MDF_Common):
                     while address:
                         dl = DataList(address=address, stream=stream, mapped=mapped)
                         for i in range(dl.data_block_nr):
-                            addr = dl[f"data_block_addr{i}"]
+                            addr = getattr(dl, f"data_block_addr{i}")
 
                             id_string, block_len = COMMON_SHORT_uf(stream, addr)
                             # can be a DataBlock
                             if id_string == block_type:
                                 size = block_len - 24
                                 if size:
-                                    addr = addr + COMMON_SIZE
+                                    addr += COMMON_SIZE
 
                                     # split the DTBLOCK into chucks of up to 32MB
                                     while True:
@@ -2002,7 +2002,7 @@ class MDF4(MDF_Common):
                                             break
 
                             # or a DataZippedBlock
-                            elif id_string == b"##DZ":
+                            else:
                                 (
                                     zip_type,
                                     param,
@@ -2038,7 +2038,7 @@ class MDF4(MDF_Common):
                         ld = ListData(address=address, stream=stream, mapped=mapped)
                         has_invalidation = ld.flags & v4c.FLAG_LD_INVALIDATION_PRESENT
                         for i in range(ld.data_block_nr):
-                            addr = ld[f"data_block_addr_{i}"]
+                            addr = getattr(ld, f"data_block_addr_{i}")
 
                             id_string, block_len = COMMON_SHORT_uf(stream, addr)
                             # can be a DataBlock
@@ -2243,7 +2243,7 @@ class MDF4(MDF_Common):
                     while address:
                         dl = DataList(address=address, stream=stream)
                         for i in range(dl.data_block_nr):
-                            addr = dl[f"data_block_addr{i}"]
+                            addr = getattr(dl, f"data_block_addr{i}")
 
                             stream.seek(addr)
                             id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
@@ -2326,7 +2326,7 @@ class MDF4(MDF_Common):
                         ld = ListData(address=address, stream=stream)
                         has_invalidation = ld.flags & v4c.FLAG_LD_INVALIDATION_PRESENT
                         for i in range(ld.data_block_nr):
-                            addr = ld[f"data_block_addr{i}"]
+                            addr = getattr(ld, f"data_block_addr{i}")
 
                             stream.seek(addr)
                             id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
@@ -8387,8 +8387,8 @@ class MDF4(MDF_Common):
             except:
                 break
 
-            # if perf_counter() - tt > 120:
-            #     x = 1 / 0
+            if perf_counter() - tt > 120:
+                x = 1 / 0
 
             # prepare the master
             _master = self.get_master(index, data=fragments[master_index], one_piece=True)
