@@ -1370,11 +1370,10 @@ static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
 
 typedef struct MyData {
     uint8_t * inptr;
-    Py_ssize_t size; 
+    uint8_t * outptr;
     Py_ssize_t record_size;
     Py_ssize_t byte_offset; 
-    Py_ssize_t byte_count;
-    uint8_t * outptr;
+    Py_ssize_t byte_count;  
     Py_ssize_t cycles; 
 } MYDATA, *PMYDATA;
 
@@ -1382,12 +1381,13 @@ typedef struct ChannelInfo {
     PMYDATA data;
     Py_ssize_t count; 
     Py_ssize_t idx; 
+    Py_ssize_t thread_count;
 } MyChannelInfo, *PMyChannelInfo;
 
 
 void * get_channel_raw_bytes_C(void *lpParam ) 
 {
-    Py_ssize_t count, actual_byte_count, delta;
+    Py_ssize_t count, actual_byte_count, delta, thread_count;
     PMYDATA data;
     PMyChannelInfo indata;
     indata = (PMyChannelInfo) lpParam;
@@ -1395,12 +1395,13 @@ void * get_channel_raw_bytes_C(void *lpParam )
     Py_ssize_t signal_count, thread_idx;
     signal_count = indata->count;
     thread_idx = indata->idx;
+    thread_count = indata->thread_count;
     data = indata->data;
     for (Py_ssize_t i = 0; i<thread_idx; i++, data++);
 
     uint8_t *outptr, *inptr;
 
-    for (int idx = thread_idx; idx < signal_count; idx += MAX_THREADS) {
+    for (int idx = thread_idx; idx < signal_count; idx += thread_count) {
         if (data->record_size < data->byte_offset + data->byte_count)
         {
             inptr = data->inptr;
@@ -1441,7 +1442,7 @@ void * get_channel_raw_bytes_C(void *lpParam )
             }
         }
 
-        for (Py_ssize_t i = 0; i<MAX_THREADS; i++, data++);
+        for (Py_ssize_t i = 0; i<thread_count; i++, data++);
     }
 
     return 0;
@@ -1454,27 +1455,31 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
     PyObject *data_block, *out, *signals, *obj;
 
     Py_ssize_t record_size, byte_offset, byte_count;
-    Py_ssize_t signal_count, thread_count, remaining_signals, thread_pos;
+    Py_ssize_t signal_count, thread_count=12, remaining_signals, thread_pos;
 
     uint8_t *inptr, *outptr; 
+    int is_list;
     
-#ifdef _WIN32
-    HANDLE  hThreads[MAX_THREADS] = { NULL };
-    DWORD   dwThreadIdArray[MAX_THREADS];
-#else
-    pthread_t dwThreadIdArray[MAX_THREADS];
-#endif
     PMYDATA pDataArray;
-
     PMyChannelInfo ch_info;
 
-    if (!PyArg_ParseTuple(args, "OnO", &data_block, &record_size, &signals))
+    if (!PyArg_ParseTuple(args, "OnO|n", &data_block, &record_size, &signals, &thread_count))
     {
         return 0;
     }
     else
     {
-         
+
+#ifdef _WIN32
+        HANDLE  *hThreads;
+        DWORD   *dwThreadIdArray;
+        hThreads = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
+        dwThreadIdArray = (DWORD  *) malloc(sizeof(DWORD) * thread_count);
+#else
+        pthread_t * dwThreadIdArray;
+        dwThreadIdArray = (pthread_t  *) malloc(sizeof(pthread_t) * thread_count);
+#endif
+
         if (PyBytes_Check(data_block)) {
             size = PyBytes_Size(data_block);
             inptr = PyBytes_AsString(data_block);
@@ -1486,28 +1491,53 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
 
         cycles = size / record_size;
 
-        signal_count = PyList_Size(signals);
+        is_list = PyList_Check(signals);
+        if (is_list) {
+            signal_count = PyList_Size(signals);
+        }
+        else {
+            signal_count = PyTuple_Size(signals);
+        }
+
+        if (signal_count < thread_count) {
+            thread_count = signal_count;
+        }
+
         pDataArray = (PMYDATA) malloc(sizeof(MYDATA) * signal_count);
-        ch_info = (PMyChannelInfo) malloc(sizeof(MyChannelInfo) * MAX_THREADS);
-        for (int i=0; i<MAX_THREADS; i++){
+        ch_info = (PMyChannelInfo) malloc(sizeof(MyChannelInfo) * thread_count);
+        for (int i=0; i<thread_count; i++){
             ch_info[i].data = pDataArray;
             ch_info[i].count = signal_count;
             ch_info[i].idx = i;
+            ch_info[i].thread_count = thread_count;
         }
 
-
         out = PyList_New(signal_count);
+
         for (int i=0; i<signal_count; i++) {
-            obj = PyList_GetItem(signals, i);
+            if (is_list) {
+                obj = PyList_GetItem(signals, i);
+            }
+            else {
+                obj = PyTuple_GetItem(signals, i);
+            }
+
+            if (PyList_Check(obj)) {
+                byte_offset = PyLong_AsSsize_t(PyList_GetItem(obj, 0));
+                byte_count = PyLong_AsSsize_t(PyList_GetItem(obj, 1));
+            }
+            else {
+                byte_offset = PyLong_AsSsize_t(PyTuple_GetItem(obj, 0));
+                byte_count = PyLong_AsSsize_t(PyTuple_GetItem(obj, 1));
+            }
 
             pDataArray[i].inptr = (uint8_t *)inptr;
-            pDataArray[i].size = size; 
             pDataArray[i].record_size = record_size;
-            pDataArray[i].byte_offset = PyLong_AsSsize_t(PyList_GetItem(obj, 0)); 
-            pDataArray[i].byte_count = PyLong_AsSsize_t(PyList_GetItem(obj, 1)); 
-            pDataArray[i].cycles=cycles; 
+            pDataArray[i].byte_offset = byte_offset; 
+            pDataArray[i].byte_count = byte_count; 
+            pDataArray[i].cycles = cycles; 
 
-            obj = PyByteArray_FromStringAndSize(NULL, pDataArray[i].byte_count * cycles);
+            obj = PyByteArray_FromStringAndSize(NULL, byte_count * cycles);
             pDataArray[i].outptr= (uint8_t *) PyByteArray_AsString(obj);
 
             PyList_SetItem(
@@ -1521,7 +1551,7 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
         Py_BEGIN_ALLOW_THREADS
 
 #ifdef _WIN32     
-        for (int i=0; i< MAX_THREADS; i++) {
+        for (int i=0; i< thread_count; i++) {
             hThreads[i] = CreateThread(
                 NULL,
                 0,
@@ -1532,15 +1562,15 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
             );
         }
 
-        WaitForMultipleObjects(MAX_THREADS, hThreads, true, INFINITE);
-        for (int i=0; i< MAX_THREADS; i++) {
+        WaitForMultipleObjects(thread_count, hThreads, true, INFINITE);
+        for (int i=0; i< thread_count; i++) {
             CloseHandle(hThreads[i]);
         }
 #else        
-        for (int i=0; i< MAX_THREADS; i++) {
+        for (int i=0; i< thread_count; i++) {
             pthread_create(&(dwThreadIdArray[i]), NULL, get_channel_raw_bytes_C, &ch_info[i]);
         }
-        for (int i=0; i< MAX_THREADS; i++) {
+        for (int i=0; i< thread_count; i++) {
             pthread_join(dwThreadIdArray[i], NULL);
         }
 #endif
@@ -1548,8 +1578,13 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
         Py_END_ALLOW_THREADS
 
         free(pDataArray);
-
         free(ch_info);
+#ifdef _WIN32
+        free(hThreads);
+        free(dwThreadIdArray);
+#else
+        free(dwThreadIdArray);
+#endif
 
         return out;
     }
@@ -1565,7 +1600,7 @@ struct dtype
 
 void * data_block_from_arrays_C(void *lpParam )
 {
-    Py_ssize_t size;
+    Py_ssize_t size, thread_count;
     PyObject *data_blocks, *out = NULL, *item, *array, *copy_array, *itemsize, *cycles_obj;
 
     char *read_pos = NULL, *write_pos = NULL;
@@ -1581,11 +1616,12 @@ void * data_block_from_arrays_C(void *lpParam )
     signal_count = indata->count;
     thread_idx = indata->idx;
     data = indata->data;
+    thread_count= indata->thread_count;
     for (Py_ssize_t i = 0; i<thread_idx; i++, data++);
 
     uint8_t *outptr, *inptr;
 
-    for (Py_ssize_t idx = thread_idx; idx < signal_count; idx += MAX_THREADS) {
+    for (Py_ssize_t idx = thread_idx; idx < signal_count; idx += thread_count) {
         record_size = data->record_size;
         step = record_size - data->byte_count;
         cycles = data->cycles;
@@ -1602,39 +1638,49 @@ void * data_block_from_arrays_C(void *lpParam )
             outptr += step;
         }
 
-        for (Py_ssize_t i = 0; i<MAX_THREADS; i++, data++);
+        for (Py_ssize_t i = 0; i<thread_count; i++, data++);
     }
 }
 
 
 static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
 {
-    Py_ssize_t signal_count;
-    PyObject *data_blocks, *out = NULL, *item, *array, *copy_array, *itemsize, *cycles_obj;
+    Py_ssize_t signal_count, thread_count=12;
+    PyObject *data_blocks, *out = NULL, *item, *array, *copy_array, *cycles_obj;
 
     char *outptr;
     char *read_pos = NULL, *write_pos = NULL;
     Py_ssize_t total_size = 0, record_size = 0,
             cycles, step = 0;
-    Py_ssize_t isize = 0, offset = 0;
+    Py_ssize_t isize = 0, offset = 0,byte_count;
+    int is_list;
 
-#ifdef _WIN32
-    HANDLE  hThreads[MAX_THREADS] = { NULL };
-    DWORD   dwThreadIdArray[MAX_THREADS];
-#else
-    pthread_t dwThreadIdArray[MAX_THREADS];
-#endif
     PMYDATA pDataArray;
     PMyChannelInfo ch_info;
 
-    if (!PyArg_ParseTuple(args, "OO", &data_blocks, &cycles_obj))
+    if (!PyArg_ParseTuple(args, "OO|n", &data_blocks, &cycles_obj, &thread_count))
     {
         return NULL;
     }
     else
     {
+#ifdef _WIN32
+        HANDLE  *hThreads;
+        DWORD   *dwThreadIdArray;
+        hThreads = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
+        dwThreadIdArray = (DWORD  *) malloc(sizeof(DWORD) * thread_count);
+#else
+        pthread_t * dwThreadIdArray;
+        dwThreadIdArray = (pthread_t  *) malloc(sizeof(pthread_t) * thread_count);
+#endif
         cycles = PyLong_AsLongLong(cycles_obj);
-        signal_count = PyList_Size(data_blocks);
+        is_list = PyList_Check(data_blocks);
+        if (is_list) {
+            signal_count = PyList_Size(data_blocks);
+        }
+        else {
+            signal_count = PyTuple_Size(data_blocks);
+        }
 
         if (!signal_count)
         {
@@ -1642,37 +1688,50 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
         }
         else
         {
+            if (signal_count < thread_count) {
+                thread_count = signal_count;
+            }
             pDataArray = (PMYDATA) malloc(sizeof(MYDATA) * signal_count);
-            ch_info = (PMyChannelInfo) malloc(sizeof(MyChannelInfo) * MAX_THREADS);
+            ch_info = (PMyChannelInfo) malloc(sizeof(MyChannelInfo) * thread_count);
 
             total_size = 0;
-            for (int i=0; i<MAX_THREADS; i++){
+            for (int i=0; i<thread_count; i++){
                 ch_info[i].data = pDataArray;
                 ch_info[i].count = signal_count;
                 ch_info[i].idx = i;
+                ch_info[i].thread_count = thread_count;
             }
 
             for (int i=0; i<signal_count; i++) {
-                item = PyList_GetItem(data_blocks, i);
-                array = PyTuple_GetItem(item, 0);
+                if (is_list) {
+                    item = PyList_GetItem(data_blocks, i);
+                }
+                else {
+                    item = PyTuple_GetItem(data_blocks, i);
+                }
+
+                if (PyList_Check(item)) {
+                    array = PyList_GetItem(item, 0);
+                    byte_count = PyLong_AsSsize_t(PyList_GetItem(item, 1));
+                }
+                else {
+                    array = PyTuple_GetItem(item, 0);
+                    byte_count = PyLong_AsSsize_t(PyTuple_GetItem(item, 1));
+                }
+
                 if (!PyArray_IS_C_CONTIGUOUS(array))
                 {
                     copy_array = PyArray_NewCopy((PyArrayObject *)array, NPY_CORDER);
                     array = copy_array;
                     copy_array = NULL;
                 }
-                itemsize = PyTuple_GetItem(item, 1);
-
+                
                 pDataArray[i].inptr = (uint8_t *)PyArray_BYTES((PyArrayObject *)array);
                 pDataArray[i].cycles = cycles; 
                 pDataArray[i].byte_offset = total_size; 
-                pDataArray[i].byte_count = PyLong_AsSsize_t(itemsize); 
+                pDataArray[i].byte_count = byte_count; 
 
-                total_size += pDataArray[i].byte_count;
-
-                itemsize = NULL;
-                array = NULL;
-                item = NULL;
+                total_size += byte_count;
             }
 
             record_size = total_size;
@@ -1691,7 +1750,7 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
             Py_BEGIN_ALLOW_THREADS
 
 #ifdef _WIN32     
-            for (int i=0; i< MAX_THREADS; i++) {
+            for (int i=0; i< thread_count; i++) {
                 hThreads[i] = CreateThread(
                     NULL,
                     0,
@@ -1702,15 +1761,15 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
                 );
             }
 
-            WaitForMultipleObjects(MAX_THREADS, hThreads, true, INFINITE);
-            for (int i=0; i< MAX_THREADS; i++) {
+            WaitForMultipleObjects(thread_count, hThreads, true, INFINITE);
+            for (int i=0; i< thread_count; i++) {
                 CloseHandle(hThreads[i]);
             }
 #else        
-            for (int i=0; i< MAX_THREADS; i++) {
+            for (int i=0; i< thread_count; i++) {
                 pthread_create(&(dwThreadIdArray[i]), NULL, data_block_from_arrays_C, &ch_info[i]);
             }
-            for (int i=0; i< MAX_THREADS; i++) {
+            for (int i=0; i< thread_count; i++) {
                 pthread_join(dwThreadIdArray[i], NULL);
             }
 #endif
@@ -1721,8 +1780,12 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
             free(ch_info);
         }
 
-        data_blocks = item = array = itemsize = copy_array = NULL;
-        outptr = NULL;
+#ifdef _WIN32
+        free(hThreads);
+        free(dwThreadIdArray);
+#else
+        free(dwThreadIdArray);
+#endif
 
         return out;
     }

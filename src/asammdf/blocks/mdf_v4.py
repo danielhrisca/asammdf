@@ -165,6 +165,7 @@ EMPTY_TUPLE = ()
 # 100 extra steps for the sorting, 1 step after sorting and 1 step at finish
 SORT_STEPS = 102
 DATA_IS_CHANNEL_BYTES = [-2, -2]
+THREAD_COUNT = max(os.cpu_count() - 1, 1)
 
 
 logger = logging.getLogger("asammdf")
@@ -2629,7 +2630,7 @@ class MDF4(MDF_Common):
         group = self.groups[group_index]
 
         data_bytes, offset, _count, invalidation_bytes = fragment
-        
+
         if invalidation_bytes is None:
             invalidation_bytes_nr = group.channel_group.invalidation_bytes_nr
             samples_byte_nr = group.channel_group.samples_byte_nr
@@ -2647,7 +2648,9 @@ class MDF4(MDF_Common):
         key = (group_index, offset, _count, pos_invalidation_bit)
         if key not in self._invalidation_cache:
             self._invalidation_cache[key] = InvalidationArray(
-                get_invalidation_bits_array(invalidation_bytes, group.channel_group.invalidation_bytes_nr, pos_invalidation_bit),
+                get_invalidation_bits_array(
+                    invalidation_bytes, group.channel_group.invalidation_bytes_nr, pos_invalidation_bit
+                ),
                 (group_index, pos_invalidation_bit),
             )
 
@@ -3784,7 +3787,7 @@ class MDF4(MDF_Common):
 
         gp.sorted = True
 
-        samples = data_block_from_arrays(fields, cycles_nr)
+        samples = data_block_from_arrays(fields, cycles_nr, THREAD_COUNT)
         size = len(samples)
         samples = memoryview(samples)
 
@@ -6044,7 +6047,7 @@ class MDF4(MDF_Common):
             if self.version < "4.20":
                 fields.append((inval_bits, invalidation_bytes_nr))
 
-        samples = data_block_from_arrays(fields, added_cycles)
+        samples = data_block_from_arrays(fields, added_cycles, THREAD_COUNT)
         size = len(samples)
         samples = memoryview(samples)
 
@@ -6843,11 +6846,11 @@ class MDF4(MDF_Common):
 
             else:
                 if (
-                        data
-                        and (fast_path := channel.fast_path) is not None
-                        and not master_is_required
-                        and ignore_invalidation_bits
-                        and not raster
+                    data
+                    and (fast_path := channel.fast_path) is not None
+                    and not master_is_required
+                    and ignore_invalidation_bits
+                    and not raster
                 ):
                     vals, timestamps, invalidation_bits, encoding = self._fast_scalar_path(*fast_path, data)
                 else:
@@ -8384,7 +8387,7 @@ class MDF4(MDF_Common):
             except:
                 break
 
-            if perf_counter() - tt > 180:
+            if perf_counter() - tt > 120:
                 x = 1 / 0
 
             # prepare the master
@@ -8416,6 +8419,7 @@ class MDF4(MDF_Common):
                         fragment[0],
                         grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr,
                         group_info[group_index],
+                        THREAD_COUNT,
                     )
 
                     if idx == 0:
@@ -8525,7 +8529,6 @@ class MDF4(MDF_Common):
         self,
         index: int,
         data: bytes | None = None,
-        raster: RasterType | None = None,
         record_offset: int = 0,
         record_count: int | None = None,
         one_piece: bool = False,
@@ -8538,10 +8541,6 @@ class MDF4(MDF_Common):
             group index
         data : (bytes, int, int, bytes|None)
             (data block raw bytes, fragment offset, count, invalidation bytes); default None
-        raster : float
-            raster to be used for interpolation; default None
-
-            .. deprecated:: 5.13.0
 
         record_offset : int
             if *data=None* use this to select the record offset from which the
@@ -8557,10 +8556,6 @@ class MDF4(MDF_Common):
 
         """
 
-        if raster is not None:
-            raise PendingDeprecationWarning(
-                "the argument raster is deprecated since version 5.13.0 " "and will be removed in a future release"
-            )
         if self._master is not None:
             return self._master
 
@@ -8720,17 +8715,7 @@ class MDF4(MDF_Common):
         if t.dtype != float64:
             t = t.astype(float64)
 
-        if raster and t.size:
-            timestamps = t
-            if len(t) > 1:
-                num = float(float32((timestamps[-1] - timestamps[0]) / raster))
-                if int(num) == num:
-                    timestamps = linspace(t[0], t[-1], int(num))
-                else:
-                    timestamps = arange(t[0], t[-1], raster)
-        else:
-            timestamps = t
-        return timestamps
+        return t
 
     def get_bus_signal(
         self,
@@ -10794,7 +10779,7 @@ class MDF4(MDF_Common):
 
             for fragment in data:
                 self._set_temporary_master(None)
-                self._set_temporary_master(self.get_master(group_index, data=fragment))
+                self._set_temporary_master(self.get_master(group_index, data=fragment, one_piece=True))
 
                 bus_ids = self.get(
                     "CAN_DataFrame.BusChannel",
@@ -10834,7 +10819,7 @@ class MDF4(MDF_Common):
 
             for fragment in data:
                 self._set_temporary_master(None)
-                self._set_temporary_master(self.get_master(group_index, data=fragment))
+                self._set_temporary_master(self.get_master(group_index, data=fragment, one_piece=True))
 
                 bus_ids = self.get(
                     "CAN_DataFrame.BusChannel",
@@ -10890,7 +10875,7 @@ class MDF4(MDF_Common):
 
             for fragment in data:
                 self._set_temporary_master(None)
-                self._set_temporary_master(self.get_master(group_index, data=fragment))
+                self._set_temporary_master(self.get_master(group_index, data=fragment, one_piece=True))
 
                 data_bytes = self.get(
                     "CAN_DataFrame.DataBytes",
@@ -11050,7 +11035,7 @@ class MDF4(MDF_Common):
 
             for fragment in data:
                 self._set_temporary_master(None)
-                self._set_temporary_master(self.get_master(group_index, data=fragment))
+                self._set_temporary_master(self.get_master(group_index, data=fragment, one_piece=True))
 
                 msg_ids = (
                     self.get(
@@ -11083,7 +11068,7 @@ class MDF4(MDF_Common):
 
             for fragment in data:
                 self._set_temporary_master(None)
-                self._set_temporary_master(self.get_master(group_index, data=fragment))
+                self._set_temporary_master(self.get_master(group_index, data=fragment, one_piece=True))
 
                 msg_ids = self.get("LIN_Frame.ID", group=group_index, data=fragment).astype("<u4") & 0x1FFFFFFF
 

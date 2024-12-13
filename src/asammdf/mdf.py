@@ -4917,7 +4917,7 @@ class MDF:
 
                 for fragment in data:
                     self._set_temporary_master(None)
-                    self._set_temporary_master(self.get_master(i, data=fragment))
+                    self._set_temporary_master(self.get_master(i, data=fragment, one_piece=True))
 
                     bus_ids = self.get(
                         "CAN_DataFrame.BusChannel",
@@ -5254,7 +5254,7 @@ class MDF:
 
                 for fragment in data:
                     self._set_temporary_master(None)
-                    self._set_temporary_master(self.get_master(i, data=fragment))
+                    self._set_temporary_master(self.get_master(i, data=fragment, one_piece=True))
 
                     msg_ids = self.get("LIN_Frame.ID", group=i, data=fragment).astype("<u4") & 0x1FFFFFFF
 
