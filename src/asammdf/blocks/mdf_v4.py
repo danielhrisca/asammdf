@@ -8387,8 +8387,8 @@ class MDF4(MDF_Common):
             except:
                 break
 
-            if perf_counter() - tt > 120:
-                x = 1 / 0
+            # if perf_counter() - tt > 120:
+            #     x = 1 / 0
 
             # prepare the master
             _master = self.get_master(index, data=fragments[master_index], one_piece=True)
