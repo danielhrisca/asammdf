@@ -72,3 +72,20 @@ jobs:
         run: |
           pip install junitparser
           python -c "from ci import report_tests; report_tests(header='## Unit-tests Report:')"
+
+      - name: Coveralls Parallel
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          flag-name: Unittests-${{ matrix.os }}-${{ matrix.python-version }}
+          parallel: true
+
+  coveralls:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true
