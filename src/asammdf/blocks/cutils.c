@@ -11,6 +11,7 @@
 #define MAX_THREADS 12
 #include "miniz.h"
 #include "miniz.c"
+#include "zlib_isal.c"
 
 #if defined(_WIN32) 
     #include <windows.h>
@@ -1988,8 +1989,15 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
                 count = original_size / record_size;
                 uncomp_len = original_size;
                 
-                pUncomp = (uint8_t *) malloc(original_size);
-                result = uncompress((unsigned char *)pUncomp, &uncomp_len, (unsigned char *)inptr, compressed_size);
+                if (1) {
+                    pUncomp = isal_zlib_decompress(inptr, compressed_size, original_size);
+                    if (!pUncomp) printf("NASPAPSPASPPDPPASPD\n");
+                }
+                else {
+                
+                    pUncomp = (uint8_t *) malloc(original_size);
+                    result = uncompress((unsigned char *)pUncomp, &uncomp_len, (unsigned char *)inptr, compressed_size);
+                }
                                 
                 // reverse transposition
                 if (block_type == 2) {

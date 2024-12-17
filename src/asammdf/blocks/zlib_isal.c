@@ -1,6 +1,8 @@
+#include <isa-l/igzip_lib.h>
 #define ISAL_ZLIB	3
 #define ISAL_DEF_MAX_HIST_BITS 15
 #define ISAL_DECOMP_OK 0
+#define Py_MIN(x, y) (((x) > (y)) ? (y) : (x))
 
 enum isal_block_state {
 	ISAL_BLOCK_NEW_HDR,	/* Just starting a new block */
@@ -18,35 +20,6 @@ enum isal_block_state {
 	ISAL_CHECKSUM_CHECK,
 };
 
-static int 
-wbits_to_flag_and_hist_bits_inflate(int wbits, int *hist_bits, int *flag) 
-{
-    if (wbits == 0) {
-        *hist_bits = 0;
-        *flag = ISAL_ZLIB;
-    }
-    else if (wbits >= 8 && wbits <= 15){
-        *hist_bits = wbits;
-        *flag = ISAL_ZLIB;
-    }
-    else if (wbits >= 24  && wbits <= 31) {
-        *hist_bits = wbits - 16;
-        *flag = ISAL_GZIP;
-    }
-    else if (wbits >=-15 && wbits <= -8) {
-        *hist_bits = -wbits;
-        *flag = ISAL_DEFLATE;
-    }
-    else if (wbits >=40 && wbits <= 47) {
-        *hist_bits = wbits - 32;
-        return 1;
-    }
-    else {
-        PyErr_Format(IsalError, "Invalid wbits value: %d", wbits);
-        return -1;
-    }
-    return 0;
-}
 
 static Py_ssize_t
 arrange_output_buffer_with_maximum(uint32_t *avail_out,
@@ -58,12 +31,12 @@ arrange_output_buffer_with_maximum(uint32_t *avail_out,
     Py_ssize_t occupied;
 
     if (*buffer == NULL) {
-        if (!(*buffer = PyBytes_FromStringAndSize(NULL, length)))
+        if (!(*buffer = malloc(length)))
             return -1;
         occupied = 0;
     }
     else {
-        occupied = *next_out - (uint8_t *)PyBytes_AS_STRING(*buffer);
+        occupied = *next_out - *buffer;
 
         if (length == occupied) {
             Py_ssize_t new_length;
@@ -75,14 +48,13 @@ arrange_output_buffer_with_maximum(uint32_t *avail_out,
                 new_length = length << 1;
             else
                 new_length = max_length;
-            if (_PyBytes_Resize(buffer, new_length) < 0)
-                return -1;
+            *buffer = realloc(*buffer, new_length);
             length = new_length;
         }
     }
 
     *avail_out = (uint32_t)Py_MIN((size_t)(length - occupied), UINT32_MAX);
-    *next_out = (uint8_t *)PyBytes_AS_STRING(*buffer) + occupied;
+    *next_out = *buffer + occupied;
 
     return length;
 }
@@ -151,16 +123,14 @@ igzip_lib_decompress_impl(void *data, int flag,
     } while (zst.block_state != ISAL_BLOCK_FINISH && ibuflen != 0);
 
     if (zst.block_state != ISAL_BLOCK_FINISH) {
-         PyErr_SetString(IsalError,
-                         "incomplete or truncated stream");
         goto error;
     }
 
-    if (_PyBytes_Resize(&RetVal, zst.next_out -
-                        (uint8_t *)PyBytes_AS_STRING(RetVal)) < 0)
-        goto error;
+    //if (_PyBytes_Resize(&RetVal, zst.next_out -
+    //                    (uint8_t *)PyBytes_AS_STRING(RetVal)) < 0)
+    //    goto error;
 
-    return RetVal;
+    return outbuf;
 
  error:
     return NULL;
