@@ -1,5 +1,4 @@
 #define NPY_NO_DEPRECATED_API NPY_1_22_API_VERSION
-
 #define PY_SSIZE_T_CLEAN 1
 #include <Python.h>
 #include "numpy/arrayobject.h"
@@ -8,7 +7,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
-#define MAX_THREADS 12
 #include "miniz.h"
 #include "miniz.c"
 #include <libdeflate.h>
@@ -1996,9 +1994,10 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
                     struct libdeflate_decompressor *decompressor = libdeflate_alloc_decompressor();
                     libdeflate_zlib_decompress(decompressor,
                       inptr, compressed_size,
-                      pUncomp original_size,
-                      NULL)
-      
+                      pUncomp, original_size,
+                      NULL);
+                      
+
                     libdeflate_free_decompressor(decompressor);
         }
                 else {
