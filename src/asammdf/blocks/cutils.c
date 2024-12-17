@@ -1,5 +1,4 @@
 #define NPY_NO_DEPRECATED_API NPY_1_22_API_VERSION
-//#define Py_LIMITED_API 0x030900f0
 
 #define PY_SSIZE_T_CLEAN 1
 #include <Python.h>
@@ -10,12 +9,16 @@
 #include <stdint.h>
 #include <time.h>
 #define MAX_THREADS 12
+#include "miniz.h"
+#include "miniz.c"
 
 #if defined(_WIN32) 
     #include <windows.h>
     #include <process.h>
 #else 
     #include <pthread.h>
+    #include <unistd.h>
+    #define Sleep(x) usleep((int)(1000 * (x)))
 #endif
 
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
@@ -1455,7 +1458,7 @@ static PyObject *get_channel_raw_bytes_parallel(PyObject *self, PyObject *args)
     PyObject *data_block, *out, *signals, *obj;
 
     Py_ssize_t record_size, byte_offset, byte_count;
-    Py_ssize_t signal_count, thread_count=12, remaining_signals, thread_pos;
+    Py_ssize_t signal_count, thread_count=11, remaining_signals, thread_pos;
 
     uint8_t *inptr, *outptr; 
     int is_list;
@@ -1645,7 +1648,7 @@ void * data_block_from_arrays_C(void *lpParam )
 
 static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
 {
-    Py_ssize_t signal_count, thread_count=12;
+    Py_ssize_t signal_count, thread_count=11;
     PyObject *data_blocks, *out = NULL, *item, *array, *copy_array, *cycles_obj;
 
     char *outptr;
@@ -1684,7 +1687,7 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
 
         if (!signal_count)
         {
-            out = PyBytes_FromStringAndSize(NULL, 0);
+            out = PyByteArray_FromStringAndSize(NULL, 0);
         }
         else
         {
@@ -1919,6 +1922,361 @@ static PyObject *bytes_dtype_size(PyObject *self, PyObject *args)
     }
 }
 
+typedef struct InfoBlock {
+    int64_t address;
+    int64_t original_size;
+    int64_t compressed_size;
+    Py_ssize_t param;
+    Py_ssize_t block_type; 
+    Py_ssize_t idx; 
+    Py_ssize_t count; 
+    
+} InfoBlock, *PtrInfoBlock;
+
+typedef struct ProcessesingBlock {
+    uint8_t flag;
+    Py_ssize_t out_size;
+    uint8_t * outptr;
+    uint8_t * inptr;
+    PtrInfoBlock block_info; 
+    Py_ssize_t byte_offset; 
+    Py_ssize_t byte_count;
+    Py_ssize_t record_size;
+    Py_ssize_t idx;
+} ProcessesingBlock, *PtrProcessesingBlock;
+
+
+
+void * get_channel_raw_bytes_complete_C(void *lpParam ) 
+{
+    Py_ssize_t count, byte_count, byte_offset, delta, thread_count, param, block_type;
+    int64_t original_size, compressed_size; 
+    PtrProcessesingBlock thread_info;
+    thread_info = (PtrProcessesingBlock) lpParam;
+    PtrInfoBlock block_info;
+
+    Py_ssize_t signal_count, thread_idx, record_size, in_size, cols, lines;
+    
+    byte_offset = thread_info->byte_offset;
+    byte_count = thread_info->byte_count;
+    record_size = thread_info->record_size;
+    
+    int result;
+
+    uint8_t *outptr, *inptr, *write;
+    uint8_t *pUncomp, *read;
+    uLong uncomp_len = 0, cmp_len;
+    
+    
+    while (thread_info->flag != 3) {
+        switch (thread_info->flag) {
+            case 0:
+                // uninitialized
+                Sleep(1);
+                break;
+            case 1:;
+                inptr = thread_info->inptr;
+                original_size = thread_info->block_info->original_size;
+                compressed_size = thread_info->block_info->compressed_size;
+                param = thread_info->block_info->param;
+                block_type = thread_info->block_info->block_type;
+                
+                cols = param;
+                lines = original_size / cols;
+                
+                // decompress
+                count = original_size / record_size;
+                uncomp_len = original_size;
+                
+                pUncomp = (uint8_t *) malloc(original_size);
+                result = uncompress((unsigned char *)pUncomp, &uncomp_len, (unsigned char *)inptr, compressed_size);
+                                
+                // reverse transposition
+                if (block_type == 2) {
+                    read = pUncomp;
+                    outptr = (uint8_t *) malloc(original_size);
+
+                    for (int j = 0; j < (Py_ssize_t)cols; j++)
+                    {
+                        write = outptr + j;
+                        for (int i = 0; i < (Py_ssize_t)lines; i++)
+                        {
+                            *write = *read++;
+                            write += cols;
+                        }
+                    }
+                    free(pUncomp);
+                    pUncomp = outptr;
+                }
+                
+                outptr = (uint8_t *) malloc(count * byte_count);
+                
+                read = pUncomp + byte_offset;
+                write = outptr;
+
+                for (Py_ssize_t i = 0; i < count; i++)
+                {
+                    memcpy(write, read, byte_count);
+                    write += byte_count;
+                    read += record_size;
+                }
+                
+                free(pUncomp);
+
+                thread_info->outptr = outptr;
+                thread_info->out_size = count * byte_count;
+                thread_info->flag = 2;
+                break;
+                
+            case 2:
+                // the main thread did not process the previous block yet
+                Sleep(1);
+                break;
+            case 3:
+                printf("Thread %d exiting\n", thread_info->idx);
+                break;
+        }
+    }
+    
+    printf("Thread %d exiting done\n", thread_info->idx);
+
+    return 0;
+}
+
+
+
+static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
+{
+    Py_ssize_t info_count, thread_count=11;
+    PyObject *data_blocks_info, *out = NULL, *item, *ref;
+
+    char *outptr, *file_name;
+    char *read_pos = NULL, *write_pos = NULL;
+    Py_ssize_t position = 0, record_size = 0,
+            cycles, step = 0;
+    Py_ssize_t isize = 0, offset = 0,byte_count, byte_offset;
+    int is_list;
+
+    PtrInfoBlock block_info;
+    InfoBlock info_block;
+    PtrProcessesingBlock thread_info;
+    PtrProcessesingBlock thread;
+    
+    FILE *fptr;
+    uint8_t *buffer;
+    int result;
+
+    if (!PyArg_ParseTuple(args, "Osnnnn|n", &data_blocks_info, &file_name, &cycles, &record_size, &byte_offset, &byte_count, &thread_count))
+    {
+        return NULL;
+    }
+    else
+    {
+        fptr = fopen(file_name,"rb");
+        
+#ifdef _WIN32
+        HANDLE  *hThreads;
+        DWORD   *dwThreadIdArray;
+        hThreads = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
+        dwThreadIdArray = (DWORD  *) malloc(sizeof(DWORD) * thread_count);
+#else
+        pthread_t * dwThreadIdArray;
+        dwThreadIdArray = (pthread_t  *) malloc(sizeof(pthread_t) * thread_count);
+#endif
+        is_list = PyList_Check(data_blocks_info);
+        if (is_list) {
+            info_count = PyList_Size(data_blocks_info);
+        }
+        else {
+            info_count = PyTuple_Size(data_blocks_info);
+        }
+
+        if (!info_count)
+        {
+            out = PyBytes_FromStringAndSize(NULL, 0);
+        }
+        else
+        {
+            if (info_count < thread_count) {
+                thread_count = info_count;
+            }
+            block_info = (PtrInfoBlock) malloc(sizeof(InfoBlock) * info_count);
+            thread_info = (PtrProcessesingBlock) malloc(sizeof(ProcessesingBlock) * thread_count);
+
+            for (int i=0; i<thread_count; i++){
+                thread_info[i].block_info = NULL;
+                thread_info[i].byte_count = byte_count;
+                thread_info[i].byte_offset = byte_offset;
+                thread_info[i].record_size = record_size;
+                thread_info[i].flag = 0;
+                thread_info[i].idx = i;
+            }
+
+            for (int i=0; i<info_count; i++) {
+    
+                block_info[i].idx = (Py_ssize_t) i;
+                block_info[i].count = (Py_ssize_t) info_count;
+                if (is_list) {
+                    item = PyList_GetItem(data_blocks_info, i);
+                }
+                else {
+                    item = PyTuple_GetItem(data_blocks_info, i);
+                }
+                      
+                ref = PyObject_GetAttrString(
+                    item,
+                    "address");
+                
+                block_info[i].address = (int64_t) PyLong_AsLongLong(ref);
+                Py_XDECREF(ref);
+                
+                ref = PyObject_GetAttrString(
+                    item,
+                    "original_size");
+                
+                block_info[i].original_size = (int64_t) PyLong_AsLongLong(ref);
+                Py_XDECREF(ref);
+                
+                ref = PyObject_GetAttrString(
+                    item,
+                    "compressed_size");
+                
+                block_info[i].compressed_size = (int64_t) PyLong_AsLongLong(ref);
+                Py_XDECREF(ref);
+                
+                ref = PyObject_GetAttrString(
+                    item,
+                    "block_type");
+                
+                block_info[i].block_type = PyLong_AsSsize_t(ref);
+                Py_XDECREF(ref);
+                
+                ref = PyObject_GetAttrString(
+                    item,
+                    "param");
+                
+                block_info[i].param = PyLong_AsSsize_t(ref);
+                Py_XDECREF(ref);             
+            }
+
+            out = PyByteArray_FromStringAndSize(NULL, cycles * byte_count);
+            if (!out)
+                return NULL;
+            outptr = PyByteArray_AsString(out);
+            
+            printf("%d threads %d blocks %d cycles %d size\n", thread_count, info_count, cycles, cycles * byte_count);
+
+#ifdef _WIN32     
+            for (int i=0; i< thread_count; i++) {
+                hThreads[i] = CreateThread(
+                    NULL,
+                    0,
+                    get_channel_raw_bytes_complete_C,
+                    &thread_info[i],
+                    0,
+                    &dwThreadIdArray[i]
+                );
+            }
+#else        
+            for (int i=0; i< thread_count; i++) {
+                pthread_create(&(dwThreadIdArray[i]), NULL, get_channel_raw_bytes_complete_C, &thread_info[i]);
+            }
+#endif
+            
+            position = 0;
+            int64_t slp=0;
+            
+            for (int i=0; i<info_count; i++) {
+                thread = &thread_info[position];
+                if (i % 1000 == 0)
+                printf("block i=%d\n", i);
+
+                switch (thread->flag) {
+                    case 0:
+                        break;
+                    case 1:
+                        // wait for the thread to pick up this block
+                        while (thread->flag == 1) {
+                            Sleep(1);
+                        }
+                    case 2:
+                        //printf("copy %d bytes for %d pos=%d\n", thread->out_size, i, position);
+                        // wait for the thread to finish the processing;
+                        memcpy(outptr, thread->outptr, thread->out_size);
+                        outptr += thread->out_size;
+                        free(thread->outptr);
+                        free(thread->inptr);
+                        break;
+                    default:
+                        printf("Default case is Matched.");
+                        break;
+                }
+
+                thread->block_info = &block_info[i];
+                buffer = (uint8_t *) malloc(block_info[i].compressed_size);
+                if (!buffer) printf("PLMPLMPL\n");
+                fseek(fptr, block_info[i].address, 0);
+                result = fread(buffer, 1, block_info[i].compressed_size, fptr);
+                thread->inptr = buffer;
+                thread->flag = 1;
+                
+                position++;
+                if (position == thread_count) position = 0;
+                
+            }
+            
+            for (int i=0; i<info_count; i++) {
+                thread = &thread_info[position];
+                
+                switch (thread->flag) {
+                    case 0:
+                        break;
+                    case 1:
+                        // wait for the thread to pick up this block
+                        while (thread->flag == 1) Sleep(1);
+                    case 2:
+                        // wait for the thread to finish the processing
+                        memcpy(outptr, thread->outptr, thread->out_size);
+                        outptr += thread->out_size;
+                        free(thread->outptr);
+                        free(thread->inptr);
+                        break;
+                }
+                
+                thread->flag = 3;
+                
+                position++;
+                if (position == thread_count) position = 0;
+            }
+            
+#ifdef _WIN32 
+            WaitForMultipleObjects(thread_count, hThreads, true, INFINITE);
+            for (int i=0; i< thread_count; i++) {
+                CloseHandle(hThreads[i]);
+            }
+#else        
+            for (int i=0; i< thread_count; i++) {
+                pthread_join(dwThreadIdArray[i], NULL);
+            }
+#endif
+
+            free(block_info);
+            free(thread_info);
+        }
+        
+        fclose(fptr);
+
+#ifdef _WIN32
+        free(hThreads);
+        free(dwThreadIdArray);
+#else
+        free(dwThreadIdArray);
+#endif
+
+        return out;
+    }
+}
+
 
 // Our Module's Function Definition struct
 // We require this `NULL` to signal the end of our method
@@ -1937,6 +2295,7 @@ static PyMethodDef myMethods[] = {
     {"reverse_transposition", reverse_transposition, METH_VARARGS, "reverse_transposition"},
     {"bytes_dtype_size", bytes_dtype_size, METH_VARARGS, "bytes_dtype_size"},
     {"get_channel_raw_bytes_parallel", get_channel_raw_bytes_parallel, METH_VARARGS, "get_channel_raw_bytes_parallel"},
+    {"get_channel_raw_bytes_complete", get_channel_raw_bytes_complete, METH_VARARGS, "get_channel_raw_bytes_complete"},
     
 
     {NULL, NULL, 0, NULL}};

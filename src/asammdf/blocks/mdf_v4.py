@@ -181,6 +181,7 @@ from .cutils import (
     get_invalidation_bits_array,
     get_vlsd_max_sample_size,
     sort_data_block,
+    get_channel_raw_bytes_complete,
 )
 
 
@@ -1478,6 +1479,8 @@ class MDF4(MDF_Common):
             tt = perf_counter()
             ss = 0
             cc = 0
+
+            tyh = 0
 
             while True:
                 try:
