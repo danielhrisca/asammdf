@@ -79,6 +79,9 @@ metadata.version.provider = "scikit_build_core.metadata.regex"
 metadata.version.input = "src/asammdf/version.py"
 wheel.packages = ["src/asammdf"]
 wheel.py-api = "cp39"
+sdist.include = [
+    "src/asammdf/blocks/isa-l/*"
+]
 
 [tool.black]
 line-length = 120
