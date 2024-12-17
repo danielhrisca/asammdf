@@ -56,6 +56,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 pytestdebug.log
+coverage.lcov
 
 # Translations
 *.mo
@@ -148,4 +149,5 @@ dmypy.json
 # End of https://www.toptal.com/developers/gitignore/api/python
 
 # Custom rules (everything added below won't be overriden by 'Generate .gitignore File' if you use 'Update' option)
-
+screenshots/**
+test-reports/**
