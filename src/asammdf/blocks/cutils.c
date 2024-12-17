@@ -11,7 +11,7 @@
 #define MAX_THREADS 12
 #include "miniz.h"
 #include "miniz.c"
-#include "zlib_isal.c"
+#include <libdeflate.h>
 
 #if defined(_WIN32) 
     #include <windows.h>
@@ -1990,9 +1990,17 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
                 uncomp_len = original_size;
                 
                 if (1) {
-                    pUncomp = isal_zlib_decompress(inptr, compressed_size, original_size);
-                    if (!pUncomp) printf("NASPAPSPASPPDPPASPD\n");
-                }
+                    //pUncomp = isal_zlib_decompress(inptr, compressed_size, original_size);
+                    //if (!pUncomp) printf("NASPAPSPASPPDPPASPD\n");
+                    pUncomp = (uint8_t *) malloc(original_size); 
+                    struct libdeflate_decompressor *decompressor = libdeflate_alloc_decompressor();
+                    libdeflate_zlib_decompress(decompressor,
+                      inptr, compressed_size,
+                      pUncomp original_size,
+                      NULL)
+      
+                    libdeflate_free_decompressor(decompressor);
+        }
                 else {
                 
                     pUncomp = (uint8_t *) malloc(original_size);

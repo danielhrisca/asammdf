@@ -1,24 +1,9 @@
-#include <isa-l/igzip_lib.h>
+#include <libdeflate.h>
 #define ISAL_ZLIB	3
 #define ISAL_DEF_MAX_HIST_BITS 15
 #define ISAL_DECOMP_OK 0
 #define Py_MIN(x, y) (((x) > (y)) ? (y) : (x))
 
-enum isal_block_state {
-	ISAL_BLOCK_NEW_HDR,	/* Just starting a new block */
-	ISAL_BLOCK_HDR,		/* In the middle of reading in a block header */
-	ISAL_BLOCK_TYPE0,	/* Decoding a type 0 block */
-	ISAL_BLOCK_CODED,	/* Decoding a huffman coded block */
-	ISAL_BLOCK_INPUT_DONE,	/* Decompression of input is completed */
-	ISAL_BLOCK_FINISH,	/* Decompression of input is completed and all data has been flushed to output */
-	ISAL_GZIP_EXTRA_LEN,
-	ISAL_GZIP_EXTRA,
-	ISAL_GZIP_NAME,
-	ISAL_GZIP_COMMENT,
-	ISAL_GZIP_HCRC,
-	ISAL_ZLIB_DICT,
-	ISAL_CHECKSUM_CHECK,
-};
 
 
 static Py_ssize_t
