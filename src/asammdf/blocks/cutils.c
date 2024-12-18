@@ -9,7 +9,7 @@
 #include <time.h>
 #include "miniz.h"
 #include "miniz.c"
-#include <libdeflate.h>
+#include "libdeflate.h"
 
 #if defined(_WIN32) 
     #include <windows.h>
@@ -41,6 +41,39 @@ struct node
     struct node *next;
     struct rec_info info;
 };
+
+typedef struct libdeflate_decompressor * (__cdecl * libdeflate_alloc_decompressor_ptr)();
+
+struct libdeflate_decompressor * LoadAndCallSomeFunction()
+{
+    HINSTANCE hDLL;               // Handle to DLL
+    libdeflate_alloc_decompressor_ptr lpfnDllFunc1;    // Function pointer
+    struct libdeflate_decompressor *hrReturnVal;
+
+    hDLL = LoadLibrary("c:\\Users\\uidn3651\\01__Workspace\\asammdf\\src\\asammdf\\blocks\\libdeflate.dll");
+    if (NULL != hDLL)
+    {
+        lpfnDllFunc1 = (libdeflate_alloc_decompressor_ptr)GetProcAddress(hDLL, "libdeflate_alloc_decompressor");
+        if (NULL != lpfnDllFunc1)
+        {
+            printf("not found\n");
+            // call the function
+            hrReturnVal = lpfnDllFunc1();
+        }
+        else
+        {
+            // report the error
+            hrReturnVal = NULL;
+        }
+        FreeLibrary(hDLL);
+    }
+    else
+    {
+        printf("not loaded\n");
+        hrReturnVal = NULL;
+    }
+    return hrReturnVal;
+}
 
 static PyObject *sort_data_block(PyObject *self, PyObject *args)
 {
@@ -1973,7 +2006,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
                 // uninitialized
                 Sleep(1);
                 break;
-            case 1:;
+            case 1:
                 inptr = thread_info->inptr;
                 original_size = thread_info->block_info->original_size;
                 compressed_size = thread_info->block_info->compressed_size;
@@ -1986,11 +2019,12 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
                 // decompress
                 count = original_size / record_size;
                 uncomp_len = original_size;
+                printf("CASE 1\n");
                 
                 if (1) {
                     //pUncomp = isal_zlib_decompress(inptr, compressed_size, original_size);
                     //if (!pUncomp) printf("NASPAPSPASPPDPPASPD\n");
-                    pUncomp = (uint8_t *) malloc(original_size); 
+                    /* pUncomp = (uint8_t *) malloc(original_size); 
                     struct libdeflate_decompressor *decompressor = libdeflate_alloc_decompressor();
                     libdeflate_zlib_decompress(decompressor,
                       inptr, compressed_size,
@@ -1998,8 +2032,11 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
                       NULL);
                       
 
-                    libdeflate_free_decompressor(decompressor);
-        }
+                    libdeflate_free_decompressor(decompressor); */
+                    printf("DADAADD 1111\n");
+                    struct libdeflate_decompressor *decompressor = LoadAndCallSomeFunction();
+                    printf("DADAADD 222222222\n");
+                }
                 else {
                 
                     pUncomp = (uint8_t *) malloc(original_size);
