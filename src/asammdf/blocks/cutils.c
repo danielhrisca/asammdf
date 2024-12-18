@@ -18,7 +18,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #define Sleep(x) usleep((int)(1000 * (x)))
-#include<dlfcn.h>
+#include <dlfcn.h>
 #endif
 
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
@@ -43,7 +43,7 @@ struct node
   struct rec_info info;
 };
 
-typedef struct libdeflate_decompressor * (__cdecl * libdeflate_alloc_decompressor_ptr)();
+typedef struct libdeflate_decompressor * (__cdecl *libdeflate_alloc_decompressor_ptr)();
 typedef void (__cdecl  *libdeflate_free_decompressor_ptr)(struct libdeflate_decompressor *);
 typedef enum libdeflate_result (__cdecl  *libdeflate_zlib_decompress_ptr)(struct libdeflate_decompressor *,
     const void *, size_t,
@@ -2338,17 +2338,17 @@ void * get_channel_raw_bytes_complete_C_posix(void *lpParam )
   uint8_t *pUncomp, *read;
   uLong uncomp_len = 0, cmp_len;
 
-  HINSTANCE deflate_library=NULL;               // Handle to DLL
+  void * deflate_library=NULL;               // Handle to DLL
   libdeflate_alloc_decompressor_ptr  f_libdeflate_alloc_decompressor;   // Function pointer
   libdeflate_free_decompressor_ptr  f_libdeflate_free_decompressor;  // Function pointer
   libdeflate_zlib_decompress_ptr f_libdeflate_zlib_decompress;  // Function pointer
 
   if (deflate_lib_path) {
-    deflate_library = LoadLibrary(deflate_lib_path);
+    deflate_library = dlopen(deflate_lib_path, RTLD_LAZY);
     if (!deflate_library) use_miniz = 1;
-    else if (!(f_libdeflate_alloc_decompressor = (libdeflate_alloc_decompressor_ptr) GetProcAddress (deflate_library, "libdeflate_alloc_decompressor"))) use_miniz = 1;
-    else if (!(f_libdeflate_free_decompressor = (libdeflate_free_decompressor_ptr) GetProcAddress (deflate_library, "libdeflate_free_decompressor"))) use_miniz = 1;
-    else if (!(f_libdeflate_zlib_decompress = (libdeflate_zlib_decompress_ptr) GetProcAddress (deflate_library, "libdeflate_zlib_decompress"))) use_miniz = 1;
+    else if (!(f_libdeflate_alloc_decompressor = (libdeflate_alloc_decompressor_ptr) dlsym (deflate_library, "libdeflate_alloc_decompressor"))) use_miniz = 1;
+    else if (!(f_libdeflate_free_decompressor = (libdeflate_free_decompressor_ptr) dlsym (deflate_library, "libdeflate_free_decompressor"))) use_miniz = 1;
+    else if (!(f_libdeflate_zlib_decompress = (libdeflate_zlib_decompress_ptr) dlsym (deflate_library, "libdeflate_zlib_decompress"))) use_miniz = 1;
   }
   else {
     use_miniz = 1;
@@ -2428,7 +2428,7 @@ void * get_channel_raw_bytes_complete_C_posix(void *lpParam )
     pthread_mutex_unlock(&thread_info->bytes_ready_lock);
   }
 
-  if (deflate_lib_path && deflate_library) FreeLibrary(deflate_library);
+  if (deflate_lib_path && deflate_library) dlclose(deflate_library);
 
   return 0;
 }
