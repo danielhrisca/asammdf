@@ -2577,7 +2577,6 @@ static PyObject *get_channel_raw_bytes_complete_posix(PyObject *self, PyObject *
 
       for (int i=0; i<info_count; i++) {
         thread = &thread_info[position];
-        lock = locks[position];
         if (i % 10000 == 0)
           printf("block i=%d\n", i);
 
