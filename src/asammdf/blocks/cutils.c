@@ -18,6 +18,7 @@
     #include <pthread.h>
     #include <unistd.h>
     #define Sleep(x) usleep((int)(1000 * (x)))
+    #include<dlfcn.h>
 #endif
 
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
@@ -42,38 +43,35 @@ struct node
     struct rec_info info;
 };
 
-typedef struct libdeflate_decompressor * (__cdecl * libdeflate_alloc_decompressor_ptr)();
 
-struct libdeflate_decompressor * LoadAndCallSomeFunction()
-{
-    HINSTANCE hDLL;               // Handle to DLL
-    libdeflate_alloc_decompressor_ptr lpfnDllFunc1;    // Function pointer
-    struct libdeflate_decompressor *hrReturnVal;
+static NTSTATUS(__stdcall *NtDelayExecution)(BOOL Alertable, PLARGE_INTEGER DelayInterval) = (NTSTATUS(__stdcall*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandle("ntdll.dll"), "NtDelayExecution");
 
-    hDLL = LoadLibrary("c:\\Users\\uidn3651\\01__Workspace\\asammdf\\src\\asammdf\\blocks\\libdeflate.dll");
-    if (NULL != hDLL)
-    {
-        lpfnDllFunc1 = (libdeflate_alloc_decompressor_ptr)GetProcAddress(hDLL, "libdeflate_alloc_decompressor");
-        if (NULL != lpfnDllFunc1)
-        {
-            printf("not found\n");
-            // call the function
-            hrReturnVal = lpfnDllFunc1();
-        }
-        else
-        {
-            // report the error
-            hrReturnVal = NULL;
-        }
-        FreeLibrary(hDLL);
+static NTSTATUS(__stdcall *ZwSetTimerResolution)(IN ULONG RequestedResolution, IN BOOLEAN Set, OUT PULONG ActualResolution) = (NTSTATUS(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandle("ntdll.dll"), "ZwSetTimerResolution");
+
+
+
+
+static void SleepShort(float milliseconds) {
+    static bool once = true;
+    if (once) {
+        ULONG actualResolution;
+        ZwSetTimerResolution(1, true, &actualResolution);
+        once = false;
     }
-    else
-    {
-        printf("not loaded\n");
-        hrReturnVal = NULL;
-    }
-    return hrReturnVal;
+
+    LARGE_INTEGER interval;
+    interval.QuadPart = -1 * (int)(milliseconds * 10000.0f);
+    NtDelayExecution(false, &interval);
 }
+
+
+
+typedef struct libdeflate_decompressor * (__cdecl * libdeflate_alloc_decompressor_ptr)();
+typedef void (__cdecl  *libdeflate_free_decompressor_ptr)(struct libdeflate_decompressor *);
+typedef enum libdeflate_result (__cdecl  *libdeflate_zlib_decompress_ptr)(struct libdeflate_decompressor *,
+               const void *, size_t ,
+               void *, size_t ,
+               size_t *);
 
 static PyObject *sort_data_block(PyObject *self, PyObject *args)
 {
@@ -1962,11 +1960,11 @@ typedef struct InfoBlock {
     Py_ssize_t block_type; 
     Py_ssize_t idx; 
     Py_ssize_t count; 
-    
+
 } InfoBlock, *PtrInfoBlock;
 
 typedef struct ProcessesingBlock {
-    uint8_t flag;
+    uint8_t stop;
     Py_ssize_t out_size;
     uint8_t * outptr;
     uint8_t * inptr;
@@ -1975,23 +1973,34 @@ typedef struct ProcessesingBlock {
     Py_ssize_t byte_count;
     Py_ssize_t record_size;
     Py_ssize_t idx;
+    Py_ssize_t use_miniz;
+    char * deflate_lib_path;
+    HANDLE bytes_ready;
+    HANDLE block_ready;
+    
 } ProcessesingBlock, *PtrProcessesingBlock;
 
 
 
 void * get_channel_raw_bytes_complete_C(void *lpParam ) 
 {
-    Py_ssize_t count, byte_count, byte_offset, delta, thread_count, param, block_type;
+    Py_ssize_t count, byte_count, byte_offset, delta, thread_count, param, block_type, use_miniz;
     int64_t original_size, compressed_size; 
     PtrProcessesingBlock thread_info;
     thread_info = (PtrProcessesingBlock) lpParam;
     PtrInfoBlock block_info;
+    clock_t start, stop;
+    double mz_time=0.0, df_time =0.0;
+    double tr_time=0.0, ext_time =0.0, sleep_time=0.0;
+    char * deflate_lib_path;
 
     Py_ssize_t signal_count, thread_idx, record_size, in_size, cols, lines;
     
     byte_offset = thread_info->byte_offset;
     byte_count = thread_info->byte_count;
     record_size = thread_info->record_size;
+    use_miniz = thread_info->use_miniz;
+    deflate_lib_path = thread_info->deflate_lib_path;
     
     int result;
 
@@ -1999,6 +2008,38 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
     uint8_t *pUncomp, *read;
     uLong uncomp_len = 0, cmp_len;
     
+    #if defined(_WIN32) 
+        HINSTANCE deflate_library=NULL;               // Handle to DLL
+        libdeflate_alloc_decompressor_ptr  f_libdeflate_alloc_decompressor;   // Function pointer
+        libdeflate_free_decompressor_ptr  f_libdeflate_free_decompressor;  // Function pointer
+        libdeflate_zlib_decompress_ptr f_libdeflate_zlib_decompress;  // Function pointer
+
+       if (deflate_lib_path) {
+        deflate_library = LoadLibrary(deflate_lib_path);
+        if (!deflate_library) use_miniz = 1;
+        else if (!(f_libdeflate_alloc_decompressor = (libdeflate_alloc_decompressor_ptr) GetProcAddress (deflate_library, "libdeflate_alloc_decompressor"))) use_miniz = 1;
+        else if (!(f_libdeflate_free_decompressor = (libdeflate_free_decompressor_ptr) GetProcAddress (deflate_library, "libdeflate_free_decompressor"))) use_miniz = 1;
+        else if (!(f_libdeflate_zlib_decompress = (libdeflate_zlib_decompress_ptr) GetProcAddress (deflate_library, "libdeflate_zlib_decompress"))) use_miniz = 1;
+       }
+       else {
+            use_miniz = 1;
+       }
+    #else
+        void *deflate_library=NULL;
+    
+        if (deflate_lib_path) {
+            deflate_library = dlopen(deflate_lib_path, RTLD_LAZY);
+            if (!deflate_library) use_miniz = 1;
+            else if (!(f_libdeflate_alloc_decompressor = (libdeflate_alloc_decompressor_ptr) dlsym (deflate_library, "libdeflate_alloc_decompressor"))) use_miniz = 1;
+            else if (!(f_libdeflate_free_decompressor = (libdeflate_free_decompressor_ptr) dlsym (deflate_library, "libdeflate_free_decompressor"))) use_miniz = 1;
+            else if (!(f_libdeflate_zlib_decompress = (libdeflate_zlib_decompress_ptr) dlsym (deflate_library, "libdeflate_zlib_decompress"))) use_miniz = 1;
+           }
+       else {
+            use_miniz = 1;
+       }
+    #endif
+    
+    float microsecond = 1e-3;
     
     while (thread_info->flag != 3) {
         switch (thread_info->flag) {
@@ -2019,30 +2060,29 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
                 // decompress
                 count = original_size / record_size;
                 uncomp_len = original_size;
-                printf("CASE 1\n");
                 
-                if (1) {
-                    //pUncomp = isal_zlib_decompress(inptr, compressed_size, original_size);
-                    //if (!pUncomp) printf("NASPAPSPASPPDPPASPD\n");
-                    /* pUncomp = (uint8_t *) malloc(original_size); 
-                    struct libdeflate_decompressor *decompressor = libdeflate_alloc_decompressor();
-                    libdeflate_zlib_decompress(decompressor,
+                if (!use_miniz) {
+                     start = clock();
+                    pUncomp = (uint8_t *) malloc(original_size); 
+                    struct libdeflate_decompressor *decompressor = f_libdeflate_alloc_decompressor();
+                    f_libdeflate_zlib_decompress(decompressor,
                       inptr, compressed_size,
                       pUncomp, original_size,
                       NULL);
-                      
-
-                    libdeflate_free_decompressor(decompressor); */
-                    printf("DADAADD 1111\n");
-                    struct libdeflate_decompressor *decompressor = LoadAndCallSomeFunction();
-                    printf("DADAADD 222222222\n");
+                     f_libdeflate_free_decompressor(decompressor);
+                     stop = clock();
+                     df_time += (double)(stop - start);
                 }
                 else {
-                
+                    start = clock();
                     pUncomp = (uint8_t *) malloc(original_size);
                     result = uncompress((unsigned char *)pUncomp, &uncomp_len, (unsigned char *)inptr, compressed_size);
+                    stop = clock();
+                    mz_time +=(double)(stop - start);
                 }
+    
                                 
+                 start = clock();
                 // reverse transposition
                 if (block_type == 2) {
                     read = pUncomp;
@@ -2060,18 +2100,25 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
                     free(pUncomp);
                     pUncomp = outptr;
                 }
+                stop = clock();
+                tr_time +=(double)(stop - start);
+                
                 
                 outptr = (uint8_t *) malloc(count * byte_count);
                 
                 read = pUncomp + byte_offset;
                 write = outptr;
 
+                start = clock();
                 for (Py_ssize_t i = 0; i < count; i++)
                 {
                     memcpy(write, read, byte_count);
                     write += byte_count;
                     read += record_size;
                 }
+                
+                stop = clock();
+                ext_time +=(double)(stop - start);
                 
                 free(pUncomp);
 
@@ -2081,8 +2128,13 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
                 break;
                 
             case 2:
+                start = clock();
                 // the main thread did not process the previous block yet
-                Sleep(1);
+                //Sleep(1);
+                WaitForSingleObject(thread_info->mutex, INFINITE);
+                WaitForSingleObject(thread_info->mutex, INFINITE);
+                stop = clock();
+                sleep_time +=(double)(stop - start);
                 break;
             case 3:
                 printf("Thread %d exiting\n", thread_info->idx);
@@ -2090,7 +2142,12 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
         }
     }
     
-    printf("Thread %d exiting done\n", thread_info->idx);
+    printf("Thread %d exiting done       MZ=%lf   DF=%lf    TR=%lf   EXT=%lf  sleep_time=%lf\n", thread_info->idx, mz_time, df_time, tr_time, ext_time, sleep_time);
+#if defined(_WIN32) 
+    if (deflate_lib_path && deflate_library) FreeLibrary(deflate_library);
+#else
+    if (deflate_lib_path && deflate_library) dlclose(deflate_library);
+#endif
 
     return 0;
 }
@@ -2099,10 +2156,10 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
 static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 {
-    Py_ssize_t info_count, thread_count=11;
+    Py_ssize_t info_count, thread_count=11, use_miniz=0;
     PyObject *data_blocks_info, *out = NULL, *item, *ref;
 
-    char *outptr, *file_name;
+    char *outptr, *file_name, *deflate_lib_path=NULL;
     char *read_pos = NULL, *write_pos = NULL;
     Py_ssize_t position = 0, record_size = 0,
             cycles, step = 0;
@@ -2118,7 +2175,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     uint8_t *buffer;
     int result;
 
-    if (!PyArg_ParseTuple(args, "Osnnnn|n", &data_blocks_info, &file_name, &cycles, &record_size, &byte_offset, &byte_count, &thread_count))
+    if (!PyArg_ParseTuple(args, "Osnnnn|nns", &data_blocks_info, &file_name, &cycles, &record_size, &byte_offset, &byte_count, &thread_count, &use_miniz, &deflate_lib_path))
     {
         return NULL;
     }
@@ -2131,6 +2188,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         DWORD   *dwThreadIdArray;
         hThreads = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
         dwThreadIdArray = (DWORD  *) malloc(sizeof(DWORD) * thread_count);
+        block_ready = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
+        bytes_ready = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
 #else
         pthread_t * dwThreadIdArray;
         dwThreadIdArray = (pthread_t  *) malloc(sizeof(pthread_t) * thread_count);
@@ -2156,12 +2215,29 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
             thread_info = (PtrProcessesingBlock) malloc(sizeof(ProcessesingBlock) * thread_count);
 
             for (int i=0; i<thread_count; i++){
+                block_ready[i] =  CreateEvent( 
+        NULL,               // default security attributes
+        true,               // manual-reset event
+        false,              // initial state is nonsignaled
+        NULL// object name
+        );
+                bytes_ready[i] = CreateEvent( 
+        NULL,               // default security attributes
+        true,               // manual-reset event
+        false,              // initial state is nonsignaled
+        NULL// object name
+        );
+                
                 thread_info[i].block_info = NULL;
                 thread_info[i].byte_count = byte_count;
                 thread_info[i].byte_offset = byte_offset;
                 thread_info[i].record_size = record_size;
-                thread_info[i].flag = 0;
+                thread_info[i].stop = 0;
                 thread_info[i].idx = i;
+                thread_info[i].use_miniz = use_miniz;
+                thread_info[i].deflate_lib_path = deflate_lib_path;
+                thread_info[i].block_ready = block_ready[i];
+                thread_info[i].bytes_ready = bytes_ready[i];
             }
 
             for (int i=0; i<info_count; i++) {
@@ -2240,17 +2316,20 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
             
             for (int i=0; i<info_count; i++) {
                 thread = &thread_info[position];
-                if (i % 1000 == 0)
+                if (i % 10000 == 0)
                 printf("block i=%d\n", i);
+            
+                if (i >= thread_count) {
+                    WaitForSingleObject(bytes_ready[position], INFINITE);
+                    ResetEvent(bytes_ready[position]);
+                }
 
                 switch (thread->flag) {
                     case 0:
                         break;
                     case 1:
                         // wait for the thread to pick up this block
-                        while (thread->flag == 1) {
-                            Sleep(1);
-                        }
+                        WaitForSingleObject(mutexes[position], INFINITE);
                     case 2:
                         //printf("copy %d bytes for %d pos=%d\n", thread->out_size, i, position);
                         // wait for the thread to finish the processing;
@@ -2271,6 +2350,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
                 result = fread(buffer, 1, block_info[i].compressed_size, fptr);
                 thread->inptr = buffer;
                 thread->flag = 1;
+                
+                SetEvent(block_ready[position]);
                 
                 position++;
                 if (position == thread_count) position = 0;
@@ -2364,5 +2445,6 @@ static struct PyModuleDef cutils = {
 PyMODINIT_FUNC PyInit_cutils(void)
 {
     import_array();
+    
     return PyModule_Create(&cutils);
 }
