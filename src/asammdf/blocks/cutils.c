@@ -1,6 +1,7 @@
 #define NPY_NO_DEPRECATED_API NPY_1_22_API_VERSION
 #define PY_SSIZE_T_CLEAN 1
 #include <Python.h>
+#define _FILE_OFFSET_BITS 64
 #include "numpy/arrayobject.h"
 #include "numpy/ndarrayobject.h"
 #include <stdio.h>
@@ -10,6 +11,7 @@
 #include "miniz.h"
 #include "miniz.c"
 #include "libdeflate.h"
+#include "data_block_utilities.c"
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -2121,6 +2123,7 @@ static PyObject *get_channel_raw_bytes_complete_windows(PyObject *self, PyObject
       info_count = PyTuple_Size(data_blocks_info);
     }
 
+
     if (!info_count)
     {
       out = PyBytes_FromStringAndSize(NULL, 0);
@@ -2243,7 +2246,7 @@ static PyObject *get_channel_raw_bytes_complete_windows(PyObject *self, PyObject
 
         thread->block_info = &block_info[i];
         buffer = (uint8_t *) malloc(block_info[i].compressed_size);
-        fseek(fptr, block_info[i].address, 0);
+        _fseeki64(fptr, block_info[i].address, 0);
         result = fread(buffer, 1, block_info[i].compressed_size, fptr);
         thread->inptr = buffer;
 
@@ -2592,7 +2595,7 @@ static PyObject *get_channel_raw_bytes_complete_posix(PyObject *self, PyObject *
 
         thread->block_info = &block_info[i];
         buffer = (uint8_t *) malloc(block_info[i].compressed_size);
-        fseek(fptr, block_info[i].address, 0);
+        _fseeki64(fptr, block_info[i].address, 0);
         result = fread(buffer, 1, block_info[i].compressed_size, fptr);
         thread->inptr = buffer;
 
@@ -2666,6 +2669,7 @@ static PyMethodDef myMethods[] = {
   {"reverse_transposition", reverse_transposition, METH_VARARGS, "reverse_transposition"},
   {"bytes_dtype_size", bytes_dtype_size, METH_VARARGS, "bytes_dtype_size"},
   {"get_channel_raw_bytes_parallel", get_channel_raw_bytes_parallel, METH_VARARGS, "get_channel_raw_bytes_parallel"},
+  {"data_data", data_data, METH_VARARGS, "data_data"},
 #if defined(_WIN32)
   {"get_channel_raw_bytes_complete", get_channel_raw_bytes_complete_windows, METH_VARARGS, "get_channel_raw_bytes_complete"},
 #else
