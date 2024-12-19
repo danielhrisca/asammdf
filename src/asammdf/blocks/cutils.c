@@ -2669,7 +2669,6 @@ static PyMethodDef myMethods[] = {
   {"reverse_transposition", reverse_transposition, METH_VARARGS, "reverse_transposition"},
   {"bytes_dtype_size", bytes_dtype_size, METH_VARARGS, "bytes_dtype_size"},
   {"get_channel_raw_bytes_parallel", get_channel_raw_bytes_parallel, METH_VARARGS, "get_channel_raw_bytes_parallel"},
-  {"data_data", data_data, METH_VARARGS, "data_data"},
 #if defined(_WIN32)
   {"get_channel_raw_bytes_complete", get_channel_raw_bytes_complete_windows, METH_VARARGS, "get_channel_raw_bytes_complete"},
 #else
