@@ -1887,6 +1887,9 @@ class MDF4(MDF_Common):
         else:
             READ_CHUNK_SIZE = 32 * 1024 * 1024
 
+        if READ_CHUNK_SIZE > total_size:
+            READ_CHUNK_SIZE = total_size
+
         if mapped:
             if address:
                 id_string, block_len = COMMON_SHORT_uf(stream, address)
@@ -1895,6 +1898,9 @@ class MDF4(MDF_Common):
                 if id_string == block_type:
                     size = block_len - 24
                     if size:
+                        if size > total_size:
+                            size = total_size
+
                         address = address + COMMON_SIZE
 
                         # split the DTBLOCK into chucks of up to 32MB
@@ -1913,10 +1919,6 @@ class MDF4(MDF_Common):
                                 )
                                 address += READ_CHUNK_SIZE
                             else:
-                                if total_size < size:
-                                    block_limit = total_size
-                                else:
-                                    block_limit = None
 
                                 yield DataBlockInfo(
                                     address=address,
@@ -1924,7 +1926,7 @@ class MDF4(MDF_Common):
                                     original_size=size,
                                     compressed_size=size,
                                     param=0,
-                                    block_limit=block_limit,
+                                    block_limit=None,
                                 )
                                 break
 
@@ -1943,10 +1945,12 @@ class MDF4(MDF_Common):
                             param = 0
                         else:
                             block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+
                         if total_size < original_size:
                             block_limit = total_size
                         else:
                             block_limit = None
+
                         total_size -= original_size
                         yield DataBlockInfo(
                             address=address + v4c.DZ_COMMON_SIZE,
@@ -1969,6 +1973,9 @@ class MDF4(MDF_Common):
                             if id_string == block_type:
                                 size = block_len - 24
                                 if size:
+                                    if size > total_size:
+                                        size = total_size
+
                                     addr += COMMON_SIZE
 
                                     # split the DTBLOCK into chucks of up to 32MB
@@ -1987,10 +1994,6 @@ class MDF4(MDF_Common):
                                             )
                                             addr += READ_CHUNK_SIZE
                                         else:
-                                            if total_size < size:
-                                                block_limit = total_size
-                                            else:
-                                                block_limit = None
 
                                             total_size -= size
 
@@ -2000,7 +2003,7 @@ class MDF4(MDF_Common):
                                                 original_size=size,
                                                 compressed_size=size,
                                                 param=0,
-                                                block_limit=block_limit,
+                                                block_limit=None,
                                             )
                                             break
 
@@ -2178,6 +2181,8 @@ class MDF4(MDF_Common):
                 if id_string == block_type:
                     size = block_len - 24
                     if size:
+                        if size > total_size:
+                            size = total_size
                         address = address + COMMON_SIZE
 
                         # split the DTBLOCK into chucks of up to 32MB
@@ -2196,10 +2201,6 @@ class MDF4(MDF_Common):
                                 )
                                 address += READ_CHUNK_SIZE
                             else:
-                                if total_size < size:
-                                    block_limit = total_size
-                                else:
-                                    block_limit = None
 
                                 yield DataBlockInfo(
                                     address=address,
@@ -2207,7 +2208,7 @@ class MDF4(MDF_Common):
                                     original_size=size,
                                     compressed_size=size,
                                     param=0,
-                                    block_limit=block_limit,
+                                    block_limit=None,
                                 )
                                 break
 

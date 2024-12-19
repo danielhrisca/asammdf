@@ -1944,16 +1944,27 @@ typedef struct InfoBlock {
 } InfoBlock, *PtrInfoBlock;
 
 
+typedef struct SignalInfo{
+	int64_t byte_offset;
+  int64_t byte_count;
+  int32_t invalidation_bit_position;
+  uint8_t *data;
+  uint8_t *data_position;
+  PyObject *obj;
+} SignalInfo, *PtrSignalInfo;
+
+
 #if defined(_WIN32)
 
 typedef struct ProcessesingBlock {
   uint8_t stop;
   Py_ssize_t out_size;
-  uint8_t * outptr;
+  uint8_t ** outptr;
+  int64_t cycles;
   uint8_t * inptr;
   PtrInfoBlock block_info;
-  Py_ssize_t byte_offset;
-  Py_ssize_t byte_count;
+  struct SignalInfo *signals;
+  Py_ssize_t signal_count;
   Py_ssize_t record_size;
   Py_ssize_t idx;
   Py_ssize_t use_miniz;
@@ -2081,8 +2092,8 @@ void * get_channel_raw_bytes_complete_C_windows(void *lpParam )
 
 static PyObject *get_channel_raw_bytes_complete_windows(PyObject *self, PyObject *args)
 {
-  Py_ssize_t info_count, thread_count=11, use_miniz=0;
-  PyObject *data_blocks_info, *out = NULL, *item, *ref;
+  Py_ssize_t info_count, signal_count, thread_count=11, use_miniz=0;
+  PyObject *data_blocks_info, *signals, *out = NULL, *item, *ref;
 
   char *outptr, *file_name, *deflate_lib_path=NULL;
   char *read_pos = NULL, *write_pos = NULL;
@@ -2090,6 +2101,8 @@ static PyObject *get_channel_raw_bytes_complete_windows(PyObject *self, PyObject
              cycles, step = 0;
   Py_ssize_t isize = 0, offset = 0,byte_count, byte_offset;
   int is_list;
+  int64_t byte_offset, byte_count;
+  int32_t invalidation_bit_position;
 
   PtrInfoBlock block_info;
   InfoBlock info_block;
@@ -2099,8 +2112,10 @@ static PyObject *get_channel_raw_bytes_complete_windows(PyObject *self, PyObject
   FILE *fptr;
   uint8_t *buffer;
   int result;
+  int is_list;
 
-  if (!PyArg_ParseTuple(args, "Osnnnns|nn", &data_blocks_info, &file_name, &cycles, &record_size, &byte_offset, &byte_count, &deflate_lib_path, &thread_count, &use_miniz))
+  if (!PyArg_ParseTuple(args, "OOsnnns|nn", 
+  	&data_blocks_info, &signals, &file_name, &cycles, &record_size, &invalidation_bytes, &deflate_lib_path, &thread_count, &use_miniz))
   {
     return NULL;
   }
@@ -2114,6 +2129,62 @@ static PyObject *get_channel_raw_bytes_complete_windows(PyObject *self, PyObject
     dwThreadIdArray = (DWORD  *) malloc(sizeof(DWORD) * thread_count);
     block_ready = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
     bytes_ready = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
+    
+    PtrSignalInfo signal_info;
+    
+    is_list = PyList_Check(signals);
+    if (is_list) {
+      signal_count = PyList_Size(signals);
+    }
+    else {
+      signal_count = PyTuple_Size(signals);
+    }
+    
+    if (invalidation_bytes) {
+    signal_info = (PtrSignalInfo) malloc(sizeof(SignalInfo) * (signal_count + 1));
+  }
+  else {
+  	signal_info = (PtrSignalInfo) malloc(sizeof(SignalInfo) * signal_count);
+  }
+    for (int i=0; i<signal_count; i++) {
+      if (is_list) {
+        obj = PyList_GetItem(signals, i);
+      }
+      else {
+        obj = PyTuple_GetItem(signals, i);
+      }
+
+      if (PyList_Check(obj)) {
+        byte_offset = PyLong_AsLongLong(PyList_GetItem(obj, 0));
+        byte_count = PyLong_AsLongLong(PyList_GetItem(obj, 1));
+        invalidation_bit_position = PyLong_AsLong(PyList_GetItem(obj, 2));
+      }
+      else {
+        byte_offset = PyLong_AsLongLong(PyTuple_GetItem(obj, 0));
+        byte_count = PyLong_AsLongLong(PyTuple_GetItem(obj, 1));
+        invalidation_bit_position = PyLong_AsLong(PyTuple_GetItem(obj, 2));
+      }
+      
+      obj = PyByteArray_FromStringAndSize(NULL, byte_count * cycles);
+
+      signal_info[i].byte_offset = byte_offset;
+      signal_info[i].byte_count = byte_count;
+      signal_info[i].invalidation_bit_position = invalidation_bit_position;
+      signal_info[i].data = (uint8_t *) PyByteArray_AsString(obj);
+      signal_info[i].data_position = signal_info[i].data;
+      signal_info[i].obj = obj;
+
+    }
+    
+    if (invalidation_bytes) {
+    	obj = PyByteArray_FromStringAndSize(NULL, invalidation_bytes * cycles);
+    	signal_info[signal_count].byte_offset = record_size - invalidation_bytes;
+    	signal_info[signal_count].byte_count = invalidation_bytes;
+      signal_info[signal_count].invalidation_bit_position = -1;
+      signal_info[signal_count].data = (uint8_t *) PyByteArray_AsString(obj);
+      signal_info[signal_count].data_position = signal_info[signal_count].data;
+      signal_info[signal_count].obj = obj;
+    }
 
     is_list = PyList_Check(data_blocks_info);
     if (is_list) {
@@ -2124,11 +2195,7 @@ static PyObject *get_channel_raw_bytes_complete_windows(PyObject *self, PyObject
     }
 
 
-    if (!info_count)
-    {
-      out = PyBytes_FromStringAndSize(NULL, 0);
-    }
-    else
+    if (info_count)
     {
       if (info_count < thread_count) {
         thread_count = info_count;
