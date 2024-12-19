@@ -2595,7 +2595,7 @@ static PyObject *get_channel_raw_bytes_complete_posix(PyObject *self, PyObject *
 
         thread->block_info = &block_info[i];
         buffer = (uint8_t *) malloc(block_info[i].compressed_size);
-        _fseeki64(fptr, block_info[i].address, 0);
+        fseeko(fptr, block_info[i].address, 0);
         result = fread(buffer, 1, block_info[i].compressed_size, fptr);
         thread->inptr = buffer;
 
