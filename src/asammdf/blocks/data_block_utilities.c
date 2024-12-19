@@ -57,7 +57,7 @@ typedef struct BlockInfo {
   struct BlockInfo * next;
 } BlockInfo, *PtrBlockInfo;
 
-
+#if defined(_WIN32)
 BlockInfo * data_blocks_info(FILE *file, uint64_t address, uint64_t *total_size, uint64_t record_size, uint64_t *count) {
 	if (!address || !(*total_size)) return NULL;
 	BlockInfo *out=NULL, *last=NULL, *new_block=NULL;
@@ -271,3 +271,4 @@ BlockInfo * data_blocks_info(FILE *file, uint64_t address, uint64_t *total_size,
 
 	return out;
 }
+#endif
