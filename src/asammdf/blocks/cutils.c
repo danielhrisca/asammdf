@@ -2236,6 +2236,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       thread_info = (PtrProcessesingBlock) malloc(sizeof(ProcessesingBlock) * thread_count);
 
       for (int i=0; i<thread_count; i++) {
+#if !defined(_WIN32)
         block_ready[i] =  CreateEvent(
                             NULL,               // default security attributes
                             true,               // manual-reset event
@@ -2248,7 +2249,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
                            false,               // initial state is nonsignaled
                            NULL                 // object name
                          );
-#if !defined(_WIN32)
+#else
         pthread_cond_init(&block_ready[i], NULL) ;
         pthread_cond_init(&bytes_ready[i], NULL) ;
         pthread_mutex_init(&block_ready_locks[i], NULL) ;
@@ -2448,7 +2449,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     }
 
     fclose(fptr);
-    
+
     printf("tuples\n");
 
     out = PyTuple_New(signal_count);
@@ -2474,7 +2475,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     free(block_ready);
     free(bytes_ready);
     free(dwThreadIdArray);
-    
+
 #if defined(_WIN32)
     free(hThreads);
 #else
