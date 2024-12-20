@@ -2236,7 +2236,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       thread_info = (PtrProcessesingBlock) malloc(sizeof(ProcessesingBlock) * thread_count);
 
       for (int i=0; i<thread_count; i++) {
-#if !defined(_WIN32)
+#if defined(_WIN32)
         block_ready[i] =  CreateEvent(
                             NULL,               // default security attributes
                             true,               // manual-reset event
