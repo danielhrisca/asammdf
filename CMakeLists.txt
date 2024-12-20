@@ -11,6 +11,8 @@ find_package(
   NumPy
   )
   
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+  
   # Add submodule libdeflate
 add_subdirectory(ext/libdeflate EXCLUDE_FROM_ALL)
 
