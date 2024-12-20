@@ -11,16 +11,16 @@
 #include <libdeflate.h>
 
 #if defined(_WIN32)
-	#include <windows.h>
-	#include <process.h>
-	#define FSEEK64(file, address, whence) _fseeki64((file), (address), (whence))
-	#define FTELL64(file) _ftelli64(file)
+#include <windows.h>
+#include <process.h>
+#define FSEEK64(file, address, whence) _fseeki64((file), (address), (whence))
+#define FTELL64(file) _ftelli64(file)
 #else
-	#include <pthread.h>
-	#include <unistd.h>
-	#define Sleep(x) usleep((int)(1000 * (x)))
-	#define FSEEK64(file, address, whence) fseek0((file), (address), (whence))
-	#define FTELL64(file) ftello(file)
+#include <pthread.h>
+#include <unistd.h>
+#define Sleep(x) usleep((int)(1000 * (x)))
+#define FSEEK64(file, address, whence) fseek0((file), (address), (whence))
+#define FTELL64(file) ftello(file)
 #endif
 
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
@@ -2131,7 +2131,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
   uint8_t *buffer;
   int result;
 
-  if (!PyArg_ParseTuple(args, "OOsnnns|nn",
+  if (!PyArg_ParseTuple(args, "OOsnnn|n",
                         &data_blocks_info, &signals, &file_name, &cycles, &record_size, &invalidation_bytes,
                         &thread_count))
   {
@@ -2448,6 +2448,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     }
 
     fclose(fptr);
+    
+    printf("tuples\n");
 
     out = PyTuple_New(signal_count);
 
@@ -2469,10 +2471,10 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     }
 
     free(signal_info);
-    free(hThreads);
     free(block_ready);
     free(bytes_ready);
     free(dwThreadIdArray);
+    
 #if defined(_WIN32)
     free(hThreads);
 #else
