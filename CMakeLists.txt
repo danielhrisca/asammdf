@@ -10,9 +10,12 @@ find_package(
   ${SKBUILD_SABI_COMPONENT}
   NumPy
   )
+  
+  # Add submodule libdeflate
+add_subdirectory(ext/libdeflate)
 
 python_add_library(cutils MODULE WITH_SOABI USE_SABI 3.9 src/asammdf/blocks/cutils.c)
 
-target_link_libraries(cutils PRIVATE Python::NumPy)
+target_link_libraries(cutils PRIVATE Python::NumPy libdeflate::libdeflate_static)
 
 install(TARGETS cutils DESTINATION "asammdf/blocks")
