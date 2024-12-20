@@ -9,16 +9,18 @@
 #include <stdint.h>
 #include <time.h>
 #include <libdeflate.h>
-#include "data_block_utilities.c"
 
 #if defined(_WIN32)
-#include <windows.h>
-#include <process.h>
+	#include <windows.h>
+	#include <process.h>
+	#define FSEEK64(file, address, whence) _fseeki64((file), (address), (whence))
+	#define FTELL64(file) _ftelli64(file)
 #else
-#include <pthread.h>
-#include <unistd.h>
-#define Sleep(x) usleep((int)(1000 * (x)))
-#include <dlfcn.h>
+	#include <pthread.h>
+	#include <unistd.h>
+	#define Sleep(x) usleep((int)(1000 * (x)))
+	#define FSEEK64(file, address, whence) fseek0((file), (address), (whence))
+	#define FTELL64(file) ftello(file)
 #endif
 
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
@@ -2040,9 +2042,9 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
     pUncomp = (uint8_t *) malloc(original_size);
     struct libdeflate_decompressor *decompressor = libdeflate_alloc_decompressor();
     libdeflate_zlib_decompress(decompressor,
-                                 inptr, compressed_size,
-                                 pUncomp, original_size,
-                                 NULL);
+                               inptr, compressed_size,
+                               pUncomp, original_size,
+                               NULL);
     libdeflate_free_decompressor(decompressor);
 
     // reverse transposition
@@ -2090,13 +2092,13 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
       }
       thread_info->outptr[i] = outptr;
     }
- 
+
     free(pUncomp);
-    
+
 #if defined(_WIN32)
     SetEvent(thread_info->bytes_ready);
 #else
-		pthread_mutex_lock(&thread_info->bytes_ready_lock);
+    pthread_mutex_lock(&thread_info->bytes_ready_lock);
     pthread_cond_signal(&thread_info->bytes_ready);
     pthread_mutex_unlock(&thread_info->bytes_ready_lock);
 #endif
@@ -2342,7 +2344,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
                       );
       }
 #else
-			for (int i=0; i< thread_count; i++) {
+      for (int i=0; i< thread_count; i++) {
         pthread_create(&(dwThreadIdArray[i]), NULL, get_channel_raw_bytes_complete_C, &thread_info[i]);
       }
 #endif
@@ -2360,7 +2362,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
           WaitForSingleObject(bytes_ready[position], INFINITE);
           ResetEvent(bytes_ready[position]);
 #else
-					pthread_mutex_lock(&bytes_ready_locks[position]);
+          pthread_mutex_lock(&bytes_ready_locks[position]);
           pthread_cond_wait(&bytes_ready[position], &bytes_ready_locks[position]);
           pthread_mutex_unlock(&bytes_ready_locks[position]);
 #endif
@@ -2376,14 +2378,14 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 
         thread->block_info = &block_info[i];
         buffer = (uint8_t *) malloc(block_info[i].compressed_size);
-        _fseeki64(fptr, block_info[i].address, 0);
+        FSEEK64(fptr, block_info[i].address, 0);
         result = fread(buffer, 1, block_info[i].compressed_size, fptr);
         thread->inptr = buffer;
-        
+
 #if defined(_WIN32)
         SetEvent(block_ready[position]);
 #else
-				pthread_mutex_lock(&block_ready_locks[position]);
+        pthread_mutex_lock(&block_ready_locks[position]);
         pthread_cond_signal(&block_ready[position]);
         pthread_mutex_unlock(&block_ready_locks[position]);
 #endif
@@ -2400,7 +2402,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         WaitForSingleObject(bytes_ready[position], INFINITE);
         ResetEvent(bytes_ready[position]);
 #else
-				pthread_mutex_lock(&bytes_ready_locks[position]);
+        pthread_mutex_lock(&bytes_ready_locks[position]);
         pthread_cond_wait(&bytes_ready[position], &bytes_ready_locks[position]);
         pthread_mutex_unlock(&bytes_ready_locks[position]);
 #endif
@@ -2417,7 +2419,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 #if defined(_WIN32)
         SetEvent(block_ready[position]);
 #else
-				pthread_mutex_lock(&block_ready_locks[position]);
+        pthread_mutex_lock(&block_ready_locks[position]);
         pthread_cond_signal(&block_ready[position]);
         pthread_mutex_unlock(&block_ready_locks[position]);
 #endif
@@ -2434,7 +2436,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         CloseHandle(bytes_ready[i]);
       }
 #else
-			for (int i=0; i< thread_count; i++) {
+      for (int i=0; i< thread_count; i++) {
         pthread_join(dwThreadIdArray[i], NULL);
       }
 #endif
@@ -2472,9 +2474,9 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     free(bytes_ready);
     free(dwThreadIdArray);
 #if defined(_WIN32)
-		free(hThreads);
+    free(hThreads);
 #else
-		free(bytes_ready_locks);
+    free(bytes_ready_locks);
     free(block_ready_locks);
 #endif
 

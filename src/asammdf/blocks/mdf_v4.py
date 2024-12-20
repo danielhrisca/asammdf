@@ -1884,6 +1884,8 @@ class MDF4(MDF_Common):
         else:
             READ_CHUNK_SIZE = 32 * 1024 * 1024
 
+        READ_CHUNK_SIZE = min(READ_CHUNK_SIZE, total_size)
+
         if mapped:
             if address:
                 id_string, block_len = COMMON_SHORT_uf(stream, address)
@@ -1892,6 +1894,8 @@ class MDF4(MDF_Common):
                 if id_string == block_type:
                     size = block_len - 24
                     if size:
+                        size = min(size, total_size)
+
                         address = address + COMMON_SIZE
 
                         # split the DTBLOCK into chucks of up to 32MB
@@ -1966,6 +1970,8 @@ class MDF4(MDF_Common):
                             if id_string == block_type:
                                 size = block_len - 24
                                 if size:
+                                    size = min(size, total_size)
+
                                     addr += COMMON_SIZE
 
                                     # split the DTBLOCK into chucks of up to 32MB
