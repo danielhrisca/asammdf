@@ -17,9 +17,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-         with:
+        with:
            submodules: 'recursive'
-           token: ${{ secrets.submodules_PAT }}
+           token: ${{ secrets.SUBMODULE_PAT }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
