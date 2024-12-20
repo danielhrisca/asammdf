@@ -19,7 +19,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #define Sleep(x) usleep((int)(1000 * (x)))
-#define FSEEK64(file, address, whence) fseek0((file), (address), (whence))
+#define FSEEK64(file, address, whence) fseeko((file), (address), (whence))
 #define FTELL64(file) ftello(file)
 #endif
 
