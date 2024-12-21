@@ -2012,15 +2012,21 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   record_size = thread_info->record_size;
 
   int result;
+  clock_t start, end;
+  double t1=0, t2=0, t3=0;
 
   uint8_t *outptr, *inptr, *write;
   uint8_t *pUncomp, *read;
 
   while (1) {
 #if defined(_WIN32)
+	start = clock();
     WaitForSingleObject(thread_info->block_ready, INFINITE);
     ResetEvent(thread_info->block_ready);
+    end = clock();
+    t3 += end - start;
     if (thread_info->stop) break;
+    	
 #else
     pthread_mutex_lock(&thread_info->block_ready_lock);
     pthread_cond_wait(&thread_info->block_ready, &thread_info->block_ready_lock);
@@ -2051,7 +2057,10 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
     if (block_type == 2) {
       read = pUncomp;
       outptr = (uint8_t *) malloc(original_size);
+      
+      
 
+			start = clock();
       for (int j = 0; j < (Py_ssize_t)cols; j++)
       {
         write = outptr + j;
@@ -2061,6 +2070,19 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
           write += cols;
         }
       }
+      end = clock();
+      t1 += end - start;
+      
+      start = clock();
+      read=pUncomp;
+      for (int i = 0; i < lines ; i++)
+      {
+      	for (int j=0; j<cols; j++)
+        outptr[i*cols+j] = read[j*lines+i];
+      }
+      end = clock();
+      t2 += end - start;
+      
       free(pUncomp);
       pUncomp = outptr;
     }
@@ -2104,6 +2126,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 #endif
 
   }
+  printf("t1=%lf t2=%lf t3=%lf\n", t1, t2, t3);
   return 0;
 }
 
@@ -2130,6 +2153,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
   FILE *fptr;
   uint8_t *buffer;
   int result;
+  clock_t start, end;
+  double tt=0;
 
   if (!PyArg_ParseTuple(args, "OOsnnn|n",
                         &data_blocks_info, &signals, &file_name, &cycles, &record_size, &invalidation_bytes,
@@ -2360,7 +2385,10 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 
         if (i >= thread_count) {
 #if defined(_WIN32)
+					start = clock();
           WaitForSingleObject(bytes_ready[position], INFINITE);
+          end = clock();
+          tt += end - start;
           ResetEvent(bytes_ready[position]);
 #else
           pthread_mutex_lock(&bytes_ready_locks[position]);
@@ -2395,6 +2423,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         if (position == thread_count) position = 0;
 
       }
+      
+      printf("TT=%lf\n", tt);
 
       for (int i=0; i<thread_count; i++) {
         thread = &thread_info[position];
