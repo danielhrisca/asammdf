@@ -1954,14 +1954,14 @@ static PyObject *bytes_dtype_size(PyObject *self, PyObject *args)
 }
 
 
-void transpose(uint8_t * restrict dst, uint8_t * restrict src, uint64_t p, uint64_t n, size_t block){
-    for (size_t i = 0; i < n; i += block) {
-        for(size_t j = 0; j < p; ++j) {
-            for(size_t b = 0; b < block && i + b < n; ++b) {
-                dst[j*n + i + b] = src[(i + b)*p + j];
-            }
-        }
+void transpose(uint8_t * restrict dst, uint8_t * restrict src, uint64_t p, uint64_t n, size_t block) {
+  for (size_t i = 0; i < n; i += block) {
+    for(size_t j = 0; j < p; ++j) {
+      for(size_t b = 0; b < block && i + b < n; ++b) {
+        dst[j*n + i + b] = src[(i + b)*p + j];
+      }
     }
+  }
 }
 
 
@@ -2014,7 +2014,7 @@ typedef struct ProcessesingBlock {
 void * get_channel_raw_bytes_complete_C(void *lpParam )
 {
   Py_ssize_t count, byte_count, byte_offset, delta, thread_count, param, block_type;
-  int64_t original_size, compressed_size, block_limit, cycles;
+  int64_t original_size, compressed_size, block_limit, cycles, current_uncompressed_size=0, current_out_size=0, max_cycles=0;
   PtrProcessesingBlock thread_info;
   thread_info = (PtrProcessesingBlock) lpParam;
   PtrInfoBlock block_info;
@@ -2028,24 +2028,31 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   double t1=0, t2=0, t3=0, t4=0, t5=0, t6=0, t7=0;
 
   uint8_t *outptr, *inptr, *write;
-  uint8_t *pUncomp, *read;
+  uint8_t *pUncomp=NULL, *pUncompTr=NULL, *read, *data_ptr;
+
+  inptr = thread_info->inptr;
+  
+  for (int i =0; i<thread_info->signal_count; i++) {
+		thread_info->outptr[i] = NULL;
+  }
 
   while (1) {
 #if defined(_WIN32)
-	start = clock();
+    start = clock();
     WaitForSingleObject(thread_info->block_ready, INFINITE);
     ResetEvent(thread_info->block_ready);
     end = clock();
     t3 += end - start;
     if (thread_info->stop) break;
-    	
+
+    //printf("Thr %d processing\n", thread_info->idx);
+
 #else
     pthread_mutex_lock(&thread_info->block_ready_lock);
     pthread_cond_wait(&thread_info->block_ready, &thread_info->block_ready_lock);
     pthread_mutex_unlock(&thread_info->block_ready_lock);
 #endif
 
-    inptr = thread_info->inptr;
     original_size = thread_info->block_info->original_size;
     compressed_size = thread_info->block_info->compressed_size;
     param = thread_info->block_info->param;
@@ -2054,70 +2061,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
     cols = param;
     lines = original_size / cols;
 
-    // decompress
     count = original_size / record_size;
-
-    pUncomp = (uint8_t *) malloc(original_size);
-    struct libdeflate_decompressor *decompressor = libdeflate_alloc_decompressor();
-    libdeflate_zlib_decompress(decompressor,
-                               inptr, compressed_size,
-                               pUncomp, original_size,
-                               NULL);
-    libdeflate_free_decompressor(decompressor);
-
-    // reverse transposition
-    if (block_type == 2) {
-      read = pUncomp;
-      outptr = (uint8_t *) malloc(original_size);
-      
-      
-start = clock();
-      transpose(outptr, pUncomp, lines, cols, 32);
-      end = clock();
-      t5 += end - start;
-      
-      start = clock();
-      transpose(outptr, pUncomp, lines, cols, 64);
-      end = clock();
-      t6 += end - start;
-			
-      start = clock();
-      read=pUncomp;
-      for (int i = 0; i < lines ; i++)
-      {
-      	for (int j=0; j<cols; j++)
-        outptr[i*cols+j] = read[j*lines+i];
-      }
-      end = clock();
-      t2 += end - start;
-      
-     /* start = clock();
-      transpose(outptr, pUncomp, lines, cols, 8);
-      end = clock();
-      t3 += end - start;
-      
-      start = clock();
-      transpose(outptr, pUncomp, lines, cols, 16);
-      end = clock();
-      t4 += end - start;*/
-      
-      
-      
-      start = clock();
-      transpose(outptr, pUncomp, lines, cols, 11);
-      end = clock();
-      t1 += end - start;
-      
-     /* start = clock();
-      transpose(outptr, pUncomp, lines, cols, 47198);
-      end = clock();
-      t7 += end - start;*/
-      
-      
-      free(pUncomp);
-      pUncomp = outptr;
-    }
-
 
     if (thread_info->block_info->block_limit >= 0) {
       cycles = thread_info->block_info->block_limit / record_size ;
@@ -2125,17 +2069,75 @@ start = clock();
     }
     else {
       cycles = count;
-      thread_info->cycles = count;
+      thread_info->cycles = cycles;
     }
+
+    if (block_type == 0) {
+      data_ptr = inptr;
+
+    }
+    else {
+
+      // decompress
+      if (original_size > current_uncompressed_size) {
+        //printf("\tThr %d new ptr\n", thread_info->idx);
+        if (pUncomp) free(pUncomp);
+        pUncomp = (uint8_t *) malloc(original_size);
+        //if (!pUncomp) printf("\tThr %d pUncomp error\n", thread_info->idx);
+        current_uncompressed_size=original_size;
+      }
+      //printf("\tThr %d start decompress %p %d\n", thread_info->idx, inptr, compressed_size);
+      struct libdeflate_decompressor *decompressor = libdeflate_alloc_decompressor();
+      libdeflate_zlib_decompress(decompressor,
+                                 inptr, compressed_size,
+                                 pUncomp, original_size,
+                                 NULL);
+      libdeflate_free_decompressor(decompressor);
+
+      //printf("\tThr %d decmpressed\n", thread_info->idx);
+
+      // reverse transposition
+      if (block_type == 2) {
+        if (current_out_size < original_size) {
+          if (pUncompTr) free(pUncompTr);
+          pUncompTr = (uint8_t *) malloc(original_size);
+          //if (!pUncompTr) printf("\tThr %d pUncompTr error\n", thread_info->idx);
+          current_out_size = original_size;
+        }
+
+        start = clock();
+        for (int j=0; j<cols; j++)
+        	for (int i = 0; i < lines ; i++)
+        		pUncompTr[i*cols+j] = pUncomp[j*lines+i];
+        end = clock();
+        t2 += end - start;
+
+        data_ptr = pUncompTr;
+
+        //printf("\tThr %d transposed\n", thread_info->idx);
+
+      }
+      else {
+        data_ptr = pUncomp;
+      }
+    }
+
+    //printf("\tThr %d %d %d\n", thread_info->idx, cycles, max_cycles);
 
     for (int i =0; i<thread_info->signal_count; i++) {
       byte_offset = thread_info->signals[i].byte_offset;
       byte_count = thread_info->signals[i].byte_count;
 
-      outptr = (uint8_t *) malloc(cycles * byte_count);
-
-      read = pUncomp + byte_offset;
-      write = outptr;
+			if (max_cycles < cycles) {
+				if (thread_info->outptr[i]) {
+					free(thread_info->outptr[i]);
+				}
+				thread_info->outptr[i] = (uint8_t *) malloc(cycles * byte_count);
+				if (!thread_info->outptr[i]) printf("Thr %d thread_info->outptr[%d] error\n", thread_info->idx,i);
+			}
+			
+      read = data_ptr + byte_offset;
+      write = thread_info->outptr[i];
 
       for (Py_ssize_t j = 0; j < cycles; j++)
       {
@@ -2143,10 +2145,12 @@ start = clock();
         write += byte_count;
         read += record_size;
       }
-      thread_info->outptr[i] = outptr;
-    }
 
-    free(pUncomp);
+    }
+    
+    if (max_cycles < cycles) max_cycles = cycles;
+
+    //printf("\tThr %d set event\n", thread_info->idx);
 
 #if defined(_WIN32)
     SetEvent(thread_info->bytes_ready);
@@ -2157,6 +2161,11 @@ start = clock();
 #endif
 
   }
+  for (int i =0; i<thread_info->signal_count; i++) {
+      if (thread_info->outptr[i]) free(thread_info->outptr[i]);
+    }
+  if (pUncomp) free(pUncomp);
+  if (pUncompTr) free(pUncompTr);
   printf("t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", t1, t2, t3, t4, t5, t6, t7);
   return 0;
 }
@@ -2173,7 +2182,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
              cycles, step = 0, invalidation_bytes;
   Py_ssize_t isize = 0, offset = 0;
   int is_list;
-  int64_t byte_offset, byte_count, new_cycles, max_uncompressed, max_compressed;
+  int64_t byte_offset, byte_count, new_cycles, max_uncompressed=0, max_compressed=0;
   int32_t invalidation_bit_position;
 
   PtrInfoBlock block_info;
@@ -2339,7 +2348,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         ref = PyObject_GetAttrString(
                 item,
                 "block_limit");
-                
+
         if (ref == Py_None) {
           block_info[i].block_limit = -1;
         }
@@ -2347,12 +2356,14 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
           block_info[i].block_limit = PyLong_AsLongLong(ref);
         }
         Py_XDECREF(ref);
-        
-        //max_compressed = MAX(max_compressed, block_info[i].compressed_size);
+
+        max_compressed = MAX(max_compressed, block_info[i].compressed_size);
         //max_uncompressed = max_uncompressed, block_info[i].original_size);
 
       }
-      
+
+      //printf("NAX compressed=%ld\n", max_compressed);
+
       for (int i=0; i<thread_count; i++) {
 #if defined(_WIN32)
         block_ready[i] =  CreateEvent(
@@ -2375,7 +2386,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         thread_info[i].bytes_ready_lock = bytes_ready_locks[i];
         thread_info[i].block_ready_lock = block_ready_locks[i];
 #endif
-				//thread_info[i].inptr = (uint8_t *) malloc(max_compressed);
+        thread_info[i].inptr = (uint8_t *) malloc(max_compressed);
         thread_info[i].block_info = NULL;
         thread_info[i].signals = signal_info;
         thread_info[i].signal_count = signal_and_invalidation_count;
@@ -2385,6 +2396,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         thread_info[i].block_ready = block_ready[i];
         thread_info[i].bytes_ready = bytes_ready[i];
         thread_info[i].outptr = (uint8_t **) malloc(sizeof(uint8_t *) * signal_and_invalidation_count);
+        thread_info[i].cycles = 0;
       }
 
       out = PyByteArray_FromStringAndSize(NULL, cycles * byte_count);
@@ -2417,11 +2429,11 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       for (int i=0; i<info_count; i++) {
         thread = &thread_info[position];
         if (i % 10000 == 0)
-          printf("block i=%d\n", i);
+        printf("block i=%d\n", i);
 
         if (i >= thread_count) {
 #if defined(_WIN32)
-					start = clock();
+          start = clock();
           WaitForSingleObject(bytes_ready[position], INFINITE);
           end = clock();
           tt += end - start;
@@ -2432,20 +2444,17 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
           pthread_mutex_unlock(&bytes_ready_locks[position]);
 #endif
           new_cycles = thread->cycles;
-          thread->cycles = 0;
           for (int j=0; j<signal_and_invalidation_count; j++) {
             memcpy(signal_info[j].data_position, thread->outptr[j], signal_info[j].byte_count * new_cycles);
             signal_info[j].data_position += signal_info[j].byte_count * new_cycles;
-            free(thread->outptr[j]);
           }
-          free(thread->inptr);
         }
 
         thread->block_info = &block_info[i];
-        buffer = (uint8_t *) malloc(block_info[i].compressed_size);
         FSEEK64(fptr, block_info[i].address, 0);
-        result = fread(buffer, 1, block_info[i].compressed_size, fptr);
-        thread->inptr = buffer;
+        //printf("size=%ld %p\n", block_info[i].compressed_size, thread->inptr);
+        result = fread(thread->inptr, 1, block_info[i].compressed_size, fptr);
+        //printf("read result=%lld\n", result);
 
 #if defined(_WIN32)
         SetEvent(block_ready[position]);
@@ -2459,7 +2468,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         if (position == thread_count) position = 0;
 
       }
-      
+
       printf("TT=%lf\n", tt);
 
       for (int i=0; i<thread_count; i++) {
@@ -2478,7 +2487,6 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         for (int j=0; j<signal_and_invalidation_count; j++) {
           memcpy(signal_info[j].data_position, thread->outptr[j], signal_info[j].byte_count * new_cycles);
           signal_info[j].data_position += signal_info[j].byte_count * new_cycles;
-          free(thread->outptr[j]);
         }
 
         thread->stop = 1;
@@ -2508,7 +2516,10 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       }
 #endif
 
-      for (int i=0; i<thread_count; i++) free(thread_info[i].outptr);
+      for (int i=0; i<thread_count; i++) {
+        free(thread_info[i].inptr);
+        free(thread_info[i].outptr);
+      }
 
       free(block_info);
       free(thread_info);
