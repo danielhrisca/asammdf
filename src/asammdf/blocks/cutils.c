@@ -2080,7 +2080,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
       // decompress
       if (original_size > current_uncompressed_size) {
-        //printf("\tThr %d new ptr\n", thread_info->idx);
+        printf("\tThr %d new ptr\n", thread_info->idx);
         if (pUncomp) free(pUncomp);
         pUncomp = (uint8_t *) malloc(original_size);
         //if (!pUncomp) printf("\tThr %d pUncomp error\n", thread_info->idx);
@@ -2099,6 +2099,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
       // reverse transposition
       if (block_type == 2) {
         if (current_out_size < original_size) {
+        	printf("\tThr %d new trtrtrptr\n", thread_info->idx);
           if (pUncompTr) free(pUncompTr);
           pUncompTr = (uint8_t *) malloc(original_size);
           //if (!pUncompTr) printf("\tThr %d pUncompTr error\n", thread_info->idx);
@@ -2132,6 +2133,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 				if (thread_info->outptr[i]) {
 					free(thread_info->outptr[i]);
 				}
+				printf("\tThr %d sig i=%d malloc\n", thread_info->idx);
 				thread_info->outptr[i] = (uint8_t *) malloc(cycles * byte_count);
 				if (!thread_info->outptr[i]) printf("Thr %d thread_info->outptr[%d] error\n", thread_info->idx,i);
 			}
@@ -2148,8 +2150,10 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
     }
     
-    if (max_cycles < cycles) max_cycles = cycles;
-
+    if (max_cycles < cycles) {
+    	printf("\tThr %d malloc cyc=%d max_cycles=%d\n", thread_info->idx, cycles, max_cycles);
+    	max_cycles = cycles;
+}
     //printf("\tThr %d set event\n", thread_info->idx);
 
 #if defined(_WIN32)
@@ -2204,7 +2208,62 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
   }
   else
   {
-    fptr = fopen(file_name,"rb");
+    //fptr = fopen(file_name,"rb");
+    TCHAR *lpFileName = TEXT(file_name);
+    HANDLE hFile;
+    HANDLE hMap;
+    LPVOID lpBasePtr;
+    LARGE_INTEGER liFileSize;
+
+    hFile = CreateFile(file_name, 
+        GENERIC_READ,                          // dwDesiredAccess
+        0,                                     // dwShareMode
+        NULL,                                  // lpSecurityAttributes
+        OPEN_EXISTING,                         // dwCreationDisposition
+        FILE_ATTRIBUTE_NORMAL,                 // dwFlagsAndAttributes
+        0);                                    // hTemplateFile
+    if (hFile == INVALID_HANDLE_VALUE) {
+        fprintf(stderr, "CreateFile failed with error %d\n", GetLastError());
+        return 1;
+    }
+
+    if (!GetFileSizeEx(hFile, &liFileSize)) {
+        fprintf(stderr, "GetFileSize failed with error %d\n", GetLastError());
+        CloseHandle(hFile);
+        return 1;
+    }
+
+    if (liFileSize.QuadPart == 0) {
+        fprintf(stderr, "File is empty\n");
+        CloseHandle(hFile);
+        return 1;
+    }
+
+    hMap = CreateFileMapping(
+        hFile,
+        NULL,                          // Mapping attributes
+        PAGE_READONLY,                 // Protection flags
+        0,                             // MaximumSizeHigh
+        0,                             // MaximumSizeLow
+        NULL);                         // Name
+    if (hMap == 0) {
+        fprintf(stderr, "CreateFileMapping failed with error %d\n", GetLastError());
+        CloseHandle(hFile);
+        return 1;
+    }
+
+    lpBasePtr = MapViewOfFile(
+        hMap,
+        FILE_MAP_READ,         // dwDesiredAccess
+        0,                     // dwFileOffsetHigh
+        0,                     // dwFileOffsetLow
+        0);                    // dwNumberOfBytesToMap
+    if (lpBasePtr == NULL) {
+        fprintf(stderr, "MapViewOfFile failed with error %d\n", GetLastError());
+        CloseHandle(hMap);
+        CloseHandle(hFile);
+        return 1;
+    }
 
 #if defined(_WIN32)
     HANDLE  *hThreads, *block_ready, *bytes_ready;
@@ -2399,11 +2458,6 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         thread_info[i].cycles = 0;
       }
 
-      out = PyByteArray_FromStringAndSize(NULL, cycles * byte_count);
-      if (!out)
-        return NULL;
-      outptr = PyByteArray_AsString(out);
-
       printf("%d threads %d blocks %d cycles %d size\n", thread_count, info_count, cycles, cycles * byte_count);
 
 #if defined(_WIN32)
@@ -2451,10 +2505,10 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         }
 
         thread->block_info = &block_info[i];
-        FSEEK64(fptr, block_info[i].address, 0);
-        //printf("size=%ld %p\n", block_info[i].compressed_size, thread->inptr);
-        result = fread(thread->inptr, 1, block_info[i].compressed_size, fptr);
-        //printf("read result=%lld\n", result);
+        memcpy(thread->inptr, ((uint8_t*)lpBasePtr) + block_info[i].address, block_info[i].compressed_size);
+        
+        //FSEEK64(fptr, block_info[i].address, 0);
+        //result = fread(thread->inptr, 1, block_info[i].compressed_size, fptr);
 
 #if defined(_WIN32)
         SetEvent(block_ready[position]);
@@ -2502,6 +2556,10 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         position++;
         if (position == thread_count) position = 0;
       }
+      
+    UnmapViewOfFile(lpBasePtr);
+    CloseHandle(hMap);
+    CloseHandle(hFile);
 
 #if defined(_WIN32)
       WaitForMultipleObjects(thread_count, hThreads, true, INFINITE);
@@ -2525,7 +2583,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       free(thread_info);
     }
 
-    fclose(fptr);
+    //fclose(fptr);
 
     printf("tuples\n");
 
