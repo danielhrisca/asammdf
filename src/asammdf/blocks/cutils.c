@@ -1954,6 +1954,18 @@ static PyObject *bytes_dtype_size(PyObject *self, PyObject *args)
 }
 
 
+void transpose(uint8_t * restrict dst, uint8_t * restrict src, uint64_t p, uint64_t n, size_t block){
+    for (size_t i = 0; i < n; i += block) {
+        for(size_t j = 0; j < p; ++j) {
+            for(size_t b = 0; b < block && i + b < n; ++b) {
+                dst[j*n + i + b] = src[(i + b)*p + j];
+            }
+        }
+    }
+}
+
+
+
 typedef struct InfoBlock {
   int64_t address;
   int64_t original_size;
@@ -2013,7 +2025,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
   int result;
   clock_t start, end;
-  double t1=0, t2=0, t3=0;
+  double t1=0, t2=0, t3=0, t4=0, t5=0, t6=0, t7=0;
 
   uint8_t *outptr, *inptr, *write;
   uint8_t *pUncomp, *read;
@@ -2059,20 +2071,16 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
       outptr = (uint8_t *) malloc(original_size);
       
       
-
-			start = clock();
-      for (int j = 0; j < (Py_ssize_t)cols; j++)
-      {
-        write = outptr + j;
-        for (int i = 0; i < (Py_ssize_t)lines; i++)
-        {
-          *write = *read++;
-          write += cols;
-        }
-      }
+start = clock();
+      transpose(outptr, pUncomp, lines, cols, 32);
       end = clock();
-      t1 += end - start;
+      t5 += end - start;
       
+      start = clock();
+      transpose(outptr, pUncomp, lines, cols, 64);
+      end = clock();
+      t6 += end - start;
+			
       start = clock();
       read=pUncomp;
       for (int i = 0; i < lines ; i++)
@@ -2082,6 +2090,29 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
       }
       end = clock();
       t2 += end - start;
+      
+     /* start = clock();
+      transpose(outptr, pUncomp, lines, cols, 8);
+      end = clock();
+      t3 += end - start;
+      
+      start = clock();
+      transpose(outptr, pUncomp, lines, cols, 16);
+      end = clock();
+      t4 += end - start;*/
+      
+      
+      
+      start = clock();
+      transpose(outptr, pUncomp, lines, cols, 11);
+      end = clock();
+      t1 += end - start;
+      
+     /* start = clock();
+      transpose(outptr, pUncomp, lines, cols, 47198);
+      end = clock();
+      t7 += end - start;*/
+      
       
       free(pUncomp);
       pUncomp = outptr;
@@ -2126,7 +2157,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 #endif
 
   }
-  printf("t1=%lf t2=%lf t3=%lf\n", t1, t2, t3);
+  printf("t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", t1, t2, t3, t4, t5, t6, t7);
   return 0;
 }
 
@@ -2142,7 +2173,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
              cycles, step = 0, invalidation_bytes;
   Py_ssize_t isize = 0, offset = 0;
   int is_list;
-  int64_t byte_offset, byte_count, new_cycles;
+  int64_t byte_offset, byte_count, new_cycles, max_uncompressed, max_compressed;
   int32_t invalidation_bit_position;
 
   PtrInfoBlock block_info;
@@ -2260,39 +2291,6 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       block_info = (PtrInfoBlock) malloc(sizeof(InfoBlock) * info_count);
       thread_info = (PtrProcessesingBlock) malloc(sizeof(ProcessesingBlock) * thread_count);
 
-      for (int i=0; i<thread_count; i++) {
-#if defined(_WIN32)
-        block_ready[i] =  CreateEvent(
-                            NULL,               // default security attributes
-                            true,               // manual-reset event
-                            false,              // initial state is nonsignaled
-                            NULL                // object name
-                          );
-        bytes_ready[i] = CreateEvent(
-                           NULL,                // default security attributes
-                           true,                // manual-reset event
-                           false,               // initial state is nonsignaled
-                           NULL                 // object name
-                         );
-#else
-        pthread_cond_init(&block_ready[i], NULL) ;
-        pthread_cond_init(&bytes_ready[i], NULL) ;
-        pthread_mutex_init(&block_ready_locks[i], NULL) ;
-        pthread_mutex_init(&bytes_ready_locks[i], NULL) ;
-        thread_info[i].bytes_ready_lock = bytes_ready_locks[i];
-        thread_info[i].block_ready_lock = block_ready_locks[i];
-#endif
-        thread_info[i].block_info = NULL;
-        thread_info[i].signals = signal_info;
-        thread_info[i].signal_count = signal_and_invalidation_count;
-        thread_info[i].record_size = record_size;
-        thread_info[i].stop = 0;
-        thread_info[i].idx = i;
-        thread_info[i].block_ready = block_ready[i];
-        thread_info[i].bytes_ready = bytes_ready[i];
-        thread_info[i].outptr = (uint8_t **) malloc(sizeof(uint8_t *) * signal_and_invalidation_count);
-      }
-
       for (int i=0; i<info_count; i++) {
 
         block_info[i].idx = (Py_ssize_t) i;
@@ -2341,6 +2339,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         ref = PyObject_GetAttrString(
                 item,
                 "block_limit");
+                
         if (ref == Py_None) {
           block_info[i].block_limit = -1;
         }
@@ -2348,7 +2347,44 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
           block_info[i].block_limit = PyLong_AsLongLong(ref);
         }
         Py_XDECREF(ref);
+        
+        //max_compressed = MAX(max_compressed, block_info[i].compressed_size);
+        //max_uncompressed = max_uncompressed, block_info[i].original_size);
 
+      }
+      
+      for (int i=0; i<thread_count; i++) {
+#if defined(_WIN32)
+        block_ready[i] =  CreateEvent(
+                            NULL,               // default security attributes
+                            true,               // manual-reset event
+                            false,              // initial state is nonsignaled
+                            NULL                // object name
+                          );
+        bytes_ready[i] = CreateEvent(
+                           NULL,                // default security attributes
+                           true,                // manual-reset event
+                           false,               // initial state is nonsignaled
+                           NULL                 // object name
+                         );
+#else
+        pthread_cond_init(&block_ready[i], NULL) ;
+        pthread_cond_init(&bytes_ready[i], NULL) ;
+        pthread_mutex_init(&block_ready_locks[i], NULL) ;
+        pthread_mutex_init(&bytes_ready_locks[i], NULL) ;
+        thread_info[i].bytes_ready_lock = bytes_ready_locks[i];
+        thread_info[i].block_ready_lock = block_ready_locks[i];
+#endif
+				//thread_info[i].inptr = (uint8_t *) malloc(max_compressed);
+        thread_info[i].block_info = NULL;
+        thread_info[i].signals = signal_info;
+        thread_info[i].signal_count = signal_and_invalidation_count;
+        thread_info[i].record_size = record_size;
+        thread_info[i].stop = 0;
+        thread_info[i].idx = i;
+        thread_info[i].block_ready = block_ready[i];
+        thread_info[i].bytes_ready = bytes_ready[i];
+        thread_info[i].outptr = (uint8_t **) malloc(sizeof(uint8_t *) * signal_and_invalidation_count);
       }
 
       out = PyByteArray_FromStringAndSize(NULL, cycles * byte_count);
