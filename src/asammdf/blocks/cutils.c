@@ -2215,12 +2215,12 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     LPVOID lpBasePtr;
     LARGE_INTEGER liFileSize;
 
-    hFile = CreateFile(file_name, 
+    hFile = CreateFile(lpFileName, 
         GENERIC_READ,                          // dwDesiredAccess
-        0,                                     // dwShareMode
+        FILE_SHARE_READ,                                     // dwShareMode
         NULL,                                  // lpSecurityAttributes
         OPEN_EXISTING,                         // dwCreationDisposition
-        FILE_ATTRIBUTE_NORMAL,                 // dwFlagsAndAttributes
+        FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
         0);                                    // hTemplateFile
     if (hFile == INVALID_HANDLE_VALUE) {
         fprintf(stderr, "CreateFile failed with error %d\n", GetLastError());
