@@ -2031,9 +2031,9 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   uint8_t *pUncomp=NULL, *pUncompTr=NULL, *read, *data_ptr;
 
   inptr = thread_info->inptr;
-  
+
   for (int i =0; i<thread_info->signal_count; i++) {
-		thread_info->outptr[i] = NULL;
+    thread_info->outptr[i] = NULL;
   }
 
   while (1) {
@@ -2099,7 +2099,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
       // reverse transposition
       if (block_type == 2) {
         if (current_out_size < original_size) {
-        	printf("\tThr %d new trtrtrptr\n", thread_info->idx);
+          printf("\tThr %d new trtrtrptr\n", thread_info->idx);
           if (pUncompTr) free(pUncompTr);
           pUncompTr = (uint8_t *) malloc(original_size);
           //if (!pUncompTr) printf("\tThr %d pUncompTr error\n", thread_info->idx);
@@ -2108,8 +2108,8 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
         start = clock();
         for (int j=0; j<cols; j++)
-        	for (int i = 0; i < lines ; i++)
-        		pUncompTr[i*cols+j] = pUncomp[j*lines+i];
+          for (int i = 0; i < lines ; i++)
+            pUncompTr[i*cols+j] = pUncomp[j*lines+i];
         end = clock();
         t2 += end - start;
 
@@ -2125,19 +2125,26 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
     //printf("\tThr %d %d %d\n", thread_info->idx, cycles, max_cycles);
 
+    if (max_cycles < cycles) {
+      printf("\tThr %d malloc cyc=%d max_cycles=%d\n", thread_info->idx, cycles, max_cycles);
+
+      for (int i =0; i<thread_info->signal_count; i++) {
+        if (max_cycles < cycles) {
+          if (thread_info->outptr[i]) {
+            free(thread_info->outptr[i]);
+          }
+          printf("\tThr %d sig i=%d malloc\n", thread_info->idx, i);
+          thread_info->outptr[i] = (uint8_t *) malloc(cycles * thread_info->signals[i].byte_count);
+          if (!thread_info->outptr[i]) printf("Thr %d thread_info->outptr[%d] error\n", thread_info->idx,i);
+        }
+      }
+      max_cycles = cycles;
+    }
+
     for (int i =0; i<thread_info->signal_count; i++) {
       byte_offset = thread_info->signals[i].byte_offset;
       byte_count = thread_info->signals[i].byte_count;
 
-			if (max_cycles < cycles) {
-				if (thread_info->outptr[i]) {
-					free(thread_info->outptr[i]);
-				}
-				printf("\tThr %d sig i=%d malloc\n", thread_info->idx);
-				thread_info->outptr[i] = (uint8_t *) malloc(cycles * byte_count);
-				if (!thread_info->outptr[i]) printf("Thr %d thread_info->outptr[%d] error\n", thread_info->idx,i);
-			}
-			
       read = data_ptr + byte_offset;
       write = thread_info->outptr[i];
 
@@ -2149,11 +2156,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
       }
 
     }
-    
-    if (max_cycles < cycles) {
-    	printf("\tThr %d malloc cyc=%d max_cycles=%d\n", thread_info->idx, cycles, max_cycles);
-    	max_cycles = cycles;
-}
+
     //printf("\tThr %d set event\n", thread_info->idx);
 
 #if defined(_WIN32)
@@ -2166,8 +2169,8 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
   }
   for (int i =0; i<thread_info->signal_count; i++) {
-      if (thread_info->outptr[i]) free(thread_info->outptr[i]);
-    }
+    if (thread_info->outptr[i]) free(thread_info->outptr[i]);
+  }
   if (pUncomp) free(pUncomp);
   if (pUncompTr) free(pUncompTr);
   printf("t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", t1, t2, t3, t4, t5, t6, t7);
@@ -2215,54 +2218,54 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     LPVOID lpBasePtr;
     LARGE_INTEGER liFileSize;
 
-    hFile = CreateFile(lpFileName, 
-        GENERIC_READ,                          // dwDesiredAccess
-        FILE_SHARE_READ,                                     // dwShareMode
-        NULL,                                  // lpSecurityAttributes
-        OPEN_EXISTING,                         // dwCreationDisposition
-        FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
-        0);                                    // hTemplateFile
+    hFile = CreateFile(lpFileName,
+                       GENERIC_READ,                          // dwDesiredAccess
+                       FILE_SHARE_READ,                                     // dwShareMode
+                       NULL,                                  // lpSecurityAttributes
+                       OPEN_EXISTING,                         // dwCreationDisposition
+                       FILE_FLAG_RANDOM_ACCESS | FILE_FLAG_NO_BUFFERING,                 // dwFlagsAndAttributes
+                       0);                                    // hTemplateFile
     if (hFile == INVALID_HANDLE_VALUE) {
-        fprintf(stderr, "CreateFile failed with error %d\n", GetLastError());
-        return 1;
+      fprintf(stderr, "CreateFile failed with error %d\n", GetLastError());
+      return 1;
     }
 
     if (!GetFileSizeEx(hFile, &liFileSize)) {
-        fprintf(stderr, "GetFileSize failed with error %d\n", GetLastError());
-        CloseHandle(hFile);
-        return 1;
+      fprintf(stderr, "GetFileSize failed with error %d\n", GetLastError());
+      CloseHandle(hFile);
+      return 1;
     }
 
     if (liFileSize.QuadPart == 0) {
-        fprintf(stderr, "File is empty\n");
-        CloseHandle(hFile);
-        return 1;
+      fprintf(stderr, "File is empty\n");
+      CloseHandle(hFile);
+      return 1;
     }
 
     hMap = CreateFileMapping(
-        hFile,
-        NULL,                          // Mapping attributes
-        PAGE_READONLY,                 // Protection flags
-        0,                             // MaximumSizeHigh
-        0,                             // MaximumSizeLow
-        NULL);                         // Name
+             hFile,
+             NULL,                          // Mapping attributes
+             PAGE_READONLY,                 // Protection flags
+             0,                             // MaximumSizeHigh
+             0,                             // MaximumSizeLow
+             NULL);                         // Name
     if (hMap == 0) {
-        fprintf(stderr, "CreateFileMapping failed with error %d\n", GetLastError());
-        CloseHandle(hFile);
-        return 1;
+      fprintf(stderr, "CreateFileMapping failed with error %d\n", GetLastError());
+      CloseHandle(hFile);
+      return 1;
     }
 
     lpBasePtr = MapViewOfFile(
-        hMap,
-        FILE_MAP_READ,         // dwDesiredAccess
-        0,                     // dwFileOffsetHigh
-        0,                     // dwFileOffsetLow
-        0);                    // dwNumberOfBytesToMap
+                  hMap,
+                  FILE_MAP_READ,         // dwDesiredAccess
+                  0,                     // dwFileOffsetHigh
+                  0,                     // dwFileOffsetLow
+                  0);                    // dwNumberOfBytesToMap
     if (lpBasePtr == NULL) {
-        fprintf(stderr, "MapViewOfFile failed with error %d\n", GetLastError());
-        CloseHandle(hMap);
-        CloseHandle(hFile);
-        return 1;
+      fprintf(stderr, "MapViewOfFile failed with error %d\n", GetLastError());
+      CloseHandle(hMap);
+      CloseHandle(hFile);
+      return 1;
     }
 
 #if defined(_WIN32)
@@ -2483,7 +2486,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       for (int i=0; i<info_count; i++) {
         thread = &thread_info[position];
         if (i % 10000 == 0)
-        printf("block i=%d\n", i);
+          printf("block i=%d\n", i);
 
         if (i >= thread_count) {
 #if defined(_WIN32)
@@ -2506,7 +2509,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 
         thread->block_info = &block_info[i];
         memcpy(thread->inptr, ((uint8_t*)lpBasePtr) + block_info[i].address, block_info[i].compressed_size);
-        
+
         //FSEEK64(fptr, block_info[i].address, 0);
         //result = fread(thread->inptr, 1, block_info[i].compressed_size, fptr);
 
@@ -2556,10 +2559,10 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         position++;
         if (position == thread_count) position = 0;
       }
-      
-    UnmapViewOfFile(lpBasePtr);
-    CloseHandle(hMap);
-    CloseHandle(hFile);
+
+      UnmapViewOfFile(lpBasePtr);
+      CloseHandle(hMap);
+      CloseHandle(hFile);
 
 #if defined(_WIN32)
       WaitForMultipleObjects(thread_count, hThreads, true, INFINITE);
