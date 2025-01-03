@@ -1376,12 +1376,13 @@ static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
 
 static PyObject *get_invalidation_bits_array_C(uint8_t * data, int64_t cycles, int64_t invalidation_pos, int64_t invalidation_size)
 {
-  if (invalidation_pos<0) {
+  if (invalidation_pos < 0) {
     return Py_None;
   }
+
   else {
 
-    PyObject *out;
+    PyObject *out=NULL;
     uint8_t mask, *inptr, *outptr;
 
     mask = (uint8_t ) (1 << (invalidation_pos % 8));
@@ -1390,6 +1391,7 @@ static PyObject *get_invalidation_bits_array_C(uint8_t * data, int64_t cycles, i
     npy_intp dims[1];
     dims[0] = cycles;
     out = (PyArrayObject *)PyArray_EMPTY(1, dims, NPY_BOOL, 0);
+    if (!out) return NULL;
     outptr = (uint8_t *)PyArray_GETPTR1(out, 0);
 
     for (int i=0; i<cycles; i++) {
@@ -1688,6 +1690,7 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
              cycles, step = 0;
   Py_ssize_t isize = 0, offset = 0,byte_count;
   int is_list;
+  uint8_t* inptr;
 
   PMYDATA pDataArray;
   PMyChannelInfo ch_info;
@@ -1753,14 +1756,24 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
           byte_count = PyLong_AsSsize_t(PyTuple_GetItem(item, 1));
         }
 
-        if (!PyArray_IS_C_CONTIGUOUS(array))
-        {
-          copy_array = PyArray_NewCopy((PyArrayObject *)array, NPY_CORDER);
-          array = copy_array;
-          copy_array = NULL;
+        if (PyByteArray_Check(array)) {
+          inptr = (uint8_t *) PyByteArray_AsString(array);
+        }
+        else if (PyBytes_Check(array)) {
+          inptr = (uint8_t *) PyBytes_AsString(array);
+        }
+        else {
+          if (!PyArray_IS_C_CONTIGUOUS(array))
+          {
+            copy_array = PyArray_NewCopy((PyArrayObject *)array, NPY_CORDER);
+            array = copy_array;
+            copy_array = NULL;
+          }
+          inptr = (uint8_t *)PyArray_BYTES((PyArrayObject *)array);
         }
 
-        pDataArray[i].inptr = (uint8_t *)PyArray_BYTES((PyArrayObject *)array);
+
+        pDataArray[i].inptr = inptr;
         pDataArray[i].cycles = cycles;
         pDataArray[i].byte_offset = total_size;
         pDataArray[i].byte_count = byte_count;
@@ -2073,7 +2086,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
       // decompress
       if (original_size > current_uncompressed_size) {
-        printf("\tThr %d new ptr\n", thread_info->idx);
+        //printf("\tThr %d new ptr\n", thread_info->idx);
         if (pUncomp) free(pUncomp);
         pUncomp = (uint8_t *) malloc(original_size);
         //if (!pUncomp) printf("\tThr %d pUncomp error\n", thread_info->idx);
@@ -2092,13 +2105,13 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
       // reverse transposition
       if (block_type == 2) {
         if (current_out_size < original_size) {
-          printf("\tThr %d new trtrtrptr\n", thread_info->idx);
+          //printf("\tThr %d new trtrtrptr\n", thread_info->idx);
           if (pUncompTr) free(pUncompTr);
           pUncompTr = (uint8_t *) malloc(original_size);
           //if (!pUncompTr) printf("\tThr %d pUncompTr error\n", thread_info->idx);
           current_out_size = original_size;
         }
-       
+
         start = clock();
         read = pUncomp;
         for (int j = 0; j < (Py_ssize_t)cols; j++)
@@ -2112,7 +2125,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
         }
         end = clock();
         t7 += end - start;
-       
+
 
         data_ptr = pUncompTr;
 
@@ -2156,7 +2169,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
   if (pUncomp) free(pUncomp);
   if (pUncompTr) free(pUncompTr);
-  printf("t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", t1, t2, t3, t4, t5, t6, t7);
+  //printf("t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", t1, t2, t3, t4, t5, t6, t7);
   return 0;
 }
 
@@ -2164,7 +2177,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 {
   Py_ssize_t info_count, signal_count, signal_and_invalidation_count, thread_count=11;
-  PyObject *data_blocks_info, *signals, *out = NULL, *item, *ref, *obj;
+  PyObject *data_blocks_info, *signals, *out = NULL, *item, *ref, *obj, *group_index, *InvalidationArray;
 
   char *outptr, *file_name;
   char *read_pos = NULL, *write_pos = NULL;
@@ -2186,14 +2199,18 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
   clock_t start, end;
   double tt=0;
 
-  if (!PyArg_ParseTuple(args, "OOsnnn|n",
-                        &data_blocks_info, &signals, &file_name, &cycles, &record_size, &invalidation_bytes,
+  if (!PyArg_ParseTuple(args, "OOsnnnO|n",
+                        &data_blocks_info, &signals, &file_name, &cycles, &record_size, &invalidation_bytes, &group_index,
                         &thread_count))
   {
     return NULL;
   }
   else
   {
+
+    ref = PyImport_ImportModule("asammdf");
+    InvalidationArray = PyObject_GetAttrString(ref, "InvalidationArray");
+    Py_XDECREF(ref);
     //fptr = fopen(file_name,"rb");
     TCHAR *lpFileName = TEXT(file_name);
     HANDLE hFile;
@@ -2283,10 +2300,18 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     if (invalidation_bytes) {
       signal_and_invalidation_count = signal_count +1;
       signal_info = (PtrSignalInfo) malloc(sizeof(SignalInfo) * (signal_count + 1));
+      if (!signal_info) {
+        PyErr_SetString(PyExc_ValueError, "Memmory allocation error for signal_info\n\0");
+        return NULL;
+      }
     }
     else {
       signal_and_invalidation_count = signal_count;
       signal_info = (PtrSignalInfo) malloc(sizeof(SignalInfo) * signal_count);
+      if (!signal_info) {
+        PyErr_SetString(PyExc_ValueError, "Memmory allocation error for signal_info\n\0");
+        return NULL;
+      }
     }
     for (int i=0; i<signal_count; i++) {
       if (is_list) {
@@ -2308,6 +2333,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       }
 
       obj = PyByteArray_FromStringAndSize(NULL, byte_count * cycles);
+      if (!obj) return NULL;
 
       signal_info[i].byte_offset = byte_offset;
       signal_info[i].byte_count = byte_count;
@@ -2319,6 +2345,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 
     if (invalidation_bytes) {
       obj = PyByteArray_FromStringAndSize(NULL, invalidation_bytes * cycles);
+      if (!obj) return NULL;
       signal_info[signal_count].byte_offset = record_size - invalidation_bytes;
       signal_info[signal_count].byte_count = invalidation_bytes;
       signal_info[signal_count].invalidation_bit_position = -1;
@@ -2341,7 +2368,15 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         thread_count = info_count;
       }
       block_info = (PtrInfoBlock) malloc(sizeof(InfoBlock) * info_count);
+      if (!block_info) {
+        PyErr_SetString(PyExc_ValueError, "Memmory allocation error for block_info\n\0");
+        return NULL;
+      }
       thread_info = (PtrProcessesingBlock) malloc(sizeof(ProcessesingBlock) * thread_count);
+      if (!thread_info) {
+        PyErr_SetString(PyExc_ValueError, "Memmory allocation error for thread_info\n\0");
+        return NULL;
+      }
 
       for (int i=0; i<info_count; i++) {
 
@@ -2430,6 +2465,10 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         thread_info[i].block_ready_lock = block_ready_locks[i];
 #endif
         thread_info[i].inptr = (uint8_t *) malloc(max_compressed);
+        if (!thread_info[i].inptr) {
+          PyErr_SetString(PyExc_ValueError, "Memmory allocation error for thread_info[i].inptr\n\0");
+          return NULL;
+        }
         thread_info[i].block_info = NULL;
         thread_info[i].signals = signal_info;
         thread_info[i].signal_count = signal_and_invalidation_count;
@@ -2440,7 +2479,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         thread_info[i].bytes_ready = bytes_ready[i];
       }
 
-      printf("%d threads %d blocks %d cycles %d size\n", thread_count, info_count, cycles, cycles * byte_count);
+      //printf("%d threads %d blocks %d cycles %d size\n", thread_count, info_count, cycles, cycles * byte_count);
 
 #if defined(_WIN32)
       for (int i=0; i< thread_count; i++) {
@@ -2452,10 +2491,18 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
                         0,
                         &dwThreadIdArray[i]
                       );
+        if (!hThreads[i]) {
+          PyErr_SetString(PyExc_ValueError, "Failed to create processing thread\n\0");
+          return NULL;
+        }
       }
 #else
       for (int i=0; i< thread_count; i++) {
-        pthread_create(&(dwThreadIdArray[i]), NULL, get_channel_raw_bytes_complete_C, &thread_info[i]);
+        if (pthread_create(&(dwThreadIdArray[i]), NULL, get_channel_raw_bytes_complete_C, &thread_info[i]))
+        {
+          PyErr_SetString(PyExc_ValueError, "Failed to create processing thread\n\0");
+          return NULL;
+        }
       }
 #endif
 
@@ -2502,7 +2549,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 
       }
 
-      printf("TT=%lf\n", tt);
+      //printf("TT=%lf\n", tt);
 
       for (int i=0; i<thread_count; i++) {
         thread = &thread_info[position];
@@ -2556,20 +2603,52 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 
     //fclose(fptr);
 
-    printf("tuples\n");
+    PyObject *inv, *inv_array, *origin;
 
     out = PyTuple_New(signal_count);
+    if (!out) return NULL;
 
     uint8_t * invalidation_data = NULL;
     if (invalidation_bytes) {
       invalidation_data = signal_info[signal_count].data;
     }
 
+    PyObject **cache = malloc(sizeof(PyObject *) * invalidation_bytes * 8);
+    if (!cache) {
+      PyErr_SetString(PyExc_ValueError, "Failed to allocate memory for cache\n\0");
+      return NULL;
+    }
+    for (int i=0; i< invalidation_bytes * 8; i++) cache[i] = NULL;
+
     for (int i=0; i<signal_count; i++) {
+      printf("signal %d\n", i);
       ref = PyTuple_New(2);
+      if (!ref) return NULL;
       PyTuple_SetItem(ref, 0, signal_info[i].obj);
       if (invalidation_data) {
-        PyTuple_SetItem(ref, 1, get_invalidation_bits_array_C(invalidation_data, cycles, signal_info[i].invalidation_bit_position, invalidation_bytes));
+        if (cache[signal_info[i].invalidation_bit_position < 0)
+                                                     PyTuple_SetItem(ref, 1, Py_None);
+                                                     else {
+
+                                                 if (!cache[signal_info[i].invalidation_bit_position]) {
+                                                 inv = get_invalidation_bits_array_C(invalidation_data, cycles, signal_info[i].invalidation_bit_position, invalidation_bytes);
+                                                   if (!inv) return NULL;
+          origin = PyTuple_New(2);
+          if (!origin) return NULL;
+          PyTuple_SetItem(origin, 0, Py_NewRef(group_index));
+          PyTuple_SetItem(origin, 1, PyLong_FromLong(signal_info[i].invalidation_bit_position));
+          inv_array = PyObject_CallFunction(
+                        InvalidationArray,
+                        "OO",
+                        inv, origin);
+          if (!inv_array) return NULL;
+          Py_XDECREF(inv);
+          cache[signal_info[i].invalidation_bit_position] = inv_array;
+          Py_XDECREF(origin);
+        }
+
+        PyTuple_SetItem(ref, 1, Py_NewRef(cache[signal_info[i].invalidation_bit_position]));
+            }
       }
       else {
         PyTuple_SetItem(ref, 1, Py_None);
@@ -2577,10 +2656,20 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       PyTuple_SetItem(out, i, ref);
     }
 
+    for (int i=0; i< invalidation_bytes * 8; i++) {
+      if (cache[i]) {
+        Py_XDECREF(cache[i]);
+        cache[i] = NULL;
+      }
+    }
+    free(cache);
+
     free(signal_info);
     free(block_ready);
     free(bytes_ready);
     free(dwThreadIdArray);
+
+    Py_XDECREF(InvalidationArray);
 
 #if defined(_WIN32)
     free(hThreads);

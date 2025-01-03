@@ -15,7 +15,7 @@ from .blocks.source_utils import Source
 from .blocks.utils import load_channel_names_from_file
 from .gui import plot
 from .mdf import MDF, SUPPORTED_VERSIONS
-from .signal import Signal
+from .signal import InvalidationArray, Signal
 from .version import __version__
 
 try:
@@ -28,6 +28,7 @@ except ImportError:
 __all__ = [
     "MDF",
     "SUPPORTED_VERSIONS",
+    "InvalidationArray",
     "Signal",
     "Source",
     "__cextension__",

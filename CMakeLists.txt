@@ -12,6 +12,9 @@ find_package(
   )
   
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(LIBDEFLATE_COMPRESSION_SUPPORT OFF)
+set(LIBDEFLATE_GZIP_SUPPORT OFF)
+set(LIBDEFLATE_BUILD_GZIP OFF)
   
   # Add submodule libdeflate
 add_subdirectory(ext/libdeflate EXCLUDE_FROM_ALL)

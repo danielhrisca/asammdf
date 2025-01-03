@@ -115,6 +115,7 @@ from .utils import (
     MdfException,
     SignalDataBlockInfo,
     TERMINATED,
+    THREAD_COUNT,
     UINT8_uf,
     UINT16_uf,
     UINT32_p,
@@ -165,7 +166,6 @@ EMPTY_TUPLE = ()
 # 100 extra steps for the sorting, 1 step after sorting and 1 step at finish
 SORT_STEPS = 102
 DATA_IS_CHANNEL_BYTES = [-2, -2]
-THREAD_COUNT = max(os.cpu_count() - 1, 1)
 
 
 logger = logging.getLogger("asammdf")
@@ -1706,7 +1706,7 @@ class MDF4(MDF_Common):
                         invalidation_data.append(new_invalidation_data)
                         cur_invalidation_size += inv_size
 
-                if (vv := (perf_counter() - tt)) > 5:
+                if (vv := (perf_counter() - tt)) > 10:
                     print(f"{ss / 1024/1024 / vv:.6f} MB/s {cc=} {vv=}")
                     cc = 0
                     ss = 0
@@ -7691,6 +7691,7 @@ class MDF4(MDF_Common):
                             view = f"{channel_dtype.byteorder}i{vals.itemsize}"
                             if dtype(view) != vals.dtype:
                                 vals = vals.view(view)
+
                     elif channel_type == v4c.CHANNEL_TYPE_VALUE and channel.fast_path is None:
                         channel.fast_path = (
                             gp_nr,
@@ -8392,9 +8393,9 @@ class MDF4(MDF_Common):
                 fragments = [next(stream) for stream in data_streams]
             except:
                 break
-
-            if perf_counter() - tt > 120:
-                x = 1 / 0
+            #
+            # if perf_counter() - tt > 120:
+            #     x = 1 / 0
 
             # prepare the master
             _master = self.get_master(index, data=fragments[master_index], one_piece=True)

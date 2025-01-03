@@ -10,6 +10,7 @@ from functools import lru_cache
 from io import StringIO
 import json
 import logging
+import os
 from pathlib import Path
 from random import randint
 import re
@@ -26,6 +27,7 @@ import xml.etree.ElementTree as ET
 import lxml
 from typing_extensions import Literal, TypedDict
 
+THREAD_COUNT = max(os.cpu_count() - 1, 1)
 TERMINATED = object()
 NONE = object()
 COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
@@ -1303,6 +1305,10 @@ class Group:
                     yield info
                 except StopIteration:
                     break
+
+    def load_all_data_blocks(self):
+        for _ in self.get_data_blocks():
+            continue
 
 
 class VirtualChannelGroup:
