@@ -1971,6 +1971,7 @@ typedef struct InfoBlock {
   int64_t original_size;
   int64_t compressed_size;
   int64_t block_limit;
+  int64_t record_offset;
   Py_ssize_t param;
   Py_ssize_t block_type;
   Py_ssize_t idx;
@@ -1984,16 +1985,13 @@ typedef struct SignalInfo {
   int64_t byte_count;
   int32_t invalidation_bit_position;
   uint8_t *data;
-  uint8_t *data_position;
   PyObject *obj;
 } SignalInfo, *PtrSignalInfo;
 
 
 typedef struct ProcessesingBlock {
   uint8_t stop;
-  uint8_t ** outptr;
   uint8_t * inptr;
-  int64_t cycles;
   PtrInfoBlock block_info;
   struct SignalInfo *signals;
   Py_ssize_t signal_count;
@@ -2014,7 +2012,7 @@ typedef struct ProcessesingBlock {
 void * get_channel_raw_bytes_complete_C(void *lpParam )
 {
   Py_ssize_t count, byte_count, byte_offset, delta, thread_count, param, block_type;
-  int64_t original_size, compressed_size, block_limit, cycles, current_uncompressed_size=0, current_out_size=0, max_cycles=0;
+  int64_t original_size, compressed_size, record_offset, block_limit, cycles, current_uncompressed_size=0, current_out_size=0, max_cycles=0;
   PtrProcessesingBlock thread_info;
   thread_info = (PtrProcessesingBlock) lpParam;
   PtrInfoBlock block_info;
@@ -2031,10 +2029,6 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   uint8_t *pUncomp=NULL, *pUncompTr=NULL, *read, *data_ptr;
 
   inptr = thread_info->inptr;
-
-  for (int i =0; i<thread_info->signal_count; i++) {
-    thread_info->outptr[i] = NULL;
-  }
 
   while (1) {
 #if defined(_WIN32)
@@ -2057,6 +2051,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
     compressed_size = thread_info->block_info->compressed_size;
     param = thread_info->block_info->param;
     block_type = thread_info->block_info->block_type;
+    record_offset = thread_info->block_info->record_offset;
 
     cols = param;
     lines = original_size / cols;
@@ -2065,11 +2060,9 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
     if (thread_info->block_info->block_limit >= 0) {
       cycles = thread_info->block_info->block_limit / record_size ;
-      thread_info->cycles = cycles;
     }
     else {
       cycles = count;
-      thread_info->cycles = cycles;
     }
 
     if (block_type == 0) {
@@ -2105,13 +2098,21 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
           //if (!pUncompTr) printf("\tThr %d pUncompTr error\n", thread_info->idx);
           current_out_size = original_size;
         }
-
+       
         start = clock();
-        for (int j=0; j<cols; j++)
-          for (int i = 0; i < lines ; i++)
-            pUncompTr[i*cols+j] = pUncomp[j*lines+i];
+        read = pUncomp;
+        for (int j = 0; j < (Py_ssize_t)cols; j++)
+        {
+          write = pUncompTr + j;
+          for (int i = 0; i < (Py_ssize_t)lines; i++)
+          {
+            *write = *read++;
+            write += cols;
+          }
+        }
         end = clock();
-        t2 += end - start;
+        t7 += end - start;
+       
 
         data_ptr = pUncompTr;
 
@@ -2125,28 +2126,12 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
     //printf("\tThr %d %d %d\n", thread_info->idx, cycles, max_cycles);
 
-    if (max_cycles < cycles) {
-      printf("\tThr %d malloc cyc=%d max_cycles=%d\n", thread_info->idx, cycles, max_cycles);
-
-      for (int i =0; i<thread_info->signal_count; i++) {
-        if (max_cycles < cycles) {
-          if (thread_info->outptr[i]) {
-            free(thread_info->outptr[i]);
-          }
-          printf("\tThr %d sig i=%d malloc\n", thread_info->idx, i);
-          thread_info->outptr[i] = (uint8_t *) malloc(cycles * thread_info->signals[i].byte_count);
-          if (!thread_info->outptr[i]) printf("Thr %d thread_info->outptr[%d] error\n", thread_info->idx,i);
-        }
-      }
-      max_cycles = cycles;
-    }
-
     for (int i =0; i<thread_info->signal_count; i++) {
       byte_offset = thread_info->signals[i].byte_offset;
       byte_count = thread_info->signals[i].byte_count;
 
       read = data_ptr + byte_offset;
-      write = thread_info->outptr[i];
+      write = thread_info->signals[i].data + record_offset * byte_count;
 
       for (Py_ssize_t j = 0; j < cycles; j++)
       {
@@ -2168,9 +2153,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 #endif
 
   }
-  for (int i =0; i<thread_info->signal_count; i++) {
-    if (thread_info->outptr[i]) free(thread_info->outptr[i]);
-  }
+
   if (pUncomp) free(pUncomp);
   if (pUncompTr) free(pUncompTr);
   printf("t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", t1, t2, t3, t4, t5, t6, t7);
@@ -2189,7 +2172,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
              cycles, step = 0, invalidation_bytes;
   Py_ssize_t isize = 0, offset = 0;
   int is_list;
-  int64_t byte_offset, byte_count, new_cycles, max_uncompressed=0, max_compressed=0;
+  int64_t byte_offset, byte_count, new_cycles, max_uncompressed=0, max_compressed=0, record_offset=0;
   int32_t invalidation_bit_position;
 
   PtrInfoBlock block_info;
@@ -2223,7 +2206,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
                        FILE_SHARE_READ,                                     // dwShareMode
                        NULL,                                  // lpSecurityAttributes
                        OPEN_EXISTING,                         // dwCreationDisposition
-                       FILE_FLAG_RANDOM_ACCESS | FILE_FLAG_NO_BUFFERING,                 // dwFlagsAndAttributes
+                       FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
                        0);                                    // hTemplateFile
     if (hFile == INVALID_HANDLE_VALUE) {
       fprintf(stderr, "CreateFile failed with error %d\n", GetLastError());
@@ -2330,7 +2313,6 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       signal_info[i].byte_count = byte_count;
       signal_info[i].invalidation_bit_position = invalidation_bit_position;
       signal_info[i].data = (uint8_t *) PyByteArray_AsString(obj);
-      signal_info[i].data_position = signal_info[i].data;
       signal_info[i].obj = obj;
 
     }
@@ -2341,7 +2323,6 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       signal_info[signal_count].byte_count = invalidation_bytes;
       signal_info[signal_count].invalidation_bit_position = -1;
       signal_info[signal_count].data = (uint8_t *) PyByteArray_AsString(obj);
-      signal_info[signal_count].data_position = signal_info[signal_count].data;
       signal_info[signal_count].obj = obj;
     }
 
@@ -2457,8 +2438,6 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         thread_info[i].idx = i;
         thread_info[i].block_ready = block_ready[i];
         thread_info[i].bytes_ready = bytes_ready[i];
-        thread_info[i].outptr = (uint8_t **) malloc(sizeof(uint8_t *) * signal_and_invalidation_count);
-        thread_info[i].cycles = 0;
       }
 
       printf("%d threads %d blocks %d cycles %d size\n", thread_count, info_count, cycles, cycles * byte_count);
@@ -2500,14 +2479,11 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
           pthread_cond_wait(&bytes_ready[position], &bytes_ready_locks[position]);
           pthread_mutex_unlock(&bytes_ready_locks[position]);
 #endif
-          new_cycles = thread->cycles;
-          for (int j=0; j<signal_and_invalidation_count; j++) {
-            memcpy(signal_info[j].data_position, thread->outptr[j], signal_info[j].byte_count * new_cycles);
-            signal_info[j].data_position += signal_info[j].byte_count * new_cycles;
-          }
         }
 
         thread->block_info = &block_info[i];
+        thread->block_info->record_offset = record_offset;
+        record_offset += block_info[i].original_size / record_size;
         memcpy(thread->inptr, ((uint8_t*)lpBasePtr) + block_info[i].address, block_info[i].compressed_size);
 
         //FSEEK64(fptr, block_info[i].address, 0);
@@ -2539,13 +2515,6 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         pthread_cond_wait(&bytes_ready[position], &bytes_ready_locks[position]);
         pthread_mutex_unlock(&bytes_ready_locks[position]);
 #endif
-        new_cycles = thread->cycles;
-        thread->cycles = 0;
-        for (int j=0; j<signal_and_invalidation_count; j++) {
-          memcpy(signal_info[j].data_position, thread->outptr[j], signal_info[j].byte_count * new_cycles);
-          signal_info[j].data_position += signal_info[j].byte_count * new_cycles;
-        }
-
         thread->stop = 1;
 
 #if defined(_WIN32)
@@ -2579,7 +2548,6 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 
       for (int i=0; i<thread_count; i++) {
         free(thread_info[i].inptr);
-        free(thread_info[i].outptr);
       }
 
       free(block_info);
