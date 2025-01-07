@@ -18,26 +18,7 @@ from xml.dom import minidom
 import xml.etree.ElementTree as ET
 
 import dateutil.tz
-
-try:
-    from isal.isal_zlib import compress, decompress
-
-    COMPRESSION_LEVEL = 2
-
-except ImportError:
-    from zlib import compress, decompress
-
-    COMPRESSION_LEVEL = 1
-
-
 from numexpr import evaluate
-
-try:
-    from sympy import lambdify, symbols
-
-except:
-    lambdify, symbols = None, None
-
 import numpy as np
 
 from .. import tool
@@ -56,6 +37,22 @@ from .utils import (
     UINT64_u,
     UINT64_uf,
 )
+
+try:
+    from isal.isal_zlib import compress, decompress
+
+    COMPRESSION_LEVEL = 2
+
+except ImportError:
+    from zlib import compress, decompress
+
+    COMPRESSION_LEVEL = 1
+
+try:
+    from sympy import lambdify, symbols
+
+except:
+    lambdify, symbols = None, None
 
 if TYPE_CHECKING:
     from .source_utils import Source

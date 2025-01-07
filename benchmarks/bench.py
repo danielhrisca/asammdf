@@ -10,11 +10,6 @@ import platform
 import sys
 import traceback
 
-try:
-    import resource
-except ImportError:
-    pass
-
 from mdfreader import __version__ as mdfreader_version
 from mdfreader import Mdf as MDFreader
 import numpy as np
@@ -26,6 +21,11 @@ import asammdf.blocks.v2_v3_blocks as v3b
 import asammdf.blocks.v2_v3_constants as v3c
 import asammdf.blocks.v4_blocks as v4b
 import asammdf.blocks.v4_constants as v4c
+
+try:
+    import resource
+except ImportError:
+    pass
 
 PYVERSION = sys.version_info[0]
 
