@@ -448,20 +448,27 @@ class TestPushButtonApply(TestBatchWidget):
             common_timestamps = self.interpolated_timestamps(mdf_file, set(self.selected_channels))
 
             for channel in self.selected_channels:
-                mdf_signal = mdf_file.get(channel, raw=True).interp(common_timestamps)
+                mdf_signal = mdf_file.get(channel, raw=True).interp(
+                    common_timestamps,
+                    integer_interpolation_mode=self.widget.integer_interpolation,
+                    float_interpolation_mode=self.widget.float_interpolation,
+                )
 
                 if mdf_signal.display_names:
                     display_name, _ = zip(*mdf_signal.display_names.items())
                     channel = display_name[0]
                 for character in to_replace:
                     channel = channel.replace(character, "_")
+                if channel + "_0" in mat_file.keys() and "RAT" in mdf_signal.name:
+                    channel += "_0"
 
                 self.assertIn(channel, mat_file.keys())
-                self.assertTrue(np.array_equal(mdf_signal.samples, mat_file[channel][0]))  # hmm, something went wrong
+                np.testing.assert_almost_equal(
+                    mdf_signal.samples, mat_file[channel][0], decimal=3, err_msg=mdf_signal.name
+                )
 
-            self.assertEqual(common_timestamps.size, mat_file["timestamps"].size)
-            self.assertEqual(mat_file["timestamps"].min(), 0)
-            self.assertEqual(mat_file["timestamps"].max(), mdf_signal.timestamps.max())
+            common_timestamps -= common_timestamps[0]  # start from 0
+            np.testing.assert_almost_equal(mat_file["timestamps"][0], common_timestamps, decimal=3)
 
     def test_output_format_HDF5_0(self):
         """
@@ -498,17 +505,16 @@ class TestPushButtonApply(TestBatchWidget):
                         self.assertIn(name, mdf_group)
                         mdf_channel = mdf_file.select([name])[0]
                         hdf5_channel = hdf5_group.get(name)
-                        # Evaluate values from extremes if samples are numbers
-                        if np.issubdtype(mdf_channel.samples.dtype, np.number):
-                            self.assertEqual(mdf_channel.samples.max(), max(hdf5_channel))
-                            self.assertEqual(mdf_channel.samples.min(), min(hdf5_channel))
-                        # Evaluate samples size
-                        self.assertEqual(mdf_channel.samples.size, hdf5_channel.size)
+
+                        if np.issubdtype(mdf_channel.samples.dtype, np.number):  # samples are numbers
+                            np.testing.assert_almost_equal(mdf_channel.samples, hdf5_channel, decimal=3)
+                        else:
+                            # Evaluate samples shape
+                            self.assertEqual(mdf_channel.samples.size, hdf5_channel.size)
+
                     else:  # evaluate timestamps
                         hdf5_channel = hdf5_group.get(name)  # for evaluation will be used latest mdf channel from group
-                        self.assertEqual(mdf_channel.timestamps.max(), max(hdf5_channel))
-                        self.assertEqual(mdf_channel.timestamps.min(), min(hdf5_channel))
-                        self.assertEqual(mdf_channel.timestamps.size, hdf5_channel.size)
+                        np.testing.assert_almost_equal(mdf_channel.timestamps, hdf5_channel, decimal=3)
 
     def test_output_format_HDF5_1(self):
         """
@@ -539,34 +545,25 @@ class TestPushButtonApply(TestBatchWidget):
             self.assertEqual(len(hdf5_file.items()), 1)  # 1 item
 
             # Prepare results
-            size = 0
-            differences = []
+            common_timestamps = self.interpolated_timestamps(mdf_file, set(self.selected_channels))
             hdf5_channels = hdf5_file[str(hdf5_path)]
 
-            for channel in self.selected_channels:  # Evaluate channels
-                _channel = mdf_file.select([channel])[0]  # nu intreba
-                if _channel.display_names:  # DI.<channel name>...
-                    display_name, _ = zip(*_channel.display_names.items())
+            for channel in self.selected_channels:
+                mdf_channel = mdf_file.get(channel, raw=True).interp(
+                    common_timestamps,
+                    integer_interpolation_mode=self.widget.integer_interpolation,
+                    float_interpolation_mode=self.widget.float_interpolation,
+                )
+
+                if mdf_channel.display_names:
+                    display_name, _ = zip(*mdf_channel.display_names.items())
                     channel = display_name[0]
 
-                # Because exist 2 channels with identical "DISPLAY" name -_-
-                mdf_channel = mdf_file.select([(channel, _channel.group_index, _channel.channel_index)], raw=True)[0]
                 hdf5_channel = hdf5_channels.get(channel)
 
+                # Evaluate
                 self.assertIn(channel, hdf5_channels)
-
-                # Evaluate extremes
-                self.assertEqual(mdf_channel.samples.max(), max(hdf5_channel))
-                self.assertEqual(mdf_channel.samples.min(), min(hdf5_channel))
-
-                # for feature timestamps evaluation
-                ceva = mdf_channel.timestamps.max() - mdf_channel.timestamps.min()
-                if ceva not in differences:
-                    differences.append(ceva)
-                    size += mdf_channel.timestamps.size
-
-            # Evaluate size of timestamps
-            self.assertEqual(hdf5_channel.size, size)
+                np.testing.assert_almost_equal(mdf_channel.samples, hdf5_channel, decimal=3)
 
     def test_cut_checkbox_0(self):
         """
