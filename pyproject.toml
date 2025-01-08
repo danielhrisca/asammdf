@@ -88,9 +88,11 @@ force-exclude = '''
 ^/src/asammdf/gui/ui
 '''
 
-[tool.coverage.run]
-source = ["asammdf"]
-omit = ["*/asammdf/gui/ui/*"]
+[tool.coverage]
+run.relative_files = true
+run.source_pkgs = ["asammdf"]
+paths.source = ["src", "*/site-packages"]
+report.omit = ["*/asammdf/gui/ui/*"]
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux_2_28"
