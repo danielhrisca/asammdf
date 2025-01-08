@@ -106,6 +106,7 @@ from .utils import (
     extract_encryption_information,
     extract_xml_comment,
     fmt_to_datatype_v4,
+    Fragment,
     get_fmt_v4,
     get_text_v4,
     Group,
@@ -165,7 +166,6 @@ EMPTY_TUPLE = ()
 
 # 100 extra steps for the sorting, 1 step after sorting and 1 step at finish
 SORT_STEPS = 102
-DATA_IS_CHANNEL_BYTES = [-2, -2]
 
 
 logger = logging.getLogger("asammdf")
@@ -655,7 +655,7 @@ class MDF4(MDF_Common):
                 inval_total_size=inval_total_size,
                 record_size=record_size,
             )
-            data_blocks = []
+            data_blocks = list(data_blocks_info)  # load the info blocks directly here
             uses_ld = self._uses_ld(
                 address=address,
                 stream=stream,
@@ -1427,9 +1427,9 @@ class MDF4(MDF_Common):
 
         if not samples_size:
             if rm:
-                yield b"", offset, _count, b""
+                yield Fragment(b"", offset, _count, b"")
             else:
-                yield b"", offset, _count, None
+                yield Fragment(b"", offset, _count, None)
         else:
             if group.read_split_count:
                 split_size = group.read_split_count * samples_size
@@ -1629,14 +1629,17 @@ class MDF4(MDF_Common):
                             if rm and invalidation_size:
                                 __data = buffer[:record_count]
                                 _count = len(__data) // samples_size
-                                yield __data, offset // samples_size, _count, invalidation_data_[
-                                    :invalidation_record_count
-                                ]
+                                yield Fragment(
+                                    __data,
+                                    offset // samples_size,
+                                    _count,
+                                    invalidation_data_[:invalidation_record_count],
+                                )
                                 invalidation_record_count -= len(invalidation_data_)
                             else:
                                 __data = buffer[:record_count]
                                 _count = len(__data) // samples_size
-                                yield __data, offset // samples_size, _count, None
+                                yield Fragment(__data, offset // samples_size, _count, None)
                             has_yielded = True
                             record_count -= split_size
                             if record_count <= 0:
@@ -1645,10 +1648,10 @@ class MDF4(MDF_Common):
                         else:
                             if rm and invalidation_size:
                                 _count = split_size // samples_size
-                                yield buffer, offset // samples_size, _count, invalidation_data_
+                                yield Fragment(buffer, offset // samples_size, _count, invalidation_data_)
                             else:
                                 _count = split_size // samples_size
-                                yield buffer, offset // samples_size, _count, None
+                                yield Fragment(buffer, offset // samples_size, _count, None)
                             has_yielded = True
 
                     else:
@@ -1660,14 +1663,17 @@ class MDF4(MDF_Common):
 
                         if record_count is not None:
                             if rm and invalidation_size:
-                                yield buffer[:record_count], offset // samples_size, _count, invalidation_data_[
-                                    :invalidation_record_count
-                                ]
+                                yield Fragment(
+                                    buffer[:record_count],
+                                    offset // samples_size,
+                                    _count,
+                                    invalidation_data_[:invalidation_record_count],
+                                )
                                 invalidation_record_count -= len(invalidation_data_)
                             else:
                                 __data = buffer[:record_count]
                                 _count = len(__data) // samples_size
-                                yield __data, offset // samples_size, _count, None
+                                yield Fragment(__data, offset // samples_size, _count, None)
                             has_yielded = True
                             record_count -= split_size
                             if record_count <= 0:
@@ -1676,10 +1682,10 @@ class MDF4(MDF_Common):
                         else:
                             if rm and invalidation_size:
                                 _count = split_size // samples_size
-                                yield buffer, offset // samples_size, _count, invalidation_data_
+                                yield Fragment(buffer, offset // samples_size, _count, invalidation_data_)
                             else:
                                 _count = split_size // samples_size
-                                yield buffer, offset // samples_size, _count, None
+                                yield Fragment(buffer, offset // samples_size, _count, None)
                             has_yielded = True
 
                     offset += split_size
@@ -1720,28 +1726,30 @@ class MDF4(MDF_Common):
                     if rm and invalidation_size:
                         __data = data_[:record_count]
                         _count = len(__data) // samples_size
-                        yield __data, offset // samples_size, _count, invalidation_data_[:invalidation_record_count]
+                        yield Fragment(
+                            __data, offset // samples_size, _count, invalidation_data_[:invalidation_record_count]
+                        )
                         invalidation_record_count -= len(invalidation_data_)
                     else:
                         __data = data_[:record_count]
                         _count = len(__data) // samples_size
-                        yield __data, offset // samples_size, _count, None
+                        yield Fragment(__data, offset // samples_size, _count, None)
                     has_yielded = True
                     record_count -= len(data_)
                 else:
                     if rm and invalidation_size:
                         _count = len(data_) // samples_size
-                        yield data_, offset // samples_size, _count, invalidation_data_
+                        yield Fragment(data_, offset // samples_size, _count, invalidation_data_)
                     else:
                         _count = len(data_) // samples_size
-                        yield data_, offset // samples_size, _count, None
+                        yield Fragment(data_, offset // samples_size, _count, None)
                     has_yielded = True
 
             if not has_yielded:
                 if rm and invalidation_size:
-                    yield b"", 0, 0, b""
+                    yield Fragment(b"", 0, 0, b"")
                 else:
-                    yield b"", 0, 0, None
+                    yield Fragment(b"", 0, 0, None)
 
     def _prepare_record(self, group: Group) -> list:
         """compute record
@@ -1773,7 +1781,7 @@ class MDF4(MDF_Common):
                 ch_type = new_ch.channel_type
                 dependency_list = group.channel_dependencies[idx]
 
-                if ch_type not in v4c.VIRTUAL_TYPES and not dependency_list:
+                if ch_type not in v4c.VIRTUAL_TYPES:
                     # adjust size to 1, 2, 4 or 8 bytes
                     size = bit_offset + bit_count
 
@@ -1796,7 +1804,11 @@ class MDF4(MDF_Common):
                     if not new_ch.dtype_fmt:
                         new_ch.dtype_fmt = dtype(get_fmt_v4(data_type, size, ch_type))
 
-                    if bit_offset or (new_ch.dtype_fmt.kind in "ui" and size < 64 and size not in (8, 16, 32)):
+                    if (
+                        bit_offset
+                        or dependency_list
+                        or (new_ch.dtype_fmt.kind in "ui" and size < 64 and size not in (8, 16, 32))
+                    ):
                         new_ch.standard_C_size = False
 
                     record.append(
@@ -2181,6 +2193,7 @@ class MDF4(MDF_Common):
                 if id_string == block_type:
                     size = block_len - 24
                     if size:
+                        size = min(size, total_size)
                         address = address + COMMON_SIZE
 
                         # split the DTBLOCK into chucks of up to 32MB
@@ -2635,7 +2648,12 @@ class MDF4(MDF_Common):
         """
         group = self.groups[group_index]
 
-        data_bytes, offset, _count, invalidation_bytes = fragment
+        data_bytes, offset, _count, invalidation_bytes = (
+            fragment.data,
+            fragment.record_offset,
+            fragment.record_count,
+            fragment.invalidation_data,
+        )
 
         if invalidation_bytes is None:
             invalidation_bytes_nr = group.channel_group.invalidation_bytes_nr
@@ -7006,7 +7024,7 @@ class MDF4(MDF_Common):
 
             count = 0
             for fragment in data:
-                bts = fragment[0]
+                bts = fragment.data
 
                 buffer = get_channel_raw_bytes(bts, record_size, byte_offset, _dtype.itemsize)
 
@@ -7225,7 +7243,12 @@ class MDF4(MDF_Common):
             arrays = []
             types = []
 
-            data_bytes, offset, _count, invalidation_bytes = fragment
+            data_bytes, offset, _count, invalidation_bytes = (
+                fragment.data,
+                fragment.record_offset,
+                fragment.record_count,
+                fragment.invalidation_data,
+            )
 
             cycles = len(data_bytes) // samples_size
 
@@ -7477,10 +7500,9 @@ class MDF4(MDF_Common):
         # channel_type,
         # bit_count,
         dtype,
-        data,
+        fragment,
     ):
-        data_bytes, *rec_key, invalidation_bytes = data
-        if rec_key != DATA_IS_CHANNEL_BYTES:
+        if fragment.is_record:
             buffer = get_channel_raw_bytes(
                 data_bytes,
                 record_size,
@@ -7488,12 +7510,12 @@ class MDF4(MDF_Common):
                 byte_size,
             )
         else:
-            buffer = data_bytes
+            buffer = fragment.data
 
         vals = frombuffer(buffer, dtype=dtype)
 
         if pos_invalidation_bit >= 0:
-            invalidation_bits = self.get_invalidation_bits(gp_nr, pos_invalidation_bit, data)
+            invalidation_bits = self.get_invalidation_bits(gp_nr, pos_invalidation_bit, fragment)
         else:
             invalidation_bits = None
 
@@ -7559,7 +7581,12 @@ class MDF4(MDF_Common):
                 data = (data,)
 
             for fragment in data:
-                data_bytes, offset, _count, invalidation_bytes = fragment
+                data_bytes, offset, _count, invalidation_bytes = (
+                    fragment.data,
+                    fragment.record_offset,
+                    fragment.record_count,
+                    fragment.invalidation_data,
+                )
                 offset = offset // record_size
 
                 vals = arange(len(data_bytes) // record_size, dtype=ch_dtype)
@@ -7643,7 +7670,7 @@ class MDF4(MDF_Common):
 
             if one_piece:
                 fragment = data
-                data_bytes, rec_offset, rec_count, _ = fragment
+                data_bytes, rec_offset, rec_count = fragment.data, fragment.record_offset, fragment.record_count
 
                 info = grp.record[ch_nr]
 
@@ -7652,7 +7679,7 @@ class MDF4(MDF_Common):
                     if ch_nr == 0 and len(grp.channels) == 1 and channel.dtype_fmt.itemsize == record_size:
                         buffer = bytearray(data_bytes)
                     else:
-                        if (rec_offset, rec_count) != (-2, -2):
+                        if fragment.is_record:
                             buffer = get_channel_raw_bytes(
                                 data_bytes,
                                 record_size + channel_group.invalidation_bytes_nr,
@@ -7735,7 +7762,12 @@ class MDF4(MDF_Common):
 
                 if info is None:
                     for count, fragment in enumerate(data, 1):
-                        data_bytes, offset, _count, invalidation_bytes = fragment
+                        data_bytes, offset, _count, invalidation_bytes = (
+                            fragment.data,
+                            fragment.record_offset,
+                            fragment.record_count,
+                            fragment.invalidation_data,
+                        )
 
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
 
@@ -7758,7 +7790,7 @@ class MDF4(MDF_Common):
                     count = 0
 
                     for count, fragment in enumerate(data, 1):
-                        data_bytes = fragment[0]
+                        data_bytes = fragment.data
 
                         if ch_nr == 0 and len(grp.channels) == 1 and channel.dtype_fmt.itemsize == record_size:
                             buffer.append(bytearray(data_bytes))
@@ -8416,14 +8448,14 @@ class MDF4(MDF_Common):
                 if 1 and len(channels) >= 100:
                     # prepare the invalidation bytes for this group and fragment
                     invalidation_bytes = get_channel_raw_bytes(
-                        fragment[0],
+                        fragment.data,
                         grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr,
                         grp.channel_group.samples_byte_nr,
                         grp.channel_group.invalidation_bytes_nr,
                     )
 
                     channels_raw_data = get_channel_raw_bytes_parallel(
-                        fragment[0],
+                        fragment.data,
                         grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr,
                         group_info[group_index],
                         THREAD_COUNT,
@@ -8434,7 +8466,17 @@ class MDF4(MDF_Common):
                             signal = self.get(
                                 group=group_index,
                                 index=channel_index,
-                                data=(raw_data, -2, -2, invalidation_bytes) if raw_data else fragment,
+                                data=(
+                                    Fragment(
+                                        data=raw_data,
+                                        record_offset=fragment.record_offset,
+                                        record_count=fragment.record_count,
+                                        invalidation_data=invalidation_bytes,
+                                        is_record=False,
+                                    )
+                                    if raw_data
+                                    else fragment
+                                ),
                                 raw=True,
                                 ignore_invalidation_bits=True,
                                 samples_only=False,
@@ -8448,7 +8490,17 @@ class MDF4(MDF_Common):
                             signal, invalidation_bits = self.get(
                                 group=group_index,
                                 index=channel_index,
-                                data=(raw_data, -2, -2, invalidation_bytes) if raw_data else fragment,
+                                data=(
+                                    Fragment(
+                                        data=raw_data,
+                                        record_offset=fragment.record_offset,
+                                        record_count=fragment.record_count,
+                                        invalidation_data=invalidation_bytes,
+                                        is_record=False,
+                                    )
+                                    if raw_data
+                                    else fragment
+                                ),
                                 raw=True,
                                 ignore_invalidation_bits=True,
                                 samples_only=True,
@@ -8588,7 +8640,12 @@ class MDF4(MDF_Common):
 
         fragment = data
         if fragment:
-            data_bytes, offset, _count, invalidation_bytes = fragment
+            data_bytes, offset, _count, invalidation_bytes = (
+                fragment.data,
+                fragment.record_offset,
+                fragment.record_count,
+                fragment.invalidation_data,
+            )
             cycles_nr = len(data_bytes) // record_size if record_size else 0
         else:
             offset = 0
@@ -8637,7 +8694,7 @@ class MDF4(MDF_Common):
                         else:
                             data = (fragment,)
 
-                        buffer = bytearray().join([fragment[0] for fragment in data])
+                        buffer = bytearray().join([fragment.data for fragment in data])
 
                         t = frombuffer(buffer, dtype=time_ch.dtype_fmt)
 
@@ -8645,7 +8702,7 @@ class MDF4(MDF_Common):
                     dtype_, byte_size, byte_offset, bit_offset = group.record[time_ch_nr]
 
                     if one_piece:
-                        data_bytes = data[0]
+                        data_bytes = data.data
 
                         buffer = get_channel_raw_bytes(
                             data_bytes,
@@ -8670,7 +8727,7 @@ class MDF4(MDF_Common):
                         buffer = bytearray().join(
                             [
                                 get_channel_raw_bytes(
-                                    fragment[0],
+                                    fragment.data,
                                     record_size,
                                     byte_offset,
                                     byte_size,

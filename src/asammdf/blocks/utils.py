@@ -1514,6 +1514,30 @@ class DataBlockInfo:
         )
 
 
+class Fragment:
+    def __init__(
+        self,
+        data,
+        record_offset,
+        record_count,
+        invalidation_data,
+        is_record=True,
+    ) -> None:
+        self.data = data
+        self.record_count = record_count
+        self.record_offset = record_offset
+        self.invalidation_data = invalidation_data
+        self.is_record = is_record
+
+    def __repr__(self) -> str:
+        return (
+            f"FragmentInfo({len(self.data)} bytes, "
+            f"record_offset={self.record_offset}, "
+            f"record_count={self.record_count}, "
+            f"is_record={self.is_record})"
+        )
+
+
 class InvalidationBlockInfo(DataBlockInfo):
     __slots__ = ("all_valid",)
 

@@ -3405,9 +3405,6 @@ class MDF:
             # prepare the master
             master = np.frombuffer(master_bytes, dtype=master_dtype)
 
-            # fake invalidation_bytes
-            invalidation_bytes = bytes(grp.channel_group.invalidation_bytes_nr * cycles_nr)
-
             for pair, (raw_data, invalidation_bits) in zip(pairs, raw_and_invalidation):
                 ch_index = pair[-1]
                 channel = grp.channels[ch_index]
