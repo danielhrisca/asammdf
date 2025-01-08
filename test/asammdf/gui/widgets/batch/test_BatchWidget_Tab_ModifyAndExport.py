@@ -142,6 +142,17 @@ class TestPushButtonApply(TestBatchWidget):
         # Get mdf file path
         return [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
 
+    @staticmethod
+    def interpolated_timestamps(mdf, channels: set):
+        all_ts = []
+        for group_index, gp in enumerate(mdf.groups):
+            if gp.channel_group.cycles_nr and (channels - {ch.name for ch in gp.channels}) != channels:
+                all_ts.append(mdf.get_master(group_index))
+        if all_ts:
+            return np.unique(np.concatenate(all_ts))
+        else:
+            return np.array([], dtype="f8")
+
     def test_output_format_MDF(self):
         """
         When QThreads are running, event-loops needs to be processed.
@@ -212,13 +223,14 @@ class TestPushButtonApply(TestBatchWidget):
 
                 for channel_name in names:
                     if "." not in channel_name:
+                        names.remove(channel_name)
                         break
 
                 if channel_name:
                     channel = mdf_file.get(channel_name, index)
                     if not channel.samples.size:
                         continue
-                    # Open ASC file
+
                     with ASCReader(asc_path) as asc_file:
                         for row, msg in enumerate(asc_file):
                             if "Error" in channel_name:
@@ -232,19 +244,21 @@ class TestPushButtonApply(TestBatchWidget):
 
                             # Evaluate other fields
                             for name in names:
-                                if name.endswith(".ID"):
-                                    self.assertEqual(msg.arbitration_id, channel[name].astype("u4")[row])
-                                elif name.endswith(".DLC"):
-                                    self.assertEqual(msg.dlc, channel[name].astype("u1")[row])
-                                elif name.endswith(".DataBytes"):
+                                if name.endswith(".DataBytes"):
                                     self.assertEqual(msg.data, channel[name][row][: msg.dlc].tobytes())
-                                elif name.endswith(".Dir"):
-                                    self.assertEqual(msg.is_rx, not bool(channel[name].astype("u1")[row]))
-                                elif name.endswith(".ESI"):
-                                    self.assertEqual(msg.error_state_indicator, bool(channel[name].astype("u1")[row]))
-                                    self.assertTrue(msg.is_fd)
-                                elif name.endswith(".BRS"):
-                                    self.assertEqual(msg.bitrate_switch, bool(channel[name].astype("u1")[row]))
+                                else:
+                                    data = channel[name].astype("<u4").tolist()
+                                    if name.endswith(".ID"):
+                                        self.assertEqual(msg.arbitration_id, data[row])
+                                    elif name.endswith(".DLC"):
+                                        self.assertEqual(msg.dlc, data[row])
+                                    elif name.endswith(".Dir"):
+                                        self.assertEqual(msg.is_rx, not bool(data[row]))
+                                    elif name.endswith(".ESI"):
+                                        self.assertEqual(msg.error_state_indicator, bool(data[row]))
+                                        self.assertTrue(msg.is_fd)
+                                    elif name.endswith(".BRS"):
+                                        self.assertEqual(msg.bitrate_switch, bool(data[row]))
                 else:
                     continue
 
@@ -293,12 +307,10 @@ class TestPushButtonApply(TestBatchWidget):
                 pandas_tab = pd.read_csv(csv_file)
                 for channel in mdf_channels:
                     self.assertIn(channel.name, pandas_tab.columns)
+
+                    np.testing.assert_almost_equal(channel.timestamps, pandas_tab.timestamps.values, decimal=9)
                     if np.issubdtype(channel.samples.dtype, np.number):  # problematic conversion
-                        self.assertEqual(channel.samples.max(), pandas_tab[channel.name].values.max())
-                        self.assertEqual(channel.samples.min(), pandas_tab[channel.name].values.min())
-                    self.assertEqual(channel.samples.size, pandas_tab[channel.name].values.size)
-                    self.assertAlmostEqual(channel.timestamps.max(), pandas_tab.timestamps.max(), places=9)
-                    self.assertAlmostEqual(channel.timestamps.min(), pandas_tab.timestamps.min(), places=9)
+                        np.testing.assert_almost_equal(channel.samples, pandas_tab[channel.name].values, decimal=9)
 
     def test_output_format_CSV_1(self):
         """
@@ -390,11 +402,18 @@ class TestPushButtonApply(TestBatchWidget):
 
         mat_file = scipy.io.loadmat(str(mat_path))
         to_replace = {" ", ".", "[", "]"}
-        for index, channels_list in enumerate(groups.values()):
-            for channel in channels_list:
-                for character in to_replace:
-                    channel = channel.replace(character, "_")
-                self.assertIn(f"DG{index}_{channel}", mat_file)
+
+        with OpenMDF(Path(self.resource, self.default_test_file)) as mdf_file:
+            for index, channels_list in enumerate(groups.values()):
+                for name in channels_list:
+                    signal = mdf_file.get(name)
+                    for character in to_replace:
+                        name = name.replace(character, "_")
+                    name = f"DG{index}_{name}"
+
+                    self.assertIn(name, mat_file)
+                    if np.issubdtype(signal.samples.dtype, np.number):
+                        self.assertTrue(np.array_equal(signal.samples, mat_file[name][0]))
 
     def test_output_format_MAT_1(self):
         """
@@ -418,10 +437,6 @@ class TestPushButtonApply(TestBatchWidget):
         # Mouse click on Apply button
         self.mouse_click_on_btn_with_progress(self.tested_btn)
 
-        # Prepare results
-        size = 0
-        differences = []
-
         # Evaluate
         self.assertTrue(mat_path.exists())
 
@@ -429,29 +444,24 @@ class TestPushButtonApply(TestBatchWidget):
         to_replace = {" ", ".", "[", "]"}
 
         with OpenMDF(Path(self.resource, self.default_test_file)) as mdf_file:
+            # get common timestamps
+            common_timestamps = self.interpolated_timestamps(mdf_file, set(self.selected_channels))
+
             for channel in self.selected_channels:
-                mdf_signal = mdf_file.get(channel, raw=True)
+                mdf_signal = mdf_file.get(channel, raw=True).interp(common_timestamps)
 
                 if mdf_signal.display_names:
                     display_name, _ = zip(*mdf_signal.display_names.items())
                     channel = display_name[0]
                 for character in to_replace:
                     channel = channel.replace(character, "_")
+
                 self.assertIn(channel, mat_file.keys())
-                self.assertEqual(mdf_signal.samples.max(), mat_file[channel].max())
-                self.assertEqual(mdf_signal.samples.min(), mat_file[channel].min())
+                self.assertTrue(np.array_equal(mdf_signal.samples, mat_file[channel][0]))  # hmm, something went wrong
 
-                # for feature timestamps evaluation
-                ceva = mdf_signal.timestamps.max() - mdf_signal.timestamps.min()
-                if ceva not in differences:
-                    differences.append(ceva)
-                    size += mdf_signal.timestamps.size
-
-            sc = mdf_file.select(self.selected_channels)
-            max_timestamps = max(c.timestamps.max() for c in sc) - min(c.timestamps.min() for c in sc)
-            self.assertEqual(size, mat_file["timestamps"].size)
+            self.assertEqual(common_timestamps.size, mat_file["timestamps"].size)
             self.assertEqual(mat_file["timestamps"].min(), 0)
-            self.assertEqual(mat_file["timestamps"].max(), max_timestamps)
+            self.assertEqual(mat_file["timestamps"].max(), mdf_signal.timestamps.max())
 
     def test_output_format_HDF5_0(self):
         """
@@ -557,70 +567,6 @@ class TestPushButtonApply(TestBatchWidget):
 
             # Evaluate size of timestamps
             self.assertEqual(hdf5_channel.size, size)
-
-    # def test_output_format_Parquet_0(self):
-    #     """
-    #     When QThreads are running, event-loops needs to be processed.
-    #     Events:
-    #         - Ensure that output format is Parquet
-    #         - Press PushButton Apply.
-    #
-    #     Evaluate:
-    #         - File was created.
-    #         - Ensure that output file has only selected channels
-    #     """
-    #     # Setup
-    #     name = "Parquet"
-    #     self.widget.output_format.setCurrentText(name)
-    #     self.generic_setup(check=False)
-    #
-    #     # Expected results
-    #     parquet_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".parquet"))
-    #
-    #     # Mouse click on Apply button
-    #     QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-    #     # Wait for thread to finish
-    #     while self.widget._progress:
-    #         self.processEvents(0.1)
-    #     self.processEvents(0.1)
-    #
-    #     # Evaluate
-    #     self.assertTrue(parquet_path.exists())
-    #     pandas_tab = pd.read_parquet(parquet_path)
-    #     from_parquet = set(pandas_tab.columns)
-    #     self.assertSetEqual(set(self.selected_channels), from_parquet)
-    #
-    # def test_output_format_Parquet_1(self):
-    #     """
-    #     When QThreads are running, event-loops needs to be processed.
-    #     Events:
-    #         - Ensure that output format is Parquet
-    #         - Press PushButton Apply.
-    #
-    #     Evaluate:
-    #         - File was created.
-    #         - Ensure that output file has only selected channels
-    #     """
-    #     # Setup
-    #     name = "Parquet"
-    #     self.widget.output_format.setCurrentText(name)
-    #     self.generic_setup()
-    #
-    #     # Expected results
-    #     parquet_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".parquet"))
-    #
-    #     # Mouse click on Apply button
-    #     QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-    #     # Wait for thread to finish
-    #     while self.widget._progress:
-    #         self.processEvents(0.1)
-    #     self.processEvents(0.1)
-    #
-    #     # Evaluate
-    #     self.assertTrue(parquet_path.exists())
-    #     pandas_tab = pd.read_parquet(parquet_path)
-    #     from_parquet = set(pandas_tab.columns)
-    #     self.assertSetEqual(set(self.selected_channels), from_parquet)
 
     def test_cut_checkbox_0(self):
         """
@@ -819,3 +765,67 @@ class TestPushButtonApply(TestBatchWidget):
                 self.assertEqual(size, channel.timestamps.size)
                 for i in range(size):
                     self.assertAlmostEqual(channel.timestamps[i], step * i, places=12)
+
+    # def test_output_format_Parquet_0(self):
+    #     """
+    #     When QThreads are running, event-loops needs to be processed.
+    #     Events:
+    #         - Ensure that output format is Parquet
+    #         - Press PushButton Apply.
+    #
+    #     Evaluate:
+    #         - File was created.
+    #         - Ensure that output file has only selected channels
+    #     """
+    #     # Setup
+    #     name = "Parquet"
+    #     self.widget.output_format.setCurrentText(name)
+    #     self.generic_setup(check=False)
+    #
+    #     # Expected results
+    #     parquet_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".parquet"))
+    #
+    #     # Mouse click on Apply button
+    #     QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
+    #     # Wait for thread to finish
+    #     while self.widget._progress:
+    #         self.processEvents(0.1)
+    #     self.processEvents(0.1)
+    #
+    #     # Evaluate
+    #     self.assertTrue(parquet_path.exists())
+    #     pandas_tab = pd.read_parquet(parquet_path)
+    #     from_parquet = set(pandas_tab.columns)
+    #     self.assertSetEqual(set(self.selected_channels), from_parquet)
+    #
+    # def test_output_format_Parquet_1(self):
+    #     """
+    #     When QThreads are running, event-loops needs to be processed.
+    #     Events:
+    #         - Ensure that output format is Parquet
+    #         - Press PushButton Apply.
+    #
+    #     Evaluate:
+    #         - File was created.
+    #         - Ensure that output file has only selected channels
+    #     """
+    #     # Setup
+    #     name = "Parquet"
+    #     self.widget.output_format.setCurrentText(name)
+    #     self.generic_setup()
+    #
+    #     # Expected results
+    #     parquet_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".parquet"))
+    #
+    #     # Mouse click on Apply button
+    #     QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
+    #     # Wait for thread to finish
+    #     while self.widget._progress:
+    #         self.processEvents(0.1)
+    #     self.processEvents(0.1)
+    #
+    #     # Evaluate
+    #     self.assertTrue(parquet_path.exists())
+    #     pandas_tab = pd.read_parquet(parquet_path)
+    #     from_parquet = set(pandas_tab.columns)
+    #     self.assertSetEqual(set(self.selected_channels), from_parquet)

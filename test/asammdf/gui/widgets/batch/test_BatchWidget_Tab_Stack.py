@@ -2,7 +2,7 @@
 from pathlib import Path
 from unittest import mock
 
-from PySide6 import QtCore, QtTest
+import numpy as np
 
 from test.asammdf.gui.test_base import OpenMDF
 from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
@@ -45,9 +45,7 @@ class TestPushButtons(TestBatchWidget):
         # Event
         with mock.patch("asammdf.gui.widgets.batch.QtWidgets.QFileDialog.getSaveFileName") as mo_getSaveFileName:
             mo_getSaveFileName.return_value = str(self.saved_file), ""
-            QtTest.QTest.mouseClick(self.widget.stack_btn, QtCore.Qt.MouseButton.LeftButton)
-        # Let progress bar finish
-        self.processEvents(1)
+            self.mouse_click_on_btn_with_progress(self.widget.stack_btn)
 
         # Evaluate
         self.assertTrue(self.saved_file.exists())
@@ -60,8 +58,8 @@ class TestPushButtons(TestBatchWidget):
         ):
             for channel in mdf_test_file_1.iter_channels():
                 new_file_channel = new_mdf_file.get(channel.name)
-                self.assertListEqual(list(channel.samples), list(new_file_channel.samples))
+                self.assertTrue(np.array_equal(channel.samples, new_file_channel.samples))
 
             for channel in mdf_test_file_0.iter_channels():
                 new_file_channel = new_mdf_file.get(channel.name)
-                self.assertListEqual(list(channel.samples), list(new_file_channel.samples))
+                self.assertTrue(np.array_equal(channel.samples, new_file_channel.samples))
