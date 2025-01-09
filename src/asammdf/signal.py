@@ -8,11 +8,6 @@ from textwrap import fill
 from typing import Any
 
 import numpy as np
-
-try:
-    encode = np.strings.encode
-except:
-    encode = np.char.encode
 from numpy.typing import ArrayLike, DTypeLike, NDArray
 
 from .blocks import v2_v3_blocks as v3b
@@ -29,6 +24,11 @@ from .types import (
     SyncType,
 )
 from .version import __version__
+
+try:
+    encode = np.strings.encode
+except:
+    encode = np.char.encode
 
 logger = logging.getLogger("asammdf")
 

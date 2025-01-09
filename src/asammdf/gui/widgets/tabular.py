@@ -3,11 +3,6 @@ import re
 
 import dateutil.tz
 import numpy as np
-
-try:
-    npchar = np.strings
-except:
-    npchar = np.char
 import pandas as pd
 from PySide6 import QtCore, QtWidgets
 
@@ -15,6 +10,11 @@ from ...blocks.utils import (
     csv_bytearray2hex,
 )
 from .tabular_base import TabularBase
+
+try:
+    npchar = np.strings
+except:
+    npchar = np.char
 
 logger = logging.getLogger("asammdf.gui")
 LOCAL_TIMEZONE = dateutil.tz.tzlocal()
