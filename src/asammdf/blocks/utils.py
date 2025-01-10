@@ -539,7 +539,7 @@ def get_fmt_v4(data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_V
 
     """
     if data_type in v4c.NON_SCALAR_TYPES:
-        size = size // 8
+        size = size // 8 or 1
 
         if data_type in (
             v4c.DATA_TYPE_BYTEARRAY,

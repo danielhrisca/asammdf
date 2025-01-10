@@ -2052,7 +2052,13 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
     t3 += end - start;
     if (thread_info->stop) break;
 
-    //printf("Thr %d processing\n", thread_info->idx);
+    /* printf("Thr %d processing\n", thread_info->idx);
+    printf("Block type=%d\n", thread_info->block_info->block_type);
+    printf("Block limit=%d\n", thread_info->block_info->block_limit);
+    printf("Block original_size%d\n", thread_info->block_info->original_size);
+    printf("Block compressed_size=%d\n", thread_info->block_info->compressed_size);
+    printf("Block param=%d\n", thread_info->block_info->param);
+    printf("Block record_offset=%d\n", thread_info->block_info->record_offset); */
 
 #else
     pthread_mutex_lock(&thread_info->block_ready_lock);
@@ -2065,9 +2071,6 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
     param = thread_info->block_info->param;
     block_type = thread_info->block_info->block_type;
     record_offset = thread_info->block_info->record_offset;
-
-    cols = param;
-    lines = original_size / cols;
 
     count = original_size / record_size;
 
@@ -2104,6 +2107,9 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
       // reverse transposition
       if (block_type == 2) {
+      	cols = param;
+      	lines = original_size / cols;
+
         if (current_out_size < original_size) {
           //printf("\tThr %d new trtrtrptr\n", thread_info->idx);
           if (pUncompTr) free(pUncompTr);
@@ -2601,8 +2607,6 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       free(thread_info);
     }
 
-    //fclose(fptr);
-
     PyObject *inv, *inv_array, *origin;
 
     out = PyTuple_New(signal_count);
@@ -2621,34 +2625,34 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     for (int i=0; i< invalidation_bytes * 8; i++) cache[i] = NULL;
 
     for (int i=0; i<signal_count; i++) {
-      printf("signal %d\n", i);
+      //printf("signal %d\n", i);
       ref = PyTuple_New(2);
       if (!ref) return NULL;
       PyTuple_SetItem(ref, 0, signal_info[i].obj);
       if (invalidation_data) {
-        if (cache[signal_info[i].invalidation_bit_position < 0)
-                                                     PyTuple_SetItem(ref, 1, Py_None);
-                                                     else {
+        if (cache[signal_info[i].invalidation_bit_position] < 0)
+          PyTuple_SetItem(ref, 1, Py_None);
+        else {
 
-                                                 if (!cache[signal_info[i].invalidation_bit_position]) {
-                                                 inv = get_invalidation_bits_array_C(invalidation_data, cycles, signal_info[i].invalidation_bit_position, invalidation_bytes);
-                                                   if (!inv) return NULL;
-          origin = PyTuple_New(2);
-          if (!origin) return NULL;
-          PyTuple_SetItem(origin, 0, Py_NewRef(group_index));
-          PyTuple_SetItem(origin, 1, PyLong_FromLong(signal_info[i].invalidation_bit_position));
-          inv_array = PyObject_CallFunction(
-                        InvalidationArray,
-                        "OO",
-                        inv, origin);
-          if (!inv_array) return NULL;
-          Py_XDECREF(inv);
-          cache[signal_info[i].invalidation_bit_position] = inv_array;
-          Py_XDECREF(origin);
+          if (!cache[signal_info[i].invalidation_bit_position]) {
+            inv = get_invalidation_bits_array_C(invalidation_data, cycles, signal_info[i].invalidation_bit_position, invalidation_bytes);
+            if (!inv) return NULL;
+            origin = PyTuple_New(2);
+            if (!origin) return NULL;
+            PyTuple_SetItem(origin, 0, Py_NewRef(group_index));
+            PyTuple_SetItem(origin, 1, PyLong_FromLong(signal_info[i].invalidation_bit_position));
+            inv_array = PyObject_CallFunction(
+                          InvalidationArray,
+                          "OO",
+                          inv, origin);
+            if (!inv_array) return NULL;
+            Py_XDECREF(inv);
+            cache[signal_info[i].invalidation_bit_position] = inv_array;
+            Py_XDECREF(origin);
+          }
+
+          PyTuple_SetItem(ref, 1, Py_NewRef(cache[signal_info[i].invalidation_bit_position]));
         }
-
-        PyTuple_SetItem(ref, 1, Py_NewRef(cache[signal_info[i].invalidation_bit_position]));
-            }
       }
       else {
         PyTuple_SetItem(ref, 1, Py_None);
