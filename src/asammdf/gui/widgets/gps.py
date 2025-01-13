@@ -3,15 +3,14 @@ from traceback import format_exc
 import numpy as np
 from PySide6 import QtCore, QtWidgets
 
+from ..ui.gps import Ui_GPSDisplay
+
 try:
     from pyqtlet2 import L, MapWidget
     from PySide6.QtWebEngineCore import QWebEngineSettings
 
 except:
     print(format_exc())
-
-
-from ..ui.gps import Ui_GPSDisplay
 
 
 class GPS(Ui_GPSDisplay, QtWidgets.QWidget):

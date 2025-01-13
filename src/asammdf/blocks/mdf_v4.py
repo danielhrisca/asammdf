@@ -25,15 +25,6 @@ from traceback import format_exc
 from typing import Any, overload
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from typing_extensions import Literal
-
-try:
-    from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
-
-    CRYPTOGRAPHY_AVAILABLE = True
-except:
-    CRYPTOGRAPHY_AVAILABLE = False
-
 import canmatrix
 from canmatrix.canmatrix import CanMatrix
 from lz4.frame import compress as lz_compress
@@ -65,16 +56,9 @@ from numpy import (
     where,
     zeros,
 )
-
-try:
-    decode = np.strings.decode
-    encode = np.strings.encode
-except:
-    decode = np.char.decode
-    encode = np.char.encode
-
 from numpy.typing import NDArray
 from pandas import DataFrame
+from typing_extensions import Literal
 
 from .. import tool
 from ..signal import InvalidationArray, Signal
@@ -90,6 +74,13 @@ from ..types import (
 from . import bus_logging_utils
 from . import v4_constants as v4c
 from .conversion_utils import conversion_transfer
+from .cutils import (
+    data_block_from_arrays,
+    extract,
+    get_channel_raw_bytes,
+    get_vlsd_max_sample_size,
+    sort_data_block,
+)
 from .mdf_common import MDF_Common
 from .options import get_global_option
 from .source_utils import Source
@@ -145,10 +136,23 @@ from .v4_blocks import (
 )
 
 try:
+    from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
+
+    CRYPTOGRAPHY_AVAILABLE = True
+except:
+    CRYPTOGRAPHY_AVAILABLE = False
+
+try:
     from isal.isal_zlib import decompress
 except ImportError:
     from zlib import decompress
 
+try:
+    decode = np.strings.decode
+    encode = np.strings.encode
+except:
+    decode = np.char.decode
+    encode = np.char.encode
 
 MASTER_CHANNELS = (v4c.CHANNEL_TYPE_MASTER, v4c.CHANNEL_TYPE_VIRTUAL_MASTER)
 COMMON_SIZE = v4c.COMMON_SIZE
@@ -169,15 +173,6 @@ SORT_STEPS = 102
 logger = logging.getLogger("asammdf")
 
 __all__ = ["MDF4"]
-
-
-from .cutils import (
-    data_block_from_arrays,
-    extract,
-    get_channel_raw_bytes,
-    get_vlsd_max_sample_size,
-    sort_data_block,
-)
 
 
 class MDF4(MDF_Common):

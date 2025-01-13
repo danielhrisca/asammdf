@@ -17,10 +17,6 @@ from pyqtgraph import Qt
 import pyqtgraph.functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
-PLOT_BUFFER_SIZE = 4000
-LOCAL_TIMEZONE = dateutil.tz.tzlocal()
-
-
 from ... import tool as Tool
 from ...blocks.conversion_utils import from_dict, to_dict
 from ...blocks.cutils import get_idx_with_edges, positions
@@ -28,6 +24,9 @@ from ...blocks.utils import target_byte_order
 from ..dialogs.messagebox import MessageBox
 from ..utils import FONT_SIZE, value_as_str
 from .viewbox import ViewBoxWithCursor
+
+PLOT_BUFFER_SIZE = 4000
+LOCAL_TIMEZONE = dateutil.tz.tzlocal()
 
 
 @lru_cache(maxsize=1024)

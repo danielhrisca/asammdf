@@ -2,17 +2,15 @@ from datetime import datetime, timedelta, timezone
 from math import ceil
 from traceback import format_exc
 
-from PySide6 import QtCore, QtGui, QtWidgets
-
-LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
-
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
 import pyqtgraph.functions as fn
 from pyqtgraph.graphicsItems.ButtonItem import ButtonItem
 from pyqtgraph.Point import Point
+from PySide6 import QtCore, QtGui, QtWidgets
 
+LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 BUTTON_SIZE = 16
 
 

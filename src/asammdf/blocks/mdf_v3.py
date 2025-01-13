@@ -39,14 +39,6 @@ from numpy import (
     unique,
     zeros,
 )
-
-try:
-    decode = np.strings.decode
-    encode = np.strings.encode
-except:
-    decode = np.char.decode
-    encode = np.char.encode
-
 from numpy.typing import NDArray
 from pandas import DataFrame
 from typing_extensions import Literal, TypedDict
@@ -90,6 +82,13 @@ from .v2_v3_blocks import (
     TextBlock,
     TriggerBlock,
 )
+
+try:
+    decode = np.strings.decode
+    encode = np.strings.encode
+except:
+    decode = np.char.decode
+    encode = np.char.encode
 
 logger = logging.getLogger("asammdf")
 
