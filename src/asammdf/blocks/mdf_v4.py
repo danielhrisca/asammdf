@@ -9507,7 +9507,8 @@ class MDF4(MDF_Common):
                     data = self._load_data(gp)
 
                     if chunks == 1:
-                        data_, inval_ = data.data, data.invalidation_data
+                        fragment = next(data)
+                        data_, inval_ = fragment.data, fragment.invalidation_data
                         if self.version >= "4.20" and gp.uses_ld:
                             if compression:
                                 if gp.channel_group.samples_byte_nr > 1:
@@ -9610,7 +9611,8 @@ class MDF4(MDF_Common):
                             dv_addr = []
                             di_addr = []
                             block_size = 0
-                            for i, (data_, _1, _2, inval_) in enumerate(data):
+                            for i, fragment in enumerate(data):
+                                data_, inval_ = fragment.data, fragment.invalidation_data
                                 if i == 0:
                                     block_size = len(data_)
                                 if compression:
@@ -9698,9 +9700,8 @@ class MDF4(MDF_Common):
                             }
                             dl_block = DataList(**kwargs)
 
-                            for i, data__ in enumerate(data):
-
-                                data_ = data__[0]
+                            for i, fragment in enumerate(data):
+                                data_ = fragment.data
 
                                 if compression and self.version >= "4.10":
                                     if compression == 1:
