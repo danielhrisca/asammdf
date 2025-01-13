@@ -18,6 +18,7 @@
 #else
 #include <pthread.h>
 #include <unistd.h>
+#include <sys/mman.h>
 #define Sleep(x) usleep((int)(1000 * (x)))
 #define FSEEK64(file, address, whence) fseeko((file), (address), (whence))
 #define FTELL64(file) ftello(file)
@@ -2107,8 +2108,8 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
       // reverse transposition
       if (block_type == 2) {
-      	cols = param;
-      	lines = original_size / cols;
+        cols = param;
+        lines = original_size / cols;
 
         if (current_out_size < original_size) {
           //printf("\tThr %d new trtrtrptr\n", thread_info->idx);
@@ -2218,6 +2219,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     InvalidationArray = PyObject_GetAttrString(ref, "InvalidationArray");
     Py_XDECREF(ref);
     //fptr = fopen(file_name,"rb");
+
+#if defined(_WIN32)
     TCHAR *lpFileName = TEXT(file_name);
     HANDLE hFile;
     HANDLE hMap;
@@ -2274,7 +2277,6 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       return 1;
     }
 
-#if defined(_WIN32)
     HANDLE  *hThreads, *block_ready, *bytes_ready;
     DWORD   *dwThreadIdArray;
     hThreads = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
@@ -2282,6 +2284,14 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     block_ready = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
     bytes_ready = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
 #else
+    int fdin = open(file_name, O_RDONLY);
+    struct stat statbuf;
+    uint8_t * lpBasePtr;
+
+    fstat (fdin, &statbuf);
+
+    lpBasePtr = mmap (0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0));
+
     pthread_t *dwThreadIdArray = (pthread_t  *) malloc(sizeof(pthread_t) * thread_count);
 
     pthread_mutex_t *bytes_ready_locks, *block_ready_locks;  // Declare mutex
@@ -2582,11 +2592,11 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         if (position == thread_count) position = 0;
       }
 
+#if defined(_WIN32)
       UnmapViewOfFile(lpBasePtr);
       CloseHandle(hMap);
       CloseHandle(hFile);
 
-#if defined(_WIN32)
       WaitForMultipleObjects(thread_count, hThreads, true, INFINITE);
       for (int i=0; i< thread_count; i++) {
         CloseHandle(hThreads[i]);
@@ -2594,6 +2604,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         CloseHandle(bytes_ready[i]);
       }
 #else
+      munmap(lpBasePtr, statbuf.st_size);
+      close(fdin);
       for (int i=0; i< thread_count; i++) {
         pthread_join(dwThreadIdArray[i], NULL);
       }

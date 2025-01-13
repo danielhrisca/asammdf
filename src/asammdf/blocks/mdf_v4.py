@@ -832,7 +832,6 @@ class MDF4(MDF_Common):
         ch_cntr: int,
         parent_channel: Channel | None = None,
         mapped: bool = False,
-
     ) -> tuple[int, list[tuple[int, int]] | None, dtype | None]:
         filter_channels = self.use_load_filter
         use_display_names = self._use_display_names
@@ -1089,9 +1088,6 @@ class MDF4(MDF_Common):
                                 mapped=mapped,
                             )
 
-                            if channel.name == 'QUGIAUGCKRWYPJEVRSOGPNGXXMAGIUZBFPJTWGUJRVQEOKWBCQIFZZCZIXHMVZTVRZEGKWWXJJQJZFUZOCVYHSA':
-                                x = 1
-
                             channel.dtype_fmt = ret_composition_dtype
 
                             ca_cnt = len(dependencies[index])
@@ -1216,14 +1212,14 @@ class MDF4(MDF_Common):
             ch_addr = channel.next_ch_addr
 
         if parent_channel:
-            composition_channels.sort(key = lambda x: x.byte_offset)
+            composition_channels.sort(key=lambda x: x.byte_offset)
             padding = 0
             dtype_fields = []
             offset = parent_channel.byte_offset
 
             for comp_channel in composition_channels:
                 if (delta := (comp_channel.byte_offset - offset)) > 0:
-                    dtype_fields.append((f'__padding_{padding}__', f'V{delta}'))
+                    dtype_fields.append((f"__padding_{padding}__", f"V{delta}"))
                     padding += 1
                 dtype_fields.append((unique_names.get_unique_name(comp_channel.name), comp_channel.dtype_fmt))
                 offset = comp_channel.byte_offset + comp_channel.dtype_fmt.itemsize
