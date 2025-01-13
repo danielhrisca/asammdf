@@ -9507,7 +9507,7 @@ class MDF4(MDF_Common):
                     data = self._load_data(gp)
 
                     if chunks == 1:
-                        data_, _1, _2, inval_ = next(data)
+                        data_, inval_ = data.data, data.invalidation_data
                         if self.version >= "4.20" and gp.uses_ld:
                             if compression:
                                 if gp.channel_group.samples_byte_nr > 1:
