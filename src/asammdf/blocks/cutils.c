@@ -2292,7 +2292,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 
     fstat (fdin, &statbuf);
 
-    lpBasePtr = mmap (0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0));
+    lpBasePtr = mmap (0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0);
 
     pthread_t *dwThreadIdArray = (pthread_t  *) malloc(sizeof(pthread_t) * thread_count);
 
