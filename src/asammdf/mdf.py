@@ -3334,7 +3334,12 @@ class MDF:
 
             return True
 
-        if record_offset or record_count is not None or (self.version < "4.00" and self._mapped):
+        if (
+            not self._mapped_file
+            or record_offset
+            or record_count is not None
+            or (self.version < "4.00" and self._mapped)
+        ):
             return self._select_fallback(
                 channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
             )
