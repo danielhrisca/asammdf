@@ -2651,7 +2651,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
             if (!inv) return NULL;
             origin = PyTuple_New(2);
             if (!origin) return NULL;
-            PyTuple_SetItem(origin, 0, Py_NewRef(group_index));
+            Py_INCREF(group_index);
+            PyTuple_SetItem(origin, 0, group_index);
             PyTuple_SetItem(origin, 1, PyLong_FromLong(signal_info[i].invalidation_bit_position));
             inv_array = PyObject_CallFunction(
                           InvalidationArray,
@@ -2662,8 +2663,9 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
             cache[signal_info[i].invalidation_bit_position] = inv_array;
             Py_XDECREF(origin);
           }
-
-          PyTuple_SetItem(ref, 1, Py_NewRef(cache[signal_info[i].invalidation_bit_position]));
+					
+					Py_INCREF(cache[signal_info[i].invalidation_bit_position]);
+          PyTuple_SetItem(ref, 1, cache[signal_info[i].invalidation_bit_position]);
         }
       }
       else {
