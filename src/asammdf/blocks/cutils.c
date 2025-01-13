@@ -18,7 +18,9 @@
 #else
 #include <pthread.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <sys/mman.h>
+#include <fcntl.h>
 #define Sleep(x) usleep((int)(1000 * (x)))
 #define FSEEK64(file, address, whence) fseeko((file), (address), (whence))
 #define FTELL64(file) ftello(file)
