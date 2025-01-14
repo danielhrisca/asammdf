@@ -3339,6 +3339,7 @@ class MDF:
             or not self._mapped_file
             or record_offset
             or record_count is not None
+            or True  # disable for now
         ):
             return self._select_fallback(
                 channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
