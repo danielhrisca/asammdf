@@ -6,7 +6,9 @@ from PySide6 import QtCore, QtTest, QtWidgets
 
 from asammdf.gui.dialogs.channel_group_info import ChannelGroupInfoDialog
 from asammdf.gui.dialogs.channel_info import ChannelInfoDialog
+from asammdf.gui.widgets.numeric import Numeric
 from asammdf.gui.widgets.plot import Plot
+from asammdf.gui.widgets.tabular import Tabular
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 # Note: If it's possible and make sense, use self.subTests
@@ -41,7 +43,7 @@ class TestTabChannels(TestFileWidget):
             data = []
             for sub_win in iterator:
                 w = sub_win.widget()
-                if w.__class__.__name__ == "Plot":
+                if isinstance(w, Plot):
                     data.append(
                         {
                             "channels": [
@@ -51,9 +53,9 @@ class TestTabChannels(TestFileWidget):
                             "plot_bg_color": w.plot.backgroundBrush().color().name(),
                         }
                     )
-                elif w.__class__.__name__ == "Numeric":
+                elif isinstance(w, Numeric):
                     data.append([sig.name for sig in w.channels.dataView.backend.signals])
-                elif w.__class__.__name__ == "Tabular":
+                elif isinstance(w, Tabular):
                     data.append([name for name in w.tree.pgdf.df.columns])
                 return data
 
