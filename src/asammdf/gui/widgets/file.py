@@ -1051,7 +1051,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         config["windows"] = windows
         config["active_window"] = current_window.windowTitle() if current_window else ""
         config["functions"] = self.functions
-        config["global_variables"] = self.global_variables
+        config["global_variables"] = "\n".join([line for line in self.global_variables.splitlines() if line])
 
         return config
 
@@ -1268,6 +1268,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.functions.update(info.get("functions", {}))
             self.global_variables = f'{self.global_variables}\n{info.get("global_variables", "")}'
+            self.global_variables = '\n'.join([line for line in self.global_variables.splitlines() if line])
 
         if channels:
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
