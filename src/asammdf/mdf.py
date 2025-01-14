@@ -203,6 +203,11 @@ class MDF:
 
         .. versionadded:: 7.0.0
 
+    process_bus_logging (\*\*kwargs) : bool
+        controls if the bus processing of MDF v4 files is done when the file is loaded. Default True
+
+        .. versionadded:: 8.0.0
+
     Examples
     --------
     >>> mdf = MDF(version='3.30') # new MDF object with version 3.30
@@ -2245,6 +2250,11 @@ class MDF:
 
             use_display_names (False) : bool
 
+            process_bus_logging (True) : bool
+                controls if the bus processing of MDF v4 files is done when the file is loaded. Default True
+
+                .. versionadded:: 8.1.0
+
         Examples
         --------
         >>> conc = MDF.concatenate(
@@ -2646,7 +2656,8 @@ class MDF:
             first_mdf.close()
 
         try:
-            merged._process_bus_logging()
+            if kwargs.get("process_bus_logging", True):
+                merged._process_bus_logging()
         except:
             pass
 
@@ -2679,6 +2690,11 @@ class MDF:
         kwargs :
 
             use_display_names (False) : bool
+
+            process_bus_logging (True) : bool
+                controls if the bus processing of MDF v4 files is done when the file is loaded. Default True
+
+                .. versionadded:: 8.1.0
 
         Examples
         --------
@@ -2834,7 +2850,8 @@ class MDF:
                 return TERMINATED
 
         try:
-            stacked._process_bus_logging()
+            if kwargs.get("process_bus_logging", True):
+                stacked._process_bus_logging()
         except:
             pass
 
