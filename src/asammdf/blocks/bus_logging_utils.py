@@ -441,8 +441,24 @@ def get_conversion(signal: Signal) -> v4b.ChannelConversion | None:
 
     a, b = float(signal.factor), float(signal.offset)
 
-    if signal.values:
-        conv = {}
+    conv = {}
+
+    scale_ranges = getattr(signal, "scale_ranges", None)
+    if scale_ranges:
+        for i, scale_info in enumerate(scale_ranges):
+            conv[f"upper_{i}"] = scale_info["max"]
+            conv[f"lower_{i}"] = scale_info["min"]
+            conv[f"text_{i}"] = from_dict({"a": scale_info["factor"], "b": scale_info["offset"]})
+
+        for i, (val, text) in enumerate(signal.values.items(), len(scale_ranges)):
+            conv[f"upper_{i}"] = val
+            conv[f"lower_{i}"] = val
+            conv[f"text_{i}"] = text
+
+        conv["default"] = from_dict({"a": a, "b": b})
+
+    elif signal.values:
+
         for i, (val, text) in enumerate(signal.values.items()):
             conv[f"upper_{i}"] = val
             conv[f"lower_{i}"] = val
