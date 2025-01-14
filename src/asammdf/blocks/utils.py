@@ -1518,9 +1518,9 @@ class Fragment:
     def __init__(
         self,
         data,
-        record_offset,
-        record_count,
-        invalidation_data,
+        record_offset=-1,
+        record_count=-1,
+        invalidation_data=None,
         is_record=True,
     ) -> None:
         self.data = data
