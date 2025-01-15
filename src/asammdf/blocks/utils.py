@@ -23,28 +23,25 @@ from traceback import format_exc
 from typing import Any, overload
 import xml.etree.ElementTree as ET
 
+from canmatrix.canmatrix import CanMatrix, matrix_class
+import canmatrix.formats
 import lxml
+import numpy as np
+from numpy import arange, bool_, dtype, interp, where
+from numpy.typing import NDArray
+from pandas import Series
 from typing_extensions import Literal, TypedDict
 
-TERMINATED = object()
-NONE = object()
-COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
-C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
-target_byte_order = "<=" if sys.byteorder == "little" else ">="
-
-COLORS = [
-    "#1f77b4",
-    "#ff7f0e",
-    "#2ca02c",
-    "#d62728",
-    "#9467bd",
-    "#8c564b",
-    "#e377c2",
-    "#7f7f7f",
-    "#bcbd22",
-    "#17becf",
-]
-COLORS_COUNT = len(COLORS)
+from ..types import (
+    ChannelType,
+    DataGroupType,
+    MDF_v2_v3_v4,
+    RasterType,
+    ReadableBufferType,
+    StrPathType,
+)
+from . import v2_v3_constants as v3c
+from . import v4_constants as v4c
 
 try:
     from pyqtgraph import functions as fn
@@ -86,23 +83,25 @@ except:
             return {"encoding": encoding}
 
 
-from canmatrix.canmatrix import CanMatrix, matrix_class
-import canmatrix.formats
-import numpy as np
-from numpy import arange, bool_, dtype, interp, where
-from numpy.typing import NDArray
-from pandas import Series
+TERMINATED = object()
+NONE = object()
+COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
+C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
+target_byte_order = "<=" if sys.byteorder == "little" else ">="
 
-from ..types import (
-    ChannelType,
-    DataGroupType,
-    MDF_v2_v3_v4,
-    RasterType,
-    ReadableBufferType,
-    StrPathType,
-)
-from . import v2_v3_constants as v3c
-from . import v4_constants as v4c
+COLORS = [
+    "#1f77b4",
+    "#ff7f0e",
+    "#2ca02c",
+    "#d62728",
+    "#9467bd",
+    "#8c564b",
+    "#e377c2",
+    "#7f7f7f",
+    "#bcbd22",
+    "#17becf",
+]
+COLORS_COUNT = len(COLORS)
 
 UINT8_u = Struct("<B").unpack
 UINT16_u = Struct("<H").unpack

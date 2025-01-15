@@ -32,16 +32,9 @@ import logging
 from traceback import format_exc
 
 import numpy as np
-
-try:
-    npchar = np.strings
-except:
-    npchar = np.char
 import pandas as pd
 import pyqtgraph.functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
-
-Qt = QtCore.Qt
 
 import asammdf.mdf as mdf_module
 
@@ -61,6 +54,13 @@ from ..utils import (
     value_as_str,
 )
 from .tabular_filter import TabularFilter
+
+try:
+    npchar = np.strings
+except:
+    npchar = np.char
+
+Qt = QtCore.Qt
 
 logger = logging.getLogger("asammdf.gui")
 LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo

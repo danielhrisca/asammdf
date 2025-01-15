@@ -4,20 +4,22 @@ _Please run the following snippet and write the output here_
 
 ```python
 import platform
-import sys
 from pprint import pprint
+import sys
 
 pprint("python=" + sys.version)
 pprint("os=" + platform.platform())
 
 try:
     import numpy
+
     pprint("numpy=" + numpy.__version__)
 except ImportError:
     pass
 
 try:
     import asammdf
+
     pprint("asammdf=" + asammdf.__version__)
 except ImportError:
     pass

@@ -15,13 +15,6 @@ import xml.etree.ElementTree as ET
 
 import dateutil
 from numexpr import evaluate
-
-try:
-    from sympy import lambdify, symbols
-
-except:
-    lambdify, symbols = None, None
-
 import numpy as np
 
 from .. import tool
@@ -33,6 +26,12 @@ from .utils import (
     UINT16_u,
     UINT16_uf,
 )
+
+try:
+    from sympy import lambdify, symbols
+
+except:
+    lambdify, symbols = None, None
 
 SEEK_START = v23c.SEEK_START
 SEEK_END = v23c.SEEK_END
