@@ -55,8 +55,9 @@ export = [
 ]
 testing = [
     "h5py",
-    "scipy",
+    "pyarrow",
     "python-can",
+    "scipy",
 ]
 export_matlab_v5 = ["scipy"]
 gui = [
