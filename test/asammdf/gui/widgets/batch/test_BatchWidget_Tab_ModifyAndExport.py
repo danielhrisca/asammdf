@@ -22,7 +22,7 @@ from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 # to avoid initializing widgets multiple times and consume time.
 
 
-class TestPushButtonScrambleTexts(TestBatchWidget):  # ToDo evaluate that output file wasn't exist before apply
+class TestPushButtonScrambleTexts(TestBatchWidget):
     def test_ScrambleTexts(self):
         """
         Events:
@@ -34,12 +34,16 @@ class TestPushButtonScrambleTexts(TestBatchWidget):  # ToDo evaluate that output
             - New file is created
             - No channel from first file is found in 2nd file (scrambled file)
         """
-        # Setup
+        # Prepare workspace
         self.copy_mdf_files_to_workspace()
 
         test_file = Path(self.test_workspace, self.default_test_file)
         scrambled_filepath = Path(self.test_workspace, self.default_test_file.replace(".", ".scrambled."))
 
+        # Evaluate
+        self.assertFalse(scrambled_filepath.exists())
+
+        # Setup
         self.setUpBatchWidget(measurement_files=[str(test_file)])
 
         channels = []
@@ -565,6 +569,94 @@ class TestPushButtonApply(TestBatchWidget):
                 self.assertIn(channel, hdf5_channels)
                 np.testing.assert_almost_equal(mdf_channel.samples, hdf5_channel, decimal=3)
 
+    def test_output_format_Parquet_0(self):
+        """
+        When QThreads are running, event-loops needs to be processed.
+        Events:
+            - Ensure that output format is Parquet
+            - Press PushButton Apply.
+
+        Evaluate:
+            - File was created.
+            - Ensure that output file has only selected channels with expected values
+        """
+        # Expected results
+        parquet_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".parquet"))
+
+        # Setup
+        name = "Parquet"
+        self.widget.output_format.setCurrentText(name)
+        self.generic_setup(check=False)
+
+        # Mouse click on Apply button
+        self.mouse_click_on_btn_with_progress(self.tested_btn)
+
+        # Evaluate if parquet file exist
+        self.assertTrue(parquet_path.exists())
+
+        with OpenMDF(self.measurement_file) as mdf_file:
+            pandas_tab = pd.read_parquet(parquet_path)  # open parquet file as pandas tab
+            # Get common timestamps
+            common_timestamps = self.interpolated_timestamps(mdf_file, set(self.selected_channels))
+
+            # Evaluate
+            np.testing.assert_almost_equal(common_timestamps, pandas_tab.index.values, decimal=9)
+
+            for name in self.selected_channels:
+                channel = mdf_file.get(name).interp(
+                    common_timestamps,
+                    integer_interpolation_mode=self.widget.integer_interpolation,
+                    float_interpolation_mode=self.widget.float_interpolation,
+                )
+                if np.issubdtype(channel.samples.dtype, np.number):  # problematic conversion
+                    np.testing.assert_almost_equal(channel.samples, pandas_tab[name].values, decimal=9)
+
+    def test_output_format_Parquet_1(self):
+        """
+        When QThreads are running, event-loops needs to be processed.
+        Events:
+            - Ensure that output format is Parquet
+            - Press PushButton Apply.
+
+        Evaluate:
+            - File was created.
+            - Ensure that output file has only selected channels with expected values
+        """
+        # Expected results
+        parquet_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".parquet"))
+
+        # Setup
+        name = "Parquet"
+        self.widget.output_format.setCurrentText(name)
+        self.generic_setup()
+
+        # Mouse click on Apply button
+        self.mouse_click_on_btn_with_progress(self.tested_btn)
+
+        # Evaluate if parquet file exist
+        self.assertTrue(parquet_path.exists())
+
+        # Evaluate
+        with OpenMDF(self.measurement_file) as mdf_file:
+            pandas_tab = pd.read_parquet(parquet_path)  # open parquet file as pandas tab
+            # get common timestamp
+            common_timestamps = self.interpolated_timestamps(mdf_file, set(self.selected_channels))
+
+            # Evaluate
+            np.testing.assert_almost_equal(common_timestamps - common_timestamps[0], pandas_tab.index.values, decimal=9)
+            for name in self.selected_channels:
+                channel = mdf_file.get(name, raw=True).interp(
+                    common_timestamps,
+                    integer_interpolation_mode=self.widget.integer_interpolation,
+                    float_interpolation_mode=self.widget.float_interpolation,
+                )
+                if channel.display_names:
+                    display_name, _ = zip(*channel.display_names.items())
+                    name = display_name[0]
+
+                if np.issubdtype(channel.samples.dtype, np.number):  # problematic conversion
+                    np.testing.assert_almost_equal(channel.samples, pandas_tab[name].values, decimal=3)
+
     def test_cut_checkbox_0(self):
         """
         Events
@@ -762,67 +854,3 @@ class TestPushButtonApply(TestBatchWidget):
                 self.assertEqual(size, channel.timestamps.size)
                 for i in range(size):
                     self.assertAlmostEqual(channel.timestamps[i], step * i, places=12)
-
-    # def test_output_format_Parquet_0(self):
-    #     """
-    #     When QThreads are running, event-loops needs to be processed.
-    #     Events:
-    #         - Ensure that output format is Parquet
-    #         - Press PushButton Apply.
-    #
-    #     Evaluate:
-    #         - File was created.
-    #         - Ensure that output file has only selected channels
-    #     """
-    #     # Setup
-    #     name = "Parquet"
-    #     self.widget.output_format.setCurrentText(name)
-    #     self.generic_setup(check=False)
-    #
-    #     # Expected results
-    #     parquet_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".parquet"))
-    #
-    #     # Mouse click on Apply button
-    #     QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-    #     # Wait for thread to finish
-    #     while self.widget._progress:
-    #         self.processEvents(0.1)
-    #     self.processEvents(0.1)
-    #
-    #     # Evaluate
-    #     self.assertTrue(parquet_path.exists())
-    #     pandas_tab = pd.read_parquet(parquet_path)
-    #     from_parquet = set(pandas_tab.columns)
-    #     self.assertSetEqual(set(self.selected_channels), from_parquet)
-    #
-    # def test_output_format_Parquet_1(self):
-    #     """
-    #     When QThreads are running, event-loops needs to be processed.
-    #     Events:
-    #         - Ensure that output format is Parquet
-    #         - Press PushButton Apply.
-    #
-    #     Evaluate:
-    #         - File was created.
-    #         - Ensure that output file has only selected channels
-    #     """
-    #     # Setup
-    #     name = "Parquet"
-    #     self.widget.output_format.setCurrentText(name)
-    #     self.generic_setup()
-    #
-    #     # Expected results
-    #     parquet_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".parquet"))
-    #
-    #     # Mouse click on Apply button
-    #     QtTest.QTest.mouseClick(self.widget.apply_btn, QtCore.Qt.MouseButton.LeftButton)
-    #     # Wait for thread to finish
-    #     while self.widget._progress:
-    #         self.processEvents(0.1)
-    #     self.processEvents(0.1)
-    #
-    #     # Evaluate
-    #     self.assertTrue(parquet_path.exists())
-    #     pandas_tab = pd.read_parquet(parquet_path)
-    #     from_parquet = set(pandas_tab.columns)
-    #     self.assertSetEqual(set(self.selected_channels), from_parquet)

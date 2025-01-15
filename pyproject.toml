@@ -45,6 +45,12 @@ dependencies = [
     "typing-extensions",
 ]
 
+testing = [
+    "h5py",
+    "scipy",
+    "python-can",
+]
+
 [project.optional-dependencies]
 decode = ["faust-cchardet==2.1.19", "chardet"]
 export = [

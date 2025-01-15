@@ -1958,9 +1958,9 @@ class MDF:
             filename = filename.with_suffix(".parquet")
             df = table(df)
             if compression:
-                write_parquet(filename, df, compression=compression)
+                write_parquet(df, filename, compression=compression)
             else:
-                write_parquet(filename, df)
+                write_parquet(df, filename)
 
         else:
             message = 'Unsupported export type "{}". ' 'Please select "csv", "excel", "hdf5", "mat" or "pandas"'

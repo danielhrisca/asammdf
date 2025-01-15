@@ -3,6 +3,3 @@ pytest
 pytest-cov
 pytest-timeout
 xmlrunner; python_version < "3.12"
-h5py
-scipy
-python-can
