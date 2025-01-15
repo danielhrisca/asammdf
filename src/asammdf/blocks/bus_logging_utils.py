@@ -396,10 +396,16 @@ def extract_mux(
                 sig_name = sig.name
 
             try:
+                scale_ranges = getattr(sig, "scale_ranges", None)
+                if scale_ranges:
+                    unit = scale_ranges[0]["unit"] or ""
+                else:
+                    unit = sig.unit or ""
+
                 signals[sig_name] = {
                     "name": sig_name,
                     "comment": sig.comment or "",
-                    "unit": sig.unit or "",
+                    "unit": unit,
                     "samples": samples if raw else apply_conversion(samples, sig, ignore_value2text_conversion),
                     "conversion": get_conversion(sig) if raw else None,
                     "t": t_,
