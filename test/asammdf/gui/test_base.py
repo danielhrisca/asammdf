@@ -19,6 +19,7 @@ import shutil
 import sys
 import time
 import unittest
+from typing import Union
 from unittest import mock
 
 from h5py import File as HDF5
@@ -471,7 +472,7 @@ class OpenFileContextManager:
         __exit__: close file object. If exc_type, exc_val, exc_tb, raise exception.
     """
 
-    def __init__(self, file_path: str | pathlib.Path):
+    def __init__(self, file_path: Union[str, pathlib.Path]):
         """
         Parameters
         ----------

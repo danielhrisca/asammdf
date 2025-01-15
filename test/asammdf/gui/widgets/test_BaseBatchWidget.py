@@ -3,6 +3,7 @@ import itertools
 import os
 from pathlib import Path
 import shutil
+from typing import Union
 from unittest import mock
 
 from PySide6 import QtCore, QtWidgets
@@ -42,7 +43,7 @@ class TestBatchWidget(TestBase):
 
         self.processEvents()
 
-    def setUpBatchWidget(self, *args, measurement_files: Sequence[str] | None):
+    def setUpBatchWidget(self, *args, measurement_files: Union[Sequence[str], None]):
         """
         Created because a lot of testcases,
         we do not need other parameters for BatchWidget initialization.
@@ -69,7 +70,7 @@ class TestBatchWidget(TestBase):
             if file.endswith((".mf4", ".mdf")):
                 shutil.copyfile(Path(self.resource, file), Path(self.test_workspace, file))
 
-    def select_channels(self, channels_list: Iterable[str | int]) -> list:
+    def select_channels(self, channels_list: Iterable[Union[str, int]]) -> list:
         """
         Select channels from a list of names or indexes.
 

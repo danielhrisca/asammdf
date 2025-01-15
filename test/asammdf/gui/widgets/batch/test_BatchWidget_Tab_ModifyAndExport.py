@@ -562,6 +562,8 @@ class TestPushButtonApply(TestBatchWidget):
                 if mdf_channel.display_names:
                     display_name, _ = zip(*mdf_channel.display_names.items())
                     channel = display_name[0]
+                if channel + "_0" in hdf5_channels.keys() and "RAT" in mdf_channel.name:
+                    channel += "_0"
 
                 hdf5_channel = hdf5_channels.get(channel)
 
@@ -653,6 +655,8 @@ class TestPushButtonApply(TestBatchWidget):
                 if channel.display_names:
                     display_name, _ = zip(*channel.display_names.items())
                     name = display_name[0]
+                if name + "_0" in pandas_tab.columns and "RAT" in channel.name:
+                    name += "_0"
 
                 if np.issubdtype(channel.samples.dtype, np.number):  # problematic conversion
                     np.testing.assert_almost_equal(channel.samples, pandas_tab[name].values, decimal=3)
