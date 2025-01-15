@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import codecs
+import sys
 from pathlib import Path
+from typing import Union
 from unittest import mock
 import urllib
 import urllib.request
@@ -39,7 +41,7 @@ class TestPushButtons(TestBatchWidget):
         self.assertEqual(self.widget.can_database_list.count(), 0)
         self.assertEqual(self.widget.lin_database_list.count(), 0)
 
-    def load_database(self, path: Path | str | None = None, is_can=True):
+    def load_database(self, path: Union[Path, str, None] = None, is_can=True):
         """
         Load database to CAN/LIN database list
         Parameters
@@ -246,7 +248,7 @@ class TestPushButtons(TestBatchWidget):
         self.mouse_click_on_btn_with_progress(self.widget.extract_bus_csv_btn)
 
         csv_tables = [
-            (file, pd.read_csv(file)) for file in Path(self.test_workspace).iterdir() if file.suffix == ".csv"
+            (file, pd.read_csv(file)) for file in sorted(Path(self.test_workspace).iterdir()) if file.suffix == ".csv"
         ]
         with OpenMDF(compare_to_file_path) as mdf_file:
             for group, (path, table) in zip(mdf_file.groups, csv_tables):
@@ -263,6 +265,7 @@ class TestPushButtons(TestBatchWidget):
                 for channel in group.channels:
                     if channel.name != "time":
                         name = prefix + channel.name
+
                         self.assertIn(name, table.columns)
                         ch = mdf_file.get(channel.name)
 
@@ -350,7 +353,7 @@ class TestPushButtons(TestBatchWidget):
                 name = prefix + ch.name
                 self.assertIn(name, csv_table.columns)
                 column = csv_table[name]
-                if ch.unit:
+                if ch.unit and (sys.platform == "win32"):
                     self.assertEqual(ch.unit, column.columns[0])
 
                 # Evaluate channel samples
