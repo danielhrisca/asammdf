@@ -45,12 +45,6 @@ dependencies = [
     "typing-extensions",
 ]
 
-testing = [
-    "h5py",
-    "scipy",
-    "python-can",
-]
-
 [project.optional-dependencies]
 decode = ["faust-cchardet==2.1.19", "chardet"]
 export = [
@@ -58,6 +52,11 @@ export = [
     "h5py",
     "hdf5storage>=0.1.19",
     "python-snappy",
+]
+testing = [
+    "h5py",
+    "scipy",
+    "python-can",
 ]
 export_matlab_v5 = ["scipy"]
 gui = [
