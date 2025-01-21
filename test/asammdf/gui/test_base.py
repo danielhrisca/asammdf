@@ -12,14 +12,17 @@ class DragAndDrop
     - responsible to perform Drag and Drop operations
      from source widget - specific point, to destination widget - specific point
 """
+from collections.abc import Iterable
 import os
 import pathlib
 import shutil
 import sys
 import time
 import unittest
+from typing import Union
 from unittest import mock
 
+from h5py import File as HDF5
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
 
@@ -97,7 +100,10 @@ class TestBase(unittest.TestCase):
 
     def setUp(self) -> None:
         if os.path.exists(self.test_workspace):
-            shutil.rmtree(self.test_workspace)
+            try:
+                shutil.rmtree(self.test_workspace)
+            except PermissionError as e:
+                print(e)
         if not os.path.exists(self.screenshots):
             os.makedirs(self.screenshots)
 
@@ -197,7 +203,6 @@ class TestBase(unittest.TestCase):
 
 class DragAndDrop:
     def __init__(self, src_widget, dst_widget, src_pos, dst_pos):
-
         QtCore.QCoreApplication.processEvents()
         # hack QDrag object
         with mock.patch(f"{src_widget.__module__}.QtGui.QDrag") as mo_QDrag:
@@ -459,18 +464,106 @@ class Pixmap:
         return line
 
 
-class OpenMDF:
-    def __init__(self, file_path):
-        self.mdf = None
-        self._file_path = file_path
-        self._process_bus_logging = ("process_bus_logging", True)
+class OpenFileContextManager:
+    """
+    Generic class for opening a file using context manager.
+    Methods:
+        __enter__: return opened file object.
+        __exit__: close file object. If exc_type, exc_val, exc_tb, raise exception.
+    """
+
+    def __init__(self, file_path: Union[str, pathlib.Path]):
+        """
+        Parameters
+        ----------
+        file_path: file path as str or pathlib.Path object
+        """
+        self.file = None
+        if isinstance(file_path, str):
+            self._file_path = pathlib.Path(file_path)
+        else:
+            self._file_path = file_path
+
+        assert self._file_path.exists(), "Provided file does not exist"
 
     def __enter__(self):
-        self.mdf = mdf.MDF(self._file_path, process_bus_logging=self._process_bus_logging)
-        return self.mdf
+        pass
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self.file.close()
         for exc in (exc_type, exc_val, exc_tb):
             if exc is not None:
                 raise exc
-        self.mdf.close()
+
+
+class OpenMDF(OpenFileContextManager):
+    """
+    Open MDF file using context manager.
+    """
+
+    def __enter__(self):
+        self.file = mdf.MDF(self._file_path, process_bus_logging=("process_bus_logging", True))
+        return self.file
+
+
+class OpenHDF5(OpenFileContextManager):
+    """
+    Open HDF5 file using context manager.
+    """
+
+    def __enter__(self):
+        self.file = HDF5(self._file_path)
+        return self.file
+
+
+class DBC:
+    class BO:
+        def __init__(self, lines: Iterable[str]):
+            for line in lines:
+                if line.startswith("BO_ "):
+                    self.data = line
+
+        def __repr__(self):
+            return self.data
+
+        @property
+        def name(self) -> str:
+            if self.data:
+                return self.data.split()[2].strip(":")
+
+        @property
+        def id(self) -> str:
+            if self.data:
+                return self.data.split()[1]
+
+        @property
+        def data_length(self) -> int:
+            if self.data:
+                return int(self.data.split()[3])
+
+    class SG:
+        def __init__(self, name: str, lines: Iterable[str]):
+            self.name = name
+            self.data = None
+            for line in lines:
+                if "SG_ " in line and name in line:
+                    self.data = line.split("SG_ ")[1]
+
+        def __repr__(self):
+            return self.data
+
+        @property
+        def unit(self) -> str:
+            return self.data.split('"')[1]  # middle value, ex: "blah blah "unit" blah
+
+        @property
+        def bit_count(self) -> int:
+            return int(self.data.split("|")[1].split("@")[0])  # is complicated this CAN :)
+
+        @property
+        def conversion_a(self) -> float:
+            return float(self.data.split("(")[1].split(")")[0].split(",")[0])
+
+        @property
+        def conversion_b(self) -> float:
+            return float(self.data.split("(")[1].split(")")[0].split(",")[1])

@@ -203,7 +203,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.lin_database_list.setItemWidget(item, widget)
             item.setSizeHint(widget.sizeHint())
 
-        self.restore_export_setttings()
+        self.restore_export_settings()
         self.connect_export_updates()
 
     def set_raster_type(self, event):
@@ -415,6 +415,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 overwrite=True,
                 progress=progress,
             )
+
+            mdf.close()
+
             if result is TERMINATED:
                 return
 
@@ -574,8 +577,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 ]
                 for dbc_name, found_ids in call_info["found_ids"].items():
                     for msg_id, msg_name in sorted(found_ids):
-                        message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
-
+                        if isinstance(msg_id, str):
+                            message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
+                        else:
+                            message.append(f"- 0x{msg_id[0]:X} --> {msg_name} in <{dbc_name}>")
                 message += [
                     "",
                     "The following Bus IDs were in the MDF log file, but not matched in the DBC:",
@@ -611,6 +616,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 add_units=add_units,
                 progress=progress,
             )
+
+            mdf.close()
+
             if result is TERMINATED:
                 return
 
@@ -705,7 +713,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self._progress = setup_progress(parent=self, autoclose=False)
         self._progress.finished.connect(self.concatenate_finished)
 
-        self._progress.run_thread_with_progress(
+        rez = self._progress.run_thread_with_progress(
             target=self.concatenate_thread,
             args=(
                 output_file_name,
@@ -747,6 +755,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             progress=progress,
         )
 
+        for file in files:
+            file.close()
+
         if result is TERMINATED:
             return
         else:
@@ -763,6 +774,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             overwrite=True,
             progress=progress,
         )
+
+        mdf.close()
 
         if result is not TERMINATED:
             return result
@@ -811,6 +824,11 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             overwrite=True,
             progress=progress,
         )
+
+        for file in files:
+            file.close()
+
+        mdf.close()
 
         if result is not TERMINATED:
             return result
@@ -1469,6 +1487,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 if result is TERMINATED:
                     return
                 else:
+                    mdf.close()
                     mdf = result
 
                 mdf.configure(
@@ -1590,8 +1609,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     else:
                         file_name = output_folder / Path(mdf_file.original_name).relative_to(root)
 
-                    print(file_name)
-
                     if not file_name.parent.exists():
                         os.makedirs(file_name.parent, exist_ok=True)
                 else:
@@ -1613,6 +1630,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     overwrite=True,
                     progress=progress,
                 )
+
+                mdf.close()
 
                 if result is TERMINATED:
                     return
@@ -1673,6 +1692,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 }
 
                 target(**kwargs)
+
+            mdf.close()
 
     def change_modify_output_folder(self, event=None):
         folder = QtWidgets.QFileDialog.getExistingDirectory(self, "Select output folder", "")
@@ -1933,6 +1954,8 @@ MultiRasterSeparator;&
 
                 self.update_selected_filter_channels()
 
+                mdf.close()
+
     def connect_export_updates(self):
         self.output_format.currentTextChanged.connect(self.store_export_setttings)
 
@@ -1975,7 +1998,7 @@ MultiRasterSeparator;&
         self.mat_format.currentTextChanged.connect(self.store_export_setttings)
         self.oned_as.currentTextChanged.connect(self.store_export_setttings)
 
-    def restore_export_setttings(self):
+    def restore_export_settings(self):
         self.output_format.setCurrentText(self._settings.value("export_batch", "MDF"))
 
         self.mdf_version.setCurrentText(self._settings.setValue("export_batch/MDF/version", "4.10"))

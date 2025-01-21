@@ -53,6 +53,12 @@ export = [
     "hdf5storage>=0.1.19",
     "python-snappy",
 ]
+testing = [
+    "h5py",
+    "pyarrow",
+    "python-can",
+    "scipy",
+]
 export_matlab_v5 = ["scipy"]
 gui = [
     "natsort",
