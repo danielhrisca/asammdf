@@ -396,10 +396,16 @@ def extract_mux(
                 sig_name = sig.name
 
             try:
+                scale_ranges = getattr(sig, "scale_ranges", None)
+                if scale_ranges:
+                    unit = scale_ranges[0]["unit"] or ""
+                else:
+                    unit = sig.unit or ""
+
                 signals[sig_name] = {
                     "name": sig_name,
                     "comment": sig.comment or "",
-                    "unit": sig.unit or "",
+                    "unit": unit,
                     "samples": samples if raw else apply_conversion(samples, sig, ignore_value2text_conversion),
                     "conversion": get_conversion(sig) if raw else None,
                     "t": t_,
@@ -441,8 +447,24 @@ def get_conversion(signal: Signal) -> v4b.ChannelConversion | None:
 
     a, b = float(signal.factor), float(signal.offset)
 
-    if signal.values:
-        conv = {}
+    conv = {}
+
+    scale_ranges = getattr(signal, "scale_ranges", None)
+    if scale_ranges:
+        for i, scale_info in enumerate(scale_ranges):
+            conv[f"upper_{i}"] = scale_info["max"]
+            conv[f"lower_{i}"] = scale_info["min"]
+            conv[f"text_{i}"] = from_dict({"a": scale_info["factor"], "b": scale_info["offset"]})
+
+        for i, (val, text) in enumerate(signal.values.items(), len(scale_ranges)):
+            conv[f"upper_{i}"] = val
+            conv[f"lower_{i}"] = val
+            conv[f"text_{i}"] = text
+
+        conv["default"] = from_dict({"a": a, "b": b})
+
+    elif signal.values:
+
         for i, (val, text) in enumerate(signal.values.items()):
             conv[f"upper_{i}"] = val
             conv[f"lower_{i}"] = val

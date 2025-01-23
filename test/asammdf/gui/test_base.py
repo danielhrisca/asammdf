@@ -18,8 +18,8 @@ import pathlib
 import shutil
 import sys
 import time
-import unittest
 from typing import Union
+import unittest
 from unittest import mock
 
 from h5py import File as HDF5

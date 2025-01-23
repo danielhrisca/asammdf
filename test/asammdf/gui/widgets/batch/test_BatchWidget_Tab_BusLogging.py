@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import codecs
-import sys
 from pathlib import Path
+import sys
 from typing import Union
 from unittest import mock
 import urllib

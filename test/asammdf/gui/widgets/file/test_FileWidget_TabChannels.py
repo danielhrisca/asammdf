@@ -56,7 +56,7 @@ class TestTabChannels(TestFileWidget):
                 elif isinstance(w, Numeric):
                     data.append([sig.name for sig in w.channels.dataView.backend.signals])
                 elif isinstance(w, Tabular):
-                    data.append([name for name in w.tree.pgdf.df.columns])
+                    data.append(list(w.tree.pgdf.df.columns))
                 return data
 
         # Setup

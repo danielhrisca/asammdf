@@ -37,9 +37,11 @@ from .blocks import bus_logging_utils, mdf_v2, mdf_v3, mdf_v4
 from .blocks import v2_v3_constants as v23c
 from .blocks import v4_constants as v4c
 from .blocks.conversion_utils import from_dict
+from .blocks.cutils import get_channel_raw_bytes_complete
 from .blocks.options import FloatInterpolation, IntegerInterpolation
 from .blocks.source_utils import Source
 from .blocks.utils import (
+    as_non_byte_sized_signed_int,
     components,
     csv_bytearray2hex,
     csv_int2hex,
@@ -56,6 +58,7 @@ from .blocks.utils import (
     randomized_string,
     SUPPORTED_VERSIONS,
     TERMINATED,
+    THREAD_COUNT,
     UINT16_u,
     UINT64_u,
     UniqueDB,
@@ -199,6 +202,11 @@ class MDF:
         folder to use for temporary files
 
         .. versionadded:: 7.0.0
+
+    process_bus_logging (\*\*kwargs) : bool
+        controls if the bus processing of MDF v4 files is done when the file is loaded. Default True
+
+        .. versionadded:: 8.0.0
 
     Examples
     --------
@@ -2242,6 +2250,11 @@ class MDF:
 
             use_display_names (False) : bool
 
+            process_bus_logging (True) : bool
+                controls if the bus processing of MDF v4 files is done when the file is loaded. Default True
+
+                .. versionadded:: 8.1.0
+
         Examples
         --------
         >>> conc = MDF.concatenate(
@@ -2643,7 +2656,8 @@ class MDF:
             first_mdf.close()
 
         try:
-            merged._process_bus_logging()
+            if kwargs.get("process_bus_logging", True):
+                merged._process_bus_logging()
         except:
             pass
 
@@ -2676,6 +2690,11 @@ class MDF:
         kwargs :
 
             use_display_names (False) : bool
+
+            process_bus_logging (True) : bool
+                controls if the bus processing of MDF v4 files is done when the file is loaded. Default True
+
+                .. versionadded:: 8.1.0
 
         Examples
         --------
@@ -2831,7 +2850,8 @@ class MDF:
                 return TERMINATED
 
         try:
-            stacked._process_bus_logging()
+            if kwargs.get("process_bus_logging", True):
+                stacked._process_bus_logging()
         except:
             pass
 
@@ -3226,6 +3246,308 @@ class MDF:
         return mdf
 
     def select(
+        self,
+        channels: ChannelsType,
+        record_offset: int = 0,
+        raw: bool | dict[str, bool] = False,
+        copy_master: bool = True,
+        ignore_value2text_conversions: bool = False,
+        record_count: int | None = None,
+        validate: bool = False,
+    ) -> list[Signal]:
+        """retrieve the channels listed in *channels* argument as *Signal*
+        objects
+
+        .. note:: the *dataframe* argument was removed in version 5.8.0
+                  use the ``to_dataframe`` method instead
+
+        Parameters
+        ----------
+        channels : list
+            list of items to be filtered; each item can be :
+
+                * a channel name string
+                * (channel name, group index, channel index) list or tuple
+                * (channel name, group index) list or tuple
+                * (None, group index, channel index) list or tuple
+
+        record_offset : int
+            record number offset; optimization to get the last part of signal samples
+        raw : bool | dict[str, bool]
+            get raw channel samples; default *False*
+
+            .. versionchanged:: 8.0.0
+
+                provide individual raw mode based on a dict. If the parameters is given
+                as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
+                are the channel names and the values are the boolean raw values for each channel.
+
+        copy_master : bool
+            option to get a new timestamps array for each selected Signal or to
+            use a shared array for channels of the same channel group; default *True*
+        ignore_value2text_conversions (False) : bool
+            valid only for the channels that have value to text conversions and
+            if *raw=False*. If this is True then the raw numeric values will be
+            used, and the conversion will not be applied.
+
+            .. versionchanged:: 5.8.0
+
+        validate (False) : bool
+            consider the invalidation bits
+
+            .. versionadded:: 5.16.0
+
+        Returns
+        -------
+        signals : list
+            list of *Signal* objects based on the input channel list
+
+        Examples
+        --------
+        >>> from asammdf import MDF, Signal
+        >>> import numpy as np
+        >>> t = np.arange(5)
+        >>> s = np.ones(5)
+        >>> mdf = MDF()
+        >>> for i in range(4):
+        ...     sigs = [Signal(s*(i*10+j), t, name='SIG') for j in range(1,4)]
+        ...     mdf.append(sigs)
+        ...
+        >>> # select SIG group 0 default index 1 default, SIG group 3 index 1, SIG group 2 index 1 default and channel index 2 from group 1
+        ...
+        >>> mdf.select(['SIG', ('SIG', 3, 1), ['SIG', 2],  (None, 1, 2)])
+        [<Signal SIG:
+                samples=[ 1.  1.  1.  1.  1.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        , <Signal SIG:
+                samples=[ 31.  31.  31.  31.  31.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        , <Signal SIG:
+                samples=[ 21.  21.  21.  21.  21.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        , <Signal SIG:
+                samples=[ 12.  12.  12.  12.  12.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        ]
+
+        """
+
+        def validate_blocks(blocks, record_size):
+            for block in blocks:
+                if block.original_size % record_size:
+                    return False
+
+            return True
+
+        if (
+            self.version < "4.00"
+            or not self._mapped_file
+            or record_offset
+            or record_count is not None
+            or True  # disable for now
+        ):
+            return self._select_fallback(
+                channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
+            )
+
+        if isinstance(raw, dict):
+            if "__default__" not in raw:
+                raise MdfException("The raw argument given as dict must contain the __default__ key")
+
+            __default__ = raw["__default__"]
+            raw_dict = True
+        else:
+            raw_dict = False
+
+        virtual_groups = self.included_channels(channels=channels, minimal=False, skip_master=False)
+        for virtual_group, groups in virtual_groups.items():
+            if len(self._mdf.virtual_groups[virtual_group].groups) > 1:
+                return self._select_fallback(
+                    channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
+                )
+
+        output_signals = {}
+
+        for virtual_group, groups in virtual_groups.items():
+            group_index = virtual_group
+            grp = self._mdf.groups[group_index]
+            grp.load_all_data_blocks()
+            blocks = grp.data_blocks
+            record_size = grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr
+            cycles_nr = grp.channel_group.cycles_nr
+            channel_indexes = groups[group_index]
+
+            pairs = [(group_index, ch_index) for ch_index in channel_indexes]
+
+            master_index = self.masters_db.get(group_index, None)
+            if master_index is None or grp.record[master_index] is None:
+                return self._select_fallback(
+                    channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
+                )
+
+            channel = grp.channels[master_index]
+            master_dtype, byte_size, byte_offset, _ = grp.record[master_index]
+            signals = [(byte_offset, byte_size, channel.pos_invalidation_bit)]
+
+            for ch_index in channel_indexes:
+                channel = grp.channels[ch_index]
+
+                if (info := grp.record[ch_index]) is None:
+                    print("NASOl")
+                    return self._select_fallback(
+                        channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
+                    )
+                else:
+                    _, byte_size, byte_offset, _ = info
+                    signals.append((byte_offset, byte_size, channel.pos_invalidation_bit))
+
+            raw_and_invalidation = get_channel_raw_bytes_complete(
+                blocks,
+                signals,
+                self._mapped_file.name,
+                cycles_nr,
+                record_size,
+                grp.channel_group.invalidation_bytes_nr,
+                THREAD_COUNT,
+            )
+            master_bytes, _ = raw_and_invalidation[0]
+            raw_and_invalidation = raw_and_invalidation[1:]
+
+            # prepare the master
+            master = np.frombuffer(master_bytes, dtype=master_dtype)
+
+            for pair, (raw_data, invalidation_bits) in zip(pairs, raw_and_invalidation):
+                ch_index = pair[-1]
+                channel = grp.channels[ch_index]
+                channel_dtype, byte_size, byte_offset, bit_offset = grp.record[ch_index]
+                vals = np.frombuffer(raw_data, dtype=channel_dtype)
+
+                data_type = channel.data_type
+
+                if not channel.standard_C_size:
+                    size = byte_size
+
+                    if channel_dtype.byteorder == "=" and data_type in (
+                        v4c.DATA_TYPE_SIGNED_MOTOROLA,
+                        v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                    ):
+                        view = np.dtype(f">u{vals.itemsize}")
+                    else:
+                        view = np.dtype(f"{channel_dtype.byteorder}u{vals.itemsize}")
+
+                    if view != vals.dtype:
+                        vals = vals.view(view)
+
+                    if bit_offset:
+                        vals >>= bit_offset
+
+                    if channel.bit_count != size * 8:
+                        if data_type in v4c.SIGNED_INT:
+                            vals = as_non_byte_sized_signed_int(vals, channel.bit_count)
+                        else:
+                            mask = (1 << channel.bit_count) - 1
+                            vals &= mask
+                    elif data_type in v4c.SIGNED_INT:
+                        view = f"{channel_dtype.byteorder}i{vals.itemsize}"
+                        if np.dtype(view) != vals.dtype:
+                            vals = vals.view(view)
+
+                conversion = channel.conversion
+                unit = (conversion and conversion.unit) or channel.unit
+
+                source = channel.source
+
+                if source:
+                    source = Source.from_source(source)
+                else:
+                    cg_source = grp.channel_group.acq_source
+                    if cg_source:
+                        source = Source.from_source(cg_source)
+                    else:
+                        source = None
+
+                master_metadata = self._master_channel_metadata.get(group_index, None)
+
+                output_signals[pair] = Signal(
+                    samples=vals,
+                    timestamps=master,
+                    unit=unit,
+                    name=channel.name,
+                    comment=channel.comment,
+                    conversion=conversion,
+                    raw=True,
+                    master_metadata=master_metadata,
+                    attachment=None,
+                    source=source,
+                    display_names=channel.display_names,
+                    bit_count=channel.bit_count,
+                    flags=Signal.Flags.no_flags,
+                    invalidation_bits=invalidation_bits,
+                    encoding=None,
+                    group_index=group_index,
+                    channel_index=ch_index,
+                )
+
+        indexes = []
+
+        for item in channels:
+            if not isinstance(item, (list, tuple)):
+                item = [item]
+            indexes.append(self._validate_channel_selection(*item))
+
+        signals = [output_signals[pair] for pair in indexes]
+
+        if copy_master:
+            for signal in signals:
+                signal.timestamps = signal.timestamps.copy()
+
+        for signal in signals:
+            if (raw_dict and not raw.get(signal.name, __default__)) or (not raw_dict and not raw):
+                conversion = signal.conversion
+                if conversion:
+                    samples = conversion.convert(
+                        signal.samples, ignore_value2text_conversions=ignore_value2text_conversions
+                    )
+                    signal.samples = samples
+
+                signal.raw = False
+                signal.conversion = None
+                if signal.samples.dtype.kind == "S":
+                    signal.encoding = "utf-8" if self.version >= "4.00" else "latin-1"
+
+        if validate:
+            signals = [sig.validate(copy=False) for sig in signals]
+
+        for signal, channel in zip(signals, channels):
+            if isinstance(channel, str):
+                signal.name = channel
+            else:
+                name = channel[0]
+                if name is not None:
+                    signal.name = name
+
+        unique = set()
+        for i, signal in enumerate(signals):
+            obj_id = id(signal)
+            if id(signal) in unique:
+                signals[i] = signal.copy()
+            unique.add(obj_id)
+
+        return signals
+
+    def _select_fallback(
         self,
         channels: ChannelsType,
         record_offset: int = 0,
@@ -4917,7 +5239,7 @@ class MDF:
 
                 for fragment in data:
                     self._set_temporary_master(None)
-                    self._set_temporary_master(self.get_master(i, data=fragment))
+                    self._set_temporary_master(self.get_master(i, data=fragment, one_piece=True))
 
                     bus_ids = self.get(
                         "CAN_DataFrame.BusChannel",
@@ -5254,7 +5576,7 @@ class MDF:
 
                 for fragment in data:
                     self._set_temporary_master(None)
-                    self._set_temporary_master(self.get_master(i, data=fragment))
+                    self._set_temporary_master(self.get_master(i, data=fragment, one_piece=True))
 
                     msg_ids = self.get("LIN_Frame.ID", group=i, data=fragment).astype("<u4") & 0x1FFFFFFF
 

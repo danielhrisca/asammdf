@@ -1,0 +1,3 @@
+[submodule "ext/libdeflate"]
+	path = ext/libdeflate
+	url = https://github.com/ebiggers/libdeflate

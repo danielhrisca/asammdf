@@ -1,3 +1,4 @@
+from time import perf_counter, sleep
 from traceback import format_exc
 
 import numpy as np
@@ -24,8 +25,8 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         self.latitude_signal = latitude_channel.interp(timebase)
         self.longitude_signal = longitude_channel.interp(timebase)
         if len(timebase):
-            self.latitude = self.latitude_signal.samples[0]
-            self.longitude = self.longitude_signal.samples[0]
+            self.latitude = float(self.latitude_signal.samples[0])
+            self.longitude = float(self.longitude_signal.samples[0])
         else:
             self.latitude = self.longitude = None
 
@@ -56,12 +57,9 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         self.map_layout.setStretch(0, 1)
 
         self.map = L.map(self.mapWidget)
-
-        self.map.setView([50.1364092, 8.5991296], zoom)
+        self.map.setView([47.13698, 27.59774], zoom)
 
         L.tileLayer("https://{s}.tile.osm.org/{z}/{x}/{y}.png").addTo(self.map)
-
-        # L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png").addTo(self.map)
 
         if len(timebase):
             line = L.polyline(np.column_stack([self.latitude_signal.samples, self.longitude_signal.samples]).tolist())
@@ -89,6 +87,24 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
             stamp = (self._max - self._min) * factor + self._min
             self.set_timestamp(stamp)
 
+    def get_zoom(self):
+        result = []
+
+        def callback(*args):
+            result.append(args[0])
+
+        mapWidget = self.map.getMapWidgetAtIndex(self.map.mapWidgetIndex)
+        mapWidget.page.runJavaScript("map.getZoom()", self.map.mapWidgetIndex, callback)
+
+        app = QtWidgets.QApplication.instance()
+
+        start = perf_counter()
+        while not result and perf_counter() - start < 1:
+            sleep(0.1)
+            app.processEvents()
+
+        return int(result[0]) if result else 15
+
     def set_timestamp(self, stamp=None):
         if stamp is None:
             stamp = self._timestamp
@@ -97,8 +113,8 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
             return
 
         try:
-            self.latitude = self.latitude_signal.cut(stamp, stamp).samples[0]
-            self.longitude = self.longitude_signal.cut(stamp, stamp).samples[0]
+            self.latitude = float(self.latitude_signal.cut(stamp, stamp).samples[0])
+            self.longitude = float(self.longitude_signal.cut(stamp, stamp).samples[0])
         except:
             return
         if self.marker is not None:
@@ -118,7 +134,7 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         config = {
             "latitude_channel": self.latitude_signal.name,
             "longitude_channel": self.longitude_signal.name,
-            "zoom": 5,
+            "zoom": self.get_zoom(),
         }
 
         return config

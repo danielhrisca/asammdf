@@ -10,6 +10,7 @@ from functools import lru_cache
 from io import StringIO
 import json
 import logging
+import os
 from pathlib import Path
 from random import randint
 import re
@@ -32,6 +33,12 @@ from numpy.typing import NDArray
 from pandas import Series
 from typing_extensions import Literal, TypedDict
 
+THREAD_COUNT = max(os.cpu_count() - 1, 1)
+TERMINATED = object()
+NONE = object()
+COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
+C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
+target_byte_order = "<=" if sys.byteorder == "little" else ">="
 from ..types import (
     ChannelType,
     DataGroupType,
@@ -536,7 +543,7 @@ def get_fmt_v4(data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_V
 
     """
     if data_type in v4c.NON_SCALAR_TYPES:
-        size = size // 8
+        size = size // 8 or 1
 
         if data_type in (
             v4c.DATA_TYPE_BYTEARRAY,
@@ -1303,6 +1310,10 @@ class Group:
                 except StopIteration:
                     break
 
+    def load_all_data_blocks(self):
+        for _ in self.get_data_blocks():
+            continue
+
 
 class VirtualChannelGroup:
     """starting with MDF v4.20 it is possible to use remote masters and column
@@ -1504,6 +1515,30 @@ class DataBlockInfo:
             f"param={self.param}, "
             f"invalidation_block={self.invalidation_block}, "
             f"block_limit={self.block_limit})"
+        )
+
+
+class Fragment:
+    def __init__(
+        self,
+        data,
+        record_offset=-1,
+        record_count=-1,
+        invalidation_data=None,
+        is_record=True,
+    ) -> None:
+        self.data = data
+        self.record_count = record_count
+        self.record_offset = record_offset
+        self.invalidation_data = invalidation_data
+        self.is_record = is_record
+
+    def __repr__(self) -> str:
+        return (
+            f"FragmentInfo({len(self.data)} bytes, "
+            f"record_offset={self.record_offset}, "
+            f"record_count={self.record_count}, "
+            f"is_record={self.is_record})"
         )
 
 
@@ -2412,3 +2447,36 @@ def timeit(func):
         return ret
 
     return timed
+
+
+class Timer:
+
+    def __init__(self, name=""):
+        self.name = name or str(id(self))
+        self.count = 0
+        self.total_time = 0.0
+
+    def __enter__(self):
+        now = perf_counter()
+        self.start = now
+        return self
+
+    def __exit__(self, type, value, traceback):
+        now = perf_counter()
+        self.total_time += now - self.start
+        self.count += 1
+
+    def display(self):
+        if self.count:
+            for factor, r, unit in ((1e3, 3, "ms"), (1e6, 6, "us"), (1e9, 9, "ns")):
+                tpi = round(self.total_time / self.count, r)
+                if tpi:
+                    break
+            print(
+                f"""TIMER {self.name}:
+\t* {self.count} iterations in {self.total_time * 1000:.3f}ms 
+\t* {self.count / self.total_time:.3f} iter/s
+\t* {self.total_time / self.count * factor:.3f} {unit}/iter"""
+            )
+        else:
+            print(f"TIMER {self.name}:\n\t* inactive")
