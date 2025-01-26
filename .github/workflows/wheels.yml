@@ -14,8 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-           submodules: 'recursive'
-           token: ${{ secrets.SUBMODULE_PAT }}
+          submodules: "recursive"
 
       # Used to host cibuildwheel
       - uses: actions/setup-python@v5
