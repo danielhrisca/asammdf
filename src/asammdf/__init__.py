@@ -14,7 +14,7 @@ logger.setLevel(logging.ERROR)
 import numpy as np
 
 if not hasattr(np, "unicode_"):
-    np.unicode_ = np.str_
+    setattr(np, "unicode_", np.str_)  # noqa: B010
 
 from .blocks.options import get_global_option, set_global_option
 from .blocks.source_utils import Source
