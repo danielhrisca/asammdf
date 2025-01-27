@@ -99,6 +99,13 @@ try:
 except:
     FSSPEF_AVAILABLE = False
 
+try:
+    import polars as pl
+
+    POLARS_AVAILABLE = True
+except:
+    POLARS_AVAILABLE = False
+
 logger = logging.getLogger("asammdf")
 LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 
@@ -4646,6 +4653,7 @@ class MDF:
         interpolate_outwards_with_nan: bool = False,
         numeric_1D_only: bool = False,
         progress=None,
+        use_polars=False,
     ) -> pd.DataFrame:
         """generate pandas DataFrame
 
@@ -4726,9 +4734,14 @@ class MDF:
 
             .. versionadded:: 5.15.0
 
+        use_polars (False) : bool
+            return polars.DataFrame instead of pandas.DataFrame
+
+            .. versionadded:: 8.1.0
+
         Returns
         -------
-        dataframe : pandas.DataFrame
+        dataframe : pandas.DataFrame or polars.DataFrame
 
         """
         if isinstance(raw, dict):
@@ -4757,6 +4770,7 @@ class MDF:
                 only_basenames=only_basenames,
                 interpolate_outwards_with_nan=interpolate_outwards_with_nan,
                 numeric_1D_only=numeric_1D_only,
+                use_polars=use_polars
             )
 
             mdf.close()
@@ -5005,6 +5019,12 @@ class MDF:
 
         elif time_from_zero and len(master):
             df.set_index(df.index - df.index[0], inplace=True)
+
+        if use_polars:
+            if POLARS_AVAILABLE:
+                return pl.from_pandas(df, include_index=True)
+            else:
+                raise MdfException("to_dataframe(use_polars=True) requires polars")
 
         return df
 

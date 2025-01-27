@@ -52,6 +52,7 @@ export = [
     "h5py",
     "hdf5storage>=0.1.19",
     "python-snappy",
+    "polars",
 ]
 testing = [
     "h5py",
