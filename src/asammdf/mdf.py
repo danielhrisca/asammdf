@@ -4878,10 +4878,10 @@ class MDF:
 
                 signals[s_index] = sig
 
-            if use_interpolation:
+            if use_interpolation or use_polars:
                 same_master = np.array_equal(master, group_master)
 
-                if not same_master and interpolate_outwards_with_nan:
+                if not same_master and interpolate_outwards_with_nan and not use_polars:
                     idx = np.argwhere((master >= group_master[0]) & (master <= group_master[-1])).flatten()
 
                 cycles = len(group_master)
@@ -4899,7 +4899,7 @@ class MDF:
                     for signal in signals
                 ]
 
-                if not same_master and interpolate_outwards_with_nan:
+                if not same_master and interpolate_outwards_with_nan and not use_polars:
                     for sig in signals:
                         sig.timestamps = sig.timestamps[idx]
                         sig.samples = sig.samples[idx]
@@ -4915,26 +4915,38 @@ class MDF:
             if signals:
                 diffs = np.diff(group_master, prepend=-np.inf) > 0
                 if np.all(diffs):
-                    index = pd.Index(group_master, tupleize_cols=False)
+                    if use_polars:
+                        index = group_master
+                    else:
+                        index = pd.Index(group_master, tupleize_cols=False)
 
                 else:
                     idx = np.argwhere(diffs).flatten()
                     group_master = group_master[idx]
 
-                    index = pd.Index(group_master, tupleize_cols=False)
+                    if use_polars:
+                        index = group_master
+                    else:
+                        index = pd.Index(group_master, tupleize_cols=False)
 
                     for sig in signals:
                         sig.samples = sig.samples[idx]
                         sig.timestamps = sig.timestamps[idx]
             else:
-                index = pd.Index(group_master, tupleize_cols=False)
+                if use_polars:
+                    index = group_master
+                else:
+                    index = pd.Index(group_master, tupleize_cols=False)
 
             size = len(index)
             for sig in signals:
                 if sig.timestamps.dtype.byteorder not in target_byte_order:
                     sig.timestamps = sig.timestamps.byteswap().view(sig.timestamps.dtype.newbyteorder())
 
-                sig_index = index if len(sig) == size else pd.Index(sig.timestamps, tupleize_cols=False)
+                if use_polars:
+                    sig_index = index
+                else:
+                    sig_index = index if len(sig) == size else pd.Index(sig.timestamps, tupleize_cols=False)
 
                 # byte arrays
                 if len(sig.samples.shape) > 1:
@@ -4948,10 +4960,11 @@ class MDF:
                     if sig.samples.dtype.byteorder not in target_byte_order:
                         sig.samples = sig.samples.byteswap().view(sig.samples.dtype.newbyteorder())
 
-                    df[channel_name] = pd.Series(
+                    df[channel_name] = list(sig.samples) if use_polars else pd.Series(
                         list(sig.samples),
                         index=sig_index,
                     )
+
 
                 # arrays and structures
                 elif sig.samples.dtype.names:
@@ -4961,6 +4974,7 @@ class MDF:
                         used_names,
                         master=sig_index,
                         only_basenames=only_basenames,
+                        use_polars=use_polars,
                     ):
                         df[name] = series
 
@@ -4980,7 +4994,7 @@ class MDF:
                     if sig.samples.dtype.byteorder not in target_byte_order:
                         sig.samples = sig.samples.byteswap().view(sig.samples.dtype.newbyteorder())
 
-                    df[channel_name] = pd.Series(sig.samples, index=sig_index)
+                    df[channel_name] = sig.samples if use_polars else pd.Series(sig.samples, index=sig_index)
 
             if progress is not None:
                 if callable(progress):
@@ -4991,42 +5005,57 @@ class MDF:
                     if progress.stop:
                         return TERMINATED
 
-        strings, nonstrings = {}, {}
-
-        for col, series in df.items():
-            if series.dtype.kind == "S":
-                strings[col] = series
-            else:
-                nonstrings[col] = series
-
-        if numeric_1D_only:
-            nonstrings = {col: series for col, series in nonstrings.items() if series.dtype.kind in "uif"}
-            strings = {}
-
-        df = pd.DataFrame(nonstrings, index=master)
-
-        if strings:
-            df_strings = pd.DataFrame(strings, index=master)
-            df = pd.concat([df, df_strings], axis=1)
-
-        df.index.name = "timestamps"
-
-        if time_as_date:
-            delta = pd.to_timedelta(df.index, unit="s")
-
-            new_index = self.header.start_time + delta
-            df.set_index(new_index, inplace=True)
-
-        elif time_from_zero and len(master):
-            df.set_index(df.index - df.index[0], inplace=True)
-
         if use_polars:
-            if POLARS_AVAILABLE:
-                return pl.from_pandas(df, include_index=True)
-            else:
+            if not POLARS_AVAILABLE:
                 raise MdfException("to_dataframe(use_polars=True) requires polars")
 
-        return df
+            if numeric_1D_only:
+                df = {col: series for col, series in df.items() if series.dtype.kind in "uif"}
+
+            if time_as_date:
+                master = self.header.start_time + pd.to_timedelta(master, unit="s")
+            elif time_from_zero and len(master):
+                master = master - master[0]
+
+            df = {
+                'timestamps': master,
+                **df
+            }
+            return pl.DataFrame(df)
+
+
+        else:
+
+            strings, nonstrings = {}, {}
+
+            for col, series in df.items():
+                if series.dtype.kind == "S":
+                    strings[col] = series
+                else:
+                    nonstrings[col] = series
+
+            if numeric_1D_only:
+                nonstrings = {col: series for col, series in df.items() if series.dtype.kind in "uif"}
+                strings = {}
+
+            df = pd.DataFrame(nonstrings, index=master)
+
+            if strings:
+                df_strings = pd.DataFrame(strings, index=master)
+                df = pd.concat([df, df_strings], axis=1)
+
+            df.index.name = "timestamps"
+
+            if time_as_date:
+                delta = pd.to_timedelta(df.index, unit="s")
+
+                new_index = self.header.start_time + delta
+                df.set_index(new_index, inplace=True)
+
+            elif time_from_zero and len(master):
+                df.set_index(df.index - df.index[0], inplace=True)
+
+            return df
 
     def extract_bus_logging(
         self,

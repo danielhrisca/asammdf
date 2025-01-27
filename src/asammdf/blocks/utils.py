@@ -1358,6 +1358,7 @@ def components(
     prefix: str = "",
     master: NDArray[Any] | None = None,
     only_basenames: bool = False,
+        use_polars : bool=False,
 ) -> tuple[str, Series[Any]]:
     """yield pandas Series and unique name based on the ndarray object
 
@@ -1378,6 +1379,11 @@ def components(
         arrays
 
         .. versionadded:: 5.13.0
+
+    use_polars (False) : bool
+        use polars
+
+        .. versionadded:: 8.1.0
 
     Returns
     -------
@@ -1403,11 +1409,11 @@ def components(
             values = values.byteswap().view(values.dtype.newbyteorder())
 
         if len(values.shape) > 1:
-            values = Series(
+            values = list(values) if use_polars else Series(
                 list(values),
                 index=master,
             )
-        else:
+        elif not use_polars:
             values = Series(
                 values,
                 index=master,
@@ -1426,11 +1432,11 @@ def components(
             else:
                 axis_name = unique_names.get_unique_name(name)
             if len(values.shape) > 1:
-                values = Series(
+                values = list(values) if use_polars else Series(
                     list(values),
                     index=master,
                 )
-            else:
+            elif not use_polars:
                 values = Series(
                     values,
                     index=master,
@@ -1464,11 +1470,11 @@ def components(
                 else:
                     name_ = unique_names.get_unique_name(name)
                 if len(values.shape) > 1:
-                    values = Series(
+                    values = list(values) if use_polars else Series(
                         list(values),
                         index=master,
                     )
-                else:
+                elif not use_polars:
                     values = Series(
                         values,
                         index=master,
