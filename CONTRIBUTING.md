@@ -19,11 +19,12 @@ When submitting PR's please take into account:
 
 ## Developer Instructions
 
-Clone the repository, then install the development dependencies (we recommend using a virtual environment):
+Clone the repository with submodules, make sure you have a C compiler installed, then install the development dependencies (we recommend using a virtual environment):
 
 ```bash
 python -m venv .venv  # create virtual environment in .venv
-source .venv/bin/activate  # activate virtual environment
+source .venv/bin/activate  # activate virtual environment (POSIX)
+.venv/Scripts/activate.bat  # activate virtual environment (Windows)
 pip install --requirement requirements.txt  # install development dependencies (includes asammdf in editable mode)
 ```
 
