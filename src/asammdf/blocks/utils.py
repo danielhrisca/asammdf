@@ -1492,6 +1492,8 @@ class DataBlockInfo:
         "invalidation_block",
         "original_size",
         "param",
+        "first_timestamp",
+        "last_timestamp",
     )
 
     def __init__(
@@ -1503,6 +1505,8 @@ class DataBlockInfo:
         param: int,
         invalidation_block=None,
         block_limit: int | None = None,
+        first_timestamp: bytes | None = None,
+        last_timestamp: bytes | None = None,
     ) -> None:
         self.address = address
         self.block_type = block_type
@@ -1511,6 +1515,8 @@ class DataBlockInfo:
         self.param = param
         self.invalidation_block = invalidation_block
         self.block_limit = block_limit
+        self.first_timestamp = first_timestamp
+        self.last_timestamp = last_timestamp
 
     def __repr__(self) -> str:
         return (
@@ -1520,7 +1526,9 @@ class DataBlockInfo:
             f"compressed_size={self.compressed_size}, "
             f"param={self.param}, "
             f"invalidation_block={self.invalidation_block}, "
-            f"block_limit={self.block_limit})"
+            f"block_limit={self.block_limit}, "
+            f"first_timestamp={self.first_timestamp}, "
+            f"last_timestamp={self.last_timestamp})"
         )
 
 
