@@ -1204,7 +1204,8 @@ def generate_python_variables(definition: str, in_globals: Union[dict, None] = N
 
 
 def generate_python_function_globals() -> dict:
-    return {
+
+    func_globals = {
         "bisect": bisect,
         "collections": collections,
         "itertools": itertools,
@@ -1215,6 +1216,14 @@ def generate_python_function_globals() -> dict:
         "struct": struct,
         "__builtins__": _BUILTINS,
     }
+    try:
+        import scipy as sp
+
+        func_globals["sp"] = sp
+    except ImportError:
+        pass
+
+    return func_globals
 
 
 def generate_python_function(definition: str, in_globals: Union[dict, None] = None) -> tuple:

@@ -4770,7 +4770,7 @@ class MDF:
                 only_basenames=only_basenames,
                 interpolate_outwards_with_nan=interpolate_outwards_with_nan,
                 numeric_1D_only=numeric_1D_only,
-                use_polars=use_polars
+                use_polars=use_polars,
             )
 
             mdf.close()
@@ -4960,11 +4960,14 @@ class MDF:
                     if sig.samples.dtype.byteorder not in target_byte_order:
                         sig.samples = sig.samples.byteswap().view(sig.samples.dtype.newbyteorder())
 
-                    df[channel_name] = list(sig.samples) if use_polars else pd.Series(
-                        list(sig.samples),
-                        index=sig_index,
+                    df[channel_name] = (
+                        list(sig.samples)
+                        if use_polars
+                        else pd.Series(
+                            list(sig.samples),
+                            index=sig_index,
+                        )
                     )
-
 
                 # arrays and structures
                 elif sig.samples.dtype.names:
@@ -5017,12 +5020,8 @@ class MDF:
             elif time_from_zero and len(master):
                 master = master - master[0]
 
-            df = {
-                'timestamps': master,
-                **df
-            }
+            df = {"timestamps": master, **df}
             return pl.DataFrame(df)
-
 
         else:
 

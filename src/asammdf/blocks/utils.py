@@ -1358,7 +1358,7 @@ def components(
     prefix: str = "",
     master: NDArray[Any] | None = None,
     only_basenames: bool = False,
-        use_polars : bool=False,
+    use_polars: bool = False,
 ) -> tuple[str, Series[Any]]:
     """yield pandas Series and unique name based on the ndarray object
 
@@ -1409,9 +1409,13 @@ def components(
             values = values.byteswap().view(values.dtype.newbyteorder())
 
         if len(values.shape) > 1:
-            values = list(values) if use_polars else Series(
-                list(values),
-                index=master,
+            values = (
+                list(values)
+                if use_polars
+                else Series(
+                    list(values),
+                    index=master,
+                )
             )
         elif not use_polars:
             values = Series(
@@ -1432,9 +1436,13 @@ def components(
             else:
                 axis_name = unique_names.get_unique_name(name)
             if len(values.shape) > 1:
-                values = list(values) if use_polars else Series(
-                    list(values),
-                    index=master,
+                values = (
+                    list(values)
+                    if use_polars
+                    else Series(
+                        list(values),
+                        index=master,
+                    )
                 )
             elif not use_polars:
                 values = Series(
@@ -1470,9 +1478,13 @@ def components(
                 else:
                     name_ = unique_names.get_unique_name(name)
                 if len(values.shape) > 1:
-                    values = list(values) if use_polars else Series(
-                        list(values),
-                        index=master,
+                    values = (
+                        list(values)
+                        if use_polars
+                        else Series(
+                            list(values),
+                            index=master,
+                        )
                     )
                 elif not use_polars:
                     values = Series(
@@ -1489,11 +1501,11 @@ class DataBlockInfo:
         "block_limit",
         "block_type",
         "compressed_size",
+        "first_timestamp",
         "invalidation_block",
+        "last_timestamp",
         "original_size",
         "param",
-        "first_timestamp",
-        "last_timestamp",
     )
 
     def __init__(
