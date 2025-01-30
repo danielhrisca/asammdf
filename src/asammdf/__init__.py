@@ -10,6 +10,12 @@ console.setLevel(logging.DEBUG)
 logger.addHandler(console)
 logger.setLevel(logging.ERROR)
 
+# patch for hdf5storage
+import numpy as np
+
+if not hasattr(np, "unicode_"):
+    np.unicode = np.str_
+
 from .blocks.options import get_global_option, set_global_option
 from .blocks.source_utils import Source
 from .blocks.utils import load_channel_names_from_file

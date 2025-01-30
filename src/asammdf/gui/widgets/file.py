@@ -3008,7 +3008,10 @@ MultiRasterSeparator;&
                 "progress": progress,
             }
 
-            target(**kwargs)
+            try:
+                target(**kwargs)
+            except:
+                print(format_exc())
 
     def raster_search(self, event):
         dlg = AdvancedSearch(
