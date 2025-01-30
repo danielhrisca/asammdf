@@ -14,7 +14,7 @@ logger.setLevel(logging.ERROR)
 import numpy as np
 
 if not hasattr(np, "unicode_"):
-    np.unicode = np.str_
+    np.unicode_ = np.str_
 
 from .blocks.options import get_global_option, set_global_option
 from .blocks.source_utils import Source
