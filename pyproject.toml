@@ -71,7 +71,7 @@ wheel.py-api = "cp39"
 
 [tool.black]
 line-length = 120
-required-version = "24"
+required-version = "25"
 target-version = ['py39']
 force-exclude = '''
 (.*/src/asammdf/gui/ui)|(.*/ext)

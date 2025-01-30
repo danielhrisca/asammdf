@@ -5,7 +5,7 @@
 --requirement doc/requirements.txt
 --requirement test/requirements.txt
 --requirement types-requirements.txt
-black~=24.1  # Aligned with .pre-commit-config.yaml
+black~=25.1  # Aligned with .pre-commit-config.yaml
 build
 mypy~=1.14
 pre-commit

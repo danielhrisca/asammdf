@@ -1,4 +1,4 @@
-""" MDF v4 constants """
+"""MDF v4 constants"""
 
 import re
 import struct

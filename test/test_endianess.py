@@ -47,17 +47,17 @@ class TestEndianess(unittest.TestCase):
     def test_not_aligned_mdf_v3(self):
         t = np.arange(15, dtype="<f8")
 
-        s1 = Signal(np.frombuffer(b"\x00\x00\x3F\x02" * 15, dtype=">u4"), t, name="Motorola")
+        s1 = Signal(np.frombuffer(b"\x00\x00\x3f\x02" * 15, dtype=">u4"), t, name="Motorola")
 
-        s2 = Signal(np.frombuffer(b"\x04\xF8\x00\x00" * 15, dtype="<u4"), t, name="Intel")
+        s2 = Signal(np.frombuffer(b"\x04\xf8\x00\x00" * 15, dtype="<u4"), t, name="Intel")
 
         s3 = Signal(
-            np.frombuffer(b"\xBB\x55" * 2 * 15, dtype="<u4"),
+            np.frombuffer(b"\xbb\x55" * 2 * 15, dtype="<u4"),
             t,
             name="NotAlignedMotorola",
         )
 
-        s4 = Signal(np.frombuffer(b"\xBB\x55" * 2 * 15, dtype="<u4"), t, name="NotAlignedIntel")
+        s4 = Signal(np.frombuffer(b"\xbb\x55" * 2 * 15, dtype="<u4"), t, name="NotAlignedIntel")
 
         with MDF(version="3.30") as mdf_source:
             mdf_source.append([s1, s2, s3, s4], common_timebase=True)
@@ -121,17 +121,17 @@ class TestEndianess(unittest.TestCase):
     def test_not_aligned_mdf_v4(self):
         t = np.arange(15, dtype="<f8")
 
-        s1 = Signal(np.frombuffer(b"\x00\x00\x3F\x02" * 15, dtype=">u4"), t, name="Motorola")
+        s1 = Signal(np.frombuffer(b"\x00\x00\x3f\x02" * 15, dtype=">u4"), t, name="Motorola")
 
-        s2 = Signal(np.frombuffer(b"\x04\xF8\x00\x00" * 15, dtype="<u4"), t, name="Intel")
+        s2 = Signal(np.frombuffer(b"\x04\xf8\x00\x00" * 15, dtype="<u4"), t, name="Intel")
 
         s3 = Signal(
-            np.frombuffer(b"\xBB\x55" * 2 * 15, dtype="<u4"),
+            np.frombuffer(b"\xbb\x55" * 2 * 15, dtype="<u4"),
             t,
             name="NotAlignedMotorola",
         )
 
-        s4 = Signal(np.frombuffer(b"\xBB\x55" * 2 * 15, dtype="<u4"), t, name="NotAlignedIntel")
+        s4 = Signal(np.frombuffer(b"\xbb\x55" * 2 * 15, dtype="<u4"), t, name="NotAlignedIntel")
 
         with MDF(version="4.11") as mdf_source:
             mdf_source.append([s1, s2, s3, s4], common_timebase=True)
@@ -199,13 +199,13 @@ class TestEndianess(unittest.TestCase):
         t = np.arange(15, dtype="<f8")
 
         s1 = Signal(
-            np.frombuffer(b"\x00\x00\x3F\x02\x04\xF8\x00\x00" * 15, dtype="<u8"),
+            np.frombuffer(b"\x00\x00\x3f\x02\x04\xf8\x00\x00" * 15, dtype="<u8"),
             t,
             name="Parent",
         )
 
         s2 = Signal(
-            np.frombuffer(b"\x04\xF8\x00\x00" * 15, dtype="<u4"),
+            np.frombuffer(b"\x04\xf8\x00\x00" * 15, dtype="<u4"),
             t,
             name="OverlappingMotorola",
         )
@@ -291,13 +291,13 @@ class TestEndianess(unittest.TestCase):
         t = np.arange(15, dtype="<f8")
 
         s1 = Signal(
-            np.frombuffer(b"\x00\x00\x3F\x02\x04\xF8\x00\x00" * 15, dtype="<u8"),
+            np.frombuffer(b"\x00\x00\x3f\x02\x04\xf8\x00\x00" * 15, dtype="<u8"),
             t,
             name="Parent",
         )
 
         s2 = Signal(
-            np.frombuffer(b"\x04\xF8\x00\x00" * 15, dtype="<u4"),
+            np.frombuffer(b"\x04\xf8\x00\x00" * 15, dtype="<u4"),
             t,
             name="OverlappingMotorola",
         )

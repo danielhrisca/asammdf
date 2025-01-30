@@ -1,4 +1,4 @@
-""" ASAM MDF version 2 file format module """
+"""ASAM MDF version 2 file format module"""
 
 from os import PathLike
 from typing import Optional, Union

@@ -10,10 +10,10 @@ class TestCANTP(unittest.TestCase):
 
     payload = np.vstack(
         [
-            np.frombuffer(b"\x10\x0B\x52\x49\x47\x20\x20\x39", dtype="uint8"),  # Initial part
+            np.frombuffer(b"\x10\x0b\x52\x49\x47\x20\x20\x39", dtype="uint8"),  # Initial part
             np.frombuffer(b"\x30\xff\x00\x4c\x40\x00\xd5\x54", dtype="uint8"),  # Flow control
             np.frombuffer(b"\x21\x30\x30\x30\x38\x33\x00\x00", dtype="uint8"),  # Final (second) part
-            np.frombuffer(b"\x10\x0B\x52\x49\x47\x20\x20\x39", dtype="uint8"),  # Initial part of next frame...
+            np.frombuffer(b"\x10\x0b\x52\x49\x47\x20\x20\x39", dtype="uint8"),  # Initial part of next frame...
         ]
     )
     ts = np.array([0.112, 0.113, 0.116, 0.201])
