@@ -1303,13 +1303,14 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
         return False, None
 
     args = inspect.signature(func)
+
+    # try with sample by sample call
     kwargs = {}
     for i, (arg_name, arg) in enumerate(args.parameters.items()):
         kwargs[arg_name] = arg.default
 
     trace = ""
 
-    # try with sample by sample call
     sample_by_sample = True
     try:
         res = func(**kwargs)
@@ -1323,11 +1324,12 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
             sample_by_sample = False
             trace = "Sample by sample: The function did not return a numeric scalar value"
 
+    # try with complete signal call
     kwargs = {}
     for i, (arg_name, arg) in enumerate(args.parameters.items()):
         kwargs[arg_name] = np.ones(10000, dtype="i8") * arg.default
+    kwargs["t"] = np.arange(10000) * 0.1
 
-    # try with complete signal call
     complete_signal = True
     try:
         res = func(**kwargs)
