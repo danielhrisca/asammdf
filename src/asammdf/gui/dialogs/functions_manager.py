@@ -3,6 +3,7 @@ import os
 
 from PySide6 import QtCore, QtWidgets
 
+from ..dialogs.messagebox import MessageBox
 from ..widgets.functions_manager import FunctionsManager
 
 
@@ -76,12 +77,30 @@ class FunctionsManagerDialog(QtWidgets.QDialog):
         self.widget.refresh_definitions()
 
         for name, info in self.widget.definitions.items():
+            if info["current_definition"] != info["definition"]:
+                result = MessageBox.question(
+                    self, "Unsaved function definitions", "Do you want to review the functions before exporting them?"
+                )
+                if result == MessageBox.StandardButton.No:
+                    break
+                else:
+                    for row in range(self.widget.functions_list.count()):
+                        item = self.widget.functions_list.item(row)
+                        if item.text() == name:
+                            self.widget.functions_list.setCurrentRow(row)
+                            self.widget.functions_list.scrollToItem(item)
+                            break
+                    return
+
+        for name, info in self.widget.definitions.items():
             self.modified_definitions[info["uuid"]] = {
                 "name": name,
-                "definition": info["definition"],
+                "definition": info["current_definition"],
             }
 
-        self.global_variables = self.widget.globals_definition.toPlainText()
+        self.global_variables = "\n".join(
+            line for line in self.widget.globals_definition.toPlainText().splitlines() if line
+        )
 
         self.close()
 

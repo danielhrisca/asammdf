@@ -92,8 +92,7 @@ line-length = 120
 required-version = "24"
 target-version = ['py39']
 force-exclude = '''
-^/src/asammdf/gui/ui
-^/ext
+(.*/src/asammdf/gui/ui)|(.*/ext)
 '''
 
 [tool.coverage]

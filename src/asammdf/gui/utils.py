@@ -1204,7 +1204,8 @@ def generate_python_variables(definition: str, in_globals: Union[dict, None] = N
 
 
 def generate_python_function_globals() -> dict:
-    return {
+
+    func_globals = {
         "bisect": bisect,
         "collections": collections,
         "itertools": itertools,
@@ -1215,6 +1216,14 @@ def generate_python_function_globals() -> dict:
         "struct": struct,
         "__builtins__": _BUILTINS,
     }
+    try:
+        import scipy as sp
+
+        func_globals["sp"] = sp
+    except ImportError:
+        pass
+
+    return func_globals
 
 
 def generate_python_function(definition: str, in_globals: Union[dict, None] = None) -> tuple:
@@ -1284,12 +1293,13 @@ def generate_python_function(definition: str, in_globals: Union[dict, None] = No
 
 def check_generated_function(func, trace, function_source, silent, parent=None):
     if trace is not None:
-        ErrorDialog(
-            title="Function definition check",
-            message="The syntax is not correct. The following error was found",
-            trace=f"{trace}\n\nin the function\n\n{function_source}",
-            parent=parent,
-        ).exec()
+        if not silent:
+            ErrorDialog(
+                title="Function definition check",
+                message="The syntax is not correct. The following error was found",
+                trace=f"{trace}\n\nin the function\n\n{function_source}",
+                parent=parent,
+            ).exec()
         return False, None
 
     args = inspect.signature(func)
@@ -1345,12 +1355,13 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
                 trace = "Complete signal: The function returned a multi dimensional array"
 
     if not sample_by_sample and not complete_signal:
-        ErrorDialog(
-            title="Function definition check",
-            message="The syntax is not correct. The following error was found",
-            trace=f"{trace}\n\nin the function\n\n{function_source}",
-            parent=parent,
-        ).exec()
+        if not silent:
+            ErrorDialog(
+                title="Function definition check",
+                message="The syntax is not correct. The following error was found",
+                trace=f"{trace}\n\nin the function\n\n{function_source}",
+                parent=parent,
+            ).exec()
 
         return False, None
 

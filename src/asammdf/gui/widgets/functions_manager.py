@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 from natsort import natsorted
-from PySide6 import QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..dialogs.error_dialog import ErrorDialog
 from ..dialogs.messagebox import MessageBox
@@ -23,6 +23,11 @@ class FunctionsManager(Ui_FunctionsManager, QtWidgets.QWidget):
         self.setupUi(self)
 
         self.channels = channels or {}
+
+        definitions.pop("__global_variables__", None)
+
+        for info in definitions.values():
+            info["current_definition"] = info["definition"] = info["definition"].replace("\t", "    ")
 
         self.definitions = definitions
 
@@ -86,8 +91,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         self.functions_list.placeholder_text = "Press the + button to add a new function definition"
         self.functions_list.user_editable = True
         self.functions_list.setAlternatingRowColors(True)
-
-        self.functions_list.currentItemChanged.connect(self.definition_selection_changed)
+        self.functions_list.setIconSize(QtCore.QSize(16, 16))
         self.functions_list.itemsDeleted.connect(self.definitions_deleted)
 
         self.add_btn.clicked.connect(self.add_definition)
@@ -100,14 +104,14 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
 
         self.tabs.currentChanged.connect(self.tabs_changed)
 
-        if self.definitions:
-            self.functions_list.clear()
-            names = natsorted(self.definitions)
-            self.functions_list.addItems(names)
-            if selected_definition in names:
-                self.functions_list.setCurrentRow(names.index(selected_definition))
-            elif names:
-                self.functions_list.setCurrentRow(0)
+        names = self.refresh_functions_list()
+
+        self.functions_list.currentItemChanged.connect(self.definition_selection_changed)
+
+        if selected_definition in names:
+            self.functions_list.setCurrentRow(names.index(selected_definition))
+        elif names:
+            self.functions_list.setCurrentRow(0)
 
         for button in (
             self.add_btn,
@@ -133,12 +137,11 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
 
         self.definitions[name] = {
             "definition": f"def {name}(t=0):\n    return 0",
+            "current_definition": f"def {name}(t=0):\n    return 0",
             "uuid": os.urandom(6).hex(),
         }
 
-        self.functions_list.clear()
-        names = natsorted(self.definitions)
-        self.functions_list.addItems(names)
+        names = self.refresh_functions_list()
 
         row = names.index(name)
         self.functions_list.setCurrentRow(row + 1)
@@ -163,15 +166,21 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
 
         return not bool(trace)
 
-    def check_syntax(self, silent=False):
+    def check_syntax(self, silent=False, definition=None, globals_definition=None):
+        if definition is None:
+            definition = self.function_definition.toPlainText().replace("\t", "    ")
+
+        if globals_definition is None:
+            globals_definition = self.globals_definition.toPlainText()
+
         _globals = generate_python_function_globals()
 
-        generate_python_variables(self.globals_definition.toPlainText(), in_globals=_globals)
+        generate_python_variables(globals_definition, in_globals=_globals)
 
         for info in self.definitions.values():
             generate_python_function(info["definition"], in_globals=_globals)
 
-        function_source = self.function_definition.toPlainText().replace("\t", "    ")
+        function_source = definition
         func, trace = generate_python_function(function_source, in_globals=_globals)
 
         return check_generated_function(func, trace, function_source, silent, parent=self)
@@ -189,11 +198,34 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
             self.function_definition.setPlainText("")
 
     def definition_selection_changed(self, current, previous):
+        if previous:
+            name = previous.text()
+            previous.setIcon(QtGui.QIcon())
+            info = self.definitions[name]
+            info["current_definition"] = self.function_definition.toPlainText().replace("\t", "    ")
+
+            ok, _ = self.check_syntax(silent=True)
+            if ok:
+                if info["current_definition"] != info["definition"]:
+                    previous.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MessageBoxInformation))
+                else:
+                    previous.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_CommandLink))
+            else:
+                previous.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MessageBoxCritical))
+
         if current:
             name = current.text()
+            info = self.definitions[name]
+            self.function_definition.setPlainText(info["current_definition"])
 
-            definition = self.definitions[name]
-            self.function_definition.setPlainText(definition["definition"])
+            ok, _ = self.check_syntax(silent=True)
+            if ok:
+                if info["current_definition"] != info["definition"]:
+                    current.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MessageBoxInformation))
+                else:
+                    current.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_CommandLink))
+            else:
+                current.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MessageBoxCritical))
 
     def erase_definitions(self):
         self.functions_list.clear()
@@ -203,6 +235,22 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
     def export_definitions(self, *args):
         self.refresh_definitions()
 
+        for name, info in self.definitions.items():
+            if info["current_definition"] != info["definition"]:
+                result = MessageBox.question(
+                    self, "Unsaved function definitions", "Do you want to review the functions before exporting them?"
+                )
+                if result == MessageBox.StandardButton.No:
+                    break
+                else:
+                    for row in range(self.functions_list.count()):
+                        item = self.functions_list.item(row)
+                        if item.text() == name:
+                            self.functions_list.setCurrentRow(row)
+                            self.functions_list.scrollToItem(item)
+                            break
+                    return
+
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
             "Select functions definition export file",
@@ -211,8 +259,8 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         )
 
         if file_name and Path(file_name).suffix.lower() == ".def":
-            definitions = {name: info["definition"] for name, info in self.definitions.items()}
-            definitions["__global_variables__"] = self.globals_definition.toPlainText()
+            definitions = {name: info["current_definition"] for name, info in self.definitions.items()}
+            definitions["__global_variables__"] = self.globals_definition.toPlainText().replace("\t", "    ")
             Path(file_name).write_text(json.dumps(definitions, indent=2))
 
     def import_definitions(self, *args):
@@ -232,23 +280,21 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
             with open(file_name) as infile:
                 info = json.load(infile)
 
+            self.globals_definition.setPlainText(info.pop("__global_variables__", "").replace("\t", "    "))
+
             for name, definition in info.items():
-                if name == "__global_variables__":
-                    self.globals_definition.setPlainText(definition)
+                definition = definition.replace("\t", "    ")
 
                 if name in self.definitions:
-                    self.definitions[name]["definition"] = definition
+                    self.definitions[name]["definition"] = self.definitions[name]["current_definition"] = definition
                 else:
                     self.definitions[name] = {
                         "definition": definition,
+                        "current_definition": definition,
                         "uuid": os.urandom(6).hex(),
                     }
 
-            self.functions_list.clear()
-            names = natsorted(self.definitions)
-            self.functions_list.addItems(names)
-            if names:
-                self.functions_list.setCurrentRow(0)
+            self.refresh_functions_list()
 
     def refresh_definitions(self):
         _globals = generate_python_function_globals()
@@ -256,7 +302,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         generate_python_variables(self.globals_definition.toPlainText(), in_globals=_globals)
 
         for info in self.definitions.values():
-            generate_python_function(info["definition"], in_globals=_globals)
+            generate_python_function(info["current_definition"], in_globals=_globals)
 
         function_source = self.function_definition.toPlainText().replace("\t", "    ")
         func, trace = generate_python_function(function_source, in_globals=_globals)
@@ -264,32 +310,71 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         if func is not None:
             name = func.__name__
             if name in self.definitions:
-                self.definitions[name]["definition"] = self.function_definition.toPlainText()
+                self.definitions[name]["current_definition"] = self.function_definition.toPlainText().replace(
+                    "\t", "    "
+                )
+
+    def refresh_functions_list(self):
+        if self.definitions:
+            self.functions_list.clear()
+            items = []
+            names = natsorted(self.definitions)
+
+            for name in names:
+                info = self.definitions[name]
+                ok, func = self.check_syntax(silent=True, definition=info["definition"])
+
+                if ok:
+                    items.append(
+                        QtWidgets.QListWidgetItem(
+                            self.style().standardIcon(QtWidgets.QStyle.SP_CommandLink),
+                            name,
+                            self.functions_list,
+                        )
+                    )
+                else:
+                    items.append(
+                        QtWidgets.QListWidgetItem(
+                            self.style().standardIcon(QtWidgets.QStyle.SP_MessageBoxCritical),
+                            name,
+                            self.functions_list,
+                        )
+                    )
+
+        else:
+            names = []
+
+        return names
 
     def store_definition(self, *args):
+
+        item = self.functions_list.currentItem()
+        if not item:
+            return
+
+        current_name = item.text()
+        info = self.definitions.pop(current_name)
+        info["definition"] = info["current_definition"] = self.function_definition.toPlainText().replace("\t", "    ")
+
         ok, func = self.check_syntax(silent=True)
         if ok:
-            item = self.functions_list.currentItem()
-            name = func.__name__
 
-            if name != item.text() and name in self.definitions:
+            func_name = func.__name__
+
+            if current_name != func_name and func_name in self.definitions:
                 MessageBox.information(
                     self,
                     "Invalid function name",
-                    f'The name "{name}" is already given to another function.\n' "The function names must be unique",
+                    f'The name "{func_name}" is already given to another function.\n'
+                    "The function names must be unique",
                 )
-                return
 
-            info = self.definitions.pop(item.text())
-            info["definition"] = self.function_definition.toPlainText()
-            self.definitions[func.__name__] = info
+            else:
+                current_name = func_name
 
-            self.functions_list.clear()
-            names = natsorted(self.definitions)
-            self.functions_list.addItems(names)
+        self.definitions[current_name] = info
 
-            row = names.index(name)
-            self.functions_list.setCurrentRow(row)
+        self.refresh_functions_list()
 
     def tabs_changed(self, index):
         self.check_globals_syntax(silent=True)
