@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "asammdf"
-description="ASAM MDF measurement data file parser"
+description = "ASAM MDF measurement data file parser"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "LGPLv3+" }
@@ -42,33 +42,15 @@ dependencies = [
     "numpy>=1.23.0",
     "pandas",
     "python-dateutil",
-    "typing-extensions",
+    "typing-extensions~=4.6",
 ]
 
 [project.optional-dependencies]
 decode = ["faust-cchardet==2.1.19", "chardet"]
-export = [
-    "pyarrow",
-    "h5py",
-    "hdf5storage>=0.1.19",
-    "python-snappy",
-    "polars",
-]
-testing = [
-    "h5py",
-    "pyarrow",
-    "python-can",
-    "scipy",
-]
+export = ["pyarrow", "h5py", "hdf5storage>=0.1.19", "python-snappy", "polars"]
+testing = ["h5py", "pyarrow", "python-can", "scipy"]
 export_matlab_v5 = ["scipy"]
-gui = [
-    "natsort",
-    "PySide6",
-    "pyqtgraph",
-    "pyqtlet2",
-    "packaging",
-    "QtPy",
-]
+gui = ["natsort", "PySide6", "pyqtgraph", "pyqtlet2[PySide6]", "packaging"]
 encryption = ["cryptography", "keyring"]
 symbolic_math = ["sympy"]
 filesystem = ["fsspec"]
@@ -109,6 +91,54 @@ build-frontend = "build"
 archs = ["auto64"]                        # only build for 64bit architectures
 # skip pypy and irrelevant architectures
 skip = ["pp*", "*_ppc64le", "*-musllinux*", "*_s390x"]
+
+[tool.mypy]
+files = "."
+exclude = [
+    "benchmarks/",
+    "build/",
+    "ci/",
+    "dist/",
+    "doc/_build/",
+    "examples/",
+    "ext/",
+    "test/",
+]
+python_version = "3.9"
+plugins = ["numpy.typing.mypy_plugin"]
+strict = true
+
+[[tool.mypy.overrides]]
+module = [
+    "canmatrix.*",
+    "cchardet.*",
+    "cmerg.*",
+    "fsspec.*",
+    "h5py.*",
+    "hdf5storage.*",
+    "mdfreader.*",
+    "mfile.*",
+    "numexpr.*",
+    "pyqtgraph.*",
+    "pyqtlet2.*",
+    "snappy.*",
+    "sympy.*",
+    "xmlrunner.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "asammdf.app.asammdfgui",
+    "asammdf.blocks.bus_logging_utils",
+    "asammdf.blocks.conversion_utils",
+    "asammdf.blocks.mdf_v4",
+    "asammdf.blocks.v4_blocks",
+    "asammdf.gui.*",
+    "asammdf.mdf",
+    "asammdf.signal",
+]
+ignore_errors = true
 
 [tool.ruff]
 target-version = "py39"

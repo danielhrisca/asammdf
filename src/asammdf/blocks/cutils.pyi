@@ -1,0 +1,6 @@
+from typing import Any
+
+from numpy.typing import NDArray
+
+def get_channel_raw_bytes(data_block: bytes, record_size: int, byte_offset: int, byte_count: int) -> bytes: ...
+def data_block_from_arrays(data_blocks: list[tuple[NDArray[Any], int]], cycles_obj: int) -> bytearray: ...

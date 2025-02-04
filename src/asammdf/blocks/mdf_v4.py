@@ -11,7 +11,7 @@ from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
 from hashlib import md5
-from io import BufferedReader, BytesIO
+from io import BufferedReader, BytesIO, StringIO
 import logging
 from math import ceil, floor
 import mmap
@@ -71,13 +71,15 @@ from ..types import (
     StrPathType,
     WritableBufferType,
 )
-from . import bus_logging_utils
+from . import bus_logging_utils, mdf_common
 from . import v4_constants as v4c
 from .conversion_utils import conversion_transfer
 from .cutils import (
     data_block_from_arrays,
     extract,
     get_channel_raw_bytes,
+    get_channel_raw_bytes_parallel,
+    get_invalidation_bits_array,
     get_vlsd_max_sample_size,
     sort_data_block,
 )
@@ -92,7 +94,6 @@ from .utils import (
     CONVERT,
     count_channel_groups,
     DataBlockInfo,
-    debug_channel,
     extract_display_names,
     extract_encryption_information,
     extract_xml_comment,
@@ -100,7 +101,6 @@ from .utils import (
     Fragment,
     get_fmt_v4,
     get_text_v4,
-    Group,
     InvalidationBlockInfo,
     is_file_like,
     load_can_database,
@@ -176,14 +176,10 @@ logger = logging.getLogger("asammdf")
 
 __all__ = ["MDF4"]
 
-
-from .cutils import (
-    get_channel_raw_bytes_parallel,
-    get_invalidation_bits_array,
-)
+Group = mdf_common.Group[DataGroup, ChannelGroup, Channel]
 
 
-class MDF4(MDF_Common):
+class MDF4(MDF_Common[Group]):
     """The *header* attibute is a *HeaderBlock*.
 
     The *groups* attribute is a list of dicts, each one with the following keys:
@@ -11245,3 +11241,54 @@ class MDF4(MDF_Common):
 
     def reload_header(self):
         self.header = HeaderBlock(address=0x40, stream=self._file)
+
+
+def debug_channel(
+    mdf: MDF4,
+    group: Group,
+    channel: Channel,
+    dependency: list[tuple[int, int]],
+    file: StringIO | None = None,
+) -> None:
+    """use this to print debug information in case of errors
+
+    Parameters
+    ----------
+    mdf : MDF
+        source MDF object
+    group : dict
+        group
+    channel : Channel
+        channel object
+    dependency : ChannelDependency
+        channel dependency object
+
+    """
+    print("MDF", "=" * 76, file=file)
+    print("name:", mdf.name, file=file)
+    print("version:", mdf.version, file=file)
+    print("read fragment size:", mdf._read_fragment_size, file=file)
+    print("write fragment size:", mdf._write_fragment_size, file=file)
+    print()
+
+    record = mdf._prepare_record(group)
+    print("GROUP", "=" * 74, file=file)
+    print("sorted:", group["sorted"], file=file)
+    print("data location:", group["data_location"], file=file)
+    print("data blocks:", group.data_blocks, file=file)
+    print("dependencies", group["channel_dependencies"], file=file)
+    print("record:", record, file=file)
+    print(file=file)
+
+    cg = group["channel_group"]
+    print("CHANNEL GROUP", "=" * 66, file=file)
+    print(cg, cg.cycles_nr, cg.samples_byte_nr, cg.invalidation_bytes_nr, file=file)
+    print(file=file)
+
+    print("CHANNEL", "=" * 72, file=file)
+    print(channel, file=file)
+    print(file=file)
+
+    print("CHANNEL ARRAY", "=" * 66, file=file)
+    print(dependency, file=file)
+    print(file=file)
