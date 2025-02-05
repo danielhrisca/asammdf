@@ -1,4 +1,4 @@
-""" MDF v2 and v3 constants """
+"""MDF v2 and v3 constants"""
 
 from collections.abc import Callable
 import struct

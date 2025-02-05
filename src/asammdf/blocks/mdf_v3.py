@@ -1,4 +1,4 @@
-""" ASAM MDF version 3 file format module """
+"""ASAM MDF version 3 file format module"""
 
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator, Sequence
