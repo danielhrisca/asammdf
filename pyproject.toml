@@ -49,10 +49,10 @@ dependencies = [
 decode = ["faust-cchardet==2.1.19", "chardet"]
 export = ["pyarrow", "h5py", "hdf5storage>=0.1.19", "python-snappy", "polars"]
 testing = ["h5py", "pyarrow", "python-can", "scipy"]
-export_matlab_v5 = ["scipy"]
+export-matlab-v5 = ["scipy"]
 gui = ["natsort", "PySide6", "pyqtgraph", "pyqtlet2[PySide6]", "packaging"]
 encryption = ["cryptography", "keyring"]
-symbolic_math = ["sympy"]
+symbolic-math = ["sympy"]
 filesystem = ["fsspec"]
 
 [project.scripts]
@@ -71,10 +71,13 @@ wheel.py-api = "cp39"
 
 [tool.black]
 line-length = 120
-required-version = "24"
+required-version = "25"
 target-version = ['py39']
 force-exclude = '''
-(.*/src/asammdf/gui/ui)|(.*/ext)
+(
+    ^/ext |
+    ^/src/asammdf/gui/ui |
+)
 '''
 
 [tool.coverage]

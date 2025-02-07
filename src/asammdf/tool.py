@@ -1,4 +1,4 @@
-""" asammdf tool module """
+"""asammdf tool module"""
 
 from .version import __version__ as v__
 

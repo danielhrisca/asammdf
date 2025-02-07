@@ -415,7 +415,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         self.setHeaderHidden(False)
         self.setColumnCount(5)
-        self.setHeaderLabels(["Name", "Value", "Unit", "\u290a", "\u21A8"])
+        self.setHeaderLabels(["Name", "Value", "Unit", "\u290a", "\u21a8"])
         self.setDragEnabled(True)
         self.setExpandsOnDoubleClick(False)
 
