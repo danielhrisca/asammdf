@@ -45,6 +45,7 @@ a = Analysis(
         "canmatrix.formats",
         "canmatrix.formats.dbc",
         "canmatrix.formats.arxml",
+        "canmatrix.formats.ldf",
         "asammdf.blocks.cutils",
         "import pyqtgraph.canvas.CanvasTemplate_pyside6",
         "import pyqtgraph.canvas.TransformGuiTemplate_pyside6",
