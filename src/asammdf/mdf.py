@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from functools import reduce
 import gzip
-from io import BufferedIOBase, BytesIO
+from io import IOBase
 import logging
 import os
 from pathlib import Path
@@ -233,10 +233,9 @@ class MDF:
 
         if name:
             if is_file_like(name):
-                if isinstance(name, (BytesIO, BufferedIOBase)):
+                if isinstance(name, IOBase):
                     original_name = None
                     file_stream = name
-                    do_close = False
 
                 elif isinstance(name, bz2.BZ2File):
                     original_name = Path(name._fp.name)
@@ -245,16 +244,12 @@ class MDF:
                     file_stream = open(tmp_name, "rb")
                     name = tmp_name
 
-                    do_close = True
-
                 elif isinstance(name, gzip.GzipFile):
                     original_name = Path(name.name)
                     tmp_name = get_temporary_filename(original_name, dir=temporary_folder)
                     tmp_name.write_bytes(name.read())
                     file_stream = open(tmp_name, "rb")
                     name = tmp_name
-
-                    do_close = True
 
                 elif FSSPEF_AVAILABLE and isinstance(name, fsspec.spec.AbstractBufferedFile):
                     original_name = "AzureFile"
@@ -282,7 +277,6 @@ class MDF:
                 move(output, name)
 
                 file_stream = open(name, "rb")
-                do_close = True
 
             else:
                 name = original_name = Path(name)
@@ -305,14 +299,12 @@ class MDF:
                         move(output, name)
 
                 file_stream = open(name, "rb")
-                do_close = True
 
             file_stream.seek(0)
             magic_header = file_stream.read(8)
 
             if magic_header.strip() not in (b"MDF", b"UnFinMF"):
-                if do_close:
-                    file_stream.close()
+                file_stream.close()
                 raise MdfException(f'"{name}" is not a valid ASAM MDF file: magic header is {magic_header}')
 
             file_stream.seek(8)
@@ -320,7 +312,7 @@ class MDF:
             if not version:
                 _, version = get_measurement_timestamp_and_version(file_stream)
 
-            if do_close:
+            if not isinstance(name, IOBase):
                 file_stream.close()
 
             kwargs["original_name"] = original_name
