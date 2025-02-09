@@ -2224,7 +2224,7 @@ class ChannelConversion(_ChannelConversionBase):
 
     CCBLOCK common fields
 
-    * ``id`` - bytes : block ID; always b'##CG'
+    * ``id`` - bytes : block ID; always b'##CC'
     * ``reserved0`` - int : reserved bytes
     * ``block_len`` - int : block bytes size
     * ``links_nr`` - int : number of links
