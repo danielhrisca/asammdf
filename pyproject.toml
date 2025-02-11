@@ -34,7 +34,7 @@ keywords = [
     "measurement",
 ]
 dependencies = [
-    "canmatrix[arxml,dbc]>=1.0",
+    "canmatrix[arxml,dbc]==1.0",
     "isal; platform_machine == 'x86_64' or platform_machine == 'AMD64'",
     "lxml>=4.9.3",
     "lz4",
