@@ -1133,7 +1133,7 @@ def is_file_like(obj: object) -> TypeIs[FileLike]:
     >>> is_file_like([1, 2, 3])
     False
     """
-    return isinstance(obj, FileLike)
+    return isinstance(obj, FileLike) or isinstance(getattr(obj, "file", None), FileLike)
 
 
 class UniqueDB:
