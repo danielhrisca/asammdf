@@ -2727,31 +2727,30 @@ class MDF4(MDF_Common):
 
         Examples
         --------
+        >>> from asammdf import MDF, Signal
+        >>> import numpy as np
+
         >>> # case 1 conversion type None
         >>> s1 = np.array([1, 2, 3, 4, 5])
         >>> s2 = np.array([-1, -2, -3, -4, -5])
         >>> s3 = np.array([0.1, 0.04, 0.09, 0.16, 0.25])
         >>> t = np.array([0.001, 0.002, 0.003, 0.004, 0.005])
-        >>> names = ['Positive', 'Negative', 'Float']
-        >>> units = ['+', '-', '.f']
-        >>> info = {}
         >>> s1 = Signal(samples=s1, timestamps=t, unit='+', name='Positive')
         >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
-        >>> mdf = MDF4('new.mdf')
-        >>> mdf.append([s1, s2, s3], comment='created by asammdf v4.0.0')
+        >>> mdf = MDF(version='4.10')
+        >>> mdf.append([s1, s2, s3], comment='created by asammdf')
+
         >>> # case 2: VTAB conversions from channels inside another file
-        >>> mdf1 = MDF4('in.mf4')
+        >>> mdf1 = MDF('in.mf4')
         >>> ch1 = mdf1.get("Channel1_VTAB")
         >>> ch2 = mdf1.get("Channel2_VTABR")
-        >>> sigs = [ch1, ch2]
-        >>> mdf2 = MDF4('out.mf4')
-        >>> mdf2.append(sigs, comment='created by asammdf v4.0.0')
+        >>> mdf2 = MDF('out.mf4')
+        >>> mdf2.append([ch1, ch2], comment='created by asammdf')
         >>> mdf2.append(ch1, comment='just a single channel')
         >>> df = pd.DataFrame.from_dict({'s1': np.array([1, 2, 3, 4, 5]), 's2': np.array([-1, -2, -3, -4, -5])})
         >>> units = {'s1': 'V', 's2': 'A'}
         >>> mdf2.append(df, units=units)
-
         """
         source_block = SourceInformation.from_common_source(acq_source) if acq_source else acq_source
 
@@ -5885,25 +5884,25 @@ class MDF4(MDF_Common):
 
         Examples
         --------
-        >>> # case 1 conversion type None
+        >>> from asammdf import MDF, Signal
+        >>> import numpy as np
         >>> s1 = np.array([1, 2, 3, 4, 5])
         >>> s2 = np.array([-1, -2, -3, -4, -5])
         >>> s3 = np.array([0.1, 0.04, 0.09, 0.16, 0.25])
         >>> t = np.array([0.001, 0.002, 0.003, 0.004, 0.005])
-        >>> names = ['Positive', 'Negative', 'Float']
-        >>> units = ['+', '-', '.f']
         >>> s1 = Signal(samples=s1, timestamps=t, unit='+', name='Positive')
         >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
-        >>> mdf = MDF4('new.mdf')
-        >>> mdf.append([s1, s2, s3], comment='created by asammdf v1.1.0')
+        >>> mdf = MDF(version='4.10')
+        >>> mdf.append([s1, s2, s3], comment='created by asammdf')
         >>> t = np.array([0.006, 0.007, 0.008, 0.009, 0.010])
-        >>> # extend without invalidation bits
-        >>> mdf2.extend(0, [(t, None), (s1, None), (s2, None), (s3, None)])
-        >>> # some invaldiation btis
-        >>> s1_inv = np.array([0,0,0,1,1], dtype=np.bool)
-        >>> mdf2.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
 
+        >>> # extend without invalidation bits
+        >>> mdf.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
+
+        >>> # some invalidation bits
+        >>> s1_inv = np.array([0, 0, 0, 1, 1], dtype=np.bool)
+        >>> mdf.extend(0, [(t, None), (s1.samples, s1_inv), (s2.samples, None), (s3.samples, None)])
         """
         if self.version >= "4.20" and (self._column_storage or 1):
             return self._extend_column_oriented(index, signals)
@@ -6174,25 +6173,25 @@ class MDF4(MDF_Common):
 
         Examples
         --------
-        >>> # case 1 conversion type None
+        >>> from asammdf import MDF, Signal
+        >>> import numpy as np
         >>> s1 = np.array([1, 2, 3, 4, 5])
         >>> s2 = np.array([-1, -2, -3, -4, -5])
         >>> s3 = np.array([0.1, 0.04, 0.09, 0.16, 0.25])
         >>> t = np.array([0.001, 0.002, 0.003, 0.004, 0.005])
-        >>> names = ['Positive', 'Negative', 'Float']
-        >>> units = ['+', '-', '.f']
         >>> s1 = Signal(samples=s1, timestamps=t, unit='+', name='Positive')
         >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
-        >>> mdf = MDF4('new.mdf')
-        >>> mdf.append([s1, s2, s3], comment='created by asammdf v1.1.0')
+        >>> mdf = MDF(version='4.10')
+        >>> mdf.append([s1, s2, s3], comment='created by asammdf')
         >>> t = np.array([0.006, 0.007, 0.008, 0.009, 0.010])
-        >>> # extend without invalidation bits
-        >>> mdf2.extend(0, [(t, None), (s1, None), (s2, None), (s3, None)])
-        >>> # some invaldiation btis
-        >>> s1_inv = np.array([0,0,0,1,1], dtype=np.bool)
-        >>> mdf2.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
 
+        >>> # extend without invalidation bits
+        >>> mdf.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
+
+        >>> # some invalidation bits
+        >>> s1_inv = np.array([0, 0, 0, 1, 1], dtype=np.bool)
+        >>> mdf.extend(0, [(t, None), (s1.samples, s1_inv), (s2.samples, None), (s3.samples, None)])
         """
         gp = self.groups[index]
         if not signals:
@@ -6749,6 +6748,9 @@ class MDF4(MDF_Common):
         * if the channel name is not found
         * if the group index is out of range
         * if the channel index is out of range
+        * if there are multiple channel occurrences in the file and the arguments
+          *name*, *group*, *index* are ambiguous. This behaviour can be turned off
+          by setting raise_on_multiple_occurrences to *False*.
 
         Examples
         --------
@@ -6761,49 +6763,37 @@ class MDF4(MDF_Common):
         ...     sigs = [Signal(s*(i*10+j), t, name='Sig') for j in range(1, 4)]
         ...     mdf.append(sigs)
         ...
-        >>> # first group and channel index of the specified channel name
-        ...
         >>> mdf.get('Sig')
-        UserWarning: Multiple occurrences for channel "Sig". Using first occurrence from data group 4. Provide both "group" and "index" arguments to select another data group
-        <Signal Sig:
-                samples=[ 1.  1.  1.  1.  1.]
-                timestamps=[0 1 2 3 4]
-                unit=""
-                info=None
-                comment="">
-        >>> # first channel index in the specified group
-        ...
+        MdfException: Multiple occurrences for channel "Sig": ((0, 1), (0, 2),
+        (0, 3), (1, 1), (1, 2), (1, 3), (2, 1), (2, 2), (2, 3), (3, 1), (3, 2),
+        (3, 3)). Provide both "group" and "index" arguments to select another
+        data group
+        >>>
         >>> mdf.get('Sig', 1)
-        <Signal Sig:
-                samples=[ 11.  11.  11.  11.  11.]
-                timestamps=[0 1 2 3 4]
-                unit=""
-                info=None
-                comment="">
-        >>> # channel named Sig from group 1 channel index 2
-        ...
+        MdfException: Multiple occurrences for channel "Sig": ((1, 1), (1, 2),
+        (1, 3)). Provide both "group" and "index" arguments to select another
+        data group
+        >>>
+        >>> # channel named Sig from group 1, channel index 2
         >>> mdf.get('Sig', 1, 2)
         <Signal Sig:
                 samples=[ 12.  12.  12.  12.  12.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
-        >>> # channel index 1 or group 2
-        ...
+        >>>
+        >>> # group 2, channel index 1
         >>> mdf.get(None, 2, 1)
         <Signal Sig:
                 samples=[ 21.  21.  21.  21.  21.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
         >>> mdf.get(group=2, index=1)
         <Signal Sig:
                 samples=[ 21.  21.  21.  21.  21.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
 
         """
@@ -9309,10 +9299,8 @@ class MDF4(MDF_Common):
 
         Examples
         --------
-        >>> mdf = MDF4('test.mdf')
+        >>> mdf = MDF('test.mdf')
         >>> mdf.info()
-
-
         """
         info = {
             "version": self.version,

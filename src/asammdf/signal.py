@@ -480,10 +480,20 @@ class Signal:
 
         Examples
         --------
+        >>> from asammdf import Signal
+        >>> import numpy as np
+        >>> old_sig = Signal(np.arange(0.03, 100, 0.05), np.arange(0.03, 100, 0.05), name='SIG')
         >>> new_sig = old_sig.cut(1.0, 10.5)
         >>> new_sig.timestamps[0], new_sig.timestamps[-1]
-        0.98, 10.48
+        (1.0, 10.5)
 
+        >>> new_sig = old_sig.cut(1.0, 10.5, include_ends=False)
+        >>> new_sig.timestamps[0], new_sig.timestamps[-1]
+        (1.03, 10.48)
+
+        >>> new_sig = old_sig.cut(1.0, 10.5, float_interpolation_mode=0)
+        >>> new_sig.samples[0], new_sig.samples[-1]
+        (0.98, 10.48)
         """
 
         integer_interpolation_mode = IntegerInterpolation(integer_interpolation_mode)

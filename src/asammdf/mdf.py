@@ -2013,6 +2013,7 @@ class MDF:
         >>> t = np.arange(5)
         >>> s = np.ones(5)
         >>> mdf = MDF()
+        >>> mdf.configure(raise_on_multiple_occurrences=False)
         >>> for i in range(4):
         ...     sigs = [Signal(s*(i*10+j), t, name='SIG') for j in range(1,4)]
         ...     mdf.append(sigs)
@@ -2025,25 +2026,21 @@ class MDF:
                 samples=[ 1.  1.  1.  1.  1.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
         <Signal SIG:
                 samples=[ 31.  31.  31.  31.  31.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
         <Signal SIG:
                 samples=[ 21.  21.  21.  21.  21.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
         <Signal SIG:
                 samples=[ 12.  12.  12.  12.  12.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
 
         """
@@ -2262,6 +2259,15 @@ class MDF:
 
                 .. versionadded:: 8.1.0
 
+        Returns
+        -------
+        concatenate : MDF
+            new *MDF* object with concatenated channels
+
+        Raises
+        ------
+        MdfException : if there are inconsistencies between the files
+
         Examples
         --------
         >>> conc = MDF.concatenate(
@@ -2275,15 +2281,6 @@ class MDF:
             version='4.00',
             sync=False,
         )
-
-        Returns
-        -------
-        concatenate : MDF
-            new *MDF* object with concatenated channels
-
-        Raises
-        ------
-        MdfException : if there are inconsistencies between the files
 
         """
 
@@ -2703,6 +2700,11 @@ class MDF:
 
                 .. versionadded:: 8.1.0
 
+        Returns
+        -------
+        stacked : MDF
+            new *MDF* object with stacked channels
+
         Examples
         --------
         >>> stacked = MDF.stack(
@@ -2716,11 +2718,6 @@ class MDF:
             version='4.00',
             sync=False,
         )
-
-        Returns
-        -------
-        stacked : MDF
-            new *MDF* object with stacked channels
 
         """
         if not files:
@@ -3074,6 +3071,7 @@ class MDF:
                 display_names={}
                 attachment=()>
         ]
+
         >>> resampled = mdf.resample(raster='S2')
         >>> resampled.select(['S1', 'S2'])
         [<Signal S1:
@@ -3101,6 +3099,7 @@ class MDF:
                 display_names={}
                 attachment=()>
         ]
+
         >>> resampled = mdf.resample(raster=[1.9, 2.0, 2.1])
         >>> resampled.select(['S1', 'S2'])
         [<Signal S1:
@@ -3128,6 +3127,7 @@ class MDF:
                 display_names={}
                 attachment=()>
         ]
+
         >>> resampled = mdf.resample(raster='S2', time_from_zero=True)
         >>> resampled.select(['S1', 'S2'])
         [<Signal S1:
@@ -3316,6 +3316,7 @@ class MDF:
         >>> t = np.arange(5)
         >>> s = np.ones(5)
         >>> mdf = MDF()
+        >>> mdf.configure(raise_on_multiple_occurrences=False)
         >>> for i in range(4):
         ...     sigs = [Signal(s*(i*10+j), t, name='SIG') for j in range(1,4)]
         ...     mdf.append(sigs)
@@ -3327,25 +3328,21 @@ class MDF:
                 samples=[ 1.  1.  1.  1.  1.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
         , <Signal SIG:
                 samples=[ 31.  31.  31.  31.  31.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
         , <Signal SIG:
                 samples=[ 21.  21.  21.  21.  21.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
         , <Signal SIG:
                 samples=[ 12.  12.  12.  12.  12.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
         ]
 
@@ -3618,6 +3615,7 @@ class MDF:
         >>> t = np.arange(5)
         >>> s = np.ones(5)
         >>> mdf = MDF()
+        >>> mdf.configure(raise_on_multiple_occurrences=False)
         >>> for i in range(4):
         ...     sigs = [Signal(s*(i*10+j), t, name='SIG') for j in range(1,4)]
         ...     mdf.append(sigs)
@@ -3629,25 +3627,21 @@ class MDF:
                 samples=[ 1.  1.  1.  1.  1.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
         , <Signal SIG:
                 samples=[ 31.  31.  31.  31.  31.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
         , <Signal SIG:
                 samples=[ 21.  21.  21.  21.  21.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
         , <Signal SIG:
                 samples=[ 12.  12.  12.  12.  12.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
         ]
 
@@ -5121,20 +5115,20 @@ class MDF:
 
         Examples
         --------
-        >>> "extrac CAN and LIN bus logging"
+        >>> "extract CAN and LIN bus logging"
         >>> mdf = asammdf.MDF(r'bus_logging.mf4')
         >>> databases = {
         ...     "CAN": [("file1.dbc", 0), ("file2.arxml", 2)],
         ...     "LIN": [("file3.dbc", 0)],
         ... }
-        >>> extracted = mdf.extract_bus_logging(database_files=database_files)
-        >>> ...
-        >>> "extrac just LIN bus logging"
+        >>> extracted = mdf.extract_bus_logging(database_files=databases)
+
+        >>> "extract just LIN bus logging"
         >>> mdf = asammdf.MDF(r'bus_logging.mf4')
         >>> databases = {
         ...     "LIN": [("file3.dbc", 0)],
         ... }
-        >>> extracted = mdf.extract_bus_logging(database_files=database_files)
+        >>> extracted = mdf.extract_bus_logging(database_files=databases)
 
         """
         if ignore_invalid_signals is not None:
