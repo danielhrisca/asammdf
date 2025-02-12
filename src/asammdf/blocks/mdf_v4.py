@@ -194,13 +194,13 @@ class MDF4(MDF_Common):
     * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel arrays;
       list of Channel objects in case of structure channel composition
     * ``data_block`` - address of data block
-    * ``data_location``- integer code for data location (original file, temporary file or
+    * ``data_location`` - integer code for data location (original file, temporary file or
       memory)
     * ``data_block_addr`` - list of raw samples starting addresses
     * ``data_block_type`` - list of codes for data block type
     * ``data_block_size`` - list of raw samples block size
     * ``sorted`` - sorted indicator flag
-    * ``record_size`` - dict that maps record ID's to record sizes in bytes (including invalidation bytes)
+    * ``record_size`` - dict that maps record IDs to record sizes in bytes (including invalidation bytes)
     * ``param`` - row size used for transposition, in case of transposed zipped blocks
 
 
@@ -2638,7 +2638,7 @@ class MDF4(MDF_Common):
         pos_invalidation_bit: int,
         fragment: tuple[bytes, int, int, ReadableBufferType | None],
     ) -> NDArray[bool_]:
-        """get invalidation indexes for the channel
+        """Get invalidation indexes for the channel.
 
         Parameters
         ----------
@@ -2699,8 +2699,7 @@ class MDF4(MDF_Common):
         common_timebase: bool = False,
         units: dict[str, str | bytes] | None = None,
     ) -> int | None:
-        """
-        Appends a new data group.
+        """Appends a new data group.
 
         For channel dependencies type Signals, the *samples* attribute must be
         a numpy.recarray
@@ -4722,10 +4721,7 @@ class MDF4(MDF_Common):
         comment: str | None = None,
         units: dict[str, str | bytes] | None = None,
     ) -> None:
-        """
-        Appends a new data group from a Pandas data frame.
-
-        """
+        """Appends a new data group from a Pandas DataFrame."""
         units = units or {}
 
         if df.shape == (0, 0):
@@ -5869,8 +5865,7 @@ class MDF4(MDF_Common):
         return offset, dg_cntr, ch_cntr, struct_self, fields, types
 
     def extend(self, index: int, signals: list[tuple[NDArray[Any], NDArray[Any] | None]]) -> None:
-        """
-        Extend a group with new samples. *signals* contains (values, invalidation_bits)
+        """Extend a group with new samples. *signals* contains (values, invalidation_bits)
         pairs for each extended signal. The first pair is the master channel's pair, and the
         next pairs must respect the same order in which the signals were appended. The samples must have raw
         or physical values according to the *Signals* used for the initial append.
@@ -5880,7 +5875,7 @@ class MDF4(MDF_Common):
         index : int
             group index
         signals : list
-            list on (numpy.ndarray, numpy.ndarray) objects
+            list of (numpy.ndarray, numpy.ndarray) objects
 
         Examples
         --------
@@ -6158,8 +6153,7 @@ class MDF4(MDF_Common):
                     )
 
     def _extend_column_oriented(self, index: int, signals: list[tuple[NDArray[Any], NDArray[Any] | None]]) -> None:
-        """
-        Extend a group with new samples. *signals* contains (values, invalidation_bits)
+        """Extend a group with new samples. *signals* contains (values, invalidation_bits)
         pairs for each extended signal. The first pair is the master channel's pair, and the
         next pairs must respect the same order in which the signals were appended. The samples must have raw
         or physical values according to the *Signals* used for the initial append.
@@ -6169,7 +6163,7 @@ class MDF4(MDF_Common):
         index : int
             group index
         signals : list
-            list on (numpy.ndarray, numpy.ndarray) objects
+            list of (numpy.ndarray, numpy.ndarray) objects
 
         Examples
         --------
@@ -6311,7 +6305,7 @@ class MDF4(MDF_Common):
         embedded: bool = True,
         password: str | bytes | None = None,
     ) -> int:
-        """attach embedded attachment as application/octet-stream.
+        """Attach embedded attachment as application/octet-stream.
 
         Parameters
         ----------
@@ -6442,9 +6436,10 @@ class MDF4(MDF_Common):
         return index
 
     def close(self) -> None:
-        """if the MDF was created with memory=False and new
+        """If the MDF was created with memory=False and new
         channels have been appended, then this must be called just before the
-        object is not used anymore to clean-up the temporary file"""
+        object is not used anymore to clean-up the temporary file.
+        """
 
         if self._closed:
             return
@@ -6703,7 +6698,7 @@ class MDF4(MDF_Common):
             time raster in seconds
         samples_only : bool
             if *True* return only the channel samples as numpy array; if
-                *False* return a *Signal* object
+            *False* return a *Signal* object
         data : bytes
             prevent redundant data read by providing the raw data group samples
         raw : bool
@@ -6718,7 +6713,7 @@ class MDF4(MDF_Common):
             number of records to read; default *None* and in this case all
             available records are used
         skip_channel_validation (False) : bool
-            skip validation of channel name, group index and channel index; defualt
+            skip validation of channel name, group index and channel index; default
             *False*. If *True*, the caller has to make sure that the *group* and *index*
             arguments are provided and are correct.
 
@@ -8592,14 +8587,14 @@ class MDF4(MDF_Common):
         record_count: int | None = None,
         one_piece: bool = False,
     ) -> NDArray[Any]:
-        """returns master channel samples for given group
+        """Returns master channel samples for given group.
 
         Parameters
         ----------
         index : int
             group index
         data : (bytes, int, int, bytes|None)
-            (data block raw bytes, fragment offset, count, invalidation bytes); default None
+            (data block raw bytes, fragment offset, count, invalidation bytes); default *None*
 
         record_offset : int
             if *data=None* use this to select the record offset from which the
@@ -8791,9 +8786,9 @@ class MDF4(MDF_Common):
         raw: bool = False,
         ignore_value2text_conversion: bool = True,
     ) -> Signal:
-        """get a signal decoded from a raw bus logging. The currently supported buses are
+        """Get a signal decoded from a raw bus logging. The currently supported buses are
         CAN and LIN (LDF databases are not supported, they need to be converted to DBC and
-        feed to this function)
+        fed to this function).
 
         .. versionadded:: 6.0.0
 
@@ -8816,8 +8811,8 @@ class MDF4(MDF_Common):
             return channel samples without applying the conversion rule; default
             `False`
         ignore_value2text_conversion : bool
-            return channel samples without values that have a description in .dbc or .arxml file
-            `True`
+            return channel samples without values that have a description in .dbc or .arxml file;
+            default `True`
 
         Returns
         -------
@@ -8898,8 +8893,8 @@ class MDF4(MDF_Common):
             return channel samples without applying the conversion rule; default
             `False`
         ignore_value2text_conversion : bool
-            return channel samples without values that have a description in .dbc or .arxml file
-            `True`
+            return channel samples without values that have a description in .dbc or .arxml file;
+            default `True`
 
         Returns
         -------
@@ -9154,8 +9149,8 @@ class MDF4(MDF_Common):
             return channel samples without applying the conversion rule; default
             `False`
         ignore_value2text_conversion : bool
-            return channel samples without values that have a description in .dbc, .arxml or .ldf file
-            `True`
+            return channel samples without values that have a description in .dbc, .arxml or .ldf file;
+            default `True`
 
         Returns
         -------
@@ -9293,7 +9288,7 @@ class MDF4(MDF_Common):
         raise MdfException(f'No logging from "{signal}" was found in the measurement')
 
     def info(self) -> dict[str, Any]:
-        """get MDF information as a dict
+        """Get MDF information as a dict.
 
         Examples
         --------
@@ -9322,7 +9317,7 @@ class MDF4(MDF_Common):
 
     @property
     def start_time(self) -> datetime:
-        """getter and setter the measurement start timestamp
+        """Getter and setter of the measurement start timestamp.
 
         Returns
         -------
@@ -9348,12 +9343,12 @@ class MDF4(MDF_Common):
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>', were
         '<cntr>' is the first counter that produces a new file name
-        (that does not already exist in the filesystem)
+        (that does not already exist in the filesystem).
 
         Parameters
         ----------
         dst : str
-            destination file name, Default ''
+            destination file name
         overwrite : bool
             overwrite flag, default *False*
         compression : int
@@ -9365,7 +9360,7 @@ class MDF4(MDF_Common):
               the smallest files)
 
         add_history_block : bool
-            option to add file historyu block
+            option to add file history block
 
         Returns
         -------

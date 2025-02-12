@@ -116,15 +116,14 @@ class MDF3(MDF_Common):
     * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel
       arrays; list of Channel objects in case of structure channel
       composition
-    * ``data_block`` - address of
-      data block
+    * ``data_block`` - address of data block
     * ``data_location``- integer code for data location (original file,
       temporary file or memory)
     * ``data_block_addr`` - list of raw samples starting addresses
     * ``data_block_type`` - list of codes for data block type
     * ``data_block_size`` - list of raw samples block size
     * ``sorted`` - sorted indicator flag
-    * ``record_size`` - dict that maps record ID's to record sizes in bytes
+    * ``record_size`` - dict that maps record IDs to record sizes in bytes
     * ``size`` - total size of data block for the current group
     * ``trigger`` - *Trigger* object for current group
 
@@ -163,7 +162,7 @@ class MDF3(MDF_Common):
 
     masters_db : dict
         used for fast master channel access; for each group index key the value
-         is the master channel index
+        is the master channel index
     memory : str
         memory optimization option
     name : string
@@ -974,7 +973,7 @@ class MDF3(MDF_Common):
         post_time: float = 0,
         comment: str = "",
     ) -> None:
-        """add trigger to data group
+        """Add trigger to data group.
 
         Parameters
         ----------
@@ -2086,9 +2085,7 @@ class MDF3(MDF_Common):
         comment: str = "",
         units: dict[str, str | bytes] | None = None,
     ) -> None:
-        """
-        Appends a new data group from a Pandas data frame.
-        """
+        """Appends a new data group from a Pandas DataFrame."""
         units = units or {}
 
         t = df.index
@@ -2335,9 +2332,9 @@ class MDF3(MDF_Common):
         gp.trigger = None
 
     def close(self) -> None:
-        """if the MDF was created with memory='minimum' and new
+        """If the MDF was created with memory='minimum' and new
         channels have been appended, then this must be called just before the
-        object is not used anymore to clean-up the temporary file
+        object is not used anymore to clean-up the temporary file.
 
         """
         try:
@@ -2386,8 +2383,7 @@ class MDF3(MDF_Common):
             print(format_exc())
 
     def extend(self, index: int, signals: list[tuple[NDArray[Any], None]]) -> None:
-        """
-        Extend a group with new samples. *signals* contains (values, invalidation_bits)
+        """Extend a group with new samples. *signals* contains (values, invalidation_bits)
         pairs for each extended signal. Since MDF3 does not support invalidation
         bits, the second item of each pair must be None. The first pair is the master channel's pair, and the
         next pairs must respect the same order in which the signals were appended. The samples must have raw
@@ -2671,6 +2667,7 @@ class MDF3(MDF_Common):
         index: int | None = None,
     ) -> str:
         """Gets channel comment.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
@@ -2763,6 +2760,7 @@ class MDF3(MDF_Common):
         skip_channel_validation: bool = False,
     ) -> Signal | tuple[NDArray[Any], None]:
         """Gets channel samples.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
@@ -2805,7 +2803,7 @@ class MDF3(MDF_Common):
             if *data=None* use this to select the record offset from which the
             group data should be loaded
         skip_channel_validation (False) : bool
-            skip validation of channel name, group index and channel index; defualt
+            skip validation of channel name, group index and channel index; default
             *False*. If *True*, the caller has to make sure that the *group* and *index*
             arguments are provided and are correct.
 
@@ -3158,16 +3156,16 @@ class MDF3(MDF_Common):
         record_count: int | None = None,
         one_piece: bool = False,
     ) -> NDArray[Any]:
-        """returns master channel samples for given group
+        """Returns master channel samples for given group.
 
         Parameters
         ----------
         index : int
             group index
         data : (bytes, int)
-            (data block raw bytes, fragment offset); default None
+            (data block raw bytes, fragment offset); default *None*
         raster : float
-            raster to be used for interpolation; default None
+            raster to be used for interpolation; default *None*
 
             .. deprecated:: 5.13.0
 
@@ -3313,10 +3311,10 @@ class MDF3(MDF_Common):
         return timestamps
 
     def iter_get_triggers(self) -> Iterator[TriggerInfoDict]:
-        """generator that yields triggers
+        """Generator that yields triggers.
 
-        Returns
-        -------
+        Yields
+        ------
         trigger_info : dict
             trigger information with the following keys:
 
@@ -3342,7 +3340,7 @@ class MDF3(MDF_Common):
                     yield trigger_info
 
     def info(self) -> dict[str, Any]:
-        """get MDF information as a dict
+        """Get MDF information as a dict.
 
         Examples
         --------
@@ -3378,7 +3376,7 @@ class MDF3(MDF_Common):
 
     @property
     def start_time(self) -> datetime:
-        """getter and setter the measurement start timestamp
+        """Getter and setter of the measurement start timestamp.
 
         Returns
         -------

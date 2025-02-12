@@ -34,8 +34,7 @@ logger = logging.getLogger("asammdf")
 
 
 class Signal:
-    """
-    The *Signal* represents a channel described by it's samples and timestamps.
+    """The *Signal* represents a channel described by its samples and timestamps.
     It can perform arithmetic operations against other *Signal* or numeric types.
     The operations are computed in respect to the timestamps (time correct).
     The non-float signals are not interpolated, instead the last value relative
@@ -53,16 +52,16 @@ class Signal:
     name : str
         signal name
     conversion : dict | channel conversion block
-        dict that contains extra conversion information about the signal ,
+        dict that contains extra conversion information about the signal;
         default *None*
     comment : str
-        signal comment, default ''
+        signal comment; default ''
     raw : bool
         signal samples are raw values, with no physical conversion applied
     master_metadata : list
         master name and sync type
     display_names : dict
-        display names used by mdf version 3
+        display names used by MDF version 3
     attachment : bytes, name
         channel attachment and name from MDF version 4
     source : Source
@@ -70,7 +69,7 @@ class Signal:
     bit_count : int
         bit count; useful for integer channels
     invalidation_bits : numpy.array | None
-        channel invalidation bits, default *None*
+        channel invalidation bits; default *None*
     encoding : str | None
         encoding for string signals; default *None*
     flags : Signal.Flags
@@ -223,8 +222,8 @@ class Signal:
 """
 
     def plot(self, validate: bool = True, index_only: bool = False) -> None:
-        """plot Signal samples. Pyqtgraph is used if it is available; in this
-        case see the GUI plot documentation to see the available commands
+        """Plot Signal samples. Pyqtgraph is used if it is available; in this
+        case see the GUI plot documentation to see the available commands.
 
         Parameters
         ----------
@@ -439,8 +438,7 @@ class Signal:
             FloatInterpolationModeType | FloatInterpolation
         ) = FloatInterpolation.LINEAR_INTERPOLATION,
     ) -> Signal:
-        """
-        Cuts the signal according to the *start* and *stop* values, by using
+        """Cut the signal according to the *start* and *stop* values, by using
         the insertion indexes in the signal's *time* axis.
 
         Parameters
@@ -840,7 +838,7 @@ class Signal:
         return result
 
     def extend(self, other: Signal) -> Signal:
-        """extend signal with samples from another signal
+        """Extend Signal with samples from another Signal.
 
         Parameters
         ----------
@@ -916,7 +914,7 @@ class Signal:
             FloatInterpolationModeType | FloatInterpolation
         ) = FloatInterpolation.LINEAR_INTERPOLATION,
     ) -> Signal:
-        """returns a new *Signal* interpolated using the *new_timestamps*
+        """Returns a new *Signal* interpolated using the *new_timestamps*.
 
         Parameters
         ----------
@@ -1369,7 +1367,7 @@ class Signal:
         self.samples[idx] = val
 
     def astype(self, np_type: DTypeLike) -> Signal:
-        """returns new *Signal* with samples of dtype *np_type*
+        """Returns new *Signal* with samples of dtype *np_type*.
 
         Parameters
         ----------
@@ -1401,8 +1399,7 @@ class Signal:
         )
 
     def physical(self, copy: bool = True) -> Signal:
-        """
-        get the physical samples values
+        """Get the physical samples values.
 
         Parameters
         ----------
@@ -1452,7 +1449,7 @@ class Signal:
         )
 
     def validate(self, copy: bool = True) -> Signal:
-        """apply invalidation bits if they are available for this signal
+        """Apply invalidation bits if they are available for this signal.
 
         Parameters
         ----------
@@ -1498,7 +1495,7 @@ class Signal:
         return signal
 
     def copy(self) -> Signal:
-        """copy all attributes to a new Signal"""
+        """Copy all attributes to a new Signal."""
         return Signal(
             self.samples.copy(),
             self.timestamps.copy(),

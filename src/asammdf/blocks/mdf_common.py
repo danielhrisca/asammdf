@@ -17,7 +17,7 @@ __all__ = ["MDF_Common"]
 
 
 class MDF_Common:
-    """common methods for MDF objects"""
+    """Common methods for MDF objects."""
 
     def _set_temporary_master(self, master: NDArray[Any] | None) -> None:
         self._master = master
@@ -30,19 +30,20 @@ class MDF_Common:
         index: int | None = None,
     ) -> tuple[int, int]:
         """Gets channel comment.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
             * if there are multiple occurrences for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
+              *group* and *index* arguments can be used to select a specific
+              group.
             * if there are multiple occurrences for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+              *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+          number (keyword argument *index*). Use *info* method for group and
+          channel numbers
 
 
         Parameters
