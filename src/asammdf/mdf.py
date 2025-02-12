@@ -2875,12 +2875,12 @@ class MDF:
             do not yield master channels; default *True*
         copy_master : bool
             copy master for each yielded channel *True*
-        raw : bool
+        raw : bool | dict[str, bool]
             return raw channels instead of converted; default *False*
 
             .. versionchanged:: 8.0.0
 
-                provide individual raw mode based on a dict. If the parameters is given
+                provide individual raw mode based on a dict. If the argument is given
                 as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
                 are the channel names and the values are the boolean raw values for each channel.
 
@@ -2935,14 +2935,14 @@ class MDF:
 
             .. versionadded:: 5.21.0
 
-        raw (False) : bool
-            the dataframe will contain the raw channel values
+        raw : bool | dict[str, bool]
+            the DataFrame will contain the raw channel values; default *False*
 
             .. versionadded:: 5.21.0
 
             .. versionchanged:: 8.0.0
 
-                provide individual raw mode based on a dict. If the parameters is given
+                provide individual raw mode based on a dict. If the argument is given
                 as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
                 are the channel names and the values are the boolean raw values for each channel.
 
@@ -3285,7 +3285,7 @@ class MDF:
 
             .. versionchanged:: 8.0.0
 
-                provide individual raw mode based on a dict. If the parameters is given
+                provide individual raw mode based on a dict. If the argument is given
                 as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
                 are the channel names and the values are the boolean raw values for each channel.
 
@@ -3584,7 +3584,7 @@ class MDF:
 
             .. versionchanged:: 8.0.0
 
-                provide individual raw mode based on a dict. If the parameters is given
+                provide individual raw mode based on a dict. If the argument is given
                 as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
                 are the channel names and the values are the boolean raw values for each channel.
 
@@ -4141,14 +4141,14 @@ class MDF:
             reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can reprezent the values found
             in integer columns; default *False*
-        raw (False) : bool | dict[str, bool]
-            the dataframe will contain the raw channel values
+        raw : bool | dict[str, bool]
+            the DataFrame will contain the raw channel values; default *False*
 
             .. versionadded:: 5.7.0
 
             .. versionchanged:: 8.0.0
 
-                provide individual raw mode based on a dict. If the parameters is given
+                provide individual raw mode based on a dict. If the argument is given
                 as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
                 are the channel names and the values are the boolean raw values for each channel.
 
@@ -4280,12 +4280,12 @@ class MDF:
             reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can reprezent the values found
             in integer columns; default *False*
-        raw (False) : bool
-            the columns will contain the raw values
+        raw : bool | dict[str, bool]
+            the columns will contain the raw values; default *False*
 
             .. versionchanged:: 8.0.0
 
-                provide individual raw mode based on a dict. If the parameters is given
+                provide individual raw mode based on a dict. If the argument is given
                 as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
                 are the channel names and the values are the boolean raw values for each channel.
 
@@ -4690,14 +4690,14 @@ class MDF:
             reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can reprezent the values found
             in integer columns; default *False*
-        raw (False) : bool
-            the columns will contain the raw values
+        raw : bool | dict[str, bool]
+            the columns will contain the raw values; default *False*
 
             .. versionadded:: 5.7.0
 
             .. versionchanged:: 8.0.0
 
-                provide individual raw mode based on a dict. If the parameters is given
+                provide individual raw mode based on a dict. If the argument is given
                 as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
                 are the channel names and the values are the boolean raw values for each channel.
 
