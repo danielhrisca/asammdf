@@ -875,7 +875,7 @@ class MDF:
             case the original file version is used
         include_ends : bool
             include the *start* and *stop* timestamps after cutting the signal.
-            If *start* and *stop* are found in the original timestamps, then
+            If *start* and *stop* are not found in the original timestamps, then
             the new samples will be computed using interpolation. Default *True*
         time_from_zero : bool
             start time stamps from 0s in the cut measurement

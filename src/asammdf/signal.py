@@ -451,7 +451,7 @@ class Signal:
             stop timestamp for cutting
         include_ends : bool
             include the *start* and *stop* timestamps after cutting the signal.
-            If *start* and *stop* are found in the original timestamps, then
+            If *start* and *stop* are not found in the original timestamps, then
             the new samples will be computed using interpolation. Default *True*
 
         integer_interpolation_mode : int
