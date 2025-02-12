@@ -8854,9 +8854,8 @@ class MDF4(MDF_Common):
         raw: bool = False,
         ignore_value2text_conversion: bool = True,
     ) -> Signal:
-        """get CAN message signal. You can specify an external CAN database (
-        *database* argument) or canmatrix database object that has already been
-        loaded from a file (*db* argument).
+        """Get CAN message signal. You can specify an external CAN database path
+        or a canmatrix database object that has already been loaded from a file.
 
         The signal name can be specified in the following ways
 
@@ -9127,9 +9126,8 @@ class MDF4(MDF_Common):
         raw: bool = False,
         ignore_value2text_conversion: bool = True,
     ) -> Signal:
-        """get LIN message signal. You can specify an external LIN database (
-        *database* argument) or canmatrix database object that has already been
-        loaded from a file (*db* argument).
+        """Get LIN message signal. You can specify an external LIN database path
+        or a canmatrix database object that has already been loaded from a file.
 
         The signal name can be specified in the following ways
 
