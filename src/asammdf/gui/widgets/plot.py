@@ -959,7 +959,7 @@ class PlotSignal(Signal):
             self._compute_stats()
         return self._std if self.mode == "phys" else self._std_raw
 
-    def trim_c(self, start=None, stop=None, width=1900, force=False):
+    def trim_c(self, start=None, stop=None, width=1, force=False):
         trim_info = (start, stop, width)
         if not force and self.trim_info == trim_info:
             return None
