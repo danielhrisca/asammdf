@@ -33,6 +33,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
+        self.trigger_interval.setMinimum(1e-9)
+
         global_variables = global_variables or ""
         _in_globals = generate_python_function_globals()
         ret = generate_python_variables(global_variables, in_globals=_in_globals)
