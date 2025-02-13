@@ -7,7 +7,11 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...signal import Signal
 from ..ui.define_channel_dialog import Ui_ComputedChannel
-from ..utils import computation_to_python_function
+from ..utils import (
+    computation_to_python_function,
+    generate_python_function_globals,
+    generate_python_variables,
+)
 from ..widgets.python_highlighter import PythonHighlighter
 from .advanced_search import AdvancedSearch
 from .messagebox import MessageBox
@@ -22,11 +26,17 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         computation=None,
         origin_uuid=None,
         functions=None,
+        global_variables=None,
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+
+        global_variables = global_variables or ""
+        _in_globals = generate_python_function_globals()
+        ret = generate_python_variables(global_variables, in_globals=_in_globals)
+        self.global_variables = {name: val for name, val in _in_globals.items() if isinstance(val, (int, float))}
 
         self.setWindowFlags(QtCore.Qt.WindowType.WindowMinMaxButtonsHint | self.windowFlags())
 
@@ -64,7 +74,13 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
         self.trigger_search_btn.clicked.connect(self.search)
 
+        self.global_variable_timestamps_shift.currentTextChanged.connect(
+            self.update_global_variable_timestamps_description
+        )
+
         self.computation = computation
+        self.global_variable_timestamps_shift.addItems(sorted(self.global_variables))
+
         if computation:
             computation = computation_to_python_function(computation)
 
@@ -94,6 +110,18 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.sample_by_sample.setChecked(True)
             else:
                 self.complete_signal.setChecked(True)
+
+            if "time_stamps_shift" in computation:
+                time_stamps_shift = computation["time_stamps_shift"]
+                if time_stamps_shift["type"] == "fixed":
+                    self.shift_type_fixed.setChecked(True)
+                else:
+                    self.shift_type_global.setChecked(True)
+
+                self.fixed_timestamps_shift.setValue(time_stamps_shift["fixed_timestamps_shift"])
+                self.global_variable_timestamps_shift.setCurrentText(
+                    time_stamps_shift["global_variable_timestamps_shift"]
+                )
 
         self.showMaximized()
 
@@ -149,6 +177,11 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 "triggering": triggering,
                 "triggering_value": triggering_value,
                 "computation_mode": "sample_by_sample" if self.sample_by_sample.isChecked() else "complete_signal",
+                "time_stamps_shift": {
+                    "fixed_timestamps_shift": self.fixed_timestamps_shift.value(),
+                    "global_variable_timestamps_shift": self.global_variable_timestamps_shift.currentText() or "",
+                    "type": "fixed" if self.shift_type_fixed.isChecked() else "global",
+                },
             },
         }
 
@@ -185,7 +218,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         for i, arg_name in enumerate(parameters, 2):
             label = QtWidgets.QLabel(arg_name)
             self.arg_layout.addWidget(label, i, 0)
-            text_edit = QtWidgets.QTextEdit()
+            text_edit = QtWidgets.QPlainTextEdit()
             self.arg_layout.addWidget(text_edit, i, 1)
             button = QtWidgets.QPushButton("")
             button.setIcon(icon)
@@ -217,7 +250,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
         if result:
             lines = [self.arg_widgets[index][1].toPlainText(), *list(result)]
-            self.arg_widgets[index][1].setText("\n".join(lines))
+            self.arg_widgets[index][1].setPlainText("\n".join(lines))
 
     def search(self, *args, text_widget=None):
         dlg = AdvancedSearch(
@@ -281,3 +314,12 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                     "No function selected",
                     "Please select one of the fucntion defined in the Functions manager",
                 )
+
+    def update_global_variable_timestamps_description(self, text):
+        if text:
+            if text in self.global_variables:
+                self.global_variable_timstamps_shift_description.setText(f"{text} = {self.global_variables[text]:.9f}s")
+            else:
+                self.global_variable_timstamps_shift_description.setText(f"{text} not found => default shift is 0s")
+        else:
+            self.global_variable_timstamps_shift_description.setText("default shift 0s")

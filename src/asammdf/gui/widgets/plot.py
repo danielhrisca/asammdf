@@ -4330,6 +4330,7 @@ class PlotGraphics(pg.PlotWidget):
             mdf=mdf,
             computation=signal.computation,
             functions=functions,
+            global_variables=self.plot_parent.owner.global_variables,
             parent=self,
         )
         dlg.setModal(True)
@@ -4446,6 +4447,7 @@ class PlotGraphics(pg.PlotWidget):
             mdf=mdf,
             computation=None,
             functions=functions,
+            global_variables=self.plot_parent.owner.global_variables,
             parent=self,
         )
         dlg.setModal(True)

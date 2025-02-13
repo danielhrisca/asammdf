@@ -511,6 +511,10 @@ def compute_signal(
             if trace:
                 raise Exception(trace)
 
+            numeric_global_variables = {
+                name: float(val) for name, val in _globals.items() if isinstance(val, (int, float))
+            }
+
             for function_name, definition in functions.items():
                 _func, _trace = generate_python_function(definition, in_globals=_globals)
 
@@ -599,12 +603,25 @@ def compute_signal(
 
                 signals = [sig.interp(common_timebase) if not isinstance(sig, (int, float)) else sig for sig in signals]
 
+            if not isinstance(common_timebase, np.ndarray):
+                common_timebase = np.array(common_timebase)
+
             for i, (signal, arg_name) in enumerate(zip(signals, found_args)):
                 if isinstance(signal, (int, float)):
                     value = signal
                     signals[i] = Signal(
                         name=arg_name, samples=np.full(len(common_timebase), value), timestamps=common_timebase
                     )
+
+            if "time_stamps_shift" in description:
+                time_stamps_shift = description["time_stamps_shift"]
+                if time_stamps_shift["type"] == "fixed":
+                    shift = time_stamps_shift["fixed_timestamps_shift"]
+                else:
+                    shift_variable = time_stamps_shift["global_variable_timestamps_shift"]
+                    shift = numeric_global_variables.get(shift_variable, 0.0)
+            else:
+                shift = 0.0
 
             if description.get("computation_mode", "sample_by_sample") == "sample_by_sample":
                 signals = [sig.samples.tolist() for sig in signals]
@@ -621,7 +638,7 @@ def compute_signal(
                 result = Signal(
                     name="_",
                     samples=samples,
-                    timestamps=common_timebase,
+                    timestamps=common_timebase + shift,
                     flags=Signal.Flags.computed,
                 )
 
@@ -652,7 +669,7 @@ def compute_signal(
                 result = Signal(
                     name="_",
                     samples=samples,
-                    timestamps=common_timebase,
+                    timestamps=common_timebase + shift,
                     flags=Signal.Flags.computed,
                 )
 
