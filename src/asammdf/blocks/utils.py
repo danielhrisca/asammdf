@@ -2,7 +2,6 @@
 asammdf utility functions and classes
 """
 
-from collections import namedtuple
 from collections.abc import Callable, Collection, Iterator
 from copy import deepcopy
 from functools import lru_cache
@@ -23,30 +22,37 @@ from time import perf_counter
 from traceback import format_exc
 from types import TracebackType
 import typing
-from typing import Any, Optional, overload, Protocol, TYPE_CHECKING, TypeVar, Union
+from typing import Optional, TYPE_CHECKING, Union
 import xml.etree.ElementTree as ET
 
 from canmatrix.canmatrix import CanMatrix, matrix_class
 import canmatrix.formats
 import lxml.etree
 import numpy as np
-from numpy import arange, bool_, dtype, interp, where
+from numpy import arange, bool_, interp, where
 from numpy.typing import NDArray
 import pandas as pd
 from pandas import Series
 from typing_extensions import (
+    Any,
     Buffer,
     Literal,
+    NamedTuple,
+    NewType,
     NotRequired,
+    overload,
     ParamSpec,
+    Protocol,
     runtime_checkable,
     TypedDict,
     TypeIs,
+    TypeVar,
     Unpack,
 )
 
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
+from .blocks_common import UnpackFrom
 
 try:
     from pyqtgraph import functions as fn
@@ -92,8 +98,10 @@ except:
 if TYPE_CHECKING:
     from PySide6 import QtCore
 
+Terminated = NewType("Terminated", object)
+
 THREAD_COUNT = max(multiprocessing.cpu_count() - 1, 1)
-TERMINATED = object()
+TERMINATED = Terminated(object())
 NONE = object()
 COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
 C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
@@ -118,15 +126,15 @@ UINT16_u: Callable[[Buffer], tuple[int]] = Struct("<H").unpack
 UINT32_p = Struct("<I").pack
 UINT32_u: Callable[[Buffer], tuple[int]] = Struct("<I").unpack
 UINT64_u: Callable[[Buffer], tuple[int]] = Struct("<Q").unpack
-UINT8_uf: Callable[[Buffer, int], tuple[int]] = Struct("<B").unpack_from
-UINT16_uf: Callable[[Buffer, int], tuple[int]] = Struct("<H").unpack_from
-UINT32_uf: Callable[[Buffer, int], tuple[int]] = Struct("<I").unpack_from
-UINT64_uf: Callable[[Buffer, int], tuple[int]] = Struct("<Q").unpack_from
+UINT8_uf: UnpackFrom[tuple[int]] = Struct("<B").unpack_from
+UINT16_uf: UnpackFrom[tuple[int]] = Struct("<H").unpack_from
+UINT32_uf: UnpackFrom[tuple[int]] = Struct("<I").unpack_from
+UINT64_uf: UnpackFrom[tuple[int]] = Struct("<Q").unpack_from
 FLOAT64_u: Callable[[Buffer], tuple[float]] = Struct("<d").unpack
-FLOAT64_uf: Callable[[Buffer, int], tuple[float]] = Struct("<d").unpack_from
+FLOAT64_uf: UnpackFrom[tuple[float]] = Struct("<d").unpack_from
 TWO_UINT64_u: Callable[[Buffer], tuple[int, int]] = Struct("<2Q").unpack
-TWO_UINT64_uf: Callable[[Buffer, int], tuple[int, int]] = Struct("<2Q").unpack_from
-BLK_COMMON_uf: Callable[[Buffer, int], tuple[bytes, int]] = Struct("<4s4xQ").unpack_from
+TWO_UINT64_uf: UnpackFrom[tuple[int, int]] = Struct("<2Q").unpack_from
+BLK_COMMON_uf: UnpackFrom[tuple[bytes, int]] = Struct("<4s4xQ").unpack_from
 BLK_COMMON_u: Callable[[Buffer], tuple[bytes, int]] = Struct("<4s4xQ8x").unpack
 
 EMPTY_TUPLE = ()
@@ -157,7 +165,7 @@ __all__ = [
 ]
 
 _channel_count = (1000, 2000, 10000, 20000)
-CHANNEL_COUNT = arange(0, 20000, 1000, dtype="<u4")
+CHANNEL_COUNT = arange(0, 20000, 1000, dtype=np.dtype("<u4"))
 
 _convert = (10 * 2**20, 20 * 2**20, 30 * 2**20, 40 * 2**20)
 CONVERT = interp(CHANNEL_COUNT, _channel_count, _convert).astype("<u4")
@@ -278,7 +286,8 @@ def get_text_v3(
     address: int,
     stream: Union[FileLike, mmap.mmap],
     mapped: bool = ...,
-    decode: Literal[False] = ...,
+    *,
+    decode: Literal[False],
 ) -> bytes: ...
 
 
@@ -338,7 +347,12 @@ def get_text_v3(
     return text
 
 
-MappedText = namedtuple("MappedText", ["raw", "decoded"])
+class MappedText(NamedTuple):
+    raw: bytes
+    decoded: str
+
+
+TxMap = dict[int, MappedText]
 
 
 @overload
@@ -347,7 +361,8 @@ def get_text_v4(
     stream: Union[FileLike, mmap.mmap],
     mapped: bool = ...,
     decode: Literal[True] = ...,
-    tx_map: Union[dict, None] = ...,
+    *,
+    tx_map: TxMap,
 ) -> str: ...
 
 
@@ -358,7 +373,7 @@ def get_text_v4(
     mapped: bool = ...,
     *,
     decode: Literal[False],
-    tx_map: Union[dict, None],
+    tx_map: TxMap,
 ) -> bytes: ...
 
 
@@ -367,7 +382,8 @@ def get_text_v4(
     stream: Union[FileLike, mmap.mmap],
     mapped: bool = False,
     decode: bool = True,
-    tx_map: Union[dict, None] = None,
+    *,
+    tx_map: TxMap,
 ) -> Union[bytes, str]:
     """faster way to extract strings from mdf version 4 TextBlock
 
@@ -720,7 +736,7 @@ def get_fmt_v4(data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_V
 
 
 @lru_cache(maxsize=1024)
-def fmt_to_datatype_v3(fmt: dtype[Any], shape: tuple[int, ...], array: bool = False) -> tuple[int, int]:
+def fmt_to_datatype_v3(fmt: np.dtype[Any], shape: tuple[int, ...], array: bool = False) -> tuple[int, int]:
     """convert numpy dtype format string to mdf versions 2 and 3
     channel data type and size
 
@@ -817,7 +833,7 @@ def info_to_datatype_v4(signed: bool, little_endian: bool) -> int:
 
 
 @lru_cache(maxsize=1024)
-def fmt_to_datatype_v4(fmt: dtype[Any], shape: tuple[int, ...], array: bool = False) -> tuple[int, int]:
+def fmt_to_datatype_v4(fmt: np.dtype[Any], shape: tuple[int, ...], array: bool = False) -> tuple[int, int]:
     """convert numpy dtype format string to mdf version 4 channel data
     type and size
 
@@ -1037,14 +1053,18 @@ def count_channel_groups(
 
 
 @overload
-def validate_version_argument(version: v3c.Version2, hint: Literal[2] = ...) -> v3c.Version2: ...
+def validate_version_argument(version: str, hint: Literal[2]) -> v3c.Version2: ...
 
 
 @overload
-def validate_version_argument(version: v3c.Version, hint: Literal[3] = ...) -> v3c.Version: ...
+def validate_version_argument(version: str, hint: Literal[3]) -> v3c.Version: ...
 
 
-def validate_version_argument(version: str, hint: int = 4) -> str:
+@overload
+def validate_version_argument(version: str, hint: Literal[4] = ...) -> v4c.Version: ...
+
+
+def validate_version_argument(version: str, hint: int = 4) -> Union[v3c.Version2, v3c.Version, v4c.Version]:
     """validate the version argument against the supported MDF versions. The
     default version used depends on the hint MDF major revision
 
@@ -1061,6 +1081,7 @@ def validate_version_argument(version: str, hint: int = 4) -> str:
         valid version
 
     """
+    valid_version: Union[v3c.Version2, v3c.Version, v4c.Version]
     if version not in SUPPORTED_VERSIONS:
         if hint == 2:
             valid_version = "2.14"
@@ -1072,7 +1093,7 @@ def validate_version_argument(version: str, hint: int = 4) -> str:
         message = message.format(version, SUPPORTED_VERSIONS, valid_version)
         logger.warning(message)
     else:
-        valid_version = version
+        valid_version = typing.cast(Union[v3c.Version2, v3c.Version, v4c.Version], version)
     return valid_version
 
 
@@ -1319,7 +1340,7 @@ def components(
     only_basenames: bool = ...,
     *,
     use_polars: Literal[True],
-) -> Iterator[tuple[str, "list[Any]"]]: ...
+) -> Iterator[tuple[str, "list[object]"]]: ...
 
 
 def components(
@@ -1330,7 +1351,7 @@ def components(
     master: Optional["pd.Index[float]"] = None,
     only_basenames: bool = False,
     use_polars: bool = False,
-) -> Iterator[tuple[str, Union["pd.Series[Any]", list[Any]]]]:
+) -> Iterator[tuple[str, Union["pd.Series[Any]", list[object]]]]:
     """yield pandas Series and unique name based on the ndarray object
 
     Parameters
@@ -1483,9 +1504,9 @@ class DataBlockInfo:
         self,
         address: int,
         block_type: int,
-        original_size: int,
-        compressed_size: int,
-        param: int,
+        original_size: Optional[int],
+        compressed_size: Optional[int],
+        param: Optional[int],
         invalidation_block: Optional["InvalidationBlockInfo"] = None,
         block_limit: Optional[int] = None,
         first_timestamp: Optional[bytes] = None,
@@ -1546,9 +1567,9 @@ class InvalidationBlockInfo(DataBlockInfo):
         self,
         address: int,
         block_type: int,
-        original_size: int,
-        compressed_size: int,
-        param: int,
+        original_size: Optional[int],
+        compressed_size: Optional[int],
+        param: Optional[int],
         all_valid: bool = False,
         block_limit: Optional[int] = None,
     ) -> None:
@@ -1679,10 +1700,10 @@ def csv_bytearray2hex(val: NDArray[Any], size: Optional[int] = None) -> str:
 
     """
     if size is not None:
-        hex_val = typing.cast(bytes, val.tobytes())[:size].hex(" ", 1).upper()  # type: ignore[redundant-cast,unused-ignore]
+        hex_val = typing.cast(bytes, val.tobytes())[:size].hex(" ", 1).upper()  # type: ignore[redundant-cast, unused-ignore]
     else:
         try:
-            hex_val = typing.cast(bytes, val.tobytes()).hex(" ", 1).upper()  # type: ignore[redundant-cast,unused-ignore]
+            hex_val = typing.cast(bytes, val.tobytes()).hex(" ", 1).upper()  # type: ignore[redundant-cast, unused-ignore]
         except:
             hex_val = "●"
 
@@ -1892,44 +1913,6 @@ def escape_xml_string(string: str) -> str:
     return string.translate(table)
 
 
-def extract_mime_names(data: "QtCore.QMimeData", disable_new_channels: Optional[bool] = None) -> list[str]:
-    def fix_comparison_name(data: Any, disable_new_channels: Optional[bool] = None) -> None:
-        for item in data:
-            if item["type"] == "channel":
-                if disable_new_channels is not None:
-                    item["enabled"] = not disable_new_channels
-
-                if (item["group_index"], item["channel_index"]) != (-1, -1):
-                    match = COMPARISON_NAME.match(item["name"])
-                    if match is None:
-                        raise RuntimeError(f"cannot parse '{item['name']}'")
-                    name = match.group("name").strip()
-                    item["name"] = name
-            else:
-                if disable_new_channels is not None:
-                    item["enabled"] = not disable_new_channels
-                fix_comparison_name(item["channels"], disable_new_channels=disable_new_channels)
-
-    names: list[str] = []
-    if data.hasFormat("application/octet-stream-asammdf"):
-        data_data = data.data("application/octet-stream-asammdf").data()
-        data_bytes = data_data.tobytes() if isinstance(data_data, memoryview) else data_data
-        text = data_bytes.decode("utf-8")
-        obj = json.loads(text)
-        fix_comparison_name(obj, disable_new_channels=disable_new_channels)
-        names = obj
-
-    return names
-
-
-def set_mime_enable(mime: list[Any], enable: bool) -> None:
-    for item in mime:
-        if item["type"] == "channel":
-            item["enabled"] = enable
-        else:
-            set_mime_enable(item["channels"], enable)
-
-
 class _ChannelBaseDict(TypedDict):
     color: str
     comment: Optional[str]
@@ -1954,8 +1937,8 @@ class _ChannelNotComputedDict(_ChannelBaseDict):
 
 
 class _ChannelComputedDict(_ChannelBaseDict):
-    computation: dict[str, object]
     computed: Literal[True]
+    computation: dict[str, object]
     conversion: object
     user_defined_name: Optional[str]
 
@@ -1964,13 +1947,56 @@ _ChannelDict = Union[_ChannelComputedDict, _ChannelNotComputedDict]
 
 
 class _ChannelGroupDict(TypedDict):
-    channels: list[Union[_ChannelDict, "_ChannelGroupDict"]]
+    channels: list[Union["_ChannelGroupDict", _ChannelDict]]
     enabled: bool
     name: Optional[str]
     origin_uuid: str
     pattern: Optional[dict[str, object]]
     ranges: list[dict[str, object]]
     type: Literal["group"]
+
+
+def extract_mime_names(data: "QtCore.QMimeData", disable_new_channels: Optional[bool] = None) -> list[str]:
+    def fix_comparison_name(
+        data: list[Union[_ChannelGroupDict, _ChannelDict]], disable_new_channels: Optional[bool] = None
+    ) -> None:
+        for item in data:
+            if item["type"] == "channel":
+                if disable_new_channels is not None:
+                    item["enabled"] = not disable_new_channels
+
+                if (
+                    item["group_index"],  # type: ignore[typeddict-item]
+                    item["channel_index"],  # type: ignore[typeddict-item]
+                ) != (-1, -1):
+                    match = COMPARISON_NAME.match(item["name"])
+                    if match is None:
+                        raise RuntimeError(f"cannot parse '{item['name']}'")
+                    name = match.group("name").strip()
+                    item["name"] = name
+            else:
+                if disable_new_channels is not None:
+                    item["enabled"] = not disable_new_channels
+                fix_comparison_name(item["channels"], disable_new_channels=disable_new_channels)
+
+    names: list[str] = []
+    if data.hasFormat("application/octet-stream-asammdf"):
+        data_data = data.data("application/octet-stream-asammdf").data()
+        data_bytes = data_data.tobytes() if isinstance(data_data, memoryview) else data_data
+        text = data_bytes.decode("utf-8")
+        obj = json.loads(text)
+        fix_comparison_name(obj, disable_new_channels=disable_new_channels)
+        names = obj
+
+    return names
+
+
+def set_mime_enable(mime: list[Union[_ChannelGroupDict, _ChannelDict]], enable: bool) -> None:
+    for item in mime:
+        if item["type"] == "channel":
+            item["enabled"] = enable
+        else:
+            set_mime_enable(item["channels"], enable)
 
 
 def load_dsp(

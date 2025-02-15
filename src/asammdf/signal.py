@@ -2,11 +2,13 @@
 
 from collections.abc import Iterator
 import logging
+from pathlib import Path
 from textwrap import fill
-from typing import Any, Optional, overload, Union
+from typing import Optional, Union
 
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike, NDArray
+from typing_extensions import Any, overload
 
 from .blocks import v2_v3_blocks as v3b
 from .blocks import v4_blocks as v4b
@@ -19,7 +21,6 @@ from .types import (
     FloatInterpolationModeType,
     IntInterpolationModeType,
     SourceType,
-    SyncType,
 )
 from .version import __version__
 
@@ -29,6 +30,22 @@ except:
     encode = np.char.encode
 
 logger = logging.getLogger("asammdf")
+
+ORIGIN_UNKNOWN = (-1, -1)
+
+
+class InvalidationArray(np.ndarray[tuple[int], np.dtype[np.bool]]):
+    ORIGIN_UNKNOWN = ORIGIN_UNKNOWN
+
+    def __new__(cls, input_array: ArrayLike, origin: tuple[int, int] = ORIGIN_UNKNOWN) -> "InvalidationArray":
+        obj = np.asarray(input_array).view(cls)
+        obj.origin = origin
+        return obj
+
+    def __array_finalize__(self, obj: Optional[NDArray[np.bool]]) -> None:
+        if obj is None:
+            return
+        self.origin: tuple[int, int] = getattr(obj, "origin", ORIGIN_UNKNOWN)
 
 
 class Signal:
@@ -86,16 +103,16 @@ class Signal:
         conversion: Optional[Union[dict[str, Any], ChannelConversionType]] = None,
         comment: str = "",
         raw: bool = True,
-        master_metadata: Optional[tuple[str, SyncType]] = None,
+        master_metadata: Optional[tuple[str, int]] = None,
         display_names: Optional[dict[str, str]] = None,
-        attachment: Optional[tuple[bytes, Optional[str], Optional[str]]] = None,
+        attachment: Optional[tuple[Union[bytes, str], Path, Union[bytes, str]]] = None,
         source: Optional[SourceType] = None,
         bit_count: Optional[int] = None,
         invalidation_bits: Optional[ArrayLike] = None,
         encoding: Optional[str] = None,
         group_index: int = -1,
         channel_index: int = -1,
-        flags: Flags = Flags.no_flags,
+        flags: int = Flags.no_flags,
         virtual_conversion: Optional[Union[dict[str, Any], ChannelConversionType]] = None,
         virtual_master_conversion: Optional[Union[dict[str, Any], ChannelConversionType]] = None,
     ) -> None:
@@ -131,11 +148,10 @@ class Signal:
             else:
                 self.samples = samples
 
-            self.timestamps: NDArray[Any]
             if not isinstance(timestamps, np.ndarray):
                 self.timestamps = np.array(timestamps, dtype=np.float64)
             else:
-                self.timestamps = timestamps
+                self.timestamps: NDArray[Any] = timestamps
 
             if self.samples.shape[0] != self.timestamps.shape[0]:
                 message = "{} samples and timestamps length mismatch ({} vs {})"
@@ -155,7 +171,7 @@ class Signal:
             self.encoding = encoding
             self.group_index = group_index
             self.channel_index = channel_index
-            self._invalidation_bits = None
+            self._invalidation_bits: Optional[InvalidationArray] = None
 
             if source:
                 if not isinstance(source, Source):
@@ -197,11 +213,11 @@ class Signal:
                 self.virtual_master_conversion = None
 
     @property
-    def invalidation_bits(self):
+    def invalidation_bits(self) -> Optional[InvalidationArray]:
         return self._invalidation_bits
 
     @invalidation_bits.setter
-    def invalidation_bits(self, value):
+    def invalidation_bits(self, value: Optional[ArrayLike]) -> None:
         if value is None:
             self._invalidation_bits = None
 
@@ -1353,9 +1369,9 @@ class Signal:
     def __getitem__(self, val: str) -> NDArray[Any]: ...
 
     @overload
-    def __getitem__(self, val: Union[int, slice, ArrayLike]) -> "Signal": ...
+    def __getitem__(self, val: Union[int, slice]) -> "Signal": ...
 
-    def __getitem__(self, val: Union[int, slice, ArrayLike, str]) -> Union[NDArray[Any], "Signal"]:
+    def __getitem__(self, val: Union[int, slice, str]) -> Union[NDArray[Any], "Signal"]:
         if isinstance(val, str):
             return self.samples[val]
         else:
@@ -1535,23 +1551,6 @@ class Signal:
             virtual_conversion=self.virtual_conversion,
             virtual_master_conversion=self.virtual_master_conversion,
         )
-
-
-ORIGIN_UNKNOWN = (-1, -1)
-
-
-class InvalidationArray(np.ndarray):
-    ORIGIN_UNKNOWN = ORIGIN_UNKNOWN
-
-    def __new__(cls, input_array, origin=ORIGIN_UNKNOWN):
-        obj = np.asarray(input_array).view(cls)
-        obj.origin = origin
-        return obj
-
-    def __array_finalize__(self, obj):
-        if obj is None:
-            return
-        self.origin = getattr(obj, "origin", ORIGIN_UNKNOWN)
 
 
 if __name__ == "__main__":

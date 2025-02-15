@@ -7,11 +7,16 @@ from collections.abc import Callable, Iterator
 import logging
 from os import PathLike
 from pathlib import Path
-from typing import Any, Generic, Optional, TypeVar, Union
+from typing import Generic, Optional, Union
 
 import numpy as np
-from numpy.typing import NDArray
-from typing_extensions import Required, TypedDict
+from numpy.typing import DTypeLike, NDArray
+from typing_extensions import (
+    Any,
+    Required,
+    TypedDict,
+    TypeVar,
+)
 
 from . import v2_v3_blocks as v3b
 from . import v4_blocks as v4b
@@ -29,7 +34,7 @@ __all__ = ["MDF_Common"]
 
 
 class MdfKwargs(TypedDict, total=False):
-    temporary_folder: Optional[Union[str, bytes, PathLike[str], PathLike[bytes]]]
+    temporary_folder: Optional[Union[str, PathLike[str]]]
     raise_on_multiple_occurrences: bool
     use_display_names: bool
     fill_0_for_missing_computation_channels: bool
@@ -47,9 +52,11 @@ class CommonKwargs(MdfKwargs, total=False):
 _DG = TypeVar("_DG", v3b.DataGroup, v4b.DataGroup)
 _CG = TypeVar("_CG", v3b.ChannelGroup, v4b.ChannelGroup)
 _CN = TypeVar("_CN", v3b.Channel, v4b.Channel)
+_CD = TypeVar("_CD", v3b.ChannelDependency, Union[list[v4b.ChannelArrayBlock], list[tuple[int, int]]])
+_ST = TypeVar("_ST", list[int], Union[list[int], list[tuple[int, int]], np.dtype[Any]])
 
 
-class Group(Generic[_DG, _CG, _CN]):
+class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
     __slots__ = (
         "channel_dependencies",
         "channel_group",
@@ -76,7 +83,7 @@ class Group(Generic[_DG, _CG, _CN]):
         self.data_group: _DG = data_group
         self.channel_group: _CG
         self.channels: list[_CN] = []
-        self.channel_dependencies: list[Optional[v3b.ChannelDependency]] = []
+        self.channel_dependencies: list[Optional[_CD]] = []
         self.signal_data: list[Optional[tuple[list[SignalDataBlockInfo], Iterator[SignalDataBlockInfo]]]] = []
         self.record: Optional[list[Optional[tuple[np.dtype[Any], int, int, int]]]] = None
         self.record_size: dict[int, int] = {}
@@ -84,8 +91,8 @@ class Group(Generic[_DG, _CG, _CN]):
         self.sorted: bool
         self.string_dtypes: list[np.dtype[np.bytes_]] = []
         self.data_blocks: list[DataBlockInfo] = []
-        self.signal_types: list[int]
-        self.single_channel_dtype = None
+        self.signal_types: _ST
+        self.single_channel_dtype: Optional[DTypeLike] = None
         self.uses_ld = False
         self.read_split_count = 0
         self.data_blocks_info_generator: Iterator[DataBlockInfo] = iter(EMPTY_TUPLE)
@@ -142,9 +149,16 @@ class Group(Generic[_DG, _CG, _CN]):
             continue
 
 
-_Group = TypeVar(
-    "_Group", Group[v3b.DataGroup, v3b.ChannelGroup, v3b.Channel], Group[v4b.DataGroup, v4b.ChannelGroup, v4b.Channel]
-)
+GroupV3 = Group[v3b.DataGroup, v3b.ChannelGroup, v3b.Channel, v3b.ChannelDependency, list[int]]
+GroupV4 = Group[
+    v4b.DataGroup,
+    v4b.ChannelGroup,
+    v4b.Channel,
+    Union[list[v4b.ChannelArrayBlock], list[tuple[int, int]]],
+    Union[list[int], list[tuple[int, int]], np.dtype[Any]],
+]
+
+_Group = TypeVar("_Group", GroupV3, GroupV4)
 
 
 class MDF_Common(ABC, Generic[_Group]):

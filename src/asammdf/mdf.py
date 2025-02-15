@@ -21,7 +21,6 @@ import sys
 from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
 from types import TracebackType
-from typing import Any, overload
 from warnings import warn
 import xml.etree.ElementTree as ET
 import zipfile
@@ -30,7 +29,7 @@ from canmatrix import CanMatrix
 import numpy as np
 from numpy.typing import NDArray
 import pandas as pd
-from typing_extensions import Literal
+from typing_extensions import Any, Literal, overload
 
 from . import tool
 from .blocks import bus_logging_utils, mdf_v2, mdf_v3, mdf_v4
