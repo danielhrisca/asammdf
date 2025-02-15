@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>749</width>
+    <width>1035</width>
     <height>703</height>
    </rect>
   </property>
@@ -215,6 +215,17 @@
              </widget>
             </item>
             <item>
+             <widget class="QPushButton" name="load_original_function_btn">
+              <property name="text">
+               <string>Load original function</string>
+              </property>
+              <property name="icon">
+               <iconset resource="resource.qrc">
+                <normaloff>:/shift_up.png</normaloff>:/shift_up.png</iconset>
+              </property>
+             </widget>
+            </item>
+            <item>
              <spacer name="horizontalSpacer_2">
               <property name="orientation">
                <enum>Qt::Orientation::Horizontal</enum>
@@ -246,7 +257,7 @@
      </widget>
      <widget class="QWidget" name="tab_2">
       <attribute name="title">
-       <string>Glolbal variables</string>
+       <string>Global variables</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_3">
        <property name="leftMargin">
@@ -264,7 +275,20 @@
        <property name="spacing">
         <number>1</number>
        </property>
-       <item row="0" column="0" colspan="2">
+       <item row="1" column="2">
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>637</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="0" column="0" colspan="3">
         <widget class="QPlainTextEdit" name="globals_definition">
          <property name="tabStopDistance">
           <double>140.000000000000000</double>
@@ -283,17 +307,15 @@
         </widget>
        </item>
        <item row="1" column="1">
-        <spacer name="horizontalSpacer">
-         <property name="orientation">
-          <enum>Qt::Orientation::Horizontal</enum>
+        <widget class="QPushButton" name="load_original_globals_btn">
+         <property name="text">
+          <string>Load original globals</string>
          </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>637</width>
-           <height>20</height>
-          </size>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/shift_up.png</normaloff>:/shift_up.png</iconset>
          </property>
-        </spacer>
+        </widget>
        </item>
       </layout>
      </widget>

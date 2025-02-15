@@ -1,24 +1,23 @@
-""" ASAM MDF version 3 file format module """
-
-from __future__ import annotations
+"""ASAM MDF version 3 file format module"""
 
 from collections import defaultdict
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
-from io import BufferedReader, BytesIO
 from itertools import product
 import logging
 from math import ceil
 import mmap
 import os
+from os import PathLike
 from pathlib import Path
 import sys
 from tempfile import NamedTemporaryFile
 import time
 from traceback import format_exc
-from typing import Any, overload
+import typing
+from typing import Any, BinaryIO, IO, Optional, overload, SupportsBytes, Union
 import xml.etree.ElementTree as ET
 
 import numpy as np
@@ -29,7 +28,6 @@ from numpy import (
     ascontiguousarray,
     column_stack,
     concatenate,
-    dtype,
     float32,
     float64,
     frombuffer,
@@ -39,18 +37,19 @@ from numpy import (
     unique,
     zeros,
 )
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike, DTypeLike, NDArray
 from pandas import DataFrame
-from typing_extensions import Literal, TypedDict
+from typing_extensions import Literal, TypedDict, Unpack
 
 from .. import tool
 from ..signal import Signal
 from ..types import ChannelsType, CompressionType, RasterType, StrPathType
+from . import mdf_common, utils
 from . import v2_v3_constants as v23c
 from .conversion_utils import conversion_transfer
 from .cutils import data_block_from_arrays, get_channel_raw_bytes
-from .mdf_common import MDF_Common
-from .options import get_global_option
+from .mdf_common import CommonKwargs, MDF_Common
+from .options import GLOBAL_OPTIONS
 from .source_utils import Source
 from .utils import (
     as_non_byte_sized_signed_int,
@@ -59,10 +58,10 @@ from .utils import (
     CONVERT,
     count_channel_groups,
     DataBlockInfo,
+    FileLike,
     fmt_to_datatype_v3,
     get_fmt_v3,
     get_text_v3,
-    Group,
     is_file_like,
     MdfException,
     TERMINATED,
@@ -73,15 +72,22 @@ from .utils import (
 from .v2_v3_blocks import (
     Channel,
     ChannelConversion,
+    ChannelConversionKwargs,
     ChannelDependency,
+    ChannelDependencyKwargs,
     ChannelExtension,
+    ChannelExtensionKwargs,
     ChannelGroup,
+    ChannelGroupKwargs,
+    ChannelKwargs,
     DataGroup,
+    DataGroupKwargs,
     FileIdentificationBlock,
     HeaderBlock,
     TextBlock,
     TriggerBlock,
 )
+from .v2_v3_constants import Version
 
 try:
     decode = np.strings.decode
@@ -95,6 +101,13 @@ logger = logging.getLogger("asammdf")
 __all__ = ["MDF3"]
 
 
+Group = mdf_common.Group[DataGroup, ChannelGroup, Channel]
+
+
+class Kwargs(CommonKwargs, total=False):
+    skip_sorting: bool
+
+
 class TriggerInfoDict(TypedDict):
     comment: str
     index: int
@@ -104,7 +117,7 @@ class TriggerInfoDict(TypedDict):
     post_time: float
 
 
-class MDF3(MDF_Common):
+class MDF3(MDF_Common[Group]):
     """The *header* attibute is a *HeaderBlock*.
 
     The *groups* attribute is a list of dicts, each one with the following keys
@@ -174,10 +187,10 @@ class MDF3(MDF_Common):
 
     def __init__(
         self,
-        name: BufferedReader | BytesIO | StrPathType | None = None,
-        version: str = "3.30",
-        channels: list[str] | None = None,
-        **kwargs,
+        name: Optional[Union[str, PathLike[str], FileLike]] = None,
+        version: Version = "3.30",
+        channels: Optional[list[str]] = None,
+        **kwargs: Unpack[Kwargs],
     ) -> None:
         if not kwargs.get("__internal__", False):
             raise MdfException("Always use the MDF class; do not use the class MDF3 directly")
@@ -195,50 +208,47 @@ class MDF3(MDF_Common):
             self.load_filter = set(channels)
             self.use_load_filter = True
 
-        self.temporary_folder = kwargs.get("temporary_folder", get_global_option("temporary_folder"))
+        self.temporary_folder = kwargs.get("temporary_folder", GLOBAL_OPTIONS["temporary_folder"])
 
-        self.groups = []
-        self.header = None
-        self.identification = None
+        self.groups: list[Group] = []
         self.channels_db = ChannelsDB()
-        self.masters_db = {}
-        self.version = version
+        self.masters_db: dict[int, int] = {}
+        self.version: str = version
 
-        self._master_channel_metadata = {}
+        self._master_channel_metadata: dict[int, tuple[str, Literal[1]]] = {}
         self._closed = False
 
         self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
         self._tempfile.write(b"\0")
-        self._file = self._mapped_file = None
+        self._mapped_file: Optional[BinaryIO] = None
+        self._file: Optional[Union[FileLike, mmap.mmap]] = self._mapped_file
 
         self._remove_source_from_channel_names = kwargs.get("remove_source_from_channel_names", False)
 
-        self._read_fragment_size = get_global_option("read_fragment_size")
-        self._write_fragment_size = get_global_option("write_fragment_size")
-        self._single_bit_uint_as_bool = get_global_option("single_bit_uint_as_bool")
-        self._integer_interpolation = get_global_option("integer_interpolation")
-        self._float_interpolation = get_global_option("float_interpolation")
+        self._read_fragment_size = GLOBAL_OPTIONS["read_fragment_size"]
+        self._write_fragment_size = GLOBAL_OPTIONS["write_fragment_size"]
+        self._single_bit_uint_as_bool = GLOBAL_OPTIONS["single_bit_uint_as_bool"]
+        self._integer_interpolation = GLOBAL_OPTIONS["integer_interpolation"]
+        self._float_interpolation = GLOBAL_OPTIONS["float_interpolation"]
         self._raise_on_multiple_occurrences = kwargs.get(
-            "raise_on_multiple_occurrences",
-            get_global_option("raise_on_multiple_occurrences"),
+            "raise_on_multiple_occurrences", GLOBAL_OPTIONS["raise_on_multiple_occurrences"]
         )
-        self._use_display_names = kwargs.get("use_display_names", get_global_option("use_display_names"))
+        self._use_display_names = kwargs.get("use_display_names", GLOBAL_OPTIONS["use_display_names"])
         self._fill_0_for_missing_computation_channels = kwargs.get(
-            "fill_0_for_missing_computation_channels",
-            get_global_option("fill_0_for_missing_computation_channels"),
+            "fill_0_for_missing_computation_channels", GLOBAL_OPTIONS["fill_0_for_missing_computation_channels"]
         )
         self.copy_on_get = False
 
-        self._si_map = {}
-        self._cc_map = {}
+        self._si_map: dict[Union[bytes, int], ChannelExtension] = {}
+        self._cc_map: dict[Union[bytes, int], ChannelConversion] = {}
 
-        self.last_call_info = None
-        self._master = None
+        self.last_call_info: dict[str, object] = {}
+        self._master: Optional[NDArray[np.float64]] = None
 
-        self.virtual_groups_map = {}
-        self.virtual_groups = {}
+        self.virtual_groups_map: dict[int, int] = {}
+        self.virtual_groups: dict[int, VirtualChannelGroup] = {}
 
-        self.vlsd_max_length = {}
+        self.vlsd_max_length: dict[tuple[str, int], int] = {}
 
         self._delete_on_close = False
 
@@ -249,20 +259,20 @@ class MDF3(MDF_Common):
                 self._file = name
                 self.name = self.original_name = Path("From_FileLike.mdf")
                 self._from_filelike = True
-                self._read(mapped=False, progress=progress)
+                self._read(self._file, mapped=False, progress=progress)
             else:
                 try:
                     if sys.maxsize < 2**32:
                         self.name = Path(name)
                         self._file = open(self.name, "rb")
                         self._from_filelike = False
-                        self._read(mapped=False, progress=progress)
+                        self._read(self._file, mapped=False, progress=progress)
                     else:
                         self.name = Path(name)
                         self._mapped_file = open(self.name, "rb")
                         self._file = mmap.mmap(self._mapped_file.fileno(), 0, access=mmap.ACCESS_READ)
                         self._from_filelike = False
-                        self._read(mapped=True, progress=progress)
+                        self._read(self._file, mapped=True, progress=progress)
                 except:
                     if self._file:
                         self._file.close()
@@ -291,7 +301,7 @@ class MDF3(MDF_Common):
             virtual_channel_group.record_size = grp.channel_group.samples_byte_nr
             virtual_channel_group.cycles_nr = grp.channel_group.cycles_nr
 
-        self._parent = None
+        self._parent: Optional[object] = None
 
     def __del__(self) -> None:
         self.close()
@@ -300,17 +310,20 @@ class MDF3(MDF_Common):
         self,
         group: Group,
         record_offset: int = 0,
-        record_count: int | None = None,
+        record_count: Optional[int] = None,
         optimize_read: bool = True,
-    ) -> Iterator[tuple[bytes, int, int | None]]:
+    ) -> Iterator[tuple[bytes, int, Optional[int]]]:
         """get group's data block bytes"""
         has_yielded = False
         offset = 0
         _count = record_count
         channel_group = group.channel_group
 
+        stream: Union[FileLike, mmap.mmap, IO[bytes]]
         if group.data_location == v23c.LOCATION_ORIGINAL_FILE:
             # go to the first data block of the current data group
+            if self._file is None:
+                raise RuntimeError(f"file was not opened '{self.name}'")
             stream = self._file
         else:
             stream = self._tempfile
@@ -338,7 +351,7 @@ class MDF3(MDF_Common):
                     y_axis = CONVERT
 
                     idx = searchsorted(CHANNEL_COUNT, channels_nr, side="right") - 1
-                    idx = max(idx, 0)
+                    idx = max(idx, 0)  # type: ignore[arg-type]
                     split_size = y_axis[idx]
 
                     split_size = split_size // samples_size
@@ -352,7 +365,7 @@ class MDF3(MDF_Common):
                 blocks = iter(group.data_blocks)
 
                 cur_size = 0
-                data = []
+                data_list: list[bytes] = []
 
                 while True:
                     try:
@@ -378,10 +391,10 @@ class MDF3(MDF_Common):
                     if record_count:
                         while size >= split_size - cur_size:
                             stream.seek(current_address)
-                            if data:
-                                data.append(stream.read(min(record_count, split_size - cur_size)))
+                            if data_list:
+                                data_list.append(stream.read(min(record_count, split_size - cur_size)))
 
-                                bts = b"".join(data)[:record_count]
+                                bts = b"".join(data_list)[:record_count]
                                 record_count -= len(bts)
                                 __count = len(bts) // samples_size
                                 yield bts, offset // samples_size, __count
@@ -406,15 +419,15 @@ class MDF3(MDF_Common):
                             offset += split_size
 
                             size -= split_size - cur_size
-                            data = []
+                            data_list = []
                             cur_size = 0
                     else:
                         while size >= split_size - cur_size:
                             stream.seek(current_address)
-                            if data:
-                                data.append(stream.read(split_size - cur_size))
+                            if data_list:
+                                data_list.append(stream.read(split_size - cur_size))
 
-                                yield b"".join(data), offset, _count
+                                yield b"".join(data_list), offset, _count
                                 has_yielded = True
                                 current_address += split_size - cur_size
                             else:
@@ -425,26 +438,26 @@ class MDF3(MDF_Common):
                             offset += split_size
 
                             size -= split_size - cur_size
-                            data = []
+                            data_list = []
                             cur_size = 0
 
                     if finished:
-                        data = []
+                        data_list = []
                         offset = -1
                         break
 
                     if size:
                         stream.seek(current_address)
                         if record_count:
-                            data.append(stream.read(min(record_count, size)))
+                            data_list.append(stream.read(min(record_count, size)))
                         else:
-                            data.append(stream.read(size))
+                            data_list.append(stream.read(size))
 
                         cur_size += size
                         offset += size
 
-                if data:
-                    data = b"".join(data)
+                if data_list:
+                    data = b"".join(data_list)
                     if record_count is not None:
                         data = data[:record_count]
                         yield data, offset, len(data) // samples_size
@@ -466,9 +479,9 @@ class MDF3(MDF_Common):
                 record_id_nr = group.data_group.record_id_len
             else:
                 record_id_nr = 0
-            cg_data = []
+            data_list = []
 
-            blocks = group.data_blocks
+            blocks = iter(group.data_blocks)
 
             for info in blocks:
                 address, size = info.address, info.original_size
@@ -483,14 +496,14 @@ class MDF3(MDF_Common):
                     rec_size = cg_size[rec_id]
                     if rec_id == record_id:
                         rec_data = data[i : i + rec_size]
-                        cg_data.append(rec_data)
+                        data_list.append(rec_data)
                     # consider the second record ID if it exists
                     if record_id_nr == 2:
                         i += rec_size + 1
                     else:
                         i += rec_size
-                cg_data = b"".join(cg_data)
-                size = len(cg_data)
+                data = b"".join(data_list)
+                size = len(data)
 
                 if size:
                     if offset + size < record_offset + 1:
@@ -502,13 +515,13 @@ class MDF3(MDF_Common):
                         size -= delta
                         offset = record_offset
 
-                    yield cg_data, offset, _count
+                    yield data, offset, _count
                     has_yielded = True
                     offset += size
         if not has_yielded:
             yield b"", 0, _count
 
-    def _prepare_record(self, group: Group) -> list:
+    def _prepare_record(self, group: Group) -> list[Optional[tuple[np.dtype[Any], int, int, int]]]:
         """compute record list
 
         Parameters
@@ -564,7 +577,7 @@ class MDF3(MDF_Common):
                             bit_offset += 16 - bit_size
 
                     if not new_ch.dtype_fmt:
-                        new_ch.dtype_fmt = dtype(get_fmt_v3(data_type, size, byte_order))
+                        new_ch.dtype_fmt = np.dtype(get_fmt_v3(data_type, size, byte_order))
 
                     record.append(
                         (
@@ -608,7 +621,7 @@ class MDF3(MDF_Common):
             ("", f"a{record_size - byte_size - byte_offset}"),
         ]
 
-        vals = np.rec.fromstring(data, dtype=dtype(types))
+        vals: NDArray[Any] = np.rec.fromstring(data, dtype=np.dtype(types))
 
         vals = vals["vals"]
 
@@ -673,8 +686,12 @@ class MDF3(MDF_Common):
         else:
             return vals
 
-    def _read(self, mapped: bool = False, progress=None) -> None:
-        stream = self._file
+    def _read(
+        self,
+        stream: Union[FileLike, mmap.mmap],
+        mapped: bool = False,
+        progress: Optional[Union[Callable[[int, int], None], Any]] = None,
+    ) -> Optional[object]:
         filter_channels = self.use_load_filter
 
         cg_count, _ = count_channel_groups(stream)
@@ -723,9 +740,17 @@ class MDF3(MDF_Common):
             else:
                 trigger = None
 
-            new_groups = []
+            new_groups: list[Group] = []
             for i in range(cg_nr):
-                new_groups.append(Group(None))
+                kargs: DataGroupKwargs = {"first_cg_addr": cg_addr, "data_block_addr": data_addr}
+                if self.version >= "3.20":
+                    kargs["block_len"] = v23c.DG_POST_320_BLOCK_SIZE
+                else:
+                    kargs["block_len"] = v23c.DG_PRE_320_BLOCK_SIZE
+                kargs["record_id_len"] = record_id_nr
+                kargs["address"] = data_group.address
+
+                new_groups.append(Group(DataGroup(**kargs)))
                 grp = new_groups[-1]
                 grp.channels = []
                 grp.trigger = trigger
@@ -735,16 +760,6 @@ class MDF3(MDF_Common):
                     grp.sorted = False
                 else:
                     grp.sorted = True
-
-                kargs = {"first_cg_addr": cg_addr, "data_block_addr": data_addr}
-                if self.version >= "3.20":
-                    kargs["block_len"] = v23c.DG_POST_320_BLOCK_SIZE
-                else:
-                    kargs["block_len"] = v23c.DG_PRE_320_BLOCK_SIZE
-                kargs["record_id_len"] = record_id_nr
-                kargs["address"] = data_group.address
-
-                grp.data_group = DataGroup(**kargs)
 
                 # read each channel group sequentially
                 if cg_addr > self.file_limit:
@@ -764,15 +779,15 @@ class MDF3(MDF_Common):
 
                     if filter_channels:
                         display_names = {}
-                        if mapped:
+                        if utils.stream_is_mmap(stream, mapped):
                             (
                                 id_,
                                 block_len,
                                 next_ch_addr,
                                 channel_type,
-                                name,
+                                name_bytes,
                             ) = v23c.CHANNEL_FILTER_uf(stream, ch_addr)
-                            name = name.decode("latin-1").strip(" \t\n\r\0")
+                            name = name_bytes.decode("latin-1").strip(" \t\n\r\0")
                             if block_len >= v23c.CN_LONGNAME_BLOCK_SIZE:
                                 tx_address = v23c.UINT32_uf(stream, ch_addr + v23c.CN_SHORT_BLOCK_SIZE)[0]
                                 if tx_address:
@@ -791,9 +806,9 @@ class MDF3(MDF_Common):
                                 block_len,
                                 next_ch_addr,
                                 channel_type,
-                                name,
+                                name_bytes,
                             ) = v23c.CHANNEL_FILTER_u(stream.read(v23c.CHANNEL_FILTER_SIZE))
-                            name = name.decode("latin-1").strip(" \t\n\r\0")
+                            name = name_bytes.decode("latin-1").strip(" \t\n\r\0")
 
                             if block_len >= v23c.CN_LONGNAME_BLOCK_SIZE:
                                 stream.seek(ch_addr + v23c.CN_SHORT_BLOCK_SIZE)
@@ -809,7 +824,7 @@ class MDF3(MDF_Common):
                                         }
 
                         if id_ != b"CN":
-                            message = f'Expected "CN" block @{hex(ch_addr)} but found "{id_}"'
+                            message = f'Expected "CN" block @{hex(ch_addr)} but found "{id_!r}"'
                             raise MdfException(message)
 
                         if self._remove_source_from_channel_names:
@@ -856,9 +871,9 @@ class MDF3(MDF_Common):
                     # check if it has channel dependencies
                     if new_ch.component_addr:
                         dep = ChannelDependency(address=new_ch.component_addr, stream=stream)
-                        grp.channel_dependencies.append(dep)
                     else:
-                        grp.channel_dependencies.append(None)
+                        dep = None
+                    grp.channel_dependencies.append(dep)
 
                     # update channel map
                     entry = dg_cntr, ch_cntr
@@ -893,7 +908,7 @@ class MDF3(MDF_Common):
             # add the key 'sorted' with the value False to use a flag;
             # this is used later if memory=False
 
-            cg_size = {}
+            cg_size: dict[int, int] = {}
             total_size = 0
 
             for grp in new_groups:
@@ -932,38 +947,36 @@ class MDF3(MDF_Common):
             for dep in grp.channel_dependencies:
                 if dep:
                     for i in range(dep.sd_nr):
-                        ref_channel_addr = dep[f"ch_{i}"]
+                        ref_channel_addr = typing.cast(int, dep[f"ch_{i}"])
                         channel = ch_map[ref_channel_addr]
                         dep.referenced_channels.append(channel)
+
+        return None
 
     def _filter_occurrences(
         self,
         occurrences: Sequence[tuple[int, int]],
-        source_name: str | None = None,
-        source_path: str | None = None,
-        acq_name: str | None = None,
+        source_name: Optional[str] = None,
+        source_path: Optional[str] = None,
+        acq_name: Optional[str] = None,
     ) -> Iterator[tuple[int, int]]:
+        occurrences_iter = iter(occurrences)
+
         if source_name is not None:
-            occurrences = (
+            occurrences_iter = (
                 (gp_idx, cn_idx)
-                for gp_idx, cn_idx in occurrences
-                if (
-                    self.groups[gp_idx].channels[cn_idx].source is not None
-                    and self.groups[gp_idx].channels[cn_idx].source.name == source_name
-                )
+                for gp_idx, cn_idx in occurrences_iter
+                if (source := self.groups[gp_idx].channels[cn_idx].source) is not None and source.name == source_name
             )
 
         if source_path is not None:
-            occurrences = (
+            occurrences_iter = (
                 (gp_idx, cn_idx)
-                for gp_idx, cn_idx in occurrences
-                if (
-                    self.groups[gp_idx].channels[cn_idx].source is not None
-                    and self.groups[gp_idx].channels[cn_idx].source.path == source_path
-                )
+                for gp_idx, cn_idx in occurrences_iter
+                if (source := self.groups[gp_idx].channels[cn_idx].source) is not None and source.path == source_path
             )
 
-        return occurrences
+        return occurrences_iter
 
     def add_trigger(
         self,
@@ -993,25 +1006,26 @@ class MDF3(MDF_Common):
     <TX>{}</TX>
 </EVcomment>"""
         try:
-            group = self.groups[group]
+            gp = self.groups[group]
         except IndexError:
             return
 
-        trigger = group.trigger
+        trigger = gp.trigger
 
         if comment:
             try:
-                comment = ET.fromstring(comment)
-                if comment.find(".//TX"):
-                    comment = comment.find(".//TX").text
+                comment_elem = ET.fromstring(comment)
+                tx_elem = comment_elem.find(".//TX")
+                if tx_elem is not None:
+                    comment = tx_elem.text or ""
                 else:
                     comment = ""
             except ET.ParseError:
                 pass
 
         if trigger:
-            count = trigger["trigger_events_nr"]
-            trigger["trigger_events_nr"] += 1
+            count = trigger.trigger_events_nr
+            trigger.trigger_events_nr += 1
             trigger.block_len += 24
             trigger[f"trigger_{count}_time"] = timestamp
             trigger[f"trigger_{count}_pretime"] = pre_time
@@ -1024,9 +1038,10 @@ class MDF3(MDF_Common):
                 else:
                     current_comment = trigger.comment
                     try:
-                        current_comment = ET.fromstring(current_comment)
-                        if current_comment.find(".//TX"):
-                            current_comment = current_comment.find(".//TX").text
+                        comment_elem = ET.fromstring(current_comment)
+                        tx_elem = comment_elem.find(".//TX")
+                        if tx_elem is not None:
+                            current_comment = tx_elem.text or ""
                         else:
                             current_comment = ""
                     except ET.ParseError:
@@ -1036,8 +1051,7 @@ class MDF3(MDF_Common):
                     comment = comment_template.format(comment)
                     trigger.comment = comment
         else:
-            trigger = TriggerBlock(
-                trigger_event_nr=1,
+            trigger = TriggerBlock(  # type: ignore[call-arg]
                 trigger_0_time=timestamp,
                 trigger_0_pretime=pre_time,
                 trigger_0_posttime=post_time,
@@ -1047,17 +1061,39 @@ class MDF3(MDF_Common):
                 comment = comment_template.format(comment)
                 trigger.comment = comment
 
-            group.trigger = trigger
+            gp.trigger = trigger
+
+    @overload
+    def append(
+        self,
+        signals: Union[list[Signal], Signal],
+        acq_name: Optional[str] = ...,
+        acq_source: Optional[Source] = ...,
+        comment: str = ...,
+        common_timebase: bool = ...,
+        units: Optional[dict[str, str]] = ...,
+    ) -> int: ...
+
+    @overload
+    def append(
+        self,
+        signals: DataFrame,
+        acq_name: Optional[str] = ...,
+        acq_source: Optional[Source] = ...,
+        comment: str = ...,
+        common_timebase: bool = ...,
+        units: Optional[dict[str, str]] = ...,
+    ) -> None: ...
 
     def append(
         self,
-        signals: list[Signal] | Signal | DataFrame,
-        acq_name: str | None = None,
-        acq_source: Source | None = None,
+        signals: Union[list[Signal], Signal, DataFrame],
+        acq_name: Optional[str] = None,
+        acq_source: Optional[Source] = None,
         comment: str = "Python",
         common_timebase: bool = False,
-        units: dict[str, str | bytes] | None = None,
-    ) -> int | None:
+        units: Optional[dict[str, str]] = None,
+    ) -> Optional[int]:
         """Appends a new data group.
 
         For channel dependencies type Signals, the *samples* attribute must be
@@ -1113,9 +1149,8 @@ class MDF3(MDF_Common):
             signals = [signals]
         elif isinstance(signals, DataFrame):
             self._append_dataframe(signals, comment=comment, units=units)
-            return
+            return None
 
-        version = self.version
         integer_interp_mode = self._integer_interpolation
         float_interp_mode = self._float_interpolation
 
@@ -1142,7 +1177,7 @@ class MDF3(MDF_Common):
                         )
                         for s in signals
                     ]
-                    times = None
+                    del times
         else:
             timestamps = array([])
 
@@ -1156,13 +1191,13 @@ class MDF3(MDF_Common):
         file = self._tempfile
         tell = file.tell
 
-        kargs = {
+        ce_kargs: ChannelExtensionKwargs = {
             "module_nr": 0,
             "module_address": 0,
             "type": v23c.SOURCE_ECU,
             "description": b"Channel inserted by Python Script",
         }
-        ce_block = ChannelExtension(**kargs)
+        ce_block = ChannelExtension(**ce_kargs)
 
         canopen_time_fields = ("ms", "days")
         canopen_date_fields = (
@@ -1178,18 +1213,22 @@ class MDF3(MDF_Common):
 
         dg_cntr = len(self.groups)
 
-        gp = Group(None)
-        gp.channels = gp_channels = []
-        gp.channel_dependencies = gp_dep = []
-        gp.signal_types = gp_sig_types = []
+        gp = Group(DataGroup())
+        gp_channels: list[Channel] = []
+        gp.channels = gp_channels
+        gp_dep: list[Optional[ChannelDependency]] = []
+        gp.channel_dependencies = gp_dep
+        gp_sig_types: list[int] = []
+        gp.signal_types = gp_sig_types
         gp.string_dtypes = []
-        gp.record = record = []
+        record: list[Optional[tuple[np.dtype[Any], int, int, int]]] = []
+        gp.record = record
 
         self.groups.append(gp)
 
         cycles_nr = len(timestamps)
-        fields = []
-        types = []
+        fields: list[NDArray[Any]] = []
+        types: list[Union[DTypeLike, tuple[str, np.dtype[Any], tuple[int, ...]]]] = []
         ch_cntr = 0
         offset = 0
         field_names = UniqueDB()
@@ -1205,19 +1244,19 @@ class MDF3(MDF_Common):
 
         if signals:
             # conversion for time channel
-            kargs = {
+            cc_kargs: ChannelConversionKwargs = {
                 "conversion_type": v23c.CONVERSION_TYPE_NONE,
                 "unit": b"s",
                 "min_phy_value": timestamps[0] if cycles_nr else 0,
                 "max_phy_value": timestamps[-1] if cycles_nr else 0,
             }
-            conversion = ChannelConversion(**kargs)
-            conversion.unit = "s"
-            source = ce_block
+            cc_block = ChannelConversion(**cc_kargs)
+            cc_block.unit = "s"
+            new_source = ce_block
 
             # time channel
             t_type, t_size = fmt_to_datatype_v3(timestamps.dtype, timestamps.shape)
-            kargs = {
+            cn_kargs: ChannelKwargs = {
                 "short_name": time_name.encode("latin-1"),
                 "channel_type": v23c.CHANNEL_TYPE_MASTER,
                 "data_type": t_type,
@@ -1226,12 +1265,11 @@ class MDF3(MDF_Common):
                 "max_raw_value": timestamps[-1] if cycles_nr else 0,
                 "bit_count": t_size,
                 "block_len": channel_size,
-                "version": version,
             }
-            channel = Channel(**kargs)
+            channel = Channel(**cn_kargs)
             channel.name = name = time_name
-            channel.conversion = conversion
-            channel.source = source
+            channel.conversion = cc_block
+            channel.source = new_source
 
             gp_channels.append(channel)
 
@@ -1276,32 +1314,34 @@ class MDF3(MDF_Common):
 
             # conversions for channel
 
-            conversion = conversion_transfer(signal.conversion)
-            conversion.unit = unit = signal.unit
+            cc_block = conversion_transfer(signal.conversion)
+            cc_block.unit = unit = signal.unit
 
             israw = signal.raw
 
             if not israw and not unit:
                 conversion = None
+            else:
+                conversion = cc_block
 
             if sig_type == v23c.SIGNAL_TYPE_SCALAR:
                 # source for channel
                 if signal.source:
                     source = signal.source
                     if source.source_type != 2:
-                        kargs = {
+                        ce_kargs = {
                             "type": v23c.SOURCE_ECU,
                             "description": source.name.encode("latin-1"),
                             "ECU_identification": source.path.encode("latin-1"),
                         }
                     else:
-                        kargs = {
+                        ce_kargs = {
                             "type": v23c.SOURCE_VECTOR,
                             "message_name": source.name.encode("latin-1"),
                             "sender_name": source.path.encode("latin-1"),
                         }
 
-                    new_source = ChannelExtension(**kargs)
+                    new_source = ChannelExtension(**ce_kargs)
 
                 else:
                     new_source = ce_block
@@ -1325,19 +1365,18 @@ class MDF3(MDF_Common):
                 else:
                     s_size_ = s_size
 
-                kargs = {
+                cn_kargs = {
                     "channel_type": v23c.CHANNEL_TYPE_VALUE,
                     "data_type": s_type,
                     "start_offset": start_bit_offset,
                     "bit_count": s_size_,
                     "additional_byte_offset": additional_byte_offset,
                     "block_len": channel_size,
-                    "version": version,
                 }
 
                 s_size = max(s_size, 8)
 
-                channel = Channel(**kargs)
+                channel = Channel(**cn_kargs)
                 channel.name = signal.name
                 channel.comment = signal.comment
                 channel.source = new_source
@@ -1346,14 +1385,16 @@ class MDF3(MDF_Common):
                 gp_channels.append(channel)
 
                 if len(signal.samples.shape) > 1:
-                    channel.dtype_fmt = dtype((signal.samples.dtype, signal.samples.shape[1:]))
+                    dtype_fmt = np.dtype((signal.samples.dtype, signal.samples.shape[1:]))
                 else:
-                    channel.dtype_fmt = signal.samples.dtype
+                    dtype_fmt = signal.samples.dtype
+
+                channel.dtype_fmt = dtype_fmt
 
                 record.append(
                     (
-                        channel.dtype_fmt,
-                        channel.dtype_fmt.itemsize,
+                        dtype_fmt,
+                        dtype_fmt.itemsize,
                         offset // 8,
                         0,
                     )
@@ -1388,34 +1429,38 @@ class MDF3(MDF_Common):
                 v23c.SIGNAL_TYPE_STRUCTURE_COMPOSITION,
             ):
                 new_dg_cntr = len(self.groups)
-                new_gp = Group(None)
-                new_gp.channels = new_gp_channels = []
-                new_gp.channel_dependencies = new_gp_dep = []
-                new_gp.signal_types = new_gp_sig_types = []
-                new_gp.record = new_record = []
+                new_gp = Group(DataGroup())
+                new_gp_channels: list[Channel] = []
+                new_gp.channels = new_gp_channels
+                new_gp_dep: list[Optional[ChannelDependency]] = []
+                new_gp.channel_dependencies = new_gp_dep
+                new_gp_sig_types: list[int] = []
+                new_gp.signal_types = new_gp_sig_types
+                new_record: list[Optional[tuple[np.dtype[Any], int, int, int]]] = []
+                new_gp.record = new_record
                 self.groups.append(new_gp)
 
-                new_fields = []
-                new_types = []
+                new_fields: list[NDArray[Any]] = []
+                new_types: list[Union[DTypeLike, tuple[str, np.dtype[Any], tuple[int, ...]]]] = []
                 new_ch_cntr = 0
                 new_offset = 0
                 new_field_names = UniqueDB()
 
                 # conversion for time channel
-                kargs = {
+                cc_kargs = {
                     "conversion_type": v23c.CONVERSION_TYPE_NONE,
                     "unit": b"s",
                     "min_phy_value": timestamps[0] if cycles_nr else 0,
                     "max_phy_value": timestamps[-1] if cycles_nr else 0,
                 }
-                conversion = ChannelConversion(**kargs)
-                conversion.unit = "s"
+                cc_block = ChannelConversion(**cc_kargs)
+                cc_block.unit = "s"
 
-                source = ce_block
+                new_source = ce_block
 
                 # time channel
                 t_type, t_size = fmt_to_datatype_v3(timestamps.dtype, timestamps.shape)
-                kargs = {
+                cn_kargs = {
                     "short_name": time_name.encode("latin-1"),
                     "channel_type": v23c.CHANNEL_TYPE_MASTER,
                     "data_type": t_type,
@@ -1424,12 +1469,11 @@ class MDF3(MDF_Common):
                     "max_raw_value": timestamps[-1] if cycles_nr else 0,
                     "bit_count": t_size,
                     "block_len": channel_size,
-                    "version": version,
                 }
-                channel = Channel(**kargs)
+                channel = Channel(**cn_kargs)
                 channel.name = name = time_name
-                channel.source = source
-                channel.conversion = conversion
+                channel.source = new_source
+                channel.conversion = cc_block
                 new_gp_channels.append(channel)
 
                 new_record.append(
@@ -1473,7 +1517,7 @@ class MDF3(MDF_Common):
                 else:
                     channel_group_comment = "From mdf v4 structure channel composition"
 
-                for name in names:
+                for name in names or ():
                     samples = signal.samples[name]
 
                     new_record.append(
@@ -1487,34 +1531,34 @@ class MDF3(MDF_Common):
 
                     # conversions for channel
 
-                    kargs = {
+                    cc_kargs = {
                         "conversion_type": v23c.CONVERSION_TYPE_NONE,
                         "unit": signal.unit.encode("latin-1"),
                         "min_phy_value": 0,
                         "max_phy_value": 0,
                     }
-                    conversion = ChannelConversion(**kargs)
+                    cc_block = ChannelConversion(**cc_kargs)
 
                     # source for channel
                     if signal.source:
                         source = signal.source
                         if source.source_type != 2:
-                            kargs = {
+                            ce_kargs = {
                                 "type": v23c.SOURCE_ECU,
                                 "description": source.name.encode("latin-1"),
                                 "ECU_identification": source.path.encode("latin-1"),
                             }
                         else:
-                            kargs = {
+                            ce_kargs = {
                                 "type": v23c.SOURCE_VECTOR,
                                 "message_name": source.name.encode("latin-1"),
                                 "sender_name": source.path.encode("latin-1"),
                             }
 
-                        source = ChannelExtension(**kargs)
+                        new_source = ChannelExtension(**ce_kargs)
 
                     else:
-                        source = ce_block
+                        new_source = ce_block
 
                     # compute additional byte offset for large records size
                     if new_offset > v23c.MAX_UINT16:
@@ -1525,22 +1569,21 @@ class MDF3(MDF_Common):
                         additional_byte_offset = 0
                     s_type, s_size = fmt_to_datatype_v3(samples.dtype, samples.shape)
 
-                    kargs = {
+                    cn_kargs = {
                         "channel_type": v23c.CHANNEL_TYPE_VALUE,
                         "data_type": s_type,
                         "start_offset": start_bit_offset,
                         "bit_count": s_size,
                         "additional_byte_offset": additional_byte_offset,
                         "block_len": channel_size,
-                        "version": version,
                     }
 
                     s_size = max(s_size, 8)
 
-                    channel = Channel(**kargs)
+                    channel = Channel(**cn_kargs)
                     channel.name = name
-                    channel.source = source
-                    channel.conversion = conversion
+                    channel.source = new_source
+                    channel.conversion = cc_block
 
                     new_gp_channels.append(channel)
                     new_offset += s_size
@@ -1558,12 +1601,12 @@ class MDF3(MDF_Common):
                     new_gp_dep.append(None)
 
                 # channel group
-                kargs = {
+                cg_kargs: ChannelGroupKwargs = {
                     "cycles_nr": cycles_nr,
                     "samples_byte_nr": new_offset // 8,
                     "ch_nr": new_ch_cntr,
                 }
-                new_gp.channel_group = ChannelGroup(**kargs)
+                new_gp.channel_group = ChannelGroup(**cg_kargs)
                 new_gp.channel_group.comment = channel_group_comment
 
                 # data group
@@ -1574,12 +1617,10 @@ class MDF3(MDF_Common):
                 new_gp.data_group = DataGroup(block_len=block_len)
 
                 # data block
-                new_types = dtype(new_types)
-
                 new_gp.sorted = True
 
                 try:
-                    samples = np.rec.fromarrays(new_fields, dtype=new_types)
+                    samples = np.rec.fromarrays(new_fields, dtype=np.dtype(new_types))
                     block = samples.tobytes()
                 except:
                     struct_fields = []
@@ -1622,7 +1663,7 @@ class MDF3(MDF_Common):
 
             else:
                 new_dg_cntr = len(self.groups)
-                new_gp = Group(None)
+                new_gp = Group(DataGroup())
                 new_gp.channels = new_gp_channels = []
                 new_gp.channel_dependencies = new_gp_dep = []
                 new_gp.signal_types = new_gp_sig_types = []
@@ -1638,8 +1679,8 @@ class MDF3(MDF_Common):
                 names = signal.samples.dtype.names
                 name = signal.name
 
-                component_names = []
-                component_samples = []
+                component_names: list[str] = []
+                component_samples: list[NDArray[Any]] = []
                 if names:
                     samples = signal.samples[names[0]]
                 else:
@@ -1654,38 +1695,38 @@ class MDF3(MDF_Common):
                         subarray = subarray[:, idx]
                     component_samples.append(subarray)
 
-                    indexes = "".join(f"[{idx}]" for idx in indexes)
-                    component_name = f"{name}{indexes}"
+                    indexes_str = "".join(f"[{idx}]" for idx in indexes)
+                    component_name = f"{name}{indexes_str}"
                     component_names.append(component_name)
 
                 # add channel dependency block for composed parent channel
                 sd_nr = len(component_samples)
-                kargs = {"sd_nr": sd_nr}
+                cd_kargs: ChannelDependencyKwargs = {"sd_nr": sd_nr}
                 for i, dim in enumerate(shape[::-1]):
-                    kargs[f"dim_{i}"] = dim
-                parent_dep = ChannelDependency(**kargs)
+                    cd_kargs[f"dim_{i}"] = dim  # type: ignore[literal-required]
+                parent_dep = ChannelDependency(**cd_kargs)
                 new_gp_dep.append(parent_dep)
 
                 # source for channel
                 if signal.source:
                     source = signal.source
                     if source.source_type != 2:
-                        kargs = {
+                        ce_kargs = {
                             "type": v23c.SOURCE_ECU,
                             "description": source.name.encode("latin-1"),
                             "ECU_identification": source.path.encode("latin-1"),
                         }
                     else:
-                        kargs = {
+                        ce_kargs = {
                             "type": v23c.SOURCE_VECTOR,
                             "message_name": source.name.encode("latin-1"),
                             "sender_name": source.path.encode("latin-1"),
                         }
 
-                    source = ChannelExtension(**kargs)
+                    new_source = ChannelExtension(**ce_kargs)
 
                 else:
-                    source = ce_block
+                    new_source = ce_block
 
                 s_type, s_size = fmt_to_datatype_v3(samples.dtype, (), True)
                 # compute additional byte offset for large records size
@@ -1696,21 +1737,20 @@ class MDF3(MDF_Common):
                     start_bit_offset = offset
                     additional_byte_offset = 0
 
-                kargs = {
+                cn_kargs = {
                     "channel_type": v23c.CHANNEL_TYPE_VALUE,
                     "data_type": s_type,
                     "start_offset": start_bit_offset,
                     "bit_count": s_size,
                     "additional_byte_offset": additional_byte_offset,
                     "block_len": channel_size,
-                    "version": version,
                 }
 
                 s_size = max(s_size, 8)
 
                 new_record.append(None)
 
-                channel = Channel(**kargs)
+                channel = Channel(**cn_kargs)
                 channel.comment = signal.comment
                 channel.display_names = signal.display_names
 
@@ -1726,8 +1766,8 @@ class MDF3(MDF_Common):
                         parent_dep.referenced_channels.append(dep_pair)
                         description = b"\0"
                     else:
-                        description = f"{signal.name} - axis {name}"
-                        description = description.encode("latin-1")
+                        description_str = f"{signal.name} - axis {name}"
+                        description = description_str.encode("latin-1")
 
                     s_type, s_size = fmt_to_datatype_v3(samples.dtype, ())
                     shape = samples.shape[1:]
@@ -1736,21 +1776,21 @@ class MDF3(MDF_Common):
                     if signal.source:
                         source = signal.source
                         if source.source_type != 2:
-                            kargs = {
+                            ce_kargs = {
                                 "type": v23c.SOURCE_ECU,
                                 "description": source.name.encode("latin-1"),
                                 "ECU_identification": source.path.encode("latin-1"),
                             }
                         else:
-                            kargs = {
+                            ce_kargs = {
                                 "type": v23c.SOURCE_VECTOR,
                                 "message_name": source.name.encode("latin-1"),
                                 "sender_name": source.path.encode("latin-1"),
                             }
 
-                        source = ChannelExtension(**kargs)
+                        new_source = ChannelExtension(**ce_kargs)
                     else:
-                        source = ce_block
+                        new_source = ce_block
 
                     # compute additional byte offset for large records size
                     if new_offset > v23c.MAX_UINT16:
@@ -1769,7 +1809,7 @@ class MDF3(MDF_Common):
                         )
                     )
 
-                    kargs = {
+                    cn_kargs = {
                         "channel_type": v23c.CHANNEL_TYPE_VALUE,
                         "data_type": s_type,
                         "start_offset": start_bit_offset,
@@ -1777,14 +1817,13 @@ class MDF3(MDF_Common):
                         "additional_byte_offset": additional_byte_offset,
                         "block_len": channel_size,
                         "description": description,
-                        "version": version,
                     }
 
                     s_size = max(s_size, 8)
 
-                    channel = Channel(**kargs)
+                    channel = Channel(**cn_kargs)
                     channel.name = name
-                    channel.source = source
+                    channel.source = new_source
                     new_gp_channels.append(channel)
 
                     size = s_size
@@ -1803,7 +1842,7 @@ class MDF3(MDF_Common):
 
                     ch_cntr += 1
 
-                for name in names[1:]:
+                for name in names[1:] if names else ():
                     samples = signal.samples[name]
 
                     component_names = []
@@ -1818,38 +1857,38 @@ class MDF3(MDF_Common):
                             subarray = subarray[:, idx]
                         component_samples.append(subarray)
 
-                        indexes = "".join(f"[{idx}]" for idx in indexes)
-                        component_name = f"{name}{indexes}"
+                        indexes_str = "".join(f"[{idx}]" for idx in indexes)
+                        component_name = f"{name}{indexes_str}"
                         component_names.append(component_name)
 
                     # add channel dependency block for composed parent channel
                     sd_nr = len(component_samples)
-                    kargs = {"sd_nr": sd_nr}
+                    cd_kargs = {"sd_nr": sd_nr}
                     for i, dim in enumerate(shape[::-1]):
-                        kargs[f"dim_{i}"] = dim
-                    parent_dep = ChannelDependency(**kargs)
+                        cd_kargs[f"dim_{i}"] = dim  # type: ignore[literal-required]
+                    parent_dep = ChannelDependency(**cd_kargs)
                     new_gp_dep.append(parent_dep)
 
                     # source for channel
                     if signal.source:
                         source = signal.source
                         if source.source_type != 2:
-                            kargs = {
+                            ce_kargs = {
                                 "type": v23c.SOURCE_ECU,
                                 "description": source.name.encode("latin-1"),
                                 "ECU_identification": source.path.encode("latin-1"),
                             }
                         else:
-                            kargs = {
+                            ce_kargs = {
                                 "type": v23c.SOURCE_VECTOR,
                                 "message_name": source.name.encode("latin-1"),
                                 "sender_name": source.path.encode("latin-1"),
                             }
 
-                        source = ChannelExtension(**kargs)
+                        new_source = ChannelExtension(**ce_kargs)
 
                     else:
-                        source = ce_block
+                        new_source = ce_block
 
                     s_type, s_size = fmt_to_datatype_v3(samples.dtype, ())
                     # compute additional byte offset for large records size
@@ -1860,24 +1899,23 @@ class MDF3(MDF_Common):
                         start_bit_offset = new_offset
                         additional_byte_offset = 0
 
-                    kargs = {
+                    cn_kargs = {
                         "channel_type": v23c.CHANNEL_TYPE_VALUE,
                         "data_type": s_type,
                         "start_offset": start_bit_offset,
                         "bit_count": s_size,
                         "additional_byte_offset": additional_byte_offset,
                         "block_len": channel_size,
-                        "version": version,
                     }
 
                     s_size = max(s_size, 8)
 
                     new_record.append(None)
 
-                    channel = Channel(**kargs)
+                    channel = Channel(**cn_kargs)
                     channel.name = name
                     channel.comment = signal.comment
-                    channel.source = source
+                    channel.source = new_source
                     new_gp_channels.append(channel)
 
                     self.channels_db.add(name, (new_dg_cntr, new_ch_cntr))
@@ -1890,8 +1928,8 @@ class MDF3(MDF_Common):
                             parent_dep.referenced_channels.append(dep_pair)
                             description = b"\0"
                         else:
-                            description = f"{signal.name} - axis {name}"
-                            description = description.encode("latin-1")
+                            description_str = f"{signal.name} - axis {name}"
+                            description = description_str.encode("latin-1")
 
                         s_type, s_size = fmt_to_datatype_v3(samples.dtype, ())
                         shape = samples.shape[1:]
@@ -1900,22 +1938,22 @@ class MDF3(MDF_Common):
                         if signal.source:
                             source = signal.source
                             if source.source_type != 2:
-                                kargs = {
+                                ce_kargs = {
                                     "type": v23c.SOURCE_ECU,
                                     "description": source.name.encode("latin-1"),
                                     "ECU_identification": source.path.encode("latin-1"),
                                 }
                             else:
-                                kargs = {
+                                ce_kargs = {
                                     "type": v23c.SOURCE_VECTOR,
                                     "message_name": source.name.encode("latin-1"),
                                     "sender_name": source.path.encode("latin-1"),
                                 }
 
-                            source = ChannelExtension(**kargs)
+                            new_source = ChannelExtension(**ce_kargs)
 
                         else:
-                            source = ce_block
+                            new_source = ce_block
 
                         # compute additional byte offset for large records size
                         if new_offset > v23c.MAX_UINT16:
@@ -1925,7 +1963,7 @@ class MDF3(MDF_Common):
                             start_bit_offset = new_offset
                             additional_byte_offset = 0
 
-                        kargs = {
+                        cn_kargs = {
                             "channel_type": v23c.CHANNEL_TYPE_VALUE,
                             "data_type": s_type,
                             "start_offset": start_bit_offset,
@@ -1933,7 +1971,6 @@ class MDF3(MDF_Common):
                             "additional_byte_offset": additional_byte_offset,
                             "block_len": channel_size,
                             "description": description,
-                            "version": version,
                         }
 
                         s_size = max(s_size, 8)
@@ -1947,9 +1984,9 @@ class MDF3(MDF_Common):
                             )
                         )
 
-                        channel = Channel(**kargs)
+                        channel = Channel(**cn_kargs)
                         channel.name = name
-                        channel.source = source
+                        channel.source = new_source
                         new_gp_channels.append(channel)
 
                         size = s_size
@@ -1969,12 +2006,12 @@ class MDF3(MDF_Common):
                         ch_cntr += 1
 
                 # channel group
-                kargs = {
+                cg_kargs = {
                     "cycles_nr": cycles_nr,
                     "samples_byte_nr": new_offset // 8,
                     "ch_nr": new_ch_cntr,
                 }
-                new_gp.channel_group = ChannelGroup(**kargs)
+                new_gp.channel_group = ChannelGroup(**cg_kargs)
                 new_gp.channel_group.comment = "From mdf v4 channel array"
 
                 # data group
@@ -1985,11 +2022,9 @@ class MDF3(MDF_Common):
                 new_gp.data_group = DataGroup(block_len=block_len)
 
                 # data block
-                new_types = dtype(new_types)
-
                 new_gp.sorted = True
 
-                samples = np.rec.fromarrays(new_fields, dtype=new_types)
+                samples = np.rec.fromarrays(new_fields, dtype=np.dtype(new_types))
 
                 block = samples.tobytes()
 
@@ -2015,16 +2050,16 @@ class MDF3(MDF_Common):
                 new_gp.trigger = None
 
         # channel group
-        kargs = {
+        cg_kargs = {
             "cycles_nr": cycles_nr,
             "samples_byte_nr": offset // 8,
             "ch_nr": ch_cntr,
         }
         if self.version >= "3.30":
-            kargs["block_len"] = v23c.CG_POST_330_BLOCK_SIZE
+            cg_kargs["block_len"] = v23c.CG_POST_330_BLOCK_SIZE
         else:
-            kargs["block_len"] = v23c.CG_PRE_330_BLOCK_SIZE
-        gp.channel_group = ChannelGroup(**kargs)
+            cg_kargs["block_len"] = v23c.CG_PRE_330_BLOCK_SIZE
+        gp.channel_group = ChannelGroup(**cg_kargs)
         gp.channel_group.comment = comment
 
         # data group
@@ -2035,12 +2070,10 @@ class MDF3(MDF_Common):
         gp.data_group = DataGroup(block_len=block_len)
 
         # data block
-        types = dtype(types)
-
         gp.sorted = True
 
         if signals:
-            samples = np.rec.fromarrays(fields, dtype=types)
+            samples = np.rec.fromarrays(fields, dtype=np.dtype(types))
         else:
             samples = array([])
 
@@ -2083,7 +2116,7 @@ class MDF3(MDF_Common):
         self,
         df: DataFrame,
         comment: str = "",
-        units: dict[str, str | bytes] | None = None,
+        units: Optional[dict[str, str]] = None,
     ) -> None:
         """Appends a new data group from a Pandas DataFrame."""
         units = units or {}
@@ -2106,19 +2139,20 @@ class MDF3(MDF_Common):
         file = self._tempfile
         tell = file.tell
 
-        kargs = {
+        ce_kargs: ChannelExtensionKwargs = {
             "module_nr": 0,
             "module_address": 0,
             "type": v23c.SOURCE_ECU,
             "description": b"Channel inserted by Python Script",
         }
-        ce_block = ChannelExtension(**kargs)
+        ce_block = ChannelExtension(**ce_kargs)
 
         dg_cntr = len(self.groups)
 
-        gp = Group(None)
+        gp = Group(DataGroup())
         gp.channels = gp_channels = []
-        gp.channel_dependencies = gp_dep = []
+        gp_dep: list[Optional[ChannelDependency]] = []
+        gp.channel_dependencies = gp_dep
         gp.signal_types = gp_sig_types = []
         gp.string_dtypes = []
         gp.record = record = []
@@ -2126,38 +2160,37 @@ class MDF3(MDF_Common):
         self.groups.append(gp)
 
         cycles_nr = len(timestamps)
-        fields = []
-        types = []
+        fields: list[ArrayLike] = []
+        types: list[DTypeLike] = []
         ch_cntr = 0
         offset = 0
         field_names = UniqueDB()
 
         if df.shape[0]:
             # conversion for time channel
-            kargs = {
+            cc_kargs: ChannelConversionKwargs = {
                 "conversion_type": v23c.CONVERSION_TYPE_NONE,
                 "unit": b"s",
-                "min_phy_value": timestamps[0] if cycles_nr else 0,
-                "max_phy_value": timestamps[-1] if cycles_nr else 0,
+                "min_phy_value": typing.cast(float, timestamps[0]) if cycles_nr else 0,
+                "max_phy_value": typing.cast(float, timestamps[-1]) if cycles_nr else 0,
             }
-            conversion = ChannelConversion(**kargs)
+            conversion = ChannelConversion(**cc_kargs)
             conversion.unit = "s"
             source = ce_block
 
             # time channel
             t_type, t_size = fmt_to_datatype_v3(timestamps.dtype, timestamps.shape)
-            kargs = {
+            cn_kargs: ChannelKwargs = {
                 "short_name": time_name.encode("latin-1"),
                 "channel_type": v23c.CHANNEL_TYPE_MASTER,
                 "data_type": t_type,
                 "start_offset": 0,
-                "min_raw_value": timestamps[0] if cycles_nr else 0,
-                "max_raw_value": timestamps[-1] if cycles_nr else 0,
+                "min_raw_value": typing.cast(float, timestamps[0]) if cycles_nr else 0,
+                "max_raw_value": typing.cast(float, timestamps[-1]) if cycles_nr else 0,
                 "bit_count": t_size,
                 "block_len": channel_size,
-                "version": version,
             }
-            channel = Channel(**kargs)
+            channel = Channel(**cn_kargs)
             channel.name = name = time_name
             channel.conversion = conversion
             channel.source = source
@@ -2170,7 +2203,7 @@ class MDF3(MDF_Common):
             record.append(
                 (
                     timestamps.dtype,
-                    timestamps.dtype.itemsize,
+                    timestamps.size,
                     0,
                     0,
                 )
@@ -2187,7 +2220,7 @@ class MDF3(MDF_Common):
 
             gp_sig_types.append(0)
 
-        for signal in df:
+        for signal in df.columns:
             sig = df[signal]
             name = signal
 
@@ -2207,7 +2240,7 @@ class MDF3(MDF_Common):
 
             s_type, s_size = fmt_to_datatype_v3(sig.dtype, sig.shape)
 
-            kargs = {
+            cn_kwargs: ChannelKwargs = {
                 "channel_type": v23c.CHANNEL_TYPE_VALUE,
                 "data_type": s_type,
                 "min_raw_value": 0,
@@ -2216,15 +2249,14 @@ class MDF3(MDF_Common):
                 "bit_count": s_size,
                 "additional_byte_offset": additional_byte_offset,
                 "block_len": channel_size,
-                "version": version,
             }
 
             s_size = max(s_size, 8)
 
-            channel = Channel(**kargs)
+            channel = Channel(**cn_kwargs)
             channel.name = name
             channel.source = new_source
-            channel.dtype_fmt = dtype((sig.dtype, sig.shape[1:]))
+            channel.dtype_fmt = np.dtype((sig.dtype, sig.shape[1:]))
 
             record.append(
                 (
@@ -2235,18 +2267,16 @@ class MDF3(MDF_Common):
                 )
             )
 
-            unit = units.get(name, b"")
+            unit = units.get(name, "")
             if unit:
-                if hasattr(unit, "encode"):
-                    unit = unit.encode("latin-1")
                 # conversion for time channel
-                kargs = {
+                cc_kwargs: ChannelConversionKwargs = {
                     "conversion_type": v23c.CONVERSION_TYPE_NONE,
-                    "unit": unit,
+                    "unit": unit.encode(encoding="latin-1"),
                     "min_phy_value": 0,
                     "max_phy_value": 0,
                 }
-                conversion = ChannelConversion(**kargs)
+                conversion = ChannelConversion(**cc_kwargs)
                 conversion.unit = unit
 
             gp_channels.append(channel)
@@ -2258,7 +2288,8 @@ class MDF3(MDF_Common):
             field_name = field_names.get_unique_name(name)
 
             if sig.dtype.kind == "S":
-                gp.string_dtypes.append(sig.dtype)
+                dtype = typing.cast(np.dtype[np.bytes_], sig.dtype)
+                gp.string_dtypes.append(dtype)
 
             fields.append(sig)
             types.append((field_name, sig.dtype))
@@ -2269,16 +2300,16 @@ class MDF3(MDF_Common):
             gp_dep.append(None)
 
         # channel group
-        kargs = {
+        cg_kwargs: ChannelGroupKwargs = {
             "cycles_nr": cycles_nr,
             "samples_byte_nr": offset // 8,
             "ch_nr": ch_cntr,
         }
         if self.version >= "3.30":
-            kargs["block_len"] = v23c.CG_POST_330_BLOCK_SIZE
+            cg_kwargs["block_len"] = v23c.CG_POST_330_BLOCK_SIZE
         else:
-            kargs["block_len"] = v23c.CG_PRE_330_BLOCK_SIZE
-        gp.channel_group = ChannelGroup(**kargs)
+            cg_kwargs["block_len"] = v23c.CG_PRE_330_BLOCK_SIZE
+        gp.channel_group = ChannelGroup(**cg_kwargs)
         gp.channel_group.comment = comment
 
         # data group
@@ -2289,12 +2320,11 @@ class MDF3(MDF_Common):
         gp.data_group = DataGroup(block_len=block_len)
 
         # data block
-        types = dtype(types)
-
         gp.sorted = True
 
+        samples: NDArray[Any]
         if df.shape[0]:
-            samples = np.rec.fromarrays(fields, dtype=types)
+            samples = np.rec.fromarrays(fields, dtype=np.dtype(types))
         else:
             samples = array([])
 
@@ -2372,8 +2402,6 @@ class MDF3(MDF_Common):
 
             self._call_back = None
             self.groups.clear()
-            self.header = None
-            self.identification = None
             self.channels_db.clear()
             self.masters_db.clear()
             self._master_channel_metadata.clear()
@@ -2382,7 +2410,7 @@ class MDF3(MDF_Common):
         except:
             print(format_exc())
 
-    def extend(self, index: int, signals: list[tuple[NDArray[Any], None]]) -> None:
+    def extend(self, index: int, signals: list[tuple[NDArray[Any], Optional[NDArray[Any]]]]) -> None:
         """Extend a group with new samples. *signals* contains (values, invalidation_bits)
         pairs for each extended signal. Since MDF3 does not support invalidation
         bits, the second item of each pair must be None. The first pair is the master channel's pair, and the
@@ -2418,7 +2446,10 @@ class MDF3(MDF_Common):
             message = '"append" requires a non-empty list of Signal objects'
             raise MdfException(message)
 
+        stream: Union[FileLike, mmap.mmap, IO[bytes]]
         if gp.data_location == v23c.LOCATION_ORIGINAL_FILE:
+            if self._file is None:
+                raise ValueError("self._file cannot be None")
             stream = self._file
         else:
             stream = self._tempfile
@@ -2435,8 +2466,9 @@ class MDF3(MDF_Common):
             "day_of_week",
         )
 
-        fields = []
-        types = []
+        fields: list[NDArray[Any]] = []
+        types: list[Union[DTypeLike, tuple[str, np.dtype[Any], tuple[int, ...]]]] = []
+        samples: NDArray[Any]
 
         cycles_nr = len(signals[0][0])
         string_counter = 0
@@ -2466,27 +2498,25 @@ class MDF3(MDF_Common):
                 new_group_offset += 1
                 new_gp = self.groups[index + new_group_offset]
 
-                new_fields = []
-                new_types = []
+                new_fields: list[NDArray[Any]] = []
+                new_types: list[DTypeLike] = []
 
                 names = signal.dtype.names
-                for name in names:
+                for name in names or ():
                     new_fields.append(signal[name])
                     new_types.append(("", signal.dtype))
 
                 # data block
-                new_types = dtype(new_types)
-
-                samples = np.rec.fromarrays(new_fields, dtype=new_types)
-                samples = samples.tobytes()
+                samples = np.rec.fromarrays(new_fields, dtype=np.dtype(new_types))
+                data = samples.tobytes()
 
                 record_size = new_gp.channel_group.samples_byte_nr
                 extended_size = cycles_nr * record_size
 
-                if samples:
+                if data:
                     stream.seek(0, 2)
                     data_address = stream.tell()
-                    stream.write(samples)
+                    stream.write(data)
 
                     new_gp.data_blocks.append(
                         DataBlockInfo(
@@ -2501,7 +2531,7 @@ class MDF3(MDF_Common):
             else:
                 names = signal.dtype.names
 
-                component_samples = []
+                component_samples: list[NDArray[Any]] = []
                 if names:
                     samples = signal[names[0]]
                 else:
@@ -2530,15 +2560,13 @@ class MDF3(MDF_Common):
         extended_size = cycles_nr * record_size
 
         # data block
-        types = dtype(types)
-
-        samples = np.rec.fromarrays(fields, dtype=types)
-        samples = samples.tobytes()
+        samples = np.rec.fromarrays(fields, dtype=np.dtype(types))
+        data = samples.tobytes()
 
         if cycles_nr:
             stream.seek(0, 2)
             data_address = stream.tell()
-            stream.write(samples)
+            stream.write(data)
             gp.channel_group.cycles_nr += cycles_nr
 
             gp.data_blocks.append(
@@ -2573,29 +2601,19 @@ class MDF3(MDF_Common):
         gp_nr, ch_nr = self._validate_channel_selection(None, group, index)
 
         grp = self.groups[gp_nr]
-        if grp.data_location == v23c.LOCATION_ORIGINAL_FILE:
-            stream = self._file
-        else:
-            stream = self._tempfile
-
         channel = grp.channels[ch_nr]
 
         return channel.name
 
     def get_channel_metadata(
         self,
-        name: str | None = None,
-        group: int | None = None,
-        index: int | None = None,
+        name: Optional[str] = None,
+        group: Optional[int] = None,
+        index: Optional[int] = None,
     ) -> Channel:
         gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
         grp = self.groups[gp_nr]
-
-        if grp.data_location == v23c.LOCATION_ORIGINAL_FILE:
-            stream = self._file
-        else:
-            stream = self._tempfile
 
         channel = grp.channels[ch_nr]
         channel = deepcopy(channel)
@@ -2604,9 +2622,9 @@ class MDF3(MDF_Common):
 
     def get_channel_unit(
         self,
-        name: str | None = None,
-        group: int | None = None,
-        index: int | None = None,
+        name: Optional[str] = None,
+        group: Optional[int] = None,
+        index: Optional[int] = None,
     ) -> str:
         """Gets channel unit.
 
@@ -2646,11 +2664,6 @@ class MDF3(MDF_Common):
         gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
         grp = self.groups[gp_nr]
-        if grp.data_location == v23c.LOCATION_ORIGINAL_FILE:
-            stream = self._file
-        else:
-            stream = self._tempfile
-
         channel = grp.channels[ch_nr]
 
         if channel.conversion:
@@ -2662,9 +2675,9 @@ class MDF3(MDF_Common):
 
     def get_channel_comment(
         self,
-        name: str | None = None,
-        group: int | None = None,
-        index: int | None = None,
+        name: Optional[str] = None,
+        group: Optional[int] = None,
+        index: Optional[int] = None,
     ) -> str:
         """Gets channel comment.
 
@@ -2704,11 +2717,6 @@ class MDF3(MDF_Common):
         gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
         grp = self.groups[gp_nr]
-        if grp.data_location == v23c.LOCATION_ORIGINAL_FILE:
-            stream = self._file
-        else:
-            stream = self._tempfile
-
         channel = grp.channels[ch_nr]
 
         return channel.comment
@@ -2716,49 +2724,50 @@ class MDF3(MDF_Common):
     @overload
     def get(
         self,
-        name: str | None = ...,
-        group: int | None = ...,
-        index: int | None = ...,
-        raster: RasterType | None = ...,
+        name: Optional[str] = ...,
+        group: Optional[int] = ...,
+        index: Optional[int] = ...,
+        raster: Optional[RasterType] = ...,
         samples_only: Literal[False] = ...,
-        data: bytes | None = ...,
+        data: Optional[tuple[bytes, int, Optional[int]]] = ...,
         raw: bool = ...,
         ignore_invalidation_bits: bool = ...,
         record_offset: int = ...,
-        record_count: int | None = ...,
+        record_count: Optional[int] = ...,
         skip_channel_validation: bool = ...,
     ) -> Signal: ...
 
     @overload
     def get(
         self,
-        name: str | None = ...,
-        group: int | None = ...,
-        index: int | None = ...,
-        raster: RasterType | None = ...,
-        samples_only: Literal[True] = ...,
-        data: bytes | None = ...,
+        name: Optional[str] = ...,
+        group: Optional[int] = ...,
+        index: Optional[int] = ...,
+        raster: Optional[RasterType] = ...,
+        *,
+        samples_only: Literal[True],
+        data: Optional[tuple[bytes, int, Optional[int]]] = ...,
         raw: bool = ...,
         ignore_invalidation_bits: bool = ...,
         record_offset: int = ...,
-        record_count: int | None = ...,
+        record_count: Optional[int] = ...,
         skip_channel_validation: bool = ...,
     ) -> tuple[NDArray[Any], None]: ...
 
     def get(
         self,
-        name: str | None = None,
-        group: int | None = None,
-        index: int | None = None,
-        raster: RasterType | None = None,
+        name: Optional[str] = None,
+        group: Optional[int] = None,
+        index: Optional[int] = None,
+        raster: Optional[RasterType] = None,
         samples_only: bool = False,
-        data: bytes | None = None,
+        data: Optional[tuple[bytes, int, Optional[int]]] = None,
         raw: bool = False,
         ignore_invalidation_bits: bool = False,
         record_offset: int = 0,
-        record_count: int | None = None,
+        record_count: Optional[int] = None,
         skip_channel_validation: bool = False,
-    ) -> Signal | tuple[NDArray[Any], None]:
+    ) -> Union[Signal, tuple[NDArray[Any], None]]:
         """Gets channel samples.
 
         Channel can be specified in two ways:
@@ -2880,6 +2889,8 @@ class MDF3(MDF_Common):
         """
 
         if skip_channel_validation:
+            if group is None or index is None:
+                raise ValueError("'group' or 'index' cannot be None if 'skip_channel_validation' is True")
             gp_nr, ch_nr = group, index
         else:
             gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
@@ -2902,16 +2913,18 @@ class MDF3(MDF_Common):
         encoding = "latin-1"
 
         # get data group record
+        data_: Iterable[tuple[bytes, int, Optional[int]]]
         if data is None:
-            data = self._load_data(grp, record_offset=record_offset, record_count=record_count)
+            data_ = self._load_data(grp, record_offset=record_offset, record_count=record_count)
         else:
-            data = (data,)
+            data_ = (data,)
 
         # check if this is a channel array
         if dep:
+            vals: NDArray[Any]
             if dep.dependency_type == v23c.DEPENDENCY_TYPE_VECTOR:
-                arrays = []
-                types = []
+                arrays: list[NDArray[Any]] = []
+                types: list[DTypeLike] = []
 
                 for dg_nr, ch_nr in dep.referenced_channels:
                     sig = self.get(
@@ -2929,11 +2942,11 @@ class MDF3(MDF_Common):
                 vals = np.rec.fromarrays(arrays, dtype=types)
 
             elif dep.dependency_type >= v23c.DEPENDENCY_TYPE_NDIM:
-                shape = []
+                shape: list[int] = []
                 i = 0
                 while True:
                     try:
-                        dim = dep[f"dim_{i}"]
+                        dim = typing.cast(int, dep[f"dim_{i}"])
                         shape.append(dim)
                         i += 1
                     except (KeyError, AttributeError):
@@ -2959,10 +2972,8 @@ class MDF3(MDF_Common):
                 vals = column_stack(arrays).flatten().reshape(tuple(shape))
 
                 arrays = [vals]
-                types = [(channel.name, vals.dtype, record_shape)]
 
-                types = dtype(types)
-                vals = np.rec.fromarrays(arrays, dtype=types)
+                vals = np.rec.fromarrays(arrays, dtype=np.dtype([(channel.name, vals.dtype, record_shape)]))
 
             if not samples_only or raster:
                 timestamps = self.get_master(
@@ -2992,12 +3003,13 @@ class MDF3(MDF_Common):
 
         else:
             # get channel values
-            channel_values = []
-            timestamps = []
+            channel_values: list[NDArray[Any]] = []
+            times: list[NDArray[np.float64]] = []
             count = 0
-            for fragment in data:
+            records = self._prepare_record(grp)
+            for fragment in data_:
                 data_bytes, _offset, _count = fragment
-                info = grp.record[ch_nr]
+                info = records[ch_nr]
 
                 bits = channel.bit_count
 
@@ -3024,7 +3036,7 @@ class MDF3(MDF_Common):
 
                         if data_type in v23c.INT_TYPES:
                             dtype_fmt = get_fmt_v3(data_type, bits, self.identification.byte_order)
-                            channel_dtype = dtype(dtype_fmt.split(")")[-1])
+                            channel_dtype: np.dtype[Any] = np.dtype(dtype_fmt.split(")")[-1])
 
                             if channel_dtype.byteorder == "=" and data_type in (
                                 v23c.DATA_TYPE_SIGNED_MOTOROLA,
@@ -3056,7 +3068,7 @@ class MDF3(MDF_Common):
                     vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
 
                 if not samples_only or raster:
-                    timestamps.append(self.get_master(gp_nr, fragment))
+                    times.append(self.get_master(gp_nr, fragment))
 
                 if bits == 1 and self._single_bit_uint_as_bool:
                     vals = array(vals, dtype=bool)
@@ -3069,13 +3081,13 @@ class MDF3(MDF_Common):
             elif count == 1:
                 vals = channel_values[0]
             else:
-                vals = []
+                vals = np.array([])
 
             if not samples_only or raster:
                 if count > 1:
-                    timestamps = concatenate(timestamps)
+                    timestamps = concatenate(times)
                 else:
-                    timestamps = timestamps[0]
+                    timestamps = times[0]
 
                 if raster and len(timestamps) > 1:
                     num = float(float32((timestamps[-1] - timestamps[0]) / raster))
@@ -3105,6 +3117,7 @@ class MDF3(MDF_Common):
             encoding = "latin-1"
             vals = array([e.rsplit(b"\0")[0] for e in vals.tolist()], dtype=vals.dtype)
 
+        res: Union[tuple[NDArray[Any], None], Signal]
         if samples_only:
             res = vals, None
         else:
@@ -3121,10 +3134,10 @@ class MDF3(MDF_Common):
             else:
                 comment = description
 
-            source = channel.source
-
-            if source:
-                source = Source.from_source(source)
+            if channel.source:
+                source = Source.from_source(channel.source)
+            else:
+                source = None
 
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 
@@ -3150,12 +3163,12 @@ class MDF3(MDF_Common):
     def get_master(
         self,
         index: int,
-        data: bytes | None = None,
-        raster: RasterType | None = None,
+        data: Optional[tuple[bytes, int, Optional[int]]] = None,
+        raster: Optional[RasterType] = None,
         record_offset: int = 0,
-        record_count: int | None = None,
+        record_count: Optional[int] = None,
         one_piece: bool = False,
-    ) -> NDArray[Any]:
+    ) -> NDArray[np.float64]:
         """Returns master channel samples for given group.
 
         Parameters
@@ -3199,6 +3212,9 @@ class MDF3(MDF_Common):
         time_ch_nr = self.masters_db.get(index, None)
         cycles_nr = group.channel_group.cycles_nr
 
+        t: NDArray[Any]
+        metadata: tuple[str, Literal[1]]
+
         if time_ch_nr is None:
             if fragment:
                 count = len(data_bytes) // group.channel_group.samples_byte_nr
@@ -3219,17 +3235,24 @@ class MDF3(MDF_Common):
                 t = arange(cycles_nr, dtype=float64) * sampling_rate
             else:
                 # get data group record
+                data_: Iterable[tuple[bytes, int, Optional[int]]]
                 if data is None:
-                    data = self._load_data(group, record_offset=record_offset, record_count=record_count)
+                    data_ = self._load_data(group, record_offset=record_offset, record_count=record_count)
                     _count = record_count
                 else:
-                    data = (data,)
+                    data_ = (data,)
 
-                time_values = []
+                records = self._prepare_record(group)
+                record = records[time_ch_nr]
+
+                if record is None:
+                    raise ValueError("record is None")
+
+                time_values: list[NDArray[Any]] = []
                 count = 0
-                for fragment in data:
+                for fragment in data_:
                     data_bytes, offset, _count = fragment
-                    dtype_, byte_size, byte_offset, bit_offset = group.record[time_ch_nr]
+                    dtype_, byte_size, byte_offset, bit_offset = record
 
                     buffer = get_channel_raw_bytes(
                         data_bytes,
@@ -3256,7 +3279,7 @@ class MDF3(MDF_Common):
                         time_ch.bit_count,
                         self.identification.byte_order,
                     )
-                    channel_dtype = dtype(dtype_fmt.split(")")[-1])
+                    channel_dtype: np.dtype[Any] = np.dtype(dtype_fmt.split(")")[-1])
 
                     if channel_dtype.byteorder == "=" and time_ch.data_type in (
                         v23c.DATA_TYPE_SIGNED_MOTOROLA,
@@ -3285,28 +3308,27 @@ class MDF3(MDF_Common):
                     time_conv_type = v23c.CONVERSION_TYPE_NONE
                 else:
                     time_conv_type = conversion.conversion_type
-                if time_conv_type == v23c.CONVERSION_TYPE_LINEAR:
-                    time_a = conversion.a
-                    time_b = conversion.b
-                    t = t * time_a
-                    if time_b:
-                        t += time_b
+                    if time_conv_type == v23c.CONVERSION_TYPE_LINEAR:
+                        time_a = conversion.a
+                        time_b = conversion.b
+                        t = t * time_a
+                        if time_b:
+                            t += time_b
 
         if t.dtype != float64:
-            t = t.astype(float64)
+            timestamps = t.astype(float64)
+        else:
+            timestamps = t
 
         self._master_channel_metadata[index] = metadata
 
         if raster:
-            timestamps = t
-            if len(t) > 1:
+            if len(timestamps) > 1:
                 num = float(float32((timestamps[-1] - timestamps[0]) / raster))
                 if int(num) == num:
-                    timestamps = linspace(t[0], t[-1], int(num))
+                    timestamps = linspace(timestamps[0], timestamps[-1], int(num))
                 else:
-                    timestamps = arange(t[0], t[-1], raster)
-        else:
-            timestamps = t
+                    timestamps = arange(timestamps[0], timestamps[-1], raster)
 
         return timestamps
 
@@ -3328,18 +3350,18 @@ class MDF3(MDF_Common):
         for i, gp in enumerate(self.groups):
             trigger = gp.trigger
             if trigger:
-                for j in range(trigger["trigger_events_nr"]):
-                    trigger_info = {
+                for j in range(trigger.trigger_events_nr):
+                    trigger_info: TriggerInfoDict = {
                         "comment": trigger.comment,
                         "index": j,
                         "group": i,
-                        "time": trigger[f"trigger_{j}_time"],
-                        "pre_time": trigger[f"trigger_{j}_pretime"],
-                        "post_time": trigger[f"trigger_{j}_posttime"],
+                        "time": typing.cast(float, trigger[f"trigger_{j}_time"]),
+                        "pre_time": typing.cast(float, trigger[f"trigger_{j}_pretime"]),
+                        "post_time": typing.cast(float, trigger[f"trigger_{j}_posttime"]),
                     }
                     yield trigger_info
 
-    def info(self) -> dict[str, Any]:
+    def info(self) -> dict[str, object]:
         """Get MDF information as a dict.
 
         Examples
@@ -3347,18 +3369,14 @@ class MDF3(MDF_Common):
         >>> mdf = MDF('test.mdf')
         >>> mdf.info()
         """
-        info = {}
+        info: dict[str, object] = {}
         for key in ("author", "department", "project", "subject"):
             value = self.header[key]
             info[key] = value
         info["version"] = self.version
         info["groups"] = len(self.groups)
         for i, gp in enumerate(self.groups):
-            if gp.data_location == v23c.LOCATION_ORIGINAL_FILE:
-                stream = self._file
-            elif gp.data_location == v23c.LOCATION_TEMPORARY_FILE:
-                stream = self._tempfile
-            inf = {}
+            inf: dict[str, object] = {}
             info[f"group {i}"] = inf
             inf["cycles"] = gp.channel_group.cycles_nr
             inf["comment"] = gp.channel_group.comment
@@ -3396,9 +3414,9 @@ class MDF3(MDF_Common):
         dst: StrPathType,
         overwrite: bool = False,
         compression: CompressionType = 0,
-        progress=None,
+        progress: Optional[Any] = None,
         add_history_block: bool = True,
-    ) -> Path | None:
+    ) -> Union[Path, object]:
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>',
         were '<cntr>' is the first counter that produces a new file name (that
@@ -3455,7 +3473,9 @@ class MDF3(MDF_Common):
             text = f"{old_history}\n{timestamp}: updated by {tool.__tool__} {tool.__version__}"
             self.header.comment = text
 
-        defined_texts, cc_map, si_map = {}, {}, {}
+        defined_texts: dict[Union[bytes, str], int] = {}
+        cc_map: dict[bytes, int] = {}
+        si_map: dict[bytes, int] = {}
 
         if dst == self.name:
             destination = dst.with_suffix(".savetemp")
@@ -3468,7 +3488,7 @@ class MDF3(MDF_Common):
             write = dst_.write
             seek = dst_.seek
             # list of all blocks
-            blocks = []
+            blocks: list[Union[bytes, SupportsBytes]] = []
 
             address = 0
 
@@ -3526,9 +3546,9 @@ class MDF3(MDF_Common):
                 address += dg.block_len
 
             if self.groups:
-                for i, dg in enumerate(self.groups[:-1]):
+                for i, gp in enumerate(self.groups[:-1]):
                     addr = self.groups[i + 1].data_group.address
-                    dg.data_group.next_dg_addr = addr
+                    gp.data_group.next_dg_addr = addr
                 self.groups[-1].data_group.next_dg_addr = 0
 
             for idx, gp in enumerate(self.groups):
@@ -3639,21 +3659,19 @@ class MDF3(MDF_Common):
             Path.rename(destination, self.name)
 
             self.groups.clear()
-            self.header = None
-            self.identification = None
             self.channels_db.clear()
             self.masters_db.clear()
 
             self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
             self._file = open(self.name, "rb")
-            self._read()
+            self._read(self._file)
 
         return dst
 
-    def _sort(self, progress=None) -> None:
+    def _sort(self, progress: Optional[Union[Callable[[int, int], None], Any]] = None) -> None:
         if self._file is None:
             return
-        common = defaultdict(list)
+        common: defaultdict[int, list[tuple[int, int]]] = defaultdict(list)
         for i, group in enumerate(self.groups):
             if group.sorted:
                 continue
@@ -3672,7 +3690,7 @@ class MDF3(MDF_Common):
         write = self._tempfile.write
 
         for address, groups in common.items():
-            partial_records = {id_: [] for (_, id_) in groups}
+            partial_records: dict[int, list[bytes]] = {id_: [] for (_, id_) in groups}
 
             group = self.groups[groups[0][0]]
 
@@ -3704,13 +3722,15 @@ class MDF3(MDF_Common):
                     else:
                         i += rec_size
 
+            data_blocks: dict[int, list[DataBlockInfo]] = {}
+
             for rec_id, new_data in partial_records.items():
                 if new_data:
-                    new_data = b"".join(new_data)
-                    size = len(new_data)
+                    data = b"".join(new_data)
+                    size = len(data)
 
                     address = tell()
-                    write(bytes(new_data))
+                    write(bytes(data))
                     block_info = DataBlockInfo(
                         address=address,
                         block_type=0,
@@ -3718,25 +3738,27 @@ class MDF3(MDF_Common):
                         compressed_size=size,
                         param=0,
                     )
-                    partial_records[rec_id] = [block_info]
+                    data_blocks[rec_id] = [block_info]
 
             for idx, rec_id in groups:
                 group = self.groups[idx]
 
                 group.data_location = v23c.LOCATION_TEMPORARY_FILE
-                group.set_blocks_info(partial_records[rec_id])
+                group.set_blocks_info(data_blocks[rec_id])
                 group.sorted = True
 
     def included_channels(
         self,
-        index: int | None = None,
-        channels: ChannelsType | None = None,
+        index: Optional[int] = None,
+        channels: Optional[ChannelsType] = None,
         skip_master: bool = True,
         minimal: bool = True,
-    ) -> dict[int, dict[int, Sequence[int]]]:
+    ) -> dict[int, dict[int, list[int]]]:
         if channels is None:
+            if index is None:
+                raise ValueError("index argument must be set if channels is unset")
             group = self.groups[index]
-            gps = {}
+            gps: dict[int, list[int]] = {}
             included_channels = set(range(len(group.channels)))
             master_index = self.masters_db.get(index, None)
             if master_index is not None and len(included_channels) > 1:
@@ -3754,7 +3776,7 @@ class MDF3(MDF_Common):
 
             result = {index: gps}
         else:
-            gps = {}
+            group_sets: dict[int, set[int]] = {}
             for item in channels:
                 if isinstance(item, (list, tuple)):
                     if len(item) not in (2, 3):
@@ -3764,22 +3786,22 @@ class MDF3(MDF_Common):
                             "method"
                         )
                     else:
-                        group, idx = self._validate_channel_selection(*item)
-                        if group not in gps:
-                            gps[group] = {idx}
+                        gp_idx, idx = self._validate_channel_selection(*item)
+                        if gp_idx not in group_sets:
+                            group_sets[gp_idx] = {idx}
                         else:
-                            gps[group].add(idx)
+                            group_sets[gp_idx].add(idx)
                 else:
                     name = item
-                    group, idx = self._validate_channel_selection(name)
-                    if group not in gps:
-                        gps[group] = {idx}
+                    gp_idx, idx = self._validate_channel_selection(name)
+                    if gp_idx not in group_sets:
+                        group_sets[gp_idx] = {idx}
                     else:
-                        gps[group].add(idx)
+                        group_sets[gp_idx].add(idx)
 
             result = {}
 
-            for group_index, _channels in gps.items():
+            for group_index, _channels in group_sets.items():
                 group = self.groups[group_index]
 
                 channel_dependencies = [group.channel_dependencies[ch_nr] for ch_nr in _channels]
@@ -3806,12 +3828,12 @@ class MDF3(MDF_Common):
     def _yield_selected_signals(
         self,
         index: int,
-        groups: dict[int, Sequence[int]] | None = None,
+        groups: Optional[dict[int, list[int]]] = None,
         record_offset: int = 0,
-        record_count: int | None = None,
+        record_count: Optional[int] = None,
         skip_master: bool = True,
         version: str = "4.20",
-    ) -> Iterator[Signal | tuple[NDArray[Any], None]]:
+    ) -> Iterator[Union[list[Signal], list[tuple[NDArray[Any], None]]]]:
         if groups is None:
             groups = self.included_channels(index)[index]
 
@@ -3819,17 +3841,19 @@ class MDF3(MDF_Common):
 
         group = self.groups[index]
 
-        encodings = [
+        encodings: list[Optional[str]] = [
             None,
         ]
 
         self._set_temporary_master(None)
 
         for idx, fragment in enumerate(self._load_data(group, record_offset=record_offset, record_count=record_count)):
-            self._set_temporary_master(self.get_master(index, data=fragment))
+            master = self.get_master(index, data=fragment)
+            self._set_temporary_master(master)
 
             self._prepare_record(group)
 
+            signals: Union[list[Signal], list[tuple[NDArray[Any], None]]]
             # the first fragment triggers and append that will add the
             # metadata for all channels
             if idx == 0:
@@ -3845,7 +3869,7 @@ class MDF3(MDF_Common):
                     for channel_index in channels
                 ]
             else:
-                signals = [(self._master, None)]
+                signals = [(master, None)]
 
                 for channel_index in channels:
                     signals.append(
@@ -3861,6 +3885,7 @@ class MDF3(MDF_Common):
 
             if version < "4.00":
                 if idx == 0:
+                    signals = typing.cast(list[Signal], signals)
                     for sig, channel_index in zip(signals, channels):
                         if sig.samples.dtype.kind == "S":
                             encodings.append(sig.encoding)
@@ -3881,24 +3906,27 @@ class MDF3(MDF_Common):
                         else:
                             encodings.append(None)
                 else:
-                    for i, (sig, encoding) in enumerate(zip(signals, encodings)):
+                    signals = typing.cast(list[tuple[NDArray[Any], None]], signals)
+                    for i, (signal_samples, encoding) in enumerate(zip(signals, encodings)):
                         if encoding:
-                            samples = sig[0]
+                            samples = signal_samples[0]
                             if encoding != "latin-1":
                                 if encoding == "utf-16-le":
                                     samples = samples.view(uint16).byteswap().view(samples.dtype)
                                     samples = encode(decode(samples, "utf-16-be"), "latin-1")
                                 else:
                                     samples = encode(decode(samples, encoding), "latin-1")
-                                signals[i] = (samples, sig[1])
+                                signals[i] = (samples, signal_samples[1])
 
             self._set_temporary_master(None)
             yield signals
 
-    def reload_header(self):
+    def reload_header(self) -> None:
+        if self._file is None:
+            raise RuntimeError("self._file is None")
         self.header = HeaderBlock(address=0x40, stream=self._file)
 
-    def _determine_max_vlsd_sample_size(self, group, index):
+    def _determine_max_vlsd_sample_size(self, group: int, index: int) -> int:
         return 0
 
 

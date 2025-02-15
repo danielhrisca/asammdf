@@ -1522,6 +1522,6 @@ Build information:
 
 
 
-Copyright © 2018-2024 Daniel Hrisca""",
+Copyright © 2018-2025 Daniel Hrisca""",
             markdown=True,
         )

@@ -22,12 +22,16 @@ class FunctionsManager(Ui_FunctionsManager, QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
+        self.original_globals = global_variables
+
         self.channels = channels or {}
 
         definitions.pop("__global_variables__", None)
 
         for info in definitions.values():
-            info["current_definition"] = info["definition"] = info["definition"].replace("\t", "    ")
+            info["original_definition"] = info["current_definition"] = info["definition"] = info["definition"].replace(
+                "\t", "    "
+            )
 
         self.definitions = definitions
 
@@ -101,6 +105,8 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         self.export_btn.clicked.connect(self.export_definitions)
         self.import_btn.clicked.connect(self.import_definitions)
         self.store_btn.clicked.connect(self.store_definition)
+        self.load_original_function_btn.clicked.connect(self.load_original_function_definition)
+        self.load_original_globals_btn.clicked.connect(self.load_original_globals_definition)
 
         self.tabs.currentChanged.connect(self.tabs_changed)
 
@@ -295,6 +301,25 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
                     }
 
             self.refresh_functions_list()
+
+    def load_original_globals_definition(self):
+        self.globals_definition.setPlainText(self.original_globals)
+
+    def load_original_function_definition(self):
+        item = self.functions_list.currentItem()
+        if not item:
+            return
+
+        current_name = item.text()
+        info = self.definitions.pop(current_name)
+        original_definition = info["original_definition"]
+        info["current_definition"] = original_definition
+
+        self.function_definition.setPlainText(original_definition)
+
+        self.definitions[current_name] = info
+
+        self.refresh_functions_list()
 
     def refresh_definitions(self):
         _globals = generate_python_function_globals()

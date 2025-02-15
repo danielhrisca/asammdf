@@ -1,4 +1,4 @@
-""" common MDF file format module """
+"""common MDF file format module"""
 
 from __future__ import annotations
 
@@ -48,7 +48,6 @@ from .blocks.utils import (
     downcast,
     is_file_like,
     load_can_database,
-    master_using_raster,
     matlab_compatible,
     MDF2_VERSIONS,
     MDF3_VERSIONS,
@@ -155,6 +154,59 @@ def get_temporary_filename(path: Path = Path("temporary.mf4"), dir: str | Path |
             idx += 1
 
     return tmp_path
+
+
+def master_using_raster(mdf: MDF_v2_v3_v4, raster: RasterType, endpoint: bool = False) -> NDArray[Any]:
+    """get single master based on the raster
+
+    Parameters
+    ----------
+    mdf : asammdf.MDF
+        measurement object
+    raster : float
+        new raster
+    endpoint=False : bool
+        include maximum time stamp in the new master
+
+    Returns
+    -------
+    master : np.array
+        new master
+
+    """
+    if not raster:
+        master = np.array([], dtype="<f8")
+    else:
+        t_min = []
+        t_max = []
+        for group_index in mdf.virtual_groups:
+            group = mdf.groups[group_index]
+            cycles_nr = group.channel_group.cycles_nr
+            if cycles_nr:
+
+                master_min = mdf.get_master(group_index, record_offset=0, record_count=1)
+                if len(master_min):
+                    t_min.append(master_min[0])
+                master_max = mdf.get_master(group_index, record_offset=cycles_nr - 1, record_count=1)
+                if len(master_max):
+                    t_max.append(master_max[0])
+
+        if t_min:
+            t_min = np.amin(t_min)
+            t_max = np.amax(t_max)
+
+            num = float(np.float64((t_max - t_min) / raster))
+            if num.is_integer():
+                master = np.linspace(t_min, t_max, int(num) + 1)
+            else:
+                master = np.arange(t_min, t_max, raster)
+                if endpoint:
+                    master = np.concatenate([master, [t_max]])
+
+        else:
+            master = np.array([], dtype="<f8")
+
+    return master
 
 
 class MDF:

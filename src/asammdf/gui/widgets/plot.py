@@ -25,7 +25,6 @@ from ..dialogs.messagebox import MessageBox
 from ..utils import FONT_SIZE, value_as_str
 from .viewbox import ViewBoxWithCursor
 
-PLOT_BUFFER_SIZE = 4000
 LOCAL_TIMEZONE = dateutil.tz.tzlocal()
 
 
@@ -191,6 +190,7 @@ class PlotSignal(Signal):
         self.path = None
 
         self._dtype = "i1"
+        self._buffer_size = 1
 
         self.duplication = duplication
         self.uuid = getattr(signal, "uuid", os.urandom(6).hex())
@@ -491,9 +491,9 @@ class PlotSignal(Signal):
         if self._enable != enable_state:
             self._enable = enable_state
             if enable_state:
-                self._pos = np.empty(2 * PLOT_BUFFER_SIZE, dtype="i4")
-                self._plot_samples = np.empty(2 * PLOT_BUFFER_SIZE, dtype=self._dtype)
-                self._plot_timestamps = np.empty(2 * PLOT_BUFFER_SIZE, dtype="f8")
+                self._pos = np.empty(2 * self._buffer_size, dtype="i4")
+                self._plot_samples = np.empty(2 * self._buffer_size, dtype=self._dtype)
+                self._plot_timestamps = np.empty(2 * self._buffer_size, dtype="f8")
 
             else:
                 self._pos = self._plot_samples = self._plot_timestamps = None
@@ -959,7 +959,7 @@ class PlotSignal(Signal):
             self._compute_stats()
         return self._std if self.mode == "phys" else self._std_raw
 
-    def trim_c(self, start=None, stop=None, width=1900, force=False):
+    def trim_c(self, start=None, stop=None, width=1, force=False):
         trim_info = (start, stop, width)
         if not force and self.trim_info == trim_info:
             return None
@@ -1024,12 +1024,18 @@ class PlotSignal(Signal):
                         rest = visible_duplication
                     steps = visible_duplication
 
+                    if count > self._buffer_size:
+                        self._buffer_size = count
+                        self._pos = np.empty(2 * self._buffer_size, dtype="i4")
+                        self._plot_samples = np.empty(2 * self._buffer_size, dtype=self._dtype)
+                        self._plot_timestamps = np.empty(2 * self._buffer_size, dtype="f8")
+
                     if samples.dtype.kind == "f" and samples.itemsize == 2:
                         samples = samples.astype("f8")
                         self._dtype = "f8"
 
                     if samples.dtype != self._plot_samples.dtype:
-                        self._plot_samples = np.empty(2 * PLOT_BUFFER_SIZE, dtype=samples.dtype)
+                        self._plot_samples = np.empty(2 * self._buffer_size, dtype=samples.dtype)
 
                         self._dtype = samples.dtype
 
@@ -1222,6 +1228,13 @@ class PlotSignal(Signal):
 
     def trim(self, start=None, stop=None, width=1900, force=False):
         if self._enable:
+            if width > self._buffer_size:
+                width = ceil(width)
+                self._buffer_size = width
+                self._pos = np.empty(2 * self._buffer_size, dtype="i4")
+                self._plot_samples = np.empty(2 * self._buffer_size, dtype=self._dtype)
+                self._plot_timestamps = np.empty(2 * self._buffer_size, dtype="f8")
+
             self.path = None
             try:
                 return self.trim_c(start, stop, width, force)
@@ -4317,6 +4330,7 @@ class PlotGraphics(pg.PlotWidget):
             mdf=mdf,
             computation=signal.computation,
             functions=functions,
+            global_variables=self.plot_parent.owner.global_variables,
             parent=self,
         )
         dlg.setModal(True)
@@ -4433,6 +4447,7 @@ class PlotGraphics(pg.PlotWidget):
             mdf=mdf,
             computation=None,
             functions=functions,
+            global_variables=self.plot_parent.owner.global_variables,
             parent=self,
         )
         dlg.setModal(True)
