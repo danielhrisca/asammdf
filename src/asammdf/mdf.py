@@ -1300,7 +1300,7 @@ class MDF:
         fmt = fmt.lower()
 
         if fmt != "pandas" and filename is None and self.name is None:
-            message = "Must specify filename for exportif MDF was created without a file name"
+            message = "Must specify filename for export if MDF was created without a file name"
             logger.warning(message)
             return
 
@@ -5586,7 +5586,7 @@ class MDF:
             out = tmp
 
         if not out.groups:
-            logger.warning(f'No CAN signals could be extracted from "{self.name}". Theoutput file will be empty.')
+            logger.warning(f'No CAN signals could be extracted from "{self.name}". The output file will be empty.')
 
         return out
 
@@ -5838,7 +5838,7 @@ class MDF:
         }
 
         if not out.groups:
-            logger.warning(f'No LIN signals could be extracted from "{self.name}". Theoutput file will be empty.')
+            logger.warning(f'No LIN signals could be extracted from "{self.name}". The output file will be empty.')
 
         return out
 

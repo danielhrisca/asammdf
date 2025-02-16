@@ -3249,7 +3249,7 @@ class TextBlock:
         return v23c.COMMON_p(self.id, self.block_len) + self.text
 
     def __repr__(self) -> str:
-        return f"TextBlock(id={self.id!r},block_len={self.block_len}, text={self.text!r})"
+        return f"TextBlock(id={self.id!r}, block_len={self.block_len}, text={self.text!r})"
 
 
 class TriggerBlock:
