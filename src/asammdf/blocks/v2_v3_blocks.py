@@ -669,9 +669,7 @@ display names: {self.display_names}
 address: {hex(self.address)}
 comment: {self.comment}
 
-""".split(
-            "\n"
-        )
+""".split("\n")
 
         keys = (
             "id",
@@ -1072,7 +1070,7 @@ class ChannelConversion(_ChannelConversionBase):
                     self.referenced_blocks = conversion.referenced_blocks
 
                 else:
-                    float_values: tuple[float, ...] = unpack_from(f"<{2*nr}d", block, v23c.CC_COMMON_SHORT_SIZE)
+                    float_values: tuple[float, ...] = unpack_from(f"<{2 * nr}d", block, v23c.CC_COMMON_SHORT_SIZE)
                     for i in range(nr):
                         (self[f"raw_{i}"], self[f"phys_{i}"]) = (
                             float_values[i * 2],
@@ -1420,9 +1418,7 @@ class ChannelConversion(_ChannelConversionBase):
         lines = f"""
 address: {hex(self.address)}
 
-""".split(
-            "\n"
-        )
+""".split("\n")
 
         for key in keys:
             val = getattr(self, key)
@@ -1713,7 +1709,7 @@ address: {hex(self.address)}
             fmt = v23c.FMT_CONVERSION_EXPO_LOGH
         elif conv in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TAB):
             nr = self.ref_param_nr
-            fmt = v23c.FMT_CONVERSION_COMMON + f"{2*nr}d"
+            fmt = v23c.FMT_CONVERSION_COMMON + f"{2 * nr}d"
         elif conv == v23c.CONVERSION_TYPE_RTABX:
             nr = self.ref_param_nr
             fmt = v23c.FMT_CONVERSION_COMMON + "2dI" * nr
@@ -2132,9 +2128,7 @@ class ChannelExtension:
         lines = f"""
 address: {hex(self.address)}
 
-""".split(
-            "\n"
-        )
+""".split("\n")
 
         for key in keys:
             val = getattr(self, key)
@@ -2422,9 +2416,7 @@ class ChannelGroup:
 address: {hex(self.address)}
 comment: {self.comment}
 
-""".split(
-            "\n"
-        )
+""".split("\n")
 
         for key in keys:
             if not hasattr(self, key):
@@ -3086,7 +3078,7 @@ class HeaderBlock:
                 tz_offset_sign = "-" if self.tz_offset < 0 else "+"
                 tz_information = f"[GMT{tz_offset_sign}{abs(self.tz_offset):.2f} DST+{0:.2f}h]"
 
-        start_time = f'local time = {self.start_time.strftime("%d-%b-%Y %H:%M:%S + %fu")} {tz_information}'
+        start_time = f"local time = {self.start_time.strftime('%d-%b-%Y %H:%M:%S + %fu')} {tz_information}"
         return start_time
 
     def __getitem__(self, item: str) -> object:
@@ -3257,7 +3249,7 @@ class TextBlock:
         return v23c.COMMON_p(self.id, self.block_len) + self.text
 
     def __repr__(self) -> str:
-        return f"TextBlock(id={self.id!r}," f"block_len={self.block_len}, " f"text={self.text!r})"
+        return f"TextBlock(id={self.id!r},block_len={self.block_len}, text={self.text!r})"
 
 
 class TriggerBlock:

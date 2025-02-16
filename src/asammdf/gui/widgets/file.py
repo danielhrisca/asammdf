@@ -468,7 +468,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     for flag, string in FLAG_AT_TO_STRING.items():
                         if attachment.flags & flag:
                             flags.append(string)
-                    text = f'{attachment.flags} [0x{attachment.flags:X}= {", ".join(flags)}]'
+                    text = f"{attachment.flags} [0x{attachment.flags:X}= {', '.join(flags)}]"
                 else:
                     text = "0"
                 field.setText(1, text)
@@ -483,11 +483,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 if size <= 1 << 10:
                     text = f"{size} B"
                 elif size <= 1 << 20:
-                    text = f"{size/1024:.1f} KB"
+                    text = f"{size / 1024:.1f} KB"
                 elif size <= 1 << 30:
-                    text = f"{size/1024/1024:.1f} MB"
+                    text = f"{size / 1024 / 1024:.1f} MB"
                 else:
-                    text = f"{size/1024/1024/1024:.1f} GB"
+                    text = f"{size / 1024 / 1024 / 1024:.1f} GB"
 
                 field = QtWidgets.QTreeWidgetItem()
                 field.setText(0, "Size")
@@ -606,7 +606,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if widget.mode == "Internal file structure":
             while item := iterator.value():
-
                 if item.entry[1] != 0xFFFFFFFFFFFFFFFF:
                     if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                         signals.add(item.entry)
@@ -614,7 +613,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 iterator += 1
         else:
             while item := iterator.value():
-
                 if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     signals.add(item.entry)
 
@@ -879,7 +877,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                     signals = set()
                     while item := iterator.value():
-
                         if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             signals.add((item.text(0), *item.entry))
 
@@ -911,7 +908,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 else:
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
                     while item := iterator.value():
-
                         if item.entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             names.add((result[item.entry], *item.entry))
@@ -999,7 +995,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 iterator += 1
         else:
             while item := iterator.value():
-
                 if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     signals.append(item.text(0))
 
@@ -1267,7 +1262,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.loaded_display_file = Path(info.get("display_file_name", "")), b""
 
             self.functions.update(info.get("functions", {}))
-            self.global_variables = f'{self.global_variables}\n{info.get("global_variables", "")}'
+            self.global_variables = f"{self.global_variables}\n{info.get('global_variables', '')}"
             self.global_variables = "\n".join([line for line in self.global_variables.splitlines() if line])
 
         if channels:
@@ -1289,7 +1284,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     iterator += 1
             else:
                 while item := iterator.value():
-
                     channel_name = item.text(0)
                     if channel_name in channels:
                         item.setCheckState(0, QtCore.Qt.CheckState.Checked)
@@ -1333,7 +1327,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                 }
 
             if new_functions or info.get("global_variables", "") != self.global_variables:
-                self.update_functions({}, new_functions, f'{self.global_variables}\n{info.get("global_variables", "")}')
+                self.update_functions({}, new_functions, f"{self.global_variables}\n{info.get('global_variables', '')}")
 
         self.clear_windows()
 
@@ -1343,7 +1337,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             count = len(windows)
 
             if show_progress:
-
                 progress = setup_progress(
                     parent=self,
                     title="Loading display windows",
@@ -1763,7 +1756,6 @@ MultiRasterSeparator;&
                         iterator += 1
                 else:
                     while item := iterator.value():
-
                         if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             group, index = item.entry
                             ch = self.mdf.groups[group].channels[index]
@@ -1920,10 +1912,10 @@ MultiRasterSeparator;&
 
             message += [
                 f"{bus} bus summary:",
-                f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+                f"- {found_id_count} of {len(call_info['total_unique_ids'])} IDs in the MDF4 file were matched in the DBC and converted",
             ]
             if call_info["unknown_id_count"]:
-                message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
+                message.append(f"- {call_info['unknown_id_count']} unknown IDs in the MDF4 file")
             else:
                 message.append("- no unknown IDs inf the MDF4 file")
 
@@ -2119,10 +2111,10 @@ MultiRasterSeparator;&
 
             message += [
                 f"{bus} bus summary:",
-                f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+                f"- {found_id_count} of {len(call_info['total_unique_ids'])} IDs in the MDF4 file were matched in the DBC and converted",
             ]
             if call_info["unknown_id_count"]:
-                message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
+                message.append(f"- {call_info['unknown_id_count']} unknown IDs in the MDF4 file")
             else:
                 message.append("- no unknown IDs inf the MDF4 file")
 
@@ -3070,7 +3062,7 @@ MultiRasterSeparator;&
             return MessageBox.warning(
                 self,
                 "Wrong file type",
-                "The display file can only be embedded in .mf4 or .mf4z files" f"\n{original_file_name}",
+                f"The display file can only be embedded in .mf4 or .mf4z files\n{original_file_name}",
             )
 
         _password = self.mdf._password
@@ -3299,7 +3291,7 @@ MultiRasterSeparator;&
                     for flag, string in FLAG_AT_TO_STRING.items():
                         if attachment.flags & flag:
                             flags.append(string)
-                    text = f'{attachment.flags} [0x{attachment.flags:X}= {", ".join(flags)}]'
+                    text = f"{attachment.flags} [0x{attachment.flags:X}= {', '.join(flags)}]"
                 else:
                     text = "0"
                 field.setText(1, text)

@@ -3927,7 +3927,7 @@ class PlotGraphics(pg.PlotWidget):
                 bookmark = Bookmark(
                     pos=event["value"],
                     message=event["description"],
-                    title=f'{event["type"]}{label}',
+                    title=f"{event['type']}{label}",
                     color=color,
                     tool=event.get("tool", ""),
                 )
@@ -6010,7 +6010,6 @@ class PlotGraphics(pg.PlotWidget):
         self._pixmap = pixmap
 
         for idx, sig in enumerate(self.signals):
-
             if sig.individual_axis:
                 axis = self.get_axis(idx)
                 if tuple(axis.range) != tuple(sig.y_range):
@@ -6059,7 +6058,6 @@ class PlotGraphics(pg.PlotWidget):
         return y, sig_y_bottom, sig_y_top
 
     def xrange_changed_handle(self, *args, force=False):
-
         if self._can_paint:
             self.trim(force=force)
             self.update()
@@ -6067,7 +6065,6 @@ class PlotGraphics(pg.PlotWidget):
         self.zoom_changed.emit(False)
 
     def y_changed(self, *args):
-
         if len(args) == 1:
             # range manually changed by the user with the wheel or drag
             mask = args[0]

@@ -1246,7 +1246,7 @@ class Channel:
         return f"""<Channel (name: {self.name}, unit: {self.unit}, comment: {self.comment}, address: {hex(self.address)},
     conversion: {self.conversion},
     source: {self.source},
-    fields: {', '.join(block_fields(self))})>"""
+    fields: {", ".join(block_fields(self))})>"""
 
     def metadata(self) -> str:
         if self.block_len == v4c.CN_BLOCK_SIZE:
@@ -1302,9 +1302,7 @@ address: {hex(self.address)}
 comment: {self.comment}
 unit: {self.unit}
 
-""".split(
-            "\n"
-        )
+""".split("\n")
 
         for key in keys:
             val = getattr(self, key)
@@ -2143,9 +2141,7 @@ name: {self.acq_name}
 address: {hex(self.address)}
 comment: {self.comment}
 
-""".split(
-            "\n"
-        )
+""".split("\n")
 
         for key in keys:
             val = getattr(self, key)
@@ -4055,9 +4051,7 @@ address: {hex(self.address)}
 comment: {self.comment}
 formula: {self.formula}
 
-""".split(
-            "\n"
-        )
+""".split("\n")
         for key in keys:
             val = getattr(self, key)
             if key.endswith("addr") or key.startswith("text_"):
@@ -5136,7 +5130,7 @@ class EventBlock(_EventBlockBase):
             elif addr in cg_map:
                 self.scopes.append(cg_map[addr])
             else:
-                message = "{} is not a valid CNBLOCK or CGBLOCK " "address for the event scope"
+                message = "{} is not a valid CNBLOCK or CGBLOCK address for the event scope"
                 message = message.format(hex(addr))
                 logger.exception(message)
                 raise MdfException(message)
@@ -5794,14 +5788,14 @@ class HeaderBlock:
 
             tz_information = f"[GMT{tz_offset_sign}{tz_offset:.2f} DST{dst_offset_sign}{dst_offset:.2f}h]"
 
-            start_time = f'local time = {self.start_time.strftime("%d-%b-%Y %H:%M:%S + %fu")} {tz_information}'
+            start_time = f"local time = {self.start_time.strftime('%d-%b-%Y %H:%M:%S + %fu')} {tz_information}"
 
         else:
             tzinfo = self.start_time.tzinfo
 
             if tzinfo is None:
                 return (
-                    f'local time = {self.start_time.strftime("%d-%b-%Y %H:%M:%S + %fu")} (no timezone info available)'
+                    f"local time = {self.start_time.strftime('%d-%b-%Y %H:%M:%S + %fu')} (no timezone info available)"
                 )
 
             dst = tzinfo.dst(self.start_time)
@@ -5819,7 +5813,7 @@ class HeaderBlock:
 
             tz_information = f"[assumed GMT{tz_offset_sign}{tz_offset:.2f} DST{dst_offset_sign}{dst_offset:.2f}h]"
 
-            start_time = f'local time = {self.start_time.strftime("%d-%b-%Y %H:%M:%S + %fu")} {tz_information}'
+            start_time = f"local time = {self.start_time.strftime('%d-%b-%Y %H:%M:%S + %fu')} {tz_information}"
 
         return start_time
 
@@ -6325,9 +6319,7 @@ path: {self.path}
 address: {hex(self.address)}
 comment: {self.comment}
 
-""".split(
-            "\n"
-        )
+""".split("\n")
         for key in v4c.KEYS_SOURCE_INFORMATION:
             val = getattr(self, key)
             if key.endswith("addr") or key.startswith("text_"):

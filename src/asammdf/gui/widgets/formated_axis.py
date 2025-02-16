@@ -93,9 +93,9 @@ class FormatedAxis(pg.AxisItem):
 
                 if isinstance(nv, bytes):
                     try:
-                        strns.append(f'{val}={nv.decode("utf-8", errors="replace")}')
+                        strns.append(f"{val}={nv.decode('utf-8', errors='replace')}")
                     except:
-                        strns.append(f'{val}={nv.decode("latin-1", errors="replace")}')
+                        strns.append(f"{val}={nv.decode('latin-1', errors='replace')}")
                 else:
                     strns.append(val)
         else:

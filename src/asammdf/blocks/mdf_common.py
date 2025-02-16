@@ -201,7 +201,7 @@ class MDF_Common(ABC, Generic[_Group]):
 
         if name is None:
             if group is None or index is None:
-                message = "Invalid arguments for channel selection: " 'must give "name" or, "group" and "index"'
+                message = 'Invalid arguments for channel selection: must give "name" or, "group" and "index"'
                 raise MdfException(message)
             else:
                 gp_nr, ch_nr = group, index

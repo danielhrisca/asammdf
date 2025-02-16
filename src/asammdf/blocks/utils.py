@@ -204,7 +204,7 @@ def extract_xml_comment(comment: str) -> str:
             if common_properties is not None:
                 comments: list[str] = []
                 for e in common_properties:
-                    field = f'{e.get("name")}: {e.text}'
+                    field = f"{e.get('name')}: {e.text}"
                     comments.append(field)
                 comment = "\n".join(field)
             else:
@@ -1049,7 +1049,7 @@ def validate_version_argument(version: str, hint: int = 4) -> str:
             valid_version = "3.30"
         else:
             valid_version = "4.10"
-        message = 'Unknown mdf version "{}".' " The available versions are {};" ' automatically using version "{}"'
+        message = 'Unknown mdf version "{}". The available versions are {}; automatically using version "{}"'
         message = message.format(version, SUPPORTED_VERSIONS, valid_version)
         logger.warning(message)
     else:
@@ -2467,16 +2467,15 @@ def timeit(func: Callable[_Params, _Ret]) -> Callable[_Params, _Ret]:
         t2 = perf_counter()
         delta = t2 - t1
         if delta >= 1e-3:
-            print(f"CALL {func.__qualname__}: {delta*1e3:.3f} ms")
+            print(f"CALL {func.__qualname__}: {delta * 1e3:.3f} ms")
         else:
-            print(f"CALL {func.__qualname__}: {delta*1e6:.3f} us")
+            print(f"CALL {func.__qualname__}: {delta * 1e6:.3f} us")
         return ret
 
     return timed
 
 
 class Timer:
-
     def __init__(self, name: str = "") -> None:
         self.name = name or str(id(self))
         self.count = 0

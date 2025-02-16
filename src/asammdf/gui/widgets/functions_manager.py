@@ -372,7 +372,6 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         return names
 
     def store_definition(self, *args):
-
         item = self.functions_list.currentItem()
         if not item:
             return
@@ -383,15 +382,13 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
 
         ok, func = self.check_syntax(silent=True)
         if ok:
-
             func_name = func.__name__
 
             if current_name != func_name and func_name in self.definitions:
                 MessageBox.information(
                     self,
                     "Invalid function name",
-                    f'The name "{func_name}" is already given to another function.\n'
-                    "The function names must be unique",
+                    f'The name "{func_name}" is already given to another function.\nThe function names must be unique',
                 )
 
             else:

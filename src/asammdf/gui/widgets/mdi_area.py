@@ -514,7 +514,6 @@ def get_comparison_mime(data, uuids):
 
 
 class MdiAreaMixin:
-
     def addSubWindow(self, window):
         geometry = window.geometry()
         geometry.setSize(QtCore.QSize(400, 400))
@@ -533,7 +532,6 @@ class MdiAreaMixin:
             widget.close()
 
     def window_moved(self, window, new_position, old_position):
-
         snap = False
 
         window_geometry = window.geometry()
@@ -641,7 +639,6 @@ class MdiAreaMixin:
                 break
 
         else:
-
             # left edge of other windows growing and snapping
             snap_candidates = []
 
@@ -670,7 +667,6 @@ class MdiAreaMixin:
                 snap = True
                 break
         else:
-
             # top edge of other windows snapping
             snap_candidates = []
 
@@ -744,7 +740,6 @@ class MdiAreaMixin:
                 y_delta = -y_delta
 
         if previous_x is not None:
-
             for sub in sub_windows:
                 geometry = sub.geometry()
                 if abs(geometry.x() - previous_x) <= SNAP_PIXELS_DISTANCE:
@@ -755,7 +750,6 @@ class MdiAreaMixin:
                     sub.setGeometry(geometry)
 
         if previous_y is not None:
-
             for sub in sub_windows:
                 geometry = sub.geometry()
                 if abs(geometry.y() - previous_y) <= SNAP_PIXELS_DISTANCE:
@@ -1060,7 +1054,6 @@ class WithMDIArea:
             current_count = len(widget.plot.signals)
             count = len(names)
         elif isinstance(widget, XY):
-
             if names:
                 name = names[0]
             else:
@@ -1220,7 +1213,7 @@ class WithMDIArea:
                             # MainWindow => comparison plots
 
                             sig.tooltip = f"{sig.name}\n@ {file.file_name}"
-                            sig.name = f"{file_index+1}: {sig.name}"
+                            sig.name = f"{file_index + 1}: {sig.name}"
 
                     signals.extend(selected_signals)
 
@@ -1295,7 +1288,7 @@ class WithMDIArea:
                             # MainWindow => comparison plots
 
                             sig.tooltip = f"{sig.name}\n@ {file.file_name}"
-                            sig.name = f"{file_index+1}: {sig.name}"
+                            sig.name = f"{file_index + 1}: {sig.name}"
 
                         if sig.samples.dtype.kind not in "SU" and (
                             sig.samples.dtype.names or len(sig.samples.shape) > 1
@@ -1519,7 +1512,6 @@ class WithMDIArea:
         dfs = []
 
         if self.mdf.version >= "4.00":
-
             groups_count = len(self.mdf.groups)
 
             for index in range(groups_count):
@@ -1777,7 +1769,6 @@ class WithMDIArea:
     def _add_flexray_bus_trace_window(self, ranges=None):
         items = []
         if self.mdf.version >= "4.00":
-
             groups_count = len(self.mdf.groups)
 
             for index in range(groups_count):
@@ -2035,7 +2026,6 @@ class WithMDIArea:
     def _add_lin_bus_trace_window(self, ranges=None):
         dfs = []
         if self.mdf.version >= "4.00":
-
             groups_count = len(self.mdf.groups)
 
             for index in range(groups_count):
@@ -2303,7 +2293,6 @@ class WithMDIArea:
         return trace
 
     def _add_numeric_window(self, names):
-
         if names and isinstance(names[0], str):
             signals_ = [
                 (
@@ -2390,7 +2379,7 @@ class WithMDIArea:
                     # MainWindow => comparison plots
 
                     sig.tooltip = f"{sig.name}\n@ {file.file_name}"
-                    sig.name = f"{file_index+1}: {sig.name}"
+                    sig.name = f"{file_index + 1}: {sig.name}"
 
             signals.extend(selected_signals)
 
@@ -2579,7 +2568,7 @@ class WithMDIArea:
                     # MainWindow => comparison plots
 
                     sig.tooltip = f"{sig.name}\n@ {file.file_name}"
-                    sig.name = f"{file_index+1}: {sig.name}"
+                    sig.name = f"{file_index + 1}: {sig.name}"
 
                 signals[sig_uuid] = sig
 
@@ -2912,7 +2901,6 @@ class WithMDIArea:
         return w, plot
 
     def _add_tabular_window(self, names):
-
         if names and isinstance(names[0], str):
             signals_ = [
                 (
@@ -2975,7 +2963,7 @@ class WithMDIArea:
 
                     name = unique_names.get_unique_name(entry["name"])
 
-                    ranges[f"{file_index+1}: {name}"] = entry["ranges"]
+                    ranges[f"{file_index + 1}: {name}"] = entry["ranges"]
             else:
                 for entry in signals_:
                     if entry["origin_uuid"] != uuid:
@@ -3011,7 +2999,7 @@ class WithMDIArea:
 
             if not hasattr(self, "mdf"):
                 # MainWindow => comparison plots
-                columns = {name: f"{file_index+1}: {name}" for name in df.columns}
+                columns = {name: f"{file_index + 1}: {name}" for name in df.columns}
                 df.rename(columns=columns, inplace=True)
 
             dfs.append(df)
@@ -3313,7 +3301,6 @@ class WithMDIArea:
             signals_ = [(elem["name"], *self.mdf.whereis(elem["name"])[0]) for elem in found]
 
             if signals_:
-
                 signals = self.mdf.select(
                     signals_,
                     ignore_value2text_conversions=self.ignore_value2text_conversions,
@@ -4304,7 +4291,6 @@ class WithMDIArea:
                         pass
 
     def set_cursor(self, widget, pos):
-
         if self._busy:
             return
         else:
@@ -4641,7 +4627,7 @@ class WithMDIArea:
         result = MessageBox.question(
             self,
             "Save measurement bookmarks?",
-            "You have modified bookmarks.\n\n" "Do you want to save the changes in the measurement file?\n" "",
+            "You have modified bookmarks.\n\nDo you want to save the changes in the measurement file?\n",
         )
 
         if result == MessageBox.StandardButton.No:
