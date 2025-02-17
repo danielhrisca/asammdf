@@ -34,7 +34,7 @@ class Source:
     BUS_TYPE_USB = v4c.BUS_TYPE_USB
 
     def __init__(self, name: str, path: str, comment: str, source_type: int, bus_type: int) -> None:
-        """Commons reprezentation for source information
+        """Common representation for source information.
 
         Attributes
         ----------

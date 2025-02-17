@@ -129,15 +129,14 @@ class MDF3(MDF_Common[Group]):
     * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel
       arrays; list of Channel objects in case of structure channel
       composition
-    * ``data_block`` - address of
-      data block
+    * ``data_block`` - address of data block
     * ``data_location``- integer code for data location (original file,
       temporary file or memory)
     * ``data_block_addr`` - list of raw samples starting addresses
     * ``data_block_type`` - list of codes for data block type
     * ``data_block_size`` - list of raw samples block size
     * ``sorted`` - sorted indicator flag
-    * ``record_size`` - dict that maps record ID's to record sizes in bytes
+    * ``record_size`` - dict that maps record IDs to record sizes in bytes
     * ``size`` - total size of data block for the current group
     * ``trigger`` - *Trigger* object for current group
 
@@ -176,7 +175,7 @@ class MDF3(MDF_Common[Group]):
 
     masters_db : dict
         used for fast master channel access; for each group index key the value
-         is the master channel index
+        is the master channel index
     memory : str
         memory optimization option
     name : string
@@ -987,7 +986,7 @@ class MDF3(MDF_Common[Group]):
         post_time: float = 0,
         comment: str = "",
     ) -> None:
-        """add trigger to data group
+        """Add trigger to data group.
 
         Parameters
         ----------
@@ -1120,33 +1119,31 @@ class MDF3(MDF_Common[Group]):
             will contain the signal units mapped to the signal names when
             appending a pandas DataFrame
 
-
         Examples
         --------
+        >>> from asammdf import MDF, Signal
+        >>> import numpy as np
+
         >>> # case 1 conversion type None
         >>> s1 = np.array([1, 2, 3, 4, 5])
         >>> s2 = np.array([-1, -2, -3, -4, -5])
         >>> s3 = np.array([0.1, 0.04, 0.09, 0.16, 0.25])
         >>> t = np.array([0.001, 0.002, 0.003, 0.004, 0.005])
-        >>> names = ['Positive', 'Negative', 'Float']
-        >>> units = ['+', '-', '.f']
-        >>> info = {}
         >>> s1 = Signal(samples=s1, timestamps=t, unit='+', name='Positive')
         >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
-        >>> mdf = MDF3('new.mdf')
-        >>> mdf.append([s1, s2, s3], comment='created by asammdf v1.1.0')
+        >>> mdf = MDF(version='3.30')
+        >>> mdf.append([s1, s2, s3], comment='created by asammdf')
+
         >>> # case 2: VTAB conversions from channels inside another file
-        >>> mdf1 = MDF3('in.mdf')
+        >>> mdf1 = MDF('in.mdf')
         >>> ch1 = mdf1.get("Channel1_VTAB")
         >>> ch2 = mdf1.get("Channel2_VTABR")
-        >>> sigs = [ch1, ch2]
-        >>> mdf2 = MDF3('out.mdf')
-        >>> mdf2.append(sigs, comment='created by asammdf v1.1.0')
+        >>> mdf2 = MDF('out.mdf')
+        >>> mdf2.append([ch1, ch2], comment='created by asammdf')
         >>> df = pd.DataFrame.from_dict({'s1': np.array([1, 2, 3, 4, 5]), 's2': np.array([-1, -2, -3, -4, -5])})
         >>> units = {'s1': 'V', 's2': 'A'}
         >>> mdf2.append(df, units=units)
-
         """
         if isinstance(signals, Signal):
             signals = [signals]
@@ -2121,9 +2118,7 @@ class MDF3(MDF_Common[Group]):
         comment: str = "",
         units: Optional[dict[str, str]] = None,
     ) -> None:
-        """
-        Appends a new data group from a Pandas data frame.
-        """
+        """Appends a new data group from a Pandas DataFrame."""
         units = units or {}
 
         t = df.index
@@ -2367,9 +2362,9 @@ class MDF3(MDF_Common[Group]):
         gp.trigger = None
 
     def close(self) -> None:
-        """if the MDF was created with memory='minimum' and new
+        """If the MDF was created with memory='minimum' and new
         channels have been appended, then this must be called just before the
-        object is not used anymore to clean-up the temporary file
+        object is not used anymore to clean-up the temporary file.
 
         """
         try:
@@ -2416,8 +2411,7 @@ class MDF3(MDF_Common[Group]):
             print(format_exc())
 
     def extend(self, index: int, signals: list[tuple[NDArray[Any], Optional[NDArray[Any]]]]) -> None:
-        """
-        Extend a group with new samples. *signals* contains (values, invalidation_bits)
+        """Extend a group with new samples. *signals* contains (values, invalidation_bits)
         pairs for each extended signal. Since MDF3 does not support invalidation
         bits, the second item of each pair must be None. The first pair is the master channel's pair, and the
         next pairs must respect the same order in which the signals were appended. The samples must have raw
@@ -2432,21 +2426,19 @@ class MDF3(MDF_Common[Group]):
 
         Examples
         --------
-        >>> # case 1 conversion type None
+        >>> from asammdf import MDF, Signal
+        >>> import numpy as np
         >>> s1 = np.array([1, 2, 3, 4, 5])
         >>> s2 = np.array([-1, -2, -3, -4, -5])
         >>> s3 = np.array([0.1, 0.04, 0.09, 0.16, 0.25])
         >>> t = np.array([0.001, 0.002, 0.003, 0.004, 0.005])
-        >>> names = ['Positive', 'Negative', 'Float']
-        >>> units = ['+', '-', '.f']
         >>> s1 = Signal(samples=s1, timestamps=t, unit='+', name='Positive')
         >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
-        >>> mdf = MDF3('new.mdf')
-        >>> mdf.append([s1, s2, s3], comment='created by asammdf v1.1.0')
+        >>> mdf = MDF(version='3.30')
+        >>> mdf.append([s1, s2, s3], comment='created by asammdf')
         >>> t = np.array([0.006, 0.007, 0.008, 0.009, 0.010])
-        >>> mdf2.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
-
+        >>> mdf.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
         """
         new_group_offset = 0
         gp = self.groups[index]
@@ -2688,6 +2680,7 @@ class MDF3(MDF_Common[Group]):
         index: Optional[int] = None,
     ) -> str:
         """Gets channel comment.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
@@ -2776,6 +2769,7 @@ class MDF3(MDF_Common[Group]):
         skip_channel_validation: bool = False,
     ) -> Union[Signal, tuple[NDArray[Any], None]]:
         """Gets channel samples.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
@@ -2844,6 +2838,9 @@ class MDF3(MDF_Common[Group]):
         * if the channel name is not found
         * if the group index is out of range
         * if the channel index is out of range
+        * if there are multiple channel occurrences in the file and the arguments
+          *name*, *group*, *index* are ambiguous. This behaviour can be turned off
+          by setting raise_on_multiple_occurrences to *False*.
 
         Examples
         --------
@@ -2856,49 +2853,37 @@ class MDF3(MDF_Common[Group]):
         ...     sigs = [Signal(s*(i*10+j), t, name='Sig') for j in range(1, 4)]
         ...     mdf.append(sigs)
         ...
-        >>> # first group and channel index of the specified channel name
-        ...
         >>> mdf.get('Sig')
-        UserWarning: Multiple occurrences for channel "Sig". Using first occurrence from data group 4. Provide both "group" and "index" arguments to select another data group
-        <Signal Sig:
-                samples=[ 1.  1.  1.  1.  1.]
-                timestamps=[0 1 2 3 4]
-                unit=""
-                info=None
-                comment="">
-        >>> # first channel index in the specified group
-        ...
+        MdfException: Multiple occurrences for channel "Sig": ((0, 1), (0, 2),
+        (0, 3), (1, 1), (1, 2), (1, 3), (2, 1), (2, 2), (2, 3), (3, 1), (3, 2),
+        (3, 3)). Provide both "group" and "index" arguments to select another
+        data group
+        >>>
         >>> mdf.get('Sig', 1)
-        <Signal Sig:
-                samples=[ 11.  11.  11.  11.  11.]
-                timestamps=[0 1 2 3 4]
-                unit=""
-                info=None
-                comment="">
-        >>> # channel named Sig from group 1 channel index 2
-        ...
+        MdfException: Multiple occurrences for channel "Sig": ((1, 1), (1, 2),
+        (1, 3)). Provide both "group" and "index" arguments to select another
+        data group
+        >>>
+        >>> # channel named Sig from group 1, channel index 2
         >>> mdf.get('Sig', 1, 2)
         <Signal Sig:
                 samples=[ 12.  12.  12.  12.  12.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
-        >>> # channel index 1 or group 2
-        ...
+        >>>
+        >>> # group 2, channel index 1
         >>> mdf.get(None, 2, 1)
         <Signal Sig:
                 samples=[ 21.  21.  21.  21.  21.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
         >>> mdf.get(group=2, index=1)
         <Signal Sig:
                 samples=[ 21.  21.  21.  21.  21.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
 
         """
@@ -3184,16 +3169,16 @@ class MDF3(MDF_Common[Group]):
         record_count: Optional[int] = None,
         one_piece: bool = False,
     ) -> NDArray[np.float64]:
-        """returns master channel samples for given group
+        """Returns master channel samples for given group.
 
         Parameters
         ----------
         index : int
             group index
         data : (bytes, int)
-            (data block raw bytes, fragment offset); default None
+            (data block raw bytes, fragment offset); default *None*
         raster : float
-            raster to be used for interpolation; default None
+            raster to be used for interpolation; default *None*
 
             .. deprecated:: 5.13.0
 
@@ -3348,10 +3333,10 @@ class MDF3(MDF_Common[Group]):
         return timestamps
 
     def iter_get_triggers(self) -> Iterator[TriggerInfoDict]:
-        """generator that yields triggers
+        """Generator that yields triggers.
 
-        Returns
-        -------
+        Yields
+        ------
         trigger_info : dict
             trigger information with the following keys:
 
@@ -3377,13 +3362,12 @@ class MDF3(MDF_Common[Group]):
                     yield trigger_info
 
     def info(self) -> dict[str, object]:
-        """get MDF information as a dict
+        """Get MDF information as a dict.
 
         Examples
         --------
-        >>> mdf = MDF3('test.mdf')
+        >>> mdf = MDF('test.mdf')
         >>> mdf.info()
-
         """
         info: dict[str, object] = {}
         for key in ("author", "department", "project", "subject"):
@@ -3410,7 +3394,7 @@ class MDF3(MDF_Common[Group]):
 
     @property
     def start_time(self) -> datetime:
-        """getter and setter the measurement start timestamp
+        """Getter and setter of the measurement start timestamp.
 
         Returns
         -------

@@ -190,13 +190,13 @@ class MDF4(MDF_Common[Group]):
     * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel arrays;
       list of Channel objects in case of structure channel composition
     * ``data_block`` - address of data block
-    * ``data_location``- integer code for data location (original file, temporary file or
+    * ``data_location`` - integer code for data location (original file, temporary file or
       memory)
     * ``data_block_addr`` - list of raw samples starting addresses
     * ``data_block_type`` - list of codes for data block type
     * ``data_block_size`` - list of raw samples block size
     * ``sorted`` - sorted indicator flag
-    * ``record_size`` - dict that maps record ID's to record sizes in bytes (including invalidation bytes)
+    * ``record_size`` - dict that maps record IDs to record sizes in bytes (including invalidation bytes)
     * ``param`` - row size used for transposition, in case of transposed zipped blocks
 
 
@@ -2634,7 +2634,7 @@ class MDF4(MDF_Common[Group]):
         pos_invalidation_bit: int,
         fragment: tuple[bytes, int, int, ReadableBufferType | None],
     ) -> NDArray[bool_]:
-        """get invalidation indexes for the channel
+        """Get invalidation indexes for the channel.
 
         Parameters
         ----------
@@ -2695,8 +2695,7 @@ class MDF4(MDF_Common[Group]):
         common_timebase: bool = False,
         units: dict[str, str | bytes] | None = None,
     ) -> int | None:
-        """
-        Appends a new data group.
+        """Appends a new data group.
 
         For channel dependencies type Signals, the *samples* attribute must be
         a numpy.recarray
@@ -2723,31 +2722,30 @@ class MDF4(MDF_Common[Group]):
 
         Examples
         --------
+        >>> from asammdf import MDF, Signal
+        >>> import numpy as np
+
         >>> # case 1 conversion type None
         >>> s1 = np.array([1, 2, 3, 4, 5])
         >>> s2 = np.array([-1, -2, -3, -4, -5])
         >>> s3 = np.array([0.1, 0.04, 0.09, 0.16, 0.25])
         >>> t = np.array([0.001, 0.002, 0.003, 0.004, 0.005])
-        >>> names = ['Positive', 'Negative', 'Float']
-        >>> units = ['+', '-', '.f']
-        >>> info = {}
         >>> s1 = Signal(samples=s1, timestamps=t, unit='+', name='Positive')
         >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
-        >>> mdf = MDF4('new.mdf')
-        >>> mdf.append([s1, s2, s3], comment='created by asammdf v4.0.0')
+        >>> mdf = MDF(version='4.10')
+        >>> mdf.append([s1, s2, s3], comment='created by asammdf')
+
         >>> # case 2: VTAB conversions from channels inside another file
-        >>> mdf1 = MDF4('in.mf4')
+        >>> mdf1 = MDF('in.mf4')
         >>> ch1 = mdf1.get("Channel1_VTAB")
         >>> ch2 = mdf1.get("Channel2_VTABR")
-        >>> sigs = [ch1, ch2]
-        >>> mdf2 = MDF4('out.mf4')
-        >>> mdf2.append(sigs, comment='created by asammdf v4.0.0')
+        >>> mdf2 = MDF('out.mf4')
+        >>> mdf2.append([ch1, ch2], comment='created by asammdf')
         >>> mdf2.append(ch1, comment='just a single channel')
         >>> df = pd.DataFrame.from_dict({'s1': np.array([1, 2, 3, 4, 5]), 's2': np.array([-1, -2, -3, -4, -5])})
         >>> units = {'s1': 'V', 's2': 'A'}
         >>> mdf2.append(df, units=units)
-
         """
         source_block = SourceInformation.from_common_source(acq_source) if acq_source else acq_source
 
@@ -4719,10 +4717,7 @@ class MDF4(MDF_Common[Group]):
         comment: str | None = None,
         units: dict[str, str | bytes] | None = None,
     ) -> None:
-        """
-        Appends a new data group from a Pandas data frame.
-
-        """
+        """Appends a new data group from a Pandas DataFrame."""
         units = units or {}
 
         if df.shape == (0, 0):
@@ -5866,8 +5861,7 @@ class MDF4(MDF_Common[Group]):
         return offset, dg_cntr, ch_cntr, struct_self, fields, types
 
     def extend(self, index: int, signals: list[tuple[NDArray[Any], NDArray[Any] | None]]) -> None:
-        """
-        Extend a group with new samples. *signals* contains (values, invalidation_bits)
+        """Extend a group with new samples. *signals* contains (values, invalidation_bits)
         pairs for each extended signal. The first pair is the master channel's pair, and the
         next pairs must respect the same order in which the signals were appended. The samples must have raw
         or physical values according to the *Signals* used for the initial append.
@@ -5877,29 +5871,29 @@ class MDF4(MDF_Common[Group]):
         index : int
             group index
         signals : list
-            list on (numpy.ndarray, numpy.ndarray) objects
+            list of (numpy.ndarray, numpy.ndarray) objects
 
         Examples
         --------
-        >>> # case 1 conversion type None
+        >>> from asammdf import MDF, Signal
+        >>> import numpy as np
         >>> s1 = np.array([1, 2, 3, 4, 5])
         >>> s2 = np.array([-1, -2, -3, -4, -5])
         >>> s3 = np.array([0.1, 0.04, 0.09, 0.16, 0.25])
         >>> t = np.array([0.001, 0.002, 0.003, 0.004, 0.005])
-        >>> names = ['Positive', 'Negative', 'Float']
-        >>> units = ['+', '-', '.f']
         >>> s1 = Signal(samples=s1, timestamps=t, unit='+', name='Positive')
         >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
-        >>> mdf = MDF4('new.mdf')
-        >>> mdf.append([s1, s2, s3], comment='created by asammdf v1.1.0')
+        >>> mdf = MDF(version='4.10')
+        >>> mdf.append([s1, s2, s3], comment='created by asammdf')
         >>> t = np.array([0.006, 0.007, 0.008, 0.009, 0.010])
-        >>> # extend without invalidation bits
-        >>> mdf2.extend(0, [(t, None), (s1, None), (s2, None), (s3, None)])
-        >>> # some invaldiation btis
-        >>> s1_inv = np.array([0,0,0,1,1], dtype=np.bool)
-        >>> mdf2.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
 
+        >>> # extend without invalidation bits
+        >>> mdf.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
+
+        >>> # some invalidation bits
+        >>> s1_inv = np.array([0, 0, 0, 1, 1], dtype=np.bool)
+        >>> mdf.extend(0, [(t, None), (s1.samples, s1_inv), (s2.samples, None), (s3.samples, None)])
         """
         if self.version >= "4.20" and (self._column_storage or 1):
             return self._extend_column_oriented(index, signals)
@@ -6155,8 +6149,7 @@ class MDF4(MDF_Common[Group]):
                     )
 
     def _extend_column_oriented(self, index: int, signals: list[tuple[NDArray[Any], NDArray[Any] | None]]) -> None:
-        """
-        Extend a group with new samples. *signals* contains (values, invalidation_bits)
+        """Extend a group with new samples. *signals* contains (values, invalidation_bits)
         pairs for each extended signal. The first pair is the master channel's pair, and the
         next pairs must respect the same order in which the signals were appended. The samples must have raw
         or physical values according to the *Signals* used for the initial append.
@@ -6166,29 +6159,29 @@ class MDF4(MDF_Common[Group]):
         index : int
             group index
         signals : list
-            list on (numpy.ndarray, numpy.ndarray) objects
+            list of (numpy.ndarray, numpy.ndarray) objects
 
         Examples
         --------
-        >>> # case 1 conversion type None
+        >>> from asammdf import MDF, Signal
+        >>> import numpy as np
         >>> s1 = np.array([1, 2, 3, 4, 5])
         >>> s2 = np.array([-1, -2, -3, -4, -5])
         >>> s3 = np.array([0.1, 0.04, 0.09, 0.16, 0.25])
         >>> t = np.array([0.001, 0.002, 0.003, 0.004, 0.005])
-        >>> names = ['Positive', 'Negative', 'Float']
-        >>> units = ['+', '-', '.f']
         >>> s1 = Signal(samples=s1, timestamps=t, unit='+', name='Positive')
         >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
-        >>> mdf = MDF4('new.mdf')
-        >>> mdf.append([s1, s2, s3], comment='created by asammdf v1.1.0')
+        >>> mdf = MDF(version='4.10')
+        >>> mdf.append([s1, s2, s3], comment='created by asammdf')
         >>> t = np.array([0.006, 0.007, 0.008, 0.009, 0.010])
-        >>> # extend without invalidation bits
-        >>> mdf2.extend(0, [(t, None), (s1, None), (s2, None), (s3, None)])
-        >>> # some invaldiation btis
-        >>> s1_inv = np.array([0,0,0,1,1], dtype=np.bool)
-        >>> mdf2.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
 
+        >>> # extend without invalidation bits
+        >>> mdf.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
+
+        >>> # some invalidation bits
+        >>> s1_inv = np.array([0, 0, 0, 1, 1], dtype=np.bool)
+        >>> mdf.extend(0, [(t, None), (s1.samples, s1_inv), (s2.samples, None), (s3.samples, None)])
         """
         gp = self.groups[index]
         if not signals:
@@ -6308,7 +6301,7 @@ class MDF4(MDF_Common[Group]):
         embedded: bool = True,
         password: str | bytes | None = None,
     ) -> int:
-        """attach embedded attachment as application/octet-stream.
+        """Attach embedded attachment as application/octet-stream.
 
         Parameters
         ----------
@@ -6439,9 +6432,10 @@ class MDF4(MDF_Common[Group]):
         return index
 
     def close(self) -> None:
-        """if the MDF was created with memory=False and new
+        """If the MDF was created with memory=False and new
         channels have been appended, then this must be called just before the
-        object is not used anymore to clean-up the temporary file"""
+        object is not used anymore to clean-up the temporary file.
+        """
 
         if self._closed:
             return
@@ -6700,7 +6694,7 @@ class MDF4(MDF_Common[Group]):
             time raster in seconds
         samples_only : bool
             if *True* return only the channel samples as numpy array; if
-                *False* return a *Signal* object
+            *False* return a *Signal* object
         data : bytes
             prevent redundant data read by providing the raw data group samples
         raw : bool
@@ -6715,7 +6709,7 @@ class MDF4(MDF_Common[Group]):
             number of records to read; default *None* and in this case all
             available records are used
         skip_channel_validation (False) : bool
-            skip validation of channel name, group index and channel index; defualt
+            skip validation of channel name, group index and channel index; default
             *False*. If *True*, the caller has to make sure that the *group* and *index*
             arguments are provided and are correct.
 
@@ -6745,6 +6739,9 @@ class MDF4(MDF_Common[Group]):
         * if the channel name is not found
         * if the group index is out of range
         * if the channel index is out of range
+        * if there are multiple channel occurrences in the file and the arguments
+          *name*, *group*, *index* are ambiguous. This behaviour can be turned off
+          by setting raise_on_multiple_occurrences to *False*.
 
         Examples
         --------
@@ -6757,49 +6754,37 @@ class MDF4(MDF_Common[Group]):
         ...     sigs = [Signal(s*(i*10+j), t, name='Sig') for j in range(1, 4)]
         ...     mdf.append(sigs)
         ...
-        >>> # first group and channel index of the specified channel name
-        ...
         >>> mdf.get('Sig')
-        UserWarning: Multiple occurrences for channel "Sig". Using first occurrence from data group 4. Provide both "group" and "index" arguments to select another data group
-        <Signal Sig:
-                samples=[ 1.  1.  1.  1.  1.]
-                timestamps=[0 1 2 3 4]
-                unit=""
-                info=None
-                comment="">
-        >>> # first channel index in the specified group
-        ...
+        MdfException: Multiple occurrences for channel "Sig": ((0, 1), (0, 2),
+        (0, 3), (1, 1), (1, 2), (1, 3), (2, 1), (2, 2), (2, 3), (3, 1), (3, 2),
+        (3, 3)). Provide both "group" and "index" arguments to select another
+        data group
+        >>>
         >>> mdf.get('Sig', 1)
-        <Signal Sig:
-                samples=[ 11.  11.  11.  11.  11.]
-                timestamps=[0 1 2 3 4]
-                unit=""
-                info=None
-                comment="">
-        >>> # channel named Sig from group 1 channel index 2
-        ...
+        MdfException: Multiple occurrences for channel "Sig": ((1, 1), (1, 2),
+        (1, 3)). Provide both "group" and "index" arguments to select another
+        data group
+        >>>
+        >>> # channel named Sig from group 1, channel index 2
         >>> mdf.get('Sig', 1, 2)
         <Signal Sig:
                 samples=[ 12.  12.  12.  12.  12.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
-        >>> # channel index 1 or group 2
-        ...
+        >>>
+        >>> # group 2, channel index 1
         >>> mdf.get(None, 2, 1)
         <Signal Sig:
                 samples=[ 21.  21.  21.  21.  21.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
         >>> mdf.get(group=2, index=1)
         <Signal Sig:
                 samples=[ 21.  21.  21.  21.  21.]
                 timestamps=[0 1 2 3 4]
                 unit=""
-                info=None
                 comment="">
 
         """
@@ -8598,14 +8583,14 @@ class MDF4(MDF_Common[Group]):
         record_count: int | None = None,
         one_piece: bool = False,
     ) -> NDArray[Any]:
-        """returns master channel samples for given group
+        """Returns master channel samples for given group.
 
         Parameters
         ----------
         index : int
             group index
         data : (bytes, int, int, bytes|None)
-            (data block raw bytes, fragment offset, count, invalidation bytes); default None
+            (data block raw bytes, fragment offset, count, invalidation bytes); default *None*
 
         record_offset : int
             if *data=None* use this to select the record offset from which the
@@ -8797,9 +8782,9 @@ class MDF4(MDF_Common[Group]):
         raw: bool = False,
         ignore_value2text_conversion: bool = True,
     ) -> Signal:
-        """get a signal decoded from a raw bus logging. The currently supported buses are
+        """Get a signal decoded from a raw bus logging. The currently supported buses are
         CAN and LIN (LDF databases are not supported, they need to be converted to DBC and
-        feed to this function)
+        fed to this function).
 
         .. versionadded:: 6.0.0
 
@@ -8822,8 +8807,8 @@ class MDF4(MDF_Common[Group]):
             return channel samples without applying the conversion rule; default
             `False`
         ignore_value2text_conversion : bool
-            return channel samples without values that have a description in .dbc or .arxml file
-            `True`
+            return channel samples without values that have a description in .dbc or .arxml file;
+            default `True`
 
         Returns
         -------
@@ -8860,9 +8845,8 @@ class MDF4(MDF_Common[Group]):
         raw: bool = False,
         ignore_value2text_conversion: bool = True,
     ) -> Signal:
-        """get CAN message signal. You can specify an external CAN database (
-        *database* argument) or canmatrix database object that has already been
-        loaded from a file (*db* argument).
+        """Get CAN message signal. You can specify an external CAN database path
+        or a canmatrix database object that has already been loaded from a file.
 
         The signal name can be specified in the following ways
 
@@ -8905,8 +8889,8 @@ class MDF4(MDF_Common[Group]):
             return channel samples without applying the conversion rule; default
             `False`
         ignore_value2text_conversion : bool
-            return channel samples without values that have a description in .dbc or .arxml file
-            `True`
+            return channel samples without values that have a description in .dbc or .arxml file;
+            default `True`
 
         Returns
         -------
@@ -9133,9 +9117,8 @@ class MDF4(MDF_Common[Group]):
         raw: bool = False,
         ignore_value2text_conversion: bool = True,
     ) -> Signal:
-        """get LIN message signal. You can specify an external LIN database (
-        *database* argument) or canmatrix database object that has already been
-        loaded from a file (*db* argument).
+        """Get LIN message signal. You can specify an external LIN database path
+        or a canmatrix database object that has already been loaded from a file.
 
         The signal name can be specified in the following ways
 
@@ -9162,8 +9145,8 @@ class MDF4(MDF_Common[Group]):
             return channel samples without applying the conversion rule; default
             `False`
         ignore_value2text_conversion : bool
-            return channel samples without values that have a description in .dbc, .arxml or .ldf file
-            `True`
+            return channel samples without values that have a description in .dbc, .arxml or .ldf file;
+            default `True`
 
         Returns
         -------
@@ -9301,14 +9284,12 @@ class MDF4(MDF_Common[Group]):
         raise MdfException(f'No logging from "{signal}" was found in the measurement')
 
     def info(self) -> dict[str, Any]:
-        """get MDF information as a dict
+        """Get MDF information as a dict.
 
         Examples
         --------
-        >>> mdf = MDF4('test.mdf')
+        >>> mdf = MDF('test.mdf')
         >>> mdf.info()
-
-
         """
         info = {
             "version": self.version,
@@ -9332,7 +9313,7 @@ class MDF4(MDF_Common[Group]):
 
     @property
     def start_time(self) -> datetime:
-        """getter and setter the measurement start timestamp
+        """Getter and setter of the measurement start timestamp.
 
         Returns
         -------
@@ -9358,12 +9339,12 @@ class MDF4(MDF_Common[Group]):
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>', were
         '<cntr>' is the first counter that produces a new file name
-        (that does not already exist in the filesystem)
+        (that does not already exist in the filesystem).
 
         Parameters
         ----------
         dst : str
-            destination file name, Default ''
+            destination file name
         overwrite : bool
             overwrite flag, default *False*
         compression : int
@@ -9375,7 +9356,7 @@ class MDF4(MDF_Common[Group]):
               the smallest files)
 
         add_history_block : bool
-            option to add file historyu block
+            option to add file history block
 
         Returns
         -------
