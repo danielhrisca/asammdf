@@ -332,10 +332,12 @@ def extract_mux(
                     multiplexor_name = sig.name
                     break
             for sig in message:
-                if sig.multiplex not in (None, "Multiplexor") and sig.muxer_for_signal is None:
-                    sig.muxer_for_signal = multiplexor_name
-                    sig.mux_val_min = sig.mux_val_max = int(sig.multiplex)
-                    sig.mux_val_grp.insert(0, (int(sig.multiplex), int(sig.multiplex)))
+                if sig.multiplex not in (None, "Multiplexor"):
+                    if sig.muxer_for_signal is None:
+                        sig.muxer_for_signal = multiplexor_name
+                    if not hasattr(sig, "mux_val_min"):
+                        sig.mux_val_min = sig.mux_val_max = int(sig.multiplex)
+                        sig.mux_val_grp.insert(0, (int(sig.multiplex), int(sig.multiplex)))
 
     extracted_signals = {}
 
