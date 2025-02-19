@@ -38,6 +38,8 @@ You can use tox to run tests locally. Example for the unit tests with Python ver
 tox -e py310
 ```
 
+Sometimes it can be useful to select specific tests to run. For example, `tox -e py310 -- -k 'not gui'` will run all non-GUI tests. Everything after the `--` is passed as arguments to pytest.
+
 Otherwise, you can just push and the tests will be run by GitHub Actions.
 
 ## Style guide
