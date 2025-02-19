@@ -110,14 +110,9 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
 
         self.tabs.currentChanged.connect(self.tabs_changed)
 
-        names = self.refresh_functions_list()
+        self.refresh_functions_list(selected_definition=selected_definition)
 
         self.functions_list.currentItemChanged.connect(self.definition_selection_changed)
-
-        if selected_definition in names:
-            self.functions_list.setCurrentRow(names.index(selected_definition))
-        elif names:
-            self.functions_list.setCurrentRow(0)
 
         for button in (
             self.add_btn,
@@ -133,6 +128,22 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         self.showMaximized()
 
     def add_definition(self):
+
+        if previous := self.functions_list.currentItem():
+            name = previous.text()
+            previous.setIcon(QtGui.QIcon())
+            info = self.definitions[name]
+            info["current_definition"] = self.function_definition.toPlainText().replace("\t", "    ")
+
+            ok, _ = self.check_syntax(silent=True)
+            if ok:
+                if info["current_definition"] != info["definition"]:
+                    previous.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MessageBoxInformation))
+                else:
+                    previous.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_CommandLink))
+            else:
+                previous.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MessageBoxCritical))
+
         counter = 1
         while True:
             name = f"Function{counter}"
@@ -147,10 +158,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
             "uuid": os.urandom(6).hex(),
         }
 
-        names = self.refresh_functions_list()
-
-        row = names.index(name)
-        self.functions_list.setCurrentRow(row + 1)
+        self.refresh_functions_list(selected_definition=name)
 
     def check_globals_syntax(self, silent=False):
         trace = generate_python_variables(self.globals_definition.toPlainText())
@@ -339,9 +347,11 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
                     "\t", "    "
                 )
 
-    def refresh_functions_list(self):
+    def refresh_functions_list(self, selected_definition=""):
+        self.functions_list.blockSignals(True)
+        self.functions_list.clear()
+
         if self.definitions:
-            self.functions_list.clear()
             items = []
             names = natsorted(self.definitions)
 
@@ -350,13 +360,22 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
                 ok, func = self.check_syntax(silent=True, definition=info["definition"])
 
                 if ok:
-                    items.append(
-                        QtWidgets.QListWidgetItem(
-                            self.style().standardIcon(QtWidgets.QStyle.SP_CommandLink),
-                            name,
-                            self.functions_list,
+                    if info["current_definition"] != info["definition"]:
+                        items.append(
+                            QtWidgets.QListWidgetItem(
+                                self.style().standardIcon(QtWidgets.QStyle.SP_MessageBoxInformation),
+                                name,
+                                self.functions_list,
+                            )
                         )
-                    )
+                    else:
+                        items.append(
+                            QtWidgets.QListWidgetItem(
+                                self.style().standardIcon(QtWidgets.QStyle.SP_CommandLink),
+                                name,
+                                self.functions_list,
+                            )
+                        )
                 else:
                     items.append(
                         QtWidgets.QListWidgetItem(
@@ -366,10 +385,15 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
                         )
                     )
 
-        else:
-            names = []
+            self.functions_list.blockSignals(False)
 
-        return names
+            if selected_definition:
+                if selected_definition in names:
+                    self.functions_list.setCurrentRow(names.index(selected_definition))
+                elif names:
+                    self.functions_list.setCurrentRow(0)
+        else:
+            self.functions_list.blockSignals(False)
 
     def store_definition(self, *args):
 
@@ -399,7 +423,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
 
         self.definitions[current_name] = info
 
-        self.refresh_functions_list()
+        self.refresh_functions_list(selected_definition=current_name)
 
     def tabs_changed(self, index):
         self.check_globals_syntax(silent=True)
