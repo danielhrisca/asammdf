@@ -3873,14 +3873,13 @@ class ChannelConversion(_ChannelConversionBase):
                 ]
 
                 new_values = []
-                values = values.astype("u8").tolist()
-                for val in values:
+                values_as_int = values.astype("u8")
+                non_int = values != values_as_int
+                for val in values_as_int.tolist():
                     new_val = []
                     masked_values = (masks & val).tolist()
 
                     for on, conv in zip(masked_values, phys):
-                        if not on:
-                            continue
 
                         if isinstance(conv, bytes):
                             if conv:
@@ -3889,16 +3888,19 @@ class ChannelConversion(_ChannelConversionBase):
                             prefix, conv = conv
                             converted_val = conv.convert(
                                 [on], ignore_value2text_conversions=ignore_value2text_conversions
-                            )
+                            )[0]
                             if converted_val:
                                 if prefix:
                                     new_val.append(prefix + converted_val)
                                 else:
                                     new_val.append(converted_val)
+                            elif prefix:
+                                new_val.append(prefix)
 
                     new_values.append(b"|".join(new_val))
 
                 values = np.array(new_values)
+                values[non_int] = b""
 
         if scalar:
             return values[0]
