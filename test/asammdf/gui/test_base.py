@@ -38,8 +38,6 @@ elif sys.platform == "darwin":
 else:
     os.environ["QT_QPA_PLATFORM"] = "windows"
 
-os.environ["QT_QPA_PLATFORM"] = "minimal"
-
 app = pyqtgraph.mkQApp()
 app.setOrganizationName("py-asammdf")
 app.setOrganizationDomain("py-asammdf")
