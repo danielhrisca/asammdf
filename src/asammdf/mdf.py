@@ -3234,16 +3234,16 @@ class MDF:
                 if progress.stop:
                     return TERMINATED
 
-        try:
+        if isinstance(raster, (float, int)) or (isinstance(raster, np.ndarray) and raster.ndim == 0):
             raster = float(raster)
-            assert raster > 0
-        except (TypeError, ValueError):
+            if raster <= 0:
+                raise ValueError("raster must be > 0 if scalar value")
+            raster = master_using_raster(self, raster)
+        else:
             if isinstance(raster, str):
                 raster = self.get(raster).timestamps
             else:
                 raster = np.array(raster)
-        else:
-            raster = master_using_raster(self, raster)
 
         if time_from_zero and len(raster):
             delta = raster[0]
@@ -4409,16 +4409,16 @@ class MDF:
             masters = {index: self.get_master(index) for index in self.virtual_groups}
 
             if raster is not None:
-                try:
+                if isinstance(raster, (float, int)) or (isinstance(raster, np.ndarray) and raster.ndim == 0):
                     raster = float(raster)
-                    assert raster > 0
-                except (TypeError, ValueError):
+                    if raster <= 0:
+                        raise ValueError("raster must be > 0 if scalar value")
+                    raster = master_using_raster(self, raster)
+                else:
                     if isinstance(raster, str):
                         raster = self.get(raster, raw=True, ignore_invalidation_bits=True).timestamps
                     else:
                         raster = np.array(raster)
-                else:
-                    raster = master_using_raster(self, raster)
                 master = raster
             else:
                 if masters:
@@ -4826,16 +4826,16 @@ class MDF:
         self._set_temporary_master(None)
 
         if raster is not None:
-            try:
+            if isinstance(raster, (float, int)) or (isinstance(raster, np.ndarray) and raster.ndim == 0):
                 raster = float(raster)
-                assert raster > 0
-            except (TypeError, ValueError):
+                if raster <= 0:
+                    raise ValueError("raster must be > 0 if scalar value")
+                raster = master_using_raster(self, raster)
+            else:
                 if isinstance(raster, str):
                     raster = self.get(raster).timestamps
                 else:
                     raster = np.array(raster)
-            else:
-                raster = master_using_raster(self, raster)
             master = raster
         else:
             masters = {index: self.get_master(index) for index in self.virtual_groups}
