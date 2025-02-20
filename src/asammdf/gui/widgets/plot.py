@@ -6020,7 +6020,7 @@ class PlotGraphics(pg.PlotWidget):
                 if tuple(self.y_axis.range) != tuple(sig.y_range):
                     self.y_axis.setRange(*sig.y_range)
 
-        if self.viewbox:
+        if self.viewbox and self._can_paint_global:
             self.viewbox.update()
 
     def update_views(self):

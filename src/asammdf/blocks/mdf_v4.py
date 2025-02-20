@@ -9448,7 +9448,7 @@ class MDF4(MDF_Common[Group]):
             if compression == 1:
                 zip_type = v4c.FLAG_DZ_DEFLATE
             else:
-                zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
+                zip_type = v4c.FLAG_DZ_TRANSPOSED_DEFLATE
 
             # write DataBlocks first
             for gp_nr, gp in enumerate(self.groups):
@@ -9683,7 +9683,7 @@ class MDF4(MDF_Common[Group]):
                                     if compression == 1:
                                         zip_type = v4c.FLAG_DZ_DEFLATE
                                     else:
-                                        zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
+                                        zip_type = v4c.FLAG_DZ_TRANSPOSED_DEFLATE
                                     if compression == 1:
                                         param = 0
                                     else:

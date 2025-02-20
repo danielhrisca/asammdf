@@ -3873,14 +3873,13 @@ class ChannelConversion(_ChannelConversionBase):
                 ]
 
                 new_values = []
-                values = values.astype("u8").tolist()
-                for val in values:
+                values_as_int = values.astype("u8")
+                non_int = values != values_as_int
+                for val in values_as_int.tolist():
                     new_val = []
                     masked_values = (masks & val).tolist()
 
                     for on, conv in zip(masked_values, phys):
-                        if not on:
-                            continue
 
                         if isinstance(conv, bytes):
                             if conv:
@@ -3889,16 +3888,19 @@ class ChannelConversion(_ChannelConversionBase):
                             prefix, conv = conv
                             converted_val = conv.convert(
                                 [on], ignore_value2text_conversions=ignore_value2text_conversions
-                            )
+                            )[0]
                             if converted_val:
                                 if prefix:
                                     new_val.append(prefix + converted_val)
                                 else:
                                     new_val.append(converted_val)
+                            elif prefix:
+                                new_val.append(prefix)
 
                     new_values.append(b"|".join(new_val))
 
                 values = np.array(new_values)
+                values[non_int] = b""
 
         if scalar:
             return values[0]
@@ -4572,7 +4574,7 @@ class DataZippedBlock:
                 data = DataZippedBlock.__dict__[item].__get__(self)
                 original_size = self.original_size
                 data = decompress(data, bufsize=original_size)
-                if self.zip_type == v4c.FLAG_DZ_TRANPOSED_DEFLATE:
+                if self.zip_type == v4c.FLAG_DZ_TRANSPOSED_DEFLATE:
                     cols = self.param
                     lines = original_size // cols
 
@@ -5493,6 +5495,128 @@ class FileHistory:
 
     def __repr__(self):
         return f"FHBLOCK(time={self.time_stamp}, comment={self.comment})"
+
+
+class GuardBlock:
+    """
+    *GuardBlock* has the following attributes, that are also available as
+    dict like key-value pairs
+
+    GDBLOCK fields
+
+    * ``id`` - bytes : block ID; always b'##GD'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``gd_addr`` - int : address of guarded block
+    * ``gd_version`` - int : minimum MDF format version
+    * ``reserved1`` - int : reserved bytes
+
+    Other attributes
+
+    * ``address`` - int : guard block address
+
+    """
+
+    __slots__ = (
+        "address",
+        "block_len",
+        "gd_addr",
+        "gd_version",
+        "guarded_block",
+        "id",
+        "links_nr",
+        "reserved0",
+        "reserved1",
+    )
+
+    def __init__(self, **kwargs) -> None:
+        self.guarded_block = None
+
+        try:
+            self.address = address = kwargs["address"]
+            stream = kwargs["stream"]
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
+
+            if mapped:
+                (
+                    self.id,
+                    self.reserved0,
+                    self.block_len,
+                    self.links_nr,
+                    self.gd_addr,
+                    self.gd_version,
+                    self.reserved1,
+                ) = v4c.GD_uf(stream, address)
+            else:
+                stream.seek(address)
+
+                (
+                    self.id,
+                    self.reserved0,
+                    self.block_len,
+                    self.links_nr,
+                    self.gd_addr,
+                    self.gd_version,
+                    self.reserved1,
+                ) = v4c.GD_u(stream.read(v4c.GD_BLOCK_SIZE))
+
+            if self.id != b"##GD":
+                message = f'Expected "##GD" block @{hex(address)} but found "{self.id}"'
+
+                logger.exception(message)
+                raise MdfException(message)
+
+        except KeyError:
+            self.address = 0
+            self.id = b"##GD"
+            self.reserved0 = kwargs.get("reserved0", 0)
+            self.block_len = kwargs.get("block_len", v4c.GD_BLOCK_SIZE)
+            self.links_nr = kwargs.get("links_nr", 1)
+            self.gd_addr = kwargs.get("gd_addr", 0)
+            self.gd_version = kwargs.get("gd_version", 430)
+            self.reserved1 = kwargs.get("reserved1", b"\00" * 6)
+
+    def copy(self) -> DataGroup:
+        gd = GuardBlock(
+            id=self.id,
+            reserved0=self.reserved0,
+            block_len=self.block_len,
+            links_nr=self.links_nr,
+            gd_addr=self.gd_addr,
+            gd_version=self.gd_version,
+            reserved1=self.reserved1,
+        )
+        gd.address = self.address
+
+        return gd
+
+    def to_blocks(self, address: int, blocks: list[Any], defined_texts: dict[str, int]) -> int:
+
+        blocks.append(self)
+        self.address = address
+        self.gd_addr = self.guarded_block.address if self.guarded_block else 0
+        address += self.block_len
+
+        return address
+
+    def __getitem__(self, item: str) -> Any:
+        return getattr(self, item)
+
+    def __setitem__(self, item: str, value: Any) -> None:
+        setattr(self, item, value)
+
+    def __bytes__(self) -> bytes:
+        result = v4c.GD_p(
+            self.id,
+            self.reserved0,
+            self.block_len,
+            self.links_nr,
+            self.gd_addr,
+            self.gd_version,
+            self.reserved1,
+        )
+        return result
 
 
 class HeaderBlock:
