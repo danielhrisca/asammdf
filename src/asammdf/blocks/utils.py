@@ -1780,7 +1780,7 @@ def load_can_database(
 
 def all_blocks_addresses(obj: Union[FileLike, mmap.mmap]) -> tuple[dict[int, bytes], dict[bytes, list[int]], list[int]]:
     DG = "DG\x00\x00\x00\x00\x40\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00"
-    others = "(D[VTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX)\x00\x00\x00\x00"
+    others = "(D[VTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX|GD)\x00\x00\x00\x00"
     pattern = re.compile(
         f"(?P<block>##({DG}|{others}))".encode("ascii"),
         re.DOTALL | re.MULTILINE,
