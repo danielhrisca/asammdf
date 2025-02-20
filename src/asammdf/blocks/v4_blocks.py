@@ -215,9 +215,11 @@ class AttachmentBlock:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.file_name = get_text_v4(self.file_name_addr, stream, mapped=mapped)
-            self.mime = get_text_v4(self.mime_addr, stream, mapped=mapped)
-            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
+            tx_map = kwargs.get("tx_map", {})
+
+            self.file_name = get_text_v4(self.file_name_addr, stream, mapped=mapped, tx_map=tx_map)
+            self.mime = get_text_v4(self.mime_addr, stream, mapped=mapped, tx_map=tx_map)
+            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped, tx_map=tx_map)
 
         except KeyError:
             self.address = 0
@@ -641,8 +643,8 @@ class Channel:
 
                 parsed_strings = kwargs["parsed_strings"]
                 if parsed_strings is None:
-                    self.name = get_text_v4(self.name_addr, stream, mapped=mapped)
-                    self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
+                    self.name = get_text_v4(self.name_addr, stream, mapped=mapped, tx_map=tx_map)
+                    self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped, tx_map=tx_map)
 
                     if kwargs["use_display_names"]:
                         self.display_names = extract_display_names(self.comment)
@@ -651,12 +653,7 @@ class Channel:
                 else:
                     self.name, self.display_names, self.comment = parsed_strings
 
-                addr = self.unit_addr
-                if addr in tx_map:
-                    self.unit = tx_map[addr]
-                else:
-                    self.unit = get_text_v4(addr, stream, mapped=mapped)
-                    tx_map[addr] = self.unit
+                self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped, tx_map=tx_map)
 
                 address = self.conversion_addr
                 if address:
@@ -692,6 +689,7 @@ class Channel:
                 address = self.source_addr
                 if address:
                     si_map = kwargs["si_map"]
+
                     try:
                         if address in si_map:
                             source = si_map[address]
@@ -866,12 +864,8 @@ class Channel:
                         self.display_names = {}
                 else:
                     self.name, self.display_names, self.comment = parsed_strings
-                addr = self.unit_addr
-                if addr in tx_map:
-                    self.unit = tx_map[addr]
-                else:
-                    self.unit = get_text_v4(addr, stream)
-                    tx_map[addr] = self.unit
+
+                self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped, tx_map=tx_map)
 
                 si_map = kwargs["si_map"]
                 cc_map = kwargs["cc_map"]
@@ -1955,8 +1949,10 @@ class ChannelGroup:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.acq_name = get_text_v4(self.acq_name_addr, stream, mapped=mapped)
-            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
+            tx_map = kwargs.get("tx_map", {})
+
+            self.acq_name = get_text_v4(self.acq_name_addr, stream, mapped=mapped, tx_map=tx_map)
+            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped, tx_map=tx_map)
 
             si_map = kwargs["si_map"]
 
@@ -1975,7 +1971,7 @@ class ChannelGroup:
                         stream=stream,
                         address=address,
                         mapped=mapped,
-                        tx_map=kwargs["tx_map"],
+                        tx_map=tx_map,
                     )
                     si_map[raw_bytes] = source
                 self.acq_source = source
@@ -2618,34 +2614,14 @@ class ChannelConversion(_ChannelConversionBase):
 
             tx_map = kwargs["tx_map"]
 
-            addr = self.name_addr
-            if addr in tx_map:
-                self.name = tx_map[addr]
-            else:
-                self.name = get_text_v4(addr, stream, mapped=mapped)
-                tx_map[addr] = self.name
-
-            addr = self.unit_addr
-            if addr in tx_map:
-                self.unit = tx_map[addr]
-            else:
-                self.unit = get_text_v4(addr, stream, mapped=mapped)
-                tx_map[addr] = self.unit
-
-            if isinstance(self.unit, bytes):
-                self.unit = self.unit.decode("utf-8", errors="ignore")
-
-            addr = self.comment_addr
-            if addr in tx_map:
-                self.comment = tx_map[addr]
-            else:
-                self.comment = get_text_v4(addr, stream, mapped=mapped)
-                tx_map[addr] = self.comment
+            self.name = get_text_v4(self.name_addr, stream, mapped=mapped, tx_map=tx_map)
+            self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped, tx_map=tx_map)
+            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped, tx_map=tx_map)
 
             conv_type = conv
 
             if conv_type == v4c.CONVERSION_TYPE_ALG:
-                self.formula = get_text_v4(self.formula_addr, stream, mapped=mapped).replace("x", "X")
+                self.formula = get_text_v4(self.formula_addr, stream, mapped=mapped, tx_map=tx_map).replace("x", "X")
             else:
                 self.formula = ""
 
@@ -2662,23 +2638,19 @@ class ChannelConversion(_ChannelConversionBase):
                         address = self[f"text_{i}"]
                         if address:
                             if address in tx_map:
-                                txt = tx_map[address]
-                                if not isinstance(txt, bytes):
-                                    txt = txt.encode("utf-8")
-                                refs[f"text_{i}"] = txt
+                                refs[f"text_{i}"] = tx_map[address].raw
                             else:
                                 stream.seek(address)
                                 _id = stream.read(4)
 
                                 if _id == b"##TX":
-                                    block = get_text_v4(
+                                    refs[f"text_{i}"] = get_text_v4(
                                         address=address,
                                         stream=stream,
                                         mapped=mapped,
                                         decode=False,
+                                        tx_map=tx_map,
                                     )
-                                    tx_map[address] = block
-                                    refs[f"text_{i}"] = block
                                 elif _id == b"##CC":
                                     block = ChannelConversion(
                                         address=address,
@@ -2701,23 +2673,15 @@ class ChannelConversion(_ChannelConversionBase):
                         address = self.default_addr
                         if address:
                             if address in tx_map:
-                                txt = tx_map[address] or b""
-                                if not isinstance(txt, bytes):
-                                    txt = txt.encode("utf-8")
-                                refs["default_addr"] = txt
+                                refs["default_addr"] = tx_map[address].raw
                             else:
                                 stream.seek(address)
                                 _id = stream.read(4)
 
                                 if _id == b"##TX":
-                                    block = get_text_v4(
-                                        address=address,
-                                        stream=stream,
-                                        mapped=mapped,
-                                        decode=False,
+                                    refs["default_addr"] = get_text_v4(
+                                        address=address, stream=stream, mapped=mapped, decode=False, tx_map=tx_map
                                     )
-                                    tx_map[address] = block
-                                    refs["default_addr"] = block
                                 elif _id == b"##CC":
                                     block = ChannelConversion(
                                         address=address,
@@ -2742,37 +2706,21 @@ class ChannelConversion(_ChannelConversionBase):
 
                             if address:
                                 if address in tx_map:
-                                    txt = tx_map[address] or b""
-                                    if not isinstance(txt, bytes):
-                                        txt = txt.encode("utf-8")
-                                    refs[key] = txt
+                                    refs[key] = tx_map[address].raw
                                 else:
-                                    block = get_text_v4(
-                                        address=address,
-                                        stream=stream,
-                                        mapped=mapped,
-                                        decode=False,
+                                    refs[key] = get_text_v4(
+                                        address=address, stream=stream, mapped=mapped, decode=False, tx_map=tx_map
                                     )
-                                    tx_map[address] = block
-                                    refs[key] = block
                             else:
                                 refs[key] = b""
                     address = self.default_addr
                     if address:
                         if address in tx_map:
-                            txt = tx_map[address] or b""
-                            if not isinstance(txt, bytes):
-                                txt = txt.encode("utf-8")
-                            refs["default_addr"] = txt
+                            refs["default_addr"] = tx_map[address].raw
                         else:
-                            block = get_text_v4(
-                                address=address,
-                                stream=stream,
-                                mapped=mapped,
-                                decode=False,
+                            tx_map[address] = get_text_v4(
+                                address=address, stream=stream, mapped=mapped, decode=False, tx_map=tx_map
                             )
-                            refs["default_addr"] = block
-                            tx_map[address] = block
                     else:
                         refs["default_addr"] = b""
 
@@ -4712,7 +4660,7 @@ class DataGroup:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
+            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped, tx_map={})
 
         except KeyError:
             self.address = 0
@@ -5089,8 +5037,10 @@ class EventBlock(_EventBlockBase):
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.name = get_text_v4(self.name_addr, stream)
-            self.comment = get_text_v4(self.comment_addr, stream)
+            tx_map = kwargs.get("tx_map", {})
+
+            self.name = get_text_v4(self.name_addr, stream, tx_map=tx_map)
+            self.comment = get_text_v4(self.comment_addr, stream, tx_map=tx_map)
 
         else:
             self.address = 0
@@ -5390,7 +5340,9 @@ class FileHistory:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.comment = get_text_v4(address=self.comment_addr, stream=stream)
+            tx_map = kwargs.get("tx_map", {})
+
+            self.comment = get_text_v4(address=self.comment_addr, stream=stream, tx_map=tx_map)
 
         except KeyError:
             self.id = b"##FH"
@@ -5701,7 +5653,7 @@ class HeaderBlock:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.comment = get_text_v4(address=self.comment_addr, stream=stream)
+            self.comment = get_text_v4(address=self.comment_addr, stream=stream, tx_map={})
 
         except KeyError:
             self.address = 0x40
@@ -6383,26 +6335,9 @@ class SourceInformation:
 
             tx_map = kwargs["tx_map"]
 
-            address = self.name_addr
-            if address in tx_map:
-                self.name = tx_map[address]
-            else:
-                self.name = get_text_v4(address=self.name_addr, stream=stream, mapped=mapped)
-                tx_map[address] = self.name
-
-            address = self.path_addr
-            if address in tx_map:
-                self.path = tx_map[address]
-            else:
-                self.path = get_text_v4(address=self.path_addr, stream=stream, mapped=mapped)
-                tx_map[address] = self.path
-
-            address = self.comment_addr
-            if address in tx_map:
-                self.comment = tx_map[address]
-            else:
-                self.comment = get_text_v4(address=self.comment_addr, stream=stream, mapped=mapped)
-                tx_map[address] = self.comment
+            self.name = get_text_v4(address=self.name_addr, stream=stream, mapped=mapped, tx_map=tx_map)
+            self.path = get_text_v4(address=self.path_addr, stream=stream, mapped=mapped, tx_map=tx_map)
+            self.comment = get_text_v4(address=self.comment_addr, stream=stream, mapped=mapped, tx_map=tx_map)
 
         else:
             self.address = 0

@@ -2,6 +2,7 @@
 asammdf utility functions and classes
 """
 
+from collections import namedtuple
 from collections.abc import Callable, Collection, Iterator
 from copy import deepcopy
 from functools import lru_cache
@@ -337,12 +338,16 @@ def get_text_v3(
     return text
 
 
+MappedText = namedtuple("MappedText", ["raw", "decoded"])
+
+
 @overload
 def get_text_v4(
     address: int,
     stream: Union[FileLike, mmap.mmap],
     mapped: bool = ...,
     decode: Literal[True] = ...,
+    tx_map: Union[dict, None] = ...,
 ) -> str: ...
 
 
@@ -353,11 +358,16 @@ def get_text_v4(
     mapped: bool = ...,
     *,
     decode: Literal[False],
+    tx_map: Union[dict, None],
 ) -> bytes: ...
 
 
 def get_text_v4(
-    address: int, stream: Union[FileLike, mmap.mmap], mapped: bool = False, decode: bool = True
+    address: int,
+    stream: Union[FileLike, mmap.mmap],
+    mapped: bool = False,
+    decode: bool = True,
+    tx_map: Union[dict, None] = None,
 ) -> Union[bytes, str]:
     """faster way to extract strings from mdf version 4 TextBlock
 
@@ -367,6 +377,12 @@ def get_text_v4(
         TextBlock address
     stream : handle
         file IO handle
+    mapped: bool
+        flag for mapped stream
+    decode: bool
+        option to return decoded str instead of raw btyes
+    tx_map : dict | None
+        map that contains interned strings
 
     Returns
     -------
@@ -375,39 +391,42 @@ def get_text_v4(
 
     """
 
+    if mapped_text := tx_map.get(address, None):
+        return mapped_text.decoded if decode else mapped_text.raw
+
     if address == 0:
+        tx_map[address] = MappedText(b"", "")
         return "" if decode else b""
 
     if stream_is_mmap(stream, mapped):
         block_id, size = BLK_COMMON_uf(stream, address)
         if block_id not in (b"##TX", b"##MD"):
+            tx_map[address] = MappedText(b"", "")
             return "" if decode else b""
         text_bytes = stream[address + 24 : address + size].split(b"\0", 1)[0].strip(b" \r\t\n")
     else:
         stream.seek(address)
         block_id, size = BLK_COMMON_u(stream.read(24))
         if block_id not in (b"##TX", b"##MD"):
+            tx_map[address] = MappedText(b"", "")
             return "" if decode else b""
         text_bytes = stream.read(size - 24).split(b"\0", 1)[0].strip(b" \r\t\n")
 
-    text: Union[bytes, str]
+    try:
+        decoded_text = text_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        encoding = detect(text_bytes)["encoding"]
+        if encoding:
+            try:
+                decoded_text = text_bytes.decode(encoding, "ignore")
+            except:
+                decoded_text = "<!text_decode_error>"
+        else:
+            decoded_text = "<!text_decode_error>"
 
-    if decode:
-        try:
-            text = text_bytes.decode("utf-8")
-        except UnicodeDecodeError:
-            encoding = detect(text_bytes)["encoding"]
-            if encoding:
-                try:
-                    text = text_bytes.decode(encoding, "ignore")
-                except:
-                    text = "<!text_decode_error>"
-            else:
-                text = "<!text_decode_error>"
-    else:
-        text = text_bytes
+    tx_map[address] = MappedText(text_bytes, decoded_text)
 
-    return text
+    return decoded_text if decode else text_bytes
 
 
 def sanitize_xml(text: str) -> str:
