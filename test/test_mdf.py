@@ -832,7 +832,7 @@ class TestMDF(unittest.TestCase):
         # Create an MDF object with a few channels but only one timestamp.
         # Call to_dataframe with different types of argument raster.
 
-        data = {n: [float(i) - 1] for i, n in enumerate('012abc')}
+        data = {n: [float(i) - 1] for i, n in enumerate("012abc")}
         target = DataFrame(data)
         mdf = MDF(version=version)
         mdf.append(DataFrame(data))
@@ -857,7 +857,7 @@ class TestMDF(unittest.TestCase):
         for raster in [
             0.0,
             np.array(0.0),
-            -1
+            -1,
         ]:
             with self.assertRaises(ValueError):
                 mdf.to_dataframe(raster=raster)
