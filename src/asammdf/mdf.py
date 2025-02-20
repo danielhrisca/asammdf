@@ -4825,17 +4825,17 @@ class MDF:
         self._set_temporary_master(None)
 
         if raster is not None:
-            try:
+            if isinstance(raster, (int, float)):
                 raster = float(raster)
-                assert raster > 0
-            except (TypeError, ValueError):
-                if isinstance(raster, str):
-                    raster = self.get(raster).timestamps
-                else:
-                    raster = np.array(raster)
-            else:
+                if raster <= 0:
+                    raise MdfException("The raster value must be >= 0")
                 raster = master_using_raster(self, raster)
+            elif isinstance(raster, str):
+                raster = self.get(raster).timestamps
+            else:
+                raster = np.array(raster)
             master = raster
+
         else:
             masters = {index: self.get_master(index) for index in self.virtual_groups}
 
