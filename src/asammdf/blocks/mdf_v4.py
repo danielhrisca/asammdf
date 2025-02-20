@@ -4723,7 +4723,7 @@ class MDF4(MDF_Common[Group]):
         if df.shape == (0, 0):
             return
 
-        t = df.index
+        t = df.index.values
         index_name = df.index.name
         time_name = index_name or "time"
         sync_type = v4c.SYNC_TYPE_TIME

@@ -2121,7 +2121,7 @@ class MDF3(MDF_Common[Group]):
         """Appends a new data group from a Pandas DataFrame."""
         units = units or {}
 
-        t = df.index
+        t = df.index.values
         index_name = df.index.name
         time_name = index_name or "time"
 
@@ -2203,7 +2203,7 @@ class MDF3(MDF_Common[Group]):
             record.append(
                 (
                     timestamps.dtype,
-                    timestamps.size,
+                    timestamps.dtype.itemsize,
                     0,
                     0,
                 )
