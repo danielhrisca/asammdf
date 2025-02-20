@@ -855,8 +855,8 @@ class Channel:
                 parsed_strings = kwargs["parsed_strings"]
 
                 if parsed_strings is None:
-                    self.name = get_text_v4(self.name_addr, stream)
-                    self.comment = get_text_v4(self.comment_addr, stream)
+                    self.name = get_text_v4(self.name_addr, stream, tx_map=tx_map)
+                    self.comment = get_text_v4(self.comment_addr, stream, tx_map=tx_map)
 
                     if kwargs["use_display_names"]:
                         self.display_names = extract_display_names(self.comment)
