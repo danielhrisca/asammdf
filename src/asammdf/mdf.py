@@ -661,17 +661,17 @@ class MDF:
             self.file_history = [fh]
 
     @staticmethod
-    def _transfer_channel_group_data(sgroup: ChannelGroupType, ogroup: ChannelGroupType) -> None:
-        if not hasattr(sgroup, "acq_name") or not hasattr(ogroup, "acq_name"):
-            sgroup.comment = ogroup.comment
+    def _transfer_channel_group_data(out_group: ChannelGroupType, source_group: ChannelGroupType) -> None:
+        if not hasattr(out_group, "acq_name") or not hasattr(source_group, "acq_name"):
+            out_group.comment = source_group.comment
         else:
-            sgroup.flags = ogroup.flags
-            sgroup.path_separator = ogroup.path_separator
-            sgroup.comment = ogroup.comment
-            sgroup.acq_name = ogroup.acq_name
-            acq_source = ogroup.acq_source
+            out_group.flags = source_group.flags
+            out_group.path_separator = source_group.path_separator
+            out_group.comment = source_group.comment
+            out_group.acq_name = source_group.acq_name
+            acq_source = source_group.acq_source
             if acq_source:
-                sgroup.acq_source = acq_source.copy()
+                out_group.acq_source = acq_source.copy()
 
     def _transfer_metadata(self, other: MDF, message: str = "") -> None:
         self._transfer_events(other)
@@ -3234,16 +3234,15 @@ class MDF:
                 if progress.stop:
                     return TERMINATED
 
-        try:
+        if isinstance(raster, (int, float)):
             raster = float(raster)
-            assert raster > 0
-        except (TypeError, ValueError):
-            if isinstance(raster, str):
-                raster = self.get(raster).timestamps
-            else:
-                raster = np.array(raster)
-        else:
+            if raster <= 0:
+                raise MdfException("The raster value must be >= 0")
             raster = master_using_raster(self, raster)
+        elif isinstance(raster, str):
+            raster = self.get(raster, raw=True, ignore_invalidation_bits=True).timestamps
+        else:
+            raster = np.array(raster)
 
         if time_from_zero and len(raster):
             delta = raster[0]
@@ -4409,16 +4408,16 @@ class MDF:
             masters = {index: self.get_master(index) for index in self.virtual_groups}
 
             if raster is not None:
-                try:
+                if isinstance(raster, (int, float)):
                     raster = float(raster)
-                    assert raster > 0
-                except (TypeError, ValueError):
-                    if isinstance(raster, str):
-                        raster = self.get(raster, raw=True, ignore_invalidation_bits=True).timestamps
-                    else:
-                        raster = np.array(raster)
-                else:
+                    if raster <= 0:
+                        raise MdfException("The raster value must be >= 0")
                     raster = master_using_raster(self, raster)
+                elif isinstance(raster, str):
+                    raster = self.get(raster, raw=True, ignore_invalidation_bits=True).timestamps
+                else:
+                    raster = np.array(raster)
+
                 master = raster
             else:
                 if masters:
