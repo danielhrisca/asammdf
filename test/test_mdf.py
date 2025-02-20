@@ -761,7 +761,7 @@ class TestMDF(unittest.TestCase):
         mdf = MDF()
         mdf.append(sigs)
         mdf.configure(read_fragment_size=1)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(MdfException):
             mdf = mdf.resample(raster=0)
 
         mdf.close()
