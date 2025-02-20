@@ -761,7 +761,7 @@ class TestMDF(unittest.TestCase):
         mdf = MDF()
         mdf.append(sigs)
         mdf.configure(read_fragment_size=1)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             mdf = mdf.resample(raster=0)
 
         mdf.close()
@@ -821,6 +821,48 @@ class TestMDF(unittest.TestCase):
 
         self.assertTrue(target.equals(mdf.to_dataframe()))
         mdf.close()
+
+    def test_to_dataframe_with_raster_v3(self):
+        self.perform_test_to_dataframe_with_raster("3.30")
+
+    def test_to_dataframe_with_raster_v4(self):
+        self.perform_test_to_dataframe_with_raster("4.10")
+
+    def perform_test_to_dataframe_with_raster(self, version):
+        # Create an MDF object with a few channels but only one timestamp.
+        # Call to_dataframe with different types of argument raster.
+
+        data = {n: [float(i) - 1] for i, n in enumerate('012abc')}
+        target = DataFrame(data)
+        mdf = MDF(version=version)
+        mdf.append(DataFrame(data))
+
+        # raster as scalar > 0 or array-like or str
+        for raster in [
+            0.01,
+            np.array(0.01),
+            [0.0],
+            [1.0],
+            np.array([0.0]),
+            np.array([1.0]),
+            "0",
+            "a",
+        ]:
+            df = mdf.to_dataframe(raster=raster)
+            self.assertTrue(target.equals(df))
+            df = next(mdf.iter_to_dataframe(raster=raster))
+            self.assertTrue(target.equals(df))
+
+        # raster as scalar <= 0
+        for raster in [
+            0.0,
+            np.array(0.0),
+            -1
+        ]:
+            with self.assertRaises(ValueError):
+                mdf.to_dataframe(raster=raster)
+            with self.assertRaises(ValueError):
+                next(mdf.iter_to_dataframe(raster=raster))
 
     def test_search(self):
         sigs = [
