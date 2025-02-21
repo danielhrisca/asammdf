@@ -34,9 +34,9 @@ _asammdf_ works on Python >= 3.9
 
 The main goals for this library are:
 
-- to be faster than the other Python based mdf libraries
-- to have clean and easy to understand code base
-- to have minimal 3-rd party dependencies
+- to be faster than the other Python-based mdf libraries
+- to have clean and easy-to-understand code base
+- to have minimal 3rd party dependencies
 
 ## Features
 
@@ -54,24 +54,19 @@ The main goals for this library are:
 - space optimizations for saved files (no duplicated blocks)
 - split large data blocks (configurable size) for mdf version 4
 - full support (read, append, save) for the following map types (multidimensional array channels):
-
   - mdf version 3 channels with CDBLOCK
   - mdf version 4 structure channel composition
   - mdf version 4 channel arrays with CNTemplate storage and one of the array types:
-
     - 0 - array
     - 1 - scaling axis
     - 2 - look-up
-
 - add and extract attachments for mdf version 4
-- handle large files (for example merging two fileas, each with 14000 channels and 5GB size, on a RaspberryPi)
+- handle large files (for example merging two files, each with 14000 channels and 5GB size, on a RaspberryPi)
 - extract channel data, master channel and extra channel information as _Signal_ objects for unified operations with v3 and v4 files
 - time domain operation using the _Signal_ class
-
-  - Pandas data frames are good if all the channels have the same time based
+  - pandas DataFrames are good if all the channels have the same time base
   - a measurement will usually have channels from different sources at different rates
   - the _Signal_ class facilitates operations with such channels
-
 - graphical interface to visualize channels and perform operations with the files
 
 ## Major features not implemented (yet)
@@ -88,7 +83,7 @@ The main goals for this library are:
   - full handling of bus logging measurements: currently only CAN and LIN bus logging are implemented with the
     ability to _get_ signals defined in the attached CAN/LIN database (.arxml or .dbc). Signals can also
     be extracted from an anonymous bus logging measurement by providing a CAN or LIN database (.dbc or .arxml)
-  - handling of unfinished measurements (mdf 4): finalization is attempted when the file is loaded, however the
+  - handling of unfinished measurements (mdf 4): finalization is attempted when the file is loaded, however
     not all the finalization steps are supported
   - full support for remaining mdf 4 channel arrays types
   - xml schema for MDBLOCK: most metadata stored in the comment blocks will not be available
@@ -130,11 +125,11 @@ Check the _examples_ folder for extended usage demo, or the documentation
 
 <http://asammdf.readthedocs.io/en/master>
 
-And a nicely written tutorial on the [CSS Electronics site](https://canlogger.csselectronics.com/canedge-getting-started/ce3/log-file-tools/asammdf-gui/)
+And a nicely written tutorial on the [CSS Electronics site](https://canlogger.csselectronics.com/canedge-getting-started/ce3/log-file-tools/asammdf-gui/).
 
 ## Contributing & Support
 
-Please have a look over the [contributing guidelines](CONTRIBUTING.md)
+Please have a look at the [contributing guidelines](CONTRIBUTING.md).
 
 If you enjoy this library please consider making a donation to the
 [numpy project](https://numfocus.org/donate-to-numpy) or to [danielhrisca using liberapay](https://liberapay.com/danielhrisca/donate).
@@ -151,7 +146,7 @@ Thanks to all who contributed with commits to _asammdf_:
 
 _asammdf_ is available on
 
-- github: <https://github.com/danielhrisca/asammdf/>
+- GitHub: <https://github.com/danielhrisca/asammdf/>
 - PyPI: <https://pypi.org/project/asammdf/>
 - conda-forge: <https://anaconda.org/conda-forge/asammdf>
 
@@ -163,10 +158,10 @@ pip install asammdf[gui]
 conda install -c conda-forge asammdf
 ```
 
-In case a wheel is not present for you OS/Python versions and you
-lack the proper compiler setup to compile the c-extension code, then
+In case a wheel is not present for your OS/Python versions and you
+lack the proper compiler setup to compile the C-extension code, then
 you can simply copy-paste the package code to your site-packages. In this
-way the python fallback code will be used instead of the compiled c-extension code.
+way the Python fallback code will be used instead of the compiled C-extension code.
 
 ## Dependencies
 

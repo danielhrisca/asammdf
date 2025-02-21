@@ -7,17 +7,17 @@ Your help is appreciated and welcome!
 The _master_ branch is meant to hold the release code. At any time this should be
 identical to the code available on PyPI.
 
-PR's will be pushed on the _development_ branch if the actual package code is changed. When the time comes this branch
+PRs will be pushed on the _development_ branch if the actual package code is changed. When the time comes this branch
 will be merged to the _master_ branch and a new release will be issued.
 
-PR's that deal with documentation, and other adjacent files (README for example) can be pushed to the _master_ branch.
+PRs that deal with documentation, and other adjacent files (README for example) can be pushed to the _master_ branch.
 
-When submitting PR's please take into account:
+When submitting PRs please take into account:
 
 - the project's goals
 - PEP8 and the style guide below
 
-## Developer Instructions
+## Developer instructions
 
 Clone the repository with submodules, make sure you have a C compiler installed, then install the development dependencies (we recommend using a virtual environment):
 
