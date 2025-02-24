@@ -41,9 +41,9 @@ class Signal:
 
     Parameters
     ----------
-    samples : numpy.array | list | tuple
+    samples : np.ndarray | list | tuple
         Signal samples.
-    timestamps : numpy.array | list | tuple
+    timestamps : np.ndarray | list | tuple
         Signal timestamps.
     unit : str
         Signal unit.
@@ -66,7 +66,7 @@ class Signal:
         Source information named tuple.
     bit_count : int
         Bit count; useful for integer channels.
-    invalidation_bits : numpy.array | None
+    invalidation_bits : np.ndarray | None
         Channel invalidation bits; default *None*.
     encoding : str | None
         Encoding for string signals; default *None*.
@@ -930,7 +930,7 @@ class Signal:
 
         Parameters
         ----------
-        new_timestamps : np.array
+        new_timestamps : np.ndarray
             Timestamps used for interpolation.
 
         integer_interpolation_mode : int

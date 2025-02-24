@@ -170,7 +170,7 @@ def master_using_raster(mdf: MDF_v2_v3_v4, raster: RasterType, endpoint: bool = 
 
     Returns
     -------
-    master : np.array
+    master : np.ndarray
         New master.
 
     """
@@ -2235,7 +2235,7 @@ class MDF:
         raster : float
             Time raster in seconds.
         samples_only : bool
-            If *True* return only the channel samples as numpy array; if
+            If *True* return only the channel samples as np.ndarray; if
             *False* return a *Signal* object.
         raw : bool
             Return channel samples without applying the conversion rule; default
@@ -3021,7 +3021,7 @@ class MDF:
 
             .. versionadded:: 5.21.0
 
-        raster : float | np.array | str
+        raster : float | np.ndarray | str
             New raster that can be:
 
             * a float step value
@@ -3061,7 +3061,7 @@ class MDF:
 
         Parameters
         ----------
-        raster : float | np.array | str
+        raster : float | np.ndarray | str
             New raster that can be:
 
             * a float step value
@@ -4230,7 +4230,7 @@ class MDF:
 
             .. versionadded:: 5.13.0
 
-        raster : float | np.array | str
+        raster : float | np.ndarray | str
             New raster that can be:
 
             * a float step value
@@ -4299,7 +4299,7 @@ class MDF:
             * (channel name, group index) list or tuple
             * (None, group index, channel index) list or tuple
 
-        raster : float | np.array | str
+        raster : float | np.ndarray | str
             New raster that can be:
 
             * a float step value
@@ -4709,7 +4709,7 @@ class MDF:
             * (channel name, group index) list or tuple
             * (None, group index, channel index) list or tuple
 
-        raster : float | np.array | str
+        raster : float | np.ndarray | str
             New raster that can be:
 
             * a float step value
