@@ -285,7 +285,7 @@ def inverse_conversion(conversion: Optional[Union[ChannelConversionType, dict]])
 
     if conversion:
         if not isinstance(conversion, dict):
-            conversion = to_dict(conversion)
+            conversion = to_dict(conversion) or {}
 
         if "a" in conversion:
             conv = {
