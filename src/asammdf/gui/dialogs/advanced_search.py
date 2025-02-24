@@ -141,7 +141,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.pattern_match_type.currentIndexChanged.connect(self.update_pattern_matches)
         self.filter_type.currentIndexChanged.connect(self.update_pattern_matches)
         self.filter_value.valueChanged.connect(self.update_pattern_matches)
-        self.raw.stateChanged.connect(self.update_pattern_matches)
+        self.raw.checkStateChanged.connect(self.update_pattern_matches)
         self.show_alias_btn.clicked.connect(self.show_overlapping_alias)
         self.update_pattern_matches()
 
@@ -180,7 +180,12 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                         # check channel group source name
 
                         if cg_source and (
-                            pattern.fullmatch(cg_source.name or "") or pattern.fullmatch(cg_source.path or "")
+                            pattern.fullmatch(cg_source.name or "")
+                            or pattern.fullmatch(cg_source.path or "")
+                            or pattern.fullmatch(cg_source.name or "")
+                            or pattern.fullmatch(cg_source.comment or "")
+                            or pattern.fullmatch(group.channel_group.name)
+                            or pattern.fullmatch(group.channel_group.comment)
                         ):
                             matches.update(
                                 {

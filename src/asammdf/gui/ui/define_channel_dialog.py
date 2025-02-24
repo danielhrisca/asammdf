@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'define_channel_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.2
+## Created by: Qt User Interface Compiler version 6.7.3
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -15,11 +15,11 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QDoubleSpinBox,
-    QFrame, QGridLayout, QGroupBox, QLabel,
-    QLineEdit, QPlainTextEdit, QPushButton, QRadioButton,
-    QScrollArea, QSizePolicy, QSpacerItem, QVBoxLayout,
-    QWidget)
+from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QComboBox, QDialog,
+    QDoubleSpinBox, QFrame, QGridLayout, QGroupBox,
+    QLabel, QLineEdit, QPlainTextEdit, QPushButton,
+    QRadioButton, QScrollArea, QSizePolicy, QSpacerItem,
+    QVBoxLayout, QWidget)
 from . import resource_rc
 
 class Ui_ComputedChannel(object):
@@ -36,15 +36,81 @@ class Ui_ComputedChannel(object):
         self.gridLayout.setSpacing(1)
         self.gridLayout.setObjectName(u"gridLayout")
         self.gridLayout.setContentsMargins(1, 1, 1, 1)
+        self.label_8 = QLabel(ComputedChannel)
+        self.label_8.setObjectName(u"label_8")
+        self.label_8.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
+
+        self.gridLayout.addWidget(self.label_8, 7, 0, 1, 1)
+
         self.comment = QPlainTextEdit(ComputedChannel)
         self.comment.setObjectName(u"comment")
 
-        self.gridLayout.addWidget(self.comment, 5, 1, 1, 4)
+        self.gridLayout.addWidget(self.comment, 7, 1, 1, 4)
 
         self.apply_btn = QPushButton(ComputedChannel)
         self.apply_btn.setObjectName(u"apply_btn")
 
-        self.gridLayout.addWidget(self.apply_btn, 7, 3, 1, 1)
+        self.gridLayout.addWidget(self.apply_btn, 9, 3, 1, 1)
+
+        self.cancel_btn = QPushButton(ComputedChannel)
+        self.cancel_btn.setObjectName(u"cancel_btn")
+
+        self.gridLayout.addWidget(self.cancel_btn, 9, 4, 1, 1)
+
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout.addItem(self.horizontalSpacer_3, 9, 1, 1, 1)
+
+        self.unit = QLineEdit(ComputedChannel)
+        self.unit.setObjectName(u"unit")
+
+        self.gridLayout.addWidget(self.unit, 8, 1, 1, 1)
+
+        self.label_7 = QLabel(ComputedChannel)
+        self.label_7.setObjectName(u"label_7")
+
+        self.gridLayout.addWidget(self.label_7, 5, 0, 1, 1)
+
+        self.groupBox_2 = QGroupBox(ComputedChannel)
+        self.groupBox_2.setObjectName(u"groupBox_2")
+        self.gridLayout_2 = QGridLayout(self.groupBox_2)
+        self.gridLayout_2.setSpacing(1)
+        self.gridLayout_2.setObjectName(u"gridLayout_2")
+        self.gridLayout_2.setContentsMargins(1, 1, 1, 1)
+        self.complete_signal = QRadioButton(self.groupBox_2)
+        self.complete_signal.setObjectName(u"complete_signal")
+        self.complete_signal.setChecked(False)
+
+        self.gridLayout_2.addWidget(self.complete_signal, 2, 0, 1, 1)
+
+        self.sample_by_sample = QRadioButton(self.groupBox_2)
+        self.sample_by_sample.setObjectName(u"sample_by_sample")
+        self.sample_by_sample.setChecked(True)
+
+        self.gridLayout_2.addWidget(self.sample_by_sample, 0, 0, 1, 1)
+
+        self.label_25 = QLabel(self.groupBox_2)
+        self.label_25.setObjectName(u"label_25")
+
+        self.gridLayout_2.addWidget(self.label_25, 2, 1, 1, 1)
+
+        self.label_24 = QLabel(self.groupBox_2)
+        self.label_24.setObjectName(u"label_24")
+        self.label_24.setTextFormat(Qt.TextFormat.RichText)
+        self.label_24.setWordWrap(False)
+
+        self.gridLayout_2.addWidget(self.label_24, 0, 1, 1, 1)
+
+        self.line = QFrame(self.groupBox_2)
+        self.line.setObjectName(u"line")
+        self.line.setFrameShape(QFrame.Shape.HLine)
+        self.line.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.gridLayout_2.addWidget(self.line, 1, 1, 1, 1)
+
+        self.gridLayout_2.setColumnStretch(1, 1)
+
+        self.gridLayout.addWidget(self.groupBox_2, 1, 0, 1, 5)
 
         self.groupBox_3 = QGroupBox(ComputedChannel)
         self.groupBox_3.setObjectName(u"groupBox_3")
@@ -58,10 +124,12 @@ class Ui_ComputedChannel(object):
 
         self.trigger_interval = QDoubleSpinBox(self.groupBox_3)
         self.trigger_interval.setObjectName(u"trigger_interval")
-        self.trigger_interval.setDecimals(6)
+        self.trigger_interval.setMinimumSize(QSize(121, 0))
+        self.trigger_interval.setDecimals(9)
         self.trigger_interval.setMinimum(0.000001000000000)
         self.trigger_interval.setMaximum(10.000000000000000)
         self.trigger_interval.setSingleStep(0.100000000000000)
+        self.trigger_interval.setStepType(QAbstractSpinBox.StepType.DefaultStepType)
         self.trigger_interval.setValue(0.010000000000000)
 
         self.gridLayout_8.addWidget(self.trigger_interval, 1, 1, 1, 1)
@@ -91,51 +159,13 @@ class Ui_ComputedChannel(object):
 
         self.triggering_on_all = QRadioButton(self.groupBox_3)
         self.triggering_on_all.setObjectName(u"triggering_on_all")
+        self.triggering_on_all.setMinimumSize(QSize(155, 0))
         self.triggering_on_all.setChecked(True)
 
         self.gridLayout_8.addWidget(self.triggering_on_all, 0, 0, 1, 1)
 
 
         self.gridLayout.addWidget(self.groupBox_3, 0, 0, 1, 5)
-
-        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.gridLayout.addItem(self.horizontalSpacer_3, 7, 1, 1, 1)
-
-        self.cancel_btn = QPushButton(ComputedChannel)
-        self.cancel_btn.setObjectName(u"cancel_btn")
-
-        self.gridLayout.addWidget(self.cancel_btn, 7, 4, 1, 1)
-
-        self.label_6 = QLabel(ComputedChannel)
-        self.label_6.setObjectName(u"label_6")
-
-        self.gridLayout.addWidget(self.label_6, 6, 0, 1, 1)
-
-        self.label_8 = QLabel(ComputedChannel)
-        self.label_8.setObjectName(u"label_8")
-        self.label_8.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
-
-        self.gridLayout.addWidget(self.label_8, 5, 0, 1, 1)
-
-        self.unit = QLineEdit(ComputedChannel)
-        self.unit.setObjectName(u"unit")
-
-        self.gridLayout.addWidget(self.unit, 6, 1, 1, 1)
-
-        self.label_7 = QLabel(ComputedChannel)
-        self.label_7.setObjectName(u"label_7")
-
-        self.gridLayout.addWidget(self.label_7, 3, 0, 1, 1)
-
-        self.name = QLineEdit(ComputedChannel)
-        self.name.setObjectName(u"name")
-
-        self.gridLayout.addWidget(self.name, 3, 1, 1, 4)
-
-        self.horizontalSpacer_7 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.gridLayout.addItem(self.horizontalSpacer_7, 7, 2, 1, 1)
 
         self.groupBox = QGroupBox(ComputedChannel)
         self.groupBox.setObjectName(u"groupBox")
@@ -150,7 +180,7 @@ class Ui_ComputedChannel(object):
         self.scrollArea.setWidgetResizable(True)
         self.args_widget = QWidget()
         self.args_widget.setObjectName(u"args_widget")
-        self.args_widget.setGeometry(QRect(0, 0, 717, 71))
+        self.args_widget.setGeometry(QRect(0, 0, 717, 54))
         self.arg_layout = QGridLayout(self.args_widget)
         self.arg_layout.setSpacing(1)
         self.arg_layout.setObjectName(u"arg_layout")
@@ -188,50 +218,62 @@ class Ui_ComputedChannel(object):
         self.verticalLayout.addWidget(self.scrollArea)
 
 
-        self.gridLayout.addWidget(self.groupBox, 2, 0, 1, 5)
+        self.gridLayout.addWidget(self.groupBox, 4, 0, 1, 5)
 
-        self.groupBox_2 = QGroupBox(ComputedChannel)
-        self.groupBox_2.setObjectName(u"groupBox_2")
-        self.gridLayout_2 = QGridLayout(self.groupBox_2)
-        self.gridLayout_2.setSpacing(1)
-        self.gridLayout_2.setObjectName(u"gridLayout_2")
-        self.gridLayout_2.setContentsMargins(1, 1, 1, 1)
-        self.complete_signal = QRadioButton(self.groupBox_2)
-        self.complete_signal.setObjectName(u"complete_signal")
-        self.complete_signal.setChecked(False)
+        self.label_6 = QLabel(ComputedChannel)
+        self.label_6.setObjectName(u"label_6")
 
-        self.gridLayout_2.addWidget(self.complete_signal, 2, 0, 1, 1)
+        self.gridLayout.addWidget(self.label_6, 8, 0, 1, 1)
 
-        self.label_25 = QLabel(self.groupBox_2)
-        self.label_25.setObjectName(u"label_25")
+        self.name = QLineEdit(ComputedChannel)
+        self.name.setObjectName(u"name")
 
-        self.gridLayout_2.addWidget(self.label_25, 2, 1, 1, 1)
+        self.gridLayout.addWidget(self.name, 5, 1, 1, 4)
 
-        self.label_24 = QLabel(self.groupBox_2)
-        self.label_24.setObjectName(u"label_24")
-        self.label_24.setTextFormat(Qt.TextFormat.RichText)
-        self.label_24.setWordWrap(False)
+        self.horizontalSpacer_7 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.gridLayout_2.addWidget(self.label_24, 0, 1, 1, 1)
+        self.gridLayout.addItem(self.horizontalSpacer_7, 9, 2, 1, 1)
 
-        self.sample_by_sample = QRadioButton(self.groupBox_2)
-        self.sample_by_sample.setObjectName(u"sample_by_sample")
-        self.sample_by_sample.setChecked(True)
+        self.groupBox_4 = QGroupBox(ComputedChannel)
+        self.groupBox_4.setObjectName(u"groupBox_4")
+        self.gridLayout_3 = QGridLayout(self.groupBox_4)
+        self.gridLayout_3.setSpacing(1)
+        self.gridLayout_3.setObjectName(u"gridLayout_3")
+        self.gridLayout_3.setContentsMargins(1, 1, 1, 1)
+        self.shift_type_fixed = QRadioButton(self.groupBox_4)
+        self.shift_type_fixed.setObjectName(u"shift_type_fixed")
+        self.shift_type_fixed.setMinimumSize(QSize(155, 0))
+        self.shift_type_fixed.setChecked(True)
 
-        self.gridLayout_2.addWidget(self.sample_by_sample, 0, 0, 1, 1)
+        self.gridLayout_3.addWidget(self.shift_type_fixed, 0, 0, 1, 1)
 
-        self.line = QFrame(self.groupBox_2)
-        self.line.setObjectName(u"line")
-        self.line.setFrameShape(QFrame.Shape.HLine)
-        self.line.setFrameShadow(QFrame.Shadow.Sunken)
+        self.global_variable_timestamps_shift = QComboBox(self.groupBox_4)
+        self.global_variable_timestamps_shift.setObjectName(u"global_variable_timestamps_shift")
 
-        self.gridLayout_2.addWidget(self.line, 1, 1, 1, 1)
+        self.gridLayout_3.addWidget(self.global_variable_timestamps_shift, 1, 1, 1, 1)
 
-        self.gridLayout_2.setColumnStretch(1, 1)
+        self.fixed_timestamps_shift = QDoubleSpinBox(self.groupBox_4)
+        self.fixed_timestamps_shift.setObjectName(u"fixed_timestamps_shift")
+        self.fixed_timestamps_shift.setDecimals(9)
+        self.fixed_timestamps_shift.setMinimum(-2592000.000000000000000)
+        self.fixed_timestamps_shift.setMaximum(2592000.000000000000000)
 
-        self.gridLayout.addWidget(self.groupBox_2, 1, 0, 1, 5)
+        self.gridLayout_3.addWidget(self.fixed_timestamps_shift, 0, 1, 1, 1)
 
-        self.gridLayout.setRowStretch(2, 1)
+        self.shift_type_global = QRadioButton(self.groupBox_4)
+        self.shift_type_global.setObjectName(u"shift_type_global")
+
+        self.gridLayout_3.addWidget(self.shift_type_global, 1, 0, 1, 1)
+
+        self.global_variable_timstamps_shift_description = QLabel(self.groupBox_4)
+        self.global_variable_timstamps_shift_description.setObjectName(u"global_variable_timstamps_shift_description")
+
+        self.gridLayout_3.addWidget(self.global_variable_timstamps_shift_description, 1, 2, 1, 1)
+
+        self.gridLayout_3.setColumnStretch(2, 1)
+
+        self.gridLayout.addWidget(self.groupBox_4, 3, 0, 1, 5)
+
         QWidget.setTabOrder(self.triggering_on_all, self.triggering_on_interval)
         QWidget.setTabOrder(self.triggering_on_interval, self.trigger_interval)
         QWidget.setTabOrder(self.trigger_interval, self.triggering_on_channel)
@@ -255,27 +297,14 @@ class Ui_ComputedChannel(object):
 
     def retranslateUi(self, ComputedChannel):
         ComputedChannel.setWindowTitle(QCoreApplication.translate("ComputedChannel", u"Define new channel", None))
-        self.apply_btn.setText(QCoreApplication.translate("ComputedChannel", u"Apply", None))
-        self.groupBox_3.setTitle(QCoreApplication.translate("ComputedChannel", u"Triggering", None))
-        self.trigger_interval.setSuffix(QCoreApplication.translate("ComputedChannel", u"s", None))
-        self.triggering_on_channel.setText(QCoreApplication.translate("ComputedChannel", u"on channel", None))
-        self.triggering_on_interval.setText(QCoreApplication.translate("ComputedChannel", u"time interval", None))
-        self.trigger_search_btn.setText("")
-        self.triggering_on_all.setText(QCoreApplication.translate("ComputedChannel", u"all channels timestamps", None))
-        self.cancel_btn.setText(QCoreApplication.translate("ComputedChannel", u"Cancel", None))
-        self.label_6.setText(QCoreApplication.translate("ComputedChannel", u"Computed channel unit", None))
         self.label_8.setText(QCoreApplication.translate("ComputedChannel", u"Computed channel comment", None))
+        self.apply_btn.setText(QCoreApplication.translate("ComputedChannel", u"Apply", None))
+        self.cancel_btn.setText(QCoreApplication.translate("ComputedChannel", u"Cancel", None))
         self.unit.setPlaceholderText("")
         self.label_7.setText(QCoreApplication.translate("ComputedChannel", u"Computed channel name", None))
-        self.name.setInputMask("")
-        self.name.setText("")
-        self.name.setPlaceholderText("")
-        self.groupBox.setTitle(QCoreApplication.translate("ComputedChannel", u"Function", None))
-        self.show_definition_btn.setText("")
-        self.label_9.setText(QCoreApplication.translate("ComputedChannel", u"Name", None))
-        self.label.setText(QCoreApplication.translate("ComputedChannel", u"Arguments:", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("ComputedChannel", u"Computation mode", None))
         self.complete_signal.setText(QCoreApplication.translate("ComputedChannel", u"complete signal", None))
+        self.sample_by_sample.setText(QCoreApplication.translate("ComputedChannel", u"sample by sample", None))
         self.label_25.setText(QCoreApplication.translate("ComputedChannel", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><meta charset=\"utf-8\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
@@ -294,6 +323,24 @@ class Ui_ComputedChannel(object):
 "<li style=\" font-family:'MS Shell Dlg 2'; font-size:8pt;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">earch argument will receive the signal sample at the"
                         " current time stamp</li>\n"
 "<li style=\" font-family:'MS Shell Dlg 2'; font-size:8pt;\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">the<span style=\" font-weight:700; font-style:italic;\"> t</span> argument will receive the current time stamp value</li></ul></body></html>", None))
-        self.sample_by_sample.setText(QCoreApplication.translate("ComputedChannel", u"sample by sample", None))
+        self.groupBox_3.setTitle(QCoreApplication.translate("ComputedChannel", u"Triggering", None))
+        self.trigger_interval.setSuffix(QCoreApplication.translate("ComputedChannel", u"s", None))
+        self.triggering_on_channel.setText(QCoreApplication.translate("ComputedChannel", u"on channel", None))
+        self.triggering_on_interval.setText(QCoreApplication.translate("ComputedChannel", u"time interval", None))
+        self.trigger_search_btn.setText("")
+        self.triggering_on_all.setText(QCoreApplication.translate("ComputedChannel", u"all channels timestamps", None))
+        self.groupBox.setTitle(QCoreApplication.translate("ComputedChannel", u"Function", None))
+        self.show_definition_btn.setText("")
+        self.label_9.setText(QCoreApplication.translate("ComputedChannel", u"Name", None))
+        self.label.setText(QCoreApplication.translate("ComputedChannel", u"Arguments:", None))
+        self.label_6.setText(QCoreApplication.translate("ComputedChannel", u"Computed channel unit", None))
+        self.name.setInputMask("")
+        self.name.setText("")
+        self.name.setPlaceholderText("")
+        self.groupBox_4.setTitle(QCoreApplication.translate("ComputedChannel", u"Time stamps shift", None))
+        self.shift_type_fixed.setText(QCoreApplication.translate("ComputedChannel", u"Fixed", None))
+        self.fixed_timestamps_shift.setSuffix(QCoreApplication.translate("ComputedChannel", u"s", None))
+        self.shift_type_global.setText(QCoreApplication.translate("ComputedChannel", u"Global variable", None))
+        self.global_variable_timstamps_shift_description.setText("")
     # retranslateUi
 

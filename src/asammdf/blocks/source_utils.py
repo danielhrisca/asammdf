@@ -14,7 +14,7 @@ from . import v4_constants as v4c
 
 
 class Source:
-    __slots__ = "name", "path", "comment", "source_type", "bus_type"
+    __slots__ = "bus_type", "comment", "name", "path", "source_type"
 
     SOURCE_OTHER = v4c.SOURCE_OTHER
     SOURCE_ECU = v4c.SOURCE_ECU
@@ -34,7 +34,7 @@ class Source:
     BUS_TYPE_USB = v4c.BUS_TYPE_USB
 
     def __init__(self, name: str, path: str, comment: str, source_type: int, bus_type: int) -> None:
-        """Commons reprezentation for source information
+        """Common representation for source information.
 
         Attributes
         ----------

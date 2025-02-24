@@ -1,12 +1,13 @@
-""" ASAM MDF version 2 file format module """
+"""ASAM MDF version 2 file format module"""
 
-from __future__ import annotations
+from os import PathLike
+from typing import Optional, Union
 
-from io import BufferedReader, BytesIO
+from typing_extensions import Unpack
 
-from ..types import StrPathType
-from .mdf_v3 import MDF3
-from .utils import MdfException, validate_version_argument
+from .mdf_v3 import Kwargs, MDF3
+from .utils import FileLike, MdfException, validate_version_argument
+from .v2_v3_constants import Version2
 
 __all__ = ["MDF2"]
 
@@ -17,9 +18,9 @@ class MDF2(MDF3):
 
     def __init__(
         self,
-        name: BufferedReader | BytesIO | StrPathType | None = None,
-        version: str = "2.14",
-        **kwargs,
+        name: Optional[Union[str, PathLike[str], FileLike]] = None,
+        version: Version2 = "2.14",
+        **kwargs: Unpack[Kwargs],
     ) -> None:
         version = validate_version_argument(version, hint=2)
 

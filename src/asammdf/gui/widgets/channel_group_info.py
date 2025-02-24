@@ -47,7 +47,7 @@ class ChannelGroupInfoWidget(Ui_ChannelGroupInfo, QtWidgets.QWidget):
         else:
             self.record_size = channel_group.samples_byte_nr
 
-        self.wrap.stateChanged.connect(self.wrap_changed)
+        self.wrap.checkStateChanged.connect(self.wrap_changed)
         self._display(self.position)
 
     def wrap_changed(self):
@@ -79,7 +79,8 @@ class ChannelGroupInfoWidget(Ui_ChannelGroupInfo, QtWidgets.QWidget):
         record_count = record_end - record_offset
 
         data = b"".join(
-            e[0] for e in self.mdf._load_data(self.group, record_offset=record_offset, record_count=record_count)
+            fragment.data
+            for fragment in self.mdf._load_data(self.group, record_offset=record_offset, record_count=record_count)
         )
 
         data = pd.Series(list(np.frombuffer(data, dtype=f"({self.record_size},)u1")))

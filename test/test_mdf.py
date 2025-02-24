@@ -164,7 +164,7 @@ class TestMDF(unittest.TestCase):
 
                                 vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
                                 target = [arr * j for arr in samples]
-                                target = np.core.records.fromarrays(target, dtype=types)
+                                target = np.rec.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
                                     equal = False
                                     raise Exception
@@ -180,7 +180,7 @@ class TestMDF(unittest.TestCase):
 
                                 vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
                                 target = [samples * j]
-                                target = np.core.records.fromarrays(target, dtype=types)
+                                target = np.rec.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
                                     equal = False
                                     raise Exception
@@ -212,7 +212,7 @@ class TestMDF(unittest.TestCase):
 
                                 vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
                                 target = [arr * j for arr in samples]
-                                target = np.core.records.fromarrays(target, dtype=types)
+                                target = np.rec.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
                                     equal = False
                                     print(target)
@@ -539,7 +539,7 @@ class TestMDF(unittest.TestCase):
 
                                 vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
                                 target = [arr * j for arr in samples]
-                                target = np.core.records.fromarrays(target, dtype=types)
+                                target = np.rec.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
                                     equal = False
                                     print(
@@ -564,7 +564,7 @@ class TestMDF(unittest.TestCase):
 
                                 vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
                                 target = [samples * j]
-                                target = np.core.records.fromarrays(target, dtype=types)
+                                target = np.rec.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
                                     equal = False
                                     raise Exception
@@ -596,7 +596,7 @@ class TestMDF(unittest.TestCase):
 
                                 vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
                                 target = [arr * j for arr in samples]
-                                target = np.core.records.fromarrays(target, dtype=types)
+                                target = np.rec.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
                                     equal = False
                                     raise Exception
@@ -761,7 +761,7 @@ class TestMDF(unittest.TestCase):
         mdf = MDF()
         mdf.append(sigs)
         mdf.configure(read_fragment_size=1)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(MdfException):
             mdf = mdf.resample(raster=0)
 
         mdf.close()

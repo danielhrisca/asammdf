@@ -1,6 +1,10 @@
 #!/usr/bin/env python
-from PySide6 import QtCore, QtTest
 
+from PySide6 import QtCore, QtTest
+from PySide6.QtWidgets import QPushButton as QBtn
+from PySide6.QtWidgets import QTreeWidgetItemIterator
+
+from asammdf.gui.utils import BLUE, COLORS
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
@@ -12,8 +16,9 @@ class TestPushButtons(TestPlotWidget):
         self.channel_0_name = "ASAM_[14].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
         self.channel_1_name = "ASAM_[15].M.MATRIX_DIM_16.UBYTE.IDENTICAL"
 
-        # Event
+        # Open test file in File Widget
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
+
         # Switch ComboBox to "Natural sort"
         self.widget.channel_view.setCurrentText("Natural sort")
         # Press PushButton "Create Window"
@@ -25,6 +30,14 @@ class TestPushButtons(TestPlotWidget):
         if not self.plot.hide_axes_btn.isFlat():
             QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
 
+        # Press PushButton "Hide bookmarks"
+        if not self.plot.bookmark_btn.isFlat():
+            QtTest.QTest.mouseClick(self.plot.bookmark_btn, QtCore.Qt.MouseButton.LeftButton)
+
+        if not self.plot.focused_mode_btn.isFlat():
+            QtTest.QTest.mouseClick(self.plot.focused_mode_btn, QtCore.Qt.MouseButton.LeftButton)
+
+        self.processEvents(0.1)
         # Save PixMap of clear plot
         clear_pixmap = self.plot.plot.viewport().grab()
         self.assertTrue(Pixmap.is_black(clear_pixmap))
@@ -309,3 +322,412 @@ class TestPushButtons(TestPlotWidget):
         # Ensure that delta char is not present on channel values even if button is pressed
         self.assertNotIn("Δ", self.plot_tree_channel_0.text(self.Column.VALUE))
         self.assertNotIn("Δ", self.plot_tree_channel_1.text(self.Column.VALUE))
+
+    def test_Plot_ChannelSelection_PushButton_ToggleBookmarks(self):
+        """
+        Precondition
+            -
+
+        Events:
+            - Display 1 signal on plot
+            - Press 3 times `Toggle bookmarks` button
+
+        Evaluate:
+            - Evaluate that bookmarks are not displayed before pressing `Toggle bookmarks` button
+            - Evaluate that bookmarks are displayed after pressing `Toggle bookmarks` button first time
+            - Evaluate that bookmarks are not displayed after pressing `Toggle bookmarks` button second time
+        """
+        # Hide channels
+        iterator = QTreeWidgetItemIterator(self.plot.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            if item.checkState(0) == QtCore.Qt.CheckState.Checked:
+                item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+            iterator += 1
+
+        # Press `Toggle bookmarks` button
+        QtTest.QTest.mouseClick(self.plot.bookmark_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents(0.1)
+
+        # Get expected colors
+        pg_colors = Pixmap.color_names_exclude_defaults(self.plot.plot.viewport().grab())
+        bookmarks_colors = COLORS[: len(COLORS) - len(self.plot.plot.bookmarks) - 1 : -1]
+
+        # Evaluate
+        self.assertTrue(self.plot.show_bookmarks)
+        for color in bookmarks_colors:
+            self.assertIn(color, pg_colors)
+        self.assertIn(BLUE, pg_colors)
+
+        # Press `Toggle bookmarks` button
+        QtTest.QTest.mouseClick(self.plot.bookmark_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+        # Evaluate
+        self.assertFalse(self.plot.show_bookmarks)
+        self.assertTrue(Pixmap.is_black(self.plot.plot.viewport().grab()))
+
+    def test_Plot_ChannelSelection_PushButton_HideAxes(self):
+        """
+        Events:
+            - Display 2 signal on plot
+            - Press 3 times `Show axes` button
+        Evaluate:
+            - Evaluate that bookmarks are not displayed before pressing `Hide axes` button
+            - Evaluate that bookmarks are displayed after pressing `Hide axes` button first time
+            - Evaluate that bookmarks are not displayed after pressing `Hide axes` button second time
+            _ Evaluate that only y_axis color are the same as selected channel color
+        """
+        # Hide channels
+        iterator = QTreeWidgetItemIterator(self.plot.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            if item.checkState(0) == QtCore.Qt.CheckState.Checked:
+                item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+            iterator += 1
+
+        if self.plot.plot.y_axis.isVisible() or self.plot.plot.x_axis.isVisible():
+            QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
+            # Evaluate
+            self.assertFalse(self.plot.plot.y_axis.isVisible())
+            self.assertFalse(self.plot.plot.x_axis.isVisible())
+
+        # Press `Show axes` button
+        QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+
+        # Evaluate
+        self.assertTrue(self.plot.plot.y_axis.isVisible())
+        self.assertTrue(self.plot.plot.x_axis.isVisible())
+
+        with self.subTest("test pen color of axes"):
+            self.assertNotEqual(self.plot_tree_channel_0.color.name(), self.plot_tree_channel_1.color.name())
+            x_axis_color = self.plot.plot.x_axis.pen().color().name()
+
+            # Event
+            self.mouseClick_WidgetItem(self.plot_tree_channel_0)
+            self.processEvents()
+
+            # Evaluate
+            self.assertEqual(x_axis_color, self.plot.plot.x_axis.pen().color().name())
+            self.assertEqual(self.plot.plot.y_axis.pen().color().name(), self.plot_tree_channel_0.color.name())
+            self.assertTrue(Pixmap.has_color(self.plot.plot.viewport().grab(), self.plot_tree_channel_0.color.name()))
+
+            # Event
+            self.mouseClick_WidgetItem(self.plot_tree_channel_1)
+            self.processEvents()
+
+            # Evaluate
+            self.assertEqual(x_axis_color, self.plot.plot.x_axis.pen().color().name())
+            self.assertEqual(self.plot.plot.y_axis.pen().color().name(), self.plot_tree_channel_1.color.name())
+            self.assertTrue(Pixmap.has_color(self.plot.plot.viewport().grab(), self.plot_tree_channel_1.color.name()))
+
+        # Press `Hide axes` button
+        QtTest.QTest.mouseClick(self.plot.hide_axes_btn, QtCore.Qt.MouseButton.LeftButton)
+        # Evaluate
+        self.assertFalse(self.plot.plot.y_axis.isVisible())
+        self.assertFalse(self.plot.plot.x_axis.isVisible())
+        self.assertTrue(Pixmap.is_black(self.plot.plot.viewport().grab()))
+
+    def test_Plot_ChannelSelection_PushButton_Lock(self):
+        """
+        Events:
+            - Display 2 signal on plot
+            - Press `Lock` button in order to lock y-axis
+            - Move signal using drag-and-drop technique on both axis
+            - Press `Lock` button in order to lock y-axis
+            - Move signal using drag-and-drop technique on both axis
+
+        Evaluate:
+            - Evaluate that if y-axis is locked, signal cannot be moved only on y-axis and common axis column is hidden
+            - Evaluate that if y-axis is unlocked, signal can be moved on both x and y axes
+              and common axis column isn't hidden
+        """
+
+        def move_signal(x, y):
+            def drag_and_drop():
+                center = self.plot.plot.viewport().geometry().center()
+                QtTest.QTest.mouseMove(self.plot.plot.viewport(), QtCore.QPoint(center.x() + x, center.y() + y))
+
+                QtTest.QTest.mouseRelease(
+                    self.plot.plot.viewport(),
+                    QtCore.Qt.MouseButton.LeftButton,
+                    QtCore.Qt.KeyboardModifier.NoModifier,
+                    QtCore.QPoint(center.x() + x, center.y() + y),
+                    20,
+                )
+
+            self.mouseClick_WidgetItem(self.plot_tree_channel_0)
+            QtCore.QTimer.singleShot(100, drag_and_drop)
+            QtTest.QTest.mousePress(self.plot.plot.viewport(), QtCore.Qt.MouseButton.LeftButton)
+
+        if self.plot.locked:
+            QtTest.QTest.mouseClick(self.plot.lock_btn, QtCore.Qt.MouseButton.LeftButton)
+            # Evaluate
+            self.assertFalse(self.plot.locked)
+            self.assertFalse(self.plot.channel_selection.isColumnHidden(self.plot.channel_selection.CommonAxisColumn))
+
+        # Evaluate that signal wasn't moved on x-axis
+        self.assertIsNone(self.plot_graph_channel_0.trim_info)
+
+        # Press `Lock` button
+        QtTest.QTest.mouseClick(self.plot.lock_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+        sig_0_y_range = self.plot_graph_channel_0.y_range
+
+        # move channels on plot graphics
+        move_signal(50, 50)
+        self.processEvents(1)
+
+        # Evaluate
+        self.assertTrue(self.plot.locked)
+        self.assertTrue(self.plot.channel_selection.isColumnHidden(self.plot.channel_selection.CommonAxisColumn))
+        self.assertTupleEqual(sig_0_y_range, self.plot_graph_channel_0.y_range)
+        self.assertIsNotNone(self.plot_graph_channel_0.trim_info)
+
+        # Press `Lock` button
+        QtTest.QTest.mouseClick(self.plot.lock_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+
+        # get trim info
+        trim_info = self.plot_graph_channel_0.trim_info
+
+        # move channels on plot graphics
+        move_signal(-50, 50)
+        self.processEvents(1)
+
+        # Evaluate
+        self.assertFalse(self.plot.locked)
+        self.assertFalse(self.plot.channel_selection.isColumnHidden(self.plot.channel_selection.CommonAxisColumn))
+        self.assertNotEqual(sig_0_y_range, self.plot_graph_channel_0.y_range)
+        for _ in range(len(trim_info)):
+            self.assertGreaterEqual(self.plot_graph_channel_0.trim_info[_], trim_info[_])
+
+    def test_Plot_ChannelSelection_PushButtons_Zoom(self):
+        """
+        This method will test 4 buttons: zoom in, zoom out, undo zoom, redo zoom.
+        Precondition:
+            - Zoom history is clean - trim info must be None
+            - Cursor is on center of plot. This step is required for easiest evaluation
+
+        # Event
+            - Press button `Zoom in`
+            - Press button `Undo zoom`
+            - Press button `Redo zoom`
+            - Press button `Zoom out`
+            - Press button `Zoom in`
+
+        # Evaluate
+            - Evaluate that `zoom` action was performed (zoom in will be tested at the end)
+            - Evaluate that `undo zoom` action was performed
+            - Evaluate that `redo zoom` action was performed and
+             channels timestamp trim info is equal with its value before undo zoom action was performed
+            - Evaluate that zoom `out action` was performed
+            - Evaluate that zoom `in action` was performed
+
+        """
+        # Precondition
+        self.assertIsNone(self.plot_graph_channel_0.trim_info)
+        QtTest.QTest.mouseClick(self.plot.plot.viewport(), QtCore.Qt.MouseButton.LeftButton)
+
+        buttons = self.plot.findChildren(QBtn)
+        zoom_in_btn = "Zoom in"
+        zoom_out_btn = "Zoom out"
+        for btn in buttons:
+            if btn.toolTip() == zoom_in_btn:
+                zoom_in_btn = btn
+                continue
+            elif btn.toolTip() == zoom_out_btn:
+                zoom_out_btn = btn
+                continue
+
+        # buttons was found
+        self.assertIsInstance(zoom_in_btn, QBtn)
+        self.assertIsInstance(zoom_out_btn, QBtn)
+
+        # Event
+        QtTest.QTest.mouseClick(zoom_in_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+        trim_info_0 = self.plot_graph_channel_0.trim_info
+
+        # Evaluate
+        self.assertIsNotNone(trim_info_0)  # zoom was performed
+
+        # Store previous zoom
+        prev_zoom = trim_info_0[1] - trim_info_0[0]
+
+        # Event
+        QtTest.QTest.mouseClick(self.plot.undo_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+        trim_info_1 = self.plot_graph_channel_0.trim_info
+
+        # Evaluate
+        self.assertGreater(trim_info_1[1] - trim_info_1[0], prev_zoom)
+
+        # Store previous zoom
+        prev_zoom = trim_info_1[1] - trim_info_1[0]
+
+        # Event
+        QtTest.QTest.mouseClick(self.plot.redo_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+        trim_info_2 = self.plot_graph_channel_0.trim_info
+
+        # Evaluate
+        self.assertLess(trim_info_2[1] - trim_info_2[0], prev_zoom)
+        self.assertTupleEqual(trim_info_0, trim_info_2)
+
+        prev_zoom = trim_info_2[1] - trim_info_2[0]
+
+        # Event
+        QtTest.QTest.mouseClick(zoom_out_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+        trim_info_3 = self.plot_graph_channel_0.trim_info
+
+        # Evaluate
+        self.assertGreater(trim_info_3[1] - trim_info_3[0], prev_zoom)
+
+        # store previous zoom
+        prev_zoom = trim_info_3[1] - trim_info_3[0]
+
+        # Event
+        QtTest.QTest.mouseClick(zoom_in_btn, QtCore.Qt.MouseButton.LeftButton)
+        self.processEvents()
+        trim_info_4 = self.plot_graph_channel_0.trim_info
+
+        # Evaluate
+        self.assertLess(trim_info_4[1] - trim_info_4[0], prev_zoom)
+        self.assertTupleEqual(trim_info_2, trim_info_4)
+
+    def test_Plot_ChannelSelection_PushButtons_CMD(self):
+        """
+        This method will test 6 actions from Cmd menu: Home, Honeywell, Fit, Stack, Increase font, Decrease font.
+
+        Precondition:
+            - No zoom actions performed. Y range for both signals are identical and timestamp trim info is None
+
+        # Event
+            -[0] Press `Cmd` button to open menu, after that select `Stack` action from menu
+            -[1] Press `Cmd` button to open menu, after that select `Fit` action from menu
+            -[2] Press `Cmd` button to open menu, after that select `Honeywell` action from menu
+            -[3] Press `Cmd` button to open menu, after that select `Home` action from menu
+            -[4] Press `Cmd` button to open menu, after that check common axis checkboxes
+              and select `Stack` action from menu
+            -[5] Press `Cmd` button to open menu, after that select `Increase font` action from menu
+            -[6] Press `Cmd` button to open menu, after that select `Decrease font` action from menu
+
+        # Evaluate
+            -[0] Evaluate that signals Y ranges were modified,
+              also Y range for first signal is less than Y range of second signal timestamp trim info is None
+            -[1] Evaluate that signals Y ranges for both signals are identical, timestamp trim info is still None
+            -[2] Evaluate that signals Y ranges for both signals are identical, timestamp trim info was modified,
+              also trim info for both signals are identical
+            -[3] Evaluate that signals Y ranges for both signals are identical, also timestamp trim info are identical,
+              timestamp range became greater
+            -[4] Evaluate that signals Y ranges for both signals are identical, also timestamp trim info are identical
+
+            -[5] Evaluate that widget font size was increased
+            -[6] Evaluate that widget font size was decreased
+        """
+
+        def click_on_cmd_action(btn: QBtn, action_text: str):
+            for n, action in enumerate(btn.menu().actions(), 1):
+                if action.text() == action_text:
+                    break
+            else:
+                n = 0
+            QtTest.QTest.mouseClick(btn, QtCore.Qt.MouseButton.LeftButton)
+            for _ in range(n):
+                QtTest.QTest.keyClick(btn.menu(), QtCore.Qt.Key.Key_Down)
+                QtTest.QTest.qWait(100)
+            QtTest.QTest.keyClick(btn.menu(), QtCore.Qt.Key.Key_Enter)
+
+        # Precondition
+        self.assertTupleEqual(self.plot_graph_channel_0.y_range, self.plot_graph_channel_1.y_range)
+        self.assertIsNone(self.plot_graph_channel_0.trim_info)
+        self.assertIsNone(self.plot_graph_channel_1.trim_info)
+
+        buttons = self.plot.findChildren(QBtn)
+        cmd_btn = "Cmd"
+        for btn in buttons:
+            if btn.text() == cmd_btn:
+                cmd_btn = btn
+                break
+
+        self.processEvents(0.1)
+
+        with self.subTest("PlotGraphics tests"):
+            # Event
+            click_on_cmd_action(cmd_btn, "Stack")
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertLess(self.plot_graph_channel_0.y_range[0], self.plot_graph_channel_1.y_range[0])
+            self.assertLess(self.plot_graph_channel_0.y_range[1], self.plot_graph_channel_1.y_range[1])
+
+            self.assertIsNone(self.plot_graph_channel_0.trim_info)  # zoom on timestamp axis wasn't performed
+            self.assertIsNone(self.plot_graph_channel_1.trim_info)
+
+            # Event
+            click_on_cmd_action(cmd_btn, "Fit")
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertTupleEqual(self.plot_graph_channel_0.y_range, self.plot_graph_channel_1.y_range)
+            self.assertIsNone(self.plot_graph_channel_0.trim_info)
+            self.assertIsNone(self.plot_graph_channel_1.trim_info)
+
+            # Event
+            click_on_cmd_action(cmd_btn, "Honeywell")
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertEqual(self.plot_graph_channel_0.y_range[0], self.plot_graph_channel_1.y_range[0])
+            self.assertEqual(self.plot_graph_channel_0.y_range[1], self.plot_graph_channel_1.y_range[1])
+            self.assertTupleEqual(self.plot_graph_channel_0.trim_info, self.plot_graph_channel_1.trim_info)
+
+            # save previous trim info
+            prev_trim_info = self.plot_graph_channel_0.trim_info[1] - self.plot_graph_channel_0.trim_info[0]
+            # Event
+            click_on_cmd_action(cmd_btn, "Home")
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertEqual(self.plot_graph_channel_0.y_range[0], self.plot_graph_channel_1.y_range[0])
+            self.assertEqual(self.plot_graph_channel_0.y_range[1], self.plot_graph_channel_1.y_range[1])
+            self.assertLess(
+                prev_trim_info, self.plot_graph_channel_0.trim_info[1] - self.plot_graph_channel_0.trim_info[0]
+            )
+            self.assertTupleEqual(self.plot_graph_channel_0.trim_info, self.plot_graph_channel_1.trim_info)
+
+            # Event
+            # Set checked individual axis for both channels
+            common_axis_column = self.plot_tree_channel_0.CommonAxisColumn
+            if self.plot_tree_channel_0.checkState(common_axis_column) == QtCore.Qt.CheckState.Unchecked:
+                self.plot_tree_channel_0.setCheckState(common_axis_column, QtCore.Qt.CheckState.Checked)
+            if self.plot_tree_channel_1.checkState(common_axis_column) == QtCore.Qt.CheckState.Unchecked:
+                self.plot_tree_channel_1.setCheckState(common_axis_column, QtCore.Qt.CheckState.Checked)
+
+            click_on_cmd_action(cmd_btn, "Stack")
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertTupleEqual(self.plot_graph_channel_0.y_range, self.plot_graph_channel_1.y_range)
+            self.assertTupleEqual(self.plot_graph_channel_0.trim_info, self.plot_graph_channel_1.trim_info)
+
+        with self.subTest("text actions tests"):
+            prev_text_size = self.plot.font().pointSize()
+
+            # Event
+            click_on_cmd_action(cmd_btn, "Increase font")
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertGreater(self.plot.font().pointSize(), prev_text_size)
+
+            prev_text_size = self.plot.font().pointSize()
+
+            # Event
+            click_on_cmd_action(cmd_btn, "Decrease font")
+            self.processEvents(0.1)
+
+            # Evaluate
+            self.assertLess(self.plot.font().pointSize(), prev_text_size)

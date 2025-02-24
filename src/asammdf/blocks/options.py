@@ -1,5 +1,9 @@
 from enum import IntEnum
 import os
+from os import PathLike
+from typing import Any, Optional, Union
+
+from typing_extensions import Literal, TypedDict
 
 
 class IntegerInterpolation(IntEnum):
@@ -13,8 +17,21 @@ class FloatInterpolation(IntEnum):
     LINEAR_INTERPOLATION = 1
 
 
-_GLOBAL_OPTIONS = {
-    "read_fragment_size": 64 * 1024 * 1024,
+class _GlobalOptions(TypedDict):
+    read_fragment_size: int
+    write_fragment_size: int
+    use_display_names: bool
+    single_bit_uint_as_bool: bool
+    integer_interpolation: IntegerInterpolation
+    float_interpolation: FloatInterpolation
+    copy_on_get: bool
+    temporary_folder: Optional[Union[str, bytes, PathLike[str], PathLike[bytes]]]
+    raise_on_multiple_occurrences: bool
+    fill_0_for_missing_computation_channels: bool
+
+
+GLOBAL_OPTIONS: _GlobalOptions = {
+    "read_fragment_size": 256 * 1024 * 1024,
     "write_fragment_size": 4 * 1024 * 1024,
     "use_display_names": True,
     "single_bit_uint_as_bool": False,
@@ -26,15 +43,28 @@ _GLOBAL_OPTIONS = {
     "fill_0_for_missing_computation_channels": False,
 }
 
+_Opt = Literal[
+    "read_fragment_size",
+    "write_fragment_size",
+    "use_display_names",
+    "single_bit_uint_as_bool",
+    "integer_interpolation",
+    "float_interpolation",
+    "copy_on_get",
+    "temporary_folder",
+    "raise_on_multiple_occurrences",
+    "fill_0_for_missing_computation_channels",
+]
 
-def set_global_option(opt, value):
-    if opt not in _GLOBAL_OPTIONS:
+
+def set_global_option(opt: _Opt, value: Any) -> None:
+    if opt not in GLOBAL_OPTIONS:
         raise KeyError(f'Unknown global option "{opt}"')
 
     if opt == "read_fragment_size":
-        value = int(value)
+        GLOBAL_OPTIONS[opt] = int(value)
     elif opt == "write_fragment_size":
-        value = min(int(value), 4 * 1024 * 1024)
+        GLOBAL_OPTIONS[opt] = min(int(value), 4 * 1024 * 1024)
     elif opt in (
         "use_display_names",
         "single_bit_uint_as_bool",
@@ -42,25 +72,24 @@ def set_global_option(opt, value):
         "raise_on_multiple_occurrences",
         "fill_0_for_missing_computation_channels",
     ):
-        value = bool(value)
+        GLOBAL_OPTIONS[opt] = bool(value)
     elif opt == "integer_interpolation":
-        value = IntegerInterpolation(value)
+        GLOBAL_OPTIONS[opt] = IntegerInterpolation(value)
     elif opt == "float_interpolation":
-        value = FloatInterpolation(value)
+        GLOBAL_OPTIONS[opt] = FloatInterpolation(value)
     elif opt == "temporary_folder":
         value = value or None
         if value is not None:
             os.makedirs(value, exist_ok=True)
-
-    _GLOBAL_OPTIONS[opt] = value
-
-
-def get_global_option(opt):
-    return _GLOBAL_OPTIONS[opt]
+        GLOBAL_OPTIONS[opt] = value
 
 
-def get_option(opt, instance_options):
-    value = instance_options[opt]
+def get_global_option(opt: _Opt) -> object:
+    return GLOBAL_OPTIONS[opt]
+
+
+def get_option(opt: _Opt, instance_options: _GlobalOptions) -> object:
+    value: object = instance_options[opt]
     if value is None:
         value = get_global_option(opt)
 

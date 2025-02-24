@@ -1,4 +1,5 @@
 import bisect
+import builtins
 import collections
 from collections import namedtuple
 import ctypes
@@ -31,13 +32,9 @@ from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
 from .dialogs.messagebox import MessageBox
 
-_BUILTINS = dict(collections.__builtins__)
-for key in ("breakpoint", "compile", "eval", "exec", "input", "open", "__import__"):
-    del _BUILTINS[key]
-
-for module in (bisect, collections, itertools, random, struct, math, pd, np):
-    if hasattr(module, "__builtins__"):
-        module.__builtins__ = dict(_BUILTINS)
+_BUILTINS = vars(builtins).copy()
+for key in ("breakpoint", "compile", "eval", "exec", "input", "open"):
+    _BUILTINS.pop(key, None)
 
 ERROR_ICON = None
 RANGE_INDICATOR_ICON = None
@@ -155,6 +152,10 @@ VARIABLE = re.compile(r"(?P<var>\{\{[^}]+\}\})")
 VARIABLE_GET_DATA = re.compile(r"get_data\s*\(\s*\"(?P<var>[^\"]+)")
 C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
 FUNC_NAME = re.compile(r"def\s+(?P<name>\S+)\s*\(")
+IMPORT = re.compile(r"^\s*import\s+")
+IMPORT_INNER = re.compile(r";\s*import\s+")
+FROM_IMPORT = re.compile(r"^\s*from\s+\S+\s+import\s+")
+FROM_INNER_IMPORT = re.compile(r";\s*from\s+\S+\s+import\s+")
 
 
 def excepthook(exc_type, exc_value, tracebackobj):
@@ -239,8 +240,8 @@ class QWorkerThread(QtCore.QThread):
     setMaximum = QtCore.Signal(int)
     setValue = QtCore.Signal(int)
 
-    _SIGNALS = namedtuple(
-        "_SIGNALS",
+    SIGNALS_TEMPLATE = namedtuple(
+        "SIGNALS_TEMPLATE",
         [
             "finished",
             "error",
@@ -259,7 +260,7 @@ class QWorkerThread(QtCore.QThread):
         self.function = function
         self.args = args
 
-        self.signals = self._SIGNALS(
+        self.signals = self.SIGNALS_TEMPLATE(
             self.finished,
             self.error,
             self.result,
@@ -505,13 +506,17 @@ def compute_signal(
 
             _globals = generate_python_function_globals()
 
-            trace = generate_python_variables(global_variables, _globals)
+            trace = generate_python_variables(global_variables, in_globals=_globals)
 
             if trace:
                 raise Exception(trace)
 
+            numeric_global_variables = {
+                name: float(val) for name, val in _globals.items() if isinstance(val, (int, float))
+            }
+
             for function_name, definition in functions.items():
-                _func, _trace = generate_python_function(definition, _globals)
+                _func, _trace = generate_python_function(definition, in_globals=_globals)
 
                 if function_name == description["function"]:
                     func, trace = _func, _trace
@@ -598,12 +603,25 @@ def compute_signal(
 
                 signals = [sig.interp(common_timebase) if not isinstance(sig, (int, float)) else sig for sig in signals]
 
+            if not isinstance(common_timebase, np.ndarray):
+                common_timebase = np.array(common_timebase)
+
             for i, (signal, arg_name) in enumerate(zip(signals, found_args)):
                 if isinstance(signal, (int, float)):
                     value = signal
                     signals[i] = Signal(
                         name=arg_name, samples=np.full(len(common_timebase), value), timestamps=common_timebase
                     )
+
+            if "time_stamps_shift" in description:
+                time_stamps_shift = description["time_stamps_shift"]
+                if time_stamps_shift["type"] == "fixed":
+                    shift = time_stamps_shift["fixed_timestamps_shift"]
+                else:
+                    shift_variable = time_stamps_shift["global_variable_timestamps_shift"]
+                    shift = numeric_global_variables.get(shift_variable, 0.0)
+            else:
+                shift = 0.0
 
             if description.get("computation_mode", "sample_by_sample") == "sample_by_sample":
                 signals = [sig.samples.tolist() for sig in signals]
@@ -620,7 +638,7 @@ def compute_signal(
                 result = Signal(
                     name="_",
                     samples=samples,
-                    timestamps=common_timebase,
+                    timestamps=common_timebase + shift,
                     flags=Signal.Flags.computed,
                 )
 
@@ -651,7 +669,7 @@ def compute_signal(
                 result = Signal(
                     name="_",
                     samples=samples,
-                    timestamps=common_timebase,
+                    timestamps=common_timebase + shift,
                     flags=Signal.Flags.computed,
                 )
 
@@ -869,7 +887,7 @@ def replace_computation_dependency(computation, old_name, new_name):
 
 
 class HelperChannel:
-    __slots__ = "entry", "name", "added"
+    __slots__ = "added", "entry", "name"
 
     def __init__(self, entry, name):
         self.name = name
@@ -1169,6 +1187,14 @@ def draw_color_icon(color):
     return QtGui.QIcon(pix)
 
 
+def contains_imports(string):
+    for line in string.splitlines():
+        if IMPORT.match(line) or FROM_IMPORT.match(line) or IMPORT_INNER.search(line) or FROM_INNER_IMPORT.search(line):
+            return True
+
+    return False
+
+
 def generate_python_variables(definition: str, in_globals: Union[dict, None] = None) -> Union[str, None]:
     trace = None
 
@@ -1178,19 +1204,25 @@ def generate_python_variables(definition: str, in_globals: Union[dict, None] = N
     elif in_globals and not isinstance(in_globals, dict):
         trace = "'in_globals' must be a dict"
     else:
+        definition = definition.replace("\t", "    ")
 
-        _globals = in_globals or generate_python_function_globals()
+        if contains_imports(definition):
+            trace = "Cannot use import statements in the definition"
+        else:
 
-        try:
-            exec(definition, _globals)
-        except:
-            trace = format_exc()
+            _globals = in_globals or generate_python_function_globals()
+
+            try:
+                exec(definition, _globals)
+            except:
+                trace = format_exc()
 
     return trace
 
 
 def generate_python_function_globals() -> dict:
-    return {
+
+    func_globals = {
         "bisect": bisect,
         "collections": collections,
         "itertools": itertools,
@@ -1199,8 +1231,16 @@ def generate_python_function_globals() -> dict:
         "pd": pd,
         "random": random,
         "struct": struct,
-        "__builtins__": dict(_BUILTINS),
+        "__builtins__": _BUILTINS,
     }
+    try:
+        import scipy as sp
+
+        func_globals["sp"] = sp
+    except ImportError:
+        pass
+
+    return func_globals
 
 
 def generate_python_function(definition: str, in_globals: Union[dict, None] = None) -> tuple:
@@ -1215,6 +1255,10 @@ def generate_python_function(definition: str, in_globals: Union[dict, None] = No
         return func, trace
 
     definition = definition.replace("\t", "    ")
+
+    if contains_imports(definition):
+        trace = "Cannot use import statements in the definition"
+        return func, trace
 
     _globals = in_globals or generate_python_function_globals()
 
@@ -1266,22 +1310,24 @@ def generate_python_function(definition: str, in_globals: Union[dict, None] = No
 
 def check_generated_function(func, trace, function_source, silent, parent=None):
     if trace is not None:
-        ErrorDialog(
-            title="Function definition check",
-            message="The syntax is not correct. The following error was found",
-            trace=f"{trace}\n\nin the function\n\n{function_source}",
-            parent=parent,
-        ).exec()
+        if not silent:
+            ErrorDialog(
+                title="Function definition check",
+                message="The syntax is not correct. The following error was found",
+                trace=f"{trace}\n\nin the function\n\n{function_source}",
+                parent=parent,
+            ).exec()
         return False, None
 
     args = inspect.signature(func)
+
+    # try with sample by sample call
     kwargs = {}
     for i, (arg_name, arg) in enumerate(args.parameters.items()):
-        kwargs[arg_name] = random.randint(1, 256)
+        kwargs[arg_name] = arg.default
 
     trace = ""
 
-    # try with sample by sample call
     sample_by_sample = True
     try:
         res = func(**kwargs)
@@ -1290,17 +1336,17 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
     except:
         sample_by_sample = False
         trace = f"Sample by sample: {format_exc()}"
-        print(f"Sample by sample {kwargs=}: {format_exc()}")
     else:
         if not isinstance(res, (int, float)):
             sample_by_sample = False
             trace = "Sample by sample: The function did not return a numeric scalar value"
 
+    # try with complete signal call
     kwargs = {}
     for i, (arg_name, arg) in enumerate(args.parameters.items()):
-        kwargs[arg_name] = np.ones(10000, dtype="i1") * random.randint(1, 2**64)
+        kwargs[arg_name] = np.ones(10000, dtype="i8") * arg.default
+    kwargs["t"] = np.arange(10000) * 0.1
 
-    # try with complete signal call
     complete_signal = True
     try:
         res = func(**kwargs)
@@ -1328,12 +1374,13 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
                 trace = "Complete signal: The function returned a multi dimensional array"
 
     if not sample_by_sample and not complete_signal:
-        ErrorDialog(
-            title="Function definition check",
-            message="The syntax is not correct. The following error was found",
-            trace=f"{trace}\n\nin the function\n\n{function_source}",
-            parent=parent,
-        ).exec()
+        if not silent:
+            ErrorDialog(
+                title="Function definition check",
+                message="The syntax is not correct. The following error was found",
+                trace=f"{trace}\n\nin the function\n\n{function_source}",
+                parent=parent,
+            ).exec()
 
         return False, None
 

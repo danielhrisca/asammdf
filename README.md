@@ -1,19 +1,26 @@
+#
 
-<img align=left src="https://raw.githubusercontent.com/danielhrisca/asammdf/master/asammdf.png" width="128" height="128" />
+<img align="left" src="https://raw.githubusercontent.com/danielhrisca/asammdf/master/asammdf.png" alt="logo of asammdf" width="128" height="128" />
 
-<p align=center>
+_asammdf_ is a fast parser and editor for ASAM (Association for Standardization of Automation and Measuring Systems) MDF (Measurement Data Format) files.
 
-*asammdf* is a fast parser and editor for ASAM (Association for Standardization of Automation and Measuring Systems) MDF (Measurement Data Format) files.
+_asammdf_ supports MDF versions 2 (.dat), 3 (.mdf) and 4 (.mf4).
 
-*asammdf* supports MDF versions 2 (.dat), 3 (.mdf) and 4 (.mf4).
+_asammdf_ works on Python >= 3.9
 
-*asammdf* works on Python >= 3.8
+![PyPI - Downloads](https://img.shields.io/pypi/dm/asammdf)
+![PyPI - License](https://img.shields.io/pypi/l/asammdf)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/asammdf)
+![PyPI - Version](https://img.shields.io/pypi/v/asammdf)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-</p>
+---
 
-<img align=left src="https://raw.githubusercontent.com/danielhrisca/asammdf/master/gui.png"/>
+![screenshot of the graphical user interface](https://raw.githubusercontent.com/danielhrisca/asammdf/master/gui.png)
 
-# Status
+## Status
 
 | Continuous Integration                                                                                                                                                                      | Coveralls                                                                                                                                                            | Codacy                                                                                                                                                                                                                                                       | ReadTheDocs                                                                                                                                     |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -23,75 +30,76 @@
 | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | [![PyPI version](https://badge.fury.io/py/asammdf.svg)](https://badge.fury.io/py/asammdf) | [![conda-forge version](https://anaconda.org/conda-forge/asammdf/badges/version.svg)](https://anaconda.org/conda-forge/asammdf) |
 
-# Project goals
+## Project goals
+
 The main goals for this library are:
 
-* to be faster than the other Python based mdf libraries
-* to have clean and easy to understand code base
-* to have minimal 3-rd party dependencies
+- to be faster than the other Python based mdf libraries
+- to have clean and easy to understand code base
+- to have minimal 3-rd party dependencies
 
-# Features
+## Features
 
-* create new mdf files from scratch
-* append new channels
-* read unsorted MDF v3 and v4 files
-* read CAN and LIN bus logging files
-* extract CAN and LIN signals from anonymous bus logging measurements
-* filter a subset of channels from original mdf file
-* cut measurement to specified time interval
-* convert to different mdf version
-* export to HDF5, Matlab (v7.3), CSV and parquet
-* merge multiple files sharing the same internal structure
-* read and save mdf version 4.10 files containing zipped data blocks
-* space optimizations for saved files (no duplicated blocks)
-* split large data blocks (configurable size) for mdf version 4
-* full support (read, append, save) for the following map types (multidimensional array channels):
+- create new mdf files from scratch
+- append new channels
+- read unsorted MDF v3 and v4 files
+- read CAN and LIN bus logging files
+- extract CAN and LIN signals from anonymous bus logging measurements
+- filter a subset of channels from original mdf file
+- cut measurement to specified time interval
+- convert to different mdf version
+- export to HDF5, Matlab (v7.3), CSV and parquet
+- merge multiple files sharing the same internal structure
+- read and save mdf version 4.10 files containing zipped data blocks
+- space optimizations for saved files (no duplicated blocks)
+- split large data blocks (configurable size) for mdf version 4
+- full support (read, append, save) for the following map types (multidimensional array channels):
 
-    * mdf version 3 channels with CDBLOCK
-    * mdf version 4 structure channel composition
-    * mdf version 4 channel arrays with CNTemplate storage and one of the array types:
+  - mdf version 3 channels with CDBLOCK
+  - mdf version 4 structure channel composition
+  - mdf version 4 channel arrays with CNTemplate storage and one of the array types:
 
-        * 0 - array
-        * 1 - scaling axis
-        * 2 - look-up
+    - 0 - array
+    - 1 - scaling axis
+    - 2 - look-up
 
-* add and extract attachments for mdf version 4
-* handle large files (for example merging two fileas, each with 14000 channels and 5GB size, on a RaspberryPi)
-* extract channel data, master channel and extra channel information as *Signal* objects for unified operations with v3 and v4 files
-* time domain operation using the *Signal* class
+- add and extract attachments for mdf version 4
+- handle large files (for example merging two fileas, each with 14000 channels and 5GB size, on a RaspberryPi)
+- extract channel data, master channel and extra channel information as _Signal_ objects for unified operations with v3 and v4 files
+- time domain operation using the _Signal_ class
 
-    * Pandas data frames are good if all the channels have the same time based
-    * a measurement will usually have channels from different sources at different rates
-    * the *Signal* class facilitates operations with such channels
+  - Pandas data frames are good if all the channels have the same time based
+  - a measurement will usually have channels from different sources at different rates
+  - the _Signal_ class facilitates operations with such channels
 
- * graphical interface to visualize channels and perform operations with the files
+- graphical interface to visualize channels and perform operations with the files
 
-# Major features not implemented (yet)
+## Major features not implemented (yet)
 
-* for version 3
+- for version 3
 
-    * functionality related to sample reduction block: the samples reduction blocks are simply ignored
+  - functionality related to sample reduction block: the samples reduction blocks are simply ignored
 
-* for version 4
+- for version 4
 
-    * experimental support for MDF v4.20 column oriented storage
-    * functionality related to sample reduction block: the samples reduction blocks are simply ignored
-    * handling of channel hierarchy: channel hierarchy is ignored
-    * full handling of bus logging measurements: currently only CAN and LIN bus logging are implemented with the
-      ability to *get* signals defined in the attached CAN/LIN database (.arxml or .dbc). Signals can also
-      be extracted from an anonymous bus logging measurement by providing a CAN or LIN database (.dbc or .arxml)
-    * handling of unfinished measurements (mdf 4): finalization is attempted when the file is loaded, however the
-      not all the finalization steps are supported
-    * full support for remaining mdf 4 channel arrays types
-    * xml schema for MDBLOCK: most metadata stored in the comment blocks will not be available
-    * full handling of event blocks: events are transferred to the new files (in case of calling methods
-      that return new *MDF* objects) but no new events can be created
-    * channels with default X axis: the default X axis is ignored and the channel group's master channel
-      is used
-    * attachment encryption/decryption using user provided encryption/decryption functions; this is not 
-      part of the MDF v4 spec and is only supported by this library
+  - experimental support for MDF v4.20 column oriented storage
+  - functionality related to sample reduction block: the samples reduction blocks are simply ignored
+  - handling of channel hierarchy: channel hierarchy is ignored
+  - full handling of bus logging measurements: currently only CAN and LIN bus logging are implemented with the
+    ability to _get_ signals defined in the attached CAN/LIN database (.arxml or .dbc). Signals can also
+    be extracted from an anonymous bus logging measurement by providing a CAN or LIN database (.dbc or .arxml)
+  - handling of unfinished measurements (mdf 4): finalization is attempted when the file is loaded, however the
+    not all the finalization steps are supported
+  - full support for remaining mdf 4 channel arrays types
+  - xml schema for MDBLOCK: most metadata stored in the comment blocks will not be available
+  - full handling of event blocks: events are transferred to the new files (in case of calling methods
+    that return new _MDF_ objects) but no new events can be created
+  - channels with default X axis: the default X axis is ignored and the channel group's master channel
+    is used
+  - attachment encryption/decryption using user provided encryption/decryption functions; this is not
+    part of the MDF v4 spec and is only supported by this library
 
-# Usage
+## Usage
 
 ```python
 from asammdf import MDF
@@ -110,43 +118,46 @@ short.convert('4.10').save('important signals.mf4')
 # plot some channels from a huge file
 efficient = MDF('huge.mf4')
 for signal in efficient.select(['Sensor1', 'Voltage3']):
-   signal.plot()
+    signal.plot()
 ```
 
-Check the *examples* folder for extended usage demo, or the documentation
-http://asammdf.readthedocs.io/en/master/examples.html
+Check the _examples_ folder for extended usage demo, or the documentation
+<http://asammdf.readthedocs.io/en/master/examples.html>
 
-https://canlogger.csselectronics.com/canedge-getting-started/ce3/log-file-tools/asammdf-gui/
+<https://canlogger.csselectronics.com/canedge-getting-started/ce3/log-file-tools/asammdf-gui/>
 
+## Documentation
 
-# Documentation
-http://asammdf.readthedocs.io/en/master
+<http://asammdf.readthedocs.io/en/master>
 
 And a nicely written tutorial on the [CSS Electronics site](https://canlogger.csselectronics.com/canedge-getting-started/ce3/log-file-tools/asammdf-gui/)
 
-# Contributing & Support
+## Contributing & Support
+
 Please have a look over the [contributing guidelines](CONTRIBUTING.md)
 
 If you enjoy this library please consider making a donation to the
-[numpy project](https://numfocus.org/donate-to-numpy) or to [danielhrisca using liberapay](https://liberapay.com/danielhrisca/donate) <noscript><a href="https://liberapay.com/danielhrisca/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></noscript>
+[numpy project](https://numfocus.org/donate-to-numpy) or to [danielhrisca using liberapay](https://liberapay.com/danielhrisca/donate).
 
-## Contributors
-Thanks to all who contributed with commits to *asammdf*:
+[![Donate using Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/danielhrisca/donate)
 
-<a href="https://github.com/danielhrisca/asammdf/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=danielhrisca/asammdf" />
-</a>
+### Contributors
 
-# Installation
-*asammdf* is available on
+Thanks to all who contributed with commits to _asammdf_:
 
-* github: https://github.com/danielhrisca/asammdf/
-* PyPI: https://pypi.org/project/asammdf/
-* conda-forge: https://anaconda.org/conda-forge/asammdf
+[![profile pictures of the contributors](https://contrib.rocks/image?repo=danielhrisca/asammdf)](https://github.com/danielhrisca/asammdf/graphs/contributors)
+
+## Installation
+
+_asammdf_ is available on
+
+- github: <https://github.com/danielhrisca/asammdf/>
+- PyPI: <https://pypi.org/project/asammdf/>
+- conda-forge: <https://anaconda.org/conda-forge/asammdf>
 
 ```shell
 pip install asammdf
-# for the GUI 
+# for the GUI
 pip install asammdf[gui]
 # or for anaconda
 conda install -c conda-forge asammdf
@@ -154,40 +165,41 @@ conda install -c conda-forge asammdf
 
 In case a wheel is not present for you OS/Python versions and you
 lack the proper compiler setup to compile the c-extension code, then
-you can simply copy-paste the package code to your site-packages. In this 
+you can simply copy-paste the package code to your site-packages. In this
 way the python fallback code will be used instead of the compiled c-extension code.
 
-# Dependencies
+## Dependencies
+
 asammdf uses the following libraries
 
-* numpy : the heart that makes all tick
-* numexpr : for algebraic and rational channel conversions
-* wheel : for installation in virtual environments
-* pandas : for DataFrame export
-* canmatrix : to handle CAN/LIN bus logging measurements
-* natsort
-* lxml : for canmatrix arxml support
-* lz4 : to speed up the disk IO performance
-* python-dateutil : measurement start time handling
+- numpy : the heart that makes all tick
+- numexpr : for algebraic and rational channel conversions
+- wheel : for installation in virtual environments
+- pandas : for DataFrame export
+- canmatrix : to handle CAN/LIN bus logging measurements
+- natsort
+- lxml : for canmatrix arxml support
+- lz4 : to speed up the disk IO performance
+- python-dateutil : measurement start time handling
 
 optional dependencies needed for exports
 
-* h5py : for HDF5 export
-* hdf5storage : for Matlab v7.3 .mat export
-* fastparquet : for parquet export
-* scipy: for Matlab v4 and v5 .mat export
+- h5py : for HDF5 export
+- hdf5storage : for Matlab v7.3 .mat export
+- pyarrow : for parquet export
+- scipy: for Matlab v4 and v5 .mat export
 
 other optional dependencies
 
-* PySide6 : for GUI tool
-* pyqtgraph : for GUI tool and Signal plotting
-* matplotlib : as fallback for Signal plotting
-* faust-cchardet : to detect non-standard Unicode encodings
-* chardet : to detect non-standard Unicode encodings 
-* pyqtlet2 : for the GPS window
-* isal : for faster zlib compression/decompression
-* fsspec : access files stored in the cloud
+- PySide6 : for GUI tool
+- pyqtgraph : for GUI tool and Signal plotting
+- matplotlib : as fallback for Signal plotting
+- faust-cchardet : to detect non-standard Unicode encodings
+- chardet : to detect non-standard Unicode encodings
+- pyqtlet2 : for the GPS window
+- isal : for faster zlib compression/decompression
+- fsspec : access files stored in the cloud
 
-# Benchmarks
+## Benchmarks
 
-http://asammdf.readthedocs.io/en/master/benchmarks.html
+<http://asammdf.readthedocs.io/en/master/benchmarks.html>

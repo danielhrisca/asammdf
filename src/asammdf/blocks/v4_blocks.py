@@ -18,26 +18,7 @@ from xml.dom import minidom
 import xml.etree.ElementTree as ET
 
 import dateutil.tz
-
-try:
-    from isal.isal_zlib import compress, decompress
-
-    COMPRESSION_LEVEL = 2
-
-except ImportError:
-    from zlib import compress, decompress
-
-    COMPRESSION_LEVEL = 1
-
-
 from numexpr import evaluate
-
-try:
-    from sympy import lambdify, symbols
-
-except:
-    lambdify, symbols = None, None
-
 import numpy as np
 
 from .. import tool
@@ -56,6 +37,22 @@ from .utils import (
     UINT64_u,
     UINT64_uf,
 )
+
+try:
+    from isal.isal_zlib import compress, decompress
+
+    COMPRESSION_LEVEL = 2
+
+except ImportError:
+    from zlib import compress, decompress
+
+    COMPRESSION_LEVEL = 1
+
+try:
+    from sympy import lambdify, symbols
+
+except:
+    lambdify, symbols = None, None
 
 if TYPE_CHECKING:
     from .source_utils import Source
@@ -79,17 +76,17 @@ __all__ = [
     "AttachmentBlock",
     "Channel",
     "ChannelArrayBlock",
-    "ChannelGroup",
     "ChannelConversion",
+    "ChannelGroup",
     "DataBlock",
+    "DataGroup",
+    "DataList",
     "DataZippedBlock",
     "EventBlock",
+    "FileHistory",
     "FileIdentificationBlock",
     "HeaderBlock",
     "HeaderList",
-    "DataList",
-    "DataGroup",
-    "FileHistory",
     "SourceInformation",
     "TextBlock",
 ]
@@ -142,24 +139,24 @@ class AttachmentBlock:
 
     __slots__ = (
         "address",
-        "file_name",
-        "mime",
-        "comment",
-        "id",
-        "reserved0",
         "block_len",
-        "links_nr",
-        "next_at_addr",
-        "file_name_addr",
-        "mime_addr",
+        "comment",
         "comment_addr",
-        "flags",
         "creator_index",
-        "reserved1",
-        "md5_sum",
-        "original_size",
-        "embedded_size",
         "embedded_data",
+        "embedded_size",
+        "file_name",
+        "file_name_addr",
+        "flags",
+        "id",
+        "links_nr",
+        "md5_sum",
+        "mime",
+        "mime_addr",
+        "next_at_addr",
+        "original_size",
+        "reserved0",
+        "reserved1",
     )
 
     def __init__(self, **kwargs) -> None:
@@ -218,9 +215,11 @@ class AttachmentBlock:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.file_name = get_text_v4(self.file_name_addr, stream, mapped=mapped)
-            self.mime = get_text_v4(self.mime_addr, stream, mapped=mapped)
-            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
+            tx_map = kwargs.get("tx_map", {})
+
+            self.file_name = get_text_v4(self.file_name_addr, stream, mapped=mapped, tx_map=tx_map)
+            self.mime = get_text_v4(self.mime_addr, stream, mapped=mapped, tx_map=tx_map)
+            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped, tx_map=tx_map)
 
         except KeyError:
             self.address = 0
@@ -349,10 +348,10 @@ class AttachmentBlock:
         return address
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     def __bytes__(self) -> bytes:
         fmt = f"{v4c.FMT_AT_COMMON}{self.embedded_size}s"
@@ -455,49 +454,50 @@ class Channel:
     """
 
     __slots__ = (
-        "name",
-        "unit",
-        "comment",
-        "display_names",
-        "conversion",
-        "source",
-        "attachment",
         "address",
-        "dtype_fmt",
-        "id",
-        "reserved0",
+        "attachment",
+        "attachment_addr",
+        "attachment_nr",
+        "bit_count",
+        "bit_offset",
         "block_len",
-        "links_nr",
-        "next_ch_addr",
+        "byte_offset",
+        "channel_type",
+        "comment",
+        "comment_addr",
         "component_addr",
-        "name_addr",
-        "source_addr",
+        "conversion",
         "conversion_addr",
         "data_block_addr",
-        "unit_addr",
-        "comment_addr",
-        "channel_type",
-        "sync_type",
         "data_type",
-        "bit_offset",
-        "byte_offset",
-        "bit_count",
-        "flags",
-        "pos_invalidation_bit",
-        "precision",
-        "reserved1",
-        "attachment_nr",
-        "min_raw_value",
-        "max_raw_value",
-        "lower_limit",
-        "upper_limit",
-        "lower_ext_limit",
-        "upper_ext_limit",
-        "default_X_dg_addr",
         "default_X_cg_addr",
         "default_X_ch_addr",
-        "attachment_addr",
+        "default_X_dg_addr",
+        "display_names",
+        "dtype_fmt",
+        "fast_path",
+        "flags",
+        "id",
+        "links_nr",
+        "lower_ext_limit",
+        "lower_limit",
+        "max_raw_value",
+        "min_raw_value",
+        "name",
+        "name_addr",
+        "next_ch_addr",
+        "pos_invalidation_bit",
+        "precision",
+        "reserved0",
+        "reserved1",
+        "source",
+        "source_addr",
         "standard_C_size",
+        "sync_type",
+        "unit",
+        "unit_addr",
+        "upper_ext_limit",
+        "upper_limit",
     )
 
     def __init__(self, **kwargs) -> None:
@@ -643,8 +643,8 @@ class Channel:
 
                 parsed_strings = kwargs["parsed_strings"]
                 if parsed_strings is None:
-                    self.name = get_text_v4(self.name_addr, stream, mapped=mapped)
-                    self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
+                    self.name = get_text_v4(self.name_addr, stream, mapped=mapped, tx_map=tx_map)
+                    self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped, tx_map=tx_map)
 
                     if kwargs["use_display_names"]:
                         self.display_names = extract_display_names(self.comment)
@@ -653,12 +653,7 @@ class Channel:
                 else:
                     self.name, self.display_names, self.comment = parsed_strings
 
-                addr = self.unit_addr
-                if addr in tx_map:
-                    self.unit = tx_map[addr]
-                else:
-                    self.unit = get_text_v4(addr, stream, mapped=mapped)
-                    tx_map[addr] = self.unit
+                self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped, tx_map=tx_map)
 
                 address = self.conversion_addr
                 if address:
@@ -694,6 +689,7 @@ class Channel:
                 address = self.source_addr
                 if address:
                     si_map = kwargs["si_map"]
+
                     try:
                         if address in si_map:
                             source = si_map[address]
@@ -859,8 +855,8 @@ class Channel:
                 parsed_strings = kwargs["parsed_strings"]
 
                 if parsed_strings is None:
-                    self.name = get_text_v4(self.name_addr, stream)
-                    self.comment = get_text_v4(self.comment_addr, stream)
+                    self.name = get_text_v4(self.name_addr, stream, tx_map=tx_map)
+                    self.comment = get_text_v4(self.comment_addr, stream, tx_map=tx_map)
 
                     if kwargs["use_display_names"]:
                         self.display_names = extract_display_names(self.comment)
@@ -868,12 +864,8 @@ class Channel:
                         self.display_names = {}
                 else:
                     self.name, self.display_names, self.comment = parsed_strings
-                addr = self.unit_addr
-                if addr in tx_map:
-                    self.unit = tx_map[addr]
-                else:
-                    self.unit = get_text_v4(addr, stream)
-                    tx_map[addr] = self.unit
+
+                self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped, tx_map=tx_map)
 
                 si_map = kwargs["si_map"]
                 cc_map = kwargs["cc_map"]
@@ -1020,12 +1012,13 @@ class Channel:
             del self.display_names[self.name]
 
         self.standard_C_size = True
+        self.fast_path = None
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     def to_blocks(
         self,
@@ -1365,23 +1358,23 @@ unit: {self.unit}
 
 class _ChannelArrayBlockBase:
     __slots__ = (
-        "axis_channels",
-        "dynamic_size_channels",
-        "input_quantity_channels",
-        "output_quantity_channel",
-        "comparison_quantity_channel",
-        "axis_conversions",
         "address",
-        "id",
-        "reserved0",
+        "axis_channels",
+        "axis_conversions",
         "block_len",
-        "links_nr",
-        "ca_type",
-        "storage",
-        "dims",
-        "flags",
         "byte_offset_base",
+        "ca_type",
+        "comparison_quantity_channel",
+        "dims",
+        "dynamic_size_channels",
+        "flags",
+        "id",
+        "input_quantity_channels",
         "invalidation_bit_base",
+        "links_nr",
+        "output_quantity_channel",
+        "reserved0",
+        "storage",
     )
 
 
@@ -1667,10 +1660,10 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                         self[f"dim_size_{i}"] = kwargs[f"dim_size_{i}"]
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     def __str__(self) -> str:
         return f"<ChannelArrayBlock (referenced channels: {self.axis_channels}, address: {hex(self.address)}, fields: {dict(self)})>"
@@ -1832,29 +1825,29 @@ class ChannelGroup:
     """
 
     __slots__ = (
-        "address",
         "acq_name",
+        "acq_name_addr",
         "acq_source",
-        "comment",
-        "id",
-        "reserved0",
+        "acq_source_addr",
+        "address",
         "block_len",
+        "cg_master_addr",
+        "cg_master_index",
+        "comment",
+        "comment_addr",
+        "cycles_nr",
+        "first_ch_addr",
+        "first_sample_reduction_addr",
+        "flags",
+        "id",
+        "invalidation_bytes_nr",
         "links_nr",
         "next_cg_addr",
-        "first_ch_addr",
-        "acq_name_addr",
-        "acq_source_addr",
-        "first_sample_reduction_addr",
-        "comment_addr",
-        "cg_master_addr",
-        "record_id",
-        "cycles_nr",
-        "flags",
         "path_separator",
+        "record_id",
+        "reserved0",
         "reserved1",
         "samples_byte_nr",
-        "invalidation_bytes_nr",
-        "cg_master_index",
     )
 
     def __init__(self, **kwargs) -> None:
@@ -1956,8 +1949,10 @@ class ChannelGroup:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.acq_name = get_text_v4(self.acq_name_addr, stream, mapped=mapped)
-            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
+            tx_map = kwargs.get("tx_map", {})
+
+            self.acq_name = get_text_v4(self.acq_name_addr, stream, mapped=mapped, tx_map=tx_map)
+            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped, tx_map=tx_map)
 
             si_map = kwargs["si_map"]
 
@@ -1976,7 +1971,7 @@ class ChannelGroup:
                         stream=stream,
                         address=address,
                         mapped=mapped,
-                        tx_map=kwargs["tx_map"],
+                        tx_map=tx_map,
                     )
                     si_map[raw_bytes] = source
                 self.acq_source = source
@@ -2011,10 +2006,10 @@ class ChannelGroup:
                 self.links_nr = 6
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     def to_blocks(
         self,
@@ -2187,35 +2182,35 @@ comment: {self.comment}
 
 class _ChannelConversionBase:
     __slots__ = (
-        "name",
-        "unit",
-        "comment",
-        "formula",
-        "referenced_blocks",
-        "address",
-        "id",
-        "reserved0",
-        "block_len",
-        "links_nr",
-        "name_addr",
-        "unit_addr",
-        "comment_addr",
-        "inv_conv_addr",
-        "conversion_type",
-        "precision",
-        "flags",
-        "ref_param_nr",
-        "val_param_nr",
-        "min_phy_value",
-        "max_phy_value",
-        "a",
-        "b",
         "P1",
         "P2",
         "P3",
         "P4",
         "P5",
         "P6",
+        "a",
+        "address",
+        "b",
+        "block_len",
+        "comment",
+        "comment_addr",
+        "conversion_type",
+        "flags",
+        "formula",
+        "id",
+        "inv_conv_addr",
+        "links_nr",
+        "max_phy_value",
+        "min_phy_value",
+        "name",
+        "name_addr",
+        "precision",
+        "ref_param_nr",
+        "referenced_blocks",
+        "reserved0",
+        "unit",
+        "unit_addr",
+        "val_param_nr",
     )
 
 
@@ -2225,7 +2220,7 @@ class ChannelConversion(_ChannelConversionBase):
 
     CCBLOCK common fields
 
-    * ``id`` - bytes : block ID; always b'##CG'
+    * ``id`` - bytes : block ID; always b'##CC'
     * ``reserved0`` - int : reserved bytes
     * ``block_len`` - int : block bytes size
     * ``links_nr`` - int : number of links
@@ -2619,34 +2614,14 @@ class ChannelConversion(_ChannelConversionBase):
 
             tx_map = kwargs["tx_map"]
 
-            addr = self.name_addr
-            if addr in tx_map:
-                self.name = tx_map[addr]
-            else:
-                self.name = get_text_v4(addr, stream, mapped=mapped)
-                tx_map[addr] = self.name
-
-            addr = self.unit_addr
-            if addr in tx_map:
-                self.unit = tx_map[addr]
-            else:
-                self.unit = get_text_v4(addr, stream, mapped=mapped)
-                tx_map[addr] = self.unit
-
-            if isinstance(self.unit, bytes):
-                self.unit = self.unit.decode("utf-8", errors="ignore")
-
-            addr = self.comment_addr
-            if addr in tx_map:
-                self.comment = tx_map[addr]
-            else:
-                self.comment = get_text_v4(addr, stream, mapped=mapped)
-                tx_map[addr] = self.comment
+            self.name = get_text_v4(self.name_addr, stream, mapped=mapped, tx_map=tx_map)
+            self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped, tx_map=tx_map)
+            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped, tx_map=tx_map)
 
             conv_type = conv
 
             if conv_type == v4c.CONVERSION_TYPE_ALG:
-                self.formula = get_text_v4(self.formula_addr, stream, mapped=mapped).replace("x", "X")
+                self.formula = get_text_v4(self.formula_addr, stream, mapped=mapped, tx_map=tx_map).replace("x", "X")
             else:
                 self.formula = ""
 
@@ -2663,23 +2638,19 @@ class ChannelConversion(_ChannelConversionBase):
                         address = self[f"text_{i}"]
                         if address:
                             if address in tx_map:
-                                txt = tx_map[address]
-                                if not isinstance(txt, bytes):
-                                    txt = txt.encode("utf-8")
-                                refs[f"text_{i}"] = txt
+                                refs[f"text_{i}"] = tx_map[address].raw
                             else:
                                 stream.seek(address)
                                 _id = stream.read(4)
 
                                 if _id == b"##TX":
-                                    block = get_text_v4(
+                                    refs[f"text_{i}"] = get_text_v4(
                                         address=address,
                                         stream=stream,
                                         mapped=mapped,
                                         decode=False,
+                                        tx_map=tx_map,
                                     )
-                                    tx_map[address] = block
-                                    refs[f"text_{i}"] = block
                                 elif _id == b"##CC":
                                     block = ChannelConversion(
                                         address=address,
@@ -2702,23 +2673,15 @@ class ChannelConversion(_ChannelConversionBase):
                         address = self.default_addr
                         if address:
                             if address in tx_map:
-                                txt = tx_map[address] or b""
-                                if not isinstance(txt, bytes):
-                                    txt = txt.encode("utf-8")
-                                refs["default_addr"] = txt
+                                refs["default_addr"] = tx_map[address].raw
                             else:
                                 stream.seek(address)
                                 _id = stream.read(4)
 
                                 if _id == b"##TX":
-                                    block = get_text_v4(
-                                        address=address,
-                                        stream=stream,
-                                        mapped=mapped,
-                                        decode=False,
+                                    refs["default_addr"] = get_text_v4(
+                                        address=address, stream=stream, mapped=mapped, decode=False, tx_map=tx_map
                                     )
-                                    tx_map[address] = block
-                                    refs["default_addr"] = block
                                 elif _id == b"##CC":
                                     block = ChannelConversion(
                                         address=address,
@@ -2743,37 +2706,21 @@ class ChannelConversion(_ChannelConversionBase):
 
                             if address:
                                 if address in tx_map:
-                                    txt = tx_map[address] or b""
-                                    if not isinstance(txt, bytes):
-                                        txt = txt.encode("utf-8")
-                                    refs[key] = txt
+                                    refs[key] = tx_map[address].raw
                                 else:
-                                    block = get_text_v4(
-                                        address=address,
-                                        stream=stream,
-                                        mapped=mapped,
-                                        decode=False,
+                                    refs[key] = get_text_v4(
+                                        address=address, stream=stream, mapped=mapped, decode=False, tx_map=tx_map
                                     )
-                                    tx_map[address] = block
-                                    refs[key] = block
                             else:
                                 refs[key] = b""
                     address = self.default_addr
                     if address:
                         if address in tx_map:
-                            txt = tx_map[address] or b""
-                            if not isinstance(txt, bytes):
-                                txt = txt.encode("utf-8")
-                            refs["default_addr"] = txt
+                            refs["default_addr"] = tx_map[address].raw
                         else:
-                            block = get_text_v4(
-                                address=address,
-                                stream=stream,
-                                mapped=mapped,
-                                decode=False,
+                            tx_map[address] = get_text_v4(
+                                address=address, stream=stream, mapped=mapped, decode=False, tx_map=tx_map
                             )
-                            refs["default_addr"] = block
-                            tx_map[address] = block
                     else:
                         refs["default_addr"] = b""
 
@@ -3134,9 +3081,14 @@ class ChannelConversion(_ChannelConversionBase):
 
     def convert(self, values, as_object=False, as_bytes=False, ignore_value2text_conversions=False):
         identical = ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_NON)
+        scalar = False
 
         if not isinstance(values, np.ndarray):
-            values = np.array(values)
+            if isinstance(values, (int, float)):
+                values = np.array([values])
+                scalar = True
+            else:
+                values = np.array(values)
 
         values_count = len(values)
 
@@ -3869,14 +3821,13 @@ class ChannelConversion(_ChannelConversionBase):
                 ]
 
                 new_values = []
-                values = values.astype("u8").tolist()
-                for val in values:
+                values_as_int = values.astype("u8")
+                non_int = values != values_as_int
+                for val in values_as_int.tolist():
                     new_val = []
                     masked_values = (masks & val).tolist()
 
                     for on, conv in zip(masked_values, phys):
-                        if not on:
-                            continue
 
                         if isinstance(conv, bytes):
                             if conv:
@@ -3885,18 +3836,24 @@ class ChannelConversion(_ChannelConversionBase):
                             prefix, conv = conv
                             converted_val = conv.convert(
                                 [on], ignore_value2text_conversions=ignore_value2text_conversions
-                            )
+                            )[0]
                             if converted_val:
                                 if prefix:
                                     new_val.append(prefix + converted_val)
                                 else:
                                     new_val.append(converted_val)
+                            elif prefix:
+                                new_val.append(prefix)
 
                     new_values.append(b"|".join(new_val))
 
                 values = np.array(new_values)
+                values[non_int] = b""
 
-        return values
+        if scalar:
+            return values[0]
+        else:
+            return values
 
     def metadata(self, indent: str = "") -> str:
         if self.conversion_type == v4c.CONVERSION_TYPE_NON:
@@ -4095,10 +4052,10 @@ formula: {self.formula}
         return "\n".join(metadata)
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     def __contains__(self, item: str) -> bool:
         return hasattr(self, item)
@@ -4366,7 +4323,7 @@ class DataBlock:
 
     """
 
-    __slots__ = ("address", "id", "reserved0", "block_len", "links_nr", "data")
+    __slots__ = ("address", "block_len", "data", "id", "links_nr", "reserved0")
 
     def __init__(self, **kwargs) -> None:
         try:
@@ -4412,10 +4369,10 @@ class DataBlock:
             self.data = kwargs["data"]
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     def __bytes__(self) -> bytes:
         return v4c.COMMON_p(self.id, self.reserved0, self.block_len, self.links_nr) + self.data
@@ -4456,21 +4413,21 @@ class DataZippedBlock:
     """
 
     __slots__ = (
-        "address",
         "_prevent_data_setitem",
         "_transposed",
-        "return_unzipped",
-        "id",
-        "reserved0",
+        "address",
         "block_len",
-        "links_nr",
-        "original_type",
-        "zip_type",
-        "reserved1",
-        "param",
-        "original_size",
-        "zip_size",
         "data",
+        "id",
+        "links_nr",
+        "original_size",
+        "original_type",
+        "param",
+        "reserved0",
+        "reserved1",
+        "return_unzipped",
+        "zip_size",
+        "zip_type",
     )
 
     def __init__(self, **kwargs) -> None:
@@ -4565,7 +4522,7 @@ class DataZippedBlock:
                 data = DataZippedBlock.__dict__[item].__get__(self)
                 original_size = self.original_size
                 data = decompress(data, bufsize=original_size)
-                if self.zip_type == v4c.FLAG_DZ_TRANPOSED_DEFLATE:
+                if self.zip_type == v4c.FLAG_DZ_TRANSPOSED_DEFLATE:
                     cols = self.param
                     lines = original_size // cols
 
@@ -4587,10 +4544,10 @@ class DataZippedBlock:
         return value
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __str__(self) -> str:
         return f"""<DZBLOCK (address: {hex(self.address)}, original_size: {self.original_size}, zipped_size: {self.zip_size})>"""
@@ -4647,16 +4604,16 @@ class DataGroup:
 
     __slots__ = (
         "address",
-        "comment",
-        "id",
-        "reserved0",
         "block_len",
+        "comment",
+        "comment_addr",
+        "data_block_addr",
+        "first_cg_addr",
+        "id",
         "links_nr",
         "next_dg_addr",
-        "first_cg_addr",
-        "data_block_addr",
-        "comment_addr",
         "record_id_len",
+        "reserved0",
         "reserved1",
     )
 
@@ -4703,7 +4660,7 @@ class DataGroup:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
+            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped, tx_map={})
 
         except KeyError:
             self.address = 0
@@ -4759,10 +4716,10 @@ class DataGroup:
         return address
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     def __bytes__(self) -> bytes:
         result = v4c.DATA_GROUP_p(
@@ -4783,15 +4740,15 @@ class DataGroup:
 class _DataListBase:
     __slots__ = (
         "address",
-        "id",
-        "reserved0",
         "block_len",
+        "data_block_len",
+        "data_block_nr",
+        "flags",
+        "id",
         "links_nr",
         "next_dl_addr",
-        "flags",
+        "reserved0",
         "reserved1",
-        "data_block_nr",
-        "data_block_len",
     )
 
 
@@ -4851,11 +4808,11 @@ class DataList(_DataListBase):
                 self.next_dl_addr = links[0]
 
                 for i, addr in enumerate(links[1:]):
-                    self[f"data_block_addr{i}"] = addr
+                    setattr(self, f"data_block_addr{i}", addr)
 
                 stream.seek(address + self.links_nr * 8)
 
-                self.flags = stream.read(1)[0]
+                self.flags = stream.read_byte()
                 if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
                     (self.reserved1, self.data_block_nr, self.data_block_len) = unpack("<3sIQ", stream.read(15))
                 else:
@@ -4865,7 +4822,7 @@ class DataList(_DataListBase):
                         stream.read((self.links_nr - 1) * 8),
                     )
                     for i, offset in enumerate(offsets):
-                        self[f"offset_{i}"] = offset
+                        setattr(self, f"offset_{i}", offset)
             else:
                 stream.seek(address)
 
@@ -4918,10 +4875,10 @@ class DataList(_DataListBase):
                     self[f"offset_{i}"] = kwargs[f"offset_{i}"]
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     def __bytes__(self) -> bytes:
         keys = ("id", "reserved0", "block_len", "links_nr", "next_dl_addr")
@@ -4942,33 +4899,33 @@ class DataList(_DataListBase):
 class _EventBlockBase:
     __slots__ = (
         "address",
-        "comment",
-        "name",
-        "parent",
-        "group_name",
-        "range_start",
-        "scopes",
-        "id",
-        "reserved0",
+        "attachment_nr",
         "block_len",
-        "links_nr",
-        "next_ev_addr",
-        "parent_ev_addr",
-        "range_start_ev_addr",
-        "name_addr",
-        "comment_addr",
-        "group_name_addr",
-        "event_type",
-        "sync_type",
-        "range_type",
         "cause",
+        "comment",
+        "comment_addr",
+        "creator_index",
+        "event_type",
         "flags",
+        "group_name",
+        "group_name_addr",
+        "id",
+        "links_nr",
+        "name",
+        "name_addr",
+        "next_ev_addr",
+        "parent",
+        "parent_ev_addr",
+        "range_start",
+        "range_start_ev_addr",
+        "range_type",
+        "reserved0",
         "reserved1",
         "scope_nr",
-        "attachment_nr",
-        "creator_index",
+        "scopes",
         "sync_base",
         "sync_factor",
+        "sync_type",
         "tool",
     )
 
@@ -5080,8 +5037,10 @@ class EventBlock(_EventBlockBase):
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.name = get_text_v4(self.name_addr, stream)
-            self.comment = get_text_v4(self.comment_addr, stream)
+            tx_map = kwargs.get("tx_map", {})
+
+            self.name = get_text_v4(self.name_addr, stream, tx_map=tx_map)
+            self.comment = get_text_v4(self.comment_addr, stream, tx_map=tx_map)
 
         else:
             self.address = 0
@@ -5174,10 +5133,10 @@ class EventBlock(_EventBlockBase):
         return result
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     def __str__(self) -> str:
         return f"EventBlock (name: {self.name}, comment: {self.comment}, address: {hex(self.address)}, scopes: {self.scopes}, fields: {super().__str__()})"
@@ -5254,13 +5213,13 @@ class FileIdentificationBlock:
     __slots__ = (
         "address",
         "file_identification",
-        "version_str",
+        "mdf_version",
         "program_identification",
         "reserved0",
-        "mdf_version",
         "reserved1",
-        "unfinalized_standard_flags",
         "unfinalized_custom_flags",
+        "unfinalized_standard_flags",
+        "version_str",
     )
 
     def __init__(self, **kwargs) -> None:
@@ -5295,10 +5254,10 @@ class FileIdentificationBlock:
             self.unfinalized_custom_flags = 0
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     def __bytes__(self) -> bytes:
         result = pack(
@@ -5336,19 +5295,19 @@ class FileHistory:
     """
 
     __slots__ = (
+        "abs_time",
         "address",
-        "comment",
-        "id",
-        "reserved0",
         "block_len",
+        "comment",
+        "comment_addr",
+        "daylight_save_time",
+        "id",
         "links_nr",
         "next_fh_addr",
-        "comment_addr",
-        "abs_time",
-        "tz_offset",
-        "daylight_save_time",
-        "time_flags",
+        "reserved0",
         "reserved1",
+        "time_flags",
+        "tz_offset",
     )
 
     def __init__(self, **kwargs) -> None:
@@ -5381,7 +5340,9 @@ class FileHistory:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.comment = get_text_v4(address=self.comment_addr, stream=stream)
+            tx_map = kwargs.get("tx_map", {})
+
+            self.comment = get_text_v4(address=self.comment_addr, stream=stream, tx_map=tx_map)
 
         except KeyError:
             self.id = b"##FH"
@@ -5422,10 +5383,10 @@ class FileHistory:
         return address
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     def __bytes__(self) -> bytes:
         result = pack(v4c.FMT_FILE_HISTORY, *[self[key] for key in v4c.KEYS_FILE_HISTORY])
@@ -5433,7 +5394,7 @@ class FileHistory:
 
     @property
     def time_stamp(self) -> datetime:
-        """getter and setter the file history timestamp
+        """Getter and setter of the file history timestamp.
 
         Returns
         -------
@@ -5486,6 +5447,128 @@ class FileHistory:
 
     def __repr__(self):
         return f"FHBLOCK(time={self.time_stamp}, comment={self.comment})"
+
+
+class GuardBlock:
+    """
+    *GuardBlock* has the following attributes, that are also available as
+    dict like key-value pairs
+
+    GDBLOCK fields
+
+    * ``id`` - bytes : block ID; always b'##GD'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``gd_addr`` - int : address of guarded block
+    * ``gd_version`` - int : minimum MDF format version
+    * ``reserved1`` - int : reserved bytes
+
+    Other attributes
+
+    * ``address`` - int : guard block address
+
+    """
+
+    __slots__ = (
+        "address",
+        "block_len",
+        "gd_addr",
+        "gd_version",
+        "guarded_block",
+        "id",
+        "links_nr",
+        "reserved0",
+        "reserved1",
+    )
+
+    def __init__(self, **kwargs) -> None:
+        self.guarded_block = None
+
+        try:
+            self.address = address = kwargs["address"]
+            stream = kwargs["stream"]
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
+
+            if mapped:
+                (
+                    self.id,
+                    self.reserved0,
+                    self.block_len,
+                    self.links_nr,
+                    self.gd_addr,
+                    self.gd_version,
+                    self.reserved1,
+                ) = v4c.GD_uf(stream, address)
+            else:
+                stream.seek(address)
+
+                (
+                    self.id,
+                    self.reserved0,
+                    self.block_len,
+                    self.links_nr,
+                    self.gd_addr,
+                    self.gd_version,
+                    self.reserved1,
+                ) = v4c.GD_u(stream.read(v4c.GD_BLOCK_SIZE))
+
+            if self.id != b"##GD":
+                message = f'Expected "##GD" block @{hex(address)} but found "{self.id}"'
+
+                logger.exception(message)
+                raise MdfException(message)
+
+        except KeyError:
+            self.address = 0
+            self.id = b"##GD"
+            self.reserved0 = kwargs.get("reserved0", 0)
+            self.block_len = kwargs.get("block_len", v4c.GD_BLOCK_SIZE)
+            self.links_nr = kwargs.get("links_nr", 1)
+            self.gd_addr = kwargs.get("gd_addr", 0)
+            self.gd_version = kwargs.get("gd_version", 430)
+            self.reserved1 = kwargs.get("reserved1", b"\00" * 6)
+
+    def copy(self) -> DataGroup:
+        gd = GuardBlock(
+            id=self.id,
+            reserved0=self.reserved0,
+            block_len=self.block_len,
+            links_nr=self.links_nr,
+            gd_addr=self.gd_addr,
+            gd_version=self.gd_version,
+            reserved1=self.reserved1,
+        )
+        gd.address = self.address
+
+        return gd
+
+    def to_blocks(self, address: int, blocks: list[Any], defined_texts: dict[str, int]) -> int:
+
+        blocks.append(self)
+        self.address = address
+        self.gd_addr = self.guarded_block.address if self.guarded_block else 0
+        address += self.block_len
+
+        return address
+
+    def __getitem__(self, item: str) -> Any:
+        return getattr(self, item)
+
+    def __setitem__(self, item: str, value: Any) -> None:
+        setattr(self, item, value)
+
+    def __bytes__(self) -> bytes:
+        result = v4c.GD_p(
+            self.id,
+            self.reserved0,
+            self.block_len,
+            self.links_nr,
+            self.gd_addr,
+            self.gd_version,
+            self.reserved1,
+        )
+        return result
 
 
 class HeaderBlock:
@@ -5570,7 +5653,7 @@ class HeaderBlock:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.comment = get_text_v4(address=self.comment_addr, stream=stream)
+            self.comment = get_text_v4(address=self.comment_addr, stream=stream, tx_map={})
 
         except KeyError:
             self.address = 0x40
@@ -5719,14 +5802,14 @@ class HeaderBlock:
         self._common_properties["subject"] = value
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     @property
     def start_time(self) -> datetime:
-        """getter and setter the measurement start timestamp
+        """Getter and setter of the measurement start timestamp.
 
         Returns
         -------
@@ -5859,14 +5942,14 @@ class HeaderList:
 
     __slots__ = (
         "address",
-        "id",
-        "reserved0",
         "block_len",
-        "links_nr",
         "first_dl_addr",
         "flags",
-        "zip_type",
+        "id",
+        "links_nr",
+        "reserved0",
         "reserved1",
+        "zip_type",
     )
 
     def __init__(self, **kwargs) -> None:
@@ -5906,10 +5989,10 @@ class HeaderList:
             self.reserved1 = b"\x00" * 5
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     def __bytes__(self) -> bytes:
         result = pack(v4c.FMT_HL_BLOCK, *[self[key] for key in v4c.KEYS_HL_BLOCK])
@@ -5919,14 +6002,14 @@ class HeaderList:
 class _ListDataBase:
     __slots__ = (
         "address",
-        "id",
-        "reserved0",
         "block_len",
+        "data_block_len",
+        "data_block_nr",
+        "flags",
+        "id",
         "links_nr",
         "next_ld_addr",
-        "flags",
-        "data_block_nr",
-        "data_block_len",
+        "reserved0",
     )
 
 
@@ -6120,10 +6203,10 @@ class ListData(_ListDataBase):
             self.block_len = 24 + self.links_nr * 8 + 16
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     def __bytes__(self) -> bytes:
         fmt = "<4sI3Q"
@@ -6200,20 +6283,20 @@ class SourceInformation:
 
     __slots__ = (
         "address",
-        "comment",
-        "name",
-        "path",
-        "id",
-        "reserved0",
         "block_len",
-        "links_nr",
-        "name_addr",
-        "path_addr",
-        "comment_addr",
-        "source_type",
         "bus_type",
+        "comment",
+        "comment_addr",
         "flags",
+        "id",
+        "links_nr",
+        "name",
+        "name_addr",
+        "path",
+        "path_addr",
+        "reserved0",
         "reserved1",
+        "source_type",
     )
 
     def __init__(self, **kwargs) -> None:
@@ -6252,26 +6335,9 @@ class SourceInformation:
 
             tx_map = kwargs["tx_map"]
 
-            address = self.name_addr
-            if address in tx_map:
-                self.name = tx_map[address]
-            else:
-                self.name = get_text_v4(address=self.name_addr, stream=stream, mapped=mapped)
-                tx_map[address] = self.name
-
-            address = self.path_addr
-            if address in tx_map:
-                self.path = tx_map[address]
-            else:
-                self.path = get_text_v4(address=self.path_addr, stream=stream, mapped=mapped)
-                tx_map[address] = self.path
-
-            address = self.comment_addr
-            if address in tx_map:
-                self.comment = tx_map[address]
-            else:
-                self.comment = get_text_v4(address=self.comment_addr, stream=stream, mapped=mapped)
-                tx_map[address] = self.comment
+            self.name = get_text_v4(address=self.name_addr, stream=stream, mapped=mapped, tx_map=tx_map)
+            self.path = get_text_v4(address=self.path_addr, stream=stream, mapped=mapped, tx_map=tx_map)
+            self.comment = get_text_v4(address=self.comment_addr, stream=stream, mapped=mapped, tx_map=tx_map)
 
         else:
             self.address = 0
@@ -6288,10 +6354,10 @@ class SourceInformation:
             self.reserved1 = b"\x00" * 5
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     def __contains__(self, item: str) -> bool:
         return hasattr(self, item)
@@ -6486,7 +6552,7 @@ class TextBlock:
 
     """
 
-    __slots__ = ("address", "id", "reserved0", "block_len", "links_nr", "text")
+    __slots__ = ("address", "block_len", "id", "links_nr", "reserved0", "text")
 
     def __init__(self, **kwargs) -> None:
         if "safe" in kwargs:
@@ -6558,10 +6624,10 @@ class TextBlock:
             self.block_len = size + 32 - size % 8
 
     def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
+        return getattr(self, item)
 
     def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
+        setattr(self, item, value)
 
     def __bytes__(self) -> bytes:
         return pack(

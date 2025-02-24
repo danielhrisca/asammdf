@@ -12,17 +12,21 @@ class DragAndDrop
     - responsible to perform Drag and Drop operations
      from source widget - specific point, to destination widget - specific point
 """
+from collections.abc import Iterable
 import os
 import pathlib
 import shutil
 import sys
 import time
+from typing import Union
 import unittest
 from unittest import mock
 
+from h5py import File as HDF5
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
 
+from asammdf import mdf
 from asammdf.gui.utils import excepthook
 
 if sys.platform == "win32":
@@ -53,10 +57,7 @@ class TestBase(unittest.TestCase):
     resource = os.path.normpath(os.path.join(os.path.dirname(__file__), "resources"))
     test_workspace = os.path.join(os.path.dirname(__file__), "test_workspace")
     screenshots = os.path.join(os.path.dirname(__file__).split("test")[0], "screenshots")
-    #     os.path.dirname(__file__).split("test")[0], f"screenshots_{sys.platform}_{platform.python_version()}"
-    # )
-    # save_ss_here = os.path.normpath(os.path.join(screenshots, sys.platform, platform.python_version()))
-    # save_ss_here = os.path.normpath(os.path.join(platform_path, platform.python_version().replace(".", "_")))
+
     patchers = []
     # MockClass ErrorDialog
     mc_ErrorDialog = None
@@ -99,13 +100,12 @@ class TestBase(unittest.TestCase):
 
     def setUp(self) -> None:
         if os.path.exists(self.test_workspace):
-            shutil.rmtree(self.test_workspace)
+            try:
+                shutil.rmtree(self.test_workspace)
+            except PermissionError as e:
+                print(e)
         if not os.path.exists(self.screenshots):
             os.makedirs(self.screenshots)
-        # if not os.path.exists(self.platform_path):
-        #     os.makedirs(self.platform_path)
-        # if not os.path.exists(self.save_ss_here):
-        #     os.makedirs(self.save_ss_here)
 
         os.makedirs(self.test_workspace)
         self.mc_ErrorDialog.reset_mock()
@@ -126,8 +126,29 @@ class TestBase(unittest.TestCase):
 
     def tearDown(self):
         self.processEvents()
+        path_ = os.path.join(self.screenshots, self.id().split("gui.")[-1].rsplit(".", 1)[0])
+        if not os.path.exists(path_):
+            os.makedirs(path_)
+
+        w = getattr(self, "widget", None)
+        if w:
+            w.grab().save(os.path.join(path_, f"{self.id().split('.')[-1]}.png"))
+            self.destroy(w)
+
+        self.mc_ErrorDialog.reset_mock()
+
         if self.test_workspace and pathlib.Path(self.test_workspace).exists():
-            shutil.rmtree(self.test_workspace)
+            try:
+                shutil.rmtree(self.test_workspace)
+            except PermissionError as e:
+                self.destroy(w)
+                print(e)
+
+    @staticmethod
+    def destroy(w):
+        w.close()
+        w.destroy()
+        w.deleteLater()
 
     def mouseClick_RadioButton(self, qitem):
         QtTest.QTest.mouseClick(
@@ -182,7 +203,6 @@ class TestBase(unittest.TestCase):
 
 class DragAndDrop:
     def __init__(self, src_widget, dst_widget, src_pos, dst_pos):
-
         QtCore.QCoreApplication.processEvents()
         # hack QDrag object
         with mock.patch(f"{src_widget.__module__}.QtGui.QDrag") as mo_QDrag:
@@ -218,29 +238,17 @@ class Pixmap:
     COLOR_CURSOR = "#e69138"
 
     @staticmethod
-    def is_black(pixmap):
+    def is_black(pixmap) -> bool:
         """
         Excepting cursor
         """
-        cursor_x = None
-        cursor_y = None
-        cursor_color = None
         image = pixmap.toImage()
 
         for y in range(image.height()):
             for x in range(image.width()):
                 color = QtGui.QColor(image.pixel(x, y))
-                if color.name() != Pixmap.COLOR_BACKGROUND:
-                    if not cursor_x and not cursor_y and not cursor_color:
-                        cursor_x = x
-                        cursor_y = y + 1
-                        cursor_color = color
-                        continue
-                    elif cursor_x == x and cursor_y == y and cursor_color == color:
-                        cursor_y += 1
-                        continue
-                    else:
-                        return False
+                if color.name() not in (Pixmap.COLOR_BACKGROUND, Pixmap.COLOR_CURSOR):
+                    return False
         return True
 
     @staticmethod
@@ -454,3 +462,108 @@ class Pixmap:
                 line = y
                 break
         return line
+
+
+class OpenFileContextManager:
+    """
+    Generic class for opening a file using context manager.
+    Methods:
+        __enter__: return opened file object.
+        __exit__: close file object. If exc_type, exc_val, exc_tb, raise exception.
+    """
+
+    def __init__(self, file_path: Union[str, pathlib.Path]):
+        """
+        Parameters
+        ----------
+        file_path: file path as str or pathlib.Path object
+        """
+        self.file = None
+        if isinstance(file_path, str):
+            self._file_path = pathlib.Path(file_path)
+        else:
+            self._file_path = file_path
+
+        assert self._file_path.exists(), "Provided file does not exist"
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.file.close()
+        for exc in (exc_type, exc_val, exc_tb):
+            if exc is not None:
+                raise exc
+
+
+class OpenMDF(OpenFileContextManager):
+    """
+    Open MDF file using context manager.
+    """
+
+    def __enter__(self):
+        self.file = mdf.MDF(self._file_path, process_bus_logging=("process_bus_logging", True))
+        return self.file
+
+
+class OpenHDF5(OpenFileContextManager):
+    """
+    Open HDF5 file using context manager.
+    """
+
+    def __enter__(self):
+        self.file = HDF5(self._file_path)
+        return self.file
+
+
+class DBC:
+    class BO:
+        def __init__(self, lines: Iterable[str]):
+            for line in lines:
+                if line.startswith("BO_ "):
+                    self.data = line
+
+        def __repr__(self):
+            return self.data
+
+        @property
+        def name(self) -> str:
+            if self.data:
+                return self.data.split()[2].strip(":")
+
+        @property
+        def id(self) -> str:
+            if self.data:
+                return self.data.split()[1]
+
+        @property
+        def data_length(self) -> int:
+            if self.data:
+                return int(self.data.split()[3])
+
+    class SG:
+        def __init__(self, name: str, lines: Iterable[str]):
+            self.name = name
+            self.data = None
+            for line in lines:
+                if "SG_ " in line and name in line:
+                    self.data = line.split("SG_ ")[1]
+
+        def __repr__(self):
+            return self.data
+
+        @property
+        def unit(self) -> str:
+            return self.data.split('"')[1]  # middle value, ex: "blah blah "unit" blah
+
+        @property
+        def bit_count(self) -> int:
+            return int(self.data.split("|")[1].split("@")[0])  # is complicated this CAN :)
+
+        @property
+        def conversion_a(self) -> float:
+            return float(self.data.split("(")[1].split(")")[0].split(",")[0])
+
+        @property
+        def conversion_b(self) -> float:
+            return float(self.data.split("(")[1].split(")")[0].split(",")[1])

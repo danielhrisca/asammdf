@@ -93,13 +93,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         formats = ["MDF", "ASC", "CSV"]
 
         try:
-            from h5py import File as HDF5
-
-            formats.append("HDF5")
-        except ImportError:
-            pass
-
-        try:
             from hdf5storage import savemat
 
             formats.append("MAT")
@@ -119,7 +112,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             pass
 
         try:
-            from fastparquet import write as write_parquet  # noqa: F401
+            from pyarrow.parquet import write_table as write_parquet  # noqa: F401
 
             formats.append("Parquet")
         except ImportError:
@@ -210,7 +203,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.lin_database_list.setItemWidget(item, widget)
             item.setSizeHint(widget.sizeHint())
 
-        self.restore_export_setttings()
+        self.restore_export_settings()
         self.connect_export_updates()
 
     def set_raster_type(self, event):
@@ -227,7 +220,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         if name == "parquet":
             self.export_compression.setEnabled(True)
             self.export_compression.clear()
-            self.export_compression.addItems(["GZIP", "SNAPPY"])
+            self.export_compression.addItems(["GZIP", "SNAPPY", "LZ4"])
             self.export_compression.setCurrentIndex(-1)
         elif name == "hdf5":
             self.export_compression.setEnabled(True)
@@ -286,8 +279,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             message = self._progress.result
 
             self.output_info_bus.setPlainText("\n".join(message))
-
-        self._progress.close()
         self._progress = None
 
     def extract_bus_logging(self, event):
@@ -393,10 +384,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 ]
                 for dbc_name, found_ids in call_info["found_ids"].items():
                     for msg_id, msg_name in sorted(found_ids):
-                        try:
-                            message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
-                        except:
-                            pgn, sa = msg_id
+                        if not msg_id[2]:
+                            msg_id, extended = msg_id[:2]
+                            message.append(f"- 0x{msg_id:X} {extended=} --> {msg_name} in <{dbc_name}>")
+
+                        else:
+                            pgn, sa = msg_id[:2]
                             message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X} --> {msg_name} in <{dbc_name}>")
 
                 message += [
@@ -422,6 +415,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 overwrite=True,
                 progress=progress,
             )
+
+            mdf.close()
+
             if result is TERMINATED:
                 return
 
@@ -581,8 +577,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 ]
                 for dbc_name, found_ids in call_info["found_ids"].items():
                     for msg_id, msg_name in sorted(found_ids):
-                        message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
-
+                        if isinstance(msg_id, str):
+                            message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
+                        else:
+                            message.append(f"- 0x{msg_id[0]:X} --> {msg_name} in <{dbc_name}>")
                 message += [
                     "",
                     "The following Bus IDs were in the MDF log file, but not matched in the DBC:",
@@ -618,6 +616,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 add_units=add_units,
                 progress=progress,
             )
+
+            mdf.close()
+
             if result is TERMINATED:
                 return
 
@@ -712,7 +713,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self._progress = setup_progress(parent=self, autoclose=False)
         self._progress.finished.connect(self.concatenate_finished)
 
-        self._progress.run_thread_with_progress(
+        rez = self._progress.run_thread_with_progress(
             target=self.concatenate_thread,
             args=(
                 output_file_name,
@@ -754,6 +755,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             progress=progress,
         )
 
+        for file in files:
+            file.close()
+
         if result is TERMINATED:
             return
         else:
@@ -770,6 +774,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             overwrite=True,
             progress=progress,
         )
+
+        mdf.close()
 
         if result is not TERMINATED:
             return result
@@ -818,6 +824,11 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             overwrite=True,
             progress=progress,
         )
+
+        for file in files:
+            file.close()
+
+        mdf.close()
 
         if result is not TERMINATED:
             return result
@@ -967,6 +978,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 mdf,
                 show_add_window=False,
                 show_pattern=False,
+                show_apply=True,
                 parent=self,
                 return_names=True,
             )
@@ -1368,12 +1380,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         elif output_format == "Parquet":
             try:
-                from fastparquet import write as write_parquet  # noqa: F401
+                from pyarrow.parquet import write_table as write_parquet  # noqa: F401
+
             except ImportError:
                 MessageBox.critical(
                     self,
                     "export_batch to parquet unavailale",
-                    "fastparquet package not found; export to parquet is unavailable",
+                    "pyarrow package not found; export to parquet is unavailable",
                 )
                 return
 
@@ -1413,7 +1426,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         elif output_format == "Parquet":
             suffix = ".parquet"
-            from fastparquet import write as write_parquet  # noqa: F401
+            from pyarrow.parquet import write_table as write_parquet  # noqa: F401
 
         elif output_format == "CSV":
             suffix = ".csv"
@@ -1474,6 +1487,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 if result is TERMINATED:
                     return
                 else:
+                    mdf.close()
                     mdf = result
 
                 mdf.configure(
@@ -1595,8 +1609,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     else:
                         file_name = output_folder / Path(mdf_file.original_name).relative_to(root)
 
-                    print(file_name)
-
                     if not file_name.parent.exists():
                         os.makedirs(file_name.parent, exist_ok=True)
                 else:
@@ -1618,6 +1630,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     overwrite=True,
                     progress=progress,
                 )
+
+                mdf.close()
 
                 if result is TERMINATED:
                     return
@@ -1679,6 +1693,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                 target(**kwargs)
 
+            mdf.close()
+
     def change_modify_output_folder(self, event=None):
         folder = QtWidgets.QFileDialog.getExistingDirectory(self, "Select output folder", "")
         if folder:
@@ -1686,23 +1702,23 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
     def output_format_changed(self, name):
         if name == "MDF":
-            self.output_options.setCurrentIndex(0)
+            self.output_options.setCurrentWidget(self.MDF_2)
         elif name == "MAT":
-            self.output_options.setCurrentIndex(2)
+            self.output_options.setCurrentWidget(self.MAT_2)
 
             self.export_compression_mat.clear()
             self.export_compression_mat.addItems(["enabled", "disabled"])
             self.export_compression_mat.setCurrentIndex(0)
         elif name == "CSV":
-            self.output_options.setCurrentIndex(3)
+            self.output_options.setCurrentWidget(self.CSV)
         elif name == "ASC":
-            self.output_options.setCurrentIndex(4)
+            self.output_options.setCurrentWidget(self.page)
         else:
-            self.output_options.setCurrentIndex(1)
+            self.output_options.setCurrentWidget(self.HDF5_2)
             if name == "Parquet":
                 self.export_compression.setEnabled(True)
                 self.export_compression.clear()
-                self.export_compression.addItems(["GZIP", "SNAPPY"])
+                self.export_compression.addItems(["GZIP", "SNAPPY", "LZ4"])
                 self.export_compression.setCurrentIndex(0)
             elif name == "HDF5":
                 self.export_compression.setEnabled(True)
@@ -1938,30 +1954,32 @@ MultiRasterSeparator;&
 
                 self.update_selected_filter_channels()
 
+                mdf.close()
+
     def connect_export_updates(self):
         self.output_format.currentTextChanged.connect(self.store_export_setttings)
 
         self.mdf_version.currentTextChanged.connect(self.store_export_setttings)
         self.mdf_compression.currentTextChanged.connect(self.store_export_setttings)
-        self.mdf_split.stateChanged.connect(self.store_export_setttings)
+        self.mdf_split.checkStateChanged.connect(self.store_export_setttings)
         self.mdf_split_size.valueChanged.connect(self.store_export_setttings)
 
-        self.single_time_base.stateChanged.connect(self.store_export_setttings)
-        self.time_from_zero.stateChanged.connect(self.store_export_setttings)
-        self.time_as_date.stateChanged.connect(self.store_export_setttings)
-        self.raw.stateChanged.connect(self.store_export_setttings)
-        self.use_display_names.stateChanged.connect(self.store_export_setttings)
-        self.reduce_memory_usage.stateChanged.connect(self.store_export_setttings)
+        self.single_time_base.checkStateChanged.connect(self.store_export_setttings)
+        self.time_from_zero.checkStateChanged.connect(self.store_export_setttings)
+        self.time_as_date.checkStateChanged.connect(self.store_export_setttings)
+        self.raw.checkStateChanged.connect(self.store_export_setttings)
+        self.use_display_names.checkStateChanged.connect(self.store_export_setttings)
+        self.reduce_memory_usage.checkStateChanged.connect(self.store_export_setttings)
         self.export_compression.currentTextChanged.connect(self.store_export_setttings)
         self.empty_channels.currentTextChanged.connect(self.store_export_setttings)
 
-        self.single_time_base_csv.stateChanged.connect(self.store_export_setttings)
-        self.time_from_zero_csv.stateChanged.connect(self.store_export_setttings)
-        self.time_as_date_csv.stateChanged.connect(self.store_export_setttings)
-        self.raw_csv.stateChanged.connect(self.store_export_setttings)
-        self.add_units.stateChanged.connect(self.store_export_setttings)
-        self.doublequote.stateChanged.connect(self.store_export_setttings)
-        self.use_display_names_csv.stateChanged.connect(self.store_export_setttings)
+        self.single_time_base_csv.checkStateChanged.connect(self.store_export_setttings)
+        self.time_from_zero_csv.checkStateChanged.connect(self.store_export_setttings)
+        self.time_as_date_csv.checkStateChanged.connect(self.store_export_setttings)
+        self.raw_csv.checkStateChanged.connect(self.store_export_setttings)
+        self.add_units.checkStateChanged.connect(self.store_export_setttings)
+        self.doublequote.checkStateChanged.connect(self.store_export_setttings)
+        self.use_display_names_csv.checkStateChanged.connect(self.store_export_setttings)
         self.empty_channels_csv.currentTextChanged.connect(self.store_export_setttings)
         self.delimiter.editingFinished.connect(self.store_export_setttings)
         self.escapechar.editingFinished.connect(self.store_export_setttings)
@@ -1969,18 +1987,18 @@ MultiRasterSeparator;&
         self.quotechar.editingFinished.connect(self.store_export_setttings)
         self.quoting.currentTextChanged.connect(self.store_export_setttings)
 
-        self.single_time_base_mat.stateChanged.connect(self.store_export_setttings)
-        self.time_from_zero_mat.stateChanged.connect(self.store_export_setttings)
-        self.time_as_date_mat.stateChanged.connect(self.store_export_setttings)
-        self.raw_mat.stateChanged.connect(self.store_export_setttings)
-        self.use_display_names_mat.stateChanged.connect(self.store_export_setttings)
-        self.reduce_memory_usage_mat.stateChanged.connect(self.store_export_setttings)
+        self.single_time_base_mat.checkStateChanged.connect(self.store_export_setttings)
+        self.time_from_zero_mat.checkStateChanged.connect(self.store_export_setttings)
+        self.time_as_date_mat.checkStateChanged.connect(self.store_export_setttings)
+        self.raw_mat.checkStateChanged.connect(self.store_export_setttings)
+        self.use_display_names_mat.checkStateChanged.connect(self.store_export_setttings)
+        self.reduce_memory_usage_mat.checkStateChanged.connect(self.store_export_setttings)
         self.empty_channels_mat.currentTextChanged.connect(self.store_export_setttings)
         self.export_compression_mat.currentTextChanged.connect(self.store_export_setttings)
         self.mat_format.currentTextChanged.connect(self.store_export_setttings)
         self.oned_as.currentTextChanged.connect(self.store_export_setttings)
 
-    def restore_export_setttings(self):
+    def restore_export_settings(self):
         self.output_format.setCurrentText(self._settings.value("export_batch", "MDF"))
 
         self.mdf_version.setCurrentText(self._settings.setValue("export_batch/MDF/version", "4.10"))

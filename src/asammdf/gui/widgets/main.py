@@ -1520,8 +1520,8 @@ Build information:
 *   PySide6 {pyside6_version}
 *   CPython {cpython}
 
-  
 
-Copyright © 2018-2023 Daniel Hrisca""",
+
+Copyright © 2018-2025 Daniel Hrisca""",
             markdown=True,
         )

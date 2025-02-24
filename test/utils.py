@@ -206,7 +206,7 @@ def generate_arrays_test_file(tmpdir):
         ]
 
         sig = Signal(
-            np.core.records.fromarrays(samples, dtype=np.dtype(types)),
+            np.rec.fromarrays(samples, dtype=np.dtype(types)),
             t,
             name=f"Channel_{i}",
             unit=f"unit_{i}",
@@ -225,7 +225,7 @@ def generate_arrays_test_file(tmpdir):
         types = [(f"Channel_{i}", "(2, 3)<u8")]
 
         sig = Signal(
-            np.core.records.fromarrays(samples, dtype=np.dtype(types)),
+            np.rec.fromarrays(samples, dtype=np.dtype(types)),
             t,
             name=f"Channel_{i}",
             unit=f"unit_{i}",
@@ -262,7 +262,7 @@ def generate_arrays_test_file(tmpdir):
         ]
 
         sig = Signal(
-            np.core.records.fromarrays(samples, dtype=np.dtype(types)),
+            np.rec.fromarrays(samples, dtype=np.dtype(types)),
             t,
             name=f"Channel_{i}",
             unit=f"unit_{i}",

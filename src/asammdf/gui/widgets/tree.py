@@ -408,14 +408,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.setUniformRowHeights(True)
 
         self.details_enabled = False
-        self.hide_missing_channels = hide_missing_channels
-        self.hide_disabled_channels = hide_disabled_channels
+        self.hide_missing_channels = hide_missing_channels or False
+        self.hide_disabled_channels = hide_disabled_channels or False
         self.filter_computed_channels = False
         self.can_delete_items = True
 
         self.setHeaderHidden(False)
         self.setColumnCount(5)
-        self.setHeaderLabels(["Name", "Value", "Unit", "\u290a", "\u21A8"])
+        self.setHeaderLabels(["Name", "Value", "Unit", "\u290a", "\u21a8"])
         self.setDragEnabled(True)
         self.setExpandsOnDoubleClick(False)
 
@@ -937,13 +937,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addAction("Add pattern based channel group [Ctrl+Insert]")
         menu.addSeparator()
 
-        submenu = QtWidgets.QMenu("Copy")
+        submenu = QtWidgets.QMenu("Copy names")
         submenu.setIcon(QtGui.QIcon(":/copy.png"))
         submenu.addAction("Copy names [Ctrl+N]")
         submenu.addAction("Copy names and values")
         menu.addMenu(submenu)
 
-        submenu = QtWidgets.QMenu("Tree structure")
+        submenu = QtWidgets.QMenu("Display structure")
         submenu.setIcon(QtGui.QIcon(":/structure.png"))
         submenu.addAction("Copy display properties [Ctrl+Shift+C]")
         submenu.addAction("Paste display properties [Ctrl+Shift+V]")
@@ -964,18 +964,20 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addMenu(submenu)
         submenu = QtWidgets.QMenu("Show/hide")
 
-        if self.hide_disabled_channels:
-            show_disabled_channels = "Show disabled items"
-        else:
-            show_disabled_channels = "Hide disabled items"
-        submenu.addAction(show_disabled_channels)
-        if self.hide_missing_channels:
-            show_missing_channels = "Show missing items"
-        else:
-            show_missing_channels = "Hide missing items"
-        submenu.addAction(show_missing_channels)
-        submenu.addAction("Filter only computed channels")
-        submenu.addAction("Un-filter computed channels")
+        action = QtGui.QAction("Hide disabled items", submenu)
+        action.setCheckable(True)
+        action.setChecked(self.hide_disabled_channels)
+        submenu.addAction(action)
+
+        action = QtGui.QAction("Hide missing items", submenu)
+        action.setCheckable(True)
+        action.setChecked(self.hide_missing_channels)
+        submenu.addAction(action)
+
+        action = QtGui.QAction("Filter only computed channels", submenu)
+        action.setCheckable(True)
+        action.setChecked(self.filter_computed_channels)
+        submenu.addAction(action)
         menu.addMenu(submenu)
         menu.addSeparator()
 
@@ -1007,7 +1009,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 submenu.addAction("Edit group")
         menu.addMenu(submenu)
 
-        submenu = QtWidgets.QMenu("Display")
+        submenu = QtWidgets.QMenu("Display mode")
         # submenu.setIcon(QtGui.QIcon(":/edit.png"))
         submenu.addAction("Ascii\t[Ctrl+T]")
         submenu.addAction("Bin\t[Ctrl+B]")
@@ -1268,20 +1270,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     else:
                         item.setCheckState(item.NameColumn, QtCore.Qt.CheckState.Checked)
 
-        elif action_text == show_disabled_channels:
+        elif action_text == "Hide disabled items":
             self.hide_disabled_channels = not self.hide_disabled_channels
             self.update_hidden_states()
 
-        elif action_text == show_missing_channels:
+        elif action_text == "Hide missing items":
             self.hide_missing_channels = not self.hide_missing_channels
             self.update_hidden_states()
 
         elif action_text == "Filter only computed channels":
-            self.filter_computed_channels = True
-            self.update_hidden_states()
-
-        elif action_text == "Un-filter computed channels":
-            self.filter_computed_channels = False
+            self.filter_computed_channels = not self.filter_computed_channels
             self.update_hidden_states()
 
         elif action_text == "Add to common Y axis":

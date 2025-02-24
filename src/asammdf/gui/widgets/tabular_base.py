@@ -32,12 +32,9 @@ import logging
 from traceback import format_exc
 
 import numpy as np
-import numpy.core.defchararray as npchar
 import pandas as pd
 import pyqtgraph.functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
-
-Qt = QtCore.Qt
 
 import asammdf.mdf as mdf_module
 
@@ -57,6 +54,13 @@ from ..utils import (
     value_as_str,
 )
 from .tabular_filter import TabularFilter
+
+try:
+    npchar = np.strings
+except:
+    npchar = np.char
+
+Qt = QtCore.Qt
 
 logger = logging.getLogger("asammdf.gui")
 LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
@@ -1219,8 +1223,8 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
         self.add_filter_btn.clicked.connect(self.add_filter)
         self.apply_filters_btn.clicked.connect(self.apply_filters)
-        self.time_as_date.stateChanged.connect(self.time_as_date_changed)
-        self.remove_prefix.stateChanged.connect(self.remove_prefix_changed)
+        self.time_as_date.checkStateChanged.connect(self.time_as_date_changed)
+        self.remove_prefix.checkStateChanged.connect(self.remove_prefix_changed)
         self.format_selection.currentTextChanged.connect(self.set_format)
 
         self.toggle_filters_btn.clicked.connect(self.toggle_filters)
@@ -1505,7 +1509,6 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         return config
 
     def time_as_date_changed(self, state):
-        s = self.start
         count = self.filters.count()
 
         if state == QtCore.Qt.CheckState.Checked:

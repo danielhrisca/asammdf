@@ -264,7 +264,7 @@ def merge_cantp(payload, ts):
     merging = np.array([], "uint8")
     for frame, t in zip(payload, ts):
         if frame[0] & 0xF0 == INITIAL:
-            expected_size = 256 * (frame[0] & 0x0F) + frame[1]
+            expected_size = np.uint16(256) * (frame[0] & 0x0F) + frame[1]
             merging = np.array(frame[2:8], "uint8")
         if frame[0] & 0xF0 == CONSECUTIVE:
             merging = np.hstack((merging, frame[1:]))
@@ -332,10 +332,12 @@ def extract_mux(
                     multiplexor_name = sig.name
                     break
             for sig in message:
-                if sig.multiplex not in (None, "Multiplexor") and sig.muxer_for_signal is None:
-                    sig.muxer_for_signal = multiplexor_name
-                    sig.mux_val_min = sig.mux_val_max = int(sig.multiplex)
-                    sig.mux_val_grp.insert(0, (int(sig.multiplex), int(sig.multiplex)))
+                if sig.multiplex not in (None, "Multiplexor"):
+                    if sig.muxer_for_signal is None:
+                        sig.muxer_for_signal = multiplexor_name
+                    if not hasattr(sig, "mux_val_min"):
+                        sig.mux_val_min = sig.mux_val_max = int(sig.multiplex)
+                        sig.mux_val_grp.insert(0, (int(sig.multiplex), int(sig.multiplex)))
 
     extracted_signals = {}
 
@@ -396,10 +398,16 @@ def extract_mux(
                 sig_name = sig.name
 
             try:
+                scale_ranges = getattr(sig, "scale_ranges", None)
+                if scale_ranges:
+                    unit = scale_ranges[0]["unit"] or ""
+                else:
+                    unit = sig.unit or ""
+
                 signals[sig_name] = {
                     "name": sig_name,
                     "comment": sig.comment or "",
-                    "unit": sig.unit or "",
+                    "unit": unit,
                     "samples": samples if raw else apply_conversion(samples, sig, ignore_value2text_conversion),
                     "conversion": get_conversion(sig) if raw else None,
                     "t": t_,
@@ -441,8 +449,24 @@ def get_conversion(signal: Signal) -> v4b.ChannelConversion | None:
 
     a, b = float(signal.factor), float(signal.offset)
 
-    if signal.values:
-        conv = {}
+    conv = {}
+
+    scale_ranges = getattr(signal, "scale_ranges", None)
+    if scale_ranges:
+        for i, scale_info in enumerate(scale_ranges):
+            conv[f"upper_{i}"] = scale_info["max"]
+            conv[f"lower_{i}"] = scale_info["min"]
+            conv[f"text_{i}"] = from_dict({"a": scale_info["factor"], "b": scale_info["offset"]})
+
+        for i, (val, text) in enumerate(signal.values.items(), len(scale_ranges)):
+            conv[f"upper_{i}"] = val
+            conv[f"lower_{i}"] = val
+            conv[f"text_{i}"] = text
+
+        conv["default"] = from_dict({"a": a, "b": b})
+
+    elif signal.values:
+
         for i, (val, text) in enumerate(signal.values.items()):
             conv[f"upper_{i}"] = val
             conv[f"lower_{i}"] = val

@@ -1,8 +1,3 @@
-pip install -U black ruff && ^
-black --config pyproject.toml ./src && ^
-black --config pyproject.toml ./test && ^
-black --config pyproject.toml asammdf.spec && ^
-black --config pyproject.toml setup.py && ^
-ruff check --fix ./src && ^
-ruff check --fix ./test && ^
-ruff check --fix ./setup.py
+pip install --upgrade black~=25.1 ruff~=0.9.0 && ^
+black --config pyproject.toml . asammdf.spec && ^
+ruff check --fix

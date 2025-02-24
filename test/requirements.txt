@@ -1,16 +1,6 @@
-natsort
-numexpr
-numpy>=1.23.0
-pandas
-psutil
-pyautogui
-python-xlib; sys_platform=="linux"
+PyAutoGUI
 pytest
 pytest-cov
-canmatrix[arxml,dbc]>=1.0
-lz4
-typing_extensions
-PySide6
-pyqtgraph
-python-dateutil
-isal; platform_machine == "x86_64" or platform_machine == "AMD64"
+pytest-timeout
+python-can
+xmlrunner; python_version < "3.12"

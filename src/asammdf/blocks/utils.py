@@ -2,14 +2,15 @@
 asammdf utility functions and classes
 """
 
-from __future__ import annotations
-
-from collections.abc import Iterator
+from collections import namedtuple
+from collections.abc import Callable, Collection, Iterator
 from copy import deepcopy
 from functools import lru_cache
-from io import StringIO
 import json
 import logging
+import mmap
+import multiprocessing
+from os import PathLike
 from pathlib import Path
 from random import randint
 import re
@@ -20,12 +21,78 @@ import sys
 from tempfile import TemporaryDirectory
 from time import perf_counter
 from traceback import format_exc
-from typing import Any, overload
+from types import TracebackType
+import typing
+from typing import Any, Optional, overload, Protocol, TYPE_CHECKING, TypeVar, Union
 import xml.etree.ElementTree as ET
 
-import lxml
-from typing_extensions import Literal, TypedDict
+from canmatrix.canmatrix import CanMatrix, matrix_class
+import canmatrix.formats
+import lxml.etree
+import numpy as np
+from numpy import arange, bool_, dtype, interp, where
+from numpy.typing import NDArray
+import pandas as pd
+from pandas import Series
+from typing_extensions import (
+    Buffer,
+    Literal,
+    NotRequired,
+    ParamSpec,
+    runtime_checkable,
+    TypedDict,
+    TypeIs,
+    Unpack,
+)
 
+from . import v2_v3_constants as v3c
+from . import v4_constants as v4c
+
+try:
+    from pyqtgraph import functions as fn
+except ImportError:
+
+    class fn:  # type: ignore[no-redef]
+        @classmethod
+        def mkColor(cls, color: str) -> str:
+            return color
+
+        @classmethod
+        def mkPen(cls, color: str) -> str:
+            return color
+
+        @classmethod
+        def mkBrush(cls, color: str) -> str:
+            return color
+
+
+try:
+    from cchardet import detect
+except:
+    try:
+        from chardet import detect
+    except:
+
+        class DetectDict(TypedDict):
+            encoding: Optional[str]
+
+        def detect(text: bytes) -> DetectDict:
+            encoding: Optional[str]
+            for encoding in ("utf-8", "latin-1", "cp1250", "cp1252"):
+                try:
+                    text.decode(encoding)
+                    break
+                except:
+                    continue
+            else:
+                encoding = None
+            return {"encoding": encoding}
+
+
+if TYPE_CHECKING:
+    from PySide6 import QtCore
+
+THREAD_COUNT = max(multiprocessing.cpu_count() - 1, 1)
 TERMINATED = object()
 NONE = object()
 COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
@@ -46,79 +113,21 @@ COLORS = [
 ]
 COLORS_COUNT = len(COLORS)
 
-try:
-    from pyqtgraph import functions as fn
-except ImportError:
-
-    class fn:
-        @classmethod
-        def mkColor(cls, color):
-            return color
-
-        @classmethod
-        def mkPen(cls, color):
-            return color
-
-        @classmethod
-        def mkBrush(cls, color):
-            return color
-
-
-try:
-    from cchardet import detect
-except:
-    try:
-        from chardet import detect
-    except:
-
-        class DetectDict(TypedDict):
-            encoding: str | None
-
-        def detect(text: bytes) -> DetectDict:
-            for encoding in ("utf-8", "latin-1", "cp1250", "cp1252"):
-                try:
-                    text.decode(encoding)
-                    break
-                except:
-                    continue
-            else:
-                encoding = None
-            return {"encoding": encoding}
-
-
-from canmatrix.canmatrix import CanMatrix, matrix_class
-import canmatrix.formats
-import numpy as np
-from numpy import arange, bool_, dtype, interp, where
-from numpy.typing import NDArray
-from pandas import Series
-
-from ..types import (
-    ChannelType,
-    DataGroupType,
-    MDF_v2_v3_v4,
-    RasterType,
-    ReadableBufferType,
-    StrPathType,
-)
-from . import v2_v3_constants as v3c
-from . import v4_constants as v4c
-
-UINT8_u = Struct("<B").unpack
-UINT16_u = Struct("<H").unpack
+UINT8_u: Callable[[Buffer], tuple[int]] = Struct("<B").unpack
+UINT16_u: Callable[[Buffer], tuple[int]] = Struct("<H").unpack
 UINT32_p = Struct("<I").pack
-UINT32_u = Struct("<I").unpack
-UINT64_u = Struct("<Q").unpack
-UINT8_uf = Struct("<B").unpack_from
-UINT16_uf = Struct("<H").unpack_from
-UINT32_uf = Struct("<I").unpack_from
-UINT64_uf = Struct("<Q").unpack_from
-FLOAT64_u = Struct("<d").unpack
-FLOAT64_uf = Struct("<d").unpack_from
-TWO_UINT64_u = Struct("<2Q").unpack
-TWO_UINT64_uf = Struct("<2Q").unpack_from
-BLK_COMMON_uf = Struct("<4s4xQ").unpack_from
-BLK_COMMON_u = Struct("<4s4xQ8x").unpack
+UINT32_u: Callable[[Buffer], tuple[int]] = Struct("<I").unpack
+UINT64_u: Callable[[Buffer], tuple[int]] = Struct("<Q").unpack
+UINT8_uf: Callable[[Buffer, int], tuple[int]] = Struct("<B").unpack_from
+UINT16_uf: Callable[[Buffer, int], tuple[int]] = Struct("<H").unpack_from
+UINT32_uf: Callable[[Buffer, int], tuple[int]] = Struct("<I").unpack_from
+UINT64_uf: Callable[[Buffer, int], tuple[int]] = Struct("<Q").unpack_from
+FLOAT64_u: Callable[[Buffer], tuple[float]] = Struct("<d").unpack
+FLOAT64_uf: Callable[[Buffer, int], tuple[float]] = Struct("<d").unpack_from
+TWO_UINT64_u: Callable[[Buffer], tuple[int, int]] = Struct("<2Q").unpack
+TWO_UINT64_uf: Callable[[Buffer, int], tuple[int, int]] = Struct("<2Q").unpack_from
+BLK_COMMON_uf: Callable[[Buffer, int], tuple[bytes, int]] = Struct("<4s4xQ").unpack_from
+BLK_COMMON_u: Callable[[Buffer], tuple[bytes, int]] = Struct("<4s4xQ8x").unpack
 
 EMPTY_TUPLE = ()
 
@@ -129,34 +138,32 @@ logger = logging.getLogger("asammdf")
 __all__ = [
     "CHANNEL_COUNT",
     "CONVERT",
-    "MERGE",
-    "ChannelsDB",
-    "UniqueDB",
-    "MdfException",
-    "get_fmt_v3",
-    "get_fmt_v4",
-    "get_text_v4",
-    "fmt_to_datatype_v3",
-    "fmt_to_datatype_v4",
-    "matlab_compatible",
-    "extract_xml_comment",
-    "validate_version_argument",
     "MDF2_VERSIONS",
     "MDF3_VERSIONS",
     "MDF4_VERSIONS",
+    "MERGE",
     "SUPPORTED_VERSIONS",
+    "ChannelsDB",
+    "MdfException",
+    "UniqueDB",
+    "extract_xml_comment",
+    "fmt_to_datatype_v3",
+    "fmt_to_datatype_v4",
+    "get_fmt_v3",
+    "get_fmt_v4",
+    "get_text_v4",
+    "matlab_compatible",
+    "validate_version_argument",
 ]
 
-CHANNEL_COUNT = (1000, 2000, 10000, 20000)
-_channel_count = arange(0, 20000, 1000, dtype="<u4")
+_channel_count = (1000, 2000, 10000, 20000)
+CHANNEL_COUNT = arange(0, 20000, 1000, dtype="<u4")
 
-CONVERT = (10 * 2**20, 20 * 2**20, 30 * 2**20, 40 * 2**20)
-CONVERT = interp(_channel_count, CHANNEL_COUNT, CONVERT).astype("<u4")
+_convert = (10 * 2**20, 20 * 2**20, 30 * 2**20, 40 * 2**20)
+CONVERT = interp(CHANNEL_COUNT, _channel_count, _convert).astype("<u4")
 
-MERGE = (10 * 2**20, 20 * 2**20, 35 * 2**20, 60 * 2**20)
-MERGE = interp(_channel_count, CHANNEL_COUNT, MERGE).astype("<u4")
-
-CHANNEL_COUNT = _channel_count
+_merge = (10 * 2**20, 20 * 2**20, 35 * 2**20, 60 * 2**20)
+MERGE = interp(CHANNEL_COUNT, _channel_count, _merge).astype("<u4")
 
 MDF2_VERSIONS = ("2.00", "2.10", "2.14")
 MDF3_VERSIONS = ("3.00", "3.10", "3.20", "3.30")
@@ -170,7 +177,7 @@ ALLOWED_MATLAB_CHARS = set(string.ascii_letters + string.digits + "_")
 class MdfException(Exception):
     """MDF Exception class"""
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"asammdf MdfException: {self.args[0]}"
 
 
@@ -191,15 +198,15 @@ def extract_xml_comment(comment: str) -> str:
 
     comment = comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
     try:
-        comment = ET.fromstring(comment)
-        match = comment.find(".//TX")
+        comment_elem = ET.fromstring(comment)
+        match = comment_elem.find(".//TX")
         if match is None:
-            common_properties = comment.find(".//common_properties")
+            common_properties = comment_elem.find(".//common_properties")
             if common_properties is not None:
-                comment = []
+                comments: list[str] = []
                 for e in common_properties:
                     field = f'{e.get("name")}: {e.text}'
-                    comment.append(field)
+                    comments.append(field)
                 comment = "\n".join(field)
             else:
                 comment = ""
@@ -226,8 +233,8 @@ def matlab_compatible(name: str) -> str:
 
     """
 
-    compatible_name = [ch if ch in ALLOWED_MATLAB_CHARS else "_" for ch in name]
-    compatible_name = "".join(compatible_name)
+    compatible_names = [ch if ch in ALLOWED_MATLAB_CHARS else "_" for ch in name]
+    compatible_name = "".join(compatible_names)
 
     if compatible_name[0] not in string.ascii_letters:
         compatible_name = "M_" + compatible_name
@@ -237,10 +244,30 @@ def matlab_compatible(name: str) -> str:
     return compatible_name[:60]
 
 
+@runtime_checkable
+class FileLike(Protocol):
+    def __iter__(self) -> Iterator[bytes]: ...
+    def close(self) -> None: ...
+    def read(self, size: Optional[int] = -1, /) -> bytes: ...
+    def seek(self, target: int, whence: int = 0, /) -> int: ...
+    def tell(self) -> int: ...
+    def write(self, buffer: Buffer, /) -> int: ...
+
+
+class BlockKwargs(TypedDict, total=False):
+    stream: Union[FileLike, mmap.mmap]
+    mapped: bool
+    address: int
+
+
+def stream_is_mmap(_stream: Union[FileLike, mmap.mmap], mapped: bool) -> TypeIs[mmap.mmap]:
+    return mapped
+
+
 @overload
 def get_text_v3(
     address: int,
-    stream: ReadableBufferType,
+    stream: Union[FileLike, mmap.mmap],
     mapped: bool = ...,
     decode: Literal[True] = ...,
 ) -> str: ...
@@ -249,13 +276,15 @@ def get_text_v3(
 @overload
 def get_text_v3(
     address: int,
-    stream: ReadableBufferType,
+    stream: Union[FileLike, mmap.mmap],
     mapped: bool = ...,
     decode: Literal[False] = ...,
 ) -> bytes: ...
 
 
-def get_text_v3(address: int, stream: ReadableBufferType, mapped: bool = False, decode: bool = True) -> str | bytes:
+def get_text_v3(
+    address: int, stream: Union[FileLike, mmap.mmap], mapped: bool = False, decode: bool = True
+) -> Union[bytes, str]:
     """faster way to extract strings from mdf versions 2 and 3 TextBlock
 
     Parameters
@@ -275,7 +304,7 @@ def get_text_v3(address: int, stream: ReadableBufferType, mapped: bool = False, 
     if address == 0:
         return "" if decode else b""
 
-    if mapped:
+    if stream_is_mmap(stream, mapped):
         block_id = stream[address : address + 2]
         if block_id != b"TX":
             return "" if decode else b""
@@ -288,14 +317,20 @@ def get_text_v3(address: int, stream: ReadableBufferType, mapped: bool = False, 
             return "" if decode else b""
         size = UINT16_u(stream.read(2))[0] - 4
         text_bytes = stream.read(size).split(b"\0", 1)[0].strip(b" \r\t\n")
+
+    text: Union[bytes, str]
+
     if decode:
         try:
             text = text_bytes.decode("latin-1")
         except UnicodeDecodeError:
-            try:
-                encoding = detect(text_bytes)["encoding"]
-                text = text_bytes.decode(encoding, "ignore")
-            except:
+            encoding = detect(text_bytes)["encoding"]
+            if encoding:
+                try:
+                    text = text_bytes.decode(encoding, "ignore")
+                except:
+                    text = "<!text_decode_error>"
+            else:
                 text = "<!text_decode_error>"
     else:
         text = text_bytes
@@ -303,25 +338,37 @@ def get_text_v3(address: int, stream: ReadableBufferType, mapped: bool = False, 
     return text
 
 
+MappedText = namedtuple("MappedText", ["raw", "decoded"])
+
+
 @overload
 def get_text_v4(
     address: int,
-    stream: ReadableBufferType,
+    stream: Union[FileLike, mmap.mmap],
     mapped: bool = ...,
     decode: Literal[True] = ...,
+    tx_map: Union[dict, None] = ...,
 ) -> str: ...
 
 
 @overload
 def get_text_v4(
     address: int,
-    stream: ReadableBufferType,
+    stream: Union[FileLike, mmap.mmap],
     mapped: bool = ...,
-    decode: Literal[False] = ...,
+    *,
+    decode: Literal[False],
+    tx_map: Union[dict, None],
 ) -> bytes: ...
 
 
-def get_text_v4(address: int, stream: ReadableBufferType, mapped: bool = False, decode: bool = True) -> str | bytes:
+def get_text_v4(
+    address: int,
+    stream: Union[FileLike, mmap.mmap],
+    mapped: bool = False,
+    decode: bool = True,
+    tx_map: Union[dict, None] = None,
+) -> Union[bytes, str]:
     """faster way to extract strings from mdf version 4 TextBlock
 
     Parameters
@@ -330,6 +377,12 @@ def get_text_v4(address: int, stream: ReadableBufferType, mapped: bool = False, 
         TextBlock address
     stream : handle
         file IO handle
+    mapped: bool
+        flag for mapped stream
+    decode: bool
+        option to return decoded str instead of raw btyes
+    tx_map : dict | None
+        map that contains interned strings
 
     Returns
     -------
@@ -338,34 +391,42 @@ def get_text_v4(address: int, stream: ReadableBufferType, mapped: bool = False, 
 
     """
 
+    if mapped_text := tx_map.get(address, None):
+        return mapped_text.decoded if decode else mapped_text.raw
+
     if address == 0:
+        tx_map[address] = MappedText(b"", "")
         return "" if decode else b""
 
-    if mapped:
+    if stream_is_mmap(stream, mapped):
         block_id, size = BLK_COMMON_uf(stream, address)
         if block_id not in (b"##TX", b"##MD"):
+            tx_map[address] = MappedText(b"", "")
             return "" if decode else b""
         text_bytes = stream[address + 24 : address + size].split(b"\0", 1)[0].strip(b" \r\t\n")
     else:
         stream.seek(address)
         block_id, size = BLK_COMMON_u(stream.read(24))
         if block_id not in (b"##TX", b"##MD"):
+            tx_map[address] = MappedText(b"", "")
             return "" if decode else b""
         text_bytes = stream.read(size - 24).split(b"\0", 1)[0].strip(b" \r\t\n")
 
-    if decode:
-        try:
-            text = text_bytes.decode("utf-8")
-        except UnicodeDecodeError:
+    try:
+        decoded_text = text_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        encoding = detect(text_bytes)["encoding"]
+        if encoding:
             try:
-                encoding = detect(text_bytes)["encoding"]
-                text = text_bytes.decode(encoding, "ignore")
+                decoded_text = text_bytes.decode(encoding, "ignore")
             except:
-                text = "<!text_decode_error>"
-    else:
-        text = text_bytes
+                decoded_text = "<!text_decode_error>"
+        else:
+            decoded_text = "<!text_decode_error>"
 
-    return text
+    tx_map[address] = MappedText(text_bytes, decoded_text)
+
+    return decoded_text if decode else text_bytes
 
 
 def sanitize_xml(text: str) -> str:
@@ -383,6 +444,8 @@ def extract_display_names(comment: str) -> dict[str, str]:
             for i, elem in enumerate(names.iter()):
                 if i == 0:
                     continue
+                if elem.text is None:
+                    raise ValueError("text is None")
                 display_names[elem.text.strip(" \t\r\n\v\0")] = elem.tag
 
         except:
@@ -391,17 +454,44 @@ def extract_display_names(comment: str) -> dict[str, str]:
     return display_names
 
 
-def extract_encryption_information(comment: str) -> dict[str, str]:
-    info = {}
+class EncryptionInfo(TypedDict, total=False):
+    encrypted: bool
+    algorithm: str
+    original_md5_sum: str
+    original_size: int
+
+
+def extract_encryption_information(comment: str) -> EncryptionInfo:
+    info: EncryptionInfo = {}
     comment = comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
     if comment.startswith("<ATcomment") and "<encrypted>" in comment:
         try:
-            comment = ET.fromstring(comment)
-            for match in comment.findall(".//extensions/extension"):
-                encrypted = match.find("encrypted").text.strip().lower() == "true"
-                algorithm = match.find("algorithm").text.strip().lower()
-                original_md5_sum = match.find("original_md5_sum").text.strip().lower()
-                original_size = int(match.find("original_size").text)
+            comment_elem = ET.fromstring(comment)
+            for match in comment_elem.findall(".//extensions/extension"):
+                elem = match.find("encrypted")
+                if elem is None:
+                    raise RuntimeError("cannot find 'encrypted' Element")
+                if elem.text is None:
+                    raise RuntimeError("text is None")
+                encrypted = elem.text.strip().lower() == "true"
+                elem = match.find("algorithm")
+                if elem is None:
+                    raise RuntimeError("cannot find 'algorithm' Element")
+                if elem.text is None:
+                    raise RuntimeError("text is None")
+                algorithm = elem.text.strip().lower()
+                elem = match.find("original_md5_sum")
+                if elem is None:
+                    raise RuntimeError("cannot find 'original_md5_sum' Element")
+                if elem.text is None:
+                    raise RuntimeError("text is None")
+                original_md5_sum = elem.text.strip().lower()
+                elem = match.find("original_size")
+                if elem is None:
+                    raise RuntimeError("cannot find 'original_size' Element")
+                if elem.text is None:
+                    raise RuntimeError("text is None")
+                original_size = int(elem.text)
 
                 info["encrypted"] = encrypted
                 info["algorithm"] = algorithm
@@ -418,8 +508,8 @@ def extract_ev_tool(comment: str) -> str:
     tool = ""
     comment = comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
     try:
-        comment = ET.fromstring(comment)
-        match = comment.find(".//tool")
+        comment_elem = ET.fromstring(comment)
+        match = comment_elem.find(".//tool")
         if match is None:
             tool = ""
         else:
@@ -537,7 +627,7 @@ def get_fmt_v4(data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_V
 
     """
     if data_type in v4c.NON_SCALAR_TYPES:
-        size = size // 8
+        size = size // 8 or 1
 
         if data_type in (
             v4c.DATA_TYPE_BYTEARRAY,
@@ -825,59 +915,8 @@ def as_non_byte_sized_signed_int(integer_array: NDArray[Any], bit_length: int) -
     )
 
 
-def debug_channel(
-    mdf: MDF_v2_v3_v4,
-    group: Group,
-    channel: ChannelType,
-    dependency: list[tuple[int, int]],
-    file: StringIO | None = None,
-) -> None:
-    """use this to print debug information in case of errors
-
-    Parameters
-    ----------
-    mdf : MDF
-        source MDF object
-    group : dict
-        group
-    channel : Channel
-        channel object
-    dependency : ChannelDependency
-        channel dependency object
-
-    """
-    print("MDF", "=" * 76, file=file)
-    print("name:", mdf.name, file=file)
-    print("version:", mdf.version, file=file)
-    print("read fragment size:", mdf._read_fragment_size, file=file)
-    print("write fragment size:", mdf._write_fragment_size, file=file)
-    print()
-
-    record = mdf._prepare_record(group)
-    print("GROUP", "=" * 74, file=file)
-    print("sorted:", group["sorted"], file=file)
-    print("data location:", group["data_location"], file=file)
-    print("data blocks:", group.data_blocks, file=file)
-    print("dependencies", group["channel_dependencies"], file=file)
-    print("record:", record, file=file)
-    print(file=file)
-
-    cg = group["channel_group"]
-    print("CHANNEL GROUP", "=" * 66, file=file)
-    print(cg, cg.cycles_nr, cg.samples_byte_nr, cg.invalidation_bytes_nr, file=file)
-    print(file=file)
-
-    print("CHANNEL", "=" * 72, file=file)
-    print(channel, file=file)
-    print(file=file)
-
-    print("CHANNEL ARRAY", "=" * 66, file=file)
-    print(dependency, file=file)
-    print(file=file)
-
-
 def count_channel_groups(
-    stream: ReadableBufferType, include_channels: bool = False, mapped: bool = False
+    stream: Union[FileLike, mmap.mmap], include_channels: bool = False, mapped: bool = False
 ) -> tuple[int, int]:
     """count all channel groups as fast as possible. This is used to provide
     reliable progress information when loading a file using the GUI
@@ -911,10 +950,10 @@ def count_channel_groups(
         if blk_id == b"##HD":
             version = 4
         else:
-            raise MdfException(f'"{stream.name}" is not a valid MDF file')
+            raise MdfException(f"'{getattr(stream, 'name', stream)}' is not a valid MDF file")
 
     if version >= 4:
-        if mapped:
+        if stream_is_mmap(stream, mapped):
             dg_addr = UINT64_uf(stream, 88)[0]
             while dg_addr:
                 stream.seek(dg_addr + 32)
@@ -997,6 +1036,14 @@ def count_channel_groups(
     return count, ch_count
 
 
+@overload
+def validate_version_argument(version: v3c.Version2, hint: Literal[2] = ...) -> v3c.Version2: ...
+
+
+@overload
+def validate_version_argument(version: v3c.Version, hint: Literal[3] = ...) -> v3c.Version: ...
+
+
 def validate_version_argument(version: str, hint: int = 4) -> str:
     """validate the version argument against the supported MDF versions. The
     default version used depends on the hint MDF major revision
@@ -1077,7 +1124,7 @@ def randomized_string(size: int) -> bytes:
     return bytes(randint(65, 90) for _ in range(size - 1)) + b"\0"
 
 
-def is_file_like(obj: object) -> bool:
+def is_file_like(obj: object) -> TypeIs[FileLike]:
     """
     Check if the object is a file-like object.
 
@@ -1099,24 +1146,18 @@ def is_file_like(obj: object) -> bool:
 
     Examples
     --------
-    >>> buffer(StringIO("data"))
+    >>> buffer = BytesIO(b"data")
     >>> is_file_like(buffer)
     True
     >>> is_file_like([1, 2, 3])
     False
     """
-    if not (hasattr(obj, "read") and hasattr(obj, "seek")):
-        return False
-
-    if not hasattr(obj, "__iter__"):
-        return False
-
-    return True
+    return isinstance(obj, FileLike) or isinstance(getattr(obj, "file", None), FileLike)
 
 
 class UniqueDB:
     def __init__(self) -> None:
-        self._db = {}
+        self._db: dict[str, int] = {}
 
     def get_unique_name(self, name: str) -> str:
         """returns an available unique name
@@ -1194,13 +1235,13 @@ def cut_video_stream(stream: bytes, start: float, end: float, fmt: str) -> bytes
     return result
 
 
-def get_video_stream_duration(stream: bytes) -> float | None:
+def get_video_stream_duration(stream: bytes) -> Optional[float]:
     with TemporaryDirectory() as tmp:
         in_file = Path(tmp) / "in"
         in_file.write_bytes(stream)
 
         try:
-            result = subprocess.run(
+            process = subprocess.run(
                 [
                     "ffprobe",
                     "-v",
@@ -1214,95 +1255,10 @@ def get_video_stream_duration(stream: bytes) -> float | None:
                 capture_output=True,
                 check=False,
             )
-            result = float(result.stdout)
+            result = float(process.stdout)
         except FileNotFoundError:
             result = None
     return result
-
-
-class Group:
-    __slots__ = (
-        "channels",
-        "channel_dependencies",
-        "signal_data",
-        "channel_group",
-        "record_size",
-        "sorted",
-        "data_group",
-        "data_location",
-        "data_blocks",
-        "data_blocks_info_generator",
-        "record_size",
-        "record",
-        "signal_types",
-        "trigger",
-        "string_dtypes",
-        "single_channel_dtype",
-        "uses_ld",
-        "read_split_count",
-        "uuid",
-        "index",
-    )
-
-    def __init__(self, data_group: DataGroupType) -> None:
-        self.data_group = data_group
-        self.channels = []
-        self.channel_dependencies = []
-        self.signal_data = []
-        self.record = None
-        self.trigger = None
-        self.string_dtypes = None
-        self.data_blocks = []
-        self.single_channel_dtype = None
-        self.uses_ld = False
-        self.read_split_count = 0
-        self.data_blocks_info_generator = iter(EMPTY_TUPLE)
-        self.uuid = ""
-        self.index = 0
-
-    def __getitem__(self, item: str) -> Any:
-        return self.__getattribute__(item)
-
-    def __setitem__(self, item: str, value: Any) -> None:
-        self.__setattr__(item, value)
-
-    def set_blocks_info(self, info: list[DataBlockInfo]) -> None:
-        self.data_blocks = info
-
-    def __contains__(self, item: str) -> bool:
-        return hasattr(self, item)
-
-    def clear(self) -> None:
-        self.data_blocks.clear()
-        self.channels.clear()
-        self.channel_dependencies.clear()
-        self.signal_data.clear()
-        self.data_blocks_info_generator = None
-
-    def get_data_blocks(self) -> Iterator[DataBlockInfo]:
-        yield from self.data_blocks
-
-        while True:
-            try:
-                info = next(self.data_blocks_info_generator)
-                self.data_blocks.append(info)
-                yield info
-            except StopIteration:
-                break
-
-    def get_signal_data_blocks(self, index: int) -> Iterator[SignalDataBlockInfo]:
-        signal_data = self.signal_data[index]
-        if signal_data is not None:
-            signal_data, signal_generator = signal_data
-            yield from signal_data
-
-            while True:
-                try:
-                    info = next(signal_generator)
-                    signal_data.append(info)
-                    yield info
-                except StopIteration:
-                    break
 
 
 class VirtualChannelGroup:
@@ -1312,17 +1268,17 @@ class VirtualChannelGroup:
     handling of this virtual groups"""
 
     __slots__ = (
+        "cycles_nr",
         "groups",
         "record_size",
-        "cycles_nr",
     )
 
     def __init__(self) -> None:
-        self.groups = []
+        self.groups: list[int] = []
         self.record_size = 0
         self.cycles_nr = 0
 
-    def __repr__(self) -> None:
+    def __repr__(self) -> str:
         return f"VirtualChannelGroup(groups={self.groups}, records_size={self.record_size}, cycles_nr={self.cycles_nr})"
 
 
@@ -1341,14 +1297,40 @@ def block_fields(obj: object) -> list[str]:
     return fields
 
 
+@overload
+def components(
+    channel: NDArray[Any],
+    channel_name: str,
+    unique_names: UniqueDB,
+    prefix: str = ...,
+    master: Optional["pd.Index[float]"] = ...,
+    only_basenames: bool = ...,
+    use_polars: Literal[False] = ...,
+) -> Iterator[tuple[str, "pd.Series[Any]"]]: ...
+
+
+@overload
+def components(
+    channel: NDArray[Any],
+    channel_name: str,
+    unique_names: UniqueDB,
+    prefix: str = ...,
+    master: Optional["pd.Index[float]"] = ...,
+    only_basenames: bool = ...,
+    *,
+    use_polars: Literal[True],
+) -> Iterator[tuple[str, "list[Any]"]]: ...
+
+
 def components(
     channel: NDArray[Any],
     channel_name: str,
     unique_names: UniqueDB,
     prefix: str = "",
-    master: NDArray[Any] | None = None,
+    master: Optional["pd.Index[float]"] = None,
     only_basenames: bool = False,
-) -> tuple[str, Series[Any]]:
+    use_polars: bool = False,
+) -> Iterator[tuple[str, Union["pd.Series[Any]", list[Any]]]]:
     """yield pandas Series and unique name based on the ndarray object
 
     Parameters
@@ -1361,13 +1343,18 @@ def components(
         unique names object
     prefix : str
         prefix used in case of nested recarrays
-    master : np.array
+    master : pd.Index
         optional index for the Series
     only_basenames (False) : bool
         use just the field names, without prefix, for structures and channel
         arrays
 
         .. versionadded:: 5.13.0
+
+    use_polars (False) : bool
+        use polars
+
+        .. versionadded:: 8.1.0
 
     Returns
     -------
@@ -1377,7 +1364,7 @@ def components(
     names = channel.dtype.names
 
     # channel arrays
-    if names[0] == channel_name:
+    if names and names[0] == channel_name:
         name = names[0]
 
         if not only_basenames:
@@ -1388,41 +1375,49 @@ def components(
         else:
             name_ = unique_names.get_unique_name(name)
 
-        values = channel[name]
-        if values.dtype.byteorder not in target_byte_order:
-            values = values.byteswap().view(values.dtype.newbyteorder())
+        samples = channel[name]
+        if samples.dtype.byteorder not in target_byte_order:
+            samples = samples.byteswap().view(samples.dtype.newbyteorder())
 
-        if len(values.shape) > 1:
-            values = Series(
-                list(values),
-                index=master,
+        if len(samples.shape) > 1:
+            values = (
+                list(samples)
+                if use_polars
+                else Series(
+                    list(samples),
+                    index=master,
+                )
             )
-        else:
+        elif not use_polars:
             values = Series(
-                values,
+                samples,
                 index=master,
             )
 
         yield name_, values
 
-        for name in names[1:]:
-            values = channel[name]
+        for name in names[1:] if names else ():
+            samples = channel[name]
 
-            if values.dtype.byteorder not in target_byte_order:
-                values = values.byteswap().view(values.dtype.newbyteorder())
+            if samples.dtype.byteorder not in target_byte_order:
+                samples = samples.byteswap().view(samples.dtype.newbyteorder())
 
             if not only_basenames:
                 axis_name = unique_names.get_unique_name(f"{name_}.{name}")
             else:
                 axis_name = unique_names.get_unique_name(name)
-            if len(values.shape) > 1:
-                values = Series(
-                    list(values),
-                    index=master,
+            if len(samples.shape) > 1:
+                values = (
+                    list(samples)
+                    if use_polars
+                    else Series(
+                        list(samples),
+                        index=master,
+                    )
                 )
-            else:
+            elif not use_polars:
                 values = Series(
-                    values,
+                    samples,
                     index=master,
                 )
 
@@ -1430,12 +1425,12 @@ def components(
 
     # structure composition
     else:
-        for name in channel.dtype.names:
-            values = channel[name]
+        for name in channel.dtype.names or ():
+            samples = channel[name]
 
-            if values.dtype.names:
+            if samples.dtype.names:
                 yield from components(
-                    values,
+                    samples,
                     name,
                     unique_names,
                     prefix=f"{prefix}.{channel_name}" if prefix else f"{channel_name}",
@@ -1444,8 +1439,8 @@ def components(
                 )
 
             else:
-                if values.dtype.byteorder not in target_byte_order:
-                    values = values.byteswap().view(values.dtype.newbyteorder())
+                if samples.dtype.byteorder not in target_byte_order:
+                    samples = samples.byteswap().view(samples.dtype.newbyteorder())
 
                 if not only_basenames:
                     name_ = unique_names.get_unique_name(
@@ -1453,14 +1448,18 @@ def components(
                     )
                 else:
                     name_ = unique_names.get_unique_name(name)
-                if len(values.shape) > 1:
-                    values = Series(
-                        list(values),
-                        index=master,
+                if len(samples.shape) > 1:
+                    values = (
+                        list(samples)
+                        if use_polars
+                        else Series(
+                            list(samples),
+                            index=master,
+                        )
                     )
-                else:
+                elif not use_polars:
                     values = Series(
-                        values,
+                        samples,
                         index=master,
                     )
 
@@ -1470,12 +1469,14 @@ def components(
 class DataBlockInfo:
     __slots__ = (
         "address",
-        "block_type",
-        "original_size",
-        "compressed_size",
-        "param",
-        "invalidation_block",
         "block_limit",
+        "block_type",
+        "compressed_size",
+        "first_timestamp",
+        "invalidation_block",
+        "last_timestamp",
+        "original_size",
+        "param",
     )
 
     def __init__(
@@ -1485,8 +1486,10 @@ class DataBlockInfo:
         original_size: int,
         compressed_size: int,
         param: int,
-        invalidation_block=None,
-        block_limit: int | None = None,
+        invalidation_block: Optional["InvalidationBlockInfo"] = None,
+        block_limit: Optional[int] = None,
+        first_timestamp: Optional[bytes] = None,
+        last_timestamp: Optional[bytes] = None,
     ) -> None:
         self.address = address
         self.block_type = block_type
@@ -1495,6 +1498,8 @@ class DataBlockInfo:
         self.param = param
         self.invalidation_block = invalidation_block
         self.block_limit = block_limit
+        self.first_timestamp = first_timestamp
+        self.last_timestamp = last_timestamp
 
     def __repr__(self) -> str:
         return (
@@ -1504,7 +1509,33 @@ class DataBlockInfo:
             f"compressed_size={self.compressed_size}, "
             f"param={self.param}, "
             f"invalidation_block={self.invalidation_block}, "
-            f"block_limit={self.block_limit})"
+            f"block_limit={self.block_limit}, "
+            f"first_timestamp={self.first_timestamp!r}, "
+            f"last_timestamp={self.last_timestamp!r})"
+        )
+
+
+class Fragment:
+    def __init__(
+        self,
+        data: bytes,
+        record_offset: int = -1,
+        record_count: int = -1,
+        invalidation_data: Optional[bytes] = None,
+        is_record: bool = True,
+    ) -> None:
+        self.data = data
+        self.record_count = record_count
+        self.record_offset = record_offset
+        self.invalidation_data = invalidation_data
+        self.is_record = is_record
+
+    def __repr__(self) -> str:
+        return (
+            f"FragmentInfo({len(self.data)} bytes, "
+            f"record_offset={self.record_offset}, "
+            f"record_count={self.record_count}, "
+            f"is_record={self.is_record})"
         )
 
 
@@ -1519,9 +1550,9 @@ class InvalidationBlockInfo(DataBlockInfo):
         compressed_size: int,
         param: int,
         all_valid: bool = False,
-        block_limit: int | None = None,
+        block_limit: Optional[int] = None,
     ) -> None:
-        super().__init__(address, block_type, original_size, compressed_size, param, block_limit)
+        super().__init__(address, block_type, original_size, compressed_size, param, block_limit=block_limit)
         self.all_valid = all_valid
 
     def __repr__(self) -> str:
@@ -1539,11 +1570,11 @@ class InvalidationBlockInfo(DataBlockInfo):
 class SignalDataBlockInfo:
     __slots__ = (
         "address",
-        "original_size",
-        "compressed_size",
-        "param",
         "block_type",
+        "compressed_size",
         "location",
+        "original_size",
+        "param",
     )
 
     def __init__(
@@ -1552,7 +1583,7 @@ class SignalDataBlockInfo:
         original_size: int,
         block_type: int = v4c.DT_BLOCK,
         param: int = 0,
-        compressed_size: int | None = None,
+        compressed_size: Optional[int] = None,
         location: int = v4c.LOCATION_ORIGINAL_FILE,
     ) -> None:
         self.address = address
@@ -1571,8 +1602,8 @@ class SignalDataBlockInfo:
         )
 
 
-def get_fields(obj: object) -> list[Any]:
-    fields = []
+def get_fields(obj: object) -> list[str]:
+    fields: list[str] = []
     for attr in dir(obj):
         if attr[:2] + attr[-2:] == "____":
             continue
@@ -1615,60 +1646,7 @@ def downcast(array: NDArray[Any]) -> NDArray[Any]:
     return array
 
 
-def master_using_raster(mdf: MDF_v2_v3_v4, raster: RasterType, endpoint: bool = False) -> NDArray[Any]:
-    """get single master based on the raster
-
-    Parameters
-    ----------
-    mdf : asammdf.MDF
-        measurement object
-    raster : float
-        new raster
-    endpoint=False : bool
-        include maximum time stamp in the new master
-
-    Returns
-    -------
-    master : np.array
-        new master
-
-    """
-    if not raster:
-        master = np.array([], dtype="<f8")
-    else:
-        t_min = []
-        t_max = []
-        for group_index in mdf.virtual_groups:
-            group = mdf.groups[group_index]
-            cycles_nr = group.channel_group.cycles_nr
-            if cycles_nr:
-
-                master_min = mdf.get_master(group_index, record_offset=0, record_count=1)
-                if len(master_min):
-                    t_min.append(master_min[0])
-                master_max = mdf.get_master(group_index, record_offset=cycles_nr - 1, record_count=1)
-                if len(master_max):
-                    t_max.append(master_max[0])
-
-        if t_min:
-            t_min = np.amin(t_min)
-            t_max = np.amax(t_max)
-
-            num = float(np.float64((t_max - t_min) / raster))
-            if num.is_integer():
-                master = np.linspace(t_min, t_max, int(num) + 1)
-            else:
-                master = np.arange(t_min, t_max, raster)
-                if endpoint:
-                    master = np.concatenate([master, [t_max]])
-
-        else:
-            master = np.array([], dtype="<f8")
-
-    return master
-
-
-def csv_int2bin(val) -> str:
+def csv_int2bin(val: int) -> str:
     """format CAN id as bin
 
     100 -> 1100100
@@ -1681,7 +1659,7 @@ def csv_int2bin(val) -> str:
 csv_int2bin = np.vectorize(csv_int2bin, otypes=[str])
 
 
-def csv_int2hex(val) -> str:
+def csv_int2hex(val: "pd.Series[bool]") -> str:
     """format CAN id as hex
 
     100 -> 64
@@ -1694,21 +1672,21 @@ def csv_int2hex(val) -> str:
 csv_int2hex = np.vectorize(csv_int2hex, otypes=[str])
 
 
-def csv_bytearray2hex(val, size: int | None = None) -> str:
+def csv_bytearray2hex(val: NDArray[Any], size: Optional[int] = None) -> str:
     """format CAN payload as hex strings
 
     b'\xa2\xc3\x08' -> A2 C3 08
 
     """
     if size is not None:
-        val = val.tobytes()[:size].hex(" ", 1).upper()
+        hex_val = typing.cast(bytes, val.tobytes())[:size].hex(" ", 1).upper()  # type: ignore[redundant-cast,unused-ignore]
     else:
         try:
-            val = val.tobytes().hex(" ", 1).upper()
+            hex_val = typing.cast(bytes, val.tobytes()).hex(" ", 1).upper()  # type: ignore[redundant-cast,unused-ignore]
         except:
-            val = "●"
+            hex_val = "●"
 
-    return val
+    return hex_val
 
 
 csv_bytearray2hex = np.vectorize(csv_bytearray2hex, otypes=[str])
@@ -1731,7 +1709,15 @@ def pandas_query_compatible(name: str) -> str:
     return name
 
 
-def load_can_database(path: StrPathType, contents: bytes | str | None = None, **kwargs) -> CanMatrix | None:
+class _Kwargs(TypedDict, total=False):
+    fd: bool
+    load_flat: bool
+    cluster_name: str
+
+
+def load_can_database(
+    path: Union[str, PathLike[str]], contents: Optional[Union[bytes, str]] = None, **kwargs: Unpack[_Kwargs]
+) -> Optional[CanMatrix]:
     """
 
 
@@ -1761,31 +1747,29 @@ def load_can_database(path: StrPathType, contents: bytes | str | None = None, **
     """
     path = Path(path)
     import_type = path.suffix.lstrip(".").lower()
-    if contents is None:
-        func = canmatrix.formats.loadp
-        arg = path
-    else:
-        func = canmatrix.formats.loads
-        arg = contents
 
     try:
-        dbs = func(arg, import_type=import_type, key="db", **kwargs)
+        if contents is None:
+            dbs = canmatrix.formats.loadp(str(path), import_type=import_type, key="db", **kwargs)
+        else:
+            dbs = canmatrix.formats.loads(contents, import_type=import_type, key="db", **kwargs)
     except UnicodeDecodeError:
         if contents is None:
             contents = path.read_bytes()
 
         encoding = detect(contents)["encoding"]
 
-        try:
-            dbs = func(
-                arg,
-                import_type=import_type,
-                key="db",
-                encoding=encoding,
-                **kwargs,
-            )
-        except:
-            dbs = None
+        if encoding:
+            try:
+                dbs = canmatrix.formats.loads(
+                    contents,
+                    import_type=import_type,
+                    key="db",
+                    encoding=encoding,
+                    **kwargs,
+                )
+            except:
+                dbs = None
 
     if dbs:
         # filter only CAN clusters
@@ -1813,9 +1797,9 @@ def load_can_database(path: StrPathType, contents: bytes | str | None = None, **
     return can_matrix
 
 
-def all_blocks_addresses(obj: ReadableBufferType):
+def all_blocks_addresses(obj: Union[FileLike, mmap.mmap]) -> tuple[dict[int, bytes], dict[bytes, list[int]], list[int]]:
     DG = "DG\x00\x00\x00\x00\x40\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00"
-    others = "(D[VTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX)\x00\x00\x00\x00"
+    others = "(D[VTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX|GD)\x00\x00\x00\x00"
     pattern = re.compile(
         f"(?P<block>##({DG}|{others}))".encode("ascii"),
         re.DOTALL | re.MULTILINE,
@@ -1826,18 +1810,19 @@ def all_blocks_addresses(obj: ReadableBufferType):
     except:
         pass
 
+    source: Union[Buffer, bytes]
     try:
-        re.search(pattern, obj)
-        source = obj
+        re.search(pattern, obj)  # type: ignore[arg-type]
+        source = typing.cast(Buffer, obj)
     except TypeError:
         source = obj.read()
 
-    addresses = []
-    block_groups = {}
-    blocks = {}
+    addresses: list[int] = []
+    block_groups: dict[bytes, list[int]] = {}
+    blocks: dict[int, bytes] = {}
 
     for match in re.finditer(pattern, source):
-        btype = match.group("block")[:4]
+        btype: bytes = match.group("block")[:4]
         start = match.start()
 
         if start % 8:
@@ -1907,32 +1892,37 @@ def escape_xml_string(string: str) -> str:
     return string.translate(table)
 
 
-def extract_mime_names(data, disable_new_channels=None):
-    def fix_comparison_name(data, disable_new_channels=None):
+def extract_mime_names(data: "QtCore.QMimeData", disable_new_channels: Optional[bool] = None) -> list[str]:
+    def fix_comparison_name(data: Any, disable_new_channels: Optional[bool] = None) -> None:
         for item in data:
             if item["type"] == "channel":
                 if disable_new_channels is not None:
                     item["enabled"] = not disable_new_channels
 
                 if (item["group_index"], item["channel_index"]) != (-1, -1):
-                    name = COMPARISON_NAME.match(item["name"]).group("name").strip()
+                    match = COMPARISON_NAME.match(item["name"])
+                    if match is None:
+                        raise RuntimeError(f"cannot parse '{item['name']}'")
+                    name = match.group("name").strip()
                     item["name"] = name
             else:
                 if disable_new_channels is not None:
                     item["enabled"] = not disable_new_channels
                 fix_comparison_name(item["channels"], disable_new_channels=disable_new_channels)
 
-    names = []
+    names: list[str] = []
     if data.hasFormat("application/octet-stream-asammdf"):
-        data = bytes(data.data("application/octet-stream-asammdf")).decode("utf-8")
-        data = json.loads(data)
-        fix_comparison_name(data, disable_new_channels=disable_new_channels)
-        names = data
+        data_data = data.data("application/octet-stream-asammdf").data()
+        data_bytes = data_data.tobytes() if isinstance(data_data, memoryview) else data_data
+        text = data_bytes.decode("utf-8")
+        obj = json.loads(text)
+        fix_comparison_name(obj, disable_new_channels=disable_new_channels)
+        names = obj
 
     return names
 
 
-def set_mime_enable(mime, enable):
+def set_mime_enable(mime: list[Any], enable: bool) -> None:
     for item in mime:
         if item["type"] == "channel":
             item["enabled"] = enable
@@ -1940,39 +1930,92 @@ def set_mime_enable(mime, enable):
             set_mime_enable(item["channels"], enable)
 
 
-def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
+class _ChannelBaseDict(TypedDict):
+    color: str
+    comment: Optional[str]
+    common_axis: bool
+    enabled: bool
+    flags: int
+    fmt: str
+    individual_axis: bool
+    name: str
+    origin_uuid: str
+    precision: int
+    ranges: list[dict[str, object]]
+    type: Literal["channel"]
+    unit: str
+
+
+class _ChannelNotComputedDict(_ChannelBaseDict):
+    computed: Literal[False]
+    conversion: NotRequired[dict[str, object]]
+    mode: Literal["phys"]
+    y_range: list[float]
+
+
+class _ChannelComputedDict(_ChannelBaseDict):
+    computation: dict[str, object]
+    computed: Literal[True]
+    conversion: object
+    user_defined_name: Optional[str]
+
+
+_ChannelDict = Union[_ChannelComputedDict, _ChannelNotComputedDict]
+
+
+class _ChannelGroupDict(TypedDict):
+    channels: list[Union[_ChannelDict, "_ChannelGroupDict"]]
+    enabled: bool
+    name: Optional[str]
+    origin_uuid: str
+    pattern: Optional[dict[str, object]]
+    ranges: list[dict[str, object]]
+    type: Literal["group"]
+
+
+def load_dsp(
+    file: Path, background: str = "#000000", flat: bool = False, colors_as_string: bool = False
+) -> Union[dict[str, object], list[str]]:
     if not colors_as_string and isinstance(background, str):
         background = fn.mkColor(background)
 
-    def parse_conversions(display):
-        conversions = {}
+    def parse_conversions(display: Optional[lxml.etree._Element]) -> dict[Optional[str], dict[str, object]]:
+        conversions: dict[Optional[str], dict[str, object]] = {}
 
         if display is None:
             return conversions
 
         for item in display.findall("COMPU_METHOD"):
             try:
-                conv = {
-                    "name": item.get("name"),
+                name = item.get("name")
+                conv: dict[str, object] = {
+                    "name": name,
                     "comment": item.get("description"),
                     "unit": item.get("unit"),
                 }
 
-                conversion_type = int(item.get("cnv_type"))
+                conversion_type = int(item.attrib["cnv_type"])
                 if conversion_type == 0:
                     conv["conversion_type"] = v4c.CONVERSION_TYPE_LIN
 
                     coeffs = item.find("COEFFS_LINIAR")
 
-                    conv["a"] = float(coeffs.get("P1"))
-                    conv["b"] = float(coeffs.get("P2"))
+                    if coeffs is None:
+                        raise RuntimeError("cannot find 'COEFFS_LINIAR' element")
+
+                    conv["a"] = float(coeffs.attrib["P1"])
+                    conv["b"] = float(coeffs.attrib["P2"])
 
                 elif conversion_type == 9:
                     conv["conversion_type"] = v4c.CONVERSION_TYPE_RAT
 
                     coeffs = item.find("COEFFS")
+
+                    if coeffs is None:
+                        raise RuntimeError("cannot find 'COEFFS' element")
+
                     for i in range(1, 7):
-                        conv[f"P{i}"] = float(coeffs.get(f"P{i}"))
+                        conv[f"P{i}"] = float(coeffs.attrib[f"P{i}"])
 
                 elif conversion_type == 11:
                     conv["conversion_type"] = v4c.CONVERSION_TYPE_TABX
@@ -1980,7 +2023,7 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
 
                     if vtab is not None:
                         for i, item in enumerate(vtab.findall("tab")):
-                            conv[f"val_{i}"] = float(item.get("min"))
+                            conv[f"val_{i}"] = float(item.attrib["min"])
                             text = item.get("text")
                             if isinstance(text, bytes):
                                 text = text.decode("utf-8", errors="replace")
@@ -1996,8 +2039,8 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
                             text = text.decode("utf-8", errors="replace")
                         conv["default_addr"] = vtab.get("default")
                         for i, item in enumerate(vtab.findall("tab_range")):
-                            conv[f"upper_{i}"] = float(item.get("max"))
-                            conv[f"lower_{i}"] = float(item.get("min"))
+                            conv[f"upper_{i}"] = float(item.attrib["max"])
+                            conv[f"lower_{i}"] = float(item.attrib["min"])
                             text = item.get("text")
                             if isinstance(text, bytes):
                                 text = text.decode("utf-8", errors="replace")
@@ -2005,7 +2048,7 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
                 else:
                     continue
 
-                conversions[conv["name"]] = conv
+                conversions[name] = conv
 
             except:
                 print(format_exc())
@@ -2013,19 +2056,21 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
 
         return conversions
 
-    def parse_channels(display, conversions):
-        channels = []
+    def parse_channels(
+        display: lxml.etree._Element, conversions: dict[Optional[str], dict[str, object]]
+    ) -> list[Union[_ChannelGroupDict, _ChannelDict]]:
+        channels: list[Union[_ChannelGroupDict, _ChannelDict]] = []
         for elem in display.iterchildren():
             if elem.tag == "CHANNEL":
-                channel_name = elem.get("name")
+                channel_name = elem.attrib["name"]
 
-                comment = elem.find("COMMENT")
-                if comment is not None:
+                comment_elem = elem.find("COMMENT")
+                if comment_elem is not None:
                     comment = elem.get("text")
                 else:
                     comment = ""
 
-                color_ = int(elem.get("color"))
+                color_ = int(elem.attrib["color"])
                 c = 0
                 for i in range(3):
                     c = c << 8
@@ -2034,28 +2079,37 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
 
                 ch_color = c
 
-                gain = abs(float(elem.get("gain")))
-                offset = float(elem.get("offset")) / 100
+                gain = abs(float(elem.attrib["gain"]))
+                offset = float(elem.attrib["offset"]) / 100
 
                 multi_color = elem.find("MULTI_COLOR")
 
-                ranges = []
+                ranges: list[dict[str, object]] = []
 
                 if multi_color is not None:
                     for color in multi_color.findall("color"):
-                        min_ = float(color.find("min").get("data"))
-                        max_ = float(color.find("max").get("data"))
-                        color_ = int(color.find("color").get("data"))
+                        some_elem = color.find("min")
+                        if some_elem is None:
+                            raise RuntimeError("cannot find element 'min'")
+                        min_ = float(some_elem.attrib["data"])
+                        some_elem = color.find("max")
+                        if some_elem is None:
+                            raise RuntimeError("cannot find element 'max'")
+                        max_ = float(some_elem.attrib["data"])
+                        some_elem = color.find("color")
+                        if some_elem is None:
+                            raise RuntimeError("cannot find element 'color'")
+                        color_ = int(some_elem.attrib["data"])
                         c = 0
                         for i in range(3):
                             c = c << 8
                             c += color_ & 0xFF
                             color_ = color_ >> 8
-                        color = f"#{c:06X}" if colors_as_string else fn.mkColor(f"#{c:06X}")
+                        font_color = f"#{c:06X}" if colors_as_string else fn.mkColor(f"#{c:06X}")
                         ranges.append(
                             {
                                 "background_color": background,
-                                "font_color": color,
+                                "font_color": font_color,
                                 "op1": "<=",
                                 "op2": "<=",
                                 "value1": min_,
@@ -2063,7 +2117,7 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
                             }
                         )
 
-                chan = {
+                chan: _ChannelNotComputedDict = {
                     "color": f"#{ch_color:06X}",
                     "common_axis": False,
                     "computed": False,
@@ -2093,7 +2147,7 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
 
                 channels.append(chan)
 
-            elif elem.tag.startswith("GROUP"):
+            elif str(elem.tag).startswith("GROUP"):
                 channels.append(
                     {
                         "name": elem.get("data"),
@@ -2109,15 +2163,16 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
             elif elem.tag == "CHANNEL_PATTERN":
                 try:
                     filter_type = elem.get("filter_type")
+                    filter_value: float
                     if filter_type in ("None", None):
                         filter_type = "Unspecified"
                         filter_value = 0
                         raw = False
                     else:
-                        filter_value = float(elem.get("filter_value"))
-                        raw = bool(int(elem.get("filter_use_raw")))
+                        filter_value = float(elem.attrib["filter_value"])
+                        raw = bool(int(elem.attrib["filter_use_raw"]))
 
-                    info = {
+                    info: dict[str, object] = {
                         "pattern": elem.get("name_pattern"),
                         "name": elem.get("name_pattern"),
                         "match_type": "Wildcard",
@@ -2132,19 +2187,28 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
 
                     if multi_color is not None:
                         for color in multi_color.findall("color"):
-                            min_ = float(color.find("min").get("data"))
-                            max_ = float(color.find("max").get("data"))
-                            color_ = int(color.find("color").get("data"))
+                            some_elem = color.find("min")
+                            if some_elem is None:
+                                raise RuntimeError("cannot find element 'min'")
+                            min_ = float(some_elem.attrib["data"])
+                            some_elem = color.find("max")
+                            if some_elem is None:
+                                raise RuntimeError("cannot find element 'max'")
+                            max_ = float(some_elem.attrib["data"])
+                            some_elem = color.find("color")
+                            if some_elem is None:
+                                raise RuntimeError("cannot find element 'color'")
+                            color_ = int(some_elem.attrib["data"])
                             c = 0
                             for i in range(3):
                                 c = c << 8
                                 c += color_ & 0xFF
                                 color_ = color_ >> 8
-                            color = f"#{c:06X}" if colors_as_string else fn.mkColor(f"#{c:06X}")
+                            font_color = f"#{c:06X}" if colors_as_string else fn.mkColor(f"#{c:06X}")
                             ranges.append(
                                 {
                                     "background_color": background,
-                                    "font_color": color,
+                                    "font_color": font_color,
                                     "op1": "<=",
                                     "op2": "<=",
                                     "value1": min_,
@@ -2158,7 +2222,7 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
                         {
                             "channels": [],
                             "enabled": True,
-                            "name": info["pattern"],
+                            "name": typing.cast(str, info["pattern"]),
                             "pattern": info,
                             "type": "group",
                             "ranges": [],
@@ -2172,15 +2236,15 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
 
         return channels
 
-    def parse_virtual_channels(display):
-        channels = {}
+    def parse_virtual_channels(display: Optional[lxml.etree._Element]) -> dict[Optional[str], dict[str, object]]:
+        channels: dict[Optional[str], dict[str, object]] = {}
 
         if display is None:
             return channels
 
         for item in display.findall("V_CHAN"):
             try:
-                virtual_channel = {}
+                virtual_channel: dict[str, object] = {}
 
                 parent = item.find("VIR_TIME_CHAN")
                 vtab = item.find("COMPU_VTAB")
@@ -2190,12 +2254,15 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
                 name = item.get("name")
 
                 virtual_channel["name"] = name
-                virtual_channel["parent"] = parent.get("data")
-                virtual_channel["comment"] = item.find("description").get("data")
+                virtual_channel["parent"] = parent.attrib["data"]
+                elem = item.find("description")
+                if elem is None:
+                    raise RuntimeError("cannot find element 'description'")
+                virtual_channel["comment"] = elem.attrib["data"]
 
-                conv = {}
+                conv: dict[str, object] = {}
                 for i, item in enumerate(vtab.findall("tab")):
-                    conv[f"val_{i}"] = float(item.get("min"))
+                    conv[f"val_{i}"] = float(item.attrib["min"])
                     text = item.get("text")
                     if isinstance(text, bytes):
                         text = text.decode("utf-8", errors="replace")
@@ -2209,8 +2276,8 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
 
         return channels
 
-    def parse_c_functions(display):
-        c_functions = set()
+    def parse_c_functions(display: Optional[lxml.etree._Element]) -> Collection[str]:
+        c_functions: set[str] = set()
 
         if display is None:
             return c_functions
@@ -2218,21 +2285,28 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
         for item in display.findall("CALC_FUNC"):
             string = item.text
 
+            if string is None:
+                raise RuntimeError("element text is None")
+
             for match in C_FUNCTION.finditer(string):
                 c_functions.add(match.group("function"))
 
         return sorted(c_functions)
 
-    dsp = Path(file).read_bytes().replace(b"\0", b"")
-    dsp = lxml.etree.fromstring(dsp)
+    dsp = lxml.etree.fromstring(Path(file).read_bytes().replace(b"\0", b""), parser=lxml.etree.XMLParser(recover=True))
 
     conversions = parse_conversions(dsp.find("COMPU_METHODS"))
 
-    channels = parse_channels(dsp.find("DISPLAY_INFO"), conversions)
+    elem = dsp.find("DISPLAY_INFO")
+
+    if elem is None:
+        raise RuntimeError("cannot find element 'DISPLAY_INFO'")
+
+    channels = parse_channels(elem, conversions)
     c_functions = parse_c_functions(dsp)
 
-    functions = {}
-    virtual_channels = []
+    functions: dict[str, object] = {}
+    virtual_channels: list[Union[_ChannelGroupDict, _ChannelDict]] = []
 
     for i, ch in enumerate(parse_virtual_channels(dsp.find("VIRTUAL_CHANNEL")).values()):
         virtual_channels.append(
@@ -2254,12 +2328,12 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
                 "enabled": True,
                 "fmt": "{}",
                 "individual_axis": False,
-                "name": ch["parent"],
+                "name": typing.cast(str, ch["parent"]),
                 "precision": 3,
                 "ranges": [],
                 "unit": "",
                 "conversion": ch["vtab"],
-                "user_defined_name": ch["name"],
+                "user_defined_name": typing.cast(Optional[str], ch["name"]),
                 "comment": f"Datalyser virtual channel: {ch['comment']}",
                 "origin_uuid": "000000000000",
                 "type": "channel",
@@ -2281,9 +2355,10 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
             }
         )
 
-    info = {
+    windows: list[dict[str, object]] = []
+    info: Union[dict[str, object], list[str]] = {
         "selected_channels": [],
-        "windows": [],
+        "windows": windows,
         "has_virtual_channels": bool(virtual_channels),
         "c_functions": c_functions,
         "functions": functions,
@@ -2292,7 +2367,7 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
     if flat:
         info = flatten_dsp(channels)
     else:
-        plot = {
+        plot: dict[str, object] = {
             "type": "Plot",
             "title": "Display channels",
             "maximized": True,
@@ -2304,13 +2379,13 @@ def load_dsp(file, background="#000000", flat=False, colors_as_string=False):
             },
         }
 
-        info["windows"].append(plot)
+        windows.append(plot)
 
     return info
 
 
-def flatten_dsp(channels):
-    res = []
+def flatten_dsp(channels: list[Union[_ChannelGroupDict, _ChannelDict]]) -> list[str]:
+    res: list[str] = []
 
     for item in channels:
         if item["type"] == "group":
@@ -2321,15 +2396,15 @@ def flatten_dsp(channels):
     return res
 
 
-def load_channel_names_from_file(file_name, lab_section=""):
-    file_name = Path(file_name)
-
-    extension = file_name.suffix.lower()
+def load_channel_names_from_file(file_name: str, lab_section: str = "") -> list[str]:
+    file_path = Path(file_name)
+    channels: Collection[str]
+    extension = file_path.suffix.lower()
     if extension == ".dsp":
-        channels = load_dsp(file_name, flat=True)
+        channels = load_dsp(file_path, flat=True)
 
     elif extension == ".dspf":
-        with open(file_name) as infile:
+        with open(file_path) as infile:
             info = json.load(infile)
 
         channels = []
@@ -2342,7 +2417,7 @@ def load_channel_names_from_file(file_name, lab_section=""):
                 channels.extend(window["configuration"]["channels"])
 
     elif extension == ".lab":
-        info = load_lab(file_name)
+        info = load_lab(file_path)
         if info:
             if len(info) > 1 and lab_section:
                 channels = info[lab_section]
@@ -2352,24 +2427,24 @@ def load_channel_names_from_file(file_name, lab_section=""):
             channels = [name.split(";")[0] for name in channels]
 
     elif extension == ".cfg":
-        with open(file_name) as infile:
+        with open(file_path) as infile:
             info = json.load(infile)
         channels = info.get("selected_channels", [])
     elif extension == ".txt":
         try:
-            with open(file_name) as infile:
+            with open(file_path) as infile:
                 info = json.load(infile)
             channels = info.get("selected_channels", [])
         except:
-            with open(file_name) as infile:
+            with open(file_path) as infile:
                 channels = [line.strip() for line in infile.readlines()]
                 channels = [name for name in channels if name]
 
     return sorted(set(channels))
 
 
-def load_lab(file):
-    sections = {}
+def load_lab(file: Path) -> dict[str, list[str]]:
+    sections: dict[str, list[str]] = {}
     with open(file) as lab:
         for line in lab:
             line = line.strip()
@@ -2378,7 +2453,7 @@ def load_lab(file):
 
             if line.startswith("[") and line.endswith("]"):
                 section_name = line.strip("[]")
-                s = []
+                s: list[str] = []
                 sections[section_name] = s
 
             else:
@@ -2400,8 +2475,12 @@ class SignalFlags:
     virtual_master = 0x80
 
 
-def timeit(func):
-    def timed(*args, **kwargs):
+_Params = ParamSpec("_Params")
+_Ret = TypeVar("_Ret")
+
+
+def timeit(func: Callable[_Params, _Ret]) -> Callable[_Params, _Ret]:
+    def timed(*args: _Params.args, **kwargs: _Params.kwargs) -> _Ret:
         t1 = perf_counter()
         ret = func(*args, **kwargs)
         t2 = perf_counter()
@@ -2413,3 +2492,38 @@ def timeit(func):
         return ret
 
     return timed
+
+
+class Timer:
+
+    def __init__(self, name: str = "") -> None:
+        self.name = name or str(id(self))
+        self.count = 0
+        self.total_time = 0.0
+
+    def __enter__(self) -> "Timer":
+        now = perf_counter()
+        self.start = now
+        return self
+
+    def __exit__(
+        self, type: Optional[type[BaseException]], value: Optional[BaseException], traceback: Optional[TracebackType]
+    ) -> None:
+        now = perf_counter()
+        self.total_time += now - self.start
+        self.count += 1
+
+    def display(self) -> None:
+        if self.count:
+            for factor, r, unit in ((1e3, 3, "ms"), (1e6, 6, "us"), (1e9, 9, "ns")):
+                tpi = round(self.total_time / self.count, r)
+                if tpi:
+                    break
+            print(
+                f"""TIMER {self.name}:
+\t* {self.count} iterations in {self.total_time * 1000:.3f}ms
+\t* {self.count / self.total_time:.3f} iter/s
+\t* {self.total_time / self.count * factor:.3f} {unit}/iter"""
+            )
+        else:
+            print(f"TIMER {self.name}:\n\t* inactive")

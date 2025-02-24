@@ -1,14 +1,11 @@
-""" asammdf *Signal* class module for time correct signal processing """
-
-from __future__ import annotations
+"""asammdf *Signal* class module for time correct signal processing"""
 
 from collections.abc import Iterator
 import logging
 from textwrap import fill
-from typing import Any
+from typing import Any, Optional, overload, Union
 
 import numpy as np
-from numpy.core.defchararray import encode
 from numpy.typing import ArrayLike, DTypeLike, NDArray
 
 from .blocks import v2_v3_blocks as v3b
@@ -26,12 +23,16 @@ from .types import (
 )
 from .version import __version__
 
+try:
+    encode = np.strings.encode
+except:
+    encode = np.char.encode
+
 logger = logging.getLogger("asammdf")
 
 
 class Signal:
-    """
-    The *Signal* represents a channel described by it's samples and timestamps.
+    """The *Signal* represents a channel described by its samples and timestamps.
     It can perform arithmetic operations against other *Signal* or numeric types.
     The operations are computed in respect to the timestamps (time correct).
     The non-float signals are not interpolated, instead the last value relative
@@ -49,16 +50,16 @@ class Signal:
     name : str
         signal name
     conversion : dict | channel conversion block
-        dict that contains extra conversion information about the signal ,
+        dict that contains extra conversion information about the signal;
         default *None*
     comment : str
-        signal comment, default ''
+        signal comment; default ''
     raw : bool
         signal samples are raw values, with no physical conversion applied
     master_metadata : list
         master name and sync type
     display_names : dict
-        display names used by mdf version 3
+        display names used by MDF version 3
     attachment : bytes, name
         channel attachment and name from MDF version 4
     source : Source
@@ -66,7 +67,7 @@ class Signal:
     bit_count : int
         bit count; useful for integer channels
     invalidation_bits : numpy.array | None
-        channel invalidation bits, default *None*
+        channel invalidation bits; default *None*
     encoding : str | None
         encoding for string signals; default *None*
     flags : Signal.Flags
@@ -78,34 +79,35 @@ class Signal:
 
     def __init__(
         self,
-        samples: ArrayLike | None = None,
-        timestamps: ArrayLike | None = None,
+        samples: ArrayLike,
+        timestamps: ArrayLike,
         unit: str = "",
         name: str = "",
-        conversion: dict[str, Any] | ChannelConversionType | None = None,
+        conversion: Optional[Union[dict[str, Any], ChannelConversionType]] = None,
         comment: str = "",
         raw: bool = True,
-        master_metadata: tuple[str, SyncType] | None = None,
-        display_names: dict[str, str] | None = None,
-        attachment: tuple[bytes, str | None, str | None] | None = None,
-        source: SourceType | None = None,
-        bit_count: int | None = None,
-        invalidation_bits: ArrayLike | None = None,
-        encoding: str | None = None,
+        master_metadata: Optional[tuple[str, SyncType]] = None,
+        display_names: Optional[dict[str, str]] = None,
+        attachment: Optional[tuple[bytes, Optional[str], Optional[str]]] = None,
+        source: Optional[SourceType] = None,
+        bit_count: Optional[int] = None,
+        invalidation_bits: Optional[ArrayLike] = None,
+        encoding: Optional[str] = None,
         group_index: int = -1,
         channel_index: int = -1,
         flags: Flags = Flags.no_flags,
-        virtual_conversion: dict[str, Any] | ChannelConversionType | None = None,
-        virtual_master_conversion: dict[str, Any] | ChannelConversionType | None = None,
+        virtual_conversion: Optional[Union[dict[str, Any], ChannelConversionType]] = None,
+        virtual_master_conversion: Optional[Union[dict[str, Any], ChannelConversionType]] = None,
     ) -> None:
-        if samples is None or timestamps is None or not name:
+        if not name:
             message = (
                 '"samples", "timestamps" and "name" are mandatory '
-                f"for Signal class __init__: samples={samples}\n"
-                f"timestamps={timestamps}\nname={name}"
+                f"for Signal class __init__: samples={samples!r}\n"
+                f"timestamps={timestamps!r}\nname={name}"
             )
             raise MdfException(message)
         else:
+            self.samples: NDArray[Any]
             if not isinstance(samples, np.ndarray):
                 samples = np.array(samples)
                 kind = samples.dtype.kind
@@ -116,25 +118,31 @@ class Signal:
                         encodings = [encoding, "utf-8", "latin-1"]
                     for _encoding in encodings:
                         try:
-                            samples = encode(samples, _encoding)
+                            self.samples = encode(samples, _encoding)
                             break
                         except:
                             continue
                     else:
-                        samples = encode(samples, encodings[0], errors="ignore")
+                        self.samples = encode(samples, encodings[0], errors="ignore")
                 elif kind == "O":
-                    samples = samples.astype(bytes)
+                    self.samples = samples.astype(np.bytes_)
+                else:
+                    self.samples = samples
+            else:
+                self.samples = samples
 
+            self.timestamps: NDArray[Any]
             if not isinstance(timestamps, np.ndarray):
-                timestamps = np.array(timestamps, dtype=np.float64)
-            if samples.shape[0] != timestamps.shape[0]:
+                self.timestamps = np.array(timestamps, dtype=np.float64)
+            else:
+                self.timestamps = timestamps
+
+            if self.samples.shape[0] != self.timestamps.shape[0]:
                 message = "{} samples and timestamps length mismatch ({} vs {})"
-                message = message.format(name, samples.shape[0], timestamps.shape[0])
+                message = message.format(name, self.samples.shape[0], self.timestamps.shape[0])
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.samples = samples
-            self.timestamps = timestamps
             self.unit = unit
             self.name = name
             self.comment = comment
@@ -152,32 +160,39 @@ class Signal:
             if source:
                 if not isinstance(source, Source):
                     source = Source.from_source(source)
-            self.source = source
+            self.source: Optional[Source] = source
 
             if bit_count is None:
-                self.bit_count = samples.dtype.itemsize * 8
+                self.bit_count = self.samples.dtype.itemsize * 8
             else:
                 self.bit_count = bit_count
 
             self.invalidation_bits = invalidation_bits
 
+            self.conversion: Optional[ChannelConversionType]
             if conversion:
                 if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
-                    conversion = from_dict(conversion)
+                    self.conversion = from_dict(conversion)
+                else:
+                    self.conversion = conversion
+            else:
+                self.conversion = None
 
-            self.conversion = conversion
-
+            self.virtual_conversion: Optional[ChannelConversionType]
             if self.flags & self.Flags.virtual:
                 if not isinstance(virtual_conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
-                    conversion = from_dict(virtual_conversion)
-                self.virtual_conversion = conversion
+                    self.virtual_conversion = from_dict(virtual_conversion)
+                else:
+                    self.virtual_conversion = virtual_conversion
             else:
                 self.virtual_conversion = None
 
+            self.virtual_master_conversion: Optional[ChannelConversionType]
             if self.flags & self.Flags.virtual_master:
                 if not isinstance(virtual_master_conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
-                    conversion = from_dict(virtual_master_conversion)
-                self.virtual_master_conversion = conversion
+                    self.virtual_master_conversion = from_dict(virtual_master_conversion)
+                else:
+                    self.virtual_master_conversion = virtual_master_conversion
             else:
                 self.virtual_master_conversion = None
 
@@ -219,8 +234,8 @@ class Signal:
 """
 
     def plot(self, validate: bool = True, index_only: bool = False) -> None:
-        """plot Signal samples. Pyqtgraph is used if it is available; in this
-        case see the GUI plot documentation to see the available commands
+        """Plot Signal samples. Pyqtgraph is used if it is available; in this
+        case see the GUI plot documentation to see the available commands.
 
         Parameters
         ----------
@@ -425,18 +440,17 @@ class Signal:
 
     def cut(
         self,
-        start: float | None = None,
-        stop: float | None = None,
+        start: Optional[float] = None,
+        stop: Optional[float] = None,
         include_ends: bool = True,
-        integer_interpolation_mode: (
-            IntInterpolationModeType | IntegerInterpolation
-        ) = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
-        float_interpolation_mode: (
-            FloatInterpolationModeType | FloatInterpolation
-        ) = FloatInterpolation.LINEAR_INTERPOLATION,
-    ) -> Signal:
-        """
-        Cuts the signal according to the *start* and *stop* values, by using
+        integer_interpolation_mode: Union[
+            IntInterpolationModeType, IntegerInterpolation
+        ] = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
+        float_interpolation_mode: Union[
+            FloatInterpolationModeType, FloatInterpolation
+        ] = FloatInterpolation.LINEAR_INTERPOLATION,
+    ) -> "Signal":
+        """Cut the signal according to the *start* and *stop* values, by using
         the insertion indexes in the signal's *time* axis.
 
         Parameters
@@ -447,7 +461,7 @@ class Signal:
             stop timestamp for cutting
         include_ends : bool
             include the *start* and *stop* timestamps after cutting the signal.
-            If *start* and *stop* are found in the original timestamps, then
+            If *start* and *stop* are not found in the original timestamps, then
             the new samples will be computed using interpolation. Default *True*
 
         integer_interpolation_mode : int
@@ -476,10 +490,20 @@ class Signal:
 
         Examples
         --------
+        >>> from asammdf import Signal
+        >>> import numpy as np
+        >>> old_sig = Signal(np.arange(0.03, 100, 0.05), np.arange(0.03, 100, 0.05), name='SIG')
         >>> new_sig = old_sig.cut(1.0, 10.5)
         >>> new_sig.timestamps[0], new_sig.timestamps[-1]
-        0.98, 10.48
+        (1.0, 10.5)
 
+        >>> new_sig = old_sig.cut(1.0, 10.5, include_ends=False)
+        >>> new_sig.timestamps[0], new_sig.timestamps[-1]
+        (1.03, 10.48)
+
+        >>> new_sig = old_sig.cut(1.0, 10.5, float_interpolation_mode=0)
+        >>> new_sig.samples[0], new_sig.samples[-1]
+        (0.98, 10.48)
         """
 
         integer_interpolation_mode = IntegerInterpolation(integer_interpolation_mode)
@@ -571,9 +595,12 @@ class Signal:
                             samples = np.append(self.samples[:stop], interpolated.samples, axis=0)
                             timestamps = np.append(self.timestamps[:stop], interpolated.timestamps)
                             if self.invalidation_bits is not None:
-                                invalidation_bits = np.append(
-                                    self.invalidation_bits[:stop],
-                                    interpolated.invalidation_bits,
+                                invalidation_bits = InvalidationArray(
+                                    np.append(
+                                        self.invalidation_bits[:stop],
+                                        interpolated.invalidation_bits,
+                                    ),
+                                    self.invalidation_bits.origin,
                                 )
                             else:
                                 invalidation_bits = None
@@ -646,9 +673,12 @@ class Signal:
                             samples = np.append(interpolated.samples, self.samples[start:], axis=0)
                             timestamps = np.append(interpolated.timestamps, self.timestamps[start:])
                             if self.invalidation_bits is not None:
-                                invalidation_bits = np.append(
-                                    interpolated.invalidation_bits,
-                                    self.invalidation_bits[start:],
+                                invalidation_bits = InvalidationArray(
+                                    np.append(
+                                        interpolated.invalidation_bits,
+                                        self.invalidation_bits[start:],
+                                    ),
+                                    self.invalidation_bits.origin,
                                 )
                             else:
                                 invalidation_bits = None
@@ -734,7 +764,7 @@ class Signal:
                             samples = np.array([], dtype=self.samples.dtype)
                             timestamps = np.array([], dtype=self.timestamps.dtype)
                             if self.invalidation_bits is not None:
-                                invalidation_bits = np.array([], dtype=bool)
+                                invalidation_bits = self.invalidation_bits[0:0]
                             else:
                                 invalidation_bits = None
                     else:
@@ -760,9 +790,12 @@ class Signal:
                                 samples = np.append(samples, interpolated.samples, axis=0)
                                 timestamps = np.append(timestamps, interpolated.timestamps)
                                 if invalidation_bits is not None:
-                                    invalidation_bits = np.append(
-                                        invalidation_bits,
-                                        interpolated.invalidation_bits,
+                                    invalidation_bits = InvalidationArray(
+                                        np.append(
+                                            invalidation_bits,
+                                            interpolated.invalidation_bits,
+                                        ),
+                                        interpolated.invalidation_bits.origin,
                                     )
 
                         if (
@@ -781,9 +814,12 @@ class Signal:
                                 timestamps = np.append(interpolated.timestamps, timestamps)
 
                                 if invalidation_bits is not None:
-                                    invalidation_bits = np.append(
-                                        interpolated.invalidation_bits,
-                                        invalidation_bits,
+                                    invalidation_bits = InvalidationArray(
+                                        np.append(
+                                            interpolated.invalidation_bits,
+                                            invalidation_bits,
+                                        ),
+                                        interpolated.invalidation_bits.origin,
                                     )
 
                     if samples.dtype != self.samples.dtype:
@@ -813,8 +849,8 @@ class Signal:
 
         return result
 
-    def extend(self, other: Signal) -> Signal:
-        """extend signal with samples from another signal
+    def extend(self, other: "Signal") -> "Signal":
+        """Extend Signal with samples from another Signal.
 
         Parameters
         ----------
@@ -840,11 +876,19 @@ class Signal:
             if self.invalidation_bits is None and other.invalidation_bits is None:
                 invalidation_bits = None
             elif self.invalidation_bits is None and other.invalidation_bits is not None:
-                invalidation_bits = np.concatenate((np.zeros(len(self), dtype=bool), other.invalidation_bits))
+                invalidation_bits = InvalidationArray(
+                    np.concatenate((np.zeros(len(self), dtype=bool), other.invalidation_bits)),
+                    other.invalidation_bits.origin,
+                )
             elif self.invalidation_bits is not None and other.invalidation_bits is None:
-                invalidation_bits = np.concatenate((self.invalidation_bits, np.zeros(len(other), dtype=bool)))
+                invalidation_bits = InvalidationArray(
+                    np.concatenate((self.invalidation_bits, np.zeros(len(other), dtype=bool))),
+                    self.invalidation_bits.origin,
+                )
             else:
-                invalidation_bits = np.append(self.invalidation_bits, other.invalidation_bits)
+                invalidation_bits = InvalidationArray(
+                    np.append(self.invalidation_bits, other.invalidation_bits), self.invalidation_bits.origin
+                )
 
             result = Signal(
                 np.append(self.samples, other.samples, axis=0),
@@ -875,14 +919,14 @@ class Signal:
     def interp(
         self,
         new_timestamps: NDArray[Any],
-        integer_interpolation_mode: (
-            IntInterpolationModeType | IntegerInterpolation
-        ) = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
-        float_interpolation_mode: (
-            FloatInterpolationModeType | FloatInterpolation
-        ) = FloatInterpolation.LINEAR_INTERPOLATION,
-    ) -> Signal:
-        """returns a new *Signal* interpolated using the *new_timestamps*
+        integer_interpolation_mode: Union[
+            IntInterpolationModeType, IntegerInterpolation
+        ] = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
+        float_interpolation_mode: Union[
+            FloatInterpolationModeType, FloatInterpolation
+        ] = FloatInterpolation.LINEAR_INTERPOLATION,
+    ) -> "Signal":
+        """Returns a new *Signal* interpolated using the *new_timestamps*.
 
         Parameters
         ----------
@@ -1065,7 +1109,7 @@ class Signal:
                 virtual_master_conversion=self.virtual_master_conversion,
             )
 
-    def __apply_func(self, other: Signal | NDArray[Any] | None, func_name: str) -> Signal:
+    def __apply_func(self, other: Union["Signal", NDArray[Any], Optional[int]], func_name: str) -> "Signal":
         """delegate operations to the *samples* attribute, but in a time
         correct manner by considering the *timestamps*
 
@@ -1132,10 +1176,10 @@ class Signal:
             virtual_master_conversion=self.virtual_master_conversion,
         )
 
-    def __pos__(self) -> Signal:
+    def __pos__(self) -> "Signal":
         return self
 
-    def __neg__(self) -> Signal:
+    def __neg__(self) -> "Signal":
         return Signal(
             np.negative(self.samples),
             self.timestamps,
@@ -1154,7 +1198,7 @@ class Signal:
             virtual_master_conversion=self.virtual_master_conversion,
         )
 
-    def __round__(self, n: int) -> Signal:
+    def __round__(self, n: int) -> "Signal":
         return Signal(
             np.around(self.samples, n),
             self.timestamps,
@@ -1173,67 +1217,67 @@ class Signal:
             virtual_master_conversion=self.virtual_master_conversion,
         )
 
-    def __sub__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __sub__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__apply_func(other, "__sub__")
 
-    def __isub__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __isub__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__sub__(other)
 
-    def __rsub__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __rsub__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return -self.__sub__(other)
 
-    def __add__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __add__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__apply_func(other, "__add__")
 
-    def __iadd__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __iadd__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__add__(other)
 
-    def __radd__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __radd__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__add__(other)
 
-    def __truediv__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __truediv__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__apply_func(other, "__truediv__")
 
-    def __itruediv__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __itruediv__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__truediv__(other)
 
-    def __rtruediv__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __rtruediv__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__apply_func(other, "__rtruediv__")
 
-    def __mul__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __mul__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__apply_func(other, "__mul__")
 
-    def __imul__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __imul__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__mul__(other)
 
-    def __rmul__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __rmul__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__mul__(other)
 
-    def __floordiv__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __floordiv__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__apply_func(other, "__floordiv__")
 
-    def __ifloordiv__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __ifloordiv__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__truediv__(other)
 
-    def __rfloordiv__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __rfloordiv__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return 1 / self.__apply_func(other, "__rfloordiv__")
 
-    def __mod__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __mod__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__apply_func(other, "__mod__")
 
-    def __pow__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __pow__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__apply_func(other, "__pow__")
 
-    def __and__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __and__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__apply_func(other, "__and__")
 
-    def __or__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __or__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__apply_func(other, "__or__")
 
-    def __xor__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __xor__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__apply_func(other, "__xor__")
 
-    def __invert__(self) -> Signal:
+    def __invert__(self) -> "Signal":
         s = ~self.samples
         time = self.timestamps
         return Signal(
@@ -1254,28 +1298,28 @@ class Signal:
             virtual_master_conversion=self.virtual_master_conversion,
         )
 
-    def __lshift__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __lshift__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__apply_func(other, "__lshift__")
 
-    def __rshift__(self, other: Signal | NDArray[Any] | None) -> Signal:
+    def __rshift__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
         return self.__apply_func(other, "__rshift__")
 
-    def __lt__(self, other: Signal | NDArray[Any] | None) -> bool:
+    def __lt__(self, other: Optional[Union["Signal", NDArray[Any]]]) -> "Signal":
         return self.__apply_func(other, "__lt__")
 
-    def __le__(self, other: Signal | NDArray[Any] | None) -> bool:
+    def __le__(self, other: Optional[Union["Signal", NDArray[Any]]]) -> "Signal":
         return self.__apply_func(other, "__le__")
 
-    def __gt__(self, other: Signal | NDArray[Any] | None) -> bool:
+    def __gt__(self, other: Optional[Union["Signal", NDArray[Any]]]) -> "Signal":
         return self.__apply_func(other, "__gt__")
 
-    def __ge__(self, other: Signal | NDArray[Any] | None) -> bool:
+    def __ge__(self, other: Optional[Union["Signal", NDArray[Any]]]) -> "Signal":
         return self.__apply_func(other, "__ge__")
 
-    def __eq__(self, other: Signal | NDArray[Any] | None) -> bool:
+    def __eq__(self, other: Optional[Union["Signal", NDArray[Any]]]) -> "Signal":
         return self.__apply_func(other, "__eq__")
 
-    def __ne__(self, other: Signal | NDArray[Any] | None) -> bool:
+    def __ne__(self, other: Optional[Union["Signal", NDArray[Any]]]) -> "Signal":
         return self.__apply_func(other, "__ne__")
 
     def __iter__(self) -> Iterator[Any]:
@@ -1287,7 +1331,7 @@ class Signal:
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __abs__(self) -> Signal:
+    def __abs__(self) -> "Signal":
         return Signal(
             np.fabs(self.samples),
             self.timestamps,
@@ -1305,7 +1349,13 @@ class Signal:
             virtual_master_conversion=self.virtual_master_conversion,
         )
 
-    def __getitem__(self, val: int | slice | ArrayLike | str) -> Signal:
+    @overload
+    def __getitem__(self, val: str) -> NDArray[Any]: ...
+
+    @overload
+    def __getitem__(self, val: Union[int, slice, ArrayLike]) -> "Signal": ...
+
+    def __getitem__(self, val: Union[int, slice, ArrayLike, str]) -> Union[NDArray[Any], "Signal"]:
         if isinstance(val, str):
             return self.samples[val]
         else:
@@ -1331,11 +1381,11 @@ class Signal:
                 virtual_master_conversion=self.virtual_master_conversion,
             )
 
-    def __setitem__(self, idx: int | slice | ArrayLike, val: Any) -> None:
+    def __setitem__(self, idx: Union[int, slice, ArrayLike], val: Any) -> None:
         self.samples[idx] = val
 
-    def astype(self, np_type: DTypeLike) -> Signal:
-        """returns new *Signal* with samples of dtype *np_type*
+    def astype(self, np_type: DTypeLike) -> "Signal":
+        """Returns new *Signal* with samples of dtype *np_type*.
 
         Parameters
         ----------
@@ -1366,9 +1416,8 @@ class Signal:
             virtual_master_conversion=self.virtual_master_conversion,
         )
 
-    def physical(self, copy: bool = True) -> Signal:
-        """
-        get the physical samples values
+    def physical(self, copy: bool = True) -> "Signal":
+        """Get the physical samples values.
 
         Parameters
         ----------
@@ -1417,8 +1466,8 @@ class Signal:
             virtual_master_conversion=self.virtual_master_conversion,
         )
 
-    def validate(self, copy: bool = True) -> Signal:
-        """apply invalidation bits if they are available for this signal
+    def validate(self, copy: bool = True) -> "Signal":
+        """Apply invalidation bits if they are available for this signal.
 
         Parameters
         ----------
@@ -1463,8 +1512,8 @@ class Signal:
 
         return signal
 
-    def copy(self) -> Signal:
-        """copy all attributes to a new Signal"""
+    def copy(self) -> "Signal":
+        """Copy all attributes to a new Signal."""
         return Signal(
             self.samples.copy(),
             self.timestamps.copy(),

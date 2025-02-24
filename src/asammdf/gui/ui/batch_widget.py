@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'batch_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.7.2
+## Created by: Qt User Interface Compiler version 6.7.3
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -137,7 +137,7 @@ class Ui_batch_widget(object):
         self.scrollArea_3.setWidgetResizable(True)
         self.scrollAreaWidgetContents_3 = QWidget()
         self.scrollAreaWidgetContents_3.setObjectName(u"scrollAreaWidgetContents_3")
-        self.scrollAreaWidgetContents_3.setGeometry(QRect(0, 0, 832, 698))
+        self.scrollAreaWidgetContents_3.setGeometry(QRect(0, 0, 840, 706))
         self.horizontalLayout_2 = QHBoxLayout(self.scrollAreaWidgetContents_3)
         self.horizontalLayout_2.setSpacing(1)
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
@@ -328,12 +328,6 @@ class Ui_batch_widget(object):
         self.verticalLayout_21.setObjectName(u"verticalLayout_21")
         self.verticalLayout_21.setContentsMargins(1, 1, 1, 1)
         self.output_format = QComboBox(self.groupBox_11)
-        self.output_format.addItem("")
-        self.output_format.addItem("")
-        self.output_format.addItem("")
-        self.output_format.addItem("")
-        self.output_format.addItem("")
-        self.output_format.addItem("")
         self.output_format.setObjectName(u"output_format")
 
         self.verticalLayout_21.addWidget(self.output_format)
@@ -851,7 +845,7 @@ class Ui_batch_widget(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 832, 698))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 840, 706))
         self.gridLayout_3 = QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_3.setSpacing(1)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
@@ -1153,7 +1147,7 @@ class Ui_batch_widget(object):
         self.retranslateUi(batch_widget)
 
         self.aspects.setCurrentIndex(0)
-        self.output_options.setCurrentIndex(0)
+        self.output_options.setCurrentIndex(3)
         self.quoting.setCurrentIndex(1)
         self.quoting_bus.setCurrentIndex(1)
         self.tabWidget.setCurrentIndex(0)
@@ -1216,13 +1210,6 @@ class Ui_batch_widget(object):
         self.raster_search_btn.setText("")
         self.resample_time_from_zero.setText(QCoreApplication.translate("batch_widget", u"Time from 0s", None))
         self.groupBox_11.setTitle(QCoreApplication.translate("batch_widget", u"Ouput format", None))
-        self.output_format.setItemText(0, QCoreApplication.translate("batch_widget", u"MDF", None))
-        self.output_format.setItemText(1, QCoreApplication.translate("batch_widget", u"ASC", None))
-        self.output_format.setItemText(2, QCoreApplication.translate("batch_widget", u"CSV", None))
-        self.output_format.setItemText(3, QCoreApplication.translate("batch_widget", u"HDF5", None))
-        self.output_format.setItemText(4, QCoreApplication.translate("batch_widget", u"MAT", None))
-        self.output_format.setItemText(5, QCoreApplication.translate("batch_widget", u"Parquet", None))
-
         self.mdf_split.setText(QCoreApplication.translate("batch_widget", u"Split data blocks", None))
         self.label_39.setText(QCoreApplication.translate("batch_widget", u"Compression", None))
         self.label_40.setText(QCoreApplication.translate("batch_widget", u"Version", None))

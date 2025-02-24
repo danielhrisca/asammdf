@@ -10,14 +10,12 @@ from time import perf_counter
 from traceback import format_exc
 from zipfile import ZIP_DEFLATED, ZipFile
 
+import dateutil.tz
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph import Qt
 import pyqtgraph.functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
-
-PLOT_BUFFER_SIZE = 4000
-
 
 from ... import tool as Tool
 from ...blocks.conversion_utils import from_dict, to_dict
@@ -26,6 +24,8 @@ from ...blocks.utils import target_byte_order
 from ..dialogs.messagebox import MessageBox
 from ..utils import FONT_SIZE, value_as_str
 from .viewbox import ViewBoxWithCursor
+
+LOCAL_TIMEZONE = dateutil.tz.tzlocal()
 
 
 @lru_cache(maxsize=1024)
@@ -190,6 +190,7 @@ class PlotSignal(Signal):
         self.path = None
 
         self._dtype = "i1"
+        self._buffer_size = 1
 
         self.duplication = duplication
         self.uuid = getattr(signal, "uuid", os.urandom(6).hex())
@@ -490,9 +491,9 @@ class PlotSignal(Signal):
         if self._enable != enable_state:
             self._enable = enable_state
             if enable_state:
-                self._pos = np.empty(2 * PLOT_BUFFER_SIZE, dtype="i4")
-                self._plot_samples = np.empty(2 * PLOT_BUFFER_SIZE, dtype=self._dtype)
-                self._plot_timestamps = np.empty(2 * PLOT_BUFFER_SIZE, dtype="f8")
+                self._pos = np.empty(2 * self._buffer_size, dtype="i4")
+                self._plot_samples = np.empty(2 * self._buffer_size, dtype=self._dtype)
+                self._plot_timestamps = np.empty(2 * self._buffer_size, dtype="f8")
 
             else:
                 self._pos = self._plot_samples = self._plot_timestamps = None
@@ -958,7 +959,7 @@ class PlotSignal(Signal):
             self._compute_stats()
         return self._std if self.mode == "phys" else self._std_raw
 
-    def trim_c(self, start=None, stop=None, width=1900, force=False):
+    def trim_c(self, start=None, stop=None, width=1, force=False):
         trim_info = (start, stop, width)
         if not force and self.trim_info == trim_info:
             return None
@@ -1023,12 +1024,18 @@ class PlotSignal(Signal):
                         rest = visible_duplication
                     steps = visible_duplication
 
+                    if count > self._buffer_size:
+                        self._buffer_size = count
+                        self._pos = np.empty(2 * self._buffer_size, dtype="i4")
+                        self._plot_samples = np.empty(2 * self._buffer_size, dtype=self._dtype)
+                        self._plot_timestamps = np.empty(2 * self._buffer_size, dtype="f8")
+
                     if samples.dtype.kind == "f" and samples.itemsize == 2:
                         samples = samples.astype("f8")
                         self._dtype = "f8"
 
                     if samples.dtype != self._plot_samples.dtype:
-                        self._plot_samples = np.empty(2 * PLOT_BUFFER_SIZE, dtype=samples.dtype)
+                        self._plot_samples = np.empty(2 * self._buffer_size, dtype=samples.dtype)
 
                         self._dtype = samples.dtype
 
@@ -1221,6 +1228,13 @@ class PlotSignal(Signal):
 
     def trim(self, start=None, stop=None, width=1900, force=False):
         if self._enable:
+            if width > self._buffer_size:
+                width = ceil(width)
+                self._buffer_size = width
+                self._pos = np.empty(2 * self._buffer_size, dtype="i4")
+                self._plot_samples = np.empty(2 * self._buffer_size, dtype=self._dtype)
+                self._plot_timestamps = np.empty(2 * self._buffer_size, dtype="f8")
+
             self.path = None
             try:
                 return self.trim_c(start, stop, width, force)
@@ -2307,9 +2321,9 @@ class Plot(QtWidgets.QWidget):
                         item.setCheckState(item.NameColumn, QtCore.Qt.CheckState.Checked)
             elif item.type() == item.Group:
                 if (
-                    (Plot.item_double_click_handling == "enable/disable" and button == QtCore.Qt.MouseButton.LeftButton)
-                    or Plot.item_double_click_handling == "expand/collapse"
-                    and button == QtCore.Qt.MouseButton.RightButton
+                    Plot.item_double_click_handling == "enable/disable" and button == QtCore.Qt.MouseButton.LeftButton
+                ) or (
+                    Plot.item_double_click_handling == "expand/collapse" and button == QtCore.Qt.MouseButton.RightButton
                 ):
                     if self.channel_selection.expandsOnDoubleClick():
                         self.channel_selection.setExpandsOnDoubleClick(False)
@@ -3464,9 +3478,8 @@ class Plot(QtWidgets.QWidget):
                 if item.type() == ChannelsTreeItem.Channel:
                     _item_cache[item.uuid] = item
 
-                    if (
-                        item.uuid == self.info_uuid
-                        or item.exists
+                    if item.uuid == self.info_uuid or (
+                        item.exists
                         and (item.checkState(item.NameColumn) == QtCore.Qt.CheckState.Checked or item._is_visible)
                     ):
                         entry = (item.origin_uuid, item.signal.name, item.uuid)
@@ -3683,7 +3696,7 @@ class PlotGraphics(pg.PlotWidget):
         else:
             fmt = "phys"
         self.x_axis.format = fmt
-        self.x_axis.origin = origin
+        self.x_axis.origin = origin.astimezone(LOCAL_TIMEZONE)
 
         self.y_axis = FormatedAxis(
             "left", maxTickLength=-5, background=self.backgroundBrush().color(), linked_signal=(self, None)
@@ -4317,6 +4330,7 @@ class PlotGraphics(pg.PlotWidget):
             mdf=mdf,
             computation=signal.computation,
             functions=functions,
+            global_variables=self.plot_parent.owner.global_variables,
             parent=self,
         )
         dlg.setModal(True)
@@ -4433,6 +4447,7 @@ class PlotGraphics(pg.PlotWidget):
             mdf=mdf,
             computation=None,
             functions=functions,
+            global_variables=self.plot_parent.owner.global_variables,
             parent=self,
         )
         dlg.setModal(True)
@@ -5264,11 +5279,8 @@ class PlotGraphics(pg.PlotWidget):
             default_connect = curve.opts["connect"]
 
             for i, sig in enumerate(self.signals):
-                if (
-                    not sig.enable
-                    or flash_current_signal > 0
-                    and flash_current_signal % 2 == 0
-                    and sig.uuid == self.current_uuid
+                if not sig.enable or (
+                    flash_current_signal > 0 and flash_current_signal % 2 == 0 and sig.uuid == self.current_uuid
                 ):
                     continue
 
@@ -5526,7 +5538,7 @@ class PlotGraphics(pg.PlotWidget):
 
             rect = None
 
-            if zoom_mode == self.viewbox.X_zoom or zoom_mode in self.viewbox.XY_zoom and self.locked:
+            if zoom_mode == self.viewbox.X_zoom or (zoom_mode in self.viewbox.XY_zoom and self.locked):
                 x1, x2 = sorted([x1, x2])
                 rect = QtCore.QRectF(
                     x1,
@@ -6008,7 +6020,7 @@ class PlotGraphics(pg.PlotWidget):
                 if tuple(self.y_axis.range) != tuple(sig.y_range):
                     self.y_axis.setRange(*sig.y_range)
 
-        if self.viewbox:
+        if self.viewbox and self._can_paint_global:
             self.viewbox.update()
 
     def update_views(self):

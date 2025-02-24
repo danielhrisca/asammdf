@@ -6,6 +6,9 @@ from PySide6 import QtCore, QtTest, QtWidgets
 
 from asammdf.gui.dialogs.channel_group_info import ChannelGroupInfoDialog
 from asammdf.gui.dialogs.channel_info import ChannelInfoDialog
+from asammdf.gui.widgets.numeric import Numeric
+from asammdf.gui.widgets.plot import Plot
+from asammdf.gui.widgets.tabular import Tabular
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 # Note: If it's possible and make sense, use self.subTests
@@ -23,6 +26,79 @@ class TestTabChannels(TestFileWidget):
         self.mc_ErrorDialog.assert_not_called()
         self.mc_widget_ed.assert_not_called()
         super().tearDown()
+
+    def test_load_file_with_metadata(self):
+        """
+        Events:
+            - Open 'FileWidget' with valid measurement which has valid display file in metadata.
+            - Store opened sub-windows typy, titles and channels names
+            - Close all sub-windows
+            - Press PushButton: "Load offline windows"
+                - Simulate that dspf file from metadata was selected
+        Expected:
+            - Loaded sub-windows are the same as sub-windows opened with measurement file
+        """
+
+        def get_dspf_data(iterator):
+            data = []
+            for sub_win in iterator:
+                w = sub_win.widget()
+                if isinstance(w, Plot):
+                    data.append(
+                        {
+                            "channels": [
+                                w.channel_selection.topLevelItem(_).name
+                                for _ in range(w.channel_selection.topLevelItemCount())
+                            ],
+                            "plot_bg_color": w.plot.backgroundBrush().color().name(),
+                        }
+                    )
+                elif isinstance(w, Numeric):
+                    data.append([sig.name for sig in w.channels.dataView.backend.signals])
+                elif isinstance(w, Tabular):
+                    data.append(list(w.tree.pgdf.df.columns))
+                return data
+
+        # Setup
+        measurement_file = str(pathlib.Path(self.resource, "test_metadata.mf4"))
+        # valid_dsp = str(pathlib.Path(self.resource, "valid.dsp"))
+
+        # Event
+        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+
+        # Prepare expected results
+        dspf_file = self.widget.mdf.header._common_properties.get("pr_display_file", "")
+        dspf_path = str(pathlib.Path(self.resource, dspf_file))
+
+        sub_windows = self.get_sub_windows()
+        titles = sorted(w.windowTitle() for w in self.widget.mdi_area.subWindowList())
+        dspf_data = get_dspf_data(self.widget.mdi_area.subWindowList())
+
+        # Close all sub-windows
+        for w in self.widget.mdi_area.subWindowList():
+            w.close()
+
+        # Evaluate that all sub-windows was closed
+        self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
+
+        # Open DSPF
+        with mock.patch("asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName") as mo_getOpenFileName:
+            mo_getOpenFileName.return_value = dspf_path, None
+            QtTest.QTest.mouseClick(
+                self.widget.load_channel_list_btn,
+                QtCore.Qt.MouseButton.LeftButton,
+            )
+            self.processEvents()
+
+            # Evaluate
+            self.assertListEqual(sub_windows, self.get_sub_windows())
+            self.assertListEqual(titles, sorted(w.windowTitle() for w in self.widget.mdi_area.subWindowList()))
+            for old, new in zip(dspf_data, get_dspf_data(self.widget.mdi_area.subWindowList())):
+                if isinstance(old, dict):
+                    self.assertListEqual(new["channels"], old["channels"])
+                    self.assertEqual(new["plot_bg_color"], old["plot_bg_color"])
+                elif isinstance(old, list):
+                    self.assertListEqual(old, new)
 
     def test_PushButton_LoadOfflineWindows_DSP(self):
         """

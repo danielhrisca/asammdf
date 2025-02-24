@@ -2,17 +2,15 @@ from datetime import datetime, timedelta, timezone
 from math import ceil
 from traceback import format_exc
 
-from PySide6 import QtCore, QtGui, QtWidgets
-
-LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
-
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
 import pyqtgraph.functions as fn
 from pyqtgraph.graphicsItems.ButtonItem import ButtonItem
 from pyqtgraph.Point import Point
+from PySide6 import QtCore, QtGui, QtWidgets
 
+LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 BUTTON_SIZE = 16
 
 
@@ -137,13 +135,14 @@ class FormatedAxis(pg.AxisItem):
                 strns = [str(timedelta(seconds=val)) for val in values]
             elif self.format == "date":
                 strns = (
-                    pd.to_datetime(
-                        np.array(values) + self.origin.timestamp(),
-                        unit="s",
-                        errors="coerce",
+                    (
+                        pd.to_timedelta(
+                            np.array(values),
+                            unit="s",
+                            errors="coerce",
+                        )
+                        + self.origin
                     )
-                    .tz_localize("UTC")
-                    .tz_convert(LOCAL_TIMEZONE)
                     .astype(str)
                     .to_list()
                 )

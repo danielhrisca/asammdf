@@ -130,7 +130,7 @@ class TestMDF4(unittest.TestCase):
 
         samples = [np.ones((5, 2), dtype=np.uint8)]
         types = [("boolean_array_channel", "(2, )<u1")]
-        record = np.core.records.fromarrays(samples, dtype=np.dtype(types))
+        record = np.rec.fromarrays(samples, dtype=np.dtype(types))
         boolean_array_channel = Signal(
             record,
             timestamps=timestamps,

@@ -1131,7 +1131,13 @@ class HeaderView(QtWidgets.QTableView):
         }
 
     def all_columns_width(self):
-        return [self.columnWidth(self.NameColumn), *self.columns_width.values()]
+        widths = []
+        for column in (self.NameColumn, self.RawColumn, self.ScaledColumn, self.UnitColumn):
+            if self.isColumnHidden(column):
+                widths.append(self.columns_width.get(column, 100))
+            else:
+                widths.append(self.columnWidth(column))
+        return widths
 
     def columns_visibility(self):
         return {
@@ -1483,6 +1489,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.customContextMenuRequested.connect(self.show_menu)
 
     def show_menu(self, position):
+
         count = len(self.channels.backend)
 
         header = self.channels.columnHeader
@@ -1525,13 +1532,13 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         menu.addSeparator()
 
-        submenu = QtWidgets.QMenu("Copy")
+        submenu = QtWidgets.QMenu("Copy names")
         submenu.setIcon(QtGui.QIcon(":/copy.png"))
         submenu.addAction("Copy names [Ctrl+N]")
         submenu.addAction("Copy names and values")
         menu.addMenu(submenu)
 
-        submenu = QtWidgets.QMenu("Tree structure")
+        submenu = QtWidgets.QMenu("Display structure")
         submenu.setIcon(QtGui.QIcon(":/structure.png"))
         submenu.addAction("Copy display properties [Ctrl+Shift+C]")
         submenu.addAction("Paste display properties [Ctrl+Shift+V]")
@@ -1551,7 +1558,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         menu.addSeparator()
 
-        submenu = QtWidgets.QMenu("Display")
+        submenu = QtWidgets.QMenu("Display mode")
         submenu.addAction("Ascii\t[Ctrl+T]")
         submenu.addAction("Bin\t[Ctrl+B]")
         submenu.addAction("Hex\t[Ctrl+H]")

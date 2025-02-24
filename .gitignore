@@ -20,7 +20,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+/lib/
 lib64/
 parts/
 sdist/
@@ -37,7 +37,6 @@ MANIFEST
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
-*.spec
 
 # Installer logs
 pip-log.txt
@@ -57,6 +56,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 pytestdebug.log
+coverage.lcov
 
 # Translations
 *.mo
@@ -149,4 +149,5 @@ dmypy.json
 # End of https://www.toptal.com/developers/gitignore/api/python
 
 # Custom rules (everything added below won't be overriden by 'Generate .gitignore File' if you use 'Update' option)
-
+screenshots/**
+test-reports/**

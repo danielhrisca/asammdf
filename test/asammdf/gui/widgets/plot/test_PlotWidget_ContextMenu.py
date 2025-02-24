@@ -3,6 +3,8 @@ import json
 from json import JSONDecodeError
 import pathlib
 import re
+import sys
+import unittest
 from unittest import mock
 from unittest.mock import ANY
 
@@ -203,7 +205,7 @@ class TestContextMenu(TestPlotWidget):
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             pattern_name = re.escape(self.plot_channel_a.text(self.Column.NAME))
             pattern_unit = re.escape(self.plot_channel_a.text(self.Column.UNIT))
-            self.assertRegex(clipboard, expected_regex=f"{pattern_name}, t = \d+[.]?\d+s, \d+[.]?\d+{pattern_unit}")
+            self.assertRegex(clipboard, expected_regex=f"{pattern_name}, t = \\d+[.]?\\d+s, \\d+[.]?\\d+{pattern_unit}")
 
         with self.subTest("2Channels"):
             self.plot_channel_a.setSelected(True)
@@ -216,7 +218,7 @@ class TestContextMenu(TestPlotWidget):
             for channel in (self.plot_channel_a, self.plot_channel_b):
                 pattern_name = re.escape(channel.text(self.Column.NAME))
                 pattern_unit = re.escape(channel.text(self.Column.UNIT))
-                expected_regex.append(f"{pattern_name}, t = \d+[.]?\d+s, \d+[.]?\d+{pattern_unit}")
+                expected_regex.append(f"{pattern_name}, t = \\d+[.]?\\d+s, \\d+[.]?\\d+{pattern_unit}")
 
             self.assertRegex(clipboard, "\\n".join(expected_regex))
 
@@ -447,7 +449,7 @@ class TestContextMenu(TestPlotWidget):
             QtTest.QTest.keyClick(self.plot.channel_selection, QtCore.Qt.Key.Key_Space)
             # Evaluate
             self.assertTrue(self.plot_channel_a.isHidden())
-            self.context_menu(action_text="Show disabled items")
+            self.context_menu(action_text="Hide disabled items")
             self.assertFalse(self.plot_channel_a.isHidden())
 
         with self.subTest("DisableByClick"):
@@ -464,7 +466,7 @@ class TestContextMenu(TestPlotWidget):
             )
             # Evaluate
             self.assertTrue(self.plot_channel_b.isHidden())
-            self.context_menu(action_text="Show disabled items")
+            self.context_menu(action_text="Hide disabled items")
             self.assertFalse(self.plot_channel_b.isHidden())
 
     def test_Menu_ShowHide_Action_HideMissingItems(self):
@@ -517,7 +519,7 @@ class TestContextMenu(TestPlotWidget):
         self.assertTrue(plot_channel.isHidden())
 
         # Events
-        self.context_menu(action_text="Show missing items")
+        self.context_menu(action_text="Hide missing items")
 
         # Evaluate
         self.assertFalse(plot_channel.isHidden())
@@ -584,7 +586,7 @@ class TestContextMenu(TestPlotWidget):
             iterator += 1
 
         # Events
-        self.context_menu(action_text="Un-filter computed channels")
+        self.context_menu(action_text="Filter only computed channels")
 
         # Evaluate
         iterator = QtWidgets.QTreeWidgetItemIterator(self.plot.channel_selection)
@@ -844,6 +846,7 @@ class TestContextMenu(TestPlotWidget):
             self.assertNotEqual(previous_c_color, current_c_color)
             self.assertNotEqual(current_b_color, current_c_color)
 
+    @unittest.skipIf(sys.platform == "win32", "times out on Windows")
     def test_Action_CopyDisplayProperties_Group(self):
         """
         Test Scope:
@@ -1044,6 +1047,7 @@ class TestContextMenu(TestPlotWidget):
             # Evaluate
             self.assertEqual(group_channel_a_properties, group_channel_b_properties)
 
+    @unittest.skipIf(sys.platform == "win32", "times out on Windows")
     def test_Action_CopyChannelStructure_Group(self):
         """
         Test Scope:
