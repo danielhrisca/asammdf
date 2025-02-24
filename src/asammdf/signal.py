@@ -45,33 +45,33 @@ class Signal:
         Signal samples.
     timestamps : np.ndarray | list | tuple
         Signal timestamps.
-    unit : str
+    unit : str, optional
         Signal unit.
     name : str
         Signal name.
-    conversion : dict | channel conversion block
+    conversion : dict | channel conversion block, optional
         Dict that contains extra conversion information about the signal;
         default *None*.
-    comment : str
+    comment : str, optional
         Signal comment; default ''.
-    raw : bool
+    raw : bool, optional
         Signal samples are raw values, with no physical conversion applied.
-    master_metadata : list
+    master_metadata : list, optional
         Master name and sync type.
-    display_names : dict
+    display_names : dict, optional
         Display names used by MDF version 3.
-    attachment : bytes, name
+    attachment : bytes, name, optional
         Channel attachment and name from MDF version 4.
-    source : Source
+    source : Source, optional
         Source information named tuple.
-    bit_count : int
+    bit_count : int, optional
         Bit count; useful for integer channels.
-    invalidation_bits : np.ndarray | None
+    invalidation_bits : np.ndarray | None, optional
         Channel invalidation bits; default *None*.
-    encoding : str | None
+    encoding : str | None, optional
         Encoding for string signals; default *None*.
-    flags : Signal.Flags
-        Flags for user defined attributes and stream sync.
+    flags : Signal.Flags, optional
+        Flags for user-defined attributes and stream sync.
     """
 
     Flags = SignalFlags
@@ -238,10 +238,10 @@ class Signal:
 
         Parameters
         ----------
-        validate (True): bool
+        validate (True): bool, optional
             Apply the invalidation bits.
 
-        index_only (False) : bool
+        index_only (False) : bool, optional
             Use index based X axis. This can be useful if the master (usually
             time based) is corrupted with NaN, inf or if it is not strictly
             increasing.
@@ -453,16 +453,16 @@ class Signal:
 
         Parameters
         ----------
-        start : float
+        start : float, optional
             Start timestamp for cutting.
-        stop : float
+        stop : float, optional
             Stop timestamp for cutting.
-        include_ends : bool
+        include_ends : bool, optional
             Include the *start* and *stop* timestamps after cutting the signal.
             If *start* and *stop* are not found in the original timestamps, then
             the new samples will be computed using interpolation. Default *True*.
 
-        integer_interpolation_mode : int
+        integer_interpolation_mode : int, optional
             Interpolation mode for integer signals; default 0.
 
             * 0 - repeat previous samples
@@ -473,7 +473,7 @@ class Signal:
 
             .. versionadded:: 6.2.0
 
-        float_interpolation_mode : int
+        float_interpolation_mode : int, optional
             Interpolation mode for float channels; default 1.
 
             * 0 - repeat previous sample
@@ -930,7 +930,7 @@ class Signal:
         new_timestamps : np.ndarray
             Timestamps used for interpolation.
 
-        integer_interpolation_mode : int
+        integer_interpolation_mode : int, optional
             Interpolation mode for integer signals; default 0.
 
             * 0 - repeat previous samples
@@ -941,7 +941,7 @@ class Signal:
 
             .. versionadded:: 6.2.0
 
-        float_interpolation_mode : int
+        float_interpolation_mode : int, optional
             Interpolation mode for float channels; default 1.
 
             * 0 - repeat previous sample
@@ -1390,7 +1390,7 @@ class Signal:
         Returns
         -------
         signal : Signal
-            New *Signal* with the samples of *np_type* dtype.
+            New *Signal* with the samples of dtype *np_type*.
         """
         return Signal(
             self.samples.astype(np_type),
@@ -1411,11 +1411,11 @@ class Signal:
         )
 
     def physical(self, copy: bool = True) -> "Signal":
-        """Get the physical samples values.
+        """Get the physical sample values.
 
         Parameters
         ----------
-        copy : bool
+        copy : bool, optional
             Copy the samples and timestamps in the returned Signal.
 
             .. versionadded:: 7.4.0
@@ -1464,7 +1464,7 @@ class Signal:
 
         Parameters
         ----------
-        copy (True) : bool
+        copy (True) : bool, optional
             Return a copy of the result.
 
             .. versionadded:: 5.12.0

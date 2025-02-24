@@ -165,7 +165,7 @@ def master_using_raster(mdf: MDF_v2_v3_v4, raster: RasterType, endpoint: bool = 
         Measurement object.
     raster : float
         New raster.
-    endpoint=False : bool
+    endpoint : bool, optional, default: False
         Include maximum time stamp in the new master.
 
     Returns
@@ -215,7 +215,7 @@ class MDF:
 
     Parameters
     ----------
-    name : string | BytesIO | zipfile.ZipFile | bz2.BZ2File | gzip.GzipFile
+    name : string | BytesIO | zipfile.ZipFile | bz2.BZ2File | gzip.GzipFile, optional
         Mdf file name (if provided it must be a real file name), file-like object or
         compressed file opened as a Python object.
 
@@ -223,13 +223,13 @@ class MDF:
 
             Added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile.
 
-    version : string
+    version : string, optional
         Mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
         '3.30', '4.00', '4.10', '4.11', '4.20'); default '4.10'. This argument is
         only used for MDF objects created from scratch; for MDF objects created
         from a file the version is set to file version.
 
-    channels (None) : iterable
+    channels (None) : iterable, optional
         Channel names that will be used for selective loading. This can dramatically
         improve the file loading time. Default *None* -> load all channels.
 
@@ -237,30 +237,30 @@ class MDF:
 
         .. versionchanged:: 6.3.0 Make the default *None*.
 
-    use_display_names (\*\*kwargs) : bool
+    use_display_names (\*\*kwargs) : bool, optional
         Keyword-only argument: for MDF v4 files, parse the XML channel comment to
         search for the display name; XML parsing is quite expensive so setting
         this to *False* can decrease the loading times very much; default *True*.
-    remove_source_from_channel_names (\*\*kwargs) : bool
+    remove_source_from_channel_names (\*\*kwargs) : bool, optional
         Remove source from channel names ("Speed\XCP3" -> "Speed").
-    copy_on_get (\*\*kwargs) : bool
+    copy_on_get (\*\*kwargs) : bool, optional
         Copy arrays in the `get` method; default *True*.
-    expand_zippedfile (\*\*kwargs) : bool
+    expand_zippedfile (\*\*kwargs) : bool, optional
         Only for bz2.BZ2File and gzip.GzipFile, load the file content into a
         BytesIO before parsing (avoids the huge performance penalty of doing
         random reads from the zipped file); default *True*.
-    raise_on_multiple_occurrences (\*\*kwargs) : bool
+    raise_on_multiple_occurrences (\*\*kwargs) : bool, optional
         Raise MdfException when there are multiple channel occurrences in the file and
         the `get` call is ambiguous; default *True*.
 
         .. versionadded:: 7.0.0
 
-    temporary_folder (\*\*kwargs) : str | pathlib.Path
+    temporary_folder (\*\*kwargs) : str | pathlib.Path, optional
         Folder to use for temporary files.
 
         .. versionadded:: 7.0.0
 
-    process_bus_logging (\*\*kwargs) : bool
+    process_bus_logging (\*\*kwargs) : bool, optional
         Controls if the bus processing of MDF v4 files is done when the file is loaded. Default *True*.
 
         .. versionadded:: 8.0.0
@@ -716,20 +716,20 @@ class MDF:
 
         Parameters
         ----------
-        read_fragment_size : int
+        read_fragment_size : int, optional
             Size hint of split data blocks, default 8MB; if the initial size is
             smaller, then no data list is used. The actual split size depends on
             the data groups' records size.
-        write_fragment_size : int
+        write_fragment_size : int, optional
             Size hint of split data blocks, default 4MB; if the initial size is
             smaller, then no data list is used. The actual split size depends on
             the data groups' records size. Maximum size is 4MB to ensure
             compatibility with CANape.
-        use_display_names : bool
+        use_display_names : bool, optional
             Search for display name in the Channel XML comment.
-        single_bit_uint_as_bool : bool
+        single_bit_uint_as_bool : bool, optional
             Return single bit channels as np.bool arrays.
-        integer_interpolation : int
+        integer_interpolation : int, optional
             Interpolation mode for integer channels.
 
             * 0 - repeat previous sample
@@ -741,10 +741,10 @@ class MDF:
             .. versionchanged:: 6.2.0
                 Added hybrid mode interpolation.
 
-        copy_on_get : bool
+        copy_on_get : bool, optional
             Copy arrays in the get method.
 
-        float_interpolation : int
+        float_interpolation : int, optional
             Interpolation mode for float channels.
 
             * 0 - repeat previous sample
@@ -752,23 +752,23 @@ class MDF:
 
             .. versionadded:: 6.2.0
 
-        raise_on_multiple_occurrences : bool
+        raise_on_multiple_occurrences : bool, optional
             Raise MdfException when there are multiple channel occurrences in the file and
             the `get` call is ambiguous; default *True*.
 
             .. versionadded:: 6.2.0
 
-        from_other : MDF
+        from_other : MDF, optional
             Copy configuration options from other MDF.
 
             .. versionadded:: 6.2.0
 
-        temporary_folder : str
+        temporary_folder : str, optional
             Default folder for temporary files.
 
             .. versionadded:: 7.0.0
 
-        fill_0_for_missing_computation_channels : bool
+        fill_0_for_missing_computation_channels : bool, optional
             When a channel required by a computed channel is missing, then fill with 0 values.
             If *False* then the computation will fail and the computed channel will be marked as not existing.
 
@@ -905,27 +905,27 @@ class MDF:
 
         Parameters
         ----------
-        start : float
+        start : float, optional
             Start time, default *None*. If *None* then the start of measurement
             is used.
-        stop : float
+        stop : float, optional
             Stop time, default *None*. If *None* then the end of measurement is
             used.
-        whence : int
+        whence : int, optional
             How to search for the start and stop values.
 
             * 0 : absolute
             * 1 : relative to first timestamp
 
-        version : str
+        version : str, optional
             New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11', 4.20'); default *None* and in this
             case the original file version is used.
-        include_ends : bool
+        include_ends : bool, optional
             Include the *start* and *stop* timestamps after cutting the signal.
             If *start* and *stop* are not found in the original timestamps, then
             the new samples will be computed using interpolation. Default *True*.
-        time_from_zero : bool
+        time_from_zero : bool, optional
             Start timestamps from 0s in the cut measurement.
 
         Returns
@@ -1191,7 +1191,7 @@ class MDF:
 
                 .. versionadded:: 7.3.3
 
-        filename : string | pathlib.Path
+        filename : string | pathlib.Path, optional
             Export file name.
 
         Other Parameters
@@ -1199,31 +1199,31 @@ class MDF:
 
         \*\*kwargs
 
-        single_time_base : bool
+        single_time_base : bool, optional
             Resample all channels to common time base; default *False*.
-        raster : float
+        raster : float, optional
             Time raster for resampling. Valid if *single_time_base* is *True*.
-        time_from_zero : bool
+        time_from_zero : bool, optional
             Adjust time channel to start from 0; default *True*.
-        use_display_names : bool
+        use_display_names : bool, optional
             Use display name instead of standard channel name, if available;
             default *True*.
-        empty_channels : {"skip", "zeros"}
+        empty_channels : {"skip", "zeros"}, optional
             Behaviour for channels without samples; default *"skip"*.
-        format : {"5", "4", "7.3"}
+        format : {"5", "4", "7.3"}, optional
             Only valid for *mat* export; default "5".
-        oned_as : {"row", "column"}
+        oned_as : {"row", "column"}, optional
             Only valid for *mat* export; default "row".
-        keep_arrays : bool
+        keep_arrays : bool, optional
             Keep arrays and structure channels as well as the
             component channels. If *True* this can be very slow. If *False*
             only the component channels are saved, and their names will be
             prefixed with the parent channel.
-        reduce_memory_usage : bool
+        reduce_memory_usage : bool, optional
             Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
             in integer columns; default *False*.
-        compression : str | bool
+        compression : str | bool, optional
             Compression to be used.
 
             * for ``parquet`` : "GZIP", "SNAPPY" or "LZ4"
@@ -1234,55 +1234,55 @@ class MDF:
 
                 Added LZ4 compression after changing to pyarrow.
 
-        time_as_date : bool
+        time_as_date : bool, optional
             Export time as local timezone datetime; only valid for CSV export; default *False*.
 
             .. versionadded:: 5.8.0
 
-        ignore_value2text_conversions : bool
+        ignore_value2text_conversions : bool, optional
             Valid only for the channels that have value to text conversions and
             if *raw=False*. If this is *True* then the raw numeric values will be
             used, and the conversion will not be applied. Default *False*.
 
             .. versionadded:: 5.8.0
 
-        raw : bool
+        raw : bool, optional
             Export all channels using the raw values; default *False*.
 
             .. versionadded:: 6.0.0
 
-        delimiter : str, default: ","
+        delimiter : str, optional, default: ","
             Only valid for CSV: see cpython documentation for csv.Dialect.delimiter.
 
             .. versionadded:: 6.2.0
 
-        doublequote : bool, default: True
+        doublequote : bool, optional, default: True
             Only valid for CSV: see cpython documentation for csv.Dialect.doublequote.
 
             .. versionadded:: 6.2.0
 
-        escapechar : str, default: None
+        escapechar : str, optional, default: None
             Only valid for CSV: see cpython documentation for csv.Dialect.escapechar.
 
             .. versionadded:: 6.2.0
 
-        lineterminator : str, default: "\\r\\n"
+        lineterminator : str, optional, default: "\\r\\n"
             Only valid for CSV: see cpython documentation for csv.Dialect.lineterminator.
 
             .. versionadded:: 6.2.0
 
-        quotechar : str, default: '"'
+        quotechar : str, optional, default: '"'
             Only valid for CSV: see cpython documentation for csv.Dialect.quotechar.
 
             .. versionadded:: 6.2.0
 
-        quoting : str, default: "MINIMAL"
+        quoting : str, optional, default: "MINIMAL"
             Only valid for CSV: see cpython documentation for csv.Dialect.quoting. Use the
             last part of the quoting constant name.
 
             .. versionadded:: 6.2.0
 
-        add_units : bool, default: False
+        add_units : bool, optional, default: False
             Only valid for CSV: add the channel units on the second row of the CSV file.
 
             .. versionadded:: 7.1.0
@@ -2048,7 +2048,7 @@ class MDF:
             * (channel name, group index) list or tuple
             * (None, group index, channel index) list or tuple
 
-        version : str
+        version : str, optional
             New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and in this
             case the original file version is used.
@@ -2225,18 +2225,18 @@ class MDF:
 
         Parameters
         ----------
-        name : string
+        name : string, optional
             Name of channel.
-        group : int
+        group : int, optional
             0-based group index.
-        index : int
+        index : int, optional
             0-based channel index.
-        raster : float
+        raster : float, optional
             Time raster in seconds.
-        samples_only : bool
+        samples_only : bool, optional
             If *True* return only the channel samples as np.ndarray; if
             *False* return a *Signal* object.
-        raw : bool
+        raw : bool, optional
             Return channel samples without applying the conversion rule; default
             *False*.
         """
@@ -2284,25 +2284,25 @@ class MDF:
 
                 Added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile.
 
-        version : str
+        version : str, optional
             Merged file version.
-        sync : bool
+        sync : bool, optional
             Sync the files based on the start of measurement, default *True*. The order of the
             input files is preserved, only the samples' timestamps are influenced by this
             argument.
-        add_samples_origin : bool
+        add_samples_origin : bool, optional
             Option to create a new "__samples_origin" channel that will hold
             the index of the measurement from where each timestamp originated.
-        direct_timestamp_continuation (False) : bool
+        direct_timestamp_continuation : bool, optional
             The timestamps from the next file will be added right after the last
             timestamp from the previous file; default *False*.
 
             .. versionadded:: 6.0.0
 
-        use_display_names : bool
+        use_display_names : bool, optional
             Use display name instead of standard channel name, if available;
             default *False*.
-        process_bus_logging : bool
+        process_bus_logging : bool, optional
             Controls if the bus processing of MDF v4 files is done when the file is loaded. Default *True*.
 
             .. versionadded:: 8.1.0
@@ -2734,14 +2734,14 @@ class MDF:
             .. versionchanged:: 6.2.0
 
                 Added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile.
-        version : str
+        version : str, optional
             Merged file version.
-        sync : bool
+        sync : bool, optional
             Sync the files based on the start of measurement; default *True*.
-        use_display_names : bool
+        use_display_names : bool, optional
             Use display name instead of standard channel name, if available;
             default *False*.
-        process_bus_logging : bool
+        process_bus_logging : bool, optional
             Controls if the bus processing of MDF v4 files is done when the file is loaded. Default *True*.
 
             .. versionadded:: 8.1.0
@@ -2916,11 +2916,11 @@ class MDF:
 
         Parameters
         ----------
-        skip_master : bool
+        skip_master : bool, optional
             Do not yield master channels; default *True*.
-        copy_master : bool
+        copy_master : bool, optional
             Copy master for each yielded channel; default *True*.
-        raw : bool | dict[str, bool]
+        raw : bool | dict[str, bool], optional
             Return raw channels instead of converted; default *False*.
 
             .. versionchanged:: 8.0.0
@@ -2965,19 +2965,19 @@ class MDF:
 
         Parameters
         ----------
-        use_display_names : bool
+        use_display_names : bool, optional
             Use display name instead of standard channel name, if available.
 
             .. versionadded:: 5.21.0
 
-        reduce_memory_usage : bool
+        reduce_memory_usage : bool, optional
             Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
             in integer columns; default *False*.
 
             .. versionadded:: 5.21.0
 
-        raw : bool | dict[str, bool]
+        raw : bool | dict[str, bool], optional
             The DataFrame will contain the raw channel values; default *False*.
 
             .. versionadded:: 5.21.0
@@ -2988,14 +2988,14 @@ class MDF:
                 as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
                 are the channel names and the values are the boolean raw values for each channel.
 
-        ignore_value2text_conversions (False) : bool
+        ignore_value2text_conversions (False) : bool, optional
             Valid only for the channels that have value to text conversions and
             if *raw=False*. If this is *True* then the raw numeric values will be
             used, and the conversion will not be applied.
 
             .. versionadded:: 5.21.0
 
-        keep_arrays (False) : bool
+        keep_arrays : bool, optional
             Keep arrays and structure channels as well as the
             component channels. If *True* this can be very slow. If *False*
             only the component channels are saved, and their names will be
@@ -3003,18 +3003,18 @@ class MDF:
 
             .. versionadded:: 5.21.0
 
-        empty_channels : {"skip", "zeros"}
+        empty_channels : {"skip", "zeros"}, optional
             Behaviour for channels without samples; default "skip".
 
             .. versionadded:: 5.21.0
 
-        only_basenames (False) : bool
+        only_basenames (False) : bool, optional
             Use just the field names, without prefix, for structures and channel
             arrays.
 
             .. versionadded:: 5.21.0
 
-        raster : float | np.ndarray | str
+        raster : float | np.ndarray | str, optional
             New raster that can be:
 
             * a float step value
@@ -4206,7 +4206,7 @@ class MDF:
         time_from_zero : bool
             Adjust time channel to start from 0; default *True*.
 
-        empty_channels : {"skip", "zeros"}
+        empty_channels : {"skip", "zeros"}, optional
             Behaviour for channels without samples; default "skip".
 
             .. versionadded:: 5.8.0
@@ -4217,7 +4217,7 @@ class MDF:
 
             .. versionadded:: 5.13.0
 
-        raster : float | np.ndarray | str
+        raster : float | np.ndarray | str, optional
             New raster that can be:
 
             * a float step value
@@ -4278,7 +4278,7 @@ class MDF:
 
         Parameters
         ----------
-        channels : list
+        channels : list, optional
             List of items to be filtered (default *None*); each item can be:
 
             * a channel name string
@@ -4286,7 +4286,7 @@ class MDF:
             * (channel name, group index) list or tuple
             * (None, group index, channel index) list or tuple
 
-        raster : float | np.ndarray | str
+        raster : float | np.ndarray | str, optional
             New raster that can be:
 
             * a float step value
@@ -4297,7 +4297,7 @@ class MDF:
 
         time_from_zero : bool
             Adjust time channel to start from 0; default *True*.
-        empty_channels : {"skip", "zeros"}
+        empty_channels : {"skip", "zeros"}, optional
             Behaviour for channels without samples; default "skip".
         use_display_names : bool
             Use display name instead of standard channel name, if available.
@@ -4686,7 +4686,7 @@ class MDF:
 
         Parameters
         ----------
-        channels : list
+        channels : list, optional
             List of items to be filtered (default *None*); each item can be:
 
             * a channel name string
@@ -4694,7 +4694,7 @@ class MDF:
             * (channel name, group index) list or tuple
             * (None, group index, channel index) list or tuple
 
-        raster : float | np.ndarray | str
+        raster : float | np.ndarray | str, optional
             New raster that can be:
 
             * a float step value
@@ -4705,7 +4705,7 @@ class MDF:
 
         time_from_zero : bool
             Adjust time channel to start from 0; default *True*.
-        empty_channels : {"skip", "zeros"}
+        empty_channels : {"skip", "zeros"}, optional
             Behaviour for channels without samples; default "skip".
         use_display_names : bool
             Use display name instead of standard channel name, if available.
@@ -5861,11 +5861,11 @@ class MDF:
             Minimum plausible time stamp.
         maximum : float
             Maximum plausible time stamp.
-        exp_min (-15) : int
+        exp_min : int, optional
             Minimum plausible exponent used for the time stamps float values.
-        exp_max (15) : int
+        exp_max : int, optional
             Maximum plausible exponent used for the time stamps float values.
-        version : str
+        version : str, optional
             New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default the same as
             the input file.
