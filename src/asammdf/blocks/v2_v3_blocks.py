@@ -145,9 +145,9 @@ class Channel:
       no conversion
     * ``display_names`` - dict : channel display names
 
-        ..versionchanged:: 7.0.0
+        .. versionchanged:: 7.0.0
 
-            changed from str to dict
+            Changed from str to dict.
 
     * ``name`` - str : full channel name
     * ``source`` - SourceInformation : channel source information; *None* if the channel

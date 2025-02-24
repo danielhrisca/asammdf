@@ -1097,7 +1097,7 @@ class MDF3(MDF_Common[Group]):
         """Appends a new data group.
 
         For channel dependencies type Signals, the *samples* attribute must be
-        a numpy.recarray
+        a np.recarray.
 
         Parameters
         ----------
@@ -2118,7 +2118,7 @@ class MDF3(MDF_Common[Group]):
         comment: str = "",
         units: Optional[dict[str, str]] = None,
     ) -> None:
-        """Appends a new data group from a Pandas DataFrame."""
+        """Appends a new data group from a pandas DataFrame."""
         units = units or {}
 
         t = df.index
@@ -2422,7 +2422,7 @@ class MDF3(MDF_Common[Group]):
         index : int
             group index
         signals : list
-            list of (numpy.ndarray, None) objects
+            list of (np.ndarray, None) objects
 
         Examples
         --------
@@ -2799,7 +2799,7 @@ class MDF3(MDF_Common[Group]):
         raster : float
             time raster in seconds
         samples_only : bool
-            if *True* return only the channel samples as numpy array; if
+            if *True* return only the channel samples as np.ndarray; if
             *False* return a *Signal* object
         data : bytes
             prevent redundant data read by providing the raw data group samples
@@ -2816,20 +2816,20 @@ class MDF3(MDF_Common[Group]):
             *False*. If *True*, the caller has to make sure that the *group* and *index*
             arguments are provided and are correct.
 
-            ..versionadded:: 7.0.0
+            .. versionadded:: 7.0.0
 
         Returns
         -------
-        res : (numpy.array, None) | Signal
+        res : (np.ndarray, None) | Signal
             returns *Signal* if *samples_only*=*False* (default option),
-            otherwise returns a (numpy.array, None) tuple (for compatibility
+            otherwise returns a (np.ndarray, None) tuple (for compatibility
             with MDF v4 class.
 
             The *Signal* samples are
 
-                * numpy recarray for channels that have CDBLOCK or BYTEARRAY
+                * np.recarray for channels that have CDBLOCK or BYTEARRAY
                   type channels
-                * numpy array for all the rest
+                * np.ndarray for all the rest
 
         Raises
         ------
@@ -3189,7 +3189,7 @@ class MDF3(MDF_Common[Group]):
 
         Returns
         -------
-        t : numpy.array
+        t : np.ndarray
             master channel samples
 
         """

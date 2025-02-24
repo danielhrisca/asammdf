@@ -2698,7 +2698,7 @@ class MDF4(MDF_Common[Group]):
         """Appends a new data group.
 
         For channel dependencies type Signals, the *samples* attribute must be
-        a numpy.recarray
+        a np.recarray.
 
         Parameters
         ----------
@@ -4717,7 +4717,7 @@ class MDF4(MDF_Common[Group]):
         comment: str | None = None,
         units: dict[str, str | bytes] | None = None,
     ) -> None:
-        """Appends a new data group from a Pandas DataFrame."""
+        """Appends a new data group from a pandas DataFrame."""
         units = units or {}
 
         if df.shape == (0, 0):
@@ -5871,7 +5871,7 @@ class MDF4(MDF_Common[Group]):
         index : int
             group index
         signals : list
-            list of (numpy.ndarray, numpy.ndarray) objects
+            list of (np.ndarray, np.ndarray) objects
 
         Examples
         --------
@@ -6159,7 +6159,7 @@ class MDF4(MDF_Common[Group]):
         index : int
             group index
         signals : list
-            list of (numpy.ndarray, numpy.ndarray) objects
+            list of (np.ndarray, np.ndarray) objects
 
         Examples
         --------
@@ -6693,7 +6693,7 @@ class MDF4(MDF_Common[Group]):
         raster : float
             time raster in seconds
         samples_only : bool
-            if *True* return only the channel samples as numpy array; if
+            if *True* return only the channel samples as np.ndarray; if
             *False* return a *Signal* object
         data : bytes
             prevent redundant data read by providing the raw data group samples
@@ -6713,24 +6713,24 @@ class MDF4(MDF_Common[Group]):
             *False*. If *True*, the caller has to make sure that the *group* and *index*
             arguments are provided and are correct.
 
-            ..versionadded:: 7.0.0
+            .. versionadded:: 7.0.0
 
 
         Returns
         -------
-        res : (numpy.array, numpy.array) | Signal
+        res : (np.ndarray, np.ndarray) | Signal
             returns *Signal* if *samples_only*=*False* (default option),
-            otherwise returns a (numpy.array, numpy.array) tuple of samples and
+            otherwise returns a (np.ndarray, np.ndarray) tuple of samples and
             invalidation bits. If invalidation bits are not used or if
             *ignore_invalidation_bits* if False, then the second item will be
             None.
 
             The *Signal* samples are:
 
-                * numpy recarray for channels that have composition/channel
+                * np.recarray for channels that have composition/channel
                   array address or for channel of type
                   CANOPENDATE, CANOPENTIME
-                * numpy array for all the rest
+                * np.ndarray for all the rest
 
         Raises
         ------
@@ -8601,7 +8601,7 @@ class MDF4(MDF_Common[Group]):
 
         Returns
         -------
-        t, virtual_master_conversion : (numpy.array, ChannelConvesion | None)
+        t, virtual_master_conversion : (np.ndarray, ChannelConvesion | None)
             master channel samples and virtual master conversion
 
         """

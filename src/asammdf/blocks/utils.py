@@ -1316,7 +1316,7 @@ def components(
 
     Parameters
     ----------
-    channel : numpy.ndarray
+    channel : np.ndarray
         channel to be used for Series
     channel_name : str
         channel name
