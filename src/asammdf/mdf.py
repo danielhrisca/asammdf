@@ -172,7 +172,6 @@ def master_using_raster(mdf: MDF_v2_v3_v4, raster: RasterType, endpoint: bool = 
     -------
     master : np.ndarray
         New master.
-
     """
     if not raster:
         master = np.array([], dtype="<f8")
@@ -274,7 +273,6 @@ class MDF:
     >>> mdf = MDF(zipfile.ZipFile('data.zip')) # MDF creating using the first valid MDF from archive
     >>> mdf = MDF(bz2.BZ2File('path/to/data.bz2', 'rb')) # MDF from bz2 object
     >>> mdf = MDF(gzip.GzipFile('path/to/data.gzip', 'rb')) # MDF from gzip object
-
     """
 
     def __init__(
@@ -677,13 +675,12 @@ class MDF:
         self._transfer_header_data(other, message)
 
     def __contains__(self, channel: str) -> bool:
-        """if *'channel name'* in *'mdf file'*"""
+        """If *'channel name'* in *'mdf file'*"""
         return channel in self.channels_db
 
     def __iter__(self) -> Iterator[Signal]:
-        """iterate over all the channels found in the file; master channels
-        are skipped from iteration
-
+        """Iterate over all the channels found in the file; master channels
+        are skipped from iteration.
         """
         yield from self.iter_channels()
 
@@ -832,7 +829,6 @@ class MDF:
         -------
         out : MDF
             New *MDF* object.
-
         """
         version = validate_version_argument(version)
 
@@ -936,7 +932,6 @@ class MDF:
         -------
         out : MDF
             New *MDF* object.
-
         """
 
         if version is None:
@@ -1192,100 +1187,105 @@ class MDF:
               ( *<cntr>* is the data group index starting from 0)
 
             * `parquet` : export to Apache parquet format
-            * `asc`: Vector ASCII format for bus logging
+            * `asc` : Vector ASCII format for bus logging
 
                 .. versionadded:: 7.3.3
 
         filename : string | pathlib.Path
             Export file name.
 
+        Other Parameters
+        ----------------
+
         \*\*kwargs
 
-            * `single_time_base`: Resample all channels to common time base,
-              default *False*.
-            * `raster`: float Time raster for resampling. Valid if
-              *single_time_base* is *True*.
-            * `time_from_zero`: Adjust time channel to start from 0.
-            * `use_display_names`: Use display name instead of standard channel
-              name, if available.
-            * `empty_channels`: Behaviour for channels without samples; the
-              options are *skip* or *zeros*; default is *skip*.
-            * `format`: Only valid for *mat* export; can be '4', '5' or '7.3',
-              default is '5'.
-            * `oned_as`: Only valid for *mat* export; can be 'row' or 'column'.
-            * `keep_arrays` : Keep arrays and structure channels as well as the
-              component channels. If *True* this can be very slow. If *False*
-              only the component channels are saved, and their names will be
-              prefixed with the parent channel.
-            * `reduce_memory_usage` : bool
-              Reduce memory usage by converting all float columns to float32 and
-              searching for minimum dtype that can represent the values found
-              in integer columns; default *False*.
-            * `compression` : str
-              Compression to be used.
+        single_time_base : bool
+            Resample all channels to common time base; default *False*.
+        raster : float
+            Time raster for resampling. Valid if *single_time_base* is *True*.
+        time_from_zero : bool
+            Adjust time channel to start from 0; default *True*.
+        use_display_names : bool
+            Use display name instead of standard channel name, if available;
+            default *True*.
+        empty_channels : {"skip", "zeros"}
+            Behaviour for channels without samples; default *"skip"*.
+        format : {"5", "4", "7.3"}
+            Only valid for *mat* export; default "5".
+        oned_as : {"row", "column"}
+            Only valid for *mat* export; default "row".
+        keep_arrays : bool
+            Keep arrays and structure channels as well as the
+            component channels. If *True* this can be very slow. If *False*
+            only the component channels are saved, and their names will be
+            prefixed with the parent channel.
+        reduce_memory_usage : bool
+            Reduce memory usage by converting all float columns to float32 and
+            searching for minimum dtype that can represent the values found
+            in integer columns; default *False*.
+        compression : str | bool
+            Compression to be used.
 
-              * for ``parquet`` : "GZIP", "SNAPPY" or "LZ4"
-              * for ``hfd5`` : "gzip", "lzf" or "szip"
-              * for ``mat`` : bool
+            * for ``parquet`` : "GZIP", "SNAPPY" or "LZ4"
+            * for ``hfd5`` : "gzip", "lzf" or "szip"
+            * for ``mat`` : bool
 
-              .. versionadded:: 8.1.0
+            .. versionadded:: 8.1.0
 
                 Added LZ4 compression after changing to pyarrow.
 
-            * `time_as_date` (False) : bool
-              Export time as local timezone datetime; only valid for CSV export.
+        time_as_date : bool
+            Export time as local timezone datetime; only valid for CSV export; default *False*.
 
-              .. versionadded:: 5.8.0
+            .. versionadded:: 5.8.0
 
-            * `ignore_value2text_conversions` (False) : bool
-              Valid only for the channels that have value to text conversions and
-              if *raw=False*. If this is *True* then the raw numeric values will be
-              used, and the conversion will not be applied.
+        ignore_value2text_conversions : bool
+            Valid only for the channels that have value to text conversions and
+            if *raw=False*. If this is *True* then the raw numeric values will be
+            used, and the conversion will not be applied. Default *False*.
 
-              .. versionadded:: 5.8.0
+            .. versionadded:: 5.8.0
 
-            * raw (False) : bool
-              Export all channels using the raw values.
+        raw : bool
+            Export all channels using the raw values; default *False*.
 
-              .. versionadded:: 6.0.0
+            .. versionadded:: 6.0.0
 
-            * delimiter (',') : str
-              Only valid for CSV: see cpython documentation for csv.Dialect.delimiter.
+        delimiter : str, default: ","
+            Only valid for CSV: see cpython documentation for csv.Dialect.delimiter.
 
-              .. versionadded:: 6.2.0
+            .. versionadded:: 6.2.0
 
-            * doublequote (True) : bool
-              Only valid for CSV: see cpython documentation for csv.Dialect.doublequote.
+        doublequote : bool, default: True
+            Only valid for CSV: see cpython documentation for csv.Dialect.doublequote.
 
-              .. versionadded:: 6.2.0
+            .. versionadded:: 6.2.0
 
-            * escapechar (None) : str
-              Only valid for CSV: see cpython documentation for csv.Dialect.escapechar.
+        escapechar : str, default: None
+            Only valid for CSV: see cpython documentation for csv.Dialect.escapechar.
 
-              .. versionadded:: 6.2.0
+            .. versionadded:: 6.2.0
 
-            * lineterminator ("\\r\\n") : str
-              Only valid for CSV: see cpython documentation for csv.Dialect.lineterminator.
+        lineterminator : str, default: "\\r\\n"
+            Only valid for CSV: see cpython documentation for csv.Dialect.lineterminator.
 
-              .. versionadded:: 6.2.0
+            .. versionadded:: 6.2.0
 
-            * quotechar ('"') : str
-              Only valid for CSV: see cpython documentation for csv.Dialect.quotechar.
+        quotechar : str, default: '"'
+            Only valid for CSV: see cpython documentation for csv.Dialect.quotechar.
 
-              .. versionadded:: 6.2.0
+            .. versionadded:: 6.2.0
 
-            * quoting ("MINIMAL") : str
-              Only valid for CSV: see cpython documentation for csv.Dialect.quoting. Use the
-              last part of the quoting constant name.
+        quoting : str, default: "MINIMAL"
+            Only valid for CSV: see cpython documentation for csv.Dialect.quoting. Use the
+            last part of the quoting constant name.
 
-              .. versionadded:: 6.2.0
+            .. versionadded:: 6.2.0
 
-            * add_units (False) : bool
-              Only valid for CSV: add the channel units on the second row of the CSV file.
+        add_units : bool, default: False
+            Only valid for CSV: add the channel units on the second row of the CSV file.
 
-              .. versionadded:: 7.1.0
-
-
+            .. versionadded:: 7.1.0
         """
 
         header_items = (
@@ -2094,7 +2094,6 @@ class MDF:
                 timestamps=[0 1 2 3 4]
                 unit=""
                 comment="">
-
         """
         if version is None:
             version = self.version
@@ -2240,7 +2239,6 @@ class MDF:
         raw : bool
             Return channel samples without applying the conversion rule; default
             *False*.
-
         """
 
         gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
@@ -2282,7 +2280,7 @@ class MDF:
             List of *MDF* file names or *MDF*, zipfile.ZipFile, bz2.BZ2File or gzip.GzipFile
             instances.
 
-            ..versionchanged:: 6.2.0
+            .. versionchanged:: 6.2.0
 
                 Added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile.
 
@@ -2299,16 +2297,15 @@ class MDF:
             The timestamps from the next file will be added right after the last
             timestamp from the previous file; default *False*.
 
-            ..versionadded:: 6.0.0
+            .. versionadded:: 6.0.0
 
-        kwargs :
+        use_display_names : bool
+            Use display name instead of standard channel name, if available;
+            default *False*.
+        process_bus_logging : bool
+            Controls if the bus processing of MDF v4 files is done when the file is loaded. Default *True*.
 
-            use_display_names (False) : bool
-
-            process_bus_logging (True) : bool
-                Controls if the bus processing of MDF v4 files is done when the file is loaded. Default *True*.
-
-                .. versionadded:: 8.1.0
+            .. versionadded:: 8.1.0
 
         Returns
         -------
@@ -2317,7 +2314,8 @@ class MDF:
 
         Raises
         ------
-        MdfException : If there are inconsistencies between the files.
+        MdfException
+            If there are inconsistencies between the files.
 
         Examples
         --------
@@ -2332,7 +2330,6 @@ class MDF:
             version='4.00',
             sync=False,
         )
-
         """
 
         if not files:
@@ -2734,22 +2731,20 @@ class MDF:
             List of *MDF* file names or *MDF*, zipfile.ZipFile, bz2.BZ2File or gzip.GzipFile
             instances.
 
-            ..versionchanged:: 6.2.0
+            .. versionchanged:: 6.2.0
 
                 Added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile.
         version : str
             Merged file version.
         sync : bool
-            Sync the files based on the start of measurement, default *True*.
+            Sync the files based on the start of measurement; default *True*.
+        use_display_names : bool
+            Use display name instead of standard channel name, if available;
+            default *False*.
+        process_bus_logging : bool
+            Controls if the bus processing of MDF v4 files is done when the file is loaded. Default *True*.
 
-        kwargs :
-
-            use_display_names (False) : bool
-
-            process_bus_logging (True) : bool
-                Controls if the bus processing of MDF v4 files is done when the file is loaded. Default *True*.
-
-                .. versionadded:: 8.1.0
+            .. versionadded:: 8.1.0
 
         Returns
         -------
@@ -2769,7 +2764,6 @@ class MDF:
             version='4.00',
             sync=False,
         )
-
         """
         if not files:
             raise MdfException("No files given for stack")
@@ -3009,9 +3003,8 @@ class MDF:
 
             .. versionadded:: 5.21.0
 
-        empty_channels ("skip") : str
-            Behaviour for channels without samples; the options are *skip* or
-            *zeros*; default is *skip*.
+        empty_channels : {"skip", "zeros"}
+            Behaviour for channels without samples; default "skip".
 
             .. versionadded:: 5.21.0
 
@@ -3031,7 +3024,6 @@ class MDF:
             See `resample` for examples of using this argument.
 
             .. versionadded:: 5.21.0
-
         """
 
         for i in self.virtual_groups:
@@ -3393,7 +3385,6 @@ class MDF:
                 unit=""
                 comment="">
         ]
-
         """
 
         def validate_blocks(blocks, record_size):
@@ -3692,7 +3683,6 @@ class MDF:
                 unit=""
                 comment="">
         ]
-
         """
 
         if isinstance(raw, dict):
@@ -3834,7 +3824,6 @@ class MDF:
         -------
         name : pathlib.Path
             Name of scrambled file.
-
         """
 
         name = Path(name)
@@ -4134,7 +4123,6 @@ class MDF:
         -------
         name : pathlib.Path
             Name of scrambled file.
-
         """
 
         pattern = re.compile(
@@ -4218,9 +4206,8 @@ class MDF:
         time_from_zero : bool
             Adjust time channel to start from 0; default *True*.
 
-        empty_channels ("skip") : str
-            Behaviour for channels without samples; the options are *skip* or
-            *zeros*; default is *skip*.
+        empty_channels : {"skip", "zeros"}
+            Behaviour for channels without samples; default "skip".
 
             .. versionadded:: 5.8.0
 
@@ -4310,9 +4297,8 @@ class MDF:
 
         time_from_zero : bool
             Adjust time channel to start from 0; default *True*.
-        empty_channels : str
-            Behaviour for channels without samples; the options are *skip* or
-            *zeros*; default is *skip*.
+        empty_channels : {"skip", "zeros"}
+            Behaviour for channels without samples; default "skip".
         use_display_names : bool
             Use display name instead of standard channel name, if available.
         keep_arrays : bool
@@ -4364,7 +4350,6 @@ class MDF:
         ------
         dataframe : pandas.DataFrame
             Pandas DataFrames that should not exceed 200 MB of RAM.
-
         """
 
         if isinstance(raw, dict):
@@ -4720,9 +4705,8 @@ class MDF:
 
         time_from_zero : bool
             Adjust time channel to start from 0; default *True*.
-        empty_channels : str
-            Behaviour for channels without samples; the options are *skip* or
-            *zeros*; default is *skip*.
+        empty_channels : {"skip", "zeros"}
+            Behaviour for channels without samples; default "skip".
         use_display_names : bool
             Use display name instead of standard channel name, if available.
         keep_arrays : bool
@@ -5177,7 +5161,6 @@ class MDF:
         ...     "LIN": [("file3.dbc", 0)],
         ... }
         >>> extracted = mdf.extract_bus_logging(database_files=databases)
-
         """
         if ignore_invalid_signals is not None:
             warn(
@@ -5851,7 +5834,6 @@ class MDF:
         -------
         timestamp : datetime.datetime
             Start timestamp.
-
         """
 
         return self.header.start_time
@@ -5892,7 +5874,6 @@ class MDF:
         -------
         out : MDF
             New *MDF* object.
-
         """
 
         if version is None:

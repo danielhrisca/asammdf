@@ -72,7 +72,6 @@ class Signal:
         Encoding for string signals; default *None*.
     flags : Signal.Flags
         Flags for user defined attributes and stream sync.
-
     """
 
     Flags = SignalFlags
@@ -246,7 +245,6 @@ class Signal:
             Use index based X axis. This can be useful if the master (usually
             time based) is corrupted with NaN, inf or if it is not strictly
             increasing.
-
         """
         try:
             from .gui.plot import plot
@@ -860,7 +858,6 @@ class Signal:
         -------
         signal : Signal
             New extended *Signal*.
-
         """
         if len(self.timestamps):
             last_stamp = self.timestamps[-1]
@@ -956,7 +953,6 @@ class Signal:
         -------
         signal : Signal
             New interpolated *Signal*.
-
         """
 
         integer_interpolation_mode = IntegerInterpolation(integer_interpolation_mode)
@@ -1395,7 +1391,6 @@ class Signal:
         -------
         signal : Signal
             New *Signal* with the samples of *np_type* dtype.
-
         """
         return Signal(
             self.samples.astype(np_type),
@@ -1429,7 +1424,6 @@ class Signal:
         -------
         phys : Signal
             New *Signal* with physical values.
-
         """
 
         if not self.raw or self.conversion is None:
@@ -1474,7 +1468,6 @@ class Signal:
             Return a copy of the result.
 
             .. versionadded:: 5.12.0
-
         """
         if self.invalidation_bits is None:
             signal = self
