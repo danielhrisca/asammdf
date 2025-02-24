@@ -157,21 +157,21 @@ def get_temporary_filename(path: Path = Path("temporary.mf4"), dir: str | Path |
 
 
 def master_using_raster(mdf: MDF_v2_v3_v4, raster: RasterType, endpoint: bool = False) -> NDArray[Any]:
-    """get single master based on the raster
+    """Get single master based on the raster.
 
     Parameters
     ----------
     mdf : asammdf.MDF
-        measurement object
+        Measurement object.
     raster : float
-        new raster
+        New raster.
     endpoint=False : bool
-        include maximum time stamp in the new master
+        Include maximum time stamp in the new master.
 
     Returns
     -------
     master : np.array
-        new master
+        New master.
 
     """
     if not raster:
@@ -217,53 +217,52 @@ class MDF:
     Parameters
     ----------
     name : string | BytesIO | zipfile.ZipFile | bz2.BZ2File | gzip.GzipFile
-        mdf file name (if provided it must be a real file name), file-like object or
-        compressed file opened as a Python object
+        Mdf file name (if provided it must be a real file name), file-like object or
+        compressed file opened as a Python object.
 
         .. versionchanged:: 6.2.0
 
-            added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile
+            Added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile.
 
     version : string
-        mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
+        Mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
         '3.30', '4.00', '4.10', '4.11', '4.20'); default '4.10'. This argument is
         only used for MDF objects created from scratch; for MDF objects created
-        from a file the version is set to file version
+        from a file the version is set to file version.
 
     channels (None) : iterable
-        channel names that will be used for selective loading. This can dramatically
-        improve the file loading time. Default *None* -> load all channels
+        Channel names that will be used for selective loading. This can dramatically
+        improve the file loading time. Default *None* -> load all channels.
 
         .. versionadded:: 6.1.0
 
-        .. versionchanged:: 6.3.0 make the default *None*
+        .. versionchanged:: 6.3.0 Make the default *None*.
 
     use_display_names (\*\*kwargs) : bool
-        keyword-only argument: for MDF v4 files, parse the XML channel comment to
+        Keyword-only argument: for MDF v4 files, parse the XML channel comment to
         search for the display name; XML parsing is quite expensive so setting
-        this to *False* can decrease the loading times very much; default
-        *True*
+        this to *False* can decrease the loading times very much; default *True*.
     remove_source_from_channel_names (\*\*kwargs) : bool
-        remove source from channel names ("Speed\XCP3" -> "Speed")
+        Remove source from channel names ("Speed\XCP3" -> "Speed").
     copy_on_get (\*\*kwargs) : bool
-        copy arrays in the `get` method; default *True*
+        Copy arrays in the `get` method; default *True*.
     expand_zippedfile (\*\*kwargs) : bool
-        only for bz2.BZ2File and gzip.GzipFile, load the file content into a
+        Only for bz2.BZ2File and gzip.GzipFile, load the file content into a
         BytesIO before parsing (avoids the huge performance penalty of doing
-        random reads from the zipped file); default *True*
+        random reads from the zipped file); default *True*.
     raise_on_multiple_occurrences (\*\*kwargs) : bool
-        raise MdfException when there are multiple channel occurrences in the file and
-        the `get` call is ambiguous; default *True*
+        Raise MdfException when there are multiple channel occurrences in the file and
+        the `get` call is ambiguous; default *True*.
 
         .. versionadded:: 7.0.0
 
     temporary_folder (\*\*kwargs) : str | pathlib.Path
-        folder to use for temporary files
+        Folder to use for temporary files.
 
         .. versionadded:: 7.0.0
 
     process_bus_logging (\*\*kwargs) : bool
-        controls if the bus processing of MDF v4 files is done when the file is loaded. Default *True*
+        Controls if the bus processing of MDF v4 files is done when the file is loaded. Default *True*.
 
         .. versionadded:: 8.0.0
 
@@ -721,59 +720,59 @@ class MDF:
         Parameters
         ----------
         read_fragment_size : int
-            size hint of split data blocks, default 8MB; if the initial size is
+            Size hint of split data blocks, default 8MB; if the initial size is
             smaller, then no data list is used. The actual split size depends on
-            the data groups' records size
+            the data groups' records size.
         write_fragment_size : int
-            size hint of split data blocks, default 4MB; if the initial size is
+            Size hint of split data blocks, default 4MB; if the initial size is
             smaller, then no data list is used. The actual split size depends on
             the data groups' records size. Maximum size is 4MB to ensure
-            compatibility with CANape
+            compatibility with CANape.
         use_display_names : bool
-            search for display name in the Channel XML comment
+            Search for display name in the Channel XML comment.
         single_bit_uint_as_bool : bool
-            return single bit channels as np.bool arrays
+            Return single bit channels as np.bool arrays.
         integer_interpolation : int
-            interpolation mode for integer channels:
+            Interpolation mode for integer channels.
 
-                * 0 - repeat previous sample
-                * 1 - use linear interpolation
-                * 2 - hybrid interpolation: channels with integer data type (raw values) that have a
-                  conversion that outputs float values will use linear interpolation, otherwise
-                  the previous sample is used
+            * 0 - repeat previous sample
+            * 1 - use linear interpolation
+            * 2 - hybrid interpolation: channels with integer data type (raw values) that have a
+              conversion that outputs float values will use linear interpolation, otherwise
+              the previous sample is used
 
-                .. versionchanged:: 6.2.0
-                    added hybrid mode interpolation
+            .. versionchanged:: 6.2.0
+                Added hybrid mode interpolation.
 
         copy_on_get : bool
-            copy arrays in the get method
+            Copy arrays in the get method.
 
         float_interpolation : int
-            interpolation mode for float channels:
+            Interpolation mode for float channels.
 
-                * 0 - repeat previous sample
-                * 1 - use linear interpolation
+            * 0 - repeat previous sample
+            * 1 - use linear interpolation
 
-                .. versionadded:: 6.2.0
+            .. versionadded:: 6.2.0
 
         raise_on_multiple_occurrences : bool
-            raise MdfException when there are multiple channel occurrences in the file and
-            the `get` call is ambiguous; default *True*
+            Raise MdfException when there are multiple channel occurrences in the file and
+            the `get` call is ambiguous; default *True*.
 
             .. versionadded:: 6.2.0
 
         from_other : MDF
-            copy configuration options from other MDF
+            Copy configuration options from other MDF.
 
             .. versionadded:: 6.2.0
 
         temporary_folder : str
-            default folder for temporary files
+            Default folder for temporary files.
 
             .. versionadded:: 7.0.0
 
         fill_0_for_missing_computation_channels : bool
-            when a channel required by a computed channel is missing, then fill with 0 values.
+            When a channel required by a computed channel is missing, then fill with 0 values.
             If *False* then the computation will fail and the computed channel will be marked as not existing.
 
             .. versionadded:: 7.1.0
@@ -826,13 +825,13 @@ class MDF:
         Parameters
         ----------
         version : str
-            new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
-            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default '4.10'
+            New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
+            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default '4.10'.
 
         Returns
         -------
         out : MDF
-            new *MDF* object
+            New *MDF* object.
 
         """
         version = validate_version_argument(version)
@@ -911,32 +910,32 @@ class MDF:
         Parameters
         ----------
         start : float
-            start time, default *None*. If *None* then the start of measurement
-            is used
+            Start time, default *None*. If *None* then the start of measurement
+            is used.
         stop : float
-            stop time, default *None*. If *None* then the end of measurement is
-            used
+            Stop time, default *None*. If *None* then the end of measurement is
+            used.
         whence : int
-            how to search for the start and stop values
+            How to search for the start and stop values.
 
             * 0 : absolute
             * 1 : relative to first timestamp
 
         version : str
-            new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
+            New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11', 4.20'); default *None* and in this
-            case the original file version is used
+            case the original file version is used.
         include_ends : bool
-            include the *start* and *stop* timestamps after cutting the signal.
+            Include the *start* and *stop* timestamps after cutting the signal.
             If *start* and *stop* are not found in the original timestamps, then
-            the new samples will be computed using interpolation. Default *True*
+            the new samples will be computed using interpolation. Default *True*.
         time_from_zero : bool
-            start timestamps from 0s in the cut measurement
+            Start timestamps from 0s in the cut measurement.
 
         Returns
         -------
         out : MDF
-            new *MDF* object
+            New *MDF* object.
 
         """
 
@@ -1176,7 +1175,7 @@ class MDF:
         Parameters
         ----------
         fmt : string
-            can be one of the following:
+            Can be one of the following:
 
             * `csv` : CSV export that uses the "," delimiter. This option
               will generate a new csv file for each data group
@@ -1198,32 +1197,32 @@ class MDF:
                 .. versionadded:: 7.3.3
 
         filename : string | pathlib.Path
-            export file name
+            Export file name.
 
         \*\*kwargs
 
-            * `single_time_base`: resample all channels to common time base,
-              default *False*
-            * `raster`: float time raster for resampling. Valid if
-              *single_time_base* is *True*
-            * `time_from_zero`: adjust time channel to start from 0
-            * `use_display_names`: use display name instead of standard channel
+            * `single_time_base`: Resample all channels to common time base,
+              default *False*.
+            * `raster`: float Time raster for resampling. Valid if
+              *single_time_base* is *True*.
+            * `time_from_zero`: Adjust time channel to start from 0.
+            * `use_display_names`: Use display name instead of standard channel
               name, if available.
-            * `empty_channels`: behaviour for channels without samples; the
-              options are *skip* or *zeros*; default is *skip*
-            * `format`: only valid for *mat* export; can be '4', '5' or '7.3',
-              default is '5'
-            * `oned_as`: only valid for *mat* export; can be 'row' or 'column'
-            * `keep_arrays` : keep arrays and structure channels as well as the
+            * `empty_channels`: Behaviour for channels without samples; the
+              options are *skip* or *zeros*; default is *skip*.
+            * `format`: Only valid for *mat* export; can be '4', '5' or '7.3',
+              default is '5'.
+            * `oned_as`: Only valid for *mat* export; can be 'row' or 'column'.
+            * `keep_arrays` : Keep arrays and structure channels as well as the
               component channels. If *True* this can be very slow. If *False*
               only the component channels are saved, and their names will be
               prefixed with the parent channel.
             * `reduce_memory_usage` : bool
-              reduce memory usage by converting all float columns to float32 and
+              Reduce memory usage by converting all float columns to float32 and
               searching for minimum dtype that can represent the values found
-              in integer columns; default *False*
+              in integer columns; default *False*.
             * `compression` : str
-              compression to be used
+              Compression to be used.
 
               * for ``parquet`` : "GZIP", "SNAPPY" or "LZ4"
               * for ``hfd5`` : "gzip", "lzf" or "szip"
@@ -1231,58 +1230,58 @@ class MDF:
 
               .. versionadded:: 8.1.0
 
-                added LZ4 compression after changing to pyarrow
+                Added LZ4 compression after changing to pyarrow.
 
             * `time_as_date` (False) : bool
-              export time as local timezone datetime; only valid for CSV export
+              Export time as local timezone datetime; only valid for CSV export.
 
               .. versionadded:: 5.8.0
 
             * `ignore_value2text_conversions` (False) : bool
-              valid only for the channels that have value to text conversions and
+              Valid only for the channels that have value to text conversions and
               if *raw=False*. If this is *True* then the raw numeric values will be
               used, and the conversion will not be applied.
 
               .. versionadded:: 5.8.0
 
             * raw (False) : bool
-              export all channels using the raw values
+              Export all channels using the raw values.
 
               .. versionadded:: 6.0.0
 
             * delimiter (',') : str
-              only valid for CSV: see cpython documentation for csv.Dialect.delimiter
+              Only valid for CSV: see cpython documentation for csv.Dialect.delimiter.
 
               .. versionadded:: 6.2.0
 
             * doublequote (True) : bool
-              only valid for CSV: see cpython documentation for csv.Dialect.doublequote
+              Only valid for CSV: see cpython documentation for csv.Dialect.doublequote.
 
               .. versionadded:: 6.2.0
 
             * escapechar (None) : str
-              only valid for CSV: see cpython documentation for csv.Dialect.escapechar
+              Only valid for CSV: see cpython documentation for csv.Dialect.escapechar.
 
               .. versionadded:: 6.2.0
 
             * lineterminator ("\\r\\n") : str
-              only valid for CSV: see cpython documentation for csv.Dialect.lineterminator
+              Only valid for CSV: see cpython documentation for csv.Dialect.lineterminator.
 
               .. versionadded:: 6.2.0
 
             * quotechar ('"') : str
-              only valid for CSV: see cpython documentation for csv.Dialect.quotechar
+              Only valid for CSV: see cpython documentation for csv.Dialect.quotechar.
 
               .. versionadded:: 6.2.0
 
             * quoting ("MINIMAL") : str
-              only valid for CSV: see cpython documentation for csv.Dialect.quoting. Use the
-              last part of the quoting constant name
+              Only valid for CSV: see cpython documentation for csv.Dialect.quoting. Use the
+              last part of the quoting constant name.
 
               .. versionadded:: 6.2.0
 
             * add_units (False) : bool
-              only valid for CSV: add the channel units on the second row of the CSV file
+              Only valid for CSV: add the channel units on the second row of the CSV file.
 
               .. versionadded:: 7.1.0
 
@@ -2042,22 +2041,22 @@ class MDF:
         Parameters
         ----------
         channels : list
-            list of items to be filtered; each item can be :
+            List of items to be filtered; each item can be:
 
-                * a channel name string
-                * (channel name, group index, channel index) list or tuple
-                * (channel name, group index) list or tuple
-                * (None, group index, channel index) list or tuple
+            * a channel name string
+            * (channel name, group index, channel index) list or tuple
+            * (channel name, group index) list or tuple
+            * (None, group index, channel index) list or tuple
 
         version : str
-            new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
+            New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and in this
-            case the original file version is used
+            case the original file version is used.
 
         Returns
         -------
         mdf : MDF
-            new *MDF* file
+            New *MDF* file.
 
         Examples
         --------
@@ -2228,19 +2227,19 @@ class MDF:
         Parameters
         ----------
         name : string
-            name of channel
+            Name of channel.
         group : int
-            0-based group index
+            0-based group index.
         index : int
-            0-based channel index
+            0-based channel index.
         raster : float
-            time raster in seconds
+            Time raster in seconds.
         samples_only : bool
-            if *True* return only the channel samples as numpy array; if
-            *False* return a *Signal* object
+            If *True* return only the channel samples as numpy array; if
+            *False* return a *Signal* object.
         raw : bool
-            return channel samples without applying the conversion rule; default
-            *False*
+            Return channel samples without applying the conversion rule; default
+            *False*.
 
         """
 
@@ -2280,25 +2279,25 @@ class MDF:
         Parameters
         ----------
         files : list | tuple
-            list of *MDF* file names or *MDF*, zipfile.ZipFile, bz2.BZ2File or gzip.GzipFile
-            instances
+            List of *MDF* file names or *MDF*, zipfile.ZipFile, bz2.BZ2File or gzip.GzipFile
+            instances.
 
             ..versionchanged:: 6.2.0
 
-                added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile
+                Added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile.
 
         version : str
-            merged file version
+            Merged file version.
         sync : bool
-            sync the files based on the start of measurement, default *True*. The order of the
+            Sync the files based on the start of measurement, default *True*. The order of the
             input files is preserved, only the samples' timestamps are influenced by this
-            argument
+            argument.
         add_samples_origin : bool
-            option to create a new "__samples_origin" channel that will hold
-            the index of the measurement from where each timestamp originated
+            Option to create a new "__samples_origin" channel that will hold
+            the index of the measurement from where each timestamp originated.
         direct_timestamp_continuation (False) : bool
-            the timestamps from the next file will be added right after the last
-            timestamp from the previous file; default *False*
+            The timestamps from the next file will be added right after the last
+            timestamp from the previous file; default *False*.
 
             ..versionadded:: 6.0.0
 
@@ -2307,18 +2306,18 @@ class MDF:
             use_display_names (False) : bool
 
             process_bus_logging (True) : bool
-                controls if the bus processing of MDF v4 files is done when the file is loaded. Default *True*
+                Controls if the bus processing of MDF v4 files is done when the file is loaded. Default *True*.
 
                 .. versionadded:: 8.1.0
 
         Returns
         -------
         concatenate : MDF
-            new *MDF* object with concatenated channels
+            New *MDF* object with concatenated channels.
 
         Raises
         ------
-        MdfException : if there are inconsistencies between the files
+        MdfException : If there are inconsistencies between the files.
 
         Examples
         --------
@@ -2732,30 +2731,30 @@ class MDF:
         Parameters
         ----------
         files : list | tuple
-            list of *MDF* file names or *MDF*, zipfile.ZipFile, bz2.BZ2File or gzip.GzipFile
-            instances
+            List of *MDF* file names or *MDF*, zipfile.ZipFile, bz2.BZ2File or gzip.GzipFile
+            instances.
 
             ..versionchanged:: 6.2.0
 
-                added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile
+                Added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile.
         version : str
-            merged file version
+            Merged file version.
         sync : bool
-            sync the files based on the start of measurement, default *True*
+            Sync the files based on the start of measurement, default *True*.
 
         kwargs :
 
             use_display_names (False) : bool
 
             process_bus_logging (True) : bool
-                controls if the bus processing of MDF v4 files is done when the file is loaded. Default *True*
+                Controls if the bus processing of MDF v4 files is done when the file is loaded. Default *True*.
 
                 .. versionadded:: 8.1.0
 
         Returns
         -------
         stacked : MDF
-            new *MDF* object with stacked channels
+            New *MDF* object with stacked channels.
 
         Examples
         --------
@@ -2924,15 +2923,15 @@ class MDF:
         Parameters
         ----------
         skip_master : bool
-            do not yield master channels; default *True*
+            Do not yield master channels; default *True*.
         copy_master : bool
-            copy master for each yielded channel; default *True*
+            Copy master for each yielded channel; default *True*.
         raw : bool | dict[str, bool]
-            return raw channels instead of converted; default *False*
+            Return raw channels instead of converted; default *False*.
 
             .. versionchanged:: 8.0.0
 
-                provide individual raw mode based on a dict. If the argument is given
+                Provide individual raw mode based on a dict. If the argument is given
                 as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
                 are the channel names and the values are the boolean raw values for each channel.
         """
@@ -2973,37 +2972,37 @@ class MDF:
         Parameters
         ----------
         use_display_names : bool
-            use display name instead of standard channel name, if available.
+            Use display name instead of standard channel name, if available.
 
             .. versionadded:: 5.21.0
 
         reduce_memory_usage : bool
-            reduce memory usage by converting all float columns to float32 and
+            Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
-            in integer columns; default *False*
+            in integer columns; default *False*.
 
             .. versionadded:: 5.21.0
 
         raw : bool | dict[str, bool]
-            the DataFrame will contain the raw channel values; default *False*
+            The DataFrame will contain the raw channel values; default *False*.
 
             .. versionadded:: 5.21.0
 
             .. versionchanged:: 8.0.0
 
-                provide individual raw mode based on a dict. If the argument is given
+                Provide individual raw mode based on a dict. If the argument is given
                 as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
                 are the channel names and the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions (False) : bool
-            valid only for the channels that have value to text conversions and
+            Valid only for the channels that have value to text conversions and
             if *raw=False*. If this is *True* then the raw numeric values will be
             used, and the conversion will not be applied.
 
             .. versionadded:: 5.21.0
 
         keep_arrays (False) : bool
-            keep arrays and structure channels as well as the
+            Keep arrays and structure channels as well as the
             component channels. If *True* this can be very slow. If *False*
             only the component channels are saved, and their names will be
             prefixed with the parent channel.
@@ -3011,25 +3010,25 @@ class MDF:
             .. versionadded:: 5.21.0
 
         empty_channels ("skip") : str
-            behaviour for channels without samples; the options are *skip* or
-            *zeros*; default is *skip*
+            Behaviour for channels without samples; the options are *skip* or
+            *zeros*; default is *skip*.
 
             .. versionadded:: 5.21.0
 
         only_basenames (False) : bool
-            use just the field names, without prefix, for structures and channel
-            arrays
+            Use just the field names, without prefix, for structures and channel
+            arrays.
 
             .. versionadded:: 5.21.0
 
         raster : float | np.array | str
-            new raster that can be
+            New raster that can be:
 
             * a float step value
             * a channel name whose timestamps will be used as raster (starting with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
-            see `resample` for examples of using this argument
+            See `resample` for examples of using this argument.
 
             .. versionadded:: 5.21.0
 
@@ -3063,24 +3062,24 @@ class MDF:
         Parameters
         ----------
         raster : float | np.array | str
-            new raster that can be
+            New raster that can be:
 
             * a float step value
             * a channel name whose timestamps will be used as raster (starting with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
         version : str
-            new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
+            New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and
-            in this case the original file version is used
+            in this case the original file version is used.
 
         time_from_zero : bool
-            start timestamps from 0s in the resampled measurement
+            Start timestamps from 0s in the resampled measurement.
 
         Returns
         -------
         mdf : MDF
-            new *MDF* with resampled channels
+            New *MDF* with resampled channels.
 
         Examples
         --------
@@ -3314,49 +3313,49 @@ class MDF:
         """Retrieve the channels listed in the *channels* argument as *Signal*
         objects.
 
-        .. note:: the *dataframe* argument was removed in version 5.8.0,
-                  use the ``to_dataframe`` method instead
+        .. note:: The *dataframe* argument was removed in version 5.8.0,
+                  use the ``to_dataframe`` method instead.
 
         Parameters
         ----------
         channels : list
-            list of items to be filtered; each item can be :
+            List of items to be filtered; each item can be:
 
-                * a channel name string
-                * (channel name, group index, channel index) list or tuple
-                * (channel name, group index) list or tuple
-                * (None, group index, channel index) list or tuple
+            * a channel name string
+            * (channel name, group index, channel index) list or tuple
+            * (channel name, group index) list or tuple
+            * (None, group index, channel index) list or tuple
 
         record_offset : int
-            record number offset; optimization to get the last part of signal samples
+            Record number offset; optimization to get the last part of signal samples.
         raw : bool | dict[str, bool]
-            get raw channel samples; default *False*
+            Get raw channel samples; default *False*.
 
             .. versionchanged:: 8.0.0
 
-                provide individual raw mode based on a dict. If the argument is given
+                Provide individual raw mode based on a dict. If the argument is given
                 as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
                 are the channel names and the values are the boolean raw values for each channel.
 
         copy_master : bool
-            option to get a new timestamps array for each selected Signal or to
-            use a shared array for channels of the same channel group; default *True*
+            Option to get a new timestamps array for each selected Signal or to
+            use a shared array for channels of the same channel group; default *True*.
         ignore_value2text_conversions (False) : bool
-            valid only for the channels that have value to text conversions and
+            Valid only for the channels that have value to text conversions and
             if *raw=False*. If this is *True* then the raw numeric values will be
             used, and the conversion will not be applied.
 
             .. versionchanged:: 5.8.0
 
         validate (False) : bool
-            consider the invalidation bits
+            Consider the invalidation bits.
 
             .. versionadded:: 5.16.0
 
         Returns
         -------
         signals : list
-            list of *Signal* objects based on the input channel list
+            List of *Signal* objects based on the input channel list.
 
         Examples
         --------
@@ -3613,49 +3612,49 @@ class MDF:
         """Retrieve the channels listed in the *channels* argument as *Signal*
         objects.
 
-        .. note:: the *dataframe* argument was removed in version 5.8.0,
-                  use the ``to_dataframe`` method instead
+        .. note:: The *dataframe* argument was removed in version 5.8.0,
+                  use the ``to_dataframe`` method instead.
 
         Parameters
         ----------
         channels : list
-            list of items to be filtered; each item can be :
+            List of items to be filtered; each item can be:
 
-                * a channel name string
-                * (channel name, group index, channel index) list or tuple
-                * (channel name, group index) list or tuple
-                * (None, group index, channel index) list or tuple
+            * a channel name string
+            * (channel name, group index, channel index) list or tuple
+            * (channel name, group index) list or tuple
+            * (None, group index, channel index) list or tuple
 
         record_offset : int
-            record number offset; optimization to get the last part of signal samples
+            Record number offset; optimization to get the last part of signal samples.
         raw : bool | dict[str, bool]
-            get raw channel samples; default *False*
+            Get raw channel samples; default *False*.
 
             .. versionchanged:: 8.0.0
 
-                provide individual raw mode based on a dict. If the argument is given
+                Provide individual raw mode based on a dict. If the argument is given
                 as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
                 are the channel names and the values are the boolean raw values for each channel.
 
         copy_master : bool
-            option to get a new timestamps array for each selected Signal or to
-            use a shared array for channels of the same channel group; default *True*
+            Option to get a new timestamps array for each selected Signal or to
+            use a shared array for channels of the same channel group; default *True*.
         ignore_value2text_conversions (False) : bool
-            valid only for the channels that have value to text conversions and
+            Valid only for the channels that have value to text conversions and
             if *raw=False*. If this is *True* then the raw numeric values will be
             used, and the conversion will not be applied.
 
             .. versionchanged:: 5.8.0
 
         validate (False) : bool
-            consider the invalidation bits
+            Consider the invalidation bits.
 
             .. versionadded:: 5.16.0
 
         Returns
         -------
         signals : list
-            list of *Signal* objects based on the input channel list
+            List of *Signal* objects based on the input channel list.
 
         Examples
         --------
@@ -3825,16 +3824,16 @@ class MDF:
         Parameters
         ----------
         name : str | pathlib.Path
-            file name
+            File name.
         skip_attachments : bool
-            skip scrambling of attachments data if *True*
+            Skip scrambling of attachments data if *True*.
 
             .. versionadded:: 5.9.0
 
         Returns
         -------
         name : pathlib.Path
-            name of scrambled file
+            Name of scrambled file.
 
         """
 
@@ -4129,12 +4128,12 @@ class MDF:
         Parameters
         ----------
         name : pathlib.Path
-            file name
+            File name.
 
         Returns
         -------
         name : pathlib.Path
-            name of scrambled file
+            Name of scrambled file.
 
         """
 
@@ -4183,33 +4182,33 @@ class MDF:
         Parameters
         ----------
         index : int
-            channel group index
+            Channel group index.
         use_display_names : bool
-            use display name instead of standard channel name, if available.
+            Use display name instead of standard channel name, if available.
         reduce_memory_usage : bool
-            reduce memory usage by converting all float columns to float32 and
+            Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
-            in integer columns; default *False*
+            in integer columns; default *False*.
         raw : bool | dict[str, bool]
-            the DataFrame will contain the raw channel values; default *False*
+            The DataFrame will contain the raw channel values; default *False*.
 
             .. versionadded:: 5.7.0
 
             .. versionchanged:: 8.0.0
 
-                provide individual raw mode based on a dict. If the argument is given
+                Provide individual raw mode based on a dict. If the argument is given
                 as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
                 are the channel names and the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions (False) : bool
-            valid only for the channels that have value to text conversions and
+            Valid only for the channels that have value to text conversions and
             if *raw=False*. If this is *True* then the raw numeric values will be
             used, and the conversion will not be applied.
 
             .. versionadded:: 5.8.0
 
         keep_arrays (False) : bool
-            keep arrays and structure channels as well as the
+            Keep arrays and structure channels as well as the
             component channels. If *True* this can be very slow. If *False*
             only the component channels are saved, and their names will be
             prefixed with the parent channel.
@@ -4217,28 +4216,28 @@ class MDF:
             .. versionadded:: 5.8.0
 
         time_from_zero : bool
-            adjust time channel to start from 0; default *True*
+            Adjust time channel to start from 0; default *True*.
 
         empty_channels ("skip") : str
-            behaviour for channels without samples; the options are *skip* or
-            *zeros*; default is *skip*
+            Behaviour for channels without samples; the options are *skip* or
+            *zeros*; default is *skip*.
 
             .. versionadded:: 5.8.0
 
         only_basenames (False) : bool
-            use just the field names, without prefix, for structures and channel
-            arrays
+            Use just the field names, without prefix, for structures and channel
+            arrays.
 
             .. versionadded:: 5.13.0
 
         raster : float | np.array | str
-            new raster that can be
+            New raster that can be:
 
             * a float step value
             * a channel name whose timestamps will be used as raster (starting with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
-            see `resample` for examples of using this argument
+            See `resample` for examples of using this argument.
 
         Returns
         -------
@@ -4286,77 +4285,77 @@ class MDF:
         progress=None,
     ) -> Iterator[pd.DataFrame]:
         """Generator that yields pandas DataFrames that should not exceed
-        200MB of RAM.
+        200 MB of RAM.
 
         .. versionadded:: 5.15.0
 
         Parameters
         ----------
         channels : list
-            list of items to be filtered (default *None*); each item can be :
+            List of items to be filtered (default *None*); each item can be:
 
-                * a channel name string
-                * (channel name, group index, channel index) list or tuple
-                * (channel name, group index) list or tuple
-                * (None, group index, channel index) list or tuple
+            * a channel name string
+            * (channel name, group index, channel index) list or tuple
+            * (channel name, group index) list or tuple
+            * (None, group index, channel index) list or tuple
 
         raster : float | np.array | str
-            new raster that can be
+            New raster that can be:
 
             * a float step value
             * a channel name whose timestamps will be used as raster (starting with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
-            see `resample` for examples of using this argument
+            See `resample` for examples of using this argument.
 
         time_from_zero : bool
-            adjust time channel to start from 0; default *True*
+            Adjust time channel to start from 0; default *True*.
         empty_channels : str
-            behaviour for channels without samples; the options are *skip* or
-            *zeros*; default is *skip*
+            Behaviour for channels without samples; the options are *skip* or
+            *zeros*; default is *skip*.
         use_display_names : bool
-            use display name instead of standard channel name, if available.
+            Use display name instead of standard channel name, if available.
         keep_arrays : bool
-            keep arrays and structure channels as well as the
+            Keep arrays and structure channels as well as the
             component channels. If *True* this can be very slow. If *False*
             only the component channels are saved, and their names will be
             prefixed with the parent channel.
         time_as_date : bool
-            the DataFrame index will contain the datetime timestamps
+            The DataFrame index will contain the datetime timestamps
             according to the measurement start time; default *False*. If
             *True* then the argument ``time_from_zero`` will be ignored.
         reduce_memory_usage : bool
-            reduce memory usage by converting all float columns to float32 and
+            Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
-            in integer columns; default *False*
+            in integer columns; default *False*.
         raw : bool | dict[str, bool]
-            the columns will contain the raw values; default *False*
+            The columns will contain the raw values; default *False*.
 
             .. versionchanged:: 8.0.0
 
-                provide individual raw mode based on a dict. If the argument is given
+                Provide individual raw mode based on a dict. If the argument is given
                 as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
                 are the channel names and the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions (False) : bool
-            valid only for the channels that have value to text conversions and
+            Valid only for the channels that have value to text conversions and
             if *raw=False*. If this is *True* then the raw numeric values will be
             used, and the conversion will not be applied.
         use_interpolation (True) : bool
-            option to perform interpolations when multiple timestamp rasters are
+            Option to perform interpolations when multiple timestamp rasters are
             present. If *False* then DataFrame columns will be automatically
             filled with NaNs were the DataFrame index values are not found in
-            the current column's timestamps
+            the current column's timestamps.
         only_basenames (False) : bool
-            use just the field names, without prefix, for structures and channel
-            arrays
+            Use just the field names, without prefix, for structures and channel
+            arrays.
         interpolate_outwards_with_nan : bool
-            use NaN values for the samples that lie outside of the original
-            signal's timestamps
+            Use NaN values for the samples that lie outside of the original
+            signal's timestamps.
         chunk_ram_size : int
-            desired DataFrame RAM usage in bytes; default 200 MB
+            Desired DataFrame RAM usage in bytes; default 200 MB.
         numeric_1D_only (False) : bool
-            only keep the 1D-columns that have numeric values
+            Only keep the 1D-columns that have numeric values.
 
             .. versionadded:: 7.0.0
 
@@ -4364,7 +4363,7 @@ class MDF:
         Yields
         ------
         dataframe : pandas.DataFrame
-            pandas DataFrames that should not exceed 200MB of RAM
+            Pandas DataFrames that should not exceed 200 MB of RAM.
 
         """
 
@@ -4703,82 +4702,82 @@ class MDF:
         Parameters
         ----------
         channels : list
-            list of items to be filtered (default *None*); each item can be :
+            List of items to be filtered (default *None*); each item can be:
 
-                * a channel name string
-                * (channel name, group index, channel index) list or tuple
-                * (channel name, group index) list or tuple
-                * (None, group index, channel index) list or tuple
+            * a channel name string
+            * (channel name, group index, channel index) list or tuple
+            * (channel name, group index) list or tuple
+            * (None, group index, channel index) list or tuple
 
         raster : float | np.array | str
-            new raster that can be
+            New raster that can be:
 
             * a float step value
             * a channel name whose timestamps will be used as raster (starting with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
-            see `resample` for examples of using this argument
+            See `resample` for examples of using this argument.
 
         time_from_zero : bool
-            adjust time channel to start from 0; default *True*
+            Adjust time channel to start from 0; default *True*.
         empty_channels : str
-            behaviour for channels without samples; the options are *skip* or
-            *zeros*; default is *skip*
+            Behaviour for channels without samples; the options are *skip* or
+            *zeros*; default is *skip*.
         use_display_names : bool
-            use display name instead of standard channel name, if available.
+            Use display name instead of standard channel name, if available.
         keep_arrays : bool
-            keep arrays and structure channels as well as the
+            Keep arrays and structure channels as well as the
             component channels. If *True* this can be very slow. If *False*
             only the component channels are saved, and their names will be
             prefixed with the parent channel.
         time_as_date : bool
-            the DataFrame index will contain the datetime timestamps
+            The DataFrame index will contain the datetime timestamps
             according to the measurement start time; default *False*. If
             *True* then the argument ``time_from_zero`` will be ignored.
         reduce_memory_usage : bool
-            reduce memory usage by converting all float columns to float32 and
+            Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
-            in integer columns; default *False*
+            in integer columns; default *False*.
         raw : bool | dict[str, bool]
-            the columns will contain the raw values; default *False*
+            The columns will contain the raw values; default *False*.
 
             .. versionadded:: 5.7.0
 
             .. versionchanged:: 8.0.0
 
-                provide individual raw mode based on a dict. If the argument is given
+                Provide individual raw mode based on a dict. If the argument is given
                 as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
                 are the channel names and the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions (False) : bool
-            valid only for the channels that have value to text conversions and
+            Valid only for the channels that have value to text conversions and
             if *raw=False*. If this is *True* then the raw numeric values will be
             used, and the conversion will not be applied.
 
             .. versionadded:: 5.8.0
 
         use_interpolation (True) : bool
-            option to perform interpolations when multiple timestamp rasters are
+            Option to perform interpolations when multiple timestamp rasters are
             present. If *False* then DataFrame columns will be automatically
             filled with NaNs were the DataFrame index values are not found in
-            the current column's timestamps
+            the current column's timestamps.
 
             .. versionadded:: 5.11.0
 
         only_basenames (False) : bool
-            use just the field names, without prefix, for structures and channel
-            arrays
+            Use just the field names, without prefix, for structures and channel
+            arrays.
 
             .. versionadded:: 5.13.0
 
         interpolate_outwards_with_nan : bool
-            use NaN values for the samples that lie outside of the original
-            signal's timestamps
+            Use NaN values for the samples that lie outside of the original
+            signal's timestamps.
 
             .. versionadded:: 5.15.0
 
         use_polars (False) : bool
-            return polars.DataFrame instead of pandas.DataFrame
+            Return polars.DataFrame instead of pandas.DataFrame.
 
             .. versionadded:: 8.1.0
 
@@ -5116,43 +5115,43 @@ class MDF:
         Parameters
         ----------
         database_files : dict
-            each key will contain an iterable of database files for that bus type. The
+            Each key will contain an iterable of database files for that bus type. The
             supported bus types are "CAN", "LIN". The iterables will contain the
             (databases, valid bus) pairs. The database can be a str, pathlib.Path or canmatrix.CanMatrix object.
             The valid bus is an integer specifying for which bus channel the database
             can be applied; 0 means any bus channel.
 
-            .. versionchanged:: 6.0.0 added canmatrix.CanMatrix type
+            .. versionchanged:: 6.0.0 Added canmatrix.CanMatrix type.
 
-            .. versionchanged:: 6.3.0 added bus channel filter
+            .. versionchanged:: 6.3.0 Added bus channel filter.
 
         version (None) : str
-            output file version
+            Output file version.
         ignore_invalid_signals (None) : bool | None
-            ignore signals that have all samples equal to their maximum value
+            Ignore signals that have all samples equal to their maximum value.
 
             .. versionadded:: 5.7.0
 
             .. deprecated:: 7.0.2
-                this argument is no longer used and will be removed in the future
+                This argument is no longer used and will be removed in the future.
 
         consolidated_j1939 (None) : bool | None
-            handle PGNs from all the messages as a single instance
+            Handle PGNs from all the messages as a single instance.
 
             .. versionadded:: 5.7.0
 
             .. deprecated:: 7.2.0
-                this argument is no longer used and will be removed in the future. The PGNs are saved
-                separately according to the source address
+                This argument is no longer used and will be removed in the future. The PGNs are saved
+                separately according to the source address.
 
         ignore_value2text_conversion (True): bool
-            ignore value to text conversions
+            Ignore value to text conversions.
 
             .. versionadded:: 5.23.0
 
         prefix ("") : str
-            prefix that will be added to the channel group names and signal names in
-            the output file
+            Prefix that will be added to the channel group names and signal names in
+            the output file.
 
             .. versionadded:: 6.3.0
 
@@ -5160,7 +5159,7 @@ class MDF:
         Returns
         -------
         mdf : MDF
-            new *MDF* file that contains the succesfully extracted signals
+            New *MDF* file that contains the succesfully extracted signals.
 
         Examples
         --------
@@ -5851,7 +5850,7 @@ class MDF:
         Returns
         -------
         timestamp : datetime.datetime
-            start timestamp
+            Start timestamp.
 
         """
 
@@ -5877,22 +5876,22 @@ class MDF:
         Parameters
         ----------
         minimum : float
-            minimum plausible time stamp
+            Minimum plausible time stamp.
         maximum : float
-            maximum plausible time stamp
+            Maximum plausible time stamp.
         exp_min (-15) : int
-            minimum plausible exponent used for the time stamps float values
+            Minimum plausible exponent used for the time stamps float values.
         exp_max (15) : int
-            maximum plausible exponent used for the time stamps float values
+            Maximum plausible exponent used for the time stamps float values.
         version : str
-            new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
+            New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default the same as
-            the input file
+            the input file.
 
         Returns
         -------
         out : MDF
-            new *MDF* object
+            New *MDF* object.
 
         """
 
@@ -5989,20 +5988,20 @@ class MDF:
         Parameters
         ----------
         channel : str
-            channel name string
+            Channel name string.
         source_name : str, optional
-            filter occurrences on source name, default *None*
+            Filter occurrences on source name, default *None*.
         source_path : str, optional
-            filter occurrences on source path, default *None*
+            Filter occurrences on source path, default *None*.
         acq_name : str, optional
-            filter occurrences on channel group acquisition name, default *None*
+            Filter occurrences on channel group acquisition name, default *None*.
 
             .. versionadded:: 6.0.0
 
         Returns
         -------
         tuple[tuple[int, int], ...]
-            (gp_idx, cn_idx) pairs
+            (gp_idx, cn_idx) pairs.
 
         Examples
         --------
@@ -6035,25 +6034,25 @@ class MDF:
         Parameters
         ----------
         pattern : str
-            search pattern
+            Search pattern.
         mode : Literal["plain", "regex", "wildcard"] or SearchMode, optional
-            search mode, by default SearchMode.plain
+            Search mode, by default SearchMode.plain.
 
-                * `plain` : normal name search
-                * `regex` : regular expression based search
-                * `wildcard` : wildcard based search
+            * `plain` : normal name search
+            * `regex` : regular expression based search
+            * `wildcard` : wildcard based search
         case_insensitive : bool, optional
-            case sensitivity for the channel name search, default *False*
+            Case sensitivity for the channel name search, default *False*.
 
         Returns
         -------
         list[str]
-            name of the channels
+            Name of the channels.
 
         Raises
         ------
         ValueError
-            unsupported search mode
+            Unsupported search mode.
 
         Examples
         --------

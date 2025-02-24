@@ -42,36 +42,36 @@ class Signal:
     Parameters
     ----------
     samples : numpy.array | list | tuple
-        signal samples
+        Signal samples.
     timestamps : numpy.array | list | tuple
-        signal timestamps
+        Signal timestamps.
     unit : str
-        signal unit
+        Signal unit.
     name : str
-        signal name
+        Signal name.
     conversion : dict | channel conversion block
-        dict that contains extra conversion information about the signal;
-        default *None*
+        Dict that contains extra conversion information about the signal;
+        default *None*.
     comment : str
-        signal comment; default ''
+        Signal comment; default ''.
     raw : bool
-        signal samples are raw values, with no physical conversion applied
+        Signal samples are raw values, with no physical conversion applied.
     master_metadata : list
-        master name and sync type
+        Master name and sync type.
     display_names : dict
-        display names used by MDF version 3
+        Display names used by MDF version 3.
     attachment : bytes, name
-        channel attachment and name from MDF version 4
+        Channel attachment and name from MDF version 4.
     source : Source
-        source information named tuple
+        Source information named tuple.
     bit_count : int
-        bit count; useful for integer channels
+        Bit count; useful for integer channels.
     invalidation_bits : numpy.array | None
-        channel invalidation bits; default *None*
+        Channel invalidation bits; default *None*.
     encoding : str | None
-        encoding for string signals; default *None*
+        Encoding for string signals; default *None*.
     flags : Signal.Flags
-        flags for user defined attributes and stream sync
+        Flags for user defined attributes and stream sync.
 
     """
 
@@ -240,12 +240,12 @@ class Signal:
         Parameters
         ----------
         validate (True): bool
-            apply the invalidation bits
+            Apply the invalidation bits.
 
         index_only (False) : bool
-            use index based X axis. This can be useful if the master (usually
+            Use index based X axis. This can be useful if the master (usually
             time based) is corrupted with NaN, inf or if it is not strictly
-            increasing
+            increasing.
 
         """
         try:
@@ -456,37 +456,37 @@ class Signal:
         Parameters
         ----------
         start : float
-            start timestamp for cutting
+            Start timestamp for cutting.
         stop : float
-            stop timestamp for cutting
+            Stop timestamp for cutting.
         include_ends : bool
-            include the *start* and *stop* timestamps after cutting the signal.
+            Include the *start* and *stop* timestamps after cutting the signal.
             If *start* and *stop* are not found in the original timestamps, then
-            the new samples will be computed using interpolation. Default *True*
+            the new samples will be computed using interpolation. Default *True*.
 
         integer_interpolation_mode : int
-            interpolation mode for integer signals; default 0
+            Interpolation mode for integer signals; default 0.
 
-                * 0 - repeat previous samples
-                * 1 - linear interpolation
-                * 2 - hybrid interpolation: channels with integer data type (raw values) that have a
-                  conversion that outputs float values will use linear interpolation, otherwise
-                  the previous sample is used
+            * 0 - repeat previous samples
+            * 1 - linear interpolation
+            * 2 - hybrid interpolation: channels with integer data type (raw values) that have a
+              conversion that outputs float values will use linear interpolation, otherwise
+              the previous sample is used
 
-                .. versionadded:: 6.2.0
+            .. versionadded:: 6.2.0
 
         float_interpolation_mode : int
-            interpolation mode for float channels; default 1
+            Interpolation mode for float channels; default 1.
 
-                * 0 - repeat previous sample
-                * 1 - use linear interpolation
+            * 0 - repeat previous sample
+            * 1 - use linear interpolation
 
-                .. versionadded:: 6.2.0
+            .. versionadded:: 6.2.0
 
         Returns
         -------
         result : Signal
-            new *Signal* cut from the original
+            New *Signal* cut from the original.
 
         Examples
         --------
@@ -859,7 +859,7 @@ class Signal:
         Returns
         -------
         signal : Signal
-            new extended *Signal*
+            New extended *Signal*.
 
         """
         if len(self.timestamps):
@@ -931,31 +931,31 @@ class Signal:
         Parameters
         ----------
         new_timestamps : np.array
-            timestamps used for interpolation
+            Timestamps used for interpolation.
 
         integer_interpolation_mode : int
-            interpolation mode for integer signals; default 0
+            Interpolation mode for integer signals; default 0.
 
-                * 0 - repeat previous samples
-                * 1 - linear interpolation
-                * 2 - hybrid interpolation: channels with integer data type (raw values) that have a
-                  conversion that outputs float values will use linear interpolation, otherwise
-                  the previous sample is used
+            * 0 - repeat previous samples
+            * 1 - linear interpolation
+            * 2 - hybrid interpolation: channels with integer data type (raw values) that have a
+              conversion that outputs float values will use linear interpolation, otherwise
+              the previous sample is used
 
-                .. versionadded:: 6.2.0
+            .. versionadded:: 6.2.0
 
         float_interpolation_mode : int
-            interpolation mode for float channels; default 1
+            Interpolation mode for float channels; default 1.
 
-                * 0 - repeat previous sample
-                * 1 - use linear interpolation
+            * 0 - repeat previous sample
+            * 1 - use linear interpolation
 
-                .. versionadded:: 6.2.0
+            .. versionadded:: 6.2.0
 
         Returns
         -------
         signal : Signal
-            new interpolated *Signal*
+            New interpolated *Signal*.
 
         """
 
@@ -1110,9 +1110,8 @@ class Signal:
             )
 
     def __apply_func(self, other: Union["Signal", NDArray[Any], Optional[int]], func_name: str) -> "Signal":
-        """delegate operations to the *samples* attribute, but in a time
-        correct manner by considering the *timestamps*
-
+        """Delegate operations to the *samples* attribute, but in a time
+        correct manner by considering the *timestamps*.
         """
 
         if isinstance(other, Signal):
@@ -1390,12 +1389,12 @@ class Signal:
         Parameters
         ----------
         np_type : np.dtype
-            new numpy dtype
+            New numpy dtype.
 
         Returns
         -------
         signal : Signal
-            new *Signal* with the samples of *np_type* dtype
+            New *Signal* with the samples of *np_type* dtype.
 
         """
         return Signal(
@@ -1422,14 +1421,14 @@ class Signal:
         Parameters
         ----------
         copy : bool
-            copy the samples and timestamps in the returned Signal
+            Copy the samples and timestamps in the returned Signal.
 
             .. versionadded:: 7.4.0
 
         Returns
         -------
         phys : Signal
-            new *Signal* with physical values
+            New *Signal* with physical values.
 
         """
 
@@ -1472,7 +1471,7 @@ class Signal:
         Parameters
         ----------
         copy (True) : bool
-            return a copy of the result
+            Return a copy of the result.
 
             .. versionadded:: 5.12.0
 
