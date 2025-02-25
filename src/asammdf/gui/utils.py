@@ -157,6 +157,13 @@ IMPORT_INNER = re.compile(r";\s*import\s+")
 FROM_IMPORT = re.compile(r"^\s*from\s+\S+\s+import\s+")
 FROM_INNER_IMPORT = re.compile(r";\s*from\s+\S+\s+import\s+")
 
+COMPRESSION_OPTIONS = {
+    "4.00": (),
+    "4.10": ("no compression", "deflate", "transposed deflate"),
+    "4.20": ("no compression", "deflate", "transposed deflate"),
+    "4.30": ("no compression", "deflate", "transposed deflate", "lz4", "transposed lz4", "zstd", "transposed zstd"),
+}
+
 
 def excepthook(exc_type, exc_value, tracebackobj):
     """

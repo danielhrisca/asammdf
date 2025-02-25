@@ -25,7 +25,13 @@ from ...blocks.v4_constants import (
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.messagebox import MessageBox
 from ..ui.batch_widget import Ui_batch_widget
-from ..utils import GREEN, HelperChannel, setup_progress, TERMINATED
+from ..utils import (
+    COMPRESSION_OPTIONS,
+    GREEN,
+    HelperChannel,
+    setup_progress,
+    TERMINATED,
+)
 from .database_item import DatabaseItem
 from .tree import add_children
 from .tree_item import MinimalTreeItem, TreeItem
@@ -71,6 +77,14 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.extract_bus_format,
             self.mdf_version,
         ):
+            widget.currentTextChanged.connect(self.mdf_format_changed)
+
+        for widget in (
+            self.concatenate_format,
+            self.stack_format,
+            self.extract_bus_format,
+            self.mdf_version,
+        ):
             widget.insertItems(0, mdf_module.SUPPORTED_VERSIONS)
             widget.setCurrentText("4.10")
 
@@ -80,15 +94,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.mdf_split_size,
         ):
             widget.setValue(4)
-
-        for widget in (
-            self.concatenate_compression,
-            self.stack_compression,
-            self.extract_bus_compression,
-            self.mdf_compression,
-        ):
-            widget.insertItems(0, ("no compression", "deflate", "transposed deflate"))
-            widget.setCurrentText("transposed deflate")
 
         formats = ["MDF", "ASC", "CSV"]
 
@@ -205,6 +210,24 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         self.restore_export_settings()
         self.connect_export_updates()
+
+    @QtCore.Slot(str)
+    def mdf_format_changed(self, format):
+        sender = self.sender()
+        options = COMPRESSION_OPTIONS.get(format, ())
+
+        if sender is self.concatenate_format:
+            self.concatenate_compression.clear()
+            self.concatenate_compression.addItems(options)
+        elif sender is self.stack_format:
+            self.stack_compression.clear()
+            self.stack_compression.addItems(options)
+        elif sender is self.extract_bus_format:
+            self.extract_bus_compression.clear()
+            self.extract_bus_compression.addItems(options)
+        elif sender is self.mdf_version:
+            self.mdf_compression.clear()
+            self.mdf_compression.addItems(options)
 
     def set_raster_type(self, event):
         if self.raster_type_channel.isChecked():
