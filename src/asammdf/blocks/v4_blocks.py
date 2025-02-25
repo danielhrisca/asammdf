@@ -18,8 +18,12 @@ from xml.dom import minidom
 import xml.etree.ElementTree as ET
 
 import dateutil.tz
+from lz4.frame import compress as lz_compress
+from lz4.frame import decompress as lz_decompress
 from numexpr import evaluate
 import numpy as np
+from zstd import compress as zstd_compress
+from zstd import decompress as zstd_decompress
 
 from .. import tool
 from . import v4_constants as v4c
@@ -4490,8 +4494,17 @@ class DataZippedBlock:
             original_size = len(data)
             self.original_size = original_size
 
-            if self.zip_type == v4c.FLAG_DZ_DEFLATE:
-                data = compress(data, COMPRESSION_LEVEL)
+            if self.zip_type in (v4c.FLAG_DZ_DEFLATE, v4c.FLAG_DZ_TRANSPOSED_DEFLATE):
+                compress_func = compress
+            elif self.zip_type in (v4c.FLAG_DZ_LZ4, v4c.FLAG_DZ_TRANSPOSED_LZ4):
+                compress_func = lz_compress
+                COMPRESSION_LEVEL = 1
+            elif self.zip_type in (v4c.FLAG_DZ_ZSTD, v4c.FLAG_DZ_TRANSPOSED_ZSTD):
+                compress_func = zstd_compress
+                COMPRESSION_LEVEL = 1
+
+            if self.zip_type in (v4c.FLAG_DZ_DEFLATE, v4c.FLAG_DZ_LZ4, v4c.FLAG_DZ_ZSTD):
+                data = compress_func(data, COMPRESSION_LEVEL)
             else:
                 if not self._transposed:
                     cols = self.param
@@ -4505,7 +4518,7 @@ class DataZippedBlock:
 
                     else:
                         data = np.frombuffer(data, dtype=np.uint8).reshape((lines, cols)).T.ravel().tobytes()
-                data = compress(data, COMPRESSION_LEVEL)
+                data = compress_func(data, COMPRESSION_LEVEL)
 
             zipped_size = len(data)
             self.zip_size = zipped_size
@@ -4521,7 +4534,16 @@ class DataZippedBlock:
             if self.return_unzipped:
                 data = DataZippedBlock.__dict__[item].__get__(self)
                 original_size = self.original_size
-                data = decompress(data, bufsize=original_size)
+
+                if self.zip_type in (v4c.FLAG_DZ_DEFLATE, v4c.FLAG_DZ_TRANSPOSED_DEFLATE):
+                    data = decompress(data, bufsize=original_size)
+
+                elif self.zip_type in (v4c.FLAG_DZ_LZ4, v4c.FLAG_DZ_TRANSPOSED_LZ4):
+                    data = lz_decompress(data)
+
+                elif self.zip_type in (v4c.FLAG_DZ_ZSTD, v4c.FLAG_DZ_TRANSPOSED_ZSTD):
+                    data = zstd_decompress(data)
+
                 if self.zip_type == v4c.FLAG_DZ_TRANSPOSED_DEFLATE:
                     cols = self.param
                     lines = original_size // cols
