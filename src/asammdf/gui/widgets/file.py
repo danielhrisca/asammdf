@@ -32,6 +32,7 @@ from ...blocks.v4_constants import (
     BUS_TYPE_FLEXRAY,
     BUS_TYPE_LIN,
     BUS_TYPE_USB,
+    CompressionAlgorithm,
     FLAG_AT_TO_STRING,
     FLAG_CG_BUS_EVENT,
 )
@@ -2602,7 +2603,7 @@ MultiRasterSeparator;&
         if output_format == "MDF":
             new = {
                 "mdf_version": self.mdf_version.currentText(),
-                "mdf_compression": self.mdf_compression.currentIndex(),
+                "mdf_compression": CompressionAlgorithm(self.mdf_compression.currentIndex()),
                 "mdf_split": self.mdf_split.checkState() == QtCore.Qt.CheckState.Checked,
                 "mdf_split_size": self.mdf_split_size.value() * 1024 * 1024,
             }

@@ -1,5 +1,6 @@
 """MDF v4 constants"""
 
+from enum import IntEnum
 import re
 import struct
 import sys
@@ -447,6 +448,17 @@ DT_BLOCK = 0
 DZ_BLOCK_DEFLATE = 1
 DZ_BLOCK_TRANSPOSED = 2
 DZ_BLOCK_LZ = 3
+
+
+class CompressionAlgorithm(IntEnum):
+    NO_COMPRESSION = 0
+    DEFLATE = 1
+    TRANSPOSED_DEFLATE = 2
+    ZSTD = 3
+    TRANSPOSED_ZSTD = 4
+    LZ4 = 5
+    TRANSPOSED_LZ4 = 6
+
 
 FMT_CHANNEL = "<4sI2Q{}Q4B4I2BH6d"
 FMT_CHANNEL_PARAMS = "<4B4I2BH6d"

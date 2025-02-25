@@ -9332,7 +9332,7 @@ class MDF4(MDF_Common[Group]):
         self,
         dst: WritableBufferType | StrPathType,
         overwrite: bool = False,
-        compression: CompressionType = 0,
+        compression: CompressionType = v4c.CompressionAlgorithm.NO_COMPRESSION,
         progress=None,
         add_history_block: bool = True,
     ) -> Path:
@@ -9445,10 +9445,26 @@ class MDF4(MDF_Common[Group]):
 
             original_data_addresses = []
 
-            if compression == 1:
-                zip_type = v4c.FLAG_DZ_DEFLATE
+            if self.version < "4.30":
+                if compression > v4c.CompressionAlgorithm.TRANSPOSED_DEFLATE:
+                    zip_type = v4c.FLAG_DZ_TRANSPOSED_DEFLATE
+                elif compression == v4c.CompressionAlgorithm.DEFLATE:
+                    zip_type = v4c.FLAG_DZ_DEFLATE
+                else:
+                    zip_type = v4c.FLAG_DZ_TRANSPOSED_DEFLATE
             else:
-                zip_type = v4c.FLAG_DZ_TRANSPOSED_DEFLATE
+                if compression == v4c.CompressionAlgorithm.DEFLATE:
+                    zip_type = v4c.FLAG_DZ_DEFLATE
+                elif compression == v4c.CompressionAlgorithm.TRANSPOSED_DEFLATE:
+                    zip_type = v4c.FLAG_DZ_TRANSPOSED_DEFLATE
+                elif compression == v4c.CompressionAlgorithm.LZ4:
+                    zip_type = v4c.FLAG_DZ_LZ4
+                elif compression == v4c.CompressionAlgorithm.TRANSPOSED_LZ4:
+                    zip_type = v4c.FLAG_DZ_TRANSPOSED_LZ4
+                elif compression == v4c.CompressionAlgorithm.ZSTD:
+                    zip_type = v4c.FLAG_DZ_ZSTD
+                elif compression == v4c.CompressionAlgorithm.TRANSPOSED_ZSTD:
+                    zip_type = v4c.FLAG_DZ_TRANSPOSED_ZSTD
 
             # write DataBlocks first
             for gp_nr, gp in enumerate(self.groups):
