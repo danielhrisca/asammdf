@@ -215,7 +215,7 @@ class MDF:
 
     Parameters
     ----------
-    name : string | BytesIO | zipfile.ZipFile | bz2.BZ2File | gzip.GzipFile, optional
+    name : str | BytesIO | zipfile.ZipFile | bz2.BZ2File | gzip.GzipFile, optional
         Mdf file name (if provided it must be a real file name), file-like object or
         compressed file opened as a Python object.
 
@@ -223,7 +223,7 @@ class MDF:
 
             Added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile.
 
-    version : string, optional
+    version : str, optional
         Mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
         '3.30', '4.00', '4.10', '4.11', '4.20'); default '4.10'. This argument is
         only used for MDF objects created from scratch; for MDF objects created
@@ -1169,7 +1169,7 @@ class MDF:
 
         Parameters
         ----------
-        fmt : string
+        fmt : str
             Can be one of the following:
 
             * `csv` : CSV export that uses the "," delimiter. This option
@@ -1191,7 +1191,7 @@ class MDF:
 
                 .. versionadded:: 7.3.3
 
-        filename : string | pathlib.Path, optional
+        filename : str | pathlib.Path, optional
             Export file name.
 
         Other Parameters
@@ -2225,7 +2225,7 @@ class MDF:
 
         Parameters
         ----------
-        name : string, optional
+        name : str, optional
             Name of channel.
         group : int, optional
             0-based group index.
