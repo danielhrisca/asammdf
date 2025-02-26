@@ -387,10 +387,9 @@ class ProgressDialog(QtWidgets.QProgressDialog):
     def close(self, reject=False):
 
         if self.thread and not self.thread.isFinished():
-            self.thread.requestInterruption()
-
             loop = QtCore.QEventLoop()
             self.thread.finished.connect(loop.quit)
+            self.thread.requestInterruption()
             loop.exec()
 
         if reject:
