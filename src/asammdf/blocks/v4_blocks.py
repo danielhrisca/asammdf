@@ -4500,15 +4500,16 @@ class DataZippedBlock:
 
             if self.zip_type in (v4c.FLAG_DZ_DEFLATE, v4c.FLAG_DZ_TRANSPOSED_DEFLATE):
                 compress_func = compress
+                compression_level = COMPRESSION_LEVEL
             elif self.zip_type in (v4c.FLAG_DZ_LZ4, v4c.FLAG_DZ_TRANSPOSED_LZ4):
                 compress_func = lz_compress
-                COMPRESSION_LEVEL = 1
+                compression_level = 1
             elif self.zip_type in (v4c.FLAG_DZ_ZSTD, v4c.FLAG_DZ_TRANSPOSED_ZSTD):
                 compress_func = zstd_compress
-                COMPRESSION_LEVEL = 1
+                compression_level = 1
 
             if self.zip_type in (v4c.FLAG_DZ_DEFLATE, v4c.FLAG_DZ_LZ4, v4c.FLAG_DZ_ZSTD):
-                data = compress_func(data, COMPRESSION_LEVEL)
+                data = compress_func(data, compression_level)
             else:
                 if not self._transposed:
                     cols = self.param
@@ -4522,7 +4523,7 @@ class DataZippedBlock:
 
                     else:
                         data = np.frombuffer(data, dtype=np.uint8).reshape((lines, cols)).T.ravel().tobytes()
-                data = compress_func(data, COMPRESSION_LEVEL)
+                data = compress_func(data, compression_level)
 
             zipped_size = len(data)
             self.zip_size = zipped_size
