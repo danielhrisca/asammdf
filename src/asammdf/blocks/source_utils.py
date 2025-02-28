@@ -39,16 +39,15 @@ class Source:
         Attributes
         ----------
         name : str
-            source name
+            Source name.
         path : str
-            source path
+            Source path.
         comment : str
-            source comment
+            Source comment.
         source_type : int
-            source type code
+            Source type code.
         bus_type : int
-            source bus code
-
+            Source bus code.
         """
         self.name, self.path, self.comment, self.source_type, self.bus_type = (
             name,

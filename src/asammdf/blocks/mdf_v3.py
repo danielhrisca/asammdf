@@ -120,7 +120,7 @@ class TriggerInfoDict(TypedDict):
 class MDF3(MDF_Common[Group]):
     """The *header* attibute is a *HeaderBlock*.
 
-    The *groups* attribute is a list of dicts, each one with the following keys
+    The *groups* attribute is a list of dicts, each one with the following keys:
 
     * ``data_group`` - DataGroup object
     * ``channel_group`` - ChannelGroup object
@@ -142,47 +142,44 @@ class MDF3(MDF_Common[Group]):
 
     Parameters
     ----------
-    name : str | pathlib.Path
-        mdf file name (if provided it must be a real file name) or
-        file-like object
-
-    version : str
-        mdf file version ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20' or
-        '3.30'); default '3.30'
-    callback : function
-        keyword only argument: function to call to update the progress; the
+    name : str | pathlib.Path, optional
+        Mdf file name (if provided it must be a real file name) or
+        file-like object.
+    version : str, optional
+        Mdf file version ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20' or
+        '3.30'); default '3.30'.
+    callback : function, optional
+        Keyword only argument: function to call to update the progress; the
         function must accept two arguments (the current progress and maximum
-        progress value)
-
+        progress value).
 
     Attributes
     ----------
     attachments : list
-        list of file attachments
+        List of file attachments.
     channels_db : dict
-        used for fast channel access by name; for each name key the value is a
-        list of (group index, channel index) tuples
+        Used for fast channel access by name; for each name key the value is a
+        list of (group index, channel index) tuples.
     groups : list
-        list of data group dicts
+        List of data group dicts.
     header : HeaderBlock
-        mdf file header
+        Mdf file header.
     identification : FileIdentificationBlock
-        mdf file start block
+        Mdf file start block.
     last_call_info : dict | None
-        a dict to hold information about the last called method.
+        A dict to hold information about the last called method.
 
         .. versionadded:: 5.12.0
 
     masters_db : dict
-        used for fast master channel access; for each group index key the value
-        is the master channel index
+        Used for fast master channel access; for each group index key the value
+        is the master channel index.
     memory : str
-        memory optimization option
+        Memory optimization option.
     name : str
-        mdf file name
+        Mdf file name.
     version : str
-        mdf version
-
+        Mdf version.
     """
 
     def __init__(
@@ -313,7 +310,7 @@ class MDF3(MDF_Common[Group]):
         record_count: Optional[int] = None,
         optimize_read: bool = True,
     ) -> Iterator[tuple[bytes, int, Optional[int]]]:
-        """get group's data block bytes"""
+        """Get group's data block bytes."""
         has_yielded = False
         offset = 0
         _count = record_count
@@ -522,18 +519,17 @@ class MDF3(MDF_Common[Group]):
             yield b"", 0, _count
 
     def _prepare_record(self, group: Group) -> list[Optional[tuple[np.dtype[Any], int, int, int]]]:
-        """compute record list
+        """Compute record list.
 
         Parameters
         ----------
         group : dict
-            MDF group dict
+            MDF group dict.
 
         Returns
         -------
         record : list
-            mapping of channels to records fields, records fields dtype
-
+            Mapping of channels to records fields, records fields dtype.
         """
 
         record = group.record
@@ -991,16 +987,15 @@ class MDF3(MDF_Common[Group]):
         Parameters
         ----------
         group : int
-            group index
+            Group index.
         timestamp : float
-            trigger time
-        pre_time : float
-            trigger pre time; default 0
-        post_time : float
-            trigger post time; default 0
-        comment : str
-            trigger comment
-
+            Trigger time.
+        pre_time : float, optional
+            Trigger pre time; default 0.
+        post_time : float, optional
+            Trigger post time; default 0.
+        comment : str, optional
+            Trigger comment.
         """
         comment_template = """<EVcomment>
     <TX>{}</TX>
@@ -1102,22 +1097,22 @@ class MDF3(MDF_Common[Group]):
         Parameters
         ----------
         signals : list | Signal | pandas.DataFrame
-            list of *Signal* objects, or a single *Signal* object, or a pandas
+            List of *Signal* objects, or a single *Signal* object, or a pandas
             *DataFrame* object. All bytes columns in the pandas *DataFrame*
-            must be *latin-1* encoded
-        acq_name : str
-            channel group acquisition name
-        acq_source : Source
-            channel group acquisition source
-        comment : str
-            channel group comment; default 'Python'
-        common_timebase : bool
-            flag to hint that the signals have the same timebase. Only set this
+            must be *latin-1* encoded.
+        acq_name : str, optional
+            Channel group acquisition name.
+        acq_source : Source, optional
+            Channel group acquisition source.
+        comment : str, optional
+            Channel group comment; default 'Python'.
+        common_timebase : bool, optional
+            Flag to hint that the signals have the same timebase. Only set this
             if you know for sure that all appended channels share the same
-            time base
-        units : dict
-            will contain the signal units mapped to the signal names when
-            appending a pandas DataFrame
+            time base.
+        units : dict, optional
+            Will contain the signal units mapped to the signal names when
+            appending a pandas DataFrame.
 
         Examples
         --------
@@ -2365,7 +2360,6 @@ class MDF3(MDF_Common[Group]):
         """If the MDF was created with memory='minimum' and new
         channels have been appended, then this must be called just before the
         object is not used anymore to clean-up the temporary file.
-
         """
         try:
             if self._closed:
@@ -2420,9 +2414,9 @@ class MDF3(MDF_Common[Group]):
         Parameters
         ----------
         index : int
-            group index
+            Group index.
         signals : list
-            list of (np.ndarray, None) objects
+            List of (np.ndarray, None) objects.
 
         Examples
         --------
@@ -2588,15 +2582,14 @@ class MDF3(MDF_Common[Group]):
         Parameters
         ----------
         group : int
-            0-based group index
+            0-based group index.
         index : int
-            0-based channel index
+            0-based channel index.
 
         Returns
         -------
         name : str
-            found channel name
-
+            Found channel name.
         """
         gp_nr, ch_nr = self._validate_channel_selection(None, group, index)
 
@@ -2648,17 +2641,16 @@ class MDF3(MDF_Common[Group]):
         Parameters
         ----------
         name : str
-            name of channel
+            Name of channel.
         group : int
-            0-based group index
+            0-based group index.
         index : int
-            0-based channel index
+            0-based channel index.
 
         Returns
         -------
         unit : str
-            found channel unit
-
+            Found channel unit.
         """
         gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
@@ -2700,17 +2692,16 @@ class MDF3(MDF_Common[Group]):
         Parameters
         ----------
         name : str
-            name of channel
+            Name of channel.
         group : int
-            0-based group index
+            0-based group index.
         index : int
-            0-based channel index
+            0-based channel index.
 
         Returns
         -------
         comment : str
-            found channel comment
-
+            Found channel comment.
         """
         gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
@@ -2788,28 +2779,28 @@ class MDF3(MDF_Common[Group]):
         Parameters
         ----------
         name : str
-            name of channel
+            Name of channel.
         group : int
-            0-based group index
+            0-based group index.
         index : int
-            0-based channel index
-        raster : float
-            time raster in seconds
-        samples_only : bool
-            if *True* return only the channel samples as np.ndarray; if
-            *False* return a *Signal* object
-        data : bytes
-            prevent redundant data read by providing the raw data group samples
-        raw : bool
-            return channel samples without applying the conversion rule; default
-            `False`
-        ignore_invalidation_bits : bool
-            only defined to have the same API with the MDF v4
-        record_offset : int
-            if *data=None* use this to select the record offset from which the
-            group data should be loaded
-        skip_channel_validation (False) : bool
-            skip validation of channel name, group index and channel index; default
+            0-based channel index.
+        raster : float, optional
+            Time raster in seconds.
+        samples_only : bool, optional
+            If *True* return only the channel samples as np.ndarray; if
+            *False* return a *Signal* object.
+        data : bytes, optional
+            Prevent redundant data read by providing the raw data group samples.
+        raw : bool, optional
+            Return channel samples without applying the conversion rule; default
+            `False`.
+        ignore_invalidation_bits : bool, optional
+            Only defined to have the same API with the MDF v4.
+        record_offset : int, optional
+            If *data=None* use this to select the record offset from which the
+            group data should be loaded.
+        skip_channel_validation (False) : bool, optional
+            Skip validation of channel name, group index and channel index; default
             *False*. If *True*, the caller has to make sure that the *group* and *index*
             arguments are provided and are correct.
 
@@ -2818,9 +2809,9 @@ class MDF3(MDF_Common[Group]):
         Returns
         -------
         res : (np.ndarray, None) | Signal
-            returns *Signal* if *samples_only*=*False* (default option),
+            Returns *Signal* if *samples_only=False* (default option),
             otherwise returns a (np.ndarray, None) tuple (for compatibility
-            with MDF v4 class.
+            with MDF v4 class).
 
             The *Signal* samples are:
 
@@ -2830,7 +2821,7 @@ class MDF3(MDF_Common[Group]):
 
         Raises
         ------
-        MdfException :
+        MdfException
 
         * if the channel name is not found
         * if the group index is out of range
@@ -2882,7 +2873,6 @@ class MDF3(MDF_Common[Group]):
                 timestamps=[0 1 2 3 4]
                 unit=""
                 comment="">
-
         """
 
         if skip_channel_validation:
@@ -3171,24 +3161,22 @@ class MDF3(MDF_Common[Group]):
         Parameters
         ----------
         index : int
-            group index
-        data : (bytes, int)
-            (data block raw bytes, fragment offset); default *None*
-        raster : float
-            raster to be used for interpolation; default *None*
+            Group index.
+        data : (bytes, int), optional
+            (data block raw bytes, fragment offset); default *None*.
+        raster : float, optional
+            Raster to be used for interpolation; default *None*.
 
             .. deprecated:: 5.13.0
 
-        record_offset : int
-            if *data=None* use this to select the record offset from which the
-            group data should be loaded
-
+        record_offset : int, optional
+            If *data=None* use this to select the record offset from which the
+            group data should be loaded.
 
         Returns
         -------
         t : np.ndarray
-            master channel samples
-
+            Master channel samples.
         """
         if self._master is not None:
             return self._master
@@ -3335,7 +3323,7 @@ class MDF3(MDF_Common[Group]):
         Yields
         ------
         trigger_info : dict
-            trigger information with the following keys:
+            Trigger information with the following keys:
 
             * comment : trigger comment
             * time : trigger time
@@ -3396,8 +3384,7 @@ class MDF3(MDF_Common[Group]):
         Returns
         -------
         timestamp : datetime.datetime
-            start timestamp
-
+            Start timestamp.
         """
 
         return self.header.start_time
@@ -3422,12 +3409,12 @@ class MDF3(MDF_Common[Group]):
         Parameters
         ----------
         dst : str | pathlib.Path
-            destination file name
-        overwrite : bool
-            overwrite flag, default *False*
-        compression : int
-            does nothing for mdf version3; introduced here to share the same
-            API as mdf version 4 files
+            Destination file name.
+        overwrite : bool, optional
+            Overwrite flag, default *False*.
+        compression : int, optional
+            Does nothing for MDF version 3; introduced here to share the same
+            API as MDF version 4 files.
 
         Returns
         -------

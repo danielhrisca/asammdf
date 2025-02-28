@@ -29,22 +29,21 @@ def conversion_transfer(
 def conversion_transfer(
     conversion: Optional[ChannelConversionType], version: int = 3, copy: bool = False
 ) -> ChannelConversionType:
-    """convert between mdf4 and mdf3 channel conversions
+    """Convert between MDF4 and MDF3 channel conversions.
 
     Parameters
     ----------
     conversion : block
-        channel conversion
-    version : int
-        target mdf version
-    copy : bool
-        return a copy if the input conversion version is the same as the required version
+        Channel conversion.
+    version : int, optional
+        Target MDF version.
+    copy : bool, optional
+        Return a copy if the input conversion version is the same as the required version.
 
     Returns
     -------
     conversion : block
-        channel conversion for specified version
-
+        Channel conversion for specified version.
     """
 
     if version <= 3:
