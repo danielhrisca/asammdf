@@ -4330,7 +4330,7 @@ class MDF:
         use_interpolation (True) : bool
             Option to perform interpolations when multiple timestamp rasters are
             present. If *False* then DataFrame columns will be automatically
-            filled with NaNs were the DataFrame index values are not found in
+            filled with NaNs where the DataFrame index values are not found in
             the current column's timestamps.
         only_basenames (False) : bool
             Use just the field names, without prefix, for structures and channel
@@ -4743,7 +4743,7 @@ class MDF:
         use_interpolation (True) : bool
             Option to perform interpolations when multiple timestamp rasters are
             present. If *False* then DataFrame columns will be automatically
-            filled with NaNs were the DataFrame index values are not found in
+            filled with NaNs where the DataFrame index values are not found in
             the current column's timestamps.
 
             .. versionadded:: 5.11.0

@@ -3419,7 +3419,7 @@ class MDF3(MDF_Common[Group]):
     ) -> Union[Path, object]:
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>',
-        were '<cntr>' is the first counter that produces a new file name (that
+        where '<cntr>' is the first counter that produces a new file name (that
         does not already exist in the filesystem).
 
         Parameters
