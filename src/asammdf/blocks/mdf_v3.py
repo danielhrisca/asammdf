@@ -3431,9 +3431,8 @@ class MDF3(MDF_Common[Group]):
 
         Returns
         -------
-        output_file : str
-            output file name
-
+        output_file : pathlib.Path
+            Path to saved file.
         """
 
         dst = Path(dst).with_suffix(".mdf")
