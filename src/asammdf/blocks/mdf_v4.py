@@ -202,11 +202,11 @@ class MDF4(MDF_Common[Group]):
 
     Parameters
     ----------
-    name : string
+    name : str
         mdf file name (if provided it must be a real file name) or
         file-like object
 
-    version : string
+    version : str
         mdf file version ('4.00', '4.10', '4.11', '4.20'); default '4.10'
 
     kwargs :
@@ -254,7 +254,7 @@ class MDF4(MDF_Common[Group]):
     masters_db : dict
         used for fast master channel access; for each group index key the value
          is the master channel index
-    name : string
+    name : str
         mdf file name
     version : str
         mdf version
@@ -6684,7 +6684,7 @@ class MDF4(MDF_Common[Group]):
 
         Parameters
         ----------
-        name : string
+        name : str
             name of channel
         group : int
             0-based group index
@@ -10240,7 +10240,7 @@ class MDF4(MDF_Common[Group]):
 
         Parameters
         ----------
-        name : string
+        name : str
             name of channel
         group : int
             0-based group index
@@ -10293,7 +10293,7 @@ class MDF4(MDF_Common[Group]):
 
         Parameters
         ----------
-        name : string
+        name : str
             name of channel
         group : int
             0-based group index

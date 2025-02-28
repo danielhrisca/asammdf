@@ -142,11 +142,11 @@ class MDF3(MDF_Common[Group]):
 
     Parameters
     ----------
-    name : string | pathlib.Path
+    name : str | pathlib.Path
         mdf file name (if provided it must be a real file name) or
         file-like object
 
-    version : string
+    version : str
         mdf file version ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20' or
         '3.30'); default '3.30'
     callback : function
@@ -178,7 +178,7 @@ class MDF3(MDF_Common[Group]):
         is the master channel index
     memory : str
         memory optimization option
-    name : string
+    name : str
         mdf file name
     version : str
         mdf version
@@ -2648,7 +2648,7 @@ class MDF3(MDF_Common[Group]):
 
         Parameters
         ----------
-        name : string
+        name : str
             name of channel
         group : int
             0-based group index
@@ -2701,7 +2701,7 @@ class MDF3(MDF_Common[Group]):
 
         Parameters
         ----------
-        name : string
+        name : str
             name of channel
         group : int
             0-based group index
@@ -2790,7 +2790,7 @@ class MDF3(MDF_Common[Group]):
 
         Parameters
         ----------
-        name : string
+        name : str
             name of channel
         group : int
             0-based group index

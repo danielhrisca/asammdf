@@ -185,7 +185,7 @@ class MDF_Common(ABC, Generic[_Group]):
 
         Parameters
         ----------
-        name : string
+        name : str
             name of channel
         group : int
             0-based group index
