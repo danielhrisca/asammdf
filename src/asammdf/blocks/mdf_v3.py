@@ -2630,18 +2630,17 @@ class MDF3(MDF_Common[Group]):
 
         Channel can be specified in two ways:
 
-        * using the first positional argument *name*
+        * Using the first positional argument *name*.
 
-            * if there are multiple occurrences for this channel then the
-              *group* and *index* arguments can be used to select a specific
-              group.
-            * if there are multiple occurrences for this channel and either the
-              *group* or *index* arguments is None then a warning is issued
+          * If there are multiple occurrences for this channel then the
+            *group* and *index* arguments can be used to select a specific
+            group.
+          * If there are multiple occurrences for this channel and either the
+            *group* or *index* arguments is None then a warning is issued.
 
-        * using the group number (keyword argument *group*) and the channel
+        * Using the group number (keyword argument *group*) and the channel
           number (keyword argument *index*). Use *info* method for group and
-          channel numbers
-
+          channel numbers.
 
         If the *raster* keyword argument is not *None* the output is
         interpolated accordingly.
@@ -2683,18 +2682,17 @@ class MDF3(MDF_Common[Group]):
 
         Channel can be specified in two ways:
 
-        * using the first positional argument *name*
+        * Using the first positional argument *name*.
 
-            * if there are multiple occurrences for this channel then the
-              *group* and *index* arguments can be used to select a specific
-              group.
-            * if there are multiple occurrences for this channel and either the
-              *group* or *index* arguments is None then a warning is issued
+          * If there are multiple occurrences for this channel then the
+            *group* and *index* arguments can be used to select a specific
+            group.
+          * If there are multiple occurrences for this channel and either the
+            *group* or *index* arguments is None then a warning is issued.
 
-        * using the group number (keyword argument *group*) and the channel
+        * Using the group number (keyword argument *group*) and the channel
           number (keyword argument *index*). Use *info* method for group and
-          channel numbers
-
+          channel numbers.
 
         If the *raster* keyword argument is not *None* the output is
         interpolated accordingly.
@@ -2772,18 +2770,17 @@ class MDF3(MDF_Common[Group]):
 
         Channel can be specified in two ways:
 
-        * using the first positional argument *name*
+        * Using the first positional argument *name*.
 
-            * if there are multiple occurrences for this channel then the
-              *group* and *index* arguments can be used to select a specific
-              group.
-            * if there are multiple occurrences for this channel and either the
-              *group* or *index* arguments is None then a warning is issued
+          * If there are multiple occurrences for this channel then the
+            *group* and *index* arguments can be used to select a specific
+            group.
+          * If there are multiple occurrences for this channel and either the
+            *group* or *index* arguments is None then a warning is issued.
 
-        * using the group number (keyword argument *group*) and the channel
+        * Using the group number (keyword argument *group*) and the channel
           number (keyword argument *index*). Use *info* method for group and
-          channel numbers
-
+          channel numbers.
 
         If the *raster* keyword argument is not *None* the output is
         interpolated accordingly.
@@ -2825,11 +2822,11 @@ class MDF3(MDF_Common[Group]):
             otherwise returns a (np.ndarray, None) tuple (for compatibility
             with MDF v4 class.
 
-            The *Signal* samples are
+            The *Signal* samples are:
 
-                * np.recarray for channels that have CDBLOCK or BYTEARRAY
-                  type channels
-                * np.ndarray for all the rest
+            * np.recarray for channels that have CDBLOCK or BYTEARRAY
+              type channels
+            * np.ndarray for all the rest
 
         Raises
         ------
@@ -3340,12 +3337,12 @@ class MDF3(MDF_Common[Group]):
         trigger_info : dict
             trigger information with the following keys:
 
-                * comment : trigger comment
-                * time : trigger time
-                * pre_time : trigger pre time
-                * post_time : trigger post time
-                * index : trigger index
-                * group : data group index of trigger
+            * comment : trigger comment
+            * time : trigger time
+            * pre_time : trigger pre time
+            * post_time : trigger post time
+            * index : trigger index
+            * group : data group index of trigger
         """
         for i, gp in enumerate(self.groups):
             trigger = gp.trigger

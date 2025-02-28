@@ -253,7 +253,7 @@ class MDF4(MDF_Common[Group]):
 
     masters_db : dict
         used for fast master channel access; for each group index key the value
-         is the master channel index
+        is the master channel index
     name : str
         mdf file name
     version : str
@@ -6667,20 +6667,20 @@ class MDF4(MDF_Common[Group]):
 
         Channel can be specified in two ways:
 
-        * using the first positional argument *name*
+        * Using the first positional argument *name*.
 
-            * if there are multiple occurrences for this channel then the
-              *group* and *index* arguments can be used to select a specific
-              group.
-            * if there are multiple occurrences for this channel and either the
-              *group* or *index* arguments is None then a warning is issued
+          * If there are multiple occurrences for this channel then the
+            *group* and *index* arguments can be used to select a specific
+            group.
+          * If there are multiple occurrences for this channel and either the
+            *group* or *index* arguments is None then a warning is issued.
 
-        * using the group number (keyword argument *group*) and the channel
+        * Using the group number (keyword argument *group*) and the channel
           number (keyword argument *index*). Use *info* method for group and
-          channel numbers
+          channel numbers.
 
         If the *raster* keyword argument is not *None* the output is
-        interpolated accordingly
+        interpolated accordingly.
 
         Parameters
         ----------
@@ -6727,10 +6727,10 @@ class MDF4(MDF_Common[Group]):
 
             The *Signal* samples are:
 
-                * np.recarray for channels that have composition/channel
-                  array address or for channel of type
-                  CANOPENDATE, CANOPENTIME
-                * np.ndarray for all the rest
+            * np.recarray for channels that have composition/channel
+              array address or for channel of type
+              CANOPENDATE, CANOPENTIME
+            * np.ndarray for all the rest
 
         Raises
         ------
@@ -10222,18 +10222,17 @@ class MDF4(MDF_Common[Group]):
 
         Channel can be specified in two ways:
 
-        * using the first positional argument *name*
+        * Using the first positional argument *name*.
 
-            * if there are multiple occurrences for this channel then the
-              *group* and *index* arguments can be used to select a specific
-              group.
-            * if there are multiple occurrences for this channel and either the
-              *group* or *index* arguments is None then a warning is issued
+          * If there are multiple occurrences for this channel then the
+            *group* and *index* arguments can be used to select a specific
+            group.
+          * If there are multiple occurrences for this channel and either the
+            *group* or *index* arguments is None then a warning is issued.
 
-        * using the group number (keyword argument *group*) and the channel
+        * Using the group number (keyword argument *group*) and the channel
           number (keyword argument *index*). Use *info* method for group and
-          channel numbers
-
+          channel numbers.
 
         If the *raster* keyword argument is not *None* the output is
         interpolated accordingly.
@@ -10275,18 +10274,17 @@ class MDF4(MDF_Common[Group]):
 
         Channel can be specified in two ways:
 
-        * using the first positional argument *name*
+        * Using the first positional argument *name*.
 
-            * if there are multiple occurrences for this channel then the
-              *group* and *index* arguments can be used to select a specific
-              group.
-            * if there are multiple occurrences for this channel and either the
-              *group* or *index* arguments is None then a warning is issued
+          * If there are multiple occurrences for this channel then the
+            *group* and *index* arguments can be used to select a specific
+            group.
+          * If there are multiple occurrences for this channel and either the
+            *group* or *index* arguments is None then a warning is issued.
 
-        * using the group number (keyword argument *group*) and the channel
+        * Using the group number (keyword argument *group*) and the channel
           number (keyword argument *index*). Use *info* method for group and
-          channel numbers
-
+          channel numbers.
 
         If the *raster* keyword argument is not *None* the output is
         interpolated accordingly.
