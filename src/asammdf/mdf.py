@@ -2056,7 +2056,7 @@ class MDF:
         Returns
         -------
         mdf : MDF
-            New *MDF* file.
+            New *MDF* object.
 
         Examples
         --------
@@ -2309,7 +2309,7 @@ class MDF:
 
         Returns
         -------
-        concatenate : MDF
+        concatenated : MDF
             New *MDF* object with concatenated channels.
 
         Raises
@@ -3071,7 +3071,7 @@ class MDF:
         Returns
         -------
         mdf : MDF
-            New *MDF* with resampled channels.
+            New *MDF* object with resampled channels.
 
         Examples
         --------
@@ -4228,8 +4228,8 @@ class MDF:
 
         Returns
         -------
-        df : pandas.DataFrame
-
+        dataframe : pandas.DataFrame
+            Channel group data.
         """
 
         channels = [
@@ -4768,7 +4768,7 @@ class MDF:
         Returns
         -------
         dataframe : pandas.DataFrame or polars.DataFrame
-
+            Channel data.
         """
         if isinstance(raw, dict):
             if "__default__" not in raw:
@@ -5143,7 +5143,7 @@ class MDF:
         Returns
         -------
         mdf : MDF
-            New *MDF* file that contains the succesfully extracted signals.
+            New *MDF* object that contains the succesfully extracted signals.
 
         Examples
         --------
@@ -6027,8 +6027,8 @@ class MDF:
 
         Returns
         -------
-        list[str]
-            Name of the channels.
+        channels : list[str]
+            Names of the channels.
 
         Raises
         ------
