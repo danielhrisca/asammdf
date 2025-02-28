@@ -6722,7 +6722,7 @@ class MDF4(MDF_Common[Group]):
             returns *Signal* if *samples_only*=*False* (default option),
             otherwise returns a (np.ndarray, np.ndarray) tuple of samples and
             invalidation bits. If invalidation bits are not used or if
-            *ignore_invalidation_bits* if False, then the second item will be
+            *ignore_invalidation_bits* is False, then the second item will be
             None.
 
             The *Signal* samples are:
@@ -8601,7 +8601,7 @@ class MDF4(MDF_Common[Group]):
 
         Returns
         -------
-        t, virtual_master_conversion : (np.ndarray, ChannelConvesion | None)
+        t, virtual_master_conversion : (np.ndarray, ChannelConversion | None)
             master channel samples and virtual master conversion
 
         """

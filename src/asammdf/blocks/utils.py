@@ -181,7 +181,7 @@ class MdfException(Exception):
 
 
 def extract_xml_comment(comment: str) -> str:
-    """extract *TX* tag or otherwise the *common_properties* from a xml comment
+    """extract *TX* tag or otherwise the *common_properties* from an xml comment
 
     Parameters
     ----------
@@ -1246,7 +1246,7 @@ class VirtualChannelGroup:
     """starting with MDF v4.20 it is possible to use remote masters and column
     oriented storage. This means we now have virtual channel groups that can
     span over multiple regular channel groups. This class facilitates the
-    handling of this virtual groups"""
+    handling of these virtual groups"""
 
     __slots__ = (
         "cycles_nr",
