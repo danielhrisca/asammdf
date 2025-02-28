@@ -1337,8 +1337,8 @@ def components(
 
         .. versionadded:: 8.1.0
 
-    Returns
-    -------
+    Yields
+    ------
     name, series : (str, values)
         tuple of unique name and values
     """
