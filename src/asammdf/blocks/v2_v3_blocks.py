@@ -3155,7 +3155,7 @@ class TextBlockKwargs(BlockKwargs, total=False):
 
 
 class TextBlock:
-    """TXBLOCK class.
+    r"""TXBLOCK class.
 
     TXBLOCK fields:
 
@@ -3179,10 +3179,8 @@ class TextBlock:
     Examples
     --------
     >>> tx1 = TextBlock(text='VehicleSpeed')
-    >>> tx1.text_str
-    'VehicleSpeed'
     >>> tx1['text']
-    b'VehicleSpeed'
+    b'VehicleSpeed\x00'
     """
 
     __slots__ = ("address", "block_len", "id", "text")
