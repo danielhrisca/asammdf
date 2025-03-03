@@ -58,8 +58,8 @@ Major features not implemented (yet)
     * full handling of bus logging measurements: currently only CAN and LIN bus logging are implemented with the
       ability to *get* signals defined in the attached CAN/LIN database (.arxml or .dbc). Signals can also
       be extracted from an anonymous bus logging measurement by providing a CAN or LIN database (.dbc or .arxml)
-    * handling of unfinished measurements (mdf 4): warnings are logged based on the unfinished status flags
-      but no further steps are taken to sanitize the measurement
+    * handling of unfinished measurements (mdf 4): finalization is attempted when the file is loaded, however
+      not all the finalization steps are supported
     * full support for remaining mdf 4 channel arrays types
     * xml schema for MDBLOCK: most metadata stored in the comment blocks will not be available
     * full handling of event blocks: events are transferred to the new files (in case of calling methods
