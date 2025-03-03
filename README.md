@@ -48,7 +48,7 @@ The main goals for this library are:
 - filter a subset of channels from original mdf file
 - cut measurement to specified time interval
 - convert to different mdf version
-- export to HDF5, Matlab (v7.3), CSV and parquet
+- export to pandas, HDF5, Matlab (v7.3), CSV and parquet
 - merge multiple files sharing the same internal structure
 - read and save mdf version 4.10 files containing zipped data blocks
 - space optimizations for saved files (no duplicated blocks)
@@ -72,13 +72,10 @@ The main goals for this library are:
 ## Major features not implemented (yet)
 
 - for version 3
-
-  - functionality related to sample reduction block: the samples reduction blocks are simply ignored
-
+  - functionality related to sample reduction block: the sample reduction blocks are simply ignored
 - for version 4
-
   - experimental support for MDF v4.20 column oriented storage
-  - functionality related to sample reduction block: the samples reduction blocks are simply ignored
+  - functionality related to sample reduction block: the sample reduction blocks are simply ignored
   - handling of channel hierarchy: channel hierarchy is ignored
   - full handling of bus logging measurements: currently only CAN and LIN bus logging are implemented with the
     ability to _get_ signals defined in the attached CAN/LIN database (.arxml or .dbc). Signals can also
@@ -177,14 +174,14 @@ asammdf uses the following libraries
 - lz4 : to speed up the disk IO performance
 - python-dateutil : measurement start time handling
 
-optional dependencies needed for exports
+Optional dependencies needed for exports
 
 - h5py : for HDF5 export
 - hdf5storage : for Matlab v7.3 .mat export
 - pyarrow : for parquet export
 - scipy: for Matlab v4 and v5 .mat export
 
-other optional dependencies
+Other optional dependencies
 
 - PySide6 : for GUI tool
 - pyqtgraph : for GUI tool and Signal plotting

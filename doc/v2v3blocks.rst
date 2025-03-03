@@ -18,7 +18,7 @@
 
 .. _v2blocks:
 
-The following classes implement different MDF version3 blocks.
+The following classes implement different MDF version 3 blocks.
 
 Channel Class
 ^^^^^^^^^^^^^
