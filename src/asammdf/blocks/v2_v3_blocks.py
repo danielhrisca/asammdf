@@ -102,12 +102,12 @@ class ChannelKwargs(BlockKwargs, total=False):
 
 
 class Channel:
-    """CNBLOCK class
+    """CNBLOCK class.
 
     If the `load_metadata` keyword argument is not provided or is False,
     then the conversion, source and display name information is not processed.
 
-    CNBLOCK fields
+    CNBLOCK fields:
 
     * ``id`` - bytes : block ID; always b'CN'
     * ``block_len`` - int : block bytes size
@@ -137,7 +137,7 @@ class Channel:
     * ``additional_byte_offset`` - int : additional Byte offset of the channel
       in the data record
 
-    Other attributes
+    Other attributes:
 
     * ``address`` - int : block address inside mdf file
     * ``comment`` - str : channel comment
@@ -156,13 +156,13 @@ class Channel:
     Parameters
     ----------
     address : int
-        block address; to be used for objects created from file
+        Block address; to be used for objects created from file.
     stream : handle
-        file handle; to be used for objects created from file
+        File handle; to be used for objects created from file.
     load_metadata : bool
-        option to load conversion, source and display_names; default *True*
+        Option to load conversion, source and display_names; default *True*.
     for dynamically created objects :
-        see the key-value pairs
+        See the key-value pairs.
 
     Examples
     --------
@@ -173,7 +173,6 @@ class Channel:
     'VehicleSpeed'
     >>> ch1['id']
     b'CN'
-
     """
 
     __slots__ = (
@@ -904,9 +903,9 @@ class ChannelConversionKwargs(BlockKwargs, total=False):
 
 
 class ChannelConversion(_ChannelConversionBase):
-    """CCBLOCK class
+    """CCBLOCK class.
 
-    *ChannelConversion* has the following common fields
+    *ChannelConversion* has the following common fields:
 
     * ``id`` - bytes : block ID; always b'CC'
     * ``block_len`` - int : block bytes size
@@ -917,7 +916,7 @@ class ChannelConversion(_ChannelConversionBase):
     * ``conversion_type`` - int : integer code for conversion type
     * ``ref_param_nr`` - int : number of referenced parameters
 
-    *ChannelConversion* has the following specific fields
+    *ChannelConversion* has the following specific fields:
 
     * linear conversion
 
@@ -957,7 +956,7 @@ class ChannelConversion(_ChannelConversionBase):
       * ``upper_<N>`` - float : N-th upper raw value
       * ``text_<N>`` - int : address of N-th text physical value
 
-    Other attributes
+    Other attributes:
 
     * ``address`` - int : block address inside mdf file
     * ``formula`` - str : formula string in case of algebraic conversion
@@ -967,13 +966,13 @@ class ChannelConversion(_ChannelConversionBase):
     Parameters
     ----------
     address : int
-        block address inside mdf file
+        Block address inside mdf file.
     raw_bytes : bytes
-        complete block read from disk
+        Complete block read from disk.
     stream : file handle
-        mdf file handle
+        Mdf file handle.
     for dynamically created objects :
-        see the key-value pairs
+        See the key-value pairs.
 
     Examples
     --------
@@ -982,7 +981,6 @@ class ChannelConversion(_ChannelConversionBase):
     >>> cc2 = ChannelConversion(conversion_type=0)
     >>> cc1['b'], cc1['a']
     0, 100.0
-
     """
 
     def __init__(self, **kwargs: Unpack[ChannelConversionKwargs]) -> None:
@@ -1778,9 +1776,9 @@ class ChannelDependencyKwargs(BlockKwargs, total=False):
 
 
 class ChannelDependency:
-    """CDBLOCK class
+    """CDBLOCK class.
 
-    CDBLOCK fields
+    CDBLOCK fields:
 
     * ``id`` - bytes : block ID; always b'CD'
     * ``block_len`` - int : block bytes size
@@ -1795,21 +1793,18 @@ class ChannelDependency:
     * ``dim_<K>`` - int : Optional size of dimension *K* for N-dimensional
       dependency
 
-    Other attributes
+    Other attributes:
     * ``address`` - int : block address inside mdf file
     * ``referenced_channels`` - list : list of (group index, channel index) pairs
 
     Parameters
     ----------
     stream : file handle
-        mdf file handle
+        Mdf file handle.
     address : int
-        block address inside mdf file
+        Block address inside mdf file.
     for dynamically created objects :
-        see the key-value pairs
-
-
-
+        See the key-value pairs.
     """
 
     def __init__(self, **kwargs: Unpack[ChannelDependencyKwargs]) -> None:
@@ -1903,15 +1898,15 @@ class ChannelExtensionKwargs(BlockKwargs, total=False):
 
 
 class ChannelExtension:
-    """CEBLOCK class
+    """CEBLOCK class.
 
-    CEBLOCK has the following common fields
+    CEBLOCK has the following common fields:
 
     * ``id`` - bytes : block ID; always b'CE'
     * ``block_len`` - int : block bytes size
     * ``type`` - int : extension type identifier
 
-    CEBLOCK has the following specific fields
+    CEBLOCK has the following specific fields:
 
     * for DIM block
 
@@ -1926,10 +1921,10 @@ class ChannelExtension:
       * ``CAN_id`` - int : CAN message ID
       * ``CAN_ch_index`` - int : index of CAN channel
       * ``message_name`` - bytes : message name
-      * ``sender_name`` - btyes : sender name
+      * ``sender_name`` - bytes : sender name
       * ``reserved0`` - bytes : reserved bytes
 
-    Other attributes
+    Other attributes:
 
     * ``address`` - int : block address inside mdf file
     * ``comment`` - str : extension comment
@@ -1939,12 +1934,11 @@ class ChannelExtension:
     Parameters
     ----------
     stream : file handle
-        mdf file handle
+        Mdf file handle.
     address : int
-        block address inside mdf file
+        Block address inside mdf file.
     for dynamically created objects :
-        see the key-value pairs
-
+        See the key-value pairs.
     """
 
     __slots__ = (
@@ -2213,9 +2207,9 @@ class ChannelGroupKwargs(BlockKwargs, total=False):
 
 
 class ChannelGroup:
-    """CGBLOCK class
+    """CGBLOCK class.
 
-    CGBLOCK fields
+    CGBLOCK fields:
 
     * ``id`` - bytes : block ID; always b'CG'
     * ``block_len`` - int : block bytes size
@@ -2233,7 +2227,7 @@ class ChannelGroup:
     * ``sample_reduction_addr`` - int : address to first sample reduction
       block
 
-    Other attributes
+    Other attributes:
 
     * ``address`` - int : block address inside mdf file
     * ``comment`` - str : channel group comment
@@ -2241,12 +2235,11 @@ class ChannelGroup:
     Parameters
     ----------
     stream : file handle
-        mdf file handle
+        Mdf file handle.
     address : int
-        block address inside mdf file
+        Block address inside mdf file.
     for dynamically created objects :
-        see the key-value pairs
-
+        See the key-value pairs.
 
     Examples
     --------
@@ -2257,7 +2250,6 @@ class ChannelGroup:
     0xBA52
     >>> cg1['id']
     b'CG'
-
     """
 
     __slots__ = (
@@ -2455,9 +2447,9 @@ class DataBlockKwargs(BlockKwargs, total=False):
 
 
 class DataBlock:
-    """Data Block class (pseudo block not defined by the MDF 3 standard)
+    """Data Block class (pseudo block not defined by the MDF 3 standard).
 
-    *DataBlock* attributes
+    *DataBlock* attributes:
 
     * ``data`` - bytes : raw samples bytes
     * ``address`` - int : block address
@@ -2465,12 +2457,11 @@ class DataBlock:
     Parameters
     ----------
     address : int
-        block address inside the measurement file
+        Block address inside the measurement file.
     stream : file.io.handle
-        binary file stream
+        Binary file stream.
     data : bytes
-        when created dynamically
-
+        When created dynamically.
     """
 
     __slots__ = "address", "data"
@@ -2511,9 +2502,9 @@ class DataGroupKwargs(BlockKwargs, total=False):
 
 
 class DataGroup:
-    """DGBLOCK class
+    """DGBLOCK class.
 
-    DGBLOCK fields
+    DGBLOCK fields:
 
     * ``id`` - bytes : block ID; always b'DG'
     * ``block_len`` - int : block bytes size
@@ -2525,20 +2516,18 @@ class DataGroup:
     * ``record_id_len`` - int : number of record IDs in the data block
     * ``reserved0`` - bytes : reserved bytes
 
-    Other attributes
+    Other attributes:
 
     * ``address`` - int : block address inside mdf file
 
     Parameters
     ----------
     stream : file handle
-        mdf file handle
+        Mdf file handle.
     address : int
-        block address inside mdf file
+        Block address inside mdf file.
     for dynamically created objects :
-        see the key-value pairs
-
-
+        See the key-value pairs.
     """
 
     __slots__ = (
@@ -2639,9 +2628,9 @@ class FileIdentificationBlockKwargs(BlockKwargs, total=False):
 
 
 class FileIdentificationBlock:
-    """IDBLOCK class
+    """IDBLOCK class.
 
-    IDBLOCK fields
+    IDBLOCK fields:
 
     * ``file_identification`` -  bytes : file identifier
     * ``version_str`` - bytes : format identifier
@@ -2655,18 +2644,16 @@ class FileIdentificationBlock:
     * ``unfinalized_standard_flags`` - int : standard flags for unfinalized MDF
     * ``unfinalized_custom_flags`` - int : custom flags for unfinalized MDF
 
-    Other attributes
+    Other attributes:
 
     * ``address`` - int : block address inside mdf file; should be 0 always
 
     Parameters
     ----------
     stream : file handle
-        mdf file handle
+        Mdf file handle.
     version : int
-        mdf version in case of new file (dynamically created)
-
-
+        Mdf version in case of new file (dynamically created).
     """
 
     __slots__ = (
@@ -2742,9 +2729,9 @@ class _CommonProperties(TypedDict, total=False):
 
 
 class HeaderBlock:
-    """HDBLOCK class
+    """HDBLOCK class.
 
-    HDBLOCK fields
+    HDBLOCK fields:
 
     * ``id`` - bytes : block ID; always b'HD'
     * ``block_len`` - int : block bytes size
@@ -2755,14 +2742,14 @@ class HeaderBlock:
     * ``dg_nr`` - int : number of data groups
     * ``date`` - bytes : date at which the recording was started in
       "DD:MM:YYYY" format
-    * ``time`` - btyes : time at which the recording was started in
+    * ``time`` - bytes : time at which the recording was started in
       "HH:MM:SS" format
     * ``author_field`` - bytes : author name
     * ``organization_field``` - bytes : organization name
     * ``project_field``` - bytes : project name
     * ``subject_field``` - bytes : subject
 
-    Since version 3.2 the following extra keys were added
+    Since version 3.2 the following extra keys were added:
 
     * ``abs_time`` - int : time stamp at which recording was started in
       nanoseconds.
@@ -2770,7 +2757,7 @@ class HeaderBlock:
     * ``time_quality`` - int : time quality class
     * ``timer_identification`` - bytes : timer identification (time source)
 
-    Other attributes
+    Other attributes:
 
     * ``address`` - int : block address inside mdf file; should always be 64
     * ``comment`` - int : file comment
@@ -2783,10 +2770,9 @@ class HeaderBlock:
     Parameters
     ----------
     stream : file handle
-        mdf file handle
+        Mdf file handle.
     version : int
-        mdf version in case of new file (dynamically created)
-
+        Mdf version in case of new file (dynamically created).
     """
 
     def __init__(self, **kwargs: Unpack[HeaderBlockKwargs]) -> None:
@@ -3002,8 +2988,7 @@ class HeaderBlock:
         Returns
         -------
         timestamp : datetime.datetime
-            start timestamp
-
+            Start timestamp.
         """
 
         try:
@@ -3110,24 +3095,23 @@ class ProgramBlockKwargs(BlockKwargs, total=False):
 
 
 class ProgramBlock:
-    """PRBLOCK class
+    """PRBLOCK class.
 
-    PRBLOCK fields
+    PRBLOCK fields:
 
     * ``id`` - bytes : block ID; always b'PR'
     * ``block_len`` - int : block bytes size
     * ``data`` - bytes : creator program free format data
 
-    Other attributes
+    Other attributes:
     * ``address`` - int : block address inside mdf file
 
     Parameters
     ----------
     stream : file handle
-        mdf file handle
+        Mdf file handle.
     address : int
-        block address inside mdf file
-
+        Block address inside mdf file.
     """
 
     __slots__ = ("address", "block_len", "data", "id")
@@ -3171,27 +3155,26 @@ class TextBlockKwargs(BlockKwargs, total=False):
 
 
 class TextBlock:
-    """TXBLOCK class
+    """TXBLOCK class.
 
-    TXBLOCK fields
+    TXBLOCK fields:
 
     * ``id`` - bytes : block ID; always b'TX'
     * ``block_len`` - int : block bytes size
     * ``text`` - bytes : text content
 
-    Other attributes
+    Other attributes:
 
     * ``address`` - int : block address inside mdf file
 
     Parameters
     ----------
     stream : file handle
-        mdf file handle
+        Mdf file handle.
     address : int
-        block address inside mdf file
+        Block address inside mdf file.
     text : bytes | str
-        bytes or str for creating a new TextBlock
-
+        Bytes or str for creating a new TextBlock.
 
     Examples
     --------
@@ -3200,7 +3183,6 @@ class TextBlock:
     'VehicleSpeed'
     >>> tx1['text']
     b'VehicleSpeed'
-
     """
 
     __slots__ = ("address", "block_len", "id", "text")
@@ -3261,9 +3243,9 @@ class TextBlock:
 
 
 class TriggerBlock:
-    """TRBLOCK class
+    """TRBLOCK class.
 
-    TRBLOCK fields
+    TRBLOCK fields:
 
     * ``id`` - bytes : block ID; always b'TR'
     * ``block_len`` - int : block bytes size
@@ -3276,7 +3258,7 @@ class TriggerBlock:
     * ``trigger_<N>_posttime`` - float : post trigger time [s] of trigger's
       N-th event
 
-    Other attributes
+    Other attributes:
 
     * ``address`` - int : block address inside mdf file
     * ``comment`` - str : trigger comment
@@ -3284,11 +3266,9 @@ class TriggerBlock:
     Parameters
     ----------
     stream : file handle
-        mdf file handle
+        Mdf file handle.
     address : int
-        block address inside mdf file
-
-
+        Block address inside mdf file.
     """
 
     def __init__(self, **kwargs: Unpack[BlockKwargs]) -> None:

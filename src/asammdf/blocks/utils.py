@@ -181,12 +181,12 @@ class MdfException(Exception):
 
 
 def extract_xml_comment(comment: str) -> str:
-    """Extract *TX* tag or otherwise the *common_properties* from an xml comment.
+    """Extract *TX* tag or otherwise the *common_properties* from an XML comment.
 
     Parameters
     ----------
     comment : str
-        Xml string comment.
+        XML string comment.
 
     Returns
     -------
