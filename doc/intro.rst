@@ -94,7 +94,7 @@ optional dependencies needed for exports
 other optional dependencies
 
 * PySide6 : for GUI tool
-* pyqtgraph : for GUI tool and Signal plotting (preferably the latest develop branch code)
+* pyqtgraph : for GUI tool and Signal plotting
 * matplotlib : as fallback for Signal plotting
 * faust-cchardet : to detect non-standard Unicode encodings
 * chardet : to detect non-standard Unicode encodings 
