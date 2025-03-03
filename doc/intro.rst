@@ -132,9 +132,6 @@ If you enjoy this library please consider making a donation to the
 
 Contributors
 ------------
-Thanks to all who contributed with commits to *asammdf*
-
-## Contributors
 Thanks to all who contributed with commits to *asammdf*:
 
 
