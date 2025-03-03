@@ -2248,61 +2248,61 @@ class ChannelConversion(_ChannelConversionBase):
 
     * linear conversion
 
-        * ``a`` - float : factor
-        * ``b`` - float : offset
+      * ``a`` - float : factor
+      * ``b`` - float : offset
 
     * rational conversion
 
-        * ``P1`` to ``P6`` - float : parameters
+      * ``P1`` to ``P6`` - float : parameters
 
     * algebraic conversion
 
-        * ``formula_addr`` - address of TXBLOCK that contains
-          the algebraic conversion formula
+      * ``formula_addr`` - address of TXBLOCK that contains
+        the algebraic conversion formula
 
     * tabular conversion with or without interpolation
 
-        * ``raw_<N>`` - float : N-th raw value
-        * ``phys_<N>`` - float : N-th physical value
+      * ``raw_<N>`` - float : N-th raw value
+      * ``phys_<N>`` - float : N-th physical value
 
     * tabular range conversion
 
-        * ``lower_<N>`` - float : N-th lower value
-        * ``upper_<N>`` - float : N-th upper value
-        * ``phys_<N>`` - float : N-th physical value
+      * ``lower_<N>`` - float : N-th lower value
+      * ``upper_<N>`` - float : N-th upper value
+      * ``phys_<N>`` - float : N-th physical value
 
     * tabular value to text conversion
 
-        * ``val_<N>`` - float : N-th raw value
-        * ``text_<N>`` - int : address of N-th TXBLOCK that
-          contains the physical value
-        * ``default`` - int : address of TXBLOCK that contains
-          the default physical value
+      * ``val_<N>`` - float : N-th raw value
+      * ``text_<N>`` - int : address of N-th TXBLOCK that
+        contains the physical value
+      * ``default`` - int : address of TXBLOCK that contains
+        the default physical value
 
     * tabular range to text conversion
 
-        * ``lower_<N>`` - float : N-th lower value
-        * ``upper_<N>`` - float : N-th upper value
-        * ``text_<N>`` - int : address of N-th TXBLOCK that
-          contains the physical value
-        * ``default`` - int : address of TXBLOCK that contains
-          the default physical value
+      * ``lower_<N>`` - float : N-th lower value
+      * ``upper_<N>`` - float : N-th upper value
+      * ``text_<N>`` - int : address of N-th TXBLOCK that
+        contains the physical value
+      * ``default`` - int : address of TXBLOCK that contains
+        the default physical value
 
     * text to value conversion
 
-        * ``val_<N>`` - float : N-th physical value
-        * ``text_<N>`` - int : address of N-th TXBLOCK that
-          contains the raw value
-        * ``val_default`` - float : default physical value
+      * ``val_<N>`` - float : N-th physical value
+      * ``text_<N>`` - int : address of N-th TXBLOCK that
+        contains the raw value
+      * ``val_default`` - float : default physical value
 
     * text transformation (translation) conversion
 
-        * ``input_<N>_addr`` - int : address of N-th TXBLOCK that
-          contains the raw value
-        * ``output_<N>_addr`` - int : address of N-th TXBLOCK that
-          contains the physical value
-        * ``default_addr`` - int : address of TXBLOCK that contains
-          the default physical value
+      * ``input_<N>_addr`` - int : address of N-th TXBLOCK that
+        contains the raw value
+      * ``output_<N>_addr`` - int : address of N-th TXBLOCK that
+        contains the physical value
+      * ``default_addr`` - int : address of TXBLOCK that contains
+        the default physical value
 
     Other attributes
 
@@ -4823,12 +4823,12 @@ class DataList(_DataListBase):
 
     * for equal length blocks
 
-        * ``data_block_len`` - int : equal uncompressed size in bytes for all
-          referenced data blocks; last block can be smaller
+      * ``data_block_len`` - int : equal uncompressed size in bytes for all
+        referenced data blocks; last block can be smaller
 
     * for variable length blocks
 
-        * ``offset_<N>`` - int : byte offset of N-th data block
+      * ``offset_<N>`` - int : byte offset of N-th data block
 
     Other attributes
 

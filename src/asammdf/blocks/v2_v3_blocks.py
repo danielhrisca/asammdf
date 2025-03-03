@@ -921,41 +921,41 @@ class ChannelConversion(_ChannelConversionBase):
 
     * linear conversion
 
-        * ``a`` - float : factor
-        * ``b`` - float : offset
-        * ``CANapeHiddenExtra`` - bytes : sometimes CANape appends extra
-          information; not compliant with MDF specs
+      * ``a`` - float : factor
+      * ``b`` - float : offset
+      * ``CANapeHiddenExtra`` - bytes : sometimes CANape appends extra
+        information; not compliant with MDF specs
 
     * algebraic conversion
 
-        * ``formula`` - bytes : equation as string
+      * ``formula`` - bytes : equation as string
 
     * polynomial or rational conversion
 
-        * ``P1`` to ``P6`` - float : parameters
+      * ``P1`` to ``P6`` - float : parameters
 
     * exponential or logarithmic conversion
 
-        * ``P1`` to ``P7`` - float : parameters
+      * ``P1`` to ``P7`` - float : parameters
 
     * tabular with or without interpolation (grouped by index)
 
-        * ``raw_<N>`` - int : N-th raw value (X axis)
-        * ``phys_<N>`` - float : N-th physical value (Y axis)
+      * ``raw_<N>`` - int : N-th raw value (X axis)
+      * ``phys_<N>`` - float : N-th physical value (Y axis)
 
     * text table conversion
 
-        * ``param_val_<N>`` - int : N-th raw value (X axis)
-        * ``text_<N>`` - N-th text physical value (Y axis)
+      * ``param_val_<N>`` - int : N-th raw value (X axis)
+      * ``text_<N>`` - N-th text physical value (Y axis)
 
     * text range table conversion
 
-        * ``default_lower`` - float : default lower raw value
-        * ``default_upper`` - float : default upper raw value
-        * ``default_addr`` - int : address of default text physical value
-        * ``lower_<N>`` - float : N-th lower raw value
-        * ``upper_<N>`` - float : N-th upper raw value
-        * ``text_<N>`` - int : address of N-th text physical value
+      * ``default_lower`` - float : default lower raw value
+      * ``default_upper`` - float : default upper raw value
+      * ``default_addr`` - int : address of default text physical value
+      * ``lower_<N>`` - float : N-th lower raw value
+      * ``upper_<N>`` - float : N-th upper raw value
+      * ``text_<N>`` - int : address of N-th text physical value
 
     Other attributes
 
@@ -1915,19 +1915,19 @@ class ChannelExtension:
 
     * for DIM block
 
-        * ``module_nr`` - int: module number
-        * ``module_address`` - int : module address
-        * ``description`` - bytes : module description
-        * ``ECU_identification`` - bytes : identification of ECU
-        * ``reserved0`` - bytes : reserved bytes
+      * ``module_nr`` - int: module number
+      * ``module_address`` - int : module address
+      * ``description`` - bytes : module description
+      * ``ECU_identification`` - bytes : identification of ECU
+      * ``reserved0`` - bytes : reserved bytes
 
     * for Vector CAN block
 
-        * ``CAN_id`` - int : CAN message ID
-        * ``CAN_ch_index`` - int : index of CAN channel
-        * ``message_name`` - bytes : message name
-        * ``sender_name`` - btyes : sender name
-        * ``reserved0`` - bytes : reserved bytes
+      * ``CAN_id`` - int : CAN message ID
+      * ``CAN_ch_index`` - int : index of CAN channel
+      * ``message_name`` - bytes : message name
+      * ``sender_name`` - btyes : sender name
+      * ``reserved0`` - bytes : reserved bytes
 
     Other attributes
 
