@@ -1,6 +1,4 @@
-"""
-asammdf utility functions and classes
-"""
+"""asammdf utility functions and classes"""
 
 from collections.abc import Callable, Collection, Iterator
 from copy import deepcopy
@@ -863,14 +861,14 @@ def as_non_byte_sized_signed_int(integer_array: NDArray[Any], bit_length: int) -
 
     Parameters
     ----------
-    integer_array : np.array
+    integer_array : np.ndarray
         Array of integers to apply two's complement to.
     bit_length : int
         Number of bits to sample from the array.
 
     Returns
     -------
-    integer_array : np.array
+    integer_array : np.ndarray
         Signed integer array with non-byte-sized two's complement applied.
     """
 
@@ -1808,7 +1806,7 @@ def plausible_timestamps(
 
     Parameters
     ----------
-    t : np.array
+    t : np.ndarray
         Time stamps array.
     minimum : float
         Minimum plausible time stamp.
@@ -1821,7 +1819,7 @@ def plausible_timestamps(
 
     Returns
     -------
-    all_ok, idx : (bool, np.array)
+    all_ok, idx : (bool, np.ndarray)
         The *all_ok* flag to indicate if all the time stamps are ok; this can be checked
         before applying the indexing array.
     """

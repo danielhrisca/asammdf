@@ -1,4 +1,4 @@
-"""classes that implement the blocks for MDF versions 2 and 3"""
+"""Classes that implement the blocks for MDF versions 2 and 3"""
 
 from collections.abc import Iterator, Sequence
 from datetime import datetime, timedelta, timezone

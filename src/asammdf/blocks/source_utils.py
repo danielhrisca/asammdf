@@ -1,6 +1,4 @@
-"""
-asammdf utility functions for source information
-"""
+"""asammdf utility functions for source information"""
 
 from __future__ import annotations
 

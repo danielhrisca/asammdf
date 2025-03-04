@@ -118,7 +118,7 @@ class TriggerInfoDict(TypedDict):
 
 
 class MDF3(MDF_Common[Group]):
-    """The *header* attibute is a *HeaderBlock*.
+    """The *header* attribute is a *HeaderBlock*.
 
     The *groups* attribute is a list of dicts, each one with the following keys:
 

@@ -1,6 +1,4 @@
-"""
-ASAM MDF version 4 file format module
-"""
+"""ASAM MDF version 4 file format module"""
 
 from __future__ import annotations
 
@@ -180,7 +178,7 @@ Group = mdf_common.Group[DataGroup, ChannelGroup, Channel]
 
 
 class MDF4(MDF_Common[Group]):
-    r"""The *header* attibute is a *HeaderBlock*.
+    r"""The *header* attribute is a *HeaderBlock*.
 
     The *groups* attribute is a list of dicts, each one with the following keys:
 
@@ -214,7 +212,7 @@ class MDF4(MDF_Common[Group]):
     remove_source_from_channel_names (True) : bool, optional
         Remove source from channel names ("Speed\XCP3" -> "Speed").
     copy_on_get (True) : bool, optional
-        Copy channel values (np.array) to avoid high memory usage.
+        Copy channel values (np.ndarray) to avoid high memory usage.
     compact_vlsd (False) : bool, optional
         Use slower method to save the exact sample size for VLSD channels.
     column_storage (True) : bool, optional

@@ -1,6 +1,4 @@
-"""
-classes that implement the blocks for MDF version 4
-"""
+"""Classes that implement the blocks for MDF version 4"""
 
 from __future__ import annotations
 

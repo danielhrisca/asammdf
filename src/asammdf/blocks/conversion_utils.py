@@ -1,6 +1,4 @@
-"""
-asammdf utility functions for channel conversions
-"""
+"""asammdf utility functions for channel conversions"""
 
 from copy import deepcopy
 from typing import Optional, overload, Union

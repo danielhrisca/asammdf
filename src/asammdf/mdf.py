@@ -1,4 +1,4 @@
-"""common MDF file format module"""
+"""Common MDF file format module"""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""asammdf *Signal* class module for time correct signal processing"""
+"""asammdf *Signal* class module for time-correct signal processing"""
 
 from collections.abc import Iterator
 import logging
