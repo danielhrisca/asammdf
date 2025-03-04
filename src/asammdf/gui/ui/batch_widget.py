@@ -1209,7 +1209,7 @@ class Ui_batch_widget(object):
 #endif // QT_CONFIG(tooltip)
         self.raster_search_btn.setText("")
         self.resample_time_from_zero.setText(QCoreApplication.translate("batch_widget", u"Time from 0s", None))
-        self.groupBox_11.setTitle(QCoreApplication.translate("batch_widget", u"Ouput format", None))
+        self.groupBox_11.setTitle(QCoreApplication.translate("batch_widget", u"Output format", None))
         self.mdf_split.setText(QCoreApplication.translate("batch_widget", u"Split data blocks", None))
         self.label_39.setText(QCoreApplication.translate("batch_widget", u"Compression", None))
         self.label_40.setText(QCoreApplication.translate("batch_widget", u"Version", None))

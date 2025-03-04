@@ -1165,7 +1165,7 @@ class Ui_file_widget(object):
 #endif // QT_CONFIG(tooltip)
         self.raster_search_btn.setText("")
         self.resample_time_from_zero.setText(QCoreApplication.translate("file_widget", u"Time from 0s", None))
-        self.groupBox_10.setTitle(QCoreApplication.translate("file_widget", u"Ouput format", None))
+        self.groupBox_10.setTitle(QCoreApplication.translate("file_widget", u"Output format", None))
         self.label_28.setText(QCoreApplication.translate("file_widget", u"Split size ", None))
         self.mdf_split.setText(QCoreApplication.translate("file_widget", u"Split data blocks", None))
         self.label_29.setText(QCoreApplication.translate("file_widget", u"Compression", None))

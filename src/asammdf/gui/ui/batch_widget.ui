@@ -577,7 +577,7 @@
               <item>
                <widget class="QGroupBox" name="groupBox_11">
                 <property name="title">
-                 <string>Ouput format</string>
+                 <string>Output format</string>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_21">
                  <property name="spacing">
