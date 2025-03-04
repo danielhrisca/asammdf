@@ -1089,7 +1089,7 @@ class MDF3(MDF_Common[Group]):
         common_timebase: bool = False,
         units: Optional[dict[str, str]] = None,
     ) -> Optional[int]:
-        """Appends a new data group.
+        """Append a new data group.
 
         For channel dependencies type Signals, the *samples* attribute must be
         a np.recarray.
@@ -2113,7 +2113,7 @@ class MDF3(MDF_Common[Group]):
         comment: str = "",
         units: Optional[dict[str, str]] = None,
     ) -> None:
-        """Appends a new data group from a pandas DataFrame."""
+        """Append a new data group from a pandas DataFrame."""
         units = units or {}
 
         t = df.index
@@ -2577,7 +2577,7 @@ class MDF3(MDF_Common[Group]):
         virtual_channel_group.cycles_nr += cycles_nr
 
     def get_channel_name(self, group: int, index: int) -> str:
-        """Gets channel name.
+        """Get channel name.
 
         Parameters
         ----------
@@ -2619,7 +2619,7 @@ class MDF3(MDF_Common[Group]):
         group: Optional[int] = None,
         index: Optional[int] = None,
     ) -> str:
-        """Gets channel unit.
+        """Get channel unit.
 
         Channel can be specified in two ways:
 
@@ -2670,7 +2670,7 @@ class MDF3(MDF_Common[Group]):
         group: Optional[int] = None,
         index: Optional[int] = None,
     ) -> str:
-        """Gets channel comment.
+        """Get channel comment.
 
         Channel can be specified in two ways:
 
@@ -2757,7 +2757,7 @@ class MDF3(MDF_Common[Group]):
         record_count: Optional[int] = None,
         skip_channel_validation: bool = False,
     ) -> Union[Signal, tuple[NDArray[Any], None]]:
-        """Gets channel samples.
+        """Get channel samples.
 
         Channel can be specified in two ways:
 
@@ -3156,7 +3156,7 @@ class MDF3(MDF_Common[Group]):
         record_count: Optional[int] = None,
         one_piece: bool = False,
     ) -> NDArray[np.float64]:
-        """Returns master channel samples for given group.
+        """Get master channel samples for the given group.
 
         Parameters
         ----------

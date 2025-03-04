@@ -2624,7 +2624,7 @@ class MDF4(MDF_Common[Group]):
         pos_invalidation_bit: int,
         fragment: tuple[bytes, int, int, ReadableBufferType | None],
     ) -> NDArray[bool_]:
-        """Get invalidation indexes for the channel.
+        """Get invalidation indexes of the channels in the given group.
 
         Parameters
         ----------
@@ -2684,7 +2684,7 @@ class MDF4(MDF_Common[Group]):
         common_timebase: bool = False,
         units: dict[str, str | bytes] | None = None,
     ) -> int | None:
-        """Appends a new data group.
+        """Append a new data group.
 
         For channel dependencies type Signals, the *samples* attribute must be
         a np.recarray.
@@ -4706,7 +4706,7 @@ class MDF4(MDF_Common[Group]):
         comment: str | None = None,
         units: dict[str, str | bytes] | None = None,
     ) -> None:
-        """Appends a new data group from a pandas DataFrame."""
+        """Append a new data group from a pandas DataFrame."""
         units = units or {}
 
         if df.shape == (0, 0):
@@ -6647,7 +6647,7 @@ class MDF4(MDF_Common[Group]):
         record_count: int | None = None,
         skip_channel_validation: bool = False,
     ) -> Signal | tuple[NDArray[Any], NDArray[Any]]:
-        """Gets channel samples. The raw data group samples are not loaded to
+        """Get channel samples. The raw data group samples are not loaded to
         memory so it is advised to use ``filter`` or ``select`` instead of
         performing several ``get`` calls.
 
@@ -8566,7 +8566,7 @@ class MDF4(MDF_Common[Group]):
         record_count: int | None = None,
         one_piece: bool = False,
     ) -> NDArray[Any]:
-        """Returns master channel samples for given group.
+        """Get master channel samples for the given group.
 
         Parameters
         ----------
@@ -10154,7 +10154,7 @@ class MDF4(MDF_Common[Group]):
         return dst
 
     def get_channel_name(self, group: int, index: int) -> str:
-        """Gets channel name.
+        """Get channel name.
 
         Parameters
         ----------
@@ -10192,7 +10192,7 @@ class MDF4(MDF_Common[Group]):
         group: int | None = None,
         index: int | None = None,
     ) -> str:
-        """Gets channel unit.
+        """Get channel unit.
 
         Channel can be specified in two ways:
 
@@ -10243,7 +10243,7 @@ class MDF4(MDF_Common[Group]):
         group: int | None = None,
         index: int | None = None,
     ) -> str:
-        """Gets channel comment.
+        """Get channel comment.
 
         Channel can be specified in two ways:
 

@@ -34,7 +34,7 @@ logger = logging.getLogger("asammdf")
 class Signal:
     """The *Signal* represents a channel described by its samples and timestamps.
     It can perform arithmetic operations against other *Signal* or numeric types.
-    The operations are computed in respect to the timestamps (time correct).
+    The operations are computed in respect to the timestamps (time-correct).
     The non-float signals are not interpolated, instead the last value relative
     to the current timestamp is used.
     *samples*, *timestamps* and *name* are mandatory arguments.
@@ -1106,8 +1106,8 @@ class Signal:
             )
 
     def __apply_func(self, other: Union["Signal", NDArray[Any], Optional[int]], func_name: str) -> "Signal":
-        """Delegate operations to the *samples* attribute, but in a time
-        correct manner by considering the *timestamps*.
+        """Delegate operations to the *samples* attribute, but in a time-correct
+        manner by considering the *timestamps*.
         """
 
         if isinstance(other, Signal):

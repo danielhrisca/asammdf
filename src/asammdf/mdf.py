@@ -2268,7 +2268,7 @@ class MDF:
         progress=None,
         **kwargs,
     ) -> MDF:
-        """Concatenates several files. The files must have the same internal
+        """Concatenate several files. The files must have the same internal
         structure (same number of groups, and same channels in each group).
 
         The order of the input files is always preserved, only the samples' timestamps are influenced
@@ -4163,7 +4163,7 @@ class MDF:
         ignore_value2text_conversions: bool = False,
         only_basenames: bool = False,
     ) -> pd.DataFrame:
-        """Get channel group as pandas DataFrames. If there are multiple
+        """Get channel group as a pandas DataFrame. If there are multiple
         occurrences for the same channel name, then a counter will be used to
         make the names unique (<original_name>_<counter>).
 
@@ -4682,7 +4682,7 @@ class MDF:
         progress=None,
         use_polars=False,
     ) -> pd.DataFrame:
-        """Generate pandas DataFrame.
+        """Generate a pandas DataFrame.
 
         Parameters
         ----------
