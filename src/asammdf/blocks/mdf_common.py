@@ -1,7 +1,3 @@
-"""
-ASAM MDF version 4 file format module
-"""
-
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterator
 import logging
@@ -166,37 +162,46 @@ class MDF_Common(ABC, Generic[_Group]):
         group: Optional[int] = None,
         index: Optional[int] = None,
     ) -> tuple[int, int]:
-        """Gets channel comment.
+        """Validate channel selection.
 
         Channel can be specified in two ways:
 
-        * using the first positional argument *name*
+        * Using the first positional argument *name*.
 
-            * if there are multiple occurrences for this channel then the
-              *group* and *index* arguments can be used to select a specific
-              group.
-            * if there are multiple occurrences for this channel and either the
-              *group* or *index* arguments is None then a warning is issued
+          * If there are multiple occurrences for this channel then the
+            *group* and *index* arguments can be used to select a specific
+            group.
+          * If there are multiple occurrences for this channel and either the
+            *group* or *index* arguments is None then a warning is issued.
 
-        * using the group number (keyword argument *group*) and the channel
+        * Using the group number (keyword argument *group*) and the channel
           number (keyword argument *index*). Use *info* method for group and
-          channel numbers
-
+          channel numbers.
 
         Parameters
         ----------
         name : str
-            name of channel
+            Name of channel.
         group : int
-            0-based group index
+            0-based group index.
         index : int
-            0-based channel index
+            0-based channel index.
 
         Returns
         -------
         group_index, channel_index : (int, int)
-            selected channel's group and channel index
+            Selected channel's group and channel index.
 
+        Raises
+        ------
+        MdfException
+
+        * if the channel name is not found
+        * if the group index is out of range
+        * if the channel index is out of range
+        * if there are multiple channel occurrences in the file and the arguments
+          *name*, *group*, *index* are ambiguous. This behaviour can be turned off
+          by setting raise_on_multiple_occurrences to *False*.
         """
 
         if name is None:
