@@ -16,7 +16,6 @@ from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestPlotGraphicsShortcuts(TestPlotWidget):
-
     def setUp(self):
         """
         Events:

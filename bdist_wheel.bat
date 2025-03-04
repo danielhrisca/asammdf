@@ -1,2 +1,2 @@
-run_black_and_ruff.bat && ^
+run_ruff.bat && ^
 python -m build --wheel

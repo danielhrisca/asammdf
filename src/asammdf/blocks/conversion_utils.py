@@ -279,7 +279,6 @@ def conversion_transfer(
 
 
 def inverse_conversion(conversion: Optional[Union[ChannelConversionType, dict]]) -> Optional[v4b.ChannelConversion]:
-
     if isinstance(conversion, v3b.ChannelConversion):
         conversion = conversion_transfer(conversion, version=4)
 
@@ -314,7 +313,6 @@ def inverse_conversion(conversion: Optional[Union[ChannelConversionType, dict]])
                     conv = v4b.ChannelConversion(**conv)
 
             elif a == 0 and d == 0:
-
                 if e == 0 and b == 0:
                     conv = None
                 else:

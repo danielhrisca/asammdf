@@ -12,6 +12,7 @@ class DragAndDrop
     - responsible to perform Drag and Drop operations
      from source widget - specific point, to destination widget - specific point
 """
+
 from collections.abc import Iterable
 import os
 import pathlib
