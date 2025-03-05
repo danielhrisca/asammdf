@@ -1951,7 +1951,7 @@ static PyObject *bytes_dtype_size(PyObject *self, PyObject *args)
   }
   else
   {
-    count = (Py_ssize_t) *PyArray_SHAPE(data);
+    count = (Py_ssize_t) *PyArray_SHAPE((PyArrayObject *)data);
     pointer = (PyObject **)PyArray_GETPTR1((PyArrayObject *)data, 0);
     for (i=0; i<count; i++, pointer++) {
       if (!PyBytes_Check(*pointer)) {
