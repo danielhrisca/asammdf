@@ -424,7 +424,7 @@ class FormatedAxis(pg.AxisItem):
                 else:
                     zoom_y_mode = "center_on_mouse"
 
-            if zoom_y_mode == "center_on_cursor":
+            if zoom_y_mode == "pin_zero_level":
                 plot, uuid = self.linked_signal
 
                 y_pos_val, sig_y_bottom, sig_y_top = plot.value_at_cursor(uuid)
@@ -433,9 +433,9 @@ class FormatedAxis(pg.AxisItem):
                 delta = sig_y_top - sig_y_bottom
 
                 if event.delta() > 0:
-                    delta -= factor * delta
+                    delta *= 1 / (1 + factor)
                 else:
-                    delta += factor * delta
+                    delta *= 1 + factor
 
                 end = delta_proc * delta
                 start = end - delta
@@ -454,8 +454,8 @@ class FormatedAxis(pg.AxisItem):
                 delta = sig_y_top - sig_y_bottom
 
                 if event.delta() > 0:
-                    end = sig_y_top - factor * delta
-                    start = sig_y_bottom + factor * delta
+                    end = sig_y_top - 1 / factor * delta
+                    start = sig_y_bottom + 1 / factor * delta
                 else:
                     end = sig_y_top + factor * delta
                     start = sig_y_bottom - factor * delta
@@ -472,7 +472,7 @@ class FormatedAxis(pg.AxisItem):
                 delta = self.range[-1] - self.range[0]
 
                 if event.delta() > 0:
-                    delta = (1 - factor) * delta
+                    delta = 1 / (1 + factor) * delta
                 else:
                     delta = (1 + factor) * delta
 
@@ -513,9 +513,9 @@ class FormatedAxis(pg.AxisItem):
                         delta = sig_y_top - sig_y_bottom
 
                         if event.delta() > 0:
-                            delta -= factor * delta
+                            delta *= 1 / (1 + factor)
                         else:
-                            delta += factor * delta
+                            delta *= 1 + factor
 
                         end = delta_proc * delta
                         start = end - delta

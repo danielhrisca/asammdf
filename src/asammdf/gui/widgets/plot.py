@@ -4654,7 +4654,6 @@ class PlotGraphics(pg.PlotWidget):
                 and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
                 and not self.locked
             ):
-
                 self.block_zoom_signal = True
 
                 self.viewbox.vertical_zoom(zoom_in=key == QtCore.Qt.Key.Key_I)

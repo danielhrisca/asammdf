@@ -344,7 +344,7 @@ class ViewBoxWithCursor(pg.ViewBox):
         factor = self._settings.value("zoom_wheel_factor", 0.165, type=float)
 
         if ev.delta() > 0:
-            s = [(None if m is False else 1 - factor) for m in mask]
+            s = [(None if m is False else 1 / (1 + factor)) for m in mask]
         else:
             s = [(None if m is False else 1 + factor) for m in mask]
 
@@ -398,22 +398,23 @@ class ViewBoxWithCursor(pg.ViewBox):
                 zoom_y_mode = "center_on_mouse"
 
         if zoom_y_mode == "pin_zero_level":
-            y_pos_val, sig_y_top, sig_y_bottom = self.plot.value_at_cursor()
+            y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor()
             delta_proc = sig_y_top / (sig_y_top - sig_y_bottom)
 
             delta = sig_y_top - sig_y_bottom
 
             if ev.delta() > 0:
-                delta -= factor * delta
+                delta *= 1 / (1 + factor)
             else:
-                delta += factor * delta
+                delta *= 1 + factor
 
             end = delta_proc * delta
             start = end - delta
+
             y_range = start, end
 
         elif zoom_y_mode == "center_on_cursor":
-            y_pos_val, sig_y_top, sig_y_bottom = self.plot.value_at_cursor()
+            y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor()
             if isinstance(y_pos_val, (int, float)):
                 delta = y_range[1] - y_range[0]
                 y_range = y_pos_val - delta / 2, y_pos_val + delta / 2
@@ -442,7 +443,7 @@ class ViewBoxWithCursor(pg.ViewBox):
         if zoom_in:
             s = [(None if m is False else 1 + factor) for m in mask]
         else:
-            s = [(None if m is False else 1 - factor) for m in mask]
+            s = [(None if m is False else 1 / (1 + factor)) for m in mask]
 
         if any(np.isnan(v) for v in s if v is not None):
             return
@@ -494,22 +495,22 @@ class ViewBoxWithCursor(pg.ViewBox):
                 zoom_y_mode = "center_on_mouse"
 
         if zoom_y_mode == "pin_zero_level":
-            y_pos_val, sig_y_top, sig_y_bottom = self.plot.value_at_cursor()
+            y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor()
             delta_proc = sig_y_top / (sig_y_top - sig_y_bottom)
 
             delta = sig_y_top - sig_y_bottom
 
             if not zoom_in:
-                delta -= factor * delta
+                delta *= 1 / (1 + factor)
             else:
-                delta += factor * delta
+                delta *= 1 + factor
 
             end = delta_proc * delta
             start = end - delta
             y_range = start, end
 
         elif zoom_y_mode == "center_on_cursor":
-            y_pos_val, sig_y_top, sig_y_bottom = self.plot.value_at_cursor()
+            y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor()
             if isinstance(y_pos_val, (int, float)):
                 delta = y_range[1] - y_range[0]
                 y_range = y_pos_val - delta / 2, y_pos_val + delta / 2
