@@ -1925,7 +1925,7 @@ MultiRasterSeparator;&
             if call_info["unknown_id_count"]:
                 message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
             else:
-                message.append("- no unknown IDs inf the MDF4 file")
+                message.append("- no unknown IDs in the MDF4 file")
 
             message += [
                 "",
@@ -2124,7 +2124,7 @@ MultiRasterSeparator;&
             if call_info["unknown_id_count"]:
                 message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
             else:
-                message.append("- no unknown IDs inf the MDF4 file")
+                message.append("- no unknown IDs in the MDF4 file")
 
             message += [
                 "",

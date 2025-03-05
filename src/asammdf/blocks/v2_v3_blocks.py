@@ -2900,13 +2900,13 @@ class HeaderBlock:
                             self._common_properties[name] = e.text or ""  # type: ignore[literal-required]
                         else:
                             name = e.attrib["name"]
-                            subattibutes: dict[str, str] = {}
+                            subattributes: dict[str, str] = {}
                             tree = e
-                            self._common_properties[name] = subattibutes  # type: ignore[literal-required]
+                            self._common_properties[name] = subattributes  # type: ignore[literal-required]
 
                             for e in tree:
                                 name = e.attrib["name"]
-                                subattibutes[name] = e.text or ""
+                                subattributes[name] = e.text or ""
         else:
             self.description = string
 
