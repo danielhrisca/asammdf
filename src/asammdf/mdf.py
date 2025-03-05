@@ -267,12 +267,12 @@ class MDF:
 
     Examples
     --------
-    >>> mdf = MDF(version='3.30') # new MDF object with version 3.30
-    >>> mdf = MDF('path/to/file.mf4') # MDF loaded from file
-    >>> mdf = MDF(BytesIO(data)) # MDF from file contents
-    >>> mdf = MDF(zipfile.ZipFile('data.zip')) # MDF creating using the first valid MDF from archive
-    >>> mdf = MDF(bz2.BZ2File('path/to/data.bz2', 'rb')) # MDF from bz2 object
-    >>> mdf = MDF(gzip.GzipFile('path/to/data.gzip', 'rb')) # MDF from gzip object
+    >>> mdf = MDF(version='3.30')  # new MDF object with version 3.30
+    >>> mdf = MDF('path/to/file.mf4')  # MDF loaded from file
+    >>> mdf = MDF(BytesIO(data))  # MDF from file contents
+    >>> mdf = MDF(zipfile.ZipFile('data.zip'))  # MDF creating using the first valid MDF from archive
+    >>> mdf = MDF(bz2.BZ2File('path/to/data.bz2', 'rb'))  # MDF from bz2 object
+    >>> mdf = MDF(gzip.GzipFile('path/to/data.gzip', 'rb'))  # MDF from gzip object
     """
 
     def __init__(
@@ -2067,31 +2067,34 @@ class MDF:
         >>> mdf = MDF()
         >>> mdf.configure(raise_on_multiple_occurrences=False)
         >>> for i in range(4):
-        ...     sigs = [Signal(s*(i*10+j), t, name='SIG') for j in range(1,4)]
+        ...     sigs = [Signal(s * (i * 10 + j), t, name='SIG') for j in range(1, 4)]
         ...     mdf.append(sigs)
-        ...
+
+        Select channel "SIG" (the first occurrence, which is group 0 index 1),
+        channel "SIG" from group 3 index 1, channel "SIG" from group 2 (the
+        first occurrence, which is index 1), and channel from group 1 index 2.
+
         >>> filtered = mdf.filter(['SIG', ('SIG', 3, 1), ['SIG', 2], (None, 1, 2)])
         >>> for gp_nr, ch_nr in filtered.channels_db['SIG']:
         ...     print(filtered.get(group=gp_nr, index=ch_nr))
-        ...
         <Signal SIG:
                 samples=[ 1.  1.  1.  1.  1.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
                 comment="">
         <Signal SIG:
                 samples=[ 31.  31.  31.  31.  31.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
                 comment="">
         <Signal SIG:
                 samples=[ 21.  21.  21.  21.  21.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
                 comment="">
         <Signal SIG:
                 samples=[ 12.  12.  12.  12.  12.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
                 comment="">
         """
@@ -3078,122 +3081,76 @@ class MDF:
         >>> from asammdf import MDF, Signal
         >>> import numpy as np
         >>> mdf = MDF()
-        >>> sig = Signal(name='S1', samples=[1,2,3,4], timestamps=[1,2,3,4])
+        >>> sig = Signal(name='S1', samples=[1, 2, 3, 4], timestamps=[1, 2, 3, 4])
         >>> mdf.append(sig)
-        >>> sig = Signal(name='S2', samples=[1,2,3,4], timestamps=[1.1, 3.5, 3.7, 3.9])
+        >>> sig = Signal(name='S2', samples=[1, 2, 3, 4], timestamps=[1.1, 3.5, 3.7, 3.9])
         >>> mdf.append(sig)
+
+        Resample to a float step value.
+
         >>> resampled = mdf.resample(raster=0.1)
         >>> resampled.select(['S1', 'S2'])
         [<Signal S1:
                 samples=[1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 3 3 3 3 3 3 3 3 4]
                 timestamps=[1.  1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.  2.1 2.2 2.3 2.4 2.5 2.6 2.7
-         2.8 2.9 3.  3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 4. ]
-                invalidation_bits=None
+          2.8 2.9 3.  3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 4. ]
                 unit=""
-                conversion=None
-                source=Source(name='Python', path='Python', comment='', source_type=4, bus_type=0)
-                comment=""
-                mastermeta="('time', 1)"
-                raw=True
-                display_names={}
-                attachment=()>
-        , <Signal S2:
+                comment="">,
+         <Signal S2:
                 samples=[1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 2 3 3 4 4]
                 timestamps=[1.  1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.  2.1 2.2 2.3 2.4 2.5 2.6 2.7
-         2.8 2.9 3.  3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 4. ]
-                invalidation_bits=None
+          2.8 2.9 3.  3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 4. ]
                 unit=""
-                conversion=None
-                source=Source(name='Python', path='Python', comment='', source_type=4, bus_type=0)
-                comment=""
-                mastermeta="('time', 1)"
-                raw=True
-                display_names={}
-                attachment=()>
+                comment="">
         ]
+
+        Resample to the timestamps of one of the channels.
 
         >>> resampled = mdf.resample(raster='S2')
         >>> resampled.select(['S1', 'S2'])
         [<Signal S1:
                 samples=[1 3 3 3]
                 timestamps=[1.1 3.5 3.7 3.9]
-                invalidation_bits=None
                 unit=""
-                conversion=None
-                source=Source(name='Python', path='Python', comment='', source_type=4, bus_type=0)
-                comment=""
-                mastermeta="('time', 1)"
-                raw=True
-                display_names={}
-                attachment=()>
-        , <Signal S2:
+                comment="">,
+         <Signal S2:
                 samples=[1 2 3 4]
                 timestamps=[1.1 3.5 3.7 3.9]
-                invalidation_bits=None
                 unit=""
-                conversion=None
-                source=Source(name='Python', path='Python', comment='', source_type=4, bus_type=0)
-                comment=""
-                mastermeta="('time', 1)"
-                raw=True
-                display_names={}
-                attachment=()>
+                comment="">
         ]
+
+        Resample to an arbitrary array of timestamps.
 
         >>> resampled = mdf.resample(raster=[1.9, 2.0, 2.1])
         >>> resampled.select(['S1', 'S2'])
         [<Signal S1:
                 samples=[1 2 2]
                 timestamps=[1.9 2.  2.1]
-                invalidation_bits=None
                 unit=""
-                conversion=None
-                source=Source(name='Python', path='Python', comment='', source_type=4, bus_type=0)
-                comment=""
-                mastermeta="('time', 1)"
-                raw=True
-                display_names={}
-                attachment=()>
-        , <Signal S2:
+                comment="">,
+         <Signal S2:
                 samples=[1 1 1]
                 timestamps=[1.9 2.  2.1]
-                invalidation_bits=None
                 unit=""
-                conversion=None
-                source=Source(name='Python', path='Python', comment='', source_type=4, bus_type=0)
-                comment=""
-                mastermeta="('time', 1)"
-                raw=True
-                display_names={}
-                attachment=()>
+                comment="">
         ]
+
+        Resample to the timestamps of one of the channels, and adjust the
+        timestamps to start at 0.
 
         >>> resampled = mdf.resample(raster='S2', time_from_zero=True)
         >>> resampled.select(['S1', 'S2'])
         [<Signal S1:
                 samples=[1 3 3 3]
                 timestamps=[0.  2.4 2.6 2.8]
-                invalidation_bits=None
                 unit=""
-                conversion=None
-                source=Source(name='Python', path='Python', comment='', source_type=4, bus_type=0)
-                comment=""
-                mastermeta="('time', 1)"
-                raw=True
-                display_names={}
-                attachment=()>
-        , <Signal S2:
+                comment="">,
+         <Signal S2:
                 samples=[1 2 3 4]
                 timestamps=[0.  2.4 2.6 2.8]
-                invalidation_bits=None
                 unit=""
-                conversion=None
-                source=Source(name='Python', path='Python', comment='', source_type=4, bus_type=0)
-                comment=""
-                mastermeta="('time', 1)"
-                raw=True
-                display_names={}
-                attachment=()>
+                comment="">
         ]
         """
 
@@ -3358,30 +3315,32 @@ class MDF:
         >>> mdf = MDF()
         >>> mdf.configure(raise_on_multiple_occurrences=False)
         >>> for i in range(4):
-        ...     sigs = [Signal(s*(i*10+j), t, name='SIG') for j in range(1,4)]
+        ...     sigs = [Signal(s * (i * 10 + j), t, name='SIG') for j in range(1, 4)]
         ...     mdf.append(sigs)
-        ...
-        >>> # select SIG group 0 default index 1 default, SIG group 3 index 1, SIG group 2 index 1 default and channel index 2 from group 1
-        ...
-        >>> mdf.select(['SIG', ('SIG', 3, 1), ['SIG', 2],  (None, 1, 2)])
+
+        Select channel "SIG" (the first occurrence, which is group 0 index 1),
+        channel "SIG" from group 3 index 1, channel "SIG" from group 2 (the
+        first occurrence, which is index 1), and channel from group 1 index 2.
+
+        >>> mdf.select(['SIG', ('SIG', 3, 1), ['SIG', 2], (None, 1, 2)])
         [<Signal SIG:
                 samples=[ 1.  1.  1.  1.  1.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
-                comment="">
-        , <Signal SIG:
+                comment="">,
+         <Signal SIG:
                 samples=[ 31.  31.  31.  31.  31.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
-                comment="">
-        , <Signal SIG:
+                comment="">,
+         <Signal SIG:
                 samples=[ 21.  21.  21.  21.  21.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
-                comment="">
-        , <Signal SIG:
+                comment="">,
+         <Signal SIG:
                 samples=[ 12.  12.  12.  12.  12.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
                 comment="">
         ]
@@ -3656,30 +3615,32 @@ class MDF:
         >>> mdf = MDF()
         >>> mdf.configure(raise_on_multiple_occurrences=False)
         >>> for i in range(4):
-        ...     sigs = [Signal(s*(i*10+j), t, name='SIG') for j in range(1,4)]
+        ...     sigs = [Signal(s * (i * 10 + j), t, name='SIG') for j in range(1, 4)]
         ...     mdf.append(sigs)
-        ...
-        >>> # select SIG group 0 default index 1 default, SIG group 3 index 1, SIG group 2 index 1 default and channel index 2 from group 1
-        ...
-        >>> mdf.select(['SIG', ('SIG', 3, 1), ['SIG', 2],  (None, 1, 2)])
+
+        Select channel "SIG" (the first occurrence, which is group 0 index 1),
+        channel "SIG" from group 3 index 1, channel "SIG" from group 2 (the
+        first occurrence, which is index 1), and channel from group 1 index 2.
+
+        >>> mdf.select(['SIG', ('SIG', 3, 1), ['SIG', 2], (None, 1, 2)])
         [<Signal SIG:
                 samples=[ 1.  1.  1.  1.  1.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
-                comment="">
-        , <Signal SIG:
+                comment="">,
+         <Signal SIG:
                 samples=[ 31.  31.  31.  31.  31.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
-                comment="">
-        , <Signal SIG:
+                comment="">,
+         <Signal SIG:
                 samples=[ 21.  21.  21.  21.  21.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
-                comment="">
-        , <Signal SIG:
+                comment="">,
+         <Signal SIG:
                 samples=[ 12.  12.  12.  12.  12.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
                 comment="">
         ]
@@ -5147,7 +5108,8 @@ class MDF:
 
         Examples
         --------
-        >>> "extract CAN and LIN bus logging"
+        Extract CAN and LIN bus logging.
+
         >>> mdf = asammdf.MDF(r'bus_logging.mf4')
         >>> databases = {
         ...     "CAN": [("file1.dbc", 0), ("file2.arxml", 2)],
@@ -5155,7 +5117,8 @@ class MDF:
         ... }
         >>> extracted = mdf.extract_bus_logging(database_files=databases)
 
-        >>> "extract just LIN bus logging"
+        Extract just LIN bus logging.
+
         >>> mdf = asammdf.MDF(r'bus_logging.mf4')
         >>> databases = {
         ...     "LIN": [("file3.dbc", 0)],
@@ -5987,9 +5950,9 @@ class MDF:
         Examples
         --------
         >>> mdf = MDF(file_name)
-        >>> mdf.whereis('VehicleSpeed') # "VehicleSpeed" exists in the file
+        >>> mdf.whereis('VehicleSpeed')  # "VehicleSpeed" exists in the file
         ((1, 2), (2, 4))
-        >>> mdf.whereis('VehicleSPD') # "VehicleSPD" doesn't exist in the file
+        >>> mdf.whereis('VehicleSPD')  # "VehicleSPD" doesn't exist in the file
         ()
         """
         occurrences = tuple(
@@ -6038,9 +6001,9 @@ class MDF:
         Examples
         --------
         >>> mdf = MDF(file_name)
-        >>> mdf.search('*veh*speed*', case_insensitive=True, mode='wildcard') # case insensitive wildcard based search
+        >>> mdf.search('*veh*speed*', case_insensitive=True, mode='wildcard')  # case insensitive wildcard based search
         ['vehicleAverageSpeed', 'vehicleInstantSpeed', 'targetVehicleAverageSpeed', 'targetVehicleInstantSpeed']
-        >>> mdf.search('^vehicle.*Speed$', case_insensitive=False, mode='regex') # case sensitive regex based search
+        >>> mdf.search('^vehicle.*Speed$', case_insensitive=False, mode='regex')  # case sensitive regex based search
         ['vehicleAverageSpeed', 'vehicleInstantSpeed']
         """
         search_mode = SearchMode(mode)

@@ -1118,8 +1118,10 @@ class MDF3(MDF_Common[Group]):
         --------
         >>> from asammdf import MDF, Signal
         >>> import numpy as np
+        >>> import pandas as pd
 
-        >>> # case 1 conversion type None
+        Case 1: Conversion type None.
+
         >>> s1 = np.array([1, 2, 3, 4, 5])
         >>> s2 = np.array([-1, -2, -3, -4, -5])
         >>> s3 = np.array([0.1, 0.04, 0.09, 0.16, 0.25])
@@ -1130,7 +1132,8 @@ class MDF3(MDF_Common[Group]):
         >>> mdf = MDF(version='3.30')
         >>> mdf.append([s1, s2, s3], comment='created by asammdf')
 
-        >>> # case 2: VTAB conversions from channels inside another file
+        Case 2: VTAB conversions from channels inside another file.
+
         >>> mdf1 = MDF('in.mdf')
         >>> ch1 = mdf1.get("Channel1_VTAB")
         >>> ch2 = mdf1.get("Channel2_VTABR")
@@ -2838,39 +2841,47 @@ class MDF3(MDF_Common[Group]):
         >>> s = np.ones(5)
         >>> mdf = MDF(version='3.30')
         >>> for i in range(4):
-        ...     sigs = [Signal(s*(i*10+j), t, name='Sig') for j in range(1, 4)]
+        ...     sigs = [Signal(s * (i * 10 + j), t, name='Sig') for j in range(1, 4)]
         ...     mdf.append(sigs)
-        ...
+
+        Specifying only the channel name is not enough when there are multiple
+        channels with that name.
+
         >>> mdf.get('Sig')
         MdfException: Multiple occurrences for channel "Sig": ((0, 1), (0, 2),
         (0, 3), (1, 1), (1, 2), (1, 3), (2, 1), (2, 2), (2, 3), (3, 1), (3, 2),
         (3, 3)). Provide both "group" and "index" arguments to select another
         data group
-        >>>
+
+        In this case, adding the group number is also not enough since there are
+        multiple channels with that name in that group.
+
         >>> mdf.get('Sig', 1)
         MdfException: Multiple occurrences for channel "Sig": ((1, 1), (1, 2),
         (1, 3)). Provide both "group" and "index" arguments to select another
         data group
-        >>>
-        >>> # channel named Sig from group 1, channel index 2
+
+        Get the channel named "Sig" from group 1, channel index 2.
+
         >>> mdf.get('Sig', 1, 2)
         <Signal Sig:
                 samples=[ 12.  12.  12.  12.  12.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
                 comment="">
-        >>>
-        >>> # group 2, channel index 1
+
+        Get the channel from group 2 and channel index 1.
+
         >>> mdf.get(None, 2, 1)
         <Signal Sig:
                 samples=[ 21.  21.  21.  21.  21.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
                 comment="">
         >>> mdf.get(group=2, index=1)
         <Signal Sig:
                 samples=[ 21.  21.  21.  21.  21.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
                 comment="">
         """
