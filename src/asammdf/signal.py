@@ -459,17 +459,17 @@ class Signal:
             Stop timestamp for cutting.
         include_ends : bool, optional
             Include the *start* and *stop* timestamps after cutting the signal.
-            If *start* and *stop* are not found in the original timestamps, then
-            the new samples will be computed using interpolation. Default *True*.
-
+            If *start* and *stop* are not found in the original timestamps,
+            then the new samples will be computed using interpolation. Default
+            *True*.
         integer_interpolation_mode : int, optional
             Interpolation mode for integer signals; default 0.
 
             * 0 - repeat previous samples
             * 1 - linear interpolation
-            * 2 - hybrid interpolation: channels with integer data type (raw values) that have a
-              conversion that outputs float values will use linear interpolation, otherwise
-              the previous sample is used
+            * 2 - hybrid interpolation: channels with integer data type (raw
+              values) that have a conversion that outputs float values will use
+              linear interpolation, otherwise the previous sample is used
 
             .. versionadded:: 6.2.0
 
@@ -935,9 +935,9 @@ class Signal:
 
             * 0 - repeat previous samples
             * 1 - linear interpolation
-            * 2 - hybrid interpolation: channels with integer data type (raw values) that have a
-              conversion that outputs float values will use linear interpolation, otherwise
-              the previous sample is used
+            * 2 - hybrid interpolation: channels with integer data type (raw
+              values) that have a conversion that outputs float values will use
+              linear interpolation, otherwise the previous sample is used
 
             .. versionadded:: 6.2.0
 
@@ -1106,8 +1106,8 @@ class Signal:
             )
 
     def __apply_func(self, other: Union["Signal", NDArray[Any], Optional[int]], func_name: str) -> "Signal":
-        """Delegate operations to the *samples* attribute, but in a time-correct
-        manner by considering the *timestamps*.
+        """Delegate operations to the *samples* attribute, but in a
+        time-correct manner by considering the *timestamps*.
         """
 
         if isinstance(other, Signal):

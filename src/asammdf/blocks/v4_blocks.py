@@ -104,8 +104,8 @@ class AttachmentBlock:
     * ``block_len`` - int : block bytes size
     * ``links_nr`` - int : number of links
     * ``next_at_addr`` - int : next ATBLOCK address
-    * ``file_name_addr`` - int : address of TXBLOCK that contains the attachment
-      file name
+    * ``file_name_addr`` - int : address of TXBLOCK that contains the
+      attachment file name
     * ``mime_addr`` - int : address of TXBLOCK that contains the attachment
       mime type description
     * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
@@ -365,8 +365,8 @@ class Channel:
     """If the `load_metadata` keyword argument is not provided or is False,
     then the conversion, source and display name information is not processed.
     Furthermore if the `parse_xml_comment` is not provided or is False, then
-    the display name information from the channel comment is not processed (this
-    is done to avoid expensive XML operations).
+    the display name information from the channel comment is not processed
+    (this is done to avoid expensive XML operations).
 
     *Channel* has the following attributes, which are also available as
     dict-like key-value pairs.
@@ -378,9 +378,8 @@ class Channel:
     * ``block_len`` - int : block bytes size
     * ``links_nr`` - int : number of links
     * ``next_ch_addr`` - int : next ATBLOCK address
-    * ``component_addr`` - int : address of first channel in case of structure channel
-      composition, or ChannelArrayBlock in case of arrays
-      file name
+    * ``component_addr`` - int : address of first channel in case of structure
+      channel composition, or ChannelArrayBlock in case of arrays file name
     * ``name_addr`` - int : address of TXBLOCK that contains the channel name
     * ``source_addr`` - int : address of channel source block
     * ``conversion_addr`` - int : address of channel conversion block
@@ -389,8 +388,8 @@ class Channel:
     * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
       channel comment
     * ``attachment_<N>_addr`` - int : address of N-th ATBLOCK referenced by the
-      current channel; if no ATBLOCK is referenced there will be no such key-value
-      pair
+      current channel; if no ATBLOCK is referenced there will be no such
+      key-value pair
     * ``default_X_dg_addr`` - int : address of DGBLOCK where the default X axis
       channel for the current channel is found; this key-value pair will not
       exist for channels that don't have a default X axis
@@ -407,8 +406,8 @@ class Channel:
     * ``byte_offset`` - int : byte offset within the data record
     * ``bit_count`` - int : channel bit count
     * ``flags`` - int : CNBLOCK flags
-    * ``pos_invalidation_bit`` - int : invalidation bit position for the current
-      channel if there are invalidation bytes in the data record
+    * ``pos_invalidation_bit`` - int : invalidation bit position for the
+      current channel if there are invalidation bytes in the data record
     * ``precision`` - int : integer code for the precision
     * ``reserved1`` - int : reserved bytes
     * ``min_raw_value`` - int : min raw value of all samples
@@ -1764,7 +1763,9 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
         return self._factors(self.byte_offset_base)
 
     def get_bit_pos_inval_factors(self) -> list[int]:
-        """Returns list of factors f(d), used to calculate invalidation bit position."""
+        """Returns list of factors f(d), used to calculate invalidation bit
+        position.
+        """
         return self._factors(self.invalidation_bit_base)
 
     def _factors(self, base: int) -> list[int]:
@@ -1799,8 +1800,8 @@ class ChannelGroup:
     * ``first_ch_addr`` - int : address of first channel of this channel group
     * ``acq_name_addr`` - int : address of TextBLock that contains the channel
       group acquisition name
-    * ``acq_source_addr`` - int : address of SourceInformation that contains the
-      channel group source
+    * ``acq_source_addr`` - int : address of SourceInformation that contains
+      the channel group source
     * ``first_sample_reduction_addr`` - int : address of first SRBLOCK; this is
       considered 0 since sample reduction is not yet supported
     * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
@@ -2213,8 +2214,8 @@ class _ChannelConversionBase:
 
 
 class ChannelConversion(_ChannelConversionBase):
-    """*ChannelConversion* has the following attributes, which are also available as
-    dict-like key-value pairs.
+    """*ChannelConversion* has the following attributes, which are also
+    available as dict-like key-value pairs.
 
     CCBLOCK common fields:
 
@@ -5222,8 +5223,8 @@ class EventBlock(_EventBlockBase):
 
 
 class FileIdentificationBlock:
-    """*FileIdentificationBlock* has the following attributes, which are also available as
-    dict-like key-value pairs.
+    """*FileIdentificationBlock* has the following attributes, which are also
+    available as dict-like key-value pairs.
 
     IDBLOCK fields:
 
@@ -5828,8 +5829,8 @@ class HeaderList:
     * ``reserved0`` - int : reserved bytes
     * ``block_len`` - int : block bytes size
     * ``links_nr`` - int : number of links
-    * ``first_dl_addr`` - int : address of first data list block for this header
-      list
+    * ``first_dl_addr`` - int : address of first data list block for this
+      header list
     * ``flags`` - int : source flags
     * ``zip_type`` - int : integer code for zip type
     * ``reserved1`` - bytes : reserved bytes
@@ -6150,8 +6151,8 @@ class ListData(_ListDataBase):
 
 
 class SourceInformation:
-    """*SourceInformation* has the following attributes, which are also available as
-    dict-like key-value pairs.
+    """*SourceInformation* has the following attributes, which are also
+    available as dict-like key-value pairs.
 
     SIBLOCK fields:
 
@@ -6457,7 +6458,8 @@ class TextBlock:
     stream : handle
         File handle.
     meta : bool
-        Flag to set the block type to MDBLOCK for dynamically created objects; default *False*.
+        Flag to set the block type to MDBLOCK for dynamically created objects;
+        default *False*.
     text : bytes/str
         Text content for dynamically created objects.
     """

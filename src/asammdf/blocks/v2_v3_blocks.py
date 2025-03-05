@@ -141,8 +141,8 @@ class Channel:
 
     * ``address`` - int : block address inside mdf file
     * ``comment`` - str : channel comment
-    * ``conversion`` - ChannelConversion : channel conversion; *None* if the channel has
-      no conversion
+    * ``conversion`` - ChannelConversion : channel conversion; *None* if the
+      channel has no conversion
     * ``display_names`` - dict : channel display names
 
         .. versionchanged:: 7.0.0
@@ -150,8 +150,8 @@ class Channel:
             Changed from str to dict.
 
     * ``name`` - str : full channel name
-    * ``source`` - SourceInformation : channel source information; *None* if the channel
-      has no source information
+    * ``source`` - SourceInformation : channel source information; *None* if
+      the channel has no source information
 
     Parameters
     ----------
@@ -960,7 +960,8 @@ class ChannelConversion(_ChannelConversionBase):
 
     * ``address`` - int : block address inside mdf file
     * ``formula`` - str : formula string in case of algebraic conversion
-    * ``referenced_blocks`` - list : list of CCBLOCK/TXBLOCK referenced by the conversion
+    * ``referenced_blocks`` - list : list of CCBLOCK/TXBLOCK referenced by the
+      conversion
     * ``unit`` - str : physical unit
 
     Parameters
@@ -1794,8 +1795,10 @@ class ChannelDependency:
       dependency
 
     Other attributes:
+
     * ``address`` - int : block address inside mdf file
-    * ``referenced_channels`` - list : list of (group index, channel index) pairs
+    * ``referenced_channels`` - list : list of (group index, channel index)
+      pairs
 
     Parameters
     ----------
@@ -3104,6 +3107,7 @@ class ProgramBlock:
     * ``data`` - bytes : creator program free format data
 
     Other attributes:
+
     * ``address`` - int : block address inside mdf file
 
     Parameters

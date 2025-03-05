@@ -184,18 +184,21 @@ class MDF4(MDF_Common[Group]):
 
     * ``data_group`` - DataGroup object
     * ``channel_group`` - ChannelGroup object
-    * ``channels`` - list of Channel objects with the same order as found in the mdf file
-    * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel arrays;
-      list of Channel objects in case of structure channel composition
+    * ``channels`` - list of Channel objects with the same order as found in
+      the mdf file
+    * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel
+      arrays; list of Channel objects in case of structure channel composition
     * ``data_block`` - address of data block
-    * ``data_location`` - integer code for data location (original file, temporary file or
-      memory)
+    * ``data_location`` - integer code for data location (original file,
+      temporary file or memory)
     * ``data_block_addr`` - list of raw samples starting addresses
     * ``data_block_type`` - list of codes for data block type
     * ``data_block_size`` - list of raw samples block size
     * ``sorted`` - sorted indicator flag
-    * ``record_size`` - dict that maps record IDs to record sizes in bytes (including invalidation bytes)
-    * ``param`` - row size used for transposition, in case of transposed zipped blocks
+    * ``record_size`` - dict that maps record IDs to record sizes in bytes
+      (including invalidation bytes)
+    * ``param`` - row size used for transposition, in case of transposed zipped
+      blocks
 
     Parameters
     ----------
@@ -5853,10 +5856,13 @@ class MDF4(MDF_Common[Group]):
         return offset, dg_cntr, ch_cntr, struct_self, fields, types
 
     def extend(self, index: int, signals: list[tuple[NDArray[Any], NDArray[Any] | None]]) -> None:
-        """Extend a group with new samples. *signals* contains (values, invalidation_bits)
-        pairs for each extended signal. The first pair is the master channel's pair, and the
-        next pairs must respect the same order in which the signals were appended. The samples must have raw
-        or physical values according to the *Signals* used for the initial append.
+        """Extend a group with new samples.
+
+        *signals* contains (values, invalidation_bits) pairs for each extended
+        signal. The first pair is the master channel's pair, and the next pairs
+        must respect the same order in which the signals were appended. The
+        samples must have raw or physical values according to the *Signals*
+        used for the initial append.
 
         Parameters
         ----------
@@ -6143,10 +6149,13 @@ class MDF4(MDF_Common[Group]):
                     )
 
     def _extend_column_oriented(self, index: int, signals: list[tuple[NDArray[Any], NDArray[Any] | None]]) -> None:
-        """Extend a group with new samples. *signals* contains (values, invalidation_bits)
-        pairs for each extended signal. The first pair is the master channel's pair, and the
-        next pairs must respect the same order in which the signals were appended. The samples must have raw
-        or physical values according to the *Signals* used for the initial append.
+        """Extend a group with new samples.
+
+        *signals* contains (values, invalidation_bits) pairs for each extended
+        signal. The first pair is the master channel's pair, and the next pairs
+        must respect the same order in which the signals were appended. The
+        samples must have raw or physical values according to the *Signals*
+        used for the initial append.
 
         Parameters
         ----------
@@ -6427,9 +6436,9 @@ class MDF4(MDF_Common[Group]):
         return index
 
     def close(self) -> None:
-        """If the MDF was created with memory=False and new
-        channels have been appended, then this must be called just before the
-        object is not used anymore to clean-up the temporary file.
+        """If the MDF was created with memory=False and new channels have been
+        appended, then this must be called just before the object is not used
+        anymore to clean-up the temporary file.
         """
 
         if self._closed:
@@ -6686,13 +6695,13 @@ class MDF4(MDF_Common[Group]):
         raster : float, optional
             Time raster in seconds.
         samples_only : bool, optional
-            If *True* return only the channel samples as np.ndarray; if
-            *False* return a *Signal* object.
+            If *True* return only the channel samples as np.ndarray; if *False*
+            return a *Signal* object.
         data : bytes, optional
             Prevent redundant data read by providing the raw data group samples.
         raw : bool, optional
-            Return channel samples without applying the conversion rule; default
-            `False`.
+            Return channel samples without applying the conversion rule;
+            default `False`.
         ignore_invalidation_bits : bool, optional
             Option to ignore invalidation bits.
         record_offset : int, optional
@@ -6701,10 +6710,10 @@ class MDF4(MDF_Common[Group]):
         record_count : int, optional
             Number of records to read; default *None* and in this case all
             available records are used.
-        skip_channel_validation (False) : bool, optional
-            Skip validation of channel name, group index and channel index; default
-            *False*. If *True*, the caller has to make sure that the *group* and *index*
-            arguments are provided and are correct.
+        skip_channel_validation : bool, optional
+            Skip validation of channel name, group index and channel index;
+            default *False*. If *True*, the caller has to make sure that the
+            *group* and *index* arguments are provided and are correct.
 
             .. versionadded:: 7.0.0
 
@@ -6754,8 +6763,8 @@ class MDF4(MDF_Common[Group]):
         (3, 3)). Provide both "group" and "index" arguments to select another
         data group
 
-        In this case, adding the group number is also not enough since there are
-        multiple channels with that name in that group.
+        In this case, adding the group number is also not enough since there
+        are multiple channels with that name in that group.
 
         >>> mdf.get('Sig', 1)
         MdfException: Multiple occurrences for channel "Sig": ((1, 1), (1, 2),
@@ -8779,9 +8788,9 @@ class MDF4(MDF_Common[Group]):
         raw: bool = False,
         ignore_value2text_conversion: bool = True,
     ) -> Signal:
-        """Get a signal decoded from a raw bus logging. The currently supported buses are
-        CAN and LIN (LDF databases are not supported, they need to be converted to DBC and
-        fed to this function).
+        """Get a signal decoded from a raw bus logging. The currently supported
+        buses are CAN and LIN (LDF databases are not supported, they need to be
+        converted to DBC and fed to this function).
 
         .. versionadded:: 6.0.0
 
@@ -8792,20 +8801,21 @@ class MDF4(MDF_Common[Group]):
         name : str
             Signal name.
         database : str, optional
-            Path of external CAN/LIN database file (.dbc or .arxml) or canmatrix.CanMatrix;
-            default *None*.
+            Path of external CAN/LIN database file (.dbc or .arxml) or
+            canmatrix.CanMatrix; default *None*.
 
             .. versionchanged:: 6.0.0
-                `db` and `database` arguments were merged into this single argument.
+                `db` and `database` arguments were merged into this single
+                argument.
 
         ignore_invalidation_bits : bool, optional
             Option to ignore invalidation bits.
         raw : bool, optional
-            Return channel samples without applying the conversion rule; default
-            `False`.
+            Return channel samples without applying the conversion rule;
+            default `False`.
         ignore_value2text_conversion : bool, optional
-            Return channel samples without values that have a description in .dbc or .arxml file;
-            default `True`.
+            Return channel samples without values that have a description in
+            .dbc or .arxml file; default `True`.
 
         Returns
         -------
@@ -8854,9 +8864,9 @@ class MDF4(MDF_Common[Group]):
           starts from 1 and the `MESSAGE_ID` is the decimal message ID as found
           in the database. Example: CAN1.CAN_DataFrame_218.FL_WheelSpeed
 
-        * ``<MESSAGE_NAME>.<SIGNAL_NAME>`` - in this case the first occurrence of
-          the message name and signal are returned (the same message could be
-          found on multiple CAN buses; for example on CAN1 and CAN3).
+        * ``<MESSAGE_NAME>.<SIGNAL_NAME>`` - in this case the first occurrence
+          of the message name and signal are returned (the same message could
+          be found on multiple CAN buses; for example on CAN1 and CAN3).
           Example: Wheels.FL_WheelSpeed
 
         * ``CAN_DataFrame_<MESSAGE_ID>.<SIGNAL_NAME>`` - in this case the first
@@ -8873,20 +8883,21 @@ class MDF4(MDF_Common[Group]):
         name : str
             Signal name.
         database : str, optional
-            Path of external CAN database file (.dbc or .arxml) or canmatrix.CanMatrix;
-            default *None*.
+            Path of external CAN database file (.dbc or .arxml) or
+            canmatrix.CanMatrix; default *None*.
 
             .. versionchanged:: 6.0.0
-                `db` and `database` arguments were merged into this single argument
+                `db` and `database` arguments were merged into this single
+                argument
 
         ignore_invalidation_bits : bool, optional
             Option to ignore invalidation bits.
         raw : bool, optional
-            Return channel samples without applying the conversion rule; default
-            `False`.
+            Return channel samples without applying the conversion rule;
+            default `False`.
         ignore_value2text_conversion : bool, optional
-            Return channel samples without values that have a description in .dbc or
-            .arxml file; default `True`.
+            Return channel samples without values that have a description in
+            .dbc or .arxml file; default `True`.
 
         Returns
         -------
@@ -9130,16 +9141,16 @@ class MDF4(MDF_Common[Group]):
         name : str
             Signal name.
         database : str, optional
-            Path of external LIN database file (.dbc, .arxml or .ldf) or canmatrix.CanMatrix;
-            default *None*.
+            Path of external LIN database file (.dbc, .arxml or .ldf) or
+            canmatrix.CanMatrix; default *None*.
         ignore_invalidation_bits : bool, optional
             Option to ignore invalidation bits.
         raw : bool, optional
-            Return channel samples without applying the conversion rule; default
-            `False`.
+            Return channel samples without applying the conversion rule;
+            default `False`.
         ignore_value2text_conversion : bool, optional
-            Return channel samples without values that have a description in .dbc, .arxml or .ldf file;
-            default `True`.
+            Return channel samples without values that have a description in
+            .dbc, .arxml or .ldf file; default `True`.
 
         Returns
         -------
@@ -9328,9 +9339,9 @@ class MDF4(MDF_Common[Group]):
         add_history_block: bool = True,
     ) -> Path:
         """Save MDF to *dst*. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appended with '.<cntr>', where
-        '<cntr>' is the first counter that produces a new file name
-        (that does not already exist in the filesystem).
+        is overwritten, otherwise the file name is appended with '.<cntr>',
+        where '<cntr>' is the first counter that produces a new file name that
+        does not already exist in the filesystem.
 
         Parameters
         ----------

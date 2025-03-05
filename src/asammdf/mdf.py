@@ -250,8 +250,8 @@ class MDF:
         BytesIO before parsing (avoids the huge performance penalty of doing
         random reads from the zipped file); default *True*.
     raise_on_multiple_occurrences (\*\*kwargs) : bool, optional
-        Raise MdfException when there are multiple channel occurrences in the file and
-        the `get` call is ambiguous; default *True*.
+        Raise MdfException when there are multiple channel occurrences in the
+        file and the `get` call is ambiguous; default *True*.
 
         .. versionadded:: 7.0.0
 
@@ -261,7 +261,8 @@ class MDF:
         .. versionadded:: 7.0.0
 
     process_bus_logging (\*\*kwargs) : bool, optional
-        Controls if the bus processing of MDF v4 files is done when the file is loaded. Default *True*.
+        Controls whether the bus processing of MDF v4 files is done when the
+        file is loaded. Default *True*.
 
         .. versionadded:: 8.0.0
 
@@ -734,9 +735,9 @@ class MDF:
 
             * 0 - repeat previous sample
             * 1 - use linear interpolation
-            * 2 - hybrid interpolation: channels with integer data type (raw values) that have a
-              conversion that outputs float values will use linear interpolation, otherwise
-              the previous sample is used
+            * 2 - hybrid interpolation: channels with integer data type (raw
+              values) that have a conversion that outputs float values will use
+              linear interpolation, otherwise the previous sample is used
 
             .. versionchanged:: 6.2.0
                 Added hybrid mode interpolation.
@@ -753,8 +754,8 @@ class MDF:
             .. versionadded:: 6.2.0
 
         raise_on_multiple_occurrences : bool, optional
-            Raise MdfException when there are multiple channel occurrences in the file and
-            the `get` call is ambiguous; default *True*.
+            Raise MdfException when there are multiple channel occurrences in
+            the file and the `get` call is ambiguous; default *True*.
 
             .. versionadded:: 6.2.0
 
@@ -769,8 +770,9 @@ class MDF:
             .. versionadded:: 7.0.0
 
         fill_0_for_missing_computation_channels : bool, optional
-            When a channel required by a computed channel is missing, then fill with 0 values.
-            If *False* then the computation will fail and the computed channel will be marked as not existing.
+            When a channel required by a computed channel is missing, then fill
+            with 0 values. If *False* then the computation will fail and the
+            computed channel will be marked as not existing.
 
             .. versionadded:: 7.1.0
         """
@@ -906,10 +908,10 @@ class MDF:
         Parameters
         ----------
         start : float, optional
-            Start time, default *None*. If *None* then the start of measurement
+            Start time; default *None*. If *None* then the start of measurement
             is used.
         stop : float, optional
-            Stop time, default *None*. If *None* then the end of measurement is
+            Stop time; default *None*. If *None* then the end of measurement is
             used.
         whence : int, optional
             How to search for the start and stop values.
@@ -919,12 +921,13 @@ class MDF:
 
         version : str, optional
             New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
-            '3.20', '3.30', '4.00', '4.10', '4.11', 4.20'); default *None* and in this
-            case the original file version is used.
+            '3.20', '3.30', '4.00', '4.10', '4.11', 4.20'); default *None* and
+            in this case the original file version is used.
         include_ends : bool, optional
             Include the *start* and *stop* timestamps after cutting the signal.
-            If *start* and *stop* are not found in the original timestamps, then
-            the new samples will be computed using interpolation. Default *True*.
+            If *start* and *stop* are not found in the original timestamps,
+            then the new samples will be computed using interpolation. Default
+            *True*.
         time_from_zero : bool, optional
             Start timestamps from 0s in the cut measurement.
 
@@ -1182,9 +1185,9 @@ class MDF:
 
             * `mat` : Matlab .mat version 4, 5 or 7.3 export. If
               *single_time_base==False* the channels will be renamed in the mat
-              file to 'D<cntr>_<channel name>'. The channel group
-              master will be renamed to 'DM<cntr>_<channel name>'
-              ( *<cntr>* is the data group index starting from 0)
+              file to 'D<cntr>_<channel name>'. The channel group master will
+              be renamed to 'DM<cntr>_<channel name>'
+              (*<cntr>* is the data group index starting from 0)
 
             * `parquet` : export to Apache parquet format
             * `asc` : Vector ASCII format for bus logging
@@ -1235,14 +1238,15 @@ class MDF:
                 Added LZ4 compression after changing to pyarrow.
 
         time_as_date : bool, optional
-            Export time as local timezone datetime; only valid for CSV export; default *False*.
+            Export time as local timezone datetime; only valid for CSV export;
+            default *False*.
 
             .. versionadded:: 5.8.0
 
         ignore_value2text_conversions : bool, optional
             Valid only for the channels that have value to text conversions and
-            if *raw=False*. If this is *True* then the raw numeric values will be
-            used, and the conversion will not be applied. Default *False*.
+            if *raw=False*. If this is *True* then the raw numeric values will
+            be used, and the conversion will not be applied. Default *False*.
 
             .. versionadded:: 5.8.0
 
@@ -1277,13 +1281,14 @@ class MDF:
             .. versionadded:: 6.2.0
 
         quoting : str, optional, default: "MINIMAL"
-            Only valid for CSV: see cpython documentation for csv.Dialect.quoting. Use the
-            last part of the quoting constant name.
+            Only valid for CSV: see cpython documentation for csv.Dialect.quoting.
+            Use the last part of the quoting constant name.
 
             .. versionadded:: 6.2.0
 
         add_units : bool, optional, default: False
-            Only valid for CSV: add the channel units on the second row of the CSV file.
+            Only valid for CSV: add the channel units on the second row of the
+            CSV file.
 
             .. versionadded:: 7.1.0
         """
@@ -2050,8 +2055,8 @@ class MDF:
 
         version : str, optional
             New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
-            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and in this
-            case the original file version is used.
+            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and
+            in this case the original file version is used.
 
         Returns
         -------
@@ -2274,14 +2279,14 @@ class MDF:
         """Concatenate several files. The files must have the same internal
         structure (same number of groups, and same channels in each group).
 
-        The order of the input files is always preserved, only the samples' timestamps are influenced
-        by the ``sync`` argument.
+        The order of the input files is always preserved, only the samples'
+        timestamps are influenced by the ``sync`` argument.
 
         Parameters
         ----------
         files : list | tuple
-            List of *MDF* file names or *MDF*, zipfile.ZipFile, bz2.BZ2File or gzip.GzipFile
-            instances.
+            List of *MDF* file names or *MDF*, zipfile.ZipFile, bz2.BZ2File or
+            gzip.GzipFile instances.
 
             .. versionchanged:: 6.2.0
 
@@ -2290,9 +2295,9 @@ class MDF:
         version : str, optional
             Merged file version.
         sync : bool, optional
-            Sync the files based on the start of measurement, default *True*. The order of the
-            input files is preserved, only the samples' timestamps are influenced by this
-            argument.
+            Sync the files based on the start of measurement; default *True*.
+            The order of the input files is preserved, only the samples'
+            timestamps are influenced by this argument.
         add_samples_origin : bool, optional
             Option to create a new "__samples_origin" channel that will hold
             the index of the measurement from where each timestamp originated.
@@ -2306,7 +2311,8 @@ class MDF:
             Use display name instead of standard channel name, if available;
             default *False*.
         process_bus_logging : bool, optional
-            Controls if the bus processing of MDF v4 files is done when the file is loaded. Default *True*.
+            Controls whether the bus processing of MDF v4 files is done when the
+            file is loaded. Default *True*.
 
             .. versionadded:: 8.1.0
 
@@ -2731,8 +2737,8 @@ class MDF:
         Parameters
         ----------
         files : list | tuple
-            List of *MDF* file names or *MDF*, zipfile.ZipFile, bz2.BZ2File or gzip.GzipFile
-            instances.
+            List of *MDF* file names or *MDF*, zipfile.ZipFile, bz2.BZ2File or
+            gzip.GzipFile instances.
 
             .. versionchanged:: 6.2.0
 
@@ -2745,7 +2751,8 @@ class MDF:
             Use display name instead of standard channel name, if available;
             default *False*.
         process_bus_logging : bool, optional
-            Controls if the bus processing of MDF v4 files is done when the file is loaded. Default *True*.
+            Controls whether the bus processing of MDF v4 files is done when the
+            file is loaded. Default *True*.
 
             .. versionadded:: 8.1.0
 
@@ -2928,9 +2935,10 @@ class MDF:
 
             .. versionchanged:: 8.0.0
 
-                Provide individual raw mode based on a dict. If the argument is given
-                as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
-                are the channel names and the values are the boolean raw values for each channel.
+                Provide individual raw mode based on a dict. If the argument is
+                given as dict then it must contain the key ``__default__`` with
+                the default raw value. The dict keys are the channel names and
+                the values are the boolean raw values for each channel.
         """
 
         if isinstance(raw, dict):
@@ -2987,14 +2995,15 @@ class MDF:
 
             .. versionchanged:: 8.0.0
 
-                Provide individual raw mode based on a dict. If the argument is given
-                as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
-                are the channel names and the values are the boolean raw values for each channel.
+                Provide individual raw mode based on a dict. If the argument is
+                given as dict then it must contain the key ``__default__`` with
+                the default raw value. The dict keys are the channel names and
+                the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions (False) : bool, optional
             Valid only for the channels that have value to text conversions and
-            if *raw=False*. If this is *True* then the raw numeric values will be
-            used, and the conversion will not be applied.
+            if *raw=False*. If this is *True* then the raw numeric values will
+            be used, and the conversion will not be applied.
 
             .. versionadded:: 5.21.0
 
@@ -3021,7 +3030,8 @@ class MDF:
             New raster that can be:
 
             * a float step value
-            * a channel name whose timestamps will be used as raster (starting with asammdf 5.5.0)
+            * a channel name whose timestamps will be used as raster (starting
+              with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
             See `resample` for examples of using this argument.
@@ -3051,8 +3061,8 @@ class MDF:
         time_from_zero: bool = False,
         progress=None,
     ) -> MDF:
-        """Resample all channels using the given raster. See *configure* to select
-        the interpolation method for integer channels.
+        """Resample all channels using the given raster. See *configure* to
+        select the interpolation method for integer channels.
 
         Parameters
         ----------
@@ -3060,7 +3070,8 @@ class MDF:
             New raster that can be:
 
             * a float step value
-            * a channel name whose timestamps will be used as raster (starting with asammdf 5.5.0)
+            * a channel name whose timestamps will be used as raster (starting
+              with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
         version : str
@@ -3276,23 +3287,26 @@ class MDF:
             * (None, group index, channel index) list or tuple
 
         record_offset : int
-            Record number offset; optimization to get the last part of signal samples.
+            Record number offset; optimization to get the last part of signal
+            samples.
         raw : bool | dict[str, bool]
             Get raw channel samples; default *False*.
 
             .. versionchanged:: 8.0.0
 
-                Provide individual raw mode based on a dict. If the argument is given
-                as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
-                are the channel names and the values are the boolean raw values for each channel.
+                Provide individual raw mode based on a dict. If the argument is
+                given as dict then it must contain the key ``__default__`` with
+                the default raw value. The dict keys are the channel names and
+                the values are the boolean raw values for each channel.
 
         copy_master : bool
             Option to get a new timestamps array for each selected Signal or to
-            use a shared array for channels of the same channel group; default *True*.
+            use a shared array for channels of the same channel group; default
+            *True*.
         ignore_value2text_conversions (False) : bool
             Valid only for the channels that have value to text conversions and
-            if *raw=False*. If this is *True* then the raw numeric values will be
-            used, and the conversion will not be applied.
+            if *raw=False*. If this is *True* then the raw numeric values will
+            be used, and the conversion will not be applied.
 
             .. versionchanged:: 5.8.0
 
@@ -3576,23 +3590,26 @@ class MDF:
             * (None, group index, channel index) list or tuple
 
         record_offset : int
-            Record number offset; optimization to get the last part of signal samples.
+            Record number offset; optimization to get the last part of signal
+            samples.
         raw : bool | dict[str, bool]
             Get raw channel samples; default *False*.
 
             .. versionchanged:: 8.0.0
 
-                Provide individual raw mode based on a dict. If the argument is given
-                as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
-                are the channel names and the values are the boolean raw values for each channel.
+                Provide individual raw mode based on a dict. If the argument is
+                given as dict then it must contain the key ``__default__`` with
+                the default raw value. The dict keys are the channel names and
+                the values are the boolean raw values for each channel.
 
         copy_master : bool
             Option to get a new timestamps array for each selected Signal or to
-            use a shared array for channels of the same channel group; default *True*.
+            use a shared array for channels of the same channel group; default
+            *True*.
         ignore_value2text_conversions (False) : bool
             Valid only for the channels that have value to text conversions and
-            if *raw=False*. If this is *True* then the raw numeric values will be
-            used, and the conversion will not be applied.
+            if *raw=False*. If this is *True* then the raw numeric values will
+            be used, and the conversion will not be applied.
 
             .. versionchanged:: 5.8.0
 
@@ -4145,14 +4162,15 @@ class MDF:
 
             .. versionchanged:: 8.0.0
 
-                Provide individual raw mode based on a dict. If the argument is given
-                as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
-                are the channel names and the values are the boolean raw values for each channel.
+                Provide individual raw mode based on a dict. If the argument is
+                given as dict then it must contain the key ``__default__`` with
+                the default raw value. The dict keys are the channel names and
+                the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions (False) : bool
             Valid only for the channels that have value to text conversions and
-            if *raw=False*. If this is *True* then the raw numeric values will be
-            used, and the conversion will not be applied.
+            if *raw=False*. If this is *True* then the raw numeric values will
+            be used, and the conversion will not be applied.
 
             .. versionadded:: 5.8.0
 
@@ -4182,7 +4200,8 @@ class MDF:
             New raster that can be:
 
             * a float step value
-            * a channel name whose timestamps will be used as raster (starting with asammdf 5.5.0)
+            * a channel name whose timestamps will be used as raster (starting
+              with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
             See `resample` for examples of using this argument.
@@ -4251,7 +4270,8 @@ class MDF:
             New raster that can be:
 
             * a float step value
-            * a channel name whose timestamps will be used as raster (starting with asammdf 5.5.0)
+            * a channel name whose timestamps will be used as raster (starting
+              with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
             See `resample` for examples of using this argument.
@@ -4280,14 +4300,15 @@ class MDF:
 
             .. versionchanged:: 8.0.0
 
-                Provide individual raw mode based on a dict. If the argument is given
-                as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
-                are the channel names and the values are the boolean raw values for each channel.
+                Provide individual raw mode based on a dict. If the argument is
+                given as dict then it must contain the key ``__default__`` with
+                the default raw value. The dict keys are the channel names and
+                the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions (False) : bool
             Valid only for the channels that have value to text conversions and
-            if *raw=False*. If this is *True* then the raw numeric values will be
-            used, and the conversion will not be applied.
+            if *raw=False*. If this is *True* then the raw numeric values will
+            be used, and the conversion will not be applied.
         use_interpolation (True) : bool
             Option to perform interpolations when multiple timestamp rasters are
             present. If *False* then DataFrame columns will be automatically
@@ -4659,7 +4680,8 @@ class MDF:
             New raster that can be:
 
             * a float step value
-            * a channel name whose timestamps will be used as raster (starting with asammdf 5.5.0)
+            * a channel name whose timestamps will be used as raster (starting
+              with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
             See `resample` for examples of using this argument.
@@ -4690,14 +4712,15 @@ class MDF:
 
             .. versionchanged:: 8.0.0
 
-                Provide individual raw mode based on a dict. If the argument is given
-                as dict then it must contain the key ``__default__`` with the default raw value. The dict keys
-                are the channel names and the values are the boolean raw values for each channel.
+                Provide individual raw mode based on a dict. If the argument is
+                given as dict then it must contain the key ``__default__`` with
+                the default raw value. The dict keys are the channel names and
+                the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions (False) : bool
             Valid only for the channels that have value to text conversions and
-            if *raw=False*. If this is *True* then the raw numeric values will be
-            used, and the conversion will not be applied.
+            if *raw=False*. If this is *True* then the raw numeric values will
+            be used, and the conversion will not be applied.
 
             .. versionadded:: 5.8.0
 
@@ -5060,11 +5083,12 @@ class MDF:
         Parameters
         ----------
         database_files : dict
-            Each key will contain an iterable of database files for that bus type. The
-            supported bus types are "CAN", "LIN". The iterables will contain the
-            (databases, valid bus) pairs. The database can be a str, pathlib.Path or canmatrix.CanMatrix object.
-            The valid bus is an integer specifying for which bus channel the database
-            can be applied; 0 means any bus channel.
+            Each key will contain an iterable of database files for that bus
+            type. The supported bus types are "CAN", "LIN". The iterables
+            will contain the (databases, valid bus) pairs. The database can be a
+            str, pathlib.Path or canmatrix.CanMatrix object. The valid bus is
+            an integer specifying for which bus channel the database can be
+            applied; 0 means any bus channel.
 
             .. versionchanged:: 6.0.0 Added canmatrix.CanMatrix type.
 
@@ -5086,8 +5110,8 @@ class MDF:
             .. versionadded:: 5.7.0
 
             .. deprecated:: 7.2.0
-                This argument is no longer used and will be removed in the future. The PGNs are saved
-                separately according to the source address.
+                This argument is no longer used and will be removed in the future.
+                The PGNs are saved separately according to the source address.
 
         ignore_value2text_conversion (True): bool
             Ignore value to text conversions.
@@ -5095,8 +5119,8 @@ class MDF:
             .. versionadded:: 5.23.0
 
         prefix ("") : str
-            Prefix that will be added to the channel group names and signal names in
-            the output file.
+            Prefix that will be added to the channel group names and signal
+            names in the output file.
 
             .. versionadded:: 6.3.0
 
@@ -5830,8 +5854,8 @@ class MDF:
             Maximum plausible exponent used for the time stamps float values.
         version : str, optional
             New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
-            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default the same as
-            the input file.
+            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default the same
+            as the input file.
 
         Returns
         -------
@@ -5934,11 +5958,12 @@ class MDF:
         channel : str
             Channel name string.
         source_name : str, optional
-            Filter occurrences on source name, default *None*.
+            Filter occurrences on source name; default *None*.
         source_path : str, optional
-            Filter occurrences on source path, default *None*.
+            Filter occurrences on source path; default *None*.
         acq_name : str, optional
-            Filter occurrences on channel group acquisition name, default *None*.
+            Filter occurrences on channel group acquisition name; default
+            *None*.
 
             .. versionadded:: 6.0.0
 
@@ -5986,7 +6011,7 @@ class MDF:
             * `regex` : regular expression based search
             * `wildcard` : wildcard based search
         case_insensitive : bool, optional
-            Case sensitivity for the channel name search, default *False*.
+            Case sensitivity for the channel name search; default *False*.
 
         Returns
         -------

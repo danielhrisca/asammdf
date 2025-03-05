@@ -36,7 +36,8 @@ def conversion_transfer(
     version : int, optional
         Target MDF version.
     copy : bool, optional
-        Return a copy if the input conversion version is the same as the required version.
+        Return a copy if the input conversion version is the same as the
+        required version.
 
     Returns
     -------

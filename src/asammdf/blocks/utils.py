@@ -1690,8 +1690,9 @@ def load_can_database(
     fd : bool, optional
         If supplied, only buses with the same FD kind will be loaded.
     load_flat : bool, optional
-        If *True*, all the CAN messages found in multiple buses will be contained
-        in the CAN database object. By default the first bus will be returned.
+        If *True*, all the CAN messages found in multiple buses will be
+        contained in the CAN database object. By default the first bus will be
+        returned.
     cluster_name : str, optional
         If supplied load just the clusters with this name.
 
@@ -1816,8 +1817,8 @@ def plausible_timestamps(
     Returns
     -------
     all_ok, idx : (bool, np.ndarray)
-        The *all_ok* flag to indicate if all the time stamps are ok; this can be checked
-        before applying the indexing array.
+        The *all_ok* flag to indicate if all the time stamps are ok; this can
+        be checked before applying the indexing array.
     """
 
     exps = np.log10(t)

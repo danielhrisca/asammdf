@@ -127,8 +127,7 @@ class MDF3(MDF_Common[Group]):
     * ``channels`` - list of Channel objects with the same order as found in
       the mdf file
     * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel
-      arrays; list of Channel objects in case of structure channel
-      composition
+      arrays; list of Channel objects in case of structure channel composition
     * ``data_block`` - address of data block
     * ``data_location``- integer code for data location (original file,
       temporary file or memory)
@@ -2360,9 +2359,9 @@ class MDF3(MDF_Common[Group]):
         gp.trigger = None
 
     def close(self) -> None:
-        """If the MDF was created with memory='minimum' and new
-        channels have been appended, then this must be called just before the
-        object is not used anymore to clean-up the temporary file.
+        """If the MDF was created with memory='minimum' and new channels have
+        been appended, then this must be called just before the object is not
+        used anymore to clean-up the temporary file.
         """
         try:
             if self._closed:
@@ -2408,11 +2407,14 @@ class MDF3(MDF_Common[Group]):
             print(format_exc())
 
     def extend(self, index: int, signals: list[tuple[NDArray[Any], Optional[NDArray[Any]]]]) -> None:
-        """Extend a group with new samples. *signals* contains (values, invalidation_bits)
-        pairs for each extended signal. Since MDF3 does not support invalidation
-        bits, the second item of each pair must be None. The first pair is the master channel's pair, and the
-        next pairs must respect the same order in which the signals were appended. The samples must have raw
-        or physical values according to the *Signals* used for the initial append.
+        """Extend a group with new samples.
+        
+        *signals* contains (values, invalidation_bits) pairs for each extended
+        signal. Since MDF3 does not support invalidation bits, the second item
+        of each pair must be None. The first pair is the master channel's pair,
+        and the next pairs must respect the same order in which the signals
+        were appended. The samples must have raw or physical values according
+        to the *Signals* used for the initial append.
 
         Parameters
         ----------
@@ -2790,22 +2792,22 @@ class MDF3(MDF_Common[Group]):
         raster : float, optional
             Time raster in seconds.
         samples_only : bool, optional
-            If *True* return only the channel samples as np.ndarray; if
-            *False* return a *Signal* object.
+            If *True* return only the channel samples as np.ndarray; if *False*
+            return a *Signal* object.
         data : bytes, optional
             Prevent redundant data read by providing the raw data group samples.
         raw : bool, optional
-            Return channel samples without applying the conversion rule; default
-            `False`.
+            Return channel samples without applying the conversion rule;
+            default `False`.
         ignore_invalidation_bits : bool, optional
             Only defined to have the same API with the MDF v4.
         record_offset : int, optional
             If *data=None* use this to select the record offset from which the
             group data should be loaded.
-        skip_channel_validation (False) : bool, optional
-            Skip validation of channel name, group index and channel index; default
-            *False*. If *True*, the caller has to make sure that the *group* and *index*
-            arguments are provided and are correct.
+        skip_channel_validation : bool, optional
+            Skip validation of channel name, group index and channel index;
+            default *False*. If *True*, the caller has to make sure that the
+            *group* and *index* arguments are provided and are correct.
 
             .. versionadded:: 7.0.0
 
@@ -2853,8 +2855,8 @@ class MDF3(MDF_Common[Group]):
         (3, 3)). Provide both "group" and "index" arguments to select another
         data group
 
-        In this case, adding the group number is also not enough since there are
-        multiple channels with that name in that group.
+        In this case, adding the group number is also not enough since there
+        are multiple channels with that name in that group.
 
         >>> mdf.get('Sig', 1)
         MdfException: Multiple occurrences for channel "Sig": ((1, 1), (1, 2),
@@ -3414,15 +3416,15 @@ class MDF3(MDF_Common[Group]):
     ) -> Union[Path, object]:
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>',
-        where '<cntr>' is the first counter that produces a new file name (that
-        does not already exist in the filesystem).
+        where '<cntr>' is the first counter that produces a new file name that
+        does not already exist in the filesystem.
 
         Parameters
         ----------
         dst : str | pathlib.Path
             Destination file name.
         overwrite : bool, optional
-            Overwrite flag, default *False*.
+            Overwrite flag; default *False*.
         compression : int, optional
             Does nothing for MDF version 3; introduced here to share the same
             API as MDF version 4 files.
