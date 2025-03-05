@@ -4654,41 +4654,10 @@ class PlotGraphics(pg.PlotWidget):
                 and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
                 and not self.locked
             ):
-                if key == QtCore.Qt.Key.Key_I:
-                    factor = 0.165
-                else:
-                    factor = -0.165
 
                 self.block_zoom_signal = True
 
-                if self._settings.value("zoom_y_center_on_cursor", True, type=bool):
-                    value_info = self.value_at_cursor()
-                    if not isinstance(value_info[0], (int, float)):
-                        delta_proc = 0
-                    else:
-                        y, sig_y_bottom, sig_y_top = value_info
-                        delta_proc = (y - (sig_y_top + sig_y_bottom) / 2) / (sig_y_top - sig_y_bottom)
-                else:
-                    delta_proc = 0
-
-                for sig in self.signals:
-                    sig_y_bottom, sig_y_top = sig.y_range
-
-                    # center on the signal cursor Y value
-                    shift = delta_proc * (sig_y_top - sig_y_bottom)
-                    sig_y_top, sig_y_bottom = sig_y_top + shift, sig_y_bottom + shift
-
-                    delta = sig_y_top - sig_y_bottom
-                    sig_y_top -= delta * factor
-                    sig_y_bottom += delta * factor
-
-                    sig, idx = self.signal_by_uuid(sig.uuid)
-
-                    axis = self.axes[idx]
-                    if isinstance(axis, FormatedAxis):
-                        axis.setRange(sig_y_bottom, sig_y_top)
-                    else:
-                        self.set_y_range(sig.uuid, (sig_y_bottom, sig_y_top))
+                self.viewbox.vertical_zoom(zoom_in=key == QtCore.Qt.Key.Key_I)
 
                 self.block_zoom_signal = False
                 self.zoom_changed.emit(False)

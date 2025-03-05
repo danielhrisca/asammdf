@@ -408,15 +408,41 @@ class FormatedAxis(pg.AxisItem):
 
         lv = self.linkedView()
 
+        factor = self._settings.value("zoom_wheel_factor", 0.165, type=float)
+
         if lv is None:
             # this is one of the individual axis
-
-            zoom_y_center_on_cursor = self._settings.value("zoom_y_center_on_cursor", False, type=bool)
 
             pos = event.pos()
             rect = self.boundingRect()
 
-            if zoom_y_center_on_cursor:
+            zoom_y_mode = self._settings.value("zoom_y_mode", "")
+
+            if not zoom_y_mode:
+                if self._settings.value("zoom_y_center_on_cursor", False, type=bool):
+                    zoom_y_mode = "center_on_cursor"
+                else:
+                    zoom_y_mode = "center_on_mouse"
+
+            if zoom_y_mode == "center_on_cursor":
+                plot, uuid = self.linked_signal
+
+                y_pos_val, sig_y_bottom, sig_y_top = plot.value_at_cursor(uuid)
+                delta_proc = sig_y_top / (sig_y_top - sig_y_bottom)
+
+                delta = sig_y_top - sig_y_bottom
+
+                if event.delta() > 0:
+                    delta -= factor * delta
+                else:
+                    delta += factor * delta
+
+                end = delta_proc * delta
+                start = end - delta
+
+                self.setRange(start, end)
+
+            elif zoom_y_mode == "center_on_cursor":
                 plot, uuid = self.linked_signal
 
                 y_pos_val, sig_y_bottom, sig_y_top = plot.value_at_cursor(uuid)
@@ -428,15 +454,15 @@ class FormatedAxis(pg.AxisItem):
                 delta = sig_y_top - sig_y_bottom
 
                 if event.delta() > 0:
-                    end = sig_y_top - 0.165 * delta
-                    start = sig_y_bottom + 0.165 * delta
+                    end = sig_y_top - factor * delta
+                    start = sig_y_bottom + factor * delta
                 else:
-                    end = sig_y_top + 0.165 * delta
-                    start = sig_y_bottom - 0.165 * delta
+                    end = sig_y_top + factor * delta
+                    start = sig_y_bottom - factor * delta
 
                 self.setRange(start, end)
 
-            else:
+            elif zoom_y_mode == "center_on_mouse":
                 y_pos_val = ((rect.height() + rect.y()) - pos.y()) / rect.height() * (
                     self.range[-1] - self.range[0]
                 ) + self.range[0]
@@ -446,9 +472,9 @@ class FormatedAxis(pg.AxisItem):
                 delta = self.range[-1] - self.range[0]
 
                 if event.delta() > 0:
-                    delta = 0.66 * delta
+                    delta = (1 - factor) * delta
                 else:
-                    delta = 1.33 * delta
+                    delta = (1 + factor) * delta
 
                 start = y_pos_val - ratio * delta
                 end = y_pos_val + (1 - ratio) * delta
@@ -470,7 +496,33 @@ class FormatedAxis(pg.AxisItem):
                     pos = event.pos()
                     rect = self.boundingRect()
 
-                    if self._settings.value("zoom_y_center_on_cursor", False, type=bool):
+                    zoom_y_mode = self._settings.value("zoom_y_mode", "")
+
+                    if not zoom_y_mode:
+                        if self._settings.value("zoom_y_center_on_cursor", False, type=bool):
+                            zoom_y_mode = "center_on_cursor"
+                        else:
+                            zoom_y_mode = "center_on_mouse"
+
+                    if zoom_y_mode == "pin_zero_level":
+                        plot, uuid = self.linked_signal
+
+                        y_pos_val, sig_y_bottom, sig_y_top = plot.value_at_cursor()
+                        delta_proc = sig_y_top / (sig_y_top - sig_y_bottom)
+
+                        delta = sig_y_top - sig_y_bottom
+
+                        if event.delta() > 0:
+                            delta -= factor * delta
+                        else:
+                            delta += factor * delta
+
+                        end = delta_proc * delta
+                        start = end - delta
+
+                        self.setRange(start, end)
+
+                    elif zoom_y_mode == "center_on_cursor":
                         plot, uuid = self.linked_signal
 
                         y_pos_val, sig_y_bottom, sig_y_top = plot.value_at_cursor()
@@ -483,11 +535,11 @@ class FormatedAxis(pg.AxisItem):
                         delta = sig_y_top - sig_y_bottom
 
                         if event.delta() > 0:
-                            end = sig_y_top - 0.165 * delta
-                            start = sig_y_bottom + 0.165 * delta
+                            end = sig_y_top - factor * delta
+                            start = sig_y_bottom + factor * delta
                         else:
-                            end = sig_y_top + 0.165 * delta
-                            start = sig_y_bottom - 0.165 * delta
+                            end = sig_y_top + factor * delta
+                            start = sig_y_bottom - factor * delta
 
                         self.setRange(start, end)
 
@@ -501,9 +553,9 @@ class FormatedAxis(pg.AxisItem):
                         delta = self.range[-1] - self.range[0]
 
                         if event.delta() > 0:
-                            delta = 0.66 * delta
+                            delta = (1 - factor) * delta
                         else:
-                            delta = 1.33 * delta
+                            delta = (1 + factor) * delta
 
                         start = y_pos_val - ratio * delta
                         end = y_pos_val + (1 - ratio) * delta
