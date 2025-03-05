@@ -593,7 +593,7 @@ void positions_long(PyObject *samples, PyObject *timestamps, PyObject *plot_samp
   indata = (int32_t *)PyArray_GETPTR1((PyArrayObject *)samples, 0);
   outdata = (int32_t *)PyArray_GETPTR1((PyArrayObject *)result, 0);
 
-  long *ps;
+  int32_t *ps;
   double tmin, tmax, *ts, *pt;
 
   ps = (int32_t *)PyArray_GETPTR1((PyArrayObject *)plot_samples, 0);
