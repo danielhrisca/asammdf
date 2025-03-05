@@ -1364,7 +1364,7 @@ static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
 
     npy_intp dims[1];
     dims[0] = count;
-    out = (PyArrayObject *)PyArray_EMPTY(1, dims, NPY_BOOL, 0);
+    out = PyArray_EMPTY(1, dims, NPY_BOOL, 0);
     outptr = (uint8_t *)PyArray_GETPTR1(out, 0);
 
     for (int i=0; i<count; i++) {
@@ -1393,7 +1393,7 @@ static PyObject *get_invalidation_bits_array_C(uint8_t * data, int64_t cycles, i
 
     npy_intp dims[1];
     dims[0] = cycles;
-    out = (PyArrayObject *)PyArray_EMPTY(1, dims, NPY_BOOL, 0);
+    out = PyArray_EMPTY(1, dims, NPY_BOOL, 0);
     if (!out) return NULL;
     outptr = (uint8_t *)PyArray_GETPTR1(out, 0);
 
