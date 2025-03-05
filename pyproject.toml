@@ -38,7 +38,7 @@ dependencies = [
     "lxml>=4.9.3",
     "lz4",
     "numexpr",
-    "numpy>=2.1.0",
+    "numpy>=2.2.3",
     "pandas",
     "python-dateutil",
     "typing-extensions~=4.10",
