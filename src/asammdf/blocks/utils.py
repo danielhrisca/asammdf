@@ -1687,17 +1687,13 @@ def load_can_database(
         Database path.
     contents : bytes | str | None, optional
         Optional database content.
-    kwargs : dict
-
-        fd : bool = False
-            If supplied, only buses with the same FD kind will be loaded.
-
-        load_flat : bool = False
-            If supplied all the CAN messages found in multiple buses will be contained
-            in the CAN database object. By default the first bus will be returned.
-
-        cluster_name : str
-            If supplied load just the clusters with this name.
+    fd : bool, optional
+        If supplied, only buses with the same FD kind will be loaded.
+    load_flat : bool, optional
+        If *True*, all the CAN messages found in multiple buses will be contained
+        in the CAN database object. By default the first bus will be returned.
+    cluster_name : str, optional
+        If supplied load just the clusters with this name.
 
     Returns
     -------
