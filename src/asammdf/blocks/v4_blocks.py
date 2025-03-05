@@ -5312,7 +5312,7 @@ class FileHistory:
     * ``next_fh_addr`` - int : address of next FHBLOCK
     * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
       file history comment
-    * ``abs_time`` - int : time stamp at which the file modification happened
+    * ``abs_time`` - int : timestamp at which the file modification happened
     * ``tz_offset`` - int : UTC time offset in hours (= GMT time zone)
     * ``daylight_save_time`` - int : daylight saving time
     * ``time_flags`` - int : time flags
@@ -5493,7 +5493,7 @@ class HeaderBlock:
     * ``first_event_addr`` - int : address of first EVBLOCK
     * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
       file comment
-    * ``abs_time`` - int : time stamp at which recording was started in
+    * ``abs_time`` - int : timestamp at which recording was started in
       nanoseconds.
     * ``tz_offset`` - int : UTC time offset in hours (= GMT time zone)
     * ``daylight_save_time`` - int : daylight saving time

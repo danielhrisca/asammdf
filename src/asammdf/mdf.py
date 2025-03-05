@@ -166,7 +166,7 @@ def master_using_raster(mdf: MDF_v2_v3_v4, raster: RasterType, endpoint: bool = 
     raster : float
         New raster.
     endpoint : bool, optional, default: False
-        Include maximum time stamp in the new master.
+        Include maximum timestamp in the new master.
 
     Returns
     -------
@@ -5845,13 +5845,13 @@ class MDF:
         Parameters
         ----------
         minimum : float
-            Minimum plausible time stamp.
+            Minimum plausible timestamp.
         maximum : float
-            Maximum plausible time stamp.
+            Maximum plausible timestamp.
         exp_min : int, optional
-            Minimum plausible exponent used for the time stamps float values.
+            Minimum plausible exponent used for the timestamps float values.
         exp_max : int, optional
-            Maximum plausible exponent used for the time stamps float values.
+            Maximum plausible exponent used for the timestamps float values.
         version : str, optional
             New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default the same

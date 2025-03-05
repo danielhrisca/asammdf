@@ -2754,7 +2754,7 @@ class HeaderBlock:
 
     Since version 3.2 the following extra keys were added:
 
-    * ``abs_time`` - int : time stamp at which recording was started in
+    * ``abs_time`` - int : timestamp at which recording was started in
       nanoseconds.
     * ``tz_offset`` - int : UTC time offset in hours (= GMT time zone)
     * ``time_quality`` - int : time quality class

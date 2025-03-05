@@ -1799,25 +1799,25 @@ def plausible_timestamps(
     exp_min: int = -15,
     exp_max: int = 15,
 ) -> tuple[bool, NDArray[bool_]]:
-    """Check if the time stamps are plausible.
+    """Check if the timestamps are plausible.
 
     Parameters
     ----------
     t : np.ndarray
-        Time stamps array.
+        Timestamps array.
     minimum : float
-        Minimum plausible time stamp.
+        Minimum plausible timestamp.
     maximum : float
-        Maximum plausible time stamp.
+        Maximum plausible timestamp.
     exp_min : int, optional
-        Minimum plausible exponent used for the time stamps float values.
+        Minimum plausible exponent used for the timestamps float values.
     exp_max : int, optional
-        Maximum plausible exponent used for the time stamps float values.
+        Maximum plausible exponent used for the timestamps float values.
 
     Returns
     -------
     all_ok, idx : (bool, np.ndarray)
-        The *all_ok* flag to indicate if all the time stamps are ok; this can
+        The *all_ok* flag to indicate if all the timestamps are ok; this can
         be checked before applying the indexing array.
     """
 
