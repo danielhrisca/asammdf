@@ -1766,7 +1766,7 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
           inptr = (uint8_t *) PyBytes_AsString(array);
         }
         else {
-          if (!PyArray_IS_C_CONTIGUOUS(array))
+          if (!PyArray_IS_C_CONTIGUOUS((PyObject *) array))
           {
             copy_array = PyArray_NewCopy((PyArrayObject *)array, NPY_CORDER);
             array = copy_array;
