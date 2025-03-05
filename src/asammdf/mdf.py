@@ -216,8 +216,8 @@ class MDF:
     Parameters
     ----------
     name : str | BytesIO | zipfile.ZipFile | bz2.BZ2File | gzip.GzipFile, optional
-        Mdf file name (if provided it must be a real file name), file-like object or
-        compressed file opened as a Python object.
+        Mdf file name (if provided it must be a real file name), file-like
+        object or compressed file opened as a Python object.
 
         .. versionchanged:: 6.2.0
 
@@ -225,22 +225,24 @@ class MDF:
 
     version : str, optional
         Mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
-        '3.30', '4.00', '4.10', '4.11', '4.20'); default '4.10'. This argument is
-        only used for MDF objects created from scratch; for MDF objects created
-        from a file the version is set to file version.
+        '3.30', '4.00', '4.10', '4.11', '4.20'); default '4.10'. This argument
+        is only used for MDF objects created from scratch; for MDF objects
+        created from a file the version is set to file version.
 
     channels (None) : iterable, optional
-        Channel names that will be used for selective loading. This can dramatically
-        improve the file loading time. Default *None* -> load all channels.
+        Channel names that will be used for selective loading. This can
+        dramatically improve the file loading time. Default *None* -> load all
+        channels.
 
         .. versionadded:: 6.1.0
 
         .. versionchanged:: 6.3.0 Make the default *None*.
 
     use_display_names (\*\*kwargs) : bool, optional
-        Keyword-only argument: for MDF v4 files, parse the XML channel comment to
-        search for the display name; XML parsing is quite expensive so setting
-        this to *False* can decrease the loading times very much; default *True*.
+        Keyword-only argument: for MDF v4 files, parse the XML channel comment
+        to search for the display name; XML parsing is quite expensive so
+        setting this to *False* can decrease the loading times very much;
+        default *True*.
     remove_source_from_channel_names (\*\*kwargs) : bool, optional
         Remove source from channel names ("Speed\XCP3" -> "Speed").
     copy_on_get (\*\*kwargs) : bool, optional
@@ -825,7 +827,7 @@ class MDF:
         ----------
         version : str
             New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
-            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default '4.10'.
+            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20').
 
         Returns
         -------
@@ -921,7 +923,7 @@ class MDF:
 
         version : str, optional
             New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
-            '3.20', '3.30', '4.00', '4.10', '4.11', 4.20'); default *None* and
+            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and
             in this case the original file version is used.
         include_ends : bool, optional
             Include the *start* and *stop* timestamps after cutting the signal.
@@ -2046,7 +2048,7 @@ class MDF:
         Parameters
         ----------
         channels : list
-            List of items to be filtered; each item can be:
+            List of items to be selected; each item can be:
 
             * a channel name string
             * (channel name, group index, channel index) list or tuple
@@ -3062,7 +3064,7 @@ class MDF:
         progress=None,
     ) -> MDF:
         """Resample all channels using the given raster. See *configure* to
-        select the interpolation method for integer channels.
+        select the interpolation method for integer and float channels.
 
         Parameters
         ----------
@@ -3279,7 +3281,7 @@ class MDF:
         Parameters
         ----------
         channels : list
-            List of items to be filtered; each item can be:
+            List of items to be selected; each item can be:
 
             * a channel name string
             * (channel name, group index, channel index) list or tuple
@@ -3582,7 +3584,7 @@ class MDF:
         Parameters
         ----------
         channels : list
-            List of items to be filtered; each item can be:
+            List of items to be selected; each item can be:
 
             * a channel name string
             * (channel name, group index, channel index) list or tuple
@@ -4259,7 +4261,7 @@ class MDF:
         Parameters
         ----------
         channels : list, optional
-            List of items to be filtered (default *None*); each item can be:
+            List of items to be selected (default *None*); each item can be:
 
             * a channel name string
             * (channel name, group index, channel index) list or tuple
@@ -4669,7 +4671,7 @@ class MDF:
         Parameters
         ----------
         channels : list, optional
-            List of items to be filtered (default *None*); each item can be:
+            List of items to be selected (default *None*); each item can be:
 
             * a channel name string
             * (channel name, group index, channel index) list or tuple
@@ -5078,14 +5080,14 @@ class MDF:
     ) -> MDF:
         """Extract all possible CAN signals using the provided databases.
 
-        Changed in version 6.0.0 from `extract_can_logging`
+        .. versionchanged:: 6.0.0 Renamed from `extract_can_logging`.
 
         Parameters
         ----------
         database_files : dict
             Each key will contain an iterable of database files for that bus
-            type. The supported bus types are "CAN", "LIN". The iterables
-            will contain the (databases, valid bus) pairs. The database can be a
+            type. The supported bus types are "CAN" and "LIN". The iterables
+            will contain the (database, valid bus) pairs. The database can be a
             str, pathlib.Path or canmatrix.CanMatrix object. The valid bus is
             an integer specifying for which bus channel the database can be
             applied; 0 means any bus channel.
@@ -5838,7 +5840,7 @@ class MDF:
         version: str | None = None,
         progress=None,
     ) -> MDF:
-        """Convert *MDF* to other version.
+        """Clean up timestamps and convert *MDF* to other version.
 
         .. versionadded:: 5.22.0
 
@@ -5854,8 +5856,8 @@ class MDF:
             Maximum plausible exponent used for the timestamps float values.
         version : str, optional
             New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
-            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default the same
-            as the input file.
+            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and
+            in this case the original file version is used.
 
         Returns
         -------

@@ -238,11 +238,10 @@ class Signal:
 
         Parameters
         ----------
-        validate (True): bool, optional
+        validate : bool, optional
             Apply the invalidation bits.
-
-        index_only (False) : bool, optional
-            Use index based X axis. This can be useful if the master (usually
+        index_only : bool, optional
+            Use index-based X axis. This can be useful if the master (usually
             time based) is corrupted with NaN, inf or if it is not strictly
             increasing.
         """
