@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core", "numpy"]
+requires = ["scikit-build-core", "numpy>=2.1.0"]
 build-backend = "scikit_build_core.build"
 
 [project]
@@ -38,7 +38,7 @@ dependencies = [
     "lxml>=4.9.3",
     "lz4",
     "numexpr",
-    "numpy>=2.2.3",
+    "numpy>=2.1.0",
     "pandas",
     "python-dateutil",
     "typing-extensions~=4.10",
