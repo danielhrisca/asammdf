@@ -69,17 +69,6 @@ metadata.version.input = "src/asammdf/version.py"
 wheel.packages = ["src/asammdf"]
 wheel.py-api = "cp39"
 
-[tool.black]
-line-length = 120
-required-version = "25"
-target-version = ['py39']
-force-exclude = '''
-(
-    ^/ext |
-    ^/src/asammdf/gui/ui |
-)
-'''
-
 [tool.coverage]
 run.relative_files = true
 run.source_pkgs = ["asammdf"]
@@ -144,6 +133,7 @@ module = [
 ignore_errors = true
 
 [tool.ruff]
+line-length = 120
 target-version = "py39"
 extend-exclude = ["./src/asammdf/gui/ui", "./ext"]
 force-exclude = true
