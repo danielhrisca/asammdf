@@ -252,6 +252,7 @@ class ViewBoxWithCursor(pg.ViewBox):
                 tr = tr.map(dif * mask) - tr.map(pg.Point(0, 0))
 
                 x = tr.x() if mask[0] == 1 else None
+                mask[1] = 0
 
                 self._resetTarget()
                 if x is not None:
