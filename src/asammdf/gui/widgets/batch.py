@@ -182,13 +182,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         buses = can_databases[::2]
         dbs = can_databases[1::2]
 
-        databases["CAN"] = list(zip(buses, dbs))
+        databases["CAN"] = list(zip(buses, dbs, strict=False))
 
         lin_databases = self._settings.value("lin_databases", None) or []
         buses = lin_databases[::2]
         dbs = lin_databases[1::2]
 
-        databases["LIN"] = list(zip(buses, dbs))
+        databases["LIN"] = list(zip(buses, dbs, strict=False))
 
         for bus, database in databases["CAN"]:
             item = QtWidgets.QListWidgetItem()
@@ -359,7 +359,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         progress.signals.setValue.emit(0)
         progress.signals.setMaximum.emit(count)
 
-        for i, (file, source_file) in enumerate(zip(files, source_files)):
+        for i, (file, source_file) in enumerate(zip(files, source_files, strict=False)):
             progress.signals.setLabelText.emit(f"Extracting Bus logging from file {i+1} of {count}\n{source_file}")
 
             if not isinstance(file, mdf_module.MDF):
@@ -553,7 +553,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         message = []
 
-        for i, (file, source_file) in enumerate(zip(files, source_files)):
+        for i, (file, source_file) in enumerate(zip(files, source_files, strict=False)):
             progress.signals.setLabelText.emit(f"Extracting Bus logging from file {i+1} of {count}")
 
             if not isinstance(file, mdf_module.MDF):
@@ -1481,7 +1481,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         files = self._prepare_files(list(source_files), progress)
 
-        for mdf_index, (mdf_file, source_file) in enumerate(zip(files, source_files)):
+        for mdf_index, (mdf_file, source_file) in enumerate(zip(files, source_files, strict=False)):
             if mdf_file is None:
                 continue
 

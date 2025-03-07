@@ -262,7 +262,7 @@ def merge_cantp(payload, ts):
     merged = []
     t_out = []
     merging = np.array([], "uint8")
-    for frame, t in zip(payload, ts):
+    for frame, t in zip(payload, ts, strict=False):
         if frame[0] & 0xF0 == INITIAL:
             expected_size = np.uint16(256) * (frame[0] & 0x0F) + frame[1]
             merging = np.array(frame[2:8], "uint8")

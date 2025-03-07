@@ -2,9 +2,9 @@
 
 from collections.abc import Callable
 import struct
-from typing import TypeVar
+from typing import Literal, TypeVar
 
-from typing_extensions import Buffer, Literal, Protocol
+from typing_extensions import Buffer, Protocol
 
 _T_co = TypeVar("_T_co", covariant=True)
 

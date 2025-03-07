@@ -368,9 +368,9 @@ class TestPushButtonApply(TestBatchWidget):
             self.assertEqual(np.timedelta64(pandas_tab.timestamps.values.max(), "us").item().seconds, seconds)
 
             # Evaluate channels names and units
-            for channel, unit in zip(mdf_channels, units):
+            for channel, unit in zip(mdf_channels, units, strict=False):
                 if channel.display_names:  # DI.<channel name>
-                    display_name, _ = zip(*channel.display_names.items())
+                    display_name, _ = zip(*channel.display_names.items(), strict=False)
                     channel_name = display_name[0]
                 else:
                     channel_name = channel.name
@@ -459,7 +459,7 @@ class TestPushButtonApply(TestBatchWidget):
                 )
 
                 if mdf_signal.display_names:
-                    display_name, _ = zip(*mdf_signal.display_names.items())
+                    display_name, _ = zip(*mdf_signal.display_names.items(), strict=False)
                     channel = display_name[0]
                 for character in to_replace:
                     channel = channel.replace(character, "_")
@@ -503,7 +503,7 @@ class TestPushButtonApply(TestBatchWidget):
         with OpenHDF5(hdf5_path) as hdf5_file, OpenMDF(self.measurement_file) as mdf_file:
             self.assertEqual(len(hdf5_file.items()) - 1, len(groups))  # 5th item is file path
 
-            for mdf_group, hdf5_group in zip(groups.values(), hdf5_file.values()):
+            for mdf_group, hdf5_group in zip(groups.values(), hdf5_file.values(), strict=False):
                 for name in hdf5_group:
                     if name != "time":  # Evaluate channels
                         self.assertIn(name, mdf_group)
@@ -560,7 +560,7 @@ class TestPushButtonApply(TestBatchWidget):
                 )
 
                 if mdf_channel.display_names:
-                    display_name, _ = zip(*mdf_channel.display_names.items())
+                    display_name, _ = zip(*mdf_channel.display_names.items(), strict=False)
                     channel = display_name[0]
                 if channel + "_0" in hdf5_channels.keys() and "RAT" in mdf_channel.name:
                     channel += "_0"
@@ -653,7 +653,7 @@ class TestPushButtonApply(TestBatchWidget):
                     float_interpolation_mode=self.widget.float_interpolation,
                 )
                 if channel.display_names:
-                    display_name, _ = zip(*channel.display_names.items())
+                    display_name, _ = zip(*channel.display_names.items(), strict=False)
                     name = display_name[0]
                 if name + "_0" in pandas_tab.columns and "RAT" in channel.name:
                     name += "_0"

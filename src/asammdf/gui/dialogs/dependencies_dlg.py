@@ -2,7 +2,6 @@ from collections import defaultdict
 import contextlib
 from importlib.metadata import distribution, PackageNotFoundError
 import re
-from typing import Optional
 
 from packaging.requirements import Requirement
 from PySide6.QtCore import QSize
@@ -79,7 +78,7 @@ class DependenciesDlg(QDialog):
 
         root_nodes: dict[str, QTreeWidgetItem] = {}
 
-        def get_root_node(name: Optional[str] = None) -> QTreeWidgetItem:
+        def get_root_node(name: str | None = None) -> QTreeWidgetItem:
             if name is None:
                 name = "mandatory"
 

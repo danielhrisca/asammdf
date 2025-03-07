@@ -3253,7 +3253,7 @@ class ChannelConversion(_ChannelConversionBase):
                     else:
                         phys.append(ref)
 
-                x = sorted(zip(raw_vals, phys))
+                x = sorted(zip(raw_vals, phys, strict=False))
                 raw_vals = np.array([e[0] for e in x], dtype="<i8")
                 phys = [e[1] for e in x]
 
@@ -3273,7 +3273,7 @@ class ChannelConversion(_ChannelConversionBase):
 
                     phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
 
-                    x = sorted(zip(raw_vals, phys))
+                    x = sorted(zip(raw_vals, phys, strict=False))
                     raw_vals = np.array([e[0] for e in x], dtype="<i8")
                     phys = [e[1] for e in x]
 
@@ -3421,7 +3421,7 @@ class ChannelConversion(_ChannelConversionBase):
                     else:
                         phys.append(ref)
 
-                x = sorted(zip(raw_vals, phys))
+                x = sorted(zip(raw_vals, phys, strict=False))
                 raw_vals = [e[0] for e in x]
                 phys = [e[1] for e in x]
 
@@ -3443,7 +3443,7 @@ class ChannelConversion(_ChannelConversionBase):
 
                     phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
 
-                    x = sorted(zip(raw_vals, phys))
+                    x = sorted(zip(raw_vals, phys, strict=False))
                     raw_vals = [e[0] for e in x]
                     phys = [e[1] for e in x]
 
@@ -3564,7 +3564,7 @@ class ChannelConversion(_ChannelConversionBase):
                 lower = [self[f"lower_{i}"] for i in range(nr)]
                 upper = [self[f"upper_{i}"] for i in range(nr)]
 
-                x = sorted(zip(lower, upper, phys))
+                x = sorted(zip(lower, upper, phys, strict=False))
                 lower = np.array([e[0] for e in x], dtype="<i8")
                 upper = np.array([e[1] for e in x], dtype="<i8")
                 phys = [e[2] for e in x]
@@ -3588,7 +3588,7 @@ class ChannelConversion(_ChannelConversionBase):
                     lower = [self[f"lower_{i}"] for i in range(nr)]
                     upper = [self[f"upper_{i}"] for i in range(nr)]
 
-                    x = sorted(zip(lower, upper, phys))
+                    x = sorted(zip(lower, upper, phys, strict=False))
                     lower = np.array([e[0] for e in x], dtype="<i8")
                     upper = np.array([e[1] for e in x], dtype="<i8")
                     phys = [e[2] for e in x]
@@ -3669,7 +3669,7 @@ class ChannelConversion(_ChannelConversionBase):
                 lower = [self[f"lower_{i}"] for i in range(nr)]
                 upper = [self[f"upper_{i}"] for i in range(nr)]
 
-                x = sorted(zip(lower, upper, phys))
+                x = sorted(zip(lower, upper, phys, strict=False))
                 lower = [e[0] for e in x]
                 upper = [e[1] for e in x]
                 phys = [e[2] for e in x]
@@ -3693,7 +3693,7 @@ class ChannelConversion(_ChannelConversionBase):
                     lower = [self[f"lower_{i}"] for i in range(nr)]
                     upper = [self[f"upper_{i}"] for i in range(nr)]
 
-                    x = sorted(zip(lower, upper, phys))
+                    x = sorted(zip(lower, upper, phys, strict=False))
                     lower = [e[0] for e in x]
                     upper = [e[1] for e in x]
                     phys = [e[2] for e in x]
@@ -3720,7 +3720,7 @@ class ChannelConversion(_ChannelConversionBase):
 
             if values.dtype.kind in "ui":
                 for v in vals:
-                    for l, u, p in zip(lower, upper, phys):
+                    for l, u, p in zip(lower, upper, phys, strict=False):
                         if l <= v <= u:
                             if isinstance(p, bytes):
                                 ret.append(p)
@@ -3742,7 +3742,7 @@ class ChannelConversion(_ChannelConversionBase):
 
             else:
                 for v in vals:
-                    for l, u, p in zip(lower, upper, phys):
+                    for l, u, p in zip(lower, upper, phys, strict=False):
                         if l <= v < u:
                             if isinstance(p, bytes):
                                 ret.append(p)
@@ -3835,7 +3835,7 @@ class ChannelConversion(_ChannelConversionBase):
                     new_val = []
                     masked_values = (masks & val).tolist()
 
-                    for on, conv in zip(masked_values, phys):
+                    for on, conv in zip(masked_values, phys, strict=False):
 
                         if isinstance(conv, bytes):
                             if conv:

@@ -3,9 +3,7 @@ asammdf utility functions for channel conversions
 """
 
 from copy import deepcopy
-from typing import Optional, overload, Union
-
-from typing_extensions import Literal
+from typing import Literal, overload
 
 from ..types import ChannelConversionType
 from . import v2_v3_blocks as v3b
@@ -16,7 +14,7 @@ from . import v4_constants as v4c
 
 @overload
 def conversion_transfer(
-    conversion: Optional[ChannelConversionType], version: Literal[3] = ..., copy: bool = ...
+    conversion: ChannelConversionType | None, version: Literal[3] = ..., copy: bool = ...
 ) -> v3b.ChannelConversion: ...
 
 
@@ -27,7 +25,7 @@ def conversion_transfer(
 
 
 def conversion_transfer(
-    conversion: Optional[ChannelConversionType], version: int = 3, copy: bool = False
+    conversion: ChannelConversionType | None, version: int = 3, copy: bool = False
 ) -> ChannelConversionType:
     """convert between mdf4 and mdf3 channel conversions
 
@@ -278,7 +276,7 @@ def conversion_transfer(
     return conversion
 
 
-def inverse_conversion(conversion: Optional[Union[ChannelConversionType, dict]]) -> Optional[v4b.ChannelConversion]:
+def inverse_conversion(conversion: ChannelConversionType | dict | None) -> v4b.ChannelConversion | None:
 
     if isinstance(conversion, v3b.ChannelConversion):
         conversion = conversion_transfer(conversion, version=4)
@@ -460,7 +458,7 @@ def from_dict(conversion: dict[str, object]) -> v4b.ChannelConversion:
     return conversion
 
 
-def to_dict(conversion: ChannelConversionType) -> Optional[dict]:
+def to_dict(conversion: ChannelConversionType) -> dict | None:
     if not conversion:
         return None
 

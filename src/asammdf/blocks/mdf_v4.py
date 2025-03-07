@@ -22,7 +22,7 @@ import shutil
 import sys
 from tempfile import gettempdir, NamedTemporaryFile
 from traceback import format_exc
-from typing import Any, overload
+from typing import Any, Literal, overload
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import canmatrix
@@ -58,7 +58,6 @@ from numpy import (
 )
 from numpy.typing import NDArray
 from pandas import DataFrame
-from typing_extensions import Literal
 
 from .. import tool
 from ..signal import InvalidationArray, Signal
@@ -1145,7 +1144,7 @@ class MDF4(MDF_Common[Group]):
                                     # update byte offset & position of invalidation bit
                                     byte_offset = bit_offset = 0
                                     for coord, byte_factor, bit_factor in zip(
-                                        nd_coords, byte_offset_factors, bit_pos_inval_factors
+                                        nd_coords, byte_offset_factors, bit_pos_inval_factors, strict=False
                                     ):
                                         byte_offset += coord * byte_factor
                                         bit_offset += coord * bit_factor
@@ -5910,7 +5909,7 @@ class MDF4(MDF_Common[Group]):
         added_cycles = len(signals[0][0])
 
         invalidation_bytes_nr = gp.channel_group.invalidation_bytes_nr
-        for i, ((signal, invalidation_bits), (sig_type, sig_size)) in enumerate(zip(signals, gp.signal_types)):
+        for i, ((signal, invalidation_bits), (sig_type, sig_size)) in enumerate(zip(signals, gp.signal_types, strict=False)):
             if invalidation_bytes_nr:
                 if invalidation_bits is not None:
                     if not isinstance(invalidation_bits, InvalidationArray):
@@ -7118,7 +7117,7 @@ class MDF4(MDF_Common[Group]):
                         )
             else:
                 arrays = [lst[0] for lst in channel_values]
-            types = [(name_, arr.dtype, arr.shape[1:]) for name_, arr in zip(names, arrays)]
+            types = [(name_, arr.dtype, arr.shape[1:]) for name_, arr in zip(names, arrays, strict=False)]
             types = dtype(types)
 
             vals = np.rec.fromarrays(arrays, dtype=types)
@@ -8429,7 +8428,7 @@ class MDF4(MDF_Common[Group]):
             else:
                 signals = [(_master, None)]
 
-            for fragment, (group_index, channels) in zip(fragments, groups.items()):
+            for fragment, (group_index, channels) in zip(fragments, groups.items(), strict=False):
                 grp = self.groups[group_index]
                 if not grp.single_channel_dtype:
                     self._prepare_record(grp)
@@ -8453,7 +8452,7 @@ class MDF4(MDF_Common[Group]):
                     )
 
                     if idx == 0:
-                        for channel_index, raw_data in zip(channels, channels_raw_data):
+                        for channel_index, raw_data in zip(channels, channels_raw_data, strict=False):
                             signal = self.get(
                                 group=group_index,
                                 index=channel_index,
@@ -8477,7 +8476,7 @@ class MDF4(MDF_Common[Group]):
                             signals.append(signal)
 
                     else:
-                        for channel_index, raw_data in zip(channels, channels_raw_data):
+                        for channel_index, raw_data in zip(channels, channels_raw_data, strict=False):
                             signal, invalidation_bits = self.get(
                                 group=group_index,
                                 index=channel_index,
@@ -8529,7 +8528,7 @@ class MDF4(MDF_Common[Group]):
 
                 if version < "4.00":
                     if idx == 0:
-                        for sig, channel_index in zip(signals, channels):
+                        for sig, channel_index in zip(signals, channels, strict=False):
                             if sig.samples.dtype.kind == "S":
                                 strsig = self.get(
                                     group=group_index,
@@ -8555,7 +8554,7 @@ class MDF4(MDF_Common[Group]):
                             else:
                                 encodings[group_index].append(None)
                     else:
-                        for i, (sig, encoding_tuple) in enumerate(zip(signals, encodings[group_index])):
+                        for i, (sig, encoding_tuple) in enumerate(zip(signals, encodings[group_index], strict=False)):
                             if encoding_tuple:
                                 encoding, _dtype = encoding_tuple
                                 samples = sig[0]
@@ -10116,7 +10115,7 @@ class MDF4(MDF_Common[Group]):
                 for block in blocks:
                     write(bytes(block))
 
-            for gp, rec_id in zip(self.groups, gp_rec_ids):
+            for gp, rec_id in zip(self.groups, gp_rec_ids, strict=False):
                 gp.data_group.record_id_len = rec_id
 
             if valid_data_groups:
@@ -10135,7 +10134,7 @@ class MDF4(MDF_Common[Group]):
             seek(v4c.IDENTIFICATION_BLOCK_SIZE)
             write(bytes(self.header))
 
-            for orig_addr, gp in zip(original_data_addresses, self.groups):
+            for orig_addr, gp in zip(original_data_addresses, self.groups, strict=False):
                 gp.data_group.data_block_addr = orig_addr
 
             at_map = {value: key for key, value in at_map.items()}
