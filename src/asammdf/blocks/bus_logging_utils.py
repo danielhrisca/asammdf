@@ -217,7 +217,7 @@ def extract_signal(
                 vals &= (2**bit_count) - 1
 
     if signed and not is_float:
-        if bit_count not in (8, 16, 32, 64):
+        if extra_bytes or bit_count not in (8, 16, 32, 64):
             vals = as_non_byte_sized_signed_int(vals, bit_count)
         else:
             vals = vals.view(f"i{std_size}")
