@@ -2626,7 +2626,7 @@ class MDF3(MDF_Common[Group]):
     ) -> str:
         """Get channel unit.
 
-        Channel can be specified in two ways:
+        The channel can be specified in two ways:
 
         * Using the first positional argument *name*.
 
@@ -2677,7 +2677,7 @@ class MDF3(MDF_Common[Group]):
     ) -> str:
         """Get channel comment.
 
-        Channel can be specified in two ways:
+        The channel can be specified in two ways:
 
         * Using the first positional argument *name*.
 
@@ -2764,7 +2764,7 @@ class MDF3(MDF_Common[Group]):
     ) -> Union[Signal, tuple[NDArray[Any], None]]:
         """Get channel samples.
 
-        Channel can be specified in two ways:
+        The channel can be specified in two ways:
 
         * Using the first positional argument *name*.
 

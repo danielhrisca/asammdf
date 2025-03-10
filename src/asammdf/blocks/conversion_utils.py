@@ -33,9 +33,9 @@ def conversion_transfer(
     ----------
     conversion : block
         Channel conversion.
-    version : int, optional
+    version : int, default 3
         Target MDF version.
-    copy : bool, optional
+    copy : bool, default False
         Return a copy if the input conversion version is the same as the
         required version.
 

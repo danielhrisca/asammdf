@@ -256,7 +256,7 @@ class ExtractedSignal(TypedDict):
 
 
 def merge_cantp(payload, ts):
-    """Merge sequences of ISO-TP coded CAN payloads, enabling > 8 byte frames"""
+    """Merge sequences of ISO-TP coded CAN payloads, enabling > 8 byte frames."""
     INITIAL = 0x10
     CONSECUTIVE = 0x20
     merged = []
@@ -291,38 +291,36 @@ def extract_mux(
     is_j1939: bool = False,
     is_extended: bool = False,
 ) -> dict[tuple[Any, ...], dict[str, ExtractedSignal]]:
-    """extract multiplexed CAN signals from the raw payload
+    """Extract multiplexed CAN signals from the raw payload.
 
     Parameters
     ----------
     payload : np.ndarray
-        raw CAN payload as numpy array
+        Raw CAN payload as numpy array.
     message : canmatrix.Frame
-        CAN message description parsed by canmatrix
+        CAN message description parsed by canmatrix.
     message_id : int
-        message id
-    original_message_id : int
-        original message id
+        Message id.
     bus : int
-        bus channel number
+        Bus channel number.
     t : np.ndarray
-        timestamps for the raw payload
-    muxer (None): str
-        name of the parent multiplexor signal
-    muxer_values (None): np.ndarray
-        multiplexor signal values
-    ignore_value2text_conversion (True): bool
-        ignore value to text conversions
+        Timestamps for the raw payload.
+    muxer : str, optional
+        Name of the parent multiplexor signal.
+    muxer_values : np.ndarray, optional
+        Multiplexor signal values.
+    original_message_id : int, optional
+        Original message id.
+    ignore_value2text_conversion : bool, default True
+        Ignore value to text conversions.
 
         .. versionadded:: 5.23.0
-
 
     Returns
     -------
     extracted_signal : dict
-        each value in the dict is a list of signals that share the same
-        multiplexors
-
+        Each value in the dict is a list of signals that share the same
+        multiplexors.
     """
 
     if muxer is None:

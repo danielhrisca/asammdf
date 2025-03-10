@@ -207,7 +207,7 @@ class MDF4(MDF_Common[Group]):
         file-like object.
     version : str, optional
         Mdf file version ('4.00', '4.10', '4.11', '4.20'); default '4.10'.
-    use_display_names (True) : bool, optional
+    use_display_names : bool, optional
         Keyword only argument: for MDF4 files parse the XML channel comment to
         search for the display name; XML parsing is quite expensive so setting
         this to *False* can decrease the loading times very much; default
@@ -6667,7 +6667,7 @@ class MDF4(MDF_Common[Group]):
         memory so it is advised to use ``filter`` or ``select`` instead of
         performing several ``get`` calls.
 
-        Channel can be specified in two ways:
+        The channel can be specified in two ways:
 
         * Using the first positional argument *name*.
 
@@ -10220,7 +10220,7 @@ class MDF4(MDF_Common[Group]):
     ) -> str:
         """Get channel unit.
 
-        Channel can be specified in two ways:
+        The channel can be specified in two ways:
 
         * Using the first positional argument *name*.
 
@@ -10271,7 +10271,7 @@ class MDF4(MDF_Common[Group]):
     ) -> str:
         """Get channel comment.
 
-        Channel can be specified in two ways:
+        The channel can be specified in two ways:
 
         * Using the first positional argument *name*.
 

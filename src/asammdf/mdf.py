@@ -165,7 +165,7 @@ def master_using_raster(mdf: MDF_v2_v3_v4, raster: RasterType, endpoint: bool = 
         Measurement object.
     raster : float
         New raster.
-    endpoint : bool, optional, default: False
+    endpoint : bool, default: False
         Include maximum timestamp in the new master.
 
     Returns
@@ -1220,10 +1220,10 @@ class MDF:
         oned_as : {"row", "column"}, optional
             Only valid for *mat* export; default "row".
         keep_arrays : bool, optional
-            Keep arrays and structure channels as well as the
-            component channels. If *True* this can be very slow. If *False*
-            only the component channels are saved, and their names will be
-            prefixed with the parent channel.
+            Keep arrays and structure channels as well as the component
+            channels. If *True* this can be very slow. If *False* only the
+            component channels are saved, and their names will be prefixed with
+            the parent channel.
         reduce_memory_usage : bool, optional
             Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
@@ -1257,38 +1257,38 @@ class MDF:
 
             .. versionadded:: 6.0.0
 
-        delimiter : str, optional, default: ","
+        delimiter : str, default: ","
             Only valid for CSV: see cpython documentation for csv.Dialect.delimiter.
 
             .. versionadded:: 6.2.0
 
-        doublequote : bool, optional, default: True
+        doublequote : bool, default: True
             Only valid for CSV: see cpython documentation for csv.Dialect.doublequote.
 
             .. versionadded:: 6.2.0
 
-        escapechar : str, optional, default: None
+        escapechar : str, default: None
             Only valid for CSV: see cpython documentation for csv.Dialect.escapechar.
 
             .. versionadded:: 6.2.0
 
-        lineterminator : str, optional, default: "\\r\\n"
+        lineterminator : str, default: "\\r\\n"
             Only valid for CSV: see cpython documentation for csv.Dialect.lineterminator.
 
             .. versionadded:: 6.2.0
 
-        quotechar : str, optional, default: '"'
+        quotechar : str, default: '"'
             Only valid for CSV: see cpython documentation for csv.Dialect.quotechar.
 
             .. versionadded:: 6.2.0
 
-        quoting : str, optional, default: "MINIMAL"
+        quoting : str, default: "MINIMAL"
             Only valid for CSV: see cpython documentation for csv.Dialect.quoting.
             Use the last part of the quoting constant name.
 
             .. versionadded:: 6.2.0
 
-        add_units : bool, optional, default: False
+        add_units : bool, default: False
             Only valid for CSV: add the channel units on the second row of the
             CSV file.
 
@@ -2235,11 +2235,11 @@ class MDF:
 
         Parameters
         ----------
-        name : str, optional
+        name : str
             Name of channel.
-        group : int, optional
+        group : int
             0-based group index.
-        index : int, optional
+        index : int
             0-based channel index.
         raster : float, optional
             Time raster in seconds.
@@ -3010,10 +3010,10 @@ class MDF:
             .. versionadded:: 5.21.0
 
         keep_arrays : bool, optional
-            Keep arrays and structure channels as well as the
-            component channels. If *True* this can be very slow. If *False*
-            only the component channels are saved, and their names will be
-            prefixed with the parent channel.
+            Keep arrays and structure channels as well as the component
+            channels. If *True* this can be very slow. If *False* only the
+            component channels are saved, and their names will be prefixed with
+            the parent channel.
 
             .. versionadded:: 5.21.0
 
@@ -3022,7 +3022,7 @@ class MDF:
 
             .. versionadded:: 5.21.0
 
-        only_basenames (False) : bool, optional
+        only_basenames : bool, default False
             Use just the field names, without prefix, for structures and channel
             arrays.
 
@@ -3076,7 +3076,7 @@ class MDF:
               with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
-        version : str
+        version : str, optional
             New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and
             in this case the original file version is used.
@@ -4177,10 +4177,10 @@ class MDF:
             .. versionadded:: 5.8.0
 
         keep_arrays (False) : bool
-            Keep arrays and structure channels as well as the
-            component channels. If *True* this can be very slow. If *False*
-            only the component channels are saved, and their names will be
-            prefixed with the parent channel.
+            Keep arrays and structure channels as well as the component
+            channels. If *True* this can be very slow. If *False* only the
+            component channels are saved, and their names will be prefixed with
+            the parent channel.
 
             .. versionadded:: 5.8.0
 
@@ -4285,14 +4285,14 @@ class MDF:
         use_display_names : bool
             Use display name instead of standard channel name, if available.
         keep_arrays : bool
-            Keep arrays and structure channels as well as the
-            component channels. If *True* this can be very slow. If *False*
-            only the component channels are saved, and their names will be
-            prefixed with the parent channel.
+            Keep arrays and structure channels as well as the component
+            channels. If *True* this can be very slow. If *False* only the
+            component channels are saved, and their names will be prefixed with
+            the parent channel.
         time_as_date : bool
-            The DataFrame index will contain the datetime timestamps
-            according to the measurement start time; default *False*. If
-            *True* then the argument ``time_from_zero`` will be ignored.
+            The DataFrame index will contain the datetime timestamps according
+            to the measurement start time; default *False*. If *True* then the
+            argument ``time_from_zero`` will be ignored.
         reduce_memory_usage : bool
             Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
@@ -4695,14 +4695,14 @@ class MDF:
         use_display_names : bool
             Use display name instead of standard channel name, if available.
         keep_arrays : bool
-            Keep arrays and structure channels as well as the
-            component channels. If *True* this can be very slow. If *False*
-            only the component channels are saved, and their names will be
-            prefixed with the parent channel.
+            Keep arrays and structure channels as well as the component
+            channels. If *True* this can be very slow. If *False* only the
+            component channels are saved, and their names will be prefixed with
+            the parent channel.
         time_as_date : bool
-            The DataFrame index will contain the datetime timestamps
-            according to the measurement start time; default *False*. If
-            *True* then the argument ``time_from_zero`` will be ignored.
+            The DataFrame index will contain the datetime timestamps according
+            to the measurement start time; default *False*. If *True* then the
+            argument ``time_from_zero`` will be ignored.
         reduce_memory_usage : bool
             Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
@@ -5096,9 +5096,9 @@ class MDF:
 
             .. versionchanged:: 6.3.0 Added bus channel filter.
 
-        version (None) : str
+        version : str, optional
             Output file version.
-        ignore_invalid_signals (None) : bool | None
+        ignore_invalid_signals : bool | None, optional
             Ignore signals that have all samples equal to their maximum value.
 
             .. versionadded:: 5.7.0
@@ -5106,7 +5106,7 @@ class MDF:
             .. deprecated:: 7.0.2
                 This argument is no longer used and will be removed in the future.
 
-        consolidated_j1939 (None) : bool | None
+        consolidated_j1939 : bool | None, optional
             Handle PGNs from all the messages as a single instance.
 
             .. versionadded:: 5.7.0
@@ -5115,12 +5115,12 @@ class MDF:
                 This argument is no longer used and will be removed in the future.
                 The PGNs are saved separately according to the source address.
 
-        ignore_value2text_conversion (True): bool
+        ignore_value2text_conversion : bool, default True
             Ignore value to text conversions.
 
             .. versionadded:: 5.23.0
 
-        prefix ("") : str
+        prefix : str, default ""
             Prefix that will be added to the channel group names and signal
             names in the output file.
 
@@ -5850,9 +5850,9 @@ class MDF:
             Minimum plausible timestamp.
         maximum : float
             Maximum plausible timestamp.
-        exp_min : int, optional
+        exp_min : int, default -15
             Minimum plausible exponent used for the timestamps float values.
-        exp_max : int, optional
+        exp_max : int, default 15
             Maximum plausible exponent used for the timestamps float values.
         version : str, optional
             New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',

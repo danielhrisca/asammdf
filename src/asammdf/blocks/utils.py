@@ -288,6 +288,8 @@ def get_text_v3(
         TextBlock address.
     stream : handle
         File IO handle.
+    decode : bool, default True
+        Use auto-detection to detect character encoding.
 
     Returns
     -------
@@ -362,6 +364,8 @@ def get_text_v4(
         TextBlock address.
     stream : handle
         File IO handle.
+    decode : bool, default True
+        Use auto-detection to detect character encoding.
 
     Returns
     -------
@@ -506,6 +510,8 @@ def get_fmt_v3(data_type: int, size: int, byte_order: int = v3c.BYTE_ORDER_INTEL
         Mdf channel data type.
     size : int
         Data bit size.
+    byte_order : int, default 0 (BYTE_ORDER_INTEL)
+        Integer code for byte order (endianness).
 
     Returns
     -------
@@ -592,7 +598,7 @@ def get_fmt_v4(data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_V
         Mdf channel data type.
     size : int
         Data bit size.
-    channel_type: int, optional
+    channel_type : int, default 0 (CHANNEL_TYPE_VALUE)
         Mdf channel type.
 
     Returns
@@ -704,7 +710,7 @@ def fmt_to_datatype_v3(fmt: dtype[Any], shape: tuple[int, ...], array: bool = Fa
         Numpy data type.
     shape : tuple
         Numpy array shape.
-    array : bool, optional
+    array : bool, default False
         Disambiguate between bytearray and channel array.
 
     Returns
@@ -799,7 +805,7 @@ def fmt_to_datatype_v4(fmt: dtype[Any], shape: tuple[int, ...], array: bool = Fa
         Numpy data type.
     shape : tuple
         Numpy array shape.
-    array : bool, optional
+    array : bool, default False
         Disambiguate between bytearray and channel array.
 
     Returns
@@ -894,7 +900,7 @@ def count_channel_groups(
     ----------
     stream : file handle
         Opened file handle.
-    include_channels : bool, optional
+    include_channels : bool, default False
         Also count channels.
 
     Returns
@@ -1020,7 +1026,7 @@ def validate_version_argument(version: str, hint: int = 4) -> str:
     ----------
     version : str
         Requested MDF version.
-    hint : int, optional
+    hint : int, default 4
         MDF revision hint.
 
     Returns
@@ -1101,7 +1107,7 @@ def is_file_like(obj: object) -> TypeIs[FileLike]:
 
     Parameters
     ----------
-    obj :
+    obj : object
         The object to check.
 
     Returns
@@ -1309,13 +1315,13 @@ def components(
         Prefix used in case of nested recarrays.
     master : pd.Index, optional
         Optional index for the Series.
-    only_basenames (False) : bool, optional
+    only_basenames : bool, default False
         Use just the field names, without prefix, for structures and channel
         arrays.
 
         .. versionadded:: 5.13.0
 
-    use_polars (False) : bool, optional
+    use_polars : bool, default False
         Use polars.
 
         .. versionadded:: 8.1.0
@@ -1809,9 +1815,9 @@ def plausible_timestamps(
         Minimum plausible timestamp.
     maximum : float
         Maximum plausible timestamp.
-    exp_min : int, optional
+    exp_min : int, default -15
         Minimum plausible exponent used for the timestamps float values.
-    exp_max : int, optional
+    exp_max : int, default 15
         Maximum plausible exponent used for the timestamps float values.
 
     Returns

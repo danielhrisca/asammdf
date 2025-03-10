@@ -164,7 +164,7 @@ class MDF_Common(ABC, Generic[_Group]):
     ) -> tuple[int, int]:
         """Validate channel selection.
 
-        Channel can be specified in two ways:
+        The channel can be specified in two ways:
 
         * Using the first positional argument *name*.
 
