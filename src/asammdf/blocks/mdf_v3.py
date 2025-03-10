@@ -2630,9 +2630,8 @@ class MDF3(MDF_Common[Group]):
 
         * Using the first positional argument *name*.
 
-          * If there are multiple occurrences for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
+          * If there are multiple occurrences for this channel then the *group*
+            and *index* arguments can be used to select a specific group.
           * If there are multiple occurrences for this channel and either the
             *group* or *index* arguments is None then a warning is issued.
 
@@ -2640,16 +2639,13 @@ class MDF3(MDF_Common[Group]):
           number (keyword argument *index*). Use *info* method for group and
           channel numbers.
 
-        If the *raster* keyword argument is not *None* the output is
-        interpolated accordingly.
-
         Parameters
         ----------
-        name : str
+        name : str, optional
             Name of channel.
-        group : int
+        group : int, optional
             0-based group index.
-        index : int
+        index : int, optional
             0-based channel index.
 
         Returns
@@ -2681,9 +2677,8 @@ class MDF3(MDF_Common[Group]):
 
         * Using the first positional argument *name*.
 
-          * If there are multiple occurrences for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
+          * If there are multiple occurrences for this channel then the *group*
+            and *index* arguments can be used to select a specific group.
           * If there are multiple occurrences for this channel and either the
             *group* or *index* arguments is None then a warning is issued.
 
@@ -2691,16 +2686,13 @@ class MDF3(MDF_Common[Group]):
           number (keyword argument *index*). Use *info* method for group and
           channel numbers.
 
-        If the *raster* keyword argument is not *None* the output is
-        interpolated accordingly.
-
         Parameters
         ----------
-        name : str
+        name : str, optional
             Name of channel.
-        group : int
+        group : int, optional
             0-based group index.
-        index : int
+        index : int, optional
             0-based channel index.
 
         Returns
@@ -2768,9 +2760,8 @@ class MDF3(MDF_Common[Group]):
 
         * Using the first positional argument *name*.
 
-          * If there are multiple occurrences for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
+          * If there are multiple occurrences for this channel then the *group*
+            and *index* arguments can be used to select a specific group.
           * If there are multiple occurrences for this channel and either the
             *group* or *index* arguments is None then a warning is issued.
 
@@ -2783,11 +2774,11 @@ class MDF3(MDF_Common[Group]):
 
         Parameters
         ----------
-        name : str
+        name : str, optional
             Name of channel.
-        group : int
+        group : int, optional
             0-based group index.
-        index : int
+        index : int, optional
             0-based channel index.
         raster : float, optional
             Time raster in seconds.
@@ -2797,8 +2788,8 @@ class MDF3(MDF_Common[Group]):
         data : bytes, optional
             Prevent redundant data read by providing the raw data group samples.
         raw : bool, optional
-            Return channel samples without applying the conversion rule;
-            default `False`.
+            Return channel samples without applying the conversion rule; default
+            `False`.
         ignore_invalidation_bits : bool, optional
             Only defined to have the same API with the MDF v4.
         record_offset : int, optional

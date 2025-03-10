@@ -2235,11 +2235,11 @@ class MDF:
 
         Parameters
         ----------
-        name : str
+        name : str, optional
             Name of channel.
-        group : int
+        group : int, optional
             0-based group index.
-        index : int
+        index : int, optional
             0-based channel index.
         raster : float, optional
             Time raster in seconds.

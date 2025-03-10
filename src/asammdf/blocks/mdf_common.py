@@ -168,9 +168,8 @@ class MDF_Common(ABC, Generic[_Group]):
 
         * Using the first positional argument *name*.
 
-          * If there are multiple occurrences for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
+          * If there are multiple occurrences for this channel then the *group*
+            and *index* arguments can be used to select a specific group.
           * If there are multiple occurrences for this channel and either the
             *group* or *index* arguments is None then a warning is issued.
 
@@ -180,11 +179,11 @@ class MDF_Common(ABC, Generic[_Group]):
 
         Parameters
         ----------
-        name : str
+        name : str, optional
             Name of channel.
-        group : int
+        group : int, optional
             0-based group index.
-        index : int
+        index : int, optional
             0-based channel index.
 
         Returns
