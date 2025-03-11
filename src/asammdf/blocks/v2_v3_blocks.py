@@ -139,7 +139,7 @@ class Channel:
 
     Other attributes:
 
-    * ``address`` - int : block address inside mdf file
+    * ``address`` - int : block address inside MDF file
     * ``comment`` - str : channel comment
     * ``conversion`` - ChannelConversion : channel conversion; *None* if the
       channel has no conversion
@@ -958,7 +958,7 @@ class ChannelConversion(_ChannelConversionBase):
 
     Other attributes:
 
-    * ``address`` - int : block address inside mdf file
+    * ``address`` - int : block address inside MDF file
     * ``formula`` - str : formula string in case of algebraic conversion
     * ``referenced_blocks`` - list : list of CCBLOCK/TXBLOCK referenced by the
       conversion
@@ -967,11 +967,11 @@ class ChannelConversion(_ChannelConversionBase):
     Parameters
     ----------
     address : int
-        Block address inside mdf file.
+        Block address inside MDF file.
     raw_bytes : bytes
         Complete block read from disk.
     stream : file handle
-        Mdf file handle.
+        MDF file handle.
     for dynamically created objects :
         See the key-value pairs.
 
@@ -1796,16 +1796,16 @@ class ChannelDependency:
 
     Other attributes:
 
-    * ``address`` - int : block address inside mdf file
+    * ``address`` - int : block address inside MDF file
     * ``referenced_channels`` - list : list of (group index, channel index)
       pairs
 
     Parameters
     ----------
     stream : file handle
-        Mdf file handle.
+        MDF file handle.
     address : int
-        Block address inside mdf file.
+        Block address inside MDF file.
     for dynamically created objects :
         See the key-value pairs.
     """
@@ -1929,7 +1929,7 @@ class ChannelExtension:
 
     Other attributes:
 
-    * ``address`` - int : block address inside mdf file
+    * ``address`` - int : block address inside MDF file
     * ``comment`` - str : extension comment
     * ``name`` - str : extension name
     * ``path`` - str : extension path
@@ -1937,9 +1937,9 @@ class ChannelExtension:
     Parameters
     ----------
     stream : file handle
-        Mdf file handle.
+        MDF file handle.
     address : int
-        Block address inside mdf file.
+        Block address inside MDF file.
     for dynamically created objects :
         See the key-value pairs.
     """
@@ -2232,15 +2232,15 @@ class ChannelGroup:
 
     Other attributes:
 
-    * ``address`` - int : block address inside mdf file
+    * ``address`` - int : block address inside MDF file
     * ``comment`` - str : channel group comment
 
     Parameters
     ----------
     stream : file handle
-        Mdf file handle.
+        MDF file handle.
     address : int
-        Block address inside mdf file.
+        Block address inside MDF file.
     for dynamically created objects :
         See the key-value pairs.
 
@@ -2521,14 +2521,14 @@ class DataGroup:
 
     Other attributes:
 
-    * ``address`` - int : block address inside mdf file
+    * ``address`` - int : block address inside MDF file
 
     Parameters
     ----------
     stream : file handle
-        Mdf file handle.
+        MDF file handle.
     address : int
-        Block address inside mdf file.
+        Block address inside MDF file.
     for dynamically created objects :
         See the key-value pairs.
     """
@@ -2649,14 +2649,14 @@ class FileIdentificationBlock:
 
     Other attributes:
 
-    * ``address`` - int : block address inside mdf file; should be 0 always
+    * ``address`` - int : block address inside MDF file; should be 0 always
 
     Parameters
     ----------
     stream : file handle
-        Mdf file handle.
+        MDF file handle.
     version : int
-        Mdf version in case of new file (dynamically created).
+        MDF version in case of new file (dynamically created).
     """
 
     __slots__ = (
@@ -2762,7 +2762,7 @@ class HeaderBlock:
 
     Other attributes:
 
-    * ``address`` - int : block address inside mdf file; should always be 64
+    * ``address`` - int : block address inside MDF file; should always be 64
     * ``comment`` - int : file comment
     * ``program`` - ProgramBlock : program block
     * ``author`` - str : measurement author
@@ -2773,9 +2773,9 @@ class HeaderBlock:
     Parameters
     ----------
     stream : file handle
-        Mdf file handle.
+        MDF file handle.
     version : int
-        Mdf version in case of new file (dynamically created).
+        MDF version in case of new file (dynamically created).
     """
 
     def __init__(self, **kwargs: Unpack[HeaderBlockKwargs]) -> None:
@@ -3108,14 +3108,14 @@ class ProgramBlock:
 
     Other attributes:
 
-    * ``address`` - int : block address inside mdf file
+    * ``address`` - int : block address inside MDF file
 
     Parameters
     ----------
     stream : file handle
-        Mdf file handle.
+        MDF file handle.
     address : int
-        Block address inside mdf file.
+        Block address inside MDF file.
     """
 
     __slots__ = ("address", "block_len", "data", "id")
@@ -3169,14 +3169,14 @@ class TextBlock:
 
     Other attributes:
 
-    * ``address`` - int : block address inside mdf file
+    * ``address`` - int : block address inside MDF file
 
     Parameters
     ----------
     stream : file handle
-        Mdf file handle.
+        MDF file handle.
     address : int
-        Block address inside mdf file.
+        Block address inside MDF file.
     text : bytes | str
         Bytes or str for creating a new TextBlock.
 
@@ -3262,15 +3262,15 @@ class TriggerBlock:
 
     Other attributes:
 
-    * ``address`` - int : block address inside mdf file
+    * ``address`` - int : block address inside MDF file
     * ``comment`` - str : trigger comment
 
     Parameters
     ----------
     stream : file handle
-        Mdf file handle.
+        MDF file handle.
     address : int
-        Block address inside mdf file.
+        Block address inside MDF file.
     """
 
     def __init__(self, **kwargs: Unpack[BlockKwargs]) -> None:
