@@ -141,16 +141,15 @@ class MDF3(MDF_Common[Group]):
 
     Parameters
     ----------
-    name : str | pathlib.Path, optional
-        MDF file name (if provided it must be a real file name) or
-        file-like object.
-    version : str, optional
+    name : str | pathlib.Path | file-like, optional
+        MDF file name (if provided it must be a real file name) or file-like
+        object.
+    version : str, default '3.30'
         MDF file version ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20' or
-        '3.30'); default '3.30'.
+        '3.30').
     callback : function, optional
-        Keyword only argument: function to call to update the progress; the
-        function must accept two arguments (the current progress and maximum
-        progress value).
+        Function to call to update the progress; the function must accept two
+        arguments (the current progress and maximum progress value).
 
     Attributes
     ----------
@@ -171,7 +170,7 @@ class MDF3(MDF_Common[Group]):
     masters_db : dict
         Used for fast master channel access; for each group index key the value
         is the master channel index.
-    name : str
+    name : pathlib.Path
         MDF file name.
     version : str
         MDF version.
@@ -985,10 +984,10 @@ class MDF3(MDF_Common[Group]):
             Group index.
         timestamp : float
             Trigger time.
-        pre_time : float, optional
-            Trigger pre time; default 0.
-        post_time : float, optional
-            Trigger post time; default 0.
+        pre_time : float, default 0
+            Trigger pre time.
+        post_time : float, default 0
+            Trigger post time.
         comment : str, optional
             Trigger comment.
         """
@@ -1099,12 +1098,12 @@ class MDF3(MDF_Common[Group]):
             Channel group acquisition name.
         acq_source : Source, optional
             Channel group acquisition source.
-        comment : str, optional
-            Channel group comment; default 'Python'.
-        common_timebase : bool, optional
+        comment : str, default 'Python'
+            Channel group comment.
+        common_timebase : bool, default False
             Flag to hint that the signals have the same timebase. Only set this
-            if you know for sure that all appended channels share the same
-            time base.
+            if you know for sure that all appended channels share the same time
+            base.
         units : dict, optional
             Will contain the signal units mapped to the signal names when
             appending a pandas DataFrame.
@@ -2403,7 +2402,7 @@ class MDF3(MDF_Common[Group]):
 
     def extend(self, index: int, signals: list[tuple[NDArray[Any], Optional[NDArray[Any]]]]) -> None:
         """Extend a group with new samples.
-        
+
         *signals* contains (values, invalidation_bits) pairs for each extended
         signal. Since MDF3 does not support invalidation bits, the second item
         of each pair must be None. The first pair is the master channel's pair,
@@ -2777,23 +2776,25 @@ class MDF3(MDF_Common[Group]):
             0-based channel index.
         raster : float, optional
             Time raster in seconds.
-        samples_only : bool, optional
+        samples_only : bool, default False
             If *True* return only the channel samples as np.ndarray; if *False*
             return a *Signal* object.
         data : bytes, optional
             Prevent redundant data read by providing the raw data group samples.
-        raw : bool, optional
-            Return channel samples without applying the conversion rule; default
-            `False`.
-        ignore_invalidation_bits : bool, optional
+        raw : bool, default False
+            Return channel samples without applying the conversion rule.
+        ignore_invalidation_bits : bool, default False
             Only defined to have the same API with the MDF v4.
         record_offset : int, optional
             If *data=None* use this to select the record offset from which the
             group data should be loaded.
-        skip_channel_validation : bool, optional
-            Skip validation of channel name, group index and channel index;
-            default *False*. If *True*, the caller has to make sure that the
-            *group* and *index* arguments are provided and are correct.
+        record_count : int, optional
+            Number of records to read; default *None* and in this case all
+            available records are used.
+        skip_channel_validation : bool, default False
+            Skip validation of channel name, group index and channel index. If
+            *True*, the caller has to make sure that the *group* and *index*
+            arguments are provided and are correct.
 
             .. versionadded:: 7.0.0
 
@@ -3162,15 +3163,18 @@ class MDF3(MDF_Common[Group]):
         index : int
             Group index.
         data : (bytes, int), optional
-            (data block raw bytes, fragment offset); default *None*.
+            (data block raw bytes, fragment offset).
         raster : float, optional
-            Raster to be used for interpolation; default *None*.
+            Raster to be used for interpolation.
 
             .. deprecated:: 5.13.0
 
         record_offset : int, optional
             If *data=None* use this to select the record offset from which the
             group data should be loaded.
+        record_count : int, optional
+            Number of records to read; default *None* and in this case all
+            available records are used.
 
         Returns
         -------
@@ -3409,8 +3413,8 @@ class MDF3(MDF_Common[Group]):
         ----------
         dst : str | pathlib.Path
             Destination file name.
-        overwrite : bool, optional
-            Overwrite flag; default *False*.
+        overwrite : bool, default False
+            Overwrite flag.
         compression : int, optional
             Does nothing for MDF version 3; introduced here to share the same
             API as MDF version 4 files.

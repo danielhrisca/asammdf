@@ -1689,9 +1689,9 @@ def load_can_database(
 
     Parameters
     ----------
-    path : StrPathType
+    path : str | pathlib.Path
         Database path.
-    contents : bytes | str | None, optional
+    contents : bytes | str, optional
         Optional database content.
     fd : bool, optional
         If supplied, only buses with the same FD kind will be loaded.

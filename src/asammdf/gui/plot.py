@@ -22,9 +22,9 @@ def plot(signals, title="", validate=True, index_only=False):
     ---------
     signals : iterable | Signal
         Signals to plot.
-    title : str, default: ""
+    title : str, default ''
         Window title.
-    validate : bool, default: True
+    validate : bool, default True
         Consider the invalidation bits.
     """
 

@@ -50,26 +50,25 @@ class Signal:
     name : str
         Signal name.
     conversion : dict | channel conversion block, optional
-        Dict that contains extra conversion information about the signal;
-        default *None*.
+        Dict that contains extra conversion information about the signal.
     comment : str, optional
-        Signal comment; default ''.
-    raw : bool, optional
+        Signal comment.
+    raw : bool, default True
         Signal samples are raw values, with no physical conversion applied.
     master_metadata : list, optional
         Master name and sync type.
     display_names : dict, optional
         Display names used by MDF version 3.
-    attachment : bytes, name, optional
+    attachment : (bytes, str), optional
         Channel attachment and name from MDF version 4.
     source : Source, optional
         Source information named tuple.
     bit_count : int, optional
         Bit count; useful for integer channels.
-    invalidation_bits : np.ndarray | None, optional
-        Channel invalidation bits; default *None*.
-    encoding : str | None, optional
-        Encoding for string signals; default *None*.
+    invalidation_bits : np.ndarray, optional
+        Channel invalidation bits.
+    encoding : str, optional
+        Encoding for string signals.
     flags : Signal.Flags, optional
         Flags for user-defined attributes and stream sync.
     """
@@ -238,9 +237,9 @@ class Signal:
 
         Parameters
         ----------
-        validate : bool, optional
+        validate : bool, default True
             Apply the invalidation bits.
-        index_only : bool, optional
+        index_only : bool, default False
             Use index-based X axis. This can be useful if the master (usually
             time based) is corrupted with NaN, inf or if it is not strictly
             increasing.
@@ -456,15 +455,14 @@ class Signal:
             Start timestamp for cutting.
         stop : float, optional
             Stop timestamp for cutting.
-        include_ends : bool, optional
+        include_ends : bool, default True
             Include the *start* and *stop* timestamps after cutting the signal.
             If *start* and *stop* are not found in the original timestamps,
-            then the new samples will be computed using interpolation. Default
-            *True*.
-        integer_interpolation_mode : int, optional
-            Interpolation mode for integer signals; default 0.
+            then the new samples will be computed using interpolation.
+        integer_interpolation_mode : int, default 0
+            Interpolation mode for integer signals.
 
-            * 0 - repeat previous samples
+            * 0 - repeat previous sample
             * 1 - linear interpolation
             * 2 - hybrid interpolation: channels with integer data type (raw
               values) that have a conversion that outputs float values will use
@@ -472,11 +470,11 @@ class Signal:
 
             .. versionadded:: 6.2.0
 
-        float_interpolation_mode : int, optional
-            Interpolation mode for float channels; default 1.
+        float_interpolation_mode : int, default 1
+            Interpolation mode for float channels.
 
             * 0 - repeat previous sample
-            * 1 - use linear interpolation
+            * 1 - linear interpolation
 
             .. versionadded:: 6.2.0
 
@@ -929,10 +927,10 @@ class Signal:
         new_timestamps : np.ndarray
             Timestamps used for interpolation.
 
-        integer_interpolation_mode : int, optional
-            Interpolation mode for integer signals; default 0.
+        integer_interpolation_mode : int, default 0
+            Interpolation mode for integer signals.
 
-            * 0 - repeat previous samples
+            * 0 - repeat previous sample
             * 1 - linear interpolation
             * 2 - hybrid interpolation: channels with integer data type (raw
               values) that have a conversion that outputs float values will use
@@ -940,11 +938,11 @@ class Signal:
 
             .. versionadded:: 6.2.0
 
-        float_interpolation_mode : int, optional
-            Interpolation mode for float channels; default 1.
+        float_interpolation_mode : int, default 1
+            Interpolation mode for float channels.
 
             * 0 - repeat previous sample
-            * 1 - use linear interpolation
+            * 1 - linear interpolation
 
             .. versionadded:: 6.2.0
 
@@ -1414,7 +1412,7 @@ class Signal:
 
         Parameters
         ----------
-        copy : bool, optional
+        copy : bool, default True
             Copy the samples and timestamps in the returned Signal.
 
             .. versionadded:: 7.4.0
@@ -1463,7 +1461,7 @@ class Signal:
 
         Parameters
         ----------
-        copy (True) : bool, optional
+        copy : bool, default True
             Return a copy of the result.
 
             .. versionadded:: 5.12.0

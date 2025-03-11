@@ -202,23 +202,22 @@ class MDF4(MDF_Common[Group]):
 
     Parameters
     ----------
-    name : str, optional
-        MDF file name (if provided it must be a real file name) or
-        file-like object.
-    version : str, optional
-        MDF file version ('4.00', '4.10', '4.11', '4.20'); default '4.10'.
-    use_display_names : bool, optional
-        Keyword only argument: for MDF4 files parse the XML channel comment to
-        search for the display name; XML parsing is quite expensive so setting
-        this to *False* can decrease the loading times very much; default
-        *True*.
+    name : str | pathlib.Path | file-like, optional
+        MDF file name (if provided it must be a real file name) or file-like
+        object.
+    version : str, default '4.10'
+        MDF file version ('4.00', '4.10', '4.11', '4.20').
+    use_display_names : bool, default True
+        Parse the XML channel comment to search for the display name; XML
+        parsing is quite expensive so setting this to *False* can decrease the
+        loading times very much.
     remove_source_from_channel_names : bool, default False
         Remove source from channel names ("Speed\XCP3" -> "Speed").
-    copy_on_get (True) : bool, optional
+    copy_on_get : bool, default True
         Copy channel values (np.ndarray) to avoid high memory usage.
     compact_vlsd (False) : bool, optional
         Use slower method to save the exact sample size for VLSD channels.
-    column_storage (True) : bool, optional
+    column_storage : bool, default True
         Use column storage for MDF version >= 4.20.
     password : bytes | str, optional
         Use this password to decode encrypted attachments.
@@ -250,7 +249,7 @@ class MDF4(MDF_Common[Group]):
     masters_db : dict
         Used for fast master channel access; for each group index key the value
         is the master channel index.
-    name : str
+    name : pathlib.Path
         MDF file name.
     version : str
         MDF version.
@@ -2629,7 +2628,7 @@ class MDF4(MDF_Common[Group]):
         pos_invalidation_bit : int
             Channel invalidation bit position.
         fragment : (bytes, int)
-            (fragment bytes, fragment offset)
+            (fragment bytes, fragment offset).
 
         Returns
         -------
@@ -2695,12 +2694,12 @@ class MDF4(MDF_Common[Group]):
             Channel group acquisition name.
         acq_source : Source, optional
             Channel group acquisition source.
-        comment : str, optional
-            Channel group comment; default 'Python'.
-        common_timebase : bool, optional
+        comment : str, default 'Python'
+            Channel group comment.
+        common_timebase : bool, default False
             Flag to hint that the signals have the same timebase. Only set this
-            if you know for sure that all appended channels share the same
-            time base.
+            if you know for sure that all appended channels share the same time
+            base.
         units : dict, optional
             Will contain the signal units mapped to the signal names when
             appending a pandas DataFrame.
@@ -6311,13 +6310,13 @@ class MDF4(MDF_Common[Group]):
             MD5 of the data.
         comment : str, optional
             Attachment comment.
-        compression : bool, optional
+        compression : bool, default True
             Use compression for embedded attachment data.
-        mime : str, optional
+        mime : str, default 'application/octet-stream'
             Mime type.
-        embedded : bool, optional
+        embedded : bool, default True
             Attachment is embedded in the file.
-        password : str | bytes | None, default: None
+        password : str | bytes, optional
             Password used to encrypt the data using AES256 encryption.
 
             .. versionadded:: 7.0.0
@@ -6502,9 +6501,9 @@ class MDF4(MDF_Common[Group]):
 
         Parameters
         ----------
-        index : int, default: None
+        index : int, optional
             Attachment index.
-        password : str | bytes | None, default: None
+        password : str | bytes, optional
             Password used to encrypt the data using AES256 encryption.
 
             .. versionadded:: 7.0.0
@@ -6685,15 +6684,14 @@ class MDF4(MDF_Common[Group]):
             0-based channel index.
         raster : float, optional
             Time raster in seconds.
-        samples_only : bool, optional
+        samples_only : bool, default False
             If *True* return only the channel samples as np.ndarray; if *False*
             return a *Signal* object.
         data : bytes, optional
             Prevent redundant data read by providing the raw data group samples.
-        raw : bool, optional
-            Return channel samples without applying the conversion rule; default
-            `False`.
-        ignore_invalidation_bits : bool, optional
+        raw : bool, default False
+            Return channel samples without applying the conversion rule.
+        ignore_invalidation_bits : bool, default False
             Option to ignore invalidation bits.
         record_offset : int, optional
             If *data=None* use this to select the record offset from which the
@@ -6701,10 +6699,10 @@ class MDF4(MDF_Common[Group]):
         record_count : int, optional
             Number of records to read; default *None* and in this case all
             available records are used.
-        skip_channel_validation : bool, optional
-            Skip validation of channel name, group index and channel index;
-            default *False*. If *True*, the caller has to make sure that the
-            *group* and *index* arguments are provided and are correct.
+        skip_channel_validation : bool, default False
+            Skip validation of channel name, group index and channel index. If
+            *True*, the caller has to make sure that the *group* and *index*
+            arguments are provided and are correct.
 
             .. versionadded:: 7.0.0
 
@@ -8588,8 +8586,7 @@ class MDF4(MDF_Common[Group]):
         index : int
             Group index.
         data : (bytes, int, int, bytes | None), optional
-            (data block raw bytes, fragment offset, count, invalidation bytes);
-            default *None*.
+            (data block raw bytes, fragment offset, count, invalidation bytes).
         record_offset : int, optional
             If *data=None* use this to select the record offset from which the
             group data should be loaded.
@@ -8793,20 +8790,19 @@ class MDF4(MDF_Common[Group]):
             Signal name.
         database : str, optional
             Path of external CAN/LIN database file (.dbc or .arxml) or
-            canmatrix.CanMatrix; default *None*.
+            canmatrix.CanMatrix.
 
             .. versionchanged:: 6.0.0
                 `db` and `database` arguments were merged into this single
                 argument.
 
-        ignore_invalidation_bits : bool, optional
+        ignore_invalidation_bits : bool, default False
             Option to ignore invalidation bits.
-        raw : bool, optional
-            Return channel samples without applying the conversion rule; default
-            `False`.
-        ignore_value2text_conversion : bool, optional
+        raw : bool, default False
+            Return channel samples without applying the conversion rule.
+        ignore_value2text_conversion : bool, default True
             Return channel samples without values that have a description in
-            .dbc or .arxml file; default `True`.
+            .dbc or .arxml file.
 
         Returns
         -------
@@ -8875,20 +8871,19 @@ class MDF4(MDF_Common[Group]):
             Signal name.
         database : str, optional
             Path of external CAN database file (.dbc or .arxml) or
-            canmatrix.CanMatrix; default *None*.
+            canmatrix.CanMatrix.
 
             .. versionchanged:: 6.0.0
                 `db` and `database` arguments were merged into this single
-                argument
+                argument.
 
-        ignore_invalidation_bits : bool, optional
+        ignore_invalidation_bits : bool, default False
             Option to ignore invalidation bits.
-        raw : bool, optional
-            Return channel samples without applying the conversion rule; default
-            `False`.
-        ignore_value2text_conversion : bool, optional
+        raw : bool, default False
+            Return channel samples without applying the conversion rule.
+        ignore_value2text_conversion : bool, default True
             Return channel samples without values that have a description in
-            .dbc or .arxml file; default `True`.
+            .dbc or .arxml file.
 
         Returns
         -------
@@ -9133,15 +9128,14 @@ class MDF4(MDF_Common[Group]):
             Signal name.
         database : str, optional
             Path of external LIN database file (.dbc, .arxml or .ldf) or
-            canmatrix.CanMatrix; default *None*.
-        ignore_invalidation_bits : bool, optional
+            canmatrix.CanMatrix.
+        ignore_invalidation_bits : bool, default False
             Option to ignore invalidation bits.
-        raw : bool, optional
-            Return channel samples without applying the conversion rule; default
-            `False`.
-        ignore_value2text_conversion : bool, optional
+        raw : bool, default False
+            Return channel samples without applying the conversion rule.
+        ignore_value2text_conversion : bool, default True
             Return channel samples without values that have a description in
-            .dbc, .arxml or .ldf file; default `True`.
+            .dbc, .arxml or .ldf file.
 
         Returns
         -------
@@ -9336,19 +9330,19 @@ class MDF4(MDF_Common[Group]):
 
         Parameters
         ----------
-        dst : str
+        dst : str | pathlib.Path | file-like
             Destination file name.
-        overwrite : bool, optional
-            Overwrite flag; default *False*.
-        compression : int, optional
-            Use compressed data blocks; default 0; valid since version 4.10.
+        overwrite : bool, default False
+            Overwrite flag.
+        compression : int, default 0
+            Use compressed data blocks; valid since MDF version 4.10.
 
             * 0 - no compression
             * 1 - deflate (slower, but produces smaller files)
             * 2 - transposition + deflate (slowest, but produces
               the smallest files)
 
-        add_history_block : bool, optional
+        add_history_block : bool, default True
             Option to add file history block.
 
         Returns
