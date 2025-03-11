@@ -6429,9 +6429,8 @@ class MDF4(MDF_Common[Group]):
         return index
 
     def close(self) -> None:
-        """If the MDF was created with memory=False and new channels have been
-        appended, then this must be called just before the object is not used
-        anymore to clean-up the temporary file.
+        """Call this just before the object is not used anymore to clean up the
+        temporary file and close the file object.
         """
 
         if self._closed:

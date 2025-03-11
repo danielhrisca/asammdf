@@ -154,8 +154,6 @@ class MDF3(MDF_Common[Group]):
 
     Attributes
     ----------
-    attachments : list
-        List of file attachments.
     channels_db : dict
         Used for fast channel access by name; for each name key the value is a
         list of (group index, channel index) tuples.
@@ -173,8 +171,6 @@ class MDF3(MDF_Common[Group]):
     masters_db : dict
         Used for fast master channel access; for each group index key the value
         is the master channel index.
-    memory : str
-        Memory optimization option.
     name : str
         Mdf file name.
     version : str
@@ -2359,9 +2355,8 @@ class MDF3(MDF_Common[Group]):
         gp.trigger = None
 
     def close(self) -> None:
-        """If the MDF was created with memory='minimum' and new channels have
-        been appended, then this must be called just before the object is not
-        used anymore to clean-up the temporary file.
+        """Call this just before the object is not used anymore to clean up the
+        temporary file and close the file object.
         """
         try:
             if self._closed:
