@@ -212,7 +212,7 @@ class MDF4(MDF_Common[Group]):
         search for the display name; XML parsing is quite expensive so setting
         this to *False* can decrease the loading times very much; default
         *True*.
-    remove_source_from_channel_names (True) : bool, optional
+    remove_source_from_channel_names : bool, default False
         Remove source from channel names ("Speed\XCP3" -> "Speed").
     copy_on_get (True) : bool, optional
         Copy channel values (np.ndarray) to avoid high memory usage.

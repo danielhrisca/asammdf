@@ -243,7 +243,7 @@ class MDF:
         to search for the display name; XML parsing is quite expensive so
         setting this to *False* can decrease the loading times very much;
         default *True*.
-    remove_source_from_channel_names (\*\*kwargs) : bool, optional
+    remove_source_from_channel_names : bool, default False
         Remove source from channel names ("Speed\XCP3" -> "Speed").
     copy_on_get (\*\*kwargs) : bool, optional
         Copy arrays in the `get` method; default *True*.
@@ -706,9 +706,9 @@ class MDF:
 
         The default values for the options are the following:
 
-        * read_fragment_size = 0
+        * read_fragment_size = 256MB
         * write_fragment_size = 4MB
-        * use_display_names = False
+        * use_display_names = True
         * single_bit_uint_as_bool = False
         * integer_interpolation = 0 (fill - use previous sample)
         * float_interpolation = 1 (linear interpolation)
@@ -720,11 +720,11 @@ class MDF:
         Parameters
         ----------
         read_fragment_size : int, optional
-            Size hint of split data blocks, default 8MB; if the initial size is
+            Size hint of split data blocks; if the initial size is
             smaller, then no data list is used. The actual split size depends on
             the data groups' records size.
         write_fragment_size : int, optional
-            Size hint of split data blocks, default 4MB; if the initial size is
+            Size hint of split data blocks; if the initial size is
             smaller, then no data list is used. The actual split size depends on
             the data groups' records size. Maximum size is 4MB to ensure
             compatibility with CANape.
@@ -1219,11 +1219,6 @@ class MDF:
             Only valid for *mat* export; default "5".
         oned_as : {"row", "column"}, optional
             Only valid for *mat* export; default "row".
-        keep_arrays : bool, optional
-            Keep arrays and structure channels as well as the component
-            channels. If *True* this can be very slow. If *False* only the
-            component channels are saved, and their names will be prefixed with
-            the parent channel.
         reduce_memory_usage : bool, optional
             Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
@@ -1267,7 +1262,7 @@ class MDF:
 
             .. versionadded:: 6.2.0
 
-        escapechar : str, default: None
+        escapechar : str, default: '"'
             Only valid for CSV: see cpython documentation for csv.Dialect.escapechar.
 
             .. versionadded:: 6.2.0
