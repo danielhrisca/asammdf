@@ -507,7 +507,7 @@ def get_fmt_v3(data_type: int, size: int, byte_order: int = v3c.BYTE_ORDER_INTEL
     Parameters
     ----------
     data_type : int
-        Mdf channel data type.
+        MDF channel data type.
     size : int
         Data bit size.
     byte_order : int, default 0 (BYTE_ORDER_INTEL)
@@ -595,11 +595,11 @@ def get_fmt_v4(data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_V
     Parameters
     ----------
     data_type : int
-        Mdf channel data type.
+        MDF channel data type.
     size : int
         Data bit size.
     channel_type : int, default 0 (CHANNEL_TYPE_VALUE)
-        Mdf channel type.
+        MDF channel type.
 
     Returns
     -------
@@ -1041,7 +1041,7 @@ def validate_version_argument(version: str, hint: int = 4) -> str:
             valid_version = "3.30"
         else:
             valid_version = "4.10"
-        message = 'Unknown mdf version "{}".' " The available versions are {};" ' automatically using version "{}"'
+        message = 'Unknown MDF version "{}".' " The available versions are {};" ' automatically using version "{}"'
         message = message.format(version, SUPPORTED_VERSIONS, valid_version)
         logger.warning(message)
     else:

@@ -216,7 +216,7 @@ class MDF:
     Parameters
     ----------
     name : str | BytesIO | zipfile.ZipFile | bz2.BZ2File | gzip.GzipFile, optional
-        Mdf file name (if provided it must be a real file name), file-like
+        MDF file name (if provided it must be a real file name), file-like
         object or compressed file opened as a Python object.
 
         .. versionchanged:: 6.2.0
@@ -224,7 +224,7 @@ class MDF:
             Added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile.
 
     version : str, optional
-        Mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
+        MDF file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
         '3.30', '4.00', '4.10', '4.11', '4.20'); default '4.10'. This argument
         is only used for MDF objects created from scratch; for MDF objects
         created from a file the version is set to file version.
@@ -826,7 +826,7 @@ class MDF:
         Parameters
         ----------
         version : str
-            New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
+            New MDF file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11', '4.20').
 
         Returns
@@ -922,7 +922,7 @@ class MDF:
             * 1 : relative to first timestamp
 
         version : str, optional
-            New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
+            New MDF file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and
             in this case the original file version is used.
         include_ends : bool, optional
@@ -2051,7 +2051,7 @@ class MDF:
             * (None, group index, channel index) list or tuple
 
         version : str, optional
-            New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
+            New MDF file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and
             in this case the original file version is used.
 
@@ -3072,7 +3072,7 @@ class MDF:
             * an array (starting with asammdf 5.5.0)
 
         version : str, optional
-            New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
+            New MDF file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and
             in this case the original file version is used.
 
@@ -5850,7 +5850,7 @@ class MDF:
         exp_max : int, default 15
             Maximum plausible exponent used for the timestamps float values.
         version : str, optional
-            New mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
+            New MDF file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and
             in this case the original file version is used.
 

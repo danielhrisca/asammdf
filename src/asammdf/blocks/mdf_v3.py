@@ -125,7 +125,7 @@ class MDF3(MDF_Common[Group]):
     * ``data_group`` - DataGroup object
     * ``channel_group`` - ChannelGroup object
     * ``channels`` - list of Channel objects with the same order as found in
-      the mdf file
+      the MDF file
     * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel
       arrays; list of Channel objects in case of structure channel composition
     * ``data_block`` - address of data block
@@ -142,10 +142,10 @@ class MDF3(MDF_Common[Group]):
     Parameters
     ----------
     name : str | pathlib.Path, optional
-        Mdf file name (if provided it must be a real file name) or
+        MDF file name (if provided it must be a real file name) or
         file-like object.
     version : str, optional
-        Mdf file version ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20' or
+        MDF file version ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20' or
         '3.30'); default '3.30'.
     callback : function, optional
         Keyword only argument: function to call to update the progress; the
@@ -160,9 +160,9 @@ class MDF3(MDF_Common[Group]):
     groups : list
         List of data group dicts.
     header : HeaderBlock
-        Mdf file header.
+        MDF file header.
     identification : FileIdentificationBlock
-        Mdf file start block.
+        MDF file start block.
     last_call_info : dict | None
         A dict to hold information about the last called method.
 
@@ -172,9 +172,9 @@ class MDF3(MDF_Common[Group]):
         Used for fast master channel access; for each group index key the value
         is the master channel index.
     name : str
-        Mdf file name.
+        MDF file name.
     version : str
-        Mdf version.
+        MDF version.
     """
 
     def __init__(

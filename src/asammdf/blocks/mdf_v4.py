@@ -185,7 +185,7 @@ class MDF4(MDF_Common[Group]):
     * ``data_group`` - DataGroup object
     * ``channel_group`` - ChannelGroup object
     * ``channels`` - list of Channel objects with the same order as found in
-      the mdf file
+      the MDF file
     * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel
       arrays; list of Channel objects in case of structure channel composition
     * ``data_block`` - address of data block
@@ -203,10 +203,10 @@ class MDF4(MDF_Common[Group]):
     Parameters
     ----------
     name : str, optional
-        Mdf file name (if provided it must be a real file name) or
+        MDF file name (if provided it must be a real file name) or
         file-like object.
     version : str, optional
-        Mdf file version ('4.00', '4.10', '4.11', '4.20'); default '4.10'.
+        MDF file version ('4.00', '4.10', '4.11', '4.20'); default '4.10'.
     use_display_names : bool, optional
         Keyword only argument: for MDF4 files parse the XML channel comment to
         search for the display name; XML parsing is quite expensive so setting
@@ -239,9 +239,9 @@ class MDF4(MDF_Common[Group]):
     groups : list
         List of data group dicts.
     header : HeaderBlock
-        Mdf file header.
+        MDF file header.
     identification : FileIdentificationBlock
-        Mdf file start block.
+        MDF file start block.
     last_call_info : dict | None
         A dict to hold information about the last called method.
 
@@ -251,9 +251,9 @@ class MDF4(MDF_Common[Group]):
         Used for fast master channel access; for each group index key the value
         is the master channel index.
     name : str
-        Mdf file name.
+        MDF file name.
     version : str
-        Mdf version.
+        MDF version.
     """
 
     def __init__(
