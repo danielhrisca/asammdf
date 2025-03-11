@@ -1229,15 +1229,8 @@ class MDF4(MDF_Common[Group]):
         start_offset: int | None = None,
         end_offset: int | None = None,
     ) -> bytes:
-        """This method is used to get the channel signal data, usually for
-        VLSD channels.
-
-        Parameters
-        ----------
-        address : int
-            Address of referenced block.
-        stream : handle
-            File IO stream handle.
+        """This method is used to get the channel signal data, usually for VLSD
+        channels.
 
         Returns
         -------
