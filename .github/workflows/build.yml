@@ -25,7 +25,7 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm' }}
         run: |
           sudo apt update
-          sudo apt install libegl1 libopengl0 libevent-2.1-7
+          sudo apt install libegl1 libopengl0 libevent-2.1-7 libopus0
 
       - name: Install Python packages
         run: |
