@@ -3942,7 +3942,7 @@ class MDF4(MDF_Common[Group]):
         offset = 0
 
         prepare_record = True
-        source_block = None
+        source_block = acq_source
 
         master_metadata = signals[0].master_metadata
         if master_metadata:
@@ -8617,8 +8617,8 @@ class MDF4(MDF_Common[Group]):
         group = self.groups[index]
         if group.channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
             if data is not None:
-                record_offset = data[1]
-                record_count = data[2]
+                record_offset = data.record_offset
+                record_count = data.record_count
             return self.get_master(
                 group.channel_group.cg_master_index,
                 record_offset=record_offset,
