@@ -297,14 +297,15 @@ class Signal:
                     plt.show()
                 else:
                     master_name, sync_type = self.master_metadata
-                    if sync_type in (0, 1):
-                        plt.xlabel(f"{master_name} [s]")
-                    elif sync_type == 2:
-                        plt.xlabel(f"{master_name} [deg]")
-                    elif sync_type == 3:
-                        plt.xlabel(f"{master_name} [m]")
-                    elif sync_type == 4:
-                        plt.xlabel(f"{master_name} [index]")
+                    match sync_type:
+                        case 0 | 1:
+                            plt.xlabel(f"{master_name} [s]")
+                        case 2:
+                            plt.xlabel(f"{master_name} [deg]")
+                        case 3:
+                            plt.xlabel(f"{master_name} [m]")
+                        case 4:
+                            plt.xlabel(f"{master_name} [index]")
                     plt.ylabel(f"[{self.unit}]")
                     plt.plot(self.timestamps, self.samples, "b")
                     plt.plot(self.timestamps, self.samples, "b.")

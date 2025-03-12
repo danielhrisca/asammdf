@@ -571,44 +571,42 @@ def get_fmt_v3(data_type: int, size: int, byte_order: int = v3c.BYTE_ORDER_INTEL
             else:
                 size = size // 8
 
-            if data_type == v3c.DATA_TYPE_UNSIGNED_INTEL:
-                fmt = f"<u{size}"
-
-            elif data_type == v3c.DATA_TYPE_UNSIGNED:
-                if byte_order == v3c.BYTE_ORDER_INTEL:
+            match data_type:
+                case v3c.DATA_TYPE_UNSIGNED_INTEL:
                     fmt = f"<u{size}"
-                else:
+
+                case v3c.DATA_TYPE_UNSIGNED:
+                    if byte_order == v3c.BYTE_ORDER_INTEL:
+                        fmt = f"<u{size}"
+                    else:
+                        fmt = f">u{size}"
+
+                case v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
                     fmt = f">u{size}"
 
-            elif data_type == v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
-                fmt = f">u{size}"
-
-            elif data_type == v3c.DATA_TYPE_SIGNED_INTEL:
-                fmt = f"<i{size}"
-
-            elif data_type == v3c.DATA_TYPE_SIGNED:
-                if byte_order == v3c.BYTE_ORDER_INTEL:
+                case v3c.DATA_TYPE_SIGNED_INTEL:
                     fmt = f"<i{size}"
-                else:
+
+                case v3c.DATA_TYPE_SIGNED:
+                    if byte_order == v3c.BYTE_ORDER_INTEL:
+                        fmt = f"<i{size}"
+                    else:
+                        fmt = f">i{size}"
+
+                case v3c.DATA_TYPE_SIGNED_MOTOROLA:
                     fmt = f">i{size}"
 
-            elif data_type == v3c.DATA_TYPE_SIGNED_MOTOROLA:
-                fmt = f">i{size}"
-
-            elif data_type in (v3c.DATA_TYPE_FLOAT_INTEL, v3c.DATA_TYPE_DOUBLE_INTEL):
-                fmt = f"<f{size}"
-
-            elif data_type in (
-                v3c.DATA_TYPE_FLOAT_MOTOROLA,
-                v3c.DATA_TYPE_DOUBLE_MOTOROLA,
-            ):
-                fmt = f">f{size}"
-
-            elif data_type in (v3c.DATA_TYPE_FLOAT, v3c.DATA_TYPE_DOUBLE):
-                if byte_order == v3c.BYTE_ORDER_INTEL:
+                case v3c.DATA_TYPE_FLOAT_INTEL | v3c.DATA_TYPE_DOUBLE_INTEL:
                     fmt = f"<f{size}"
-                else:
+
+                case v3c.DATA_TYPE_FLOAT_MOTOROLA | v3c.DATA_TYPE_DOUBLE_MOTOROLA:
                     fmt = f">f{size}"
+
+                case v3c.DATA_TYPE_FLOAT | v3c.DATA_TYPE_DOUBLE:
+                    if byte_order == v3c.BYTE_ORDER_INTEL:
+                        fmt = f"<f{size}"
+                    else:
+                        fmt = f">f{size}"
 
     return fmt
 
@@ -658,27 +656,28 @@ def get_fmt_v4(data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_V
             fmt = "V6"
 
     elif channel_type in v4c.VIRTUAL_TYPES:
-        if data_type == v4c.DATA_TYPE_UNSIGNED_INTEL:
-            fmt = "<u8"
+        match data_type:
+            case v4c.DATA_TYPE_UNSIGNED_INTEL:
+                fmt = "<u8"
 
-        elif data_type == v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
-            fmt = ">u8"
+            case v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
+                fmt = ">u8"
 
-        elif data_type == v4c.DATA_TYPE_SIGNED_INTEL:
-            fmt = "<i8"
+            case v4c.DATA_TYPE_SIGNED_INTEL:
+                fmt = "<i8"
 
-        elif data_type == v4c.DATA_TYPE_SIGNED_MOTOROLA:
-            fmt = ">i8"
+            case v4c.DATA_TYPE_SIGNED_MOTOROLA:
+                fmt = ">i8"
 
-        elif data_type == v4c.DATA_TYPE_REAL_INTEL:
-            fmt = "<f8"
+            case v4c.DATA_TYPE_REAL_INTEL:
+                fmt = "<f8"
 
-        elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
-            fmt = ">f8"
-        elif data_type == v4c.DATA_TYPE_COMPLEX_INTEL:
-            fmt = "<c8"
-        elif data_type == v4c.DATA_TYPE_COMPLEX_MOTOROLA:
-            fmt = ">c8"
+            case v4c.DATA_TYPE_REAL_MOTOROLA:
+                fmt = ">f8"
+            case v4c.DATA_TYPE_COMPLEX_INTEL:
+                fmt = "<c8"
+            case v4c.DATA_TYPE_COMPLEX_MOTOROLA:
+                fmt = ">c8"
 
     else:
         if size > 64 and data_type in (
@@ -700,27 +699,28 @@ def get_fmt_v4(data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_V
             else:
                 size = size // 8
 
-            if data_type == v4c.DATA_TYPE_UNSIGNED_INTEL:
-                fmt = f"<u{size}"
+            match data_type:
+                case v4c.DATA_TYPE_UNSIGNED_INTEL:
+                    fmt = f"<u{size}"
 
-            elif data_type == v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
-                fmt = f">u{size}"
+                case v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
+                    fmt = f">u{size}"
 
-            elif data_type == v4c.DATA_TYPE_SIGNED_INTEL:
-                fmt = f"<i{size}"
+                case v4c.DATA_TYPE_SIGNED_INTEL:
+                    fmt = f"<i{size}"
 
-            elif data_type == v4c.DATA_TYPE_SIGNED_MOTOROLA:
-                fmt = f">i{size}"
+                case v4c.DATA_TYPE_SIGNED_MOTOROLA:
+                    fmt = f">i{size}"
 
-            elif data_type == v4c.DATA_TYPE_REAL_INTEL:
-                fmt = f"<f{size}"
+                case v4c.DATA_TYPE_REAL_INTEL:
+                    fmt = f"<f{size}"
 
-            elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
-                fmt = f">f{size}"
-            elif data_type == v4c.DATA_TYPE_COMPLEX_INTEL:
-                fmt = f"<c{size}"
-            elif data_type == v4c.DATA_TYPE_COMPLEX_MOTOROLA:
-                fmt = f">c{size}"
+                case v4c.DATA_TYPE_REAL_MOTOROLA:
+                    fmt = f">f{size}"
+                case v4c.DATA_TYPE_COMPLEX_INTEL:
+                    fmt = f"<c{size}"
+                case v4c.DATA_TYPE_COMPLEX_MOTOROLA:
+                    fmt = f">c{size}"
 
     return fmt
 
@@ -756,36 +756,37 @@ def fmt_to_datatype_v3(fmt: dtype[Any], shape: tuple[int, ...], array: bool = Fa
         for dim in shape[1:]:
             size *= dim
     else:
-        if kind == "u":
-            if byteorder == "<":
+        match kind:
+            case "u":
+                if byteorder == "<":
+                    data_type = v3c.DATA_TYPE_UNSIGNED_INTEL
+                else:
+                    data_type = v3c.DATA_TYPE_UNSIGNED_MOTOROLA
+            case "i":
+                if byteorder == "<":
+                    data_type = v3c.DATA_TYPE_SIGNED_INTEL
+                else:
+                    data_type = v3c.DATA_TYPE_SIGNED_MOTOROLA
+            case "f":
+                if byteorder == "<":
+                    if size == 32:
+                        data_type = v3c.DATA_TYPE_FLOAT
+                    else:
+                        data_type = v3c.DATA_TYPE_DOUBLE
+                else:
+                    if size == 32:
+                        data_type = v3c.DATA_TYPE_FLOAT_MOTOROLA
+                    else:
+                        data_type = v3c.DATA_TYPE_DOUBLE_MOTOROLA
+            case "S" | "V":
+                data_type = v3c.DATA_TYPE_STRING
+            case "b":
                 data_type = v3c.DATA_TYPE_UNSIGNED_INTEL
-            else:
-                data_type = v3c.DATA_TYPE_UNSIGNED_MOTOROLA
-        elif kind == "i":
-            if byteorder == "<":
-                data_type = v3c.DATA_TYPE_SIGNED_INTEL
-            else:
-                data_type = v3c.DATA_TYPE_SIGNED_MOTOROLA
-        elif kind == "f":
-            if byteorder == "<":
-                if size == 32:
-                    data_type = v3c.DATA_TYPE_FLOAT
-                else:
-                    data_type = v3c.DATA_TYPE_DOUBLE
-            else:
-                if size == 32:
-                    data_type = v3c.DATA_TYPE_FLOAT_MOTOROLA
-                else:
-                    data_type = v3c.DATA_TYPE_DOUBLE_MOTOROLA
-        elif kind in "SV":
-            data_type = v3c.DATA_TYPE_STRING
-        elif kind == "b":
-            data_type = v3c.DATA_TYPE_UNSIGNED_INTEL
-            size = 1
-        else:
-            message = f"Unknown type: dtype={fmt}, shape={shape}"
-            logger.exception(message)
-            raise MdfException(message)
+                size = 1
+            case _:
+                message = f"Unknown type: dtype={fmt}, shape={shape}"
+                logger.exception(message)
+                raise MdfException(message)
 
     return data_type, size
 
@@ -854,35 +855,36 @@ def fmt_to_datatype_v4(fmt: dtype[Any], shape: tuple[int, ...], array: bool = Fa
             size *= dim
 
     else:
-        if kind == "u":
-            if byteorder == "<":
+        match kind:
+            case "u":
+                if byteorder == "<":
+                    data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
+                else:
+                    data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
+            case "i":
+                if byteorder == "<":
+                    data_type = v4c.DATA_TYPE_SIGNED_INTEL
+                else:
+                    data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
+            case "f":
+                if byteorder == "<":
+                    data_type = v4c.DATA_TYPE_REAL_INTEL
+                else:
+                    data_type = v4c.DATA_TYPE_REAL_MOTOROLA
+            case "S" | "V":
+                data_type = v4c.DATA_TYPE_STRING_LATIN_1
+            case "b":
                 data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
-            else:
-                data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
-        elif kind == "i":
-            if byteorder == "<":
-                data_type = v4c.DATA_TYPE_SIGNED_INTEL
-            else:
-                data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
-        elif kind == "f":
-            if byteorder == "<":
-                data_type = v4c.DATA_TYPE_REAL_INTEL
-            else:
-                data_type = v4c.DATA_TYPE_REAL_MOTOROLA
-        elif kind in "SV":
-            data_type = v4c.DATA_TYPE_STRING_LATIN_1
-        elif kind == "b":
-            data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
-            size = 1
-        elif kind == "c":
-            if byteorder == "<":
-                data_type = v4c.DATA_TYPE_COMPLEX_INTEL
-            else:
-                data_type = v4c.DATA_TYPE_COMPLEX_MOTOROLA
-        else:
-            message = f"Unknown type: dtype={fmt}, shape={shape}"
-            logger.exception(message)
-            raise MdfException(message)
+                size = 1
+            case "c":
+                if byteorder == "<":
+                    data_type = v4c.DATA_TYPE_COMPLEX_INTEL
+                else:
+                    data_type = v4c.DATA_TYPE_COMPLEX_MOTOROLA
+            case _:
+                message = f"Unknown type: dtype={fmt}, shape={shape}"
+                logger.exception(message)
+                raise MdfException(message)
 
     return data_type, size
 
@@ -2001,58 +2003,59 @@ def load_dsp(
                 }
 
                 conversion_type = int(item.attrib["cnv_type"])
-                if conversion_type == 0:
-                    conv["conversion_type"] = v4c.CONVERSION_TYPE_LIN
+                match conversion_type:
+                    case 0:
+                        conv["conversion_type"] = v4c.CONVERSION_TYPE_LIN
 
-                    coeffs = item.find("COEFFS_LINIAR")
+                        coeffs = item.find("COEFFS_LINIAR")
 
-                    if coeffs is None:
-                        raise RuntimeError("cannot find 'COEFFS_LINIAR' element")
+                        if coeffs is None:
+                            raise RuntimeError("cannot find 'COEFFS_LINIAR' element")
 
-                    conv["a"] = float(coeffs.attrib["P1"])
-                    conv["b"] = float(coeffs.attrib["P2"])
+                        conv["a"] = float(coeffs.attrib["P1"])
+                        conv["b"] = float(coeffs.attrib["P2"])
 
-                elif conversion_type == 9:
-                    conv["conversion_type"] = v4c.CONVERSION_TYPE_RAT
+                    case 9:
+                        conv["conversion_type"] = v4c.CONVERSION_TYPE_RAT
 
-                    coeffs = item.find("COEFFS")
+                        coeffs = item.find("COEFFS")
 
-                    if coeffs is None:
-                        raise RuntimeError("cannot find 'COEFFS' element")
+                        if coeffs is None:
+                            raise RuntimeError("cannot find 'COEFFS' element")
 
-                    for i in range(1, 7):
-                        conv[f"P{i}"] = float(coeffs.attrib[f"P{i}"])
+                        for i in range(1, 7):
+                            conv[f"P{i}"] = float(coeffs.attrib[f"P{i}"])
 
-                elif conversion_type == 11:
-                    conv["conversion_type"] = v4c.CONVERSION_TYPE_TABX
-                    vtab = item.find("COMPU_VTAB")
+                    case 11:
+                        conv["conversion_type"] = v4c.CONVERSION_TYPE_TABX
+                        vtab = item.find("COMPU_VTAB")
 
-                    if vtab is not None:
-                        for i, item in enumerate(vtab.findall("tab")):
-                            conv[f"val_{i}"] = float(item.attrib["min"])
-                            text = item.get("text")
+                        if vtab is not None:
+                            for i, item in enumerate(vtab.findall("tab")):
+                                conv[f"val_{i}"] = float(item.attrib["min"])
+                                text = item.get("text")
+                                if isinstance(text, bytes):
+                                    text = text.decode("utf-8", errors="replace")
+                                conv[f"text_{i}"] = text
+
+                    case 12:
+                        conv["conversion_type"] = v4c.CONVERSION_TYPE_RTABX
+                        vtab = item.find("COMPU_VTAB_RANGE")
+
+                        if vtab is not None:
+                            text = vtab.get("default")
                             if isinstance(text, bytes):
                                 text = text.decode("utf-8", errors="replace")
-                            conv[f"text_{i}"] = text
-
-                elif conversion_type == 12:
-                    conv["conversion_type"] = v4c.CONVERSION_TYPE_RTABX
-                    vtab = item.find("COMPU_VTAB_RANGE")
-
-                    if vtab is not None:
-                        text = vtab.get("default")
-                        if isinstance(text, bytes):
-                            text = text.decode("utf-8", errors="replace")
-                        conv["default_addr"] = vtab.get("default")
-                        for i, item in enumerate(vtab.findall("tab_range")):
-                            conv[f"upper_{i}"] = float(item.attrib["max"])
-                            conv[f"lower_{i}"] = float(item.attrib["min"])
-                            text = item.get("text")
-                            if isinstance(text, bytes):
-                                text = text.decode("utf-8", errors="replace")
-                            conv[f"text_{i}"] = text
-                else:
-                    continue
+                            conv["default_addr"] = vtab.get("default")
+                            for i, item in enumerate(vtab.findall("tab_range")):
+                                conv[f"upper_{i}"] = float(item.attrib["max"])
+                                conv[f"lower_{i}"] = float(item.attrib["min"])
+                                text = item.get("text")
+                                if isinstance(text, bytes):
+                                    text = text.decode("utf-8", errors="replace")
+                                conv[f"text_{i}"] = text
+                    case _:
+                        continue
 
                 conversions[name] = conv
 
@@ -2406,45 +2409,46 @@ def load_channel_names_from_file(file_name: str, lab_section: str = "") -> list[
     file_path = Path(file_name)
     channels: Collection[str]
     extension = file_path.suffix.lower()
-    if extension == ".dsp":
-        channels = load_dsp(file_path, flat=True)
+    match extension:
+        case ".dsp":
+            channels = load_dsp(file_path, flat=True)
 
-    elif extension == ".dspf":
-        with open(file_path) as infile:
-            info = json.load(infile)
+        case ".dspf":
+            with open(file_path) as infile:
+                info = json.load(infile)
 
-        channels = []
-        for window in info["windows"]:
-            if window["type"] == "Plot":
-                channels.extend(flatten_dsp(window["configuration"]["channels"]))
-            elif window["type"] == "Numeric":
-                channels.extend([item["name"] for item in window["configuration"]["channels"]])
-            elif window["type"] == "Tabular":
-                channels.extend(window["configuration"]["channels"])
+            channels = []
+            for window in info["windows"]:
+                if window["type"] == "Plot":
+                    channels.extend(flatten_dsp(window["configuration"]["channels"]))
+                elif window["type"] == "Numeric":
+                    channels.extend([item["name"] for item in window["configuration"]["channels"]])
+                elif window["type"] == "Tabular":
+                    channels.extend(window["configuration"]["channels"])
 
-    elif extension == ".lab":
-        info = load_lab(file_path)
-        if info:
-            if len(info) > 1 and lab_section:
-                channels = info[lab_section]
-            else:
-                channels = list(info.values())[0]
+        case ".lab":
+            info = load_lab(file_path)
+            if info:
+                if len(info) > 1 and lab_section:
+                    channels = info[lab_section]
+                else:
+                    channels = list(info.values())[0]
 
-            channels = [name.split(";")[0] for name in channels]
+                channels = [name.split(";")[0] for name in channels]
 
-    elif extension == ".cfg":
-        with open(file_path) as infile:
-            info = json.load(infile)
-        channels = info.get("selected_channels", [])
-    elif extension == ".txt":
-        try:
+        case ".cfg":
             with open(file_path) as infile:
                 info = json.load(infile)
             channels = info.get("selected_channels", [])
-        except:
-            with open(file_path) as infile:
-                channels = [line.strip() for line in infile.readlines()]
-                channels = [name for name in channels if name]
+        case ".txt":
+            try:
+                with open(file_path) as infile:
+                    info = json.load(infile)
+                channels = info.get("selected_channels", [])
+            except:
+                with open(file_path) as infile:
+                    channels = [line.strip() for line in infile.readlines()]
+                    channels = [name for name in channels if name]
 
     return sorted(set(channels))
 
