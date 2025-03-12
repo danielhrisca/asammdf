@@ -1602,8 +1602,12 @@ class MDF:
                                     return TERMINATED
 
         elif fmt == "csv":
+            delimiter = kwargs.get("delimiter", ",")[0]
+            if delimiter == "\\t":
+                delimiter = "\t"
+
             fmtparams = {
-                "delimiter": kwargs.get("delimiter", ",")[0],
+                "delimiter": delimiter,
                 "doublequote": kwargs.get("doublequote", True),
                 "lineterminator": kwargs.get("lineterminator", "\r\n"),
                 "quotechar": kwargs.get("quotechar", '"')[0],

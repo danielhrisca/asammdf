@@ -2028,6 +2028,9 @@ MultiRasterSeparator;&
         quoting = self.quoting_bus.currentText()
         add_units = self.add_units_bus.checkState() == QtCore.Qt.CheckState.Checked
 
+        if delimiter == "\\t":
+            delimiter = "\t"
+
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
             "Select output CSV file",
@@ -3003,6 +3006,9 @@ MultiRasterSeparator;&
             quotechar = self.quotechar.text() or '"'
             quoting = self.quoting.currentText()
             add_units = self.add_units.checkState() == QtCore.Qt.CheckState.Checked
+
+            if delimiter == "\\t":
+                delimiter = "\t"
 
             target = self.mdf.export if mdf is None else mdf.export
             kwargs = {

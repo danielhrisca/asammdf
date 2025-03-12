@@ -490,6 +490,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         quoting = self.quoting_bus.currentText()
         add_units = self.add_units_bus.checkState() == QtCore.Qt.CheckState.Checked
 
+        if delimiter == "\\t":
+            delimiter = "\t"
+
         count = self.files_list.count()
 
         if not count or not (count1 + count2):
@@ -1688,6 +1691,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 quotechar = self.quotechar.text() or '"'
                 quoting = self.quoting.currentText()
                 add_units = self.add_units.checkState() == QtCore.Qt.CheckState.Checked
+
+                if delimiter == "\\t":
+                    delimiter = "\t"
 
                 target = mdf.export
                 kwargs = {

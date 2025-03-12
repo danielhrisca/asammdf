@@ -649,7 +649,7 @@ class Ui_file_widget(object):
 
         self.delimiter = QLineEdit(self.CSV)
         self.delimiter.setObjectName(u"delimiter")
-        self.delimiter.setMaxLength(1)
+        self.delimiter.setMaxLength(2)
         self.delimiter.setClearButtonEnabled(False)
 
         self.gridLayout.addWidget(self.delimiter, 8, 1, 1, 2)
@@ -859,7 +859,7 @@ class Ui_file_widget(object):
 
         self.delimiter_bus = QLineEdit(self.groupBox_3)
         self.delimiter_bus.setObjectName(u"delimiter_bus")
-        self.delimiter_bus.setMaxLength(1)
+        self.delimiter_bus.setMaxLength(2)
         self.delimiter_bus.setClearButtonEnabled(False)
 
         self.gridLayout_6.addWidget(self.delimiter_bus, 6, 2, 1, 1)
@@ -1067,7 +1067,7 @@ class Ui_file_widget(object):
         self.retranslateUi(file_widget)
 
         self.aspects.setCurrentIndex(0)
-        self.output_options.setCurrentIndex(1)
+        self.output_options.setCurrentIndex(0)
         self.quoting.setCurrentIndex(1)
         self.quoting_bus.setCurrentIndex(1)
         self.tabWidget.setCurrentIndex(0)

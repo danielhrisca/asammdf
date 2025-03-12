@@ -1072,7 +1072,7 @@
                         <string>,</string>
                        </property>
                        <property name="maxLength">
-                        <number>1</number>
+                        <number>2</number>
                        </property>
                        <property name="clearButtonEnabled">
                         <bool>false</bool>
@@ -1480,7 +1480,7 @@
                   <string>,</string>
                  </property>
                  <property name="maxLength">
-                  <number>1</number>
+                  <number>2</number>
                  </property>
                  <property name="clearButtonEnabled">
                   <bool>false</bool>
