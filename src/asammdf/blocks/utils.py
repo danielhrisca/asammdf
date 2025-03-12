@@ -290,9 +290,7 @@ def get_text_v3(
 ) -> bytes: ...
 
 
-def get_text_v3(
-    address: int, stream: FileLike | mmap.mmap, mapped: bool = False, decode: bool = True
-) -> bytes | str:
+def get_text_v3(address: int, stream: FileLike | mmap.mmap, mapped: bool = False, decode: bool = True) -> bytes | str:
     """faster way to extract strings from mdf versions 2 and 3 TextBlock
 
     Parameters

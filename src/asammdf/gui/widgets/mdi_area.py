@@ -3542,7 +3542,8 @@ class WithMDIArea:
                     copy_master=False,
                     validate=True,
                     raw=True,
-                ), strict=False,
+                ),
+                strict=False,
             ):
                 description = descriptions[sig_uuid]
 
@@ -3573,7 +3574,8 @@ class WithMDIArea:
                         ignore_value2text_conversions=self.ignore_value2text_conversions,
                         copy_master=False,
                     ),
-                    matrix_components, strict=False,
+                    matrix_components,
+                    strict=False,
                 )
             }
 
@@ -4497,7 +4499,8 @@ class WithMDIArea:
                                     args = {name: [] for name in parameters}
                                     for arg_name, alternatives in zip(
                                         parameters,
-                                        item.signal.computation["args"].values(), strict=False,
+                                        item.signal.computation["args"].values(),
+                                        strict=False,
                                     ):
                                         args[arg_name] = alternatives
 

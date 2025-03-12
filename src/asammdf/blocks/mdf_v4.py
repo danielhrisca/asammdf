@@ -5909,7 +5909,9 @@ class MDF4(MDF_Common[Group]):
         added_cycles = len(signals[0][0])
 
         invalidation_bytes_nr = gp.channel_group.invalidation_bytes_nr
-        for i, ((signal, invalidation_bits), (sig_type, sig_size)) in enumerate(zip(signals, gp.signal_types, strict=False)):
+        for i, ((signal, invalidation_bits), (sig_type, sig_size)) in enumerate(
+            zip(signals, gp.signal_types, strict=False)
+        ):
             if invalidation_bytes_nr:
                 if invalidation_bits is not None:
                     if not isinstance(invalidation_bits, InvalidationArray):
@@ -7000,6 +7002,10 @@ class MDF4(MDF_Common[Group]):
             _dtype.itemsize == channel.bit_count // 8,
             all(
                 groups[dg_nr].channels[ch_nr].channel_type != v4c.CHANNEL_TYPE_VLSD
+                and (
+                    groups[dg_nr].channels[ch_nr].conversion is None
+                    or not groups[dg_nr].channels[ch_nr].conversion.conversion_type == v4c.CONVERSION_TYPE_NON
+                )
                 for (dg_nr, ch_nr) in dependency_list
             ),
         ]
@@ -7046,7 +7052,7 @@ class MDF4(MDF_Common[Group]):
                         ignore_invalidation_bits=ignore_invalidation_bits,
                         record_offset=record_offset,
                         record_count=record_count,
-                        raw=raw,
+                        raw=False,
                     )[0]
                     channel_values[i].append(vals)
                 if master_is_required:
@@ -7391,7 +7397,7 @@ class MDF4(MDF_Common[Group]):
                                     ignore_invalidation_bits=ignore_invalidation_bits,
                                     record_offset=record_offset,
                                     record_count=cycles,
-                                    raw=True,
+                                    raw=False,
                                 )[0]
                             else:
                                 channel_group = grp.channel_group
@@ -7406,7 +7412,7 @@ class MDF4(MDF_Common[Group]):
                                     ignore_invalidation_bits=ignore_invalidation_bits,
                                     record_offset=record_offset,
                                     record_count=cycles,
-                                    raw=True,
+                                    raw=False,
                                 )[0]
                                 axis_values = ref[start:end].copy()
                             axis_values = axis_values[axisname]

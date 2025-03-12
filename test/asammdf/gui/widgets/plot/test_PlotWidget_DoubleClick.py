@@ -231,7 +231,9 @@ class TestDoubleClick(TestPlotWidget):
                     item.setExpanded(True)
 
             # Get the First Item that will be moved
-            for group_name, plot_channel in zip(("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c), strict=False):
+            for group_name, plot_channel in zip(
+                ("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c), strict=False
+            ):
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
                 self.move_item_inside_channels_tree_widget(src=plot_channel, dst=groups[group_name])
@@ -369,7 +371,9 @@ class TestDoubleClick(TestPlotWidget):
                     item.setExpanded(True)
 
             # Get the First Item that will be moved
-            for group_name, plot_channel in zip(("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c), strict=False):
+            for group_name, plot_channel in zip(
+                ("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c), strict=False
+            ):
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
                 self.move_item_inside_channels_tree_widget(src=plot_channel, dst=groups[group_name])
@@ -496,7 +500,9 @@ class TestDoubleClick(TestPlotWidget):
                     item.setExpanded(True)
 
             # Get the First Item that will be moved
-            for group_name, plot_channel in zip(("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c), strict=False):
+            for group_name, plot_channel in zip(
+                ("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c), strict=False
+            ):
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
                 self.move_item_inside_channels_tree_widget(src=plot_channel, dst=groups[group_name])
@@ -628,7 +634,9 @@ class TestDoubleClick(TestPlotWidget):
                     item.setExpanded(True)
 
             # Get the First Item that will be moved
-            for group_name, plot_channel in zip(("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c), strict=False):
+            for group_name, plot_channel in zip(
+                ("A", "B", "C"), (plot_channel_a, plot_channel_b, plot_channel_c), strict=False
+            ):
                 # PreEvaluation: Ensure that group has no child
                 self.assertEqual(0, groups[group_name].childCount())
                 self.move_item_inside_channels_tree_widget(src=plot_channel, dst=groups[group_name])
