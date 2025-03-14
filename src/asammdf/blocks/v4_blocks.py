@@ -5458,11 +5458,10 @@ class FileHistory:
 
 
 class GuardBlock:
-    """
-    *GuardBlock* has the following attributes, that are also available as
-    dict like key-value pairs
+    """*GuardBlock* has the following attributes, which are also available as
+    dict-like key-value pairs.
 
-    GDBLOCK fields
+    GDBLOCK fields:
 
     * ``id`` - bytes : block ID; always b'##GD'
     * ``reserved0`` - int : reserved bytes
@@ -5472,10 +5471,9 @@ class GuardBlock:
     * ``gd_version`` - int : minimum MDF format version
     * ``reserved1`` - int : reserved bytes
 
-    Other attributes
+    Other attributes:
 
     * ``address`` - int : guard block address
-
     """
 
     __slots__ = (

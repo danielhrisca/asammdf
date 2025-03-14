@@ -295,6 +295,8 @@ def get_text_v3(address: int, stream: FileLike | mmap.mmap, mapped: bool = False
         TextBlock address.
     stream : handle
         File IO handle.
+    mapped: bool, default False
+        Flag for mapped stream.
     decode : bool, default True
         Use auto-detection to detect character encoding.
 
@@ -380,14 +382,12 @@ def get_text_v4(
         TextBlock address.
     stream : handle
         File IO handle.
+    mapped: bool, default False
+        Flag for mapped stream.
     decode : bool, default True
-        Use auto-detection to detect character encoding.
-    mapped: bool
-        flag for mapped stream
-    decode: bool
-        option to return decoded str instead of raw btyes
-    tx_map : dict | None
-        map that contains interned strings
+        Option to return decoded str instead of raw bytes.
+    tx_map : dict, optional
+        Map that contains interned strings.
 
     Returns
     -------
@@ -929,6 +929,8 @@ def count_channel_groups(
         Opened file handle.
     include_channels : bool, default False
         Also count channels.
+    mapped: bool, default False
+        Flag for mapped stream.
 
     Returns
     -------
