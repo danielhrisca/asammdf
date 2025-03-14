@@ -5087,6 +5087,16 @@ class PlotGraphics(pg.PlotWidget):
 
                     self.cursor1.set_value(timestamp)
 
+                else:
+                    pos = self.region.moving_cursor.value()
+                    sig, idx = self.signal_by_uuid(self.current_uuid)
+
+                    timestamp = sig.timestamp_of_next_different_value(
+                        pos, mode="different", previous=key == QtCore.Qt.Key.Key_Left
+                    )
+
+                    self.region.moving_cursor.set_value(timestamp)
+
             elif key in (QtCore.Qt.Key.Key_PageUp, QtCore.Qt.Key.Key_PageDown) and modifier in (
                 QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
                 QtCore.Qt.KeyboardModifier.ControlModifier,
@@ -5106,49 +5116,17 @@ class PlotGraphics(pg.PlotWidget):
                     self.cursor1.set_value(timestamp)
 
                 else:
-                    increment = 1
-                    start, stop = self.region.getRegion()
+                    pos = self.region.moving_cursor.value()
+                    sig, idx = self.signal_by_uuid(self.current_uuid)
 
-                    if self.region_lock is None:
-                        if modifier == QtCore.Qt.KeyboardModifier.ControlModifier:
-                            pos = stop
-                            second_pos = start
-                        else:
-                            pos = start
-                            second_pos = stop
-                    else:
-                        if start != stop:
-                            pos = start if stop == self.region_lock else stop
-                        else:
-                            pos = self.region_lock
+                    timestamp = sig.timestamp_of_next_different_value(
+                        pos,
+                        mode="higher" if key == QtCore.Qt.Key.Key_PageUp else "lower",
+                        previous=modifier
+                        == QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                    )
 
-                    x = self.get_current_timebase()
-                    dim = x.size
-                    if dim:
-                        pos = np.searchsorted(x, pos)
-                        if key == QtCore.Qt.Key.Key_Right:
-                            pos += increment
-                        else:
-                            pos -= increment
-                        pos = np.clip(pos, 0, dim - increment)
-                        pos = x[pos]
-                    else:
-                        if key == QtCore.Qt.Key.Key_Right:
-                            pos += increment
-                        else:
-                            pos -= increment
-
-                    (left_side, right_side), _ = self.viewbox.viewRange()
-
-                    if pos >= right_side:
-                        self.viewbox.setXRange(left_side, pos, padding=0)
-                    elif pos <= left_side:
-                        self.viewbox.setXRange(pos, right_side, padding=0)
-
-                    if self.region_lock is not None:
-                        self.region.setRegion((self.region_lock, pos))
-                    else:
-                        self.region.setRegion(tuple(sorted((second_pos, pos))))
+                    self.region.moving_cursor.set_value(timestamp)
 
             elif key in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_Right) and modifier in (
                 QtCore.Qt.KeyboardModifier.NoModifier,
