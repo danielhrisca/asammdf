@@ -2,7 +2,6 @@
 import codecs
 from pathlib import Path
 import sys
-from typing import Union
 from unittest import mock
 import urllib
 import urllib.request
@@ -41,7 +40,7 @@ class TestPushButtons(TestBatchWidget):
         self.assertEqual(self.widget.can_database_list.count(), 0)
         self.assertEqual(self.widget.lin_database_list.count(), 0)
 
-    def load_database(self, path: Union[Path, str, None] = None, is_can=True):
+    def load_database(self, path: Path | str | None = None, is_can=True):
         """
         Load database to CAN/LIN database list
         Parameters
@@ -251,7 +250,7 @@ class TestPushButtons(TestBatchWidget):
             (file, pd.read_csv(file)) for file in sorted(Path(self.test_workspace).iterdir()) if file.suffix == ".csv"
         ]
         with OpenMDF(compare_to_file_path) as mdf_file:
-            for group, (path, table) in zip(mdf_file.groups, csv_tables):
+            for group, (path, table) in zip(mdf_file.groups, csv_tables, strict=False):
                 comment = group.channel_group.comment
                 for char in to_replace:
                     comment = comment.replace(char, "_")

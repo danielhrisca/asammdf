@@ -22,7 +22,7 @@ import shutil
 import sys
 from tempfile import gettempdir, NamedTemporaryFile
 from traceback import format_exc
-from typing import Any, overload
+from typing import Any, Literal, overload
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import canmatrix
@@ -58,7 +58,6 @@ from numpy import (
 )
 from numpy.typing import NDArray
 from pandas import DataFrame
-from typing_extensions import Literal
 
 from .. import tool
 from ..signal import InvalidationArray, Signal
@@ -860,9 +859,9 @@ class MDF4(MDF_Common[Group]):
                         comment_addr,
                     ) = v4c.CHANNEL_FILTER_uf(stream, ch_addr)
                     channel_type = stream[ch_addr + v4c.COMMON_SIZE + links_nr * 8]
-                    name = get_text_v4(name_addr, stream, mapped=mapped)
+                    name = get_text_v4(name_addr, stream, mapped=mapped, tx_map=self._interned_strings)
                     if use_display_names:
-                        comment = get_text_v4(comment_addr, stream, mapped=mapped)
+                        comment = get_text_v4(comment_addr, stream, mapped=mapped, tx_map=self._interned_strings)
                         display_names = extract_display_names(comment)
                     else:
                         display_names = {}
@@ -880,10 +879,10 @@ class MDF4(MDF_Common[Group]):
                     ) = v4c.CHANNEL_FILTER_u(stream.read(v4c.CHANNEL_FILTER_SIZE))
                     stream.seek(ch_addr + v4c.COMMON_SIZE + links_nr * 8)
                     channel_type = stream.read(1)[0]
-                    name = get_text_v4(name_addr, stream, mapped=mapped)
+                    name = get_text_v4(name_addr, stream, mapped=mapped, tx_map=self._interned_strings)
 
                     if use_display_names:
-                        comment = get_text_v4(comment_addr, stream, mapped=mapped)
+                        comment = get_text_v4(comment_addr, stream, mapped=mapped, tx_map=self._interned_strings)
                         display_names = extract_display_names(comment)
                     else:
                         display_names = {}
@@ -904,7 +903,7 @@ class MDF4(MDF_Common[Group]):
                     or (use_display_names and any(dsp_name in self.load_filter for dsp_name in display_names))
                 ):
                     if comment is None:
-                        comment = get_text_v4(comment_addr, stream, mapped=mapped)
+                        comment = get_text_v4(comment_addr, stream, mapped=mapped, tx_map=self._interned_strings)
                     channel = Channel(
                         address=ch_addr,
                         stream=stream,
@@ -1141,7 +1140,7 @@ class MDF4(MDF_Common[Group]):
                                     # update byte offset & position of invalidation bit
                                     byte_offset = bit_offset = 0
                                     for coord, byte_factor, bit_factor in zip(
-                                        nd_coords, byte_offset_factors, bit_pos_inval_factors
+                                        nd_coords, byte_offset_factors, bit_pos_inval_factors, strict=False
                                     ):
                                         byte_offset += coord * byte_factor
                                         bit_offset += coord * bit_factor
@@ -1272,28 +1271,31 @@ class MDF4(MDF_Common[Group]):
 
                         stream.seek(address)
                         new_data = stream.read(compressed_size)
-                        if block_type == v4c.DZ_BLOCK_DEFLATE:
-                            new_data = decompress(new_data, bufsize=original_size)
-                        elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                            new_data = decompress(new_data, bufsize=original_size)
-                            cols = param
-                            lines = original_size // cols
+                        match block_type:
+                            case v4c.DZ_BLOCK_DEFLATE:
+                                new_data = decompress(new_data, bufsize=original_size)
+                            case v4c.DZ_BLOCK_TRANSPOSED:
+                                new_data = decompress(new_data, bufsize=original_size)
+                                cols = param
+                                lines = original_size // cols
 
-                            matrix_size = lines * cols
+                                matrix_size = lines * cols
 
-                            if matrix_size != original_size:
-                                new_data = (
-                                    frombuffer(new_data[:matrix_size], dtype=uint8)
-                                    .reshape((cols, lines))
-                                    .T.ravel()
-                                    .tobytes()
-                                    + new_data[matrix_size:]
-                                )
-                            else:
-                                new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
+                                if matrix_size != original_size:
+                                    new_data = (
+                                        frombuffer(new_data[:matrix_size], dtype=uint8)
+                                        .reshape((cols, lines))
+                                        .T.ravel()
+                                        .tobytes()
+                                        + new_data[matrix_size:]
+                                    )
+                                else:
+                                    new_data = (
+                                        frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
+                                    )
 
-                        elif block_type == v4c.DZ_BLOCK_LZ:
-                            new_data = lz_decompress(new_data)
+                            case v4c.DZ_BLOCK_LZ:
+                                new_data = lz_decompress(new_data)
 
                         data.append(new_data)
 
@@ -1330,28 +1332,31 @@ class MDF4(MDF_Common[Group]):
 
                         stream.seek(address)
                         new_data = stream.read(compressed_size)
-                        if block_type == v4c.DZ_BLOCK_DEFLATE:
-                            new_data = decompress(new_data, bufsize=original_size)
-                        elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                            new_data = decompress(new_data, bufsize=original_size)
-                            cols = param
-                            lines = original_size // cols
+                        match block_type:
+                            case v4c.DZ_BLOCK_DEFLATE:
+                                new_data = decompress(new_data, bufsize=original_size)
+                            case v4c.DZ_BLOCK_TRANSPOSED:
+                                new_data = decompress(new_data, bufsize=original_size)
+                                cols = param
+                                lines = original_size // cols
 
-                            matrix_size = lines * cols
+                                matrix_size = lines * cols
 
-                            if matrix_size != original_size:
-                                new_data = (
-                                    frombuffer(new_data[:matrix_size], dtype=uint8)
-                                    .reshape((cols, lines))
-                                    .T.ravel()
-                                    .tobytes()
-                                    + new_data[matrix_size:]
-                                )
-                            else:
-                                new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
+                                if matrix_size != original_size:
+                                    new_data = (
+                                        frombuffer(new_data[:matrix_size], dtype=uint8)
+                                        .reshape((cols, lines))
+                                        .T.ravel()
+                                        .tobytes()
+                                        + new_data[matrix_size:]
+                                    )
+                                else:
+                                    new_data = (
+                                        frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
+                                    )
 
-                        elif block_type == v4c.DZ_BLOCK_LZ:
-                            new_data = lz_decompress(new_data)
+                            case v4c.DZ_BLOCK_LZ:
+                                new_data = lz_decompress(new_data)
 
                         if start_offset > current_offset:
                             data.extend(new_data[start_offset - current_offset :])
@@ -1546,24 +1551,28 @@ class MDF4(MDF_Common[Group]):
                 cc += 1
                 ss += original_size
 
-                if block_type == v4c.DZ_BLOCK_DEFLATE:
-                    new_data = decompress(new_data, bufsize=original_size)
-                elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                    new_data = decompress(new_data, bufsize=original_size)
-                    cols = param
-                    lines = original_size // cols
-                    matrix_size = lines * cols
+                match block_type:
+                    case v4c.DZ_BLOCK_DEFLATE:
+                        new_data = decompress(new_data, bufsize=original_size)
+                    case v4c.DZ_BLOCK_TRANSPOSED:
+                        new_data = decompress(new_data, bufsize=original_size)
+                        cols = param
+                        lines = original_size // cols
+                        matrix_size = lines * cols
 
-                    if matrix_size != original_size:
-                        new_data = (
-                            frombuffer(new_data[:matrix_size], dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
-                            + new_data[matrix_size:]
-                        )
-                    else:
-                        new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
+                        if matrix_size != original_size:
+                            new_data = (
+                                frombuffer(new_data[:matrix_size], dtype=uint8)
+                                .reshape((cols, lines))
+                                .T.ravel()
+                                .tobytes()
+                                + new_data[matrix_size:]
+                            )
+                        else:
+                            new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
 
-                elif block_type == v4c.DZ_BLOCK_LZ:
-                    new_data = lz_decompress(new_data)
+                    case v4c.DZ_BLOCK_LZ:
+                        new_data = lz_decompress(new_data)
 
                 if block_limit is not None:
                     new_data = new_data[:block_limit]
@@ -2860,14 +2869,15 @@ class MDF4(MDF_Common[Group]):
             master_metadata = None
         if master_metadata:
             time_name, sync_type = master_metadata
-            if sync_type in (0, 1):
-                time_unit = "s"
-            elif sync_type == 2:
-                time_unit = "deg"
-            elif sync_type == 3:
-                time_unit = "m"
-            elif sync_type == 4:
-                time_unit = "index"
+            match sync_type:
+                case 0 | 1:
+                    time_unit = "s"
+                case 2:
+                    time_unit = "deg"
+                case 3:
+                    time_unit = "m"
+                case 4:
+                    time_unit = "index"
         else:
             time_name, sync_type = "time", v4c.SYNC_TYPE_TIME
             time_unit = "s"
@@ -3592,16 +3602,17 @@ class MDF4(MDF_Common[Group]):
                 samples = signal.samples
                 sig_dtype = samples.dtype
 
-                if encoding == "utf-8":
-                    data_type = v4c.DATA_TYPE_STRING_UTF_8
-                elif encoding == "latin-1":
-                    data_type = v4c.DATA_TYPE_STRING_LATIN_1
-                elif encoding == "utf-16-be":
-                    data_type = v4c.DATA_TYPE_STRING_UTF_16_BE
-                elif encoding == "utf-16-le":
-                    data_type = v4c.DATA_TYPE_STRING_UTF_16_LE
-                else:
-                    raise MdfException(f'wrong encoding "{encoding}" for string signal')
+                match encoding:
+                    case "utf-8":
+                        data_type = v4c.DATA_TYPE_STRING_UTF_8
+                    case "latin-1":
+                        data_type = v4c.DATA_TYPE_STRING_LATIN_1
+                    case "utf-16-be":
+                        data_type = v4c.DATA_TYPE_STRING_UTF_16_BE
+                    case "utf-16-le":
+                        data_type = v4c.DATA_TYPE_STRING_UTF_16_LE
+                    case _:
+                        raise MdfException(f'wrong encoding "{encoding}" for string signal')
 
                 if self.compact_vlsd:
                     data = []
@@ -3938,19 +3949,20 @@ class MDF4(MDF_Common[Group]):
         offset = 0
 
         prepare_record = True
-        source_block = None
+        source_block = acq_source
 
         master_metadata = signals[0].master_metadata
         if master_metadata:
             time_name, sync_type = master_metadata
-            if sync_type in (0, 1):
-                time_unit = "s"
-            elif sync_type == 2:
-                time_unit = "deg"
-            elif sync_type == 3:
-                time_unit = "m"
-            elif sync_type == 4:
-                time_unit = "index"
+            match sync_type:
+                case 0 | 1:
+                    time_unit = "s"
+                case 2:
+                    time_unit = "deg"
+                case 3:
+                    time_unit = "m"
+                case 4:
+                    time_unit = "index"
         else:
             time_name, sync_type = "time", v4c.SYNC_TYPE_TIME
             time_unit = "s"
@@ -4534,16 +4546,17 @@ class MDF4(MDF_Common[Group]):
                 samples = signal.samples
                 sig_dtype = samples.dtype
 
-                if encoding == "utf-8":
-                    data_type = v4c.DATA_TYPE_STRING_UTF_8
-                elif encoding == "latin-1":
-                    data_type = v4c.DATA_TYPE_STRING_LATIN_1
-                elif encoding == "utf-16-be":
-                    data_type = v4c.DATA_TYPE_STRING_UTF_16_BE
-                elif encoding == "utf-16-le":
-                    data_type = v4c.DATA_TYPE_STRING_UTF_16_LE
-                else:
-                    raise MdfException(f'wrong encoding "{encoding}" for string signal')
+                match encoding:
+                    case "utf-8":
+                        data_type = v4c.DATA_TYPE_STRING_UTF_8
+                    case "latin-1":
+                        data_type = v4c.DATA_TYPE_STRING_LATIN_1
+                    case "utf-16-be":
+                        data_type = v4c.DATA_TYPE_STRING_UTF_16_BE
+                    case "utf-16-le":
+                        data_type = v4c.DATA_TYPE_STRING_UTF_16_LE
+                    case _:
+                        raise MdfException(f'wrong encoding "{encoding}" for string signal')
 
                 offsets = arange(len(samples), dtype=uint64) * (signal.samples.itemsize + 4)
 
@@ -4718,7 +4731,7 @@ class MDF4(MDF_Common[Group]):
         if df.shape == (0, 0):
             return
 
-        t = df.index
+        t = df.index.values
         index_name = df.index.name
         time_name = index_name or "time"
         sync_type = v4c.SYNC_TYPE_TIME
@@ -5095,24 +5108,25 @@ class MDF4(MDF_Common[Group]):
         if source_bus and grp.channel_group.acq_source is None:
             grp.channel_group.acq_source = SourceInformation.from_common_source(signal.source)
 
-            if signal.source.bus_type == v4c.BUS_TYPE_CAN:
-                grp.channel_group.path_separator = 46
-                grp.channel_group.acq_name = "CAN"
-            elif signal.source.bus_type == v4c.BUS_TYPE_FLEXRAY:
-                grp.channel_group.path_separator = 46
-                grp.channel_group.acq_name = "FLEXRAY"
-            elif signal.source.bus_type == v4c.BUS_TYPE_ETHERNET:
-                grp.channel_group.path_separator = 46
-                grp.channel_group.acq_name = "ETHERNET"
-            elif signal.source.bus_type == v4c.BUS_TYPE_K_LINE:
-                grp.channel_group.path_separator = 46
-                grp.channel_group.acq_name = "K_LINE"
-            elif signal.source.bus_type == v4c.BUS_TYPE_MOST:
-                grp.channel_group.path_separator = 46
-                grp.channel_group.acq_name = "MOST"
-            elif signal.source.bus_type == v4c.BUS_TYPE_LIN:
-                grp.channel_group.path_separator = 46
-                grp.channel_group.acq_name = "LIN"
+            match signal.source.bus_type:
+                case v4c.BUS_TYPE_CAN:
+                    grp.channel_group.path_separator = 46
+                    grp.channel_group.acq_name = "CAN"
+                case v4c.BUS_TYPE_FLEXRAY:
+                    grp.channel_group.path_separator = 46
+                    grp.channel_group.acq_name = "FLEXRAY"
+                case v4c.BUS_TYPE_ETHERNET:
+                    grp.channel_group.path_separator = 46
+                    grp.channel_group.acq_name = "ETHERNET"
+                case v4c.BUS_TYPE_K_LINE:
+                    grp.channel_group.path_separator = 46
+                    grp.channel_group.acq_name = "K_LINE"
+                case v4c.BUS_TYPE_MOST:
+                    grp.channel_group.path_separator = 46
+                    grp.channel_group.acq_name = "MOST"
+                case v4c.BUS_TYPE_LIN:
+                    grp.channel_group.path_separator = 46
+                    grp.channel_group.acq_name = "LIN"
 
         # source for channel
         source = signal.source
@@ -5529,15 +5543,25 @@ class MDF4(MDF_Common[Group]):
         if source_bus:
             grp.channel_group.acq_source = SourceInformation.from_common_source(signal.source)
 
-            if signal.source.bus_type == v4c.BUS_TYPE_CAN:
-                grp.channel_group.path_separator = 46
-                grp.channel_group.acq_name = "CAN"
-            elif signal.source.bus_type == v4c.BUS_TYPE_FLEXRAY:
-                grp.channel_group.path_separator = 46
-                grp.channel_group.acq_name = "FLEXRAY"
-            elif signal.source.bus_type == v4c.BUS_TYPE_ETHERNET:
-                grp.channel_group.path_separator = 46
-                grp.channel_group.acq_name = "ETHERNET"
+            match signal.source.bus_type:
+                case v4c.BUS_TYPE_CAN:
+                    grp.channel_group.path_separator = 46
+                    grp.channel_group.acq_name = "CAN"
+                case v4c.BUS_TYPE_FLEXRAY:
+                    grp.channel_group.path_separator = 46
+                    grp.channel_group.acq_name = "FLEXRAY"
+                case v4c.BUS_TYPE_ETHERNET:
+                    grp.channel_group.path_separator = 46
+                    grp.channel_group.acq_name = "ETHERNET"
+                case v4c.BUS_TYPE_K_LINE:
+                    grp.channel_group.path_separator = 46
+                    grp.channel_group.acq_name = "K_LINE"
+                case v4c.BUS_TYPE_MOST:
+                    grp.channel_group.path_separator = 46
+                    grp.channel_group.acq_name = "MOST"
+                case v4c.BUS_TYPE_LIN:
+                    grp.channel_group.path_separator = 46
+                    grp.channel_group.acq_name = "LIN"
 
         # source for channel
         source = signal.source
@@ -5905,7 +5929,9 @@ class MDF4(MDF_Common[Group]):
         added_cycles = len(signals[0][0])
 
         invalidation_bytes_nr = gp.channel_group.invalidation_bytes_nr
-        for i, ((signal, invalidation_bits), (sig_type, sig_size)) in enumerate(zip(signals, gp.signal_types)):
+        for i, ((signal, invalidation_bits), (sig_type, sig_size)) in enumerate(
+            zip(signals, gp.signal_types, strict=False)
+        ):
             if invalidation_bytes_nr:
                 if invalidation_bits is not None:
                     if not isinstance(invalidation_bits, InvalidationArray):
@@ -5916,130 +5942,131 @@ class MDF4(MDF_Common[Group]):
                         inval_bits[origin] = invalidation_bits
 
             # first add the signals in the simple signal list
-            if sig_type == v4c.SIGNAL_TYPE_SCALAR:
-                if not signal.flags["C_CONTIGUOUS"]:
-                    signal = np.ascontiguousarray(signal)
-
-                fields.append((signal, sig_size))
-
-            elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
-                names = signal.dtype.names
-
-                if names == v4c.CANOPEN_TIME_FIELDS:
+            match sig_type:
+                case v4c.SIGNAL_TYPE_SCALAR:
                     if not signal.flags["C_CONTIGUOUS"]:
                         signal = np.ascontiguousarray(signal)
 
                     fields.append((signal, sig_size))
 
-                else:
-                    vals = []
-                    for field in ("ms", "min", "hour", "day", "month", "year"):
-                        vals.append(signal[field])
-                    vals = np.rec.fromarrays(vals).tobytes()
+                case v4c.SIGNAL_TYPE_CANOPEN:
+                    names = signal.dtype.names
 
-                    fields.append((vals, sig_size))
+                    if names == v4c.CANOPEN_TIME_FIELDS:
+                        if not signal.flags["C_CONTIGUOUS"]:
+                            signal = np.ascontiguousarray(signal)
 
-            elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
-                if not signal.flags["C_CONTIGUOUS"]:
-                    signal = np.ascontiguousarray(signal)
+                        fields.append((signal, sig_size))
+                    else:
+                        vals = []
+                        for field in ("ms", "min", "hour", "day", "month", "year"):
+                            vals.append(signal[field])
+                        vals = np.rec.fromarrays(vals).tobytes()
 
-                fields.append((signal, sig_size))
+                        fields.append((vals, sig_size))
 
-            elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
-                names = signal.dtype.names
+                case v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
 
-                samples = signal[names[0]]
+                    if not signal.flags["C_CONTIGUOUS"]:
+                        signal = np.ascontiguousarray(signal)
 
-                if not samples.flags["C_CONTIGUOUS"]:
-                    samples = np.ascontiguousarray(samples)
+                    fields.append((signal, sig_size))
 
-                fields.append((samples, sig_size))
+                case v4c.SIGNAL_TYPE_ARRAY:
+                    names = signal.dtype.names
 
-                for name in names[1:]:
-                    samples = signal[name]
-                    shape = samples.shape[1:]
-                    s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
-                    size = s_size // 8
-                    for dim in shape:
-                        size *= dim
+                    samples = signal[names[0]]
 
                     if not samples.flags["C_CONTIGUOUS"]:
                         samples = np.ascontiguousarray(samples)
 
-                    fields.append((samples, size))
+                    fields.append((samples, sig_size))
 
-            else:
-                if self.compact_vlsd:
-                    cur_offset = sum(blk.original_size for blk in gp.get_signal_data_blocks(i))
+                    for name in names[1:]:
+                        samples = signal[name]
+                        shape = samples.shape[1:]
+                        s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
+                        size = s_size // 8
+                        for dim in shape:
+                            size *= dim
 
-                    data = []
-                    offsets = []
-                    off = 0
-                    if gp.channels[i].data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
-                        for elem in signal:
-                            offsets.append(off)
-                            size = len(elem)
-                            if size % 2:
-                                size += 1
-                                elem = elem + b"\0"
-                            data.extend((UINT32_p(size), elem))
-                            off += size + 4
+                        if not samples.flags["C_CONTIGUOUS"]:
+                            samples = np.ascontiguousarray(samples)
+
+                        fields.append((samples, size))
+
+                case _:
+                    if self.compact_vlsd:
+                        cur_offset = sum(blk.original_size for blk in gp.get_signal_data_blocks(i))
+
+                        data = []
+                        offsets = []
+                        off = 0
+                        if gp.channels[i].data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                            for elem in signal:
+                                offsets.append(off)
+                                size = len(elem)
+                                if size % 2:
+                                    size += 1
+                                    elem = elem + b"\0"
+                                data.extend((UINT32_p(size), elem))
+                                off += size + 4
+                        else:
+                            for elem in signal:
+                                offsets.append(off)
+                                size = len(elem)
+                                data.extend((UINT32_p(size), elem))
+                                off += size + 4
+
+                        offsets = array(offsets, dtype=uint64)
+
+                        stream.seek(0, 2)
+                        addr = stream.tell()
+
+                        data_size = off
+                        if data_size:
+                            info = SignalDataBlockInfo(
+                                address=addr,
+                                compressed_size=data_size,
+                                original_size=data_size,
+                                location=v4c.LOCATION_TEMPORARY_FILE,
+                            )
+                            gp.signal_data[i][0].append(info)
+                            stream.write(b"".join(data))
+
+                        offsets += cur_offset
+                        if not offsets.flags["C_CONTIGUOUS"]:
+                            offsets = np.ascontiguousarray(offsets)
+                        fields.append((offsets, 8))
+
                     else:
-                        for elem in signal:
-                            offsets.append(off)
-                            size = len(elem)
-                            data.extend((UINT32_p(size), elem))
-                            off += size + 4
+                        cur_offset = sum(blk.original_size for blk in gp.get_signal_data_blocks(i))
 
-                    offsets = array(offsets, dtype=uint64)
+                        offsets = arange(len(signal), dtype=uint64) * (signal.itemsize + 4)
 
-                    stream.seek(0, 2)
-                    addr = stream.tell()
+                        values = [full(len(signal), signal.itemsize, dtype=uint32), signal]
 
-                    data_size = off
-                    if data_size:
-                        info = SignalDataBlockInfo(
-                            address=addr,
-                            compressed_size=data_size,
-                            original_size=data_size,
-                            location=v4c.LOCATION_TEMPORARY_FILE,
-                        )
-                        gp.signal_data[i][0].append(info)
-                        stream.write(b"".join(data))
+                        types_ = [("", uint32), ("", signal.dtype)]
 
-                    offsets += cur_offset
-                    if not offsets.flags["C_CONTIGUOUS"]:
-                        offsets = np.ascontiguousarray(offsets)
-                    fields.append((offsets, 8))
+                        values = np.rec.fromarrays(values, dtype=types_)
 
-                else:
-                    cur_offset = sum(blk.original_size for blk in gp.get_signal_data_blocks(i))
+                        stream.seek(0, 2)
+                        addr = stream.tell()
+                        block_size = len(values) * values.itemsize
+                        if block_size:
+                            info = SignalDataBlockInfo(
+                                address=addr,
+                                compressed_size=block_size,
+                                original_size=block_size,
+                                location=v4c.LOCATION_TEMPORARY_FILE,
+                            )
+                            gp.signal_data[i][0].append(info)
+                            values.tofile(stream)
 
-                    offsets = arange(len(signal), dtype=uint64) * (signal.itemsize + 4)
-
-                    values = [full(len(signal), signal.itemsize, dtype=uint32), signal]
-
-                    types_ = [("", uint32), ("", signal.dtype)]
-
-                    values = np.rec.fromarrays(values, dtype=types_)
-
-                    stream.seek(0, 2)
-                    addr = stream.tell()
-                    block_size = len(values) * values.itemsize
-                    if block_size:
-                        info = SignalDataBlockInfo(
-                            address=addr,
-                            compressed_size=block_size,
-                            original_size=block_size,
-                            location=v4c.LOCATION_TEMPORARY_FILE,
-                        )
-                        gp.signal_data[i][0].append(info)
-                        values.tofile(stream)
-
-                    offsets += cur_offset
-                    if not offsets.flags["C_CONTIGUOUS"]:
-                        offsets = np.ascontiguousarray(offsets)
-                    fields.append((offsets, 8))
+                        offsets += cur_offset
+                        if not offsets.flags["C_CONTIGUOUS"]:
+                            offsets = np.ascontiguousarray(offsets)
+                        fields.append((offsets, 8))
 
         if invalidation_bytes_nr:
             unknown_origin = inval_bits.pop(InvalidationArray.ORIGIN_UNKNOWN)
@@ -6195,53 +6222,54 @@ class MDF4(MDF_Common[Group]):
             sig_type = gp.signal_types[0]
 
             # first add the signals in the simple signal list
-            if sig_type == v4c.SIGNAL_TYPE_SCALAR:
-                samples = signal
-
-            elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
-                names = signal.dtype.names
-
-                if names == v4c.CANOPEN_TIME_FIELDS:
+            match sig_type:
+                case v4c.SIGNAL_TYPE_SCALAR:
                     samples = signal
 
-                else:
-                    vals = []
-                    for field in ("ms", "min", "hour", "day", "month", "year"):
-                        vals.append(signal[field])
-                    samples = np.rec.fromarrays(vals)
+                case v4c.SIGNAL_TYPE_CANOPEN:
+                    names = signal.dtype.names
 
-            elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
-                samples = signal
+                    if names == v4c.CANOPEN_TIME_FIELDS:
+                        samples = signal
 
-            elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
-                samples = signal
+                    else:
+                        vals = []
+                        for field in ("ms", "min", "hour", "day", "month", "year"):
+                            vals.append(signal[field])
+                        samples = np.rec.fromarrays(vals)
 
-            else:
-                cur_offset = sum(blk.original_size for blk in gp.get_signal_data_blocks(0))
+                case v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
+                    samples = signal
 
-                offsets = arange(len(signal), dtype=uint64) * (signal.itemsize + 4)
+                case v4c.SIGNAL_TYPE_ARRAY:
+                    samples = signal
 
-                values = [full(len(signal), signal.itemsize, dtype=uint32), signal]
+                case _:
+                    cur_offset = sum(blk.original_size for blk in gp.get_signal_data_blocks(0))
 
-                types_ = [("", uint32), ("", signal.dtype)]
+                    offsets = arange(len(signal), dtype=uint64) * (signal.itemsize + 4)
 
-                values = np.rec.fromarrays(values, dtype=types_)
+                    values = [full(len(signal), signal.itemsize, dtype=uint32), signal]
 
-                addr = tell()
-                block_size = len(values) * values.itemsize
-                if block_size:
-                    info = SignalDataBlockInfo(
-                        address=addr,
-                        compressed_size=block_size,
-                        original_size=block_size,
-                        location=v4c.LOCATION_TEMPORARY_FILE,
-                    )
-                    gp.signal_data[i][0].append(info)
-                    write(values.tobytes())
+                    types_ = [("", uint32), ("", signal.dtype)]
 
-                offsets += cur_offset
+                    values = np.rec.fromarrays(values, dtype=types_)
 
-                samples = offsets
+                    addr = tell()
+                    block_size = len(values) * values.itemsize
+                    if block_size:
+                        info = SignalDataBlockInfo(
+                            address=addr,
+                            compressed_size=block_size,
+                            original_size=block_size,
+                            location=v4c.LOCATION_TEMPORARY_FILE,
+                        )
+                        gp.signal_data[i][0].append(info)
+                        write(values.tobytes())
+
+                    offsets += cur_offset
+
+                    samples = offsets
 
             addr = tell()
 
@@ -6994,6 +7022,10 @@ class MDF4(MDF_Common[Group]):
             _dtype.itemsize == channel.bit_count // 8,
             all(
                 groups[dg_nr].channels[ch_nr].channel_type != v4c.CHANNEL_TYPE_VLSD
+                and (
+                    groups[dg_nr].channels[ch_nr].conversion is None
+                    or not groups[dg_nr].channels[ch_nr].conversion.conversion_type == v4c.CONVERSION_TYPE_NON
+                )
                 for (dg_nr, ch_nr) in dependency_list
             ),
         ]
@@ -7040,7 +7072,7 @@ class MDF4(MDF_Common[Group]):
                         ignore_invalidation_bits=ignore_invalidation_bits,
                         record_offset=record_offset,
                         record_count=record_count,
-                        raw=raw,
+                        raw=False,
                     )[0]
                     channel_values[i].append(vals)
                 if master_is_required:
@@ -7111,7 +7143,7 @@ class MDF4(MDF_Common[Group]):
                         )
             else:
                 arrays = [lst[0] for lst in channel_values]
-            types = [(name_, arr.dtype, arr.shape[1:]) for name_, arr in zip(names, arrays)]
+            types = [(name_, arr.dtype, arr.shape[1:]) for name_, arr in zip(names, arrays, strict=False)]
             types = dtype(types)
 
             vals = np.rec.fromarrays(arrays, dtype=types)
@@ -7385,7 +7417,7 @@ class MDF4(MDF_Common[Group]):
                                     ignore_invalidation_bits=ignore_invalidation_bits,
                                     record_offset=record_offset,
                                     record_count=cycles,
-                                    raw=True,
+                                    raw=False,
                                 )[0]
                             else:
                                 channel_group = grp.channel_group
@@ -7400,7 +7432,7 @@ class MDF4(MDF_Common[Group]):
                                     ignore_invalidation_bits=ignore_invalidation_bits,
                                     record_offset=record_offset,
                                     record_count=cycles,
-                                    raw=True,
+                                    raw=False,
                                 )[0]
                                 axis_values = ref[start:end].copy()
                             axis_values = axis_values[axisname]
@@ -7922,28 +7954,29 @@ class MDF4(MDF_Common[Group]):
                     v4c.DATA_TYPE_MIME_SAMPLE,
                     v4c.DATA_TYPE_MIME_STREAM,
                 ):
-                    if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
-                        encoding = "utf-16-be"
+                    match data_type:
+                        case v4c.DATA_TYPE_STRING_UTF_16_BE:
+                            encoding = "utf-16-be"
 
-                    elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
-                        encoding = "utf-16-le"
+                        case v4c.DATA_TYPE_STRING_UTF_16_LE:
+                            encoding = "utf-16-le"
 
-                    elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
-                        encoding = "utf-8"
-                        vals = np.array(
-                            [e.rsplit(b"\0")[0] for e in vals.tolist()],
-                            dtype=vals.dtype,
-                        )
+                        case v4c.DATA_TYPE_STRING_UTF_8:
+                            encoding = "utf-8"
+                            vals = np.array(
+                                [e.rsplit(b"\0")[0] for e in vals.tolist()],
+                                dtype=vals.dtype,
+                            )
 
-                    elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
-                        encoding = "latin-1"
-                        vals = np.array(
-                            [e.rsplit(b"\0")[0] for e in vals.tolist()],
-                            dtype=vals.dtype,
-                        )
+                        case v4c.DATA_TYPE_STRING_LATIN_1:
+                            encoding = "latin-1"
+                            vals = np.array(
+                                [e.rsplit(b"\0")[0] for e in vals.tolist()],
+                                dtype=vals.dtype,
+                            )
 
-                    else:
-                        raise MdfException(f'wrong data type "{data_type}" for vlsd channel "{channel.name}"')
+                        case _:
+                            raise MdfException(f'wrong data type "{data_type}" for vlsd channel "{channel.name}"')
 
                     vals = vals.astype(f"S{max_vlsd_size}")
             else:
@@ -7955,40 +7988,42 @@ class MDF4(MDF_Common[Group]):
                 if data_type != v4c.DATA_TYPE_BYTEARRAY:
                     vals = array([], dtype=f"S{max_vlsd_size}")
 
-                    if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
-                        encoding = "utf-16-be"
+                    match data_type:
+                        case v4c.DATA_TYPE_STRING_UTF_16_BE:
+                            encoding = "utf-16-be"
 
-                    elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
-                        encoding = "utf-16-le"
+                        case v4c.DATA_TYPE_STRING_UTF_16_LE:
+                            encoding = "utf-16-le"
 
-                    elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
-                        encoding = "utf-8"
+                        case v4c.DATA_TYPE_STRING_UTF_8:
+                            encoding = "utf-8"
 
-                    elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
-                        encoding = "latin-1"
+                        case v4c.DATA_TYPE_STRING_LATIN_1:
+                            encoding = "latin-1"
 
-                    else:
-                        raise MdfException(f'wrong data type "{data_type}" for vlsd channel "{channel.name}"')
+                        case _:
+                            raise MdfException(f'wrong data type "{data_type}" for vlsd channel "{channel.name}"')
 
                 else:
                     vals = array([], dtype=f"({max_vlsd_size},)u1")
 
         elif v4c.DATA_TYPE_STRING_LATIN_1 <= data_type <= v4c.DATA_TYPE_STRING_UTF_16_BE:
             if channel_type in (v4c.CHANNEL_TYPE_VALUE, v4c.CHANNEL_TYPE_MLSD):
-                if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
-                    encoding = "utf-16-be"
+                match data_type:
+                    case v4c.DATA_TYPE_STRING_UTF_16_BE:
+                        encoding = "utf-16-be"
 
-                elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
-                    encoding = "utf-16-le"
+                    case v4c.DATA_TYPE_STRING_UTF_16_LE:
+                        encoding = "utf-16-le"
 
-                elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
-                    encoding = "utf-8"
+                    case v4c.DATA_TYPE_STRING_UTF_8:
+                        encoding = "utf-8"
 
-                elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
-                    encoding = "latin-1"
+                    case v4c.DATA_TYPE_STRING_LATIN_1:
+                        encoding = "latin-1"
 
-                else:
-                    raise MdfException(f'wrong data type "{data_type}" for string channel')
+                    case _:
+                        raise MdfException(f'wrong data type "{data_type}" for string channel')
 
         elif data_type in (v4c.DATA_TYPE_CANOPEN_TIME, v4c.DATA_TYPE_CANOPEN_DATE):
             # CANopen date
@@ -8421,7 +8456,7 @@ class MDF4(MDF_Common[Group]):
             else:
                 signals = [(_master, None)]
 
-            for fragment, (group_index, channels) in zip(fragments, groups.items()):
+            for fragment, (group_index, channels) in zip(fragments, groups.items(), strict=False):
                 grp = self.groups[group_index]
                 if not grp.single_channel_dtype:
                     self._prepare_record(grp)
@@ -8445,7 +8480,7 @@ class MDF4(MDF_Common[Group]):
                     )
 
                     if idx == 0:
-                        for channel_index, raw_data in zip(channels, channels_raw_data):
+                        for channel_index, raw_data in zip(channels, channels_raw_data, strict=False):
                             signal = self.get(
                                 group=group_index,
                                 index=channel_index,
@@ -8469,7 +8504,7 @@ class MDF4(MDF_Common[Group]):
                             signals.append(signal)
 
                     else:
-                        for channel_index, raw_data in zip(channels, channels_raw_data):
+                        for channel_index, raw_data in zip(channels, channels_raw_data, strict=False):
                             signal, invalidation_bits = self.get(
                                 group=group_index,
                                 index=channel_index,
@@ -8520,7 +8555,7 @@ class MDF4(MDF_Common[Group]):
 
                 if version < "4.00":
                     if idx == 0:
-                        for sig, channel_index in zip(signals, channels):
+                        for sig, channel_index in zip(signals, channels, strict=False):
                             if sig.samples.dtype.kind == "S":
                                 strsig = self.get(
                                     group=group_index,
@@ -8546,7 +8581,7 @@ class MDF4(MDF_Common[Group]):
                             else:
                                 encodings[group_index].append(None)
                     else:
-                        for i, (sig, encoding_tuple) in enumerate(zip(signals, encodings[group_index])):
+                        for i, (sig, encoding_tuple) in enumerate(zip(signals, encodings[group_index], strict=False)):
                             if encoding_tuple:
                                 encoding, _dtype = encoding_tuple
                                 samples = sig[0]
@@ -8603,8 +8638,8 @@ class MDF4(MDF_Common[Group]):
         group = self.groups[index]
         if group.channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
             if data is not None:
-                record_offset = data[1]
-                record_count = data[2]
+                record_offset = data.record_offset
+                record_count = data.record_count
             return self.get_master(
                 group.channel_group.cg_master_index,
                 record_offset=record_offset,
@@ -8807,24 +8842,25 @@ class MDF4(MDF_Common[Group]):
 
         """
 
-        if bus == "CAN":
-            return self.get_can_signal(
-                name,
-                database=database,
-                ignore_invalidation_bits=ignore_invalidation_bits,
-                data=data,
-                raw=raw,
-                ignore_value2text_conversion=ignore_value2text_conversion,
-            )
-        elif bus == "LIN":
-            return self.get_lin_signal(
-                name,
-                database=database,
-                ignore_invalidation_bits=ignore_invalidation_bits,
-                data=data,
-                raw=raw,
-                ignore_value2text_conversion=ignore_value2text_conversion,
-            )
+        match bus:
+            case "CAN":
+                return self.get_can_signal(
+                    name,
+                    database=database,
+                    ignore_invalidation_bits=ignore_invalidation_bits,
+                    data=data,
+                    raw=raw,
+                    ignore_value2text_conversion=ignore_value2text_conversion,
+                )
+            case "LIN":
+                return self.get_lin_signal(
+                    name,
+                    database=database,
+                    ignore_invalidation_bits=ignore_invalidation_bits,
+                    data=data,
+                    raw=raw,
+                    ignore_value2text_conversion=ignore_value2text_conversion,
+                )
 
     def get_can_signal(
         self,
@@ -9322,7 +9358,7 @@ class MDF4(MDF_Common[Group]):
         self,
         dst: WritableBufferType | StrPathType,
         overwrite: bool = False,
-        compression: CompressionType = 0,
+        compression: CompressionType = v4c.CompressionAlgorithm.NO_COMPRESSION,
         progress=None,
         add_history_block: bool = True,
     ) -> Path:
@@ -9434,10 +9470,27 @@ class MDF4(MDF_Common[Group]):
 
             original_data_addresses = []
 
-            if compression == 1:
-                zip_type = v4c.FLAG_DZ_DEFLATE
+            if self.version < "4.30":
+                if compression > v4c.CompressionAlgorithm.TRANSPOSED_DEFLATE:
+                    zip_type = v4c.FLAG_DZ_TRANSPOSED_DEFLATE
+                elif compression == v4c.CompressionAlgorithm.DEFLATE:
+                    zip_type = v4c.FLAG_DZ_DEFLATE
+                else:
+                    zip_type = v4c.FLAG_DZ_TRANSPOSED_DEFLATE
             else:
-                zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
+                match compression:
+                    case v4c.CompressionAlgorithm.DEFLATE:
+                        zip_type = v4c.FLAG_DZ_DEFLATE
+                    case v4c.CompressionAlgorithm.TRANSPOSED_DEFLATE:
+                        zip_type = v4c.FLAG_DZ_TRANSPOSED_DEFLATE
+                    case v4c.CompressionAlgorithm.LZ4:
+                        zip_type = v4c.FLAG_DZ_LZ4
+                    case v4c.CompressionAlgorithm.TRANSPOSED_LZ4:
+                        zip_type = v4c.FLAG_DZ_TRANSPOSED_LZ4
+                    case v4c.CompressionAlgorithm.ZSTD:
+                        zip_type = v4c.FLAG_DZ_ZSTD
+                    case v4c.CompressionAlgorithm.TRANSPOSED_ZSTD:
+                        zip_type = v4c.FLAG_DZ_TRANSPOSED_ZSTD
 
             # write DataBlocks first
             for gp_nr, gp in enumerate(self.groups):
@@ -9672,7 +9725,7 @@ class MDF4(MDF_Common[Group]):
                                     if compression == 1:
                                         zip_type = v4c.FLAG_DZ_DEFLATE
                                     else:
-                                        zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
+                                        zip_type = v4c.FLAG_DZ_TRANSPOSED_DEFLATE
                                     if compression == 1:
                                         param = 0
                                     else:
@@ -10089,7 +10142,7 @@ class MDF4(MDF_Common[Group]):
                 for block in blocks:
                     write(bytes(block))
 
-            for gp, rec_id in zip(self.groups, gp_rec_ids):
+            for gp, rec_id in zip(self.groups, gp_rec_ids, strict=False):
                 gp.data_group.record_id_len = rec_id
 
             if valid_data_groups:
@@ -10108,7 +10161,7 @@ class MDF4(MDF_Common[Group]):
             seek(v4c.IDENTIFICATION_BLOCK_SIZE)
             write(bytes(self.header))
 
-            for orig_addr, gp in zip(original_data_addresses, self.groups):
+            for orig_addr, gp in zip(original_data_addresses, self.groups, strict=False):
                 gp.data_group.data_block_addr = orig_addr
 
             at_map = {value: key for key, value in at_map.items()}
@@ -10502,17 +10555,18 @@ class MDF4(MDF_Common[Group]):
             record_id_nr = group.data_group.record_id_len
             cg_size = group.record_size
 
-            if record_id_nr == 1:
-                _unpack_stuct = UINT8_uf
-            elif record_id_nr == 2:
-                _unpack_stuct = UINT16_uf
-            elif record_id_nr == 4:
-                _unpack_stuct = UINT32_uf
-            elif record_id_nr == 8:
-                _unpack_stuct = UINT64_uf
-            else:
-                message = f"invalid record id size {record_id_nr}"
-                raise MdfException(message)
+            match record_id_nr:
+                case 1:
+                    _unpack_stuct = UINT8_uf
+                case 2:
+                    _unpack_stuct = UINT16_uf
+                case 4:
+                    _unpack_stuct = UINT32_uf
+                case 8:
+                    _unpack_stuct = UINT64_uf
+                case _:
+                    message = f"invalid record id size {record_id_nr}"
+                    raise MdfException(message)
 
             rem = b""
             blocks = list(group.get_data_blocks())  # might be expensive ?

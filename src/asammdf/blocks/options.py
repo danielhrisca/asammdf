@@ -1,9 +1,9 @@
 from enum import IntEnum
 import os
 from os import PathLike
-from typing import Any, Optional, Union
+from typing import Any, Literal
 
-from typing_extensions import Literal, TypedDict
+from typing_extensions import TypedDict
 
 
 class IntegerInterpolation(IntEnum):
@@ -25,7 +25,7 @@ class _GlobalOptions(TypedDict):
     integer_interpolation: IntegerInterpolation
     float_interpolation: FloatInterpolation
     copy_on_get: bool
-    temporary_folder: Optional[Union[str, bytes, PathLike[str], PathLike[bytes]]]
+    temporary_folder: str | bytes | PathLike[str] | PathLike[bytes] | None
     raise_on_multiple_occurrences: bool
     fill_0_for_missing_computation_channels: bool
 

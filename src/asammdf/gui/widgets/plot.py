@@ -75,7 +75,6 @@ def monkey_patch_pyqtgraph():
             try:
                 return cached_mkColor_factory(*args)
             except:
-                # print(args, format_exc(), sep='\n')
                 return mkColor_factory(*args)
 
     @lru_cache(maxsize=2048)
@@ -3860,6 +3859,10 @@ class PlotGraphics(pg.PlotWidget):
                 QtCore.Qt.Key.Key_Y,
             ).toCombined(),
             QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_Y,
+            ).toCombined(),
+            QtCore.QKeyCombination(
                 QtCore.Qt.KeyboardModifier.NoModifier,
                 QtCore.Qt.Key.Key_Left,
             ).toCombined(),
@@ -3923,7 +3926,7 @@ class PlotGraphics(pg.PlotWidget):
             else:
                 to_display = [event_info]
                 labels = [""]
-            for event, label in zip(to_display, labels):
+            for event, label in zip(to_display, labels, strict=False):
                 bookmark = Bookmark(
                     pos=event["value"],
                     message=event["description"],
@@ -4102,7 +4105,7 @@ class PlotGraphics(pg.PlotWidget):
                     start, stop = self.region.getRegion()
 
                     if self.region_lock is not None:
-                        self.region.setRegion((self.region_lock, pos.x()))
+                        self.region.moving_cursor.setPos(pos)
                     else:
                         if modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
                             self.region.setRegion((start, pos.x()))
@@ -4160,7 +4163,10 @@ class PlotGraphics(pg.PlotWidget):
         x = pos.x()
         y = event.scenePos().y()
 
-        if self.cursor1 is not None:
+        if self.region and self.region.moving_cursor is not None:
+            self.region.moving_cursor.setPos(pos)
+
+        elif self.cursor1 is not None:
             self.cursor1.setPos(pos)
             self.cursor1.sigPositionChangeFinished.emit(self.cursor1)
 
@@ -4477,14 +4483,52 @@ class PlotGraphics(pg.PlotWidget):
 
                 if self.region_lock is not None:
                     self.region_lock = None
-                    self.region.lines[0].setMovable(True)
-                    self.region.lines[0].locked = False
+                    for i in range(2):
+                        self.region.lines[i].setMovable(True)
+                        self.region.lines[i].locked = False
                     self.region.movable = True
+                    self.region.moving_cursor = self.region.lines[0]
                 else:
                     self.region_lock = self.region.getRegion()[0]
                     self.region.lines[0].setMovable(False)
                     self.region.lines[0].locked = True
+                    self.region.lines[1].setMovable(True)
+                    self.region.lines[1].locked = False
+                    self.region.moving_cursor = self.region.lines[1]
                     self.region.movable = False
+
+                self.update()
+
+            elif key == QtCore.Qt.Key.Key_Y and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier:
+                if self.region is None:
+                    event_ = QtGui.QKeyEvent(
+                        QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_R, QtCore.Qt.KeyboardModifier.NoModifier
+                    )
+                    self.keyPressEvent(event_)
+
+                    self.region.lines[0].setMovable(False)
+                    self.region.lines[0].locked = True
+                    self.region.lines[1].setMovable(True)
+                    self.region.lines[1].locked = False
+                    self.region.movable = False
+                    self.region.moving_cursor = self.region.lines[1]
+                    self.region_lock = self.region.lines[0].value()
+
+                else:
+                    if self.region.lines[0].isMovable():
+                        self.region_lock = self.region.lines[0].value()
+                        self.region.lines[0].setMovable(False)
+                        self.region.lines[0].locked = True
+                        self.region.lines[1].setMovable(True)
+                        self.region.lines[1].locked = False
+                        self.region.moving_cursor = self.region.lines[1]
+                    else:
+                        self.region_lock = self.region.lines[1].value()
+                        self.region.lines[0].setMovable(True)
+                        self.region.lines[0].locked = False
+                        self.region.lines[1].setMovable(False)
+                        self.region.lines[1].locked = True
+                        self.region.moving_cursor = self.region.lines[0]
 
                 self.update()
 
@@ -4654,41 +4698,9 @@ class PlotGraphics(pg.PlotWidget):
                 and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
                 and not self.locked
             ):
-                if key == QtCore.Qt.Key.Key_I:
-                    factor = 0.165
-                else:
-                    factor = -0.165
-
                 self.block_zoom_signal = True
 
-                if self._settings.value("zoom_y_center_on_cursor", True, type=bool):
-                    value_info = self.value_at_cursor()
-                    if not isinstance(value_info[0], (int, float)):
-                        delta_proc = 0
-                    else:
-                        y, sig_y_bottom, sig_y_top = value_info
-                        delta_proc = (y - (sig_y_top + sig_y_bottom) / 2) / (sig_y_top - sig_y_bottom)
-                else:
-                    delta_proc = 0
-
-                for sig in self.signals:
-                    sig_y_bottom, sig_y_top = sig.y_range
-
-                    # center on the signal cursor Y value
-                    shift = delta_proc * (sig_y_top - sig_y_bottom)
-                    sig_y_top, sig_y_bottom = sig_y_top + shift, sig_y_bottom + shift
-
-                    delta = sig_y_top - sig_y_bottom
-                    sig_y_top -= delta * factor
-                    sig_y_bottom += delta * factor
-
-                    sig, idx = self.signal_by_uuid(sig.uuid)
-
-                    axis = self.axes[idx]
-                    if isinstance(axis, FormatedAxis):
-                        axis.setRange(sig_y_bottom, sig_y_top)
-                    else:
-                        self.set_y_range(sig.uuid, (sig_y_bottom, sig_y_top))
+                self.viewbox.vertical_zoom(zoom_in=key == QtCore.Qt.Key.Key_I)
 
                 self.block_zoom_signal = False
                 self.zoom_changed.emit(False)
@@ -6019,7 +6031,7 @@ class PlotGraphics(pg.PlotWidget):
                 if tuple(self.y_axis.range) != tuple(sig.y_range):
                     self.y_axis.setRange(*sig.y_range)
 
-        if self.viewbox:
+        if self.viewbox and self._can_paint_global:
             self.viewbox.update()
 
     def update_views(self):

@@ -21,7 +21,7 @@ import sys
 from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
 from types import TracebackType
-from typing import Any, overload
+from typing import Any, Literal, overload
 from warnings import warn
 import xml.etree.ElementTree as ET
 import zipfile
@@ -30,7 +30,6 @@ from canmatrix import CanMatrix
 import numpy as np
 from numpy.typing import NDArray
 import pandas as pd
-from typing_extensions import Literal
 
 from . import tool
 from .blocks import bus_logging_utils, mdf_v2, mdf_v3, mdf_v4
@@ -660,17 +659,17 @@ class MDF:
             self.file_history = [fh]
 
     @staticmethod
-    def _transfer_channel_group_data(sgroup: ChannelGroupType, ogroup: ChannelGroupType) -> None:
-        if not hasattr(sgroup, "acq_name") or not hasattr(ogroup, "acq_name"):
-            sgroup.comment = ogroup.comment
+    def _transfer_channel_group_data(out_group: ChannelGroupType, source_group: ChannelGroupType) -> None:
+        if not hasattr(out_group, "acq_name") or not hasattr(source_group, "acq_name"):
+            out_group.comment = source_group.comment
         else:
-            sgroup.flags = ogroup.flags
-            sgroup.path_separator = ogroup.path_separator
-            sgroup.comment = ogroup.comment
-            sgroup.acq_name = ogroup.acq_name
-            acq_source = ogroup.acq_source
+            out_group.flags = source_group.flags
+            out_group.path_separator = source_group.path_separator
+            out_group.comment = source_group.comment
+            out_group.acq_name = source_group.acq_name
+            acq_source = source_group.acq_source
             if acq_source:
-                sgroup.acq_source = acq_source.copy()
+                out_group.acq_source = acq_source.copy()
 
     def _transfer_metadata(self, other: MDF, message: str = "") -> None:
         self._transfer_events(other)
@@ -1055,7 +1054,7 @@ class MDF:
 
                 # update the signal if this is not the first yield
                 if j:
-                    for signal, (samples, invalidation) in zip(signals, sigs[1:]):
+                    for signal, (samples, invalidation) in zip(signals, sigs[1:], strict=False):
                         signal.samples = samples
                         signal.timestamps = master
                         signal.invalidation_bits = invalidation
@@ -1602,8 +1601,12 @@ class MDF:
                                     return TERMINATED
 
         elif fmt == "csv":
+            delimiter = kwargs.get("delimiter", ",")[0]
+            if delimiter == "\\t":
+                delimiter = "\t"
+
             fmtparams = {
-                "delimiter": kwargs.get("delimiter", ",")[0],
+                "delimiter": delimiter,
                 "doublequote": kwargs.get("doublequote", True),
                 "lineterminator": kwargs.get("lineterminator", "\r\n"),
                 "quotechar": kwargs.get("quotechar", '"')[0],
@@ -1699,7 +1702,7 @@ class MDF:
                             if progress.stop:
                                 return TERMINATED
 
-                    for i, row in enumerate(zip(*vals)):
+                    for i, row in enumerate(zip(*vals, strict=False)):
                         writer.writerow(row)
 
                         if progress is not None:
@@ -1831,7 +1834,7 @@ class MDF:
                                 *(df[name].to_list() for name in df),
                             ]
 
-                        for i, row in enumerate(zip(*vals)):
+                        for i, row in enumerate(zip(*vals, strict=False)):
                             writer.writerow(row)
 
                     if progress is not None:
@@ -2409,7 +2412,7 @@ class MDF:
                 origin_conversion[f"text_{i}"] = str(mdf.original_name if isinstance(mdf, MDF) else str(mdf))
             origin_conversion = from_dict(origin_conversion)
 
-        for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
+        for mdf_index, (offset, mdf) in enumerate(zip(offsets, files, strict=False)):
             if not isinstance(mdf, MDF):
                 mdf = MDF(mdf, use_display_names=use_display_names)
                 close = True
@@ -2628,10 +2631,10 @@ class MDF:
                         if different_channel_order:
                             new_signals = [None for _ in signals]
                             if idx == 0:
-                                for new_index, sig in zip(remap, signals):
+                                for new_index, sig in zip(remap, signals, strict=False):
                                     new_signals[new_index] = sig
                             else:
-                                for new_index, sig in zip(remap, signals[1:]):
+                                for new_index, sig in zip(remap, signals[1:], strict=False):
                                     new_signals[new_index + 1] = sig
                                 new_signals[0] = signals[0]
 
@@ -2817,7 +2820,7 @@ class MDF:
         else:
             offsets = [0 for file in files]
 
-        for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
+        for mdf_index, (offset, mdf) in enumerate(zip(offsets, files, strict=False)):
             if not isinstance(mdf, MDF):
                 mdf = MDF(mdf, use_display_names=use_display_names)
 
@@ -3233,16 +3236,15 @@ class MDF:
                 if progress.stop:
                     return TERMINATED
 
-        try:
+        if isinstance(raster, (int, float)):
             raster = float(raster)
-            assert raster > 0
-        except (TypeError, ValueError):
-            if isinstance(raster, str):
-                raster = self.get(raster).timestamps
-            else:
-                raster = np.array(raster)
-        else:
+            if raster <= 0:
+                raise MdfException("The raster value must be >= 0")
             raster = master_using_raster(self, raster)
+        elif isinstance(raster, str):
+            raster = self.get(raster, raw=True, ignore_invalidation_bits=True).timestamps
+        else:
+            raster = np.array(raster)
 
         if time_from_zero and len(raster):
             delta = raster[0]
@@ -3480,7 +3482,7 @@ class MDF:
             # prepare the master
             master = np.frombuffer(master_bytes, dtype=master_dtype)
 
-            for pair, (raw_data, invalidation_bits) in zip(pairs, raw_and_invalidation):
+            for pair, (raw_data, invalidation_bits) in zip(pairs, raw_and_invalidation, strict=False):
                 ch_index = pair[-1]
                 channel = grp.channels[ch_index]
                 channel_dtype, byte_size, byte_offset, bit_offset = grp.record[ch_index]
@@ -3582,7 +3584,7 @@ class MDF:
         if validate:
             signals = [sig.validate(copy=False) for sig in signals]
 
-        for signal, channel in zip(signals, channels):
+        for signal, channel in zip(signals, channels, strict=False):
             if isinstance(channel, str):
                 signal.name = channel
             else:
@@ -3759,14 +3761,14 @@ class MDF:
                     next_pos = current_pos + len(sig)
                     master[current_pos:next_pos] = sig
 
-                    for signal, (sig, inval) in zip(signals, sigs[1:]):
+                    for signal, (sig, inval) in zip(signals, sigs[1:], strict=False):
                         signal.samples[current_pos:next_pos] = sig
                         if signal.invalidation_bits is not None:
                             signal.invalidation_bits[current_pos:next_pos] = inval
 
                 current_pos = next_pos
 
-            for signal, pair in zip(signals, pairs):
+            for signal, pair in zip(signals, pairs, strict=False):
                 signal.timestamps = master
                 output_signals[pair] = signal
 
@@ -3800,7 +3802,7 @@ class MDF:
         if validate:
             signals = [sig.validate(copy=False) for sig in signals]
 
-        for signal, channel in zip(signals, channels):
+        for signal, channel in zip(signals, channels, strict=False):
             if isinstance(channel, str):
                 signal.name = channel
             else:
@@ -4408,16 +4410,16 @@ class MDF:
             masters = {index: self.get_master(index) for index in self.virtual_groups}
 
             if raster is not None:
-                try:
+                if isinstance(raster, (int, float)):
                     raster = float(raster)
-                    assert raster > 0
-                except (TypeError, ValueError):
-                    if isinstance(raster, str):
-                        raster = self.get(raster, raw=True, ignore_invalidation_bits=True).timestamps
-                    else:
-                        raster = np.array(raster)
-                else:
+                    if raster <= 0:
+                        raise MdfException("The raster value must be >= 0")
                     raster = master_using_raster(self, raster)
+                elif isinstance(raster, str):
+                    raster = self.get(raster, raw=True, ignore_invalidation_bits=True).timestamps
+                else:
+                    raster = np.array(raster)
+
                 master = raster
             else:
                 if masters:
@@ -4825,17 +4827,17 @@ class MDF:
         self._set_temporary_master(None)
 
         if raster is not None:
-            try:
+            if isinstance(raster, (int, float)):
                 raster = float(raster)
-                assert raster > 0
-            except (TypeError, ValueError):
-                if isinstance(raster, str):
-                    raster = self.get(raster).timestamps
-                else:
-                    raster = np.array(raster)
-            else:
+                if raster <= 0:
+                    raise MdfException("The raster value must be >= 0")
                 raster = master_using_raster(self, raster)
+            elif isinstance(raster, str):
+                raster = self.get(raster).timestamps
+            else:
+                raster = np.array(raster)
             master = raster
+
         else:
             masters = {index: self.get_master(index) for index in self.virtual_groups}
 
@@ -5369,7 +5371,7 @@ class MDF:
                         j1939_msg_pgns = np.where(pf >= 240, _pgn + ps, _pgn)
                         j9193_msg_sa = bus_msg_ids & 0xFF
 
-                        unique_ids = set(zip(bus_msg_ids.tolist(), bus_msg_ide.tolist()))
+                        unique_ids = set(zip(bus_msg_ids.tolist(), bus_msg_ide.tolist(), strict=False))
 
                         total_unique_ids = total_unique_ids | set(unique_ids)
 

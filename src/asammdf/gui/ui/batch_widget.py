@@ -31,7 +31,7 @@ class Ui_batch_widget(object):
     def setupUi(self, batch_widget):
         if not batch_widget.objectName():
             batch_widget.setObjectName(u"batch_widget")
-        batch_widget.resize(1312, 718)
+        batch_widget.resize(828, 718)
         self.gridLayout_9 = QGridLayout(batch_widget)
         self.gridLayout_9.setSpacing(1)
         self.gridLayout_9.setObjectName(u"gridLayout_9")
@@ -137,7 +137,7 @@ class Ui_batch_widget(object):
         self.scrollArea_3.setWidgetResizable(True)
         self.scrollAreaWidgetContents_3 = QWidget()
         self.scrollAreaWidgetContents_3.setObjectName(u"scrollAreaWidgetContents_3")
-        self.scrollAreaWidgetContents_3.setGeometry(QRect(0, 0, 840, 706))
+        self.scrollAreaWidgetContents_3.setGeometry(QRect(0, 0, 517, 706))
         self.horizontalLayout_2 = QHBoxLayout(self.scrollAreaWidgetContents_3)
         self.horizontalLayout_2.setSpacing(1)
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
@@ -627,7 +627,7 @@ class Ui_batch_widget(object):
 
         self.delimiter = QLineEdit(self.CSV)
         self.delimiter.setObjectName(u"delimiter")
-        self.delimiter.setMaxLength(1)
+        self.delimiter.setMaxLength(2)
         self.delimiter.setClearButtonEnabled(False)
 
         self.gridLayout_2.addWidget(self.delimiter, 8, 1, 1, 1)
@@ -845,7 +845,7 @@ class Ui_batch_widget(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 840, 706))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 517, 706))
         self.gridLayout_3 = QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_3.setSpacing(1)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
@@ -875,7 +875,7 @@ class Ui_batch_widget(object):
 
         self.delimiter_bus = QLineEdit(self.groupBox_3)
         self.delimiter_bus.setObjectName(u"delimiter_bus")
-        self.delimiter_bus.setMaxLength(1)
+        self.delimiter_bus.setMaxLength(2)
         self.delimiter_bus.setClearButtonEnabled(False)
 
         self.gridLayout_10.addWidget(self.delimiter_bus, 6, 2, 1, 1)
@@ -1209,7 +1209,7 @@ class Ui_batch_widget(object):
 #endif // QT_CONFIG(tooltip)
         self.raster_search_btn.setText("")
         self.resample_time_from_zero.setText(QCoreApplication.translate("batch_widget", u"Time from 0s", None))
-        self.groupBox_11.setTitle(QCoreApplication.translate("batch_widget", u"Ouput format", None))
+        self.groupBox_11.setTitle(QCoreApplication.translate("batch_widget", u"Output format", None))
         self.mdf_split.setText(QCoreApplication.translate("batch_widget", u"Split data blocks", None))
         self.label_39.setText(QCoreApplication.translate("batch_widget", u"Compression", None))
         self.label_40.setText(QCoreApplication.translate("batch_widget", u"Version", None))
@@ -1315,3 +1315,4 @@ class Ui_batch_widget(object):
         self.sort_by_start_time_btn.setText(QCoreApplication.translate("batch_widget", u"Sort by start time", None))
         self.sort_alphabetically_btn.setText(QCoreApplication.translate("batch_widget", u"Sort alphabetically", None))
     # retranslateUi
+

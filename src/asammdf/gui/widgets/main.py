@@ -286,6 +286,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 "channels with integer data type (raw values) that have a conversion that outputs float "
                 "values will use linear interpolation, otherwise the previous sample is used",
             ),
+            strict=False,
         ):
             action = QtGui.QAction(option, menu)
             action.setCheckable(True)
@@ -683,6 +684,15 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action = QtGui.QAction(icon, "{: <20}\tY".format("Lock/unlock range"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key.Key_Y))
         action.setShortcut(QtCore.Qt.Key.Key_Y)
+        cursors_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/lock_range.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        action = QtGui.QAction(icon, "{: <20}\tShift+Y".format("Swap range lock"), menu)
+        action.triggered.connect(
+            partial(self.plot_action, key=QtCore.Qt.Key.Key_Y, modifier=QtCore.Qt.KeyboardModifier.ShiftModifier)
+        )
+        action.setShortcut(QtGui.QKeySequence("Shift+Y"))
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()

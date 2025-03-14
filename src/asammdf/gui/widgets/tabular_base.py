@@ -1387,7 +1387,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         signals.set_index(index, inplace=True)
         dropped = {}
 
-        ranges = dict(zip(self.tree.pgdf.df_unfiltered.columns, self.ranges.values()))
+        ranges = dict(zip(self.tree.pgdf.df_unfiltered.columns, self.ranges.values(), strict=False))
 
         for name_ in signals.columns:
             col = signals[name_]

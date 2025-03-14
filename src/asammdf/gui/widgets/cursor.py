@@ -257,6 +257,9 @@ class Cursor(pg.InfiniteLine):
         self.hoverPen = QtGui.QPen(color.name())
         self.update()
 
+    def isMovable(self):
+        return self.movable
+
     @property
     def line_width(self):
         return self._line_width
@@ -453,8 +456,8 @@ class Region(pg.LinearRegionItem):
         }
 
         self.lines = [
-            Cursor(QtCore.QPointF(values[0], 0), angle=90, **lineKwds),
-            Cursor(QtCore.QPointF(values[1], 0), angle=90, **lineKwds),
+            Cursor(QtCore.QPointF(values[0], 0), angle=90, label="A", name="A", **lineKwds),
+            Cursor(QtCore.QPointF(values[1], 0), angle=90, label="B", name="B", **lineKwds),
         ]
 
         for l in self.lines:

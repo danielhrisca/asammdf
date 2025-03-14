@@ -6,7 +6,7 @@ _asammdf_ is a fast parser and editor for ASAM (Association for Standardization 
 
 _asammdf_ supports MDF versions 2 (.dat), 3 (.mdf) and 4 (.mf4).
 
-_asammdf_ works on Python >= 3.9
+_asammdf_ works on Python >= 3.10
 
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/asammdf)
 ![PyPI - License](https://img.shields.io/pypi/l/asammdf)

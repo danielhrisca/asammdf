@@ -290,7 +290,7 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
                     "brush": self._pen,
                 }
             ]
-            for angle, xpos, ypos in zip(angles.tolist(), x.samples[1:].tolist(), y.samples[1:].tolist()):
+            for angle, xpos, ypos in zip(angles.tolist(), x.samples[1:].tolist(), y.samples[1:].tolist(), strict=False):
                 transform.reset()
                 angle_rot = transform.rotate(angle)
                 my_rotated_symbol = angle_rot.map(ARROW)

@@ -861,6 +861,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             QtCore.Qt.Key.Key_Down,
             QtCore.Qt.Key.Key_Left,
             QtCore.Qt.Key.Key_Right,
+            QtCore.Qt.Key.Key_I,
+            QtCore.Qt.Key.Key_O,
         ):
             event.ignore()
         else:

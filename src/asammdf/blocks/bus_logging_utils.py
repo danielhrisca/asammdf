@@ -216,7 +216,7 @@ def extract_signal(
                 vals &= (2**bit_count) - 1
 
     if signed and not is_float:
-        if bit_count not in (8, 16, 32, 64):
+        if extra_bytes or bit_count not in (8, 16, 32, 64):
             vals = as_non_byte_sized_signed_int(vals, bit_count)
         else:
             vals = vals.view(f"i{std_size}")
@@ -261,7 +261,7 @@ def merge_cantp(payload, ts):
     merged = []
     t_out = []
     merging = np.array([], "uint8")
-    for frame, t in zip(payload, ts):
+    for frame, t in zip(payload, ts, strict=False):
         if frame[0] & 0xF0 == INITIAL:
             expected_size = np.uint16(256) * (frame[0] & 0x0F) + frame[1]
             merging = np.array(frame[2:8], "uint8")
@@ -331,10 +331,12 @@ def extract_mux(
                     multiplexor_name = sig.name
                     break
             for sig in message:
-                if sig.multiplex not in (None, "Multiplexor") and sig.muxer_for_signal is None:
-                    sig.muxer_for_signal = multiplexor_name
-                    sig.mux_val_min = sig.mux_val_max = int(sig.multiplex)
-                    sig.mux_val_grp.insert(0, (int(sig.multiplex), int(sig.multiplex)))
+                if sig.multiplex not in (None, "Multiplexor"):
+                    if sig.muxer_for_signal is None:
+                        sig.muxer_for_signal = multiplexor_name
+                    if not hasattr(sig, "mux_val_min"):
+                        sig.mux_val_min = sig.mux_val_max = int(sig.multiplex)
+                        sig.mux_val_grp.insert(0, (int(sig.multiplex), int(sig.multiplex)))
 
     extracted_signals = {}
 

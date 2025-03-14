@@ -348,7 +348,7 @@ class TestPlotShortcuts(TestPlotWidget):
         self.assertTrue(self.plot.show_bookmarks)
         self.assertEqual(self.plot.plot.bookmarks[len(self.plot.plot.bookmarks) - 1].message, self.id())
         self.assertEqual(self.plot.plot.bookmarks[len(self.plot.plot.bookmarks) - 1].value(), timestamp)
-        for bookmark, color in zip(self.plot.plot.bookmarks, bookmarks_colors):
+        for bookmark, color in zip(self.plot.plot.bookmarks, bookmarks_colors, strict=False):
             self.assertEqual(bookmark.color, color)
             self.assertIn(color, pg_colors)
 

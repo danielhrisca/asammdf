@@ -19,7 +19,6 @@ from threading import Thread
 from time import sleep
 import traceback
 from traceback import format_exc
-from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -156,6 +155,12 @@ IMPORT = re.compile(r"^\s*import\s+")
 IMPORT_INNER = re.compile(r";\s*import\s+")
 FROM_IMPORT = re.compile(r"^\s*from\s+\S+\s+import\s+")
 FROM_INNER_IMPORT = re.compile(r";\s*from\s+\S+\s+import\s+")
+
+COMPRESSION_OPTIONS = {
+    "4.10": ("no compression", "deflate", "transposed deflate"),
+    "4.20": ("no compression", "deflate", "transposed deflate"),
+    "4.30": ("no compression", "deflate", "transposed deflate", "zstd", "transposed zstd", "lz4", "transposed lz4"),
+}
 
 
 def excepthook(exc_type, exc_value, tracebackobj):
@@ -379,10 +384,9 @@ class ProgressDialog(QtWidgets.QProgressDialog):
 
     def close(self, reject=False):
         if self.thread and not self.thread.isFinished():
-            self.thread.requestInterruption()
-
             loop = QtCore.QEventLoop()
             self.thread.finished.connect(loop.quit)
+            self.thread.requestInterruption()
             loop.exec()
 
         if reject:
@@ -604,7 +608,7 @@ def compute_signal(
             if not isinstance(common_timebase, np.ndarray):
                 common_timebase = np.array(common_timebase)
 
-            for i, (signal, arg_name) in enumerate(zip(signals, found_args)):
+            for i, (signal, arg_name) in enumerate(zip(signals, found_args, strict=False)):
                 if isinstance(signal, (int, float)):
                     value = signal
                     signals[i] = Signal(
@@ -626,9 +630,9 @@ def compute_signal(
                 signals.append(common_timebase)
 
                 samples = []
-                for values in zip(*signals):
+                for values in zip(*signals, strict=False):
                     try:
-                        current_sample = func(**dict(zip(names, values)))
+                        current_sample = func(**dict(zip(names, values, strict=False)))
                     except:
                         current_sample = COMPUTED_FUNCTION_ERROR_VALUE
                     samples.append(current_sample)
@@ -660,7 +664,7 @@ def compute_signal(
                 names.extend(not_found)
                 signals.extend(not_found_signals)
 
-                samples = func(**dict(zip(names, signals)))
+                samples = func(**dict(zip(names, signals, strict=False)))
                 if len(samples) != len(common_timebase):
                     common_timebase = common_timebase[-len(samples) :]
 
@@ -1193,7 +1197,7 @@ def contains_imports(string):
     return False
 
 
-def generate_python_variables(definition: str, in_globals: Union[dict, None] = None) -> Union[str, None]:
+def generate_python_variables(definition: str, in_globals: dict | None = None) -> str | None:
     trace = None
 
     if not isinstance(definition, str):
@@ -1239,7 +1243,7 @@ def generate_python_function_globals() -> dict:
     return func_globals
 
 
-def generate_python_function(definition: str, in_globals: Union[dict, None] = None) -> tuple:
+def generate_python_function(definition: str, in_globals: dict | None = None) -> tuple:
     trace = None
     func = None
 

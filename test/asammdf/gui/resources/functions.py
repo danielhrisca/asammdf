@@ -57,7 +57,6 @@ def gray2dec(position_sensor_value=0, t=0):
 
 
 def maximum(channel1=0, channel2=-1, channel3=0, t=0):
-    Function1()
     return max(channel1, channel2, channel3)
 
 
