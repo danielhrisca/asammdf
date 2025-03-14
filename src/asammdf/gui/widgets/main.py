@@ -687,9 +687,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         icon.addPixmap(QtGui.QPixmap(":/arrow_next_higher.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         action = QtGui.QAction(icon, "{: <20}\tCtrl+PgUp".format("Move cursor to next higher"), menu)
         action.triggered.connect(
-            partial(
-                self.plot_action, key=QtCore.Qt.Key.Key_PageUp, modifiers=QtCore.Qt.KeyboardModifier.ControlModifier
-            )
+            partial(self.plot_action, key=QtCore.Qt.Key.Key_PageUp, modifier=QtCore.Qt.KeyboardModifier.ControlModifier)
         )
         action.setShortcut(QtGui.QKeySequence("Ctrl+PgUp"))
         cursors_actions.addAction(action)
@@ -701,7 +699,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             partial(
                 self.plot_action,
                 key=QtCore.Qt.Key.Key_PageUp,
-                modifiers=QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                modifier=QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
             )
         )
         action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+PgUp"))
@@ -712,7 +710,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action = QtGui.QAction(icon, "{: <20}\tCtrl+PgDown".format("Move cursor to next lower"), menu)
         action.triggered.connect(
             partial(
-                self.plot_action, key=QtCore.Qt.Key.Key_PageDown, modifiers=QtCore.Qt.KeyboardModifier.ControlModifier
+                self.plot_action, key=QtCore.Qt.Key.Key_PageDown, modifier=QtCore.Qt.KeyboardModifier.ControlModifier
             )
         )
         action.setShortcut(QtGui.QKeySequence("Ctrl+PgDown"))
@@ -725,10 +723,36 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             partial(
                 self.plot_action,
                 key=QtCore.Qt.Key.Key_PageDown,
-                modifiers=QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                modifier=QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
             )
         )
         action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+PgDown"))
+        cursors_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/right2.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        action = QtGui.QAction(icon, "{: <20}\tAlt+→".format("Move cursor to next different value"), menu)
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key.Key_Right,
+                modifier=QtCore.Qt.KeyboardModifier.AltModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Alt+Right"))
+        cursors_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/left2.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        action = QtGui.QAction(icon, "{: <20}\tAlt+←".format("Move cursor to previous different value"), menu)
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key.Key_Left,
+                modifier=QtCore.Qt.KeyboardModifier.AltModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Alt+Left"))
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
