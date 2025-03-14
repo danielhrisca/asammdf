@@ -1205,7 +1205,7 @@ class WithMDIArea:
                         raw=True,
                     )
 
-                    for sig, sig_, sig_uuid in zip(selected_signals, uuids_signals, uuids_signals_uuid):
+                    for sig, sig_, sig_uuid in zip(selected_signals, uuids_signals, uuids_signals_uuid, strict=False):
                         sig.group_index = sig_[1]
                         sig.channel_index = sig_[2]
                         sig.flags &= ~sig.Flags.computed
@@ -1281,7 +1281,7 @@ class WithMDIArea:
 
                     nd = []
 
-                    for sig, sig_ in zip(selected_signals, uuids_signals):
+                    for sig, sig_ in zip(selected_signals, uuids_signals, strict=False):
                         sig.group_index = sig_["group_index"]
                         sig.channel_index = sig_["channel_index"]
                         sig.flags &= ~sig.Flags.computed
@@ -2375,7 +2375,7 @@ class WithMDIArea:
                 raw=True,
             )
 
-            for sig, sig_, sig_obj in zip(selected_signals, uuids_signals, uuids_signals_objs):
+            for sig, sig_, sig_obj in zip(selected_signals, uuids_signals, uuids_signals_objs, strict=False):
                 sig.group_index = sig_[1]
                 sig.channel_index = sig_[2]
                 sig.flags &= ~sig.Flags.computed
@@ -2433,7 +2433,7 @@ class WithMDIArea:
 
             not_found = [Signal([], [], name=name) for name, gp_index, ch_index in not_found]
             uuid = os.urandom(6).hex()
-            for sig, sig_obj in zip(not_found, not_found_objs):
+            for sig, sig_obj in zip(not_found, not_found_objs, strict=False):
                 sig.origin_uuid = uuid
                 sig.group_index = NOT_FOUND
                 sig.channel_index = randint(0, NOT_FOUND)
@@ -2561,7 +2561,7 @@ class WithMDIArea:
                 raw=True,
             )
 
-            for sig, (sig_uuid, sig_) in zip(selected_signals, uuids_signals.items()):
+            for sig, (sig_uuid, sig_) in zip(selected_signals, uuids_signals.items(), strict=False):
                 sig.group_index = sig_["group_index"]
                 sig.channel_index = sig_["channel_index"]
                 sig.flags &= ~sig.Flags.computed
@@ -3324,7 +3324,7 @@ class WithMDIArea:
             else:
                 signals = []
 
-            for sig, sig_, description in zip(signals, signals_, found):
+            for sig, sig_, description in zip(signals, signals_, found, strict=False):
                 sig.group_index = sig_[1]
                 sig.channel_index = sig_[2]
                 sig.origin_uuid = uuid
@@ -3543,6 +3543,7 @@ class WithMDIArea:
                     validate=True,
                     raw=True,
                 ),
+                strict=False,
             ):
                 description = descriptions[sig_uuid]
 
@@ -3574,11 +3575,12 @@ class WithMDIArea:
                         copy_master=False,
                     ),
                     matrix_components,
+                    strict=False,
                 )
             }
 
             new_matrix_signals = {}
-            for signal_mat, (_n, indexes) in zip(matrix_signals.values(), matrix_components):
+            for signal_mat, (_n, indexes) in zip(matrix_signals.values(), matrix_components, strict=False):
                 indexes_string = "".join(f"[{_index}]" for _index in indexes)
                 sig_name = f"{signal_mat.name}{indexes_string}"
 
@@ -4498,6 +4500,7 @@ class WithMDIArea:
                                     for arg_name, alternatives in zip(
                                         parameters,
                                         item.signal.computation["args"].values(),
+                                        strict=False,
                                     ):
                                         args[arg_name] = alternatives
 

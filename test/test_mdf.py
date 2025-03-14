@@ -712,7 +712,7 @@ class TestMDF(unittest.TestCase):
 
                     self.assertFalse(set(target_names) - set(channel_list))
 
-                    for name, sig in zip(channel_list, selected_signals):
+                    for name, sig in zip(channel_list, selected_signals, strict=False):
                         target = np.load(signals[name])
                         self.assertTrue(np.array_equal(target, sig.samples))
 
@@ -761,7 +761,7 @@ class TestMDF(unittest.TestCase):
         mdf = MDF()
         mdf.append(sigs)
         mdf.configure(read_fragment_size=1)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(MdfException):
             mdf = mdf.resample(raster=0)
 
         mdf.close()

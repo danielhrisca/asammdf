@@ -4,15 +4,14 @@ from gzip import GzipFile
 from io import BufferedRandom, BufferedReader, BufferedWriter, BytesIO
 from mmap import mmap
 from os import PathLike
-from typing import Any, Optional, TYPE_CHECKING, Union
+from typing import Any, Literal, TYPE_CHECKING, Union
 from zipfile import ZipFile
 
 from canmatrix import CanMatrix
 from numpy.typing import NDArray
-from typing_extensions import Literal
 
 if TYPE_CHECKING:
-    from .blocks import v2_v3_blocks, v4_blocks
+    from .blocks import v2_v3_blocks, v4_blocks, v4_constants
     from .blocks.mdf_v2 import MDF2
     from .blocks.mdf_v3 import MDF3
     from .blocks.mdf_v4 import MDF4
@@ -29,11 +28,11 @@ WritableBufferType = Union[BufferedRandom, BufferedWriter, BytesIO, mmap]
 BusType = Literal["CAN", "LIN"]
 ChannelConversionType = Union["v2_v3_blocks.ChannelConversion", "v4_blocks.ChannelConversion"]
 ChannelGroupType = Union["v2_v3_blocks.ChannelGroup", "v4_blocks.ChannelGroup"]
-ChannelsType = Union[Sequence[str], Sequence[tuple[Optional[str], int, int]], Sequence[tuple[str, int]]]
+ChannelsType = Union[Sequence[str], Sequence[tuple[str | None, int, int]], Sequence[tuple[str, int]]]
 ChannelType = Union["v2_v3_blocks.Channel", "v4_blocks.Channel"]
-CompressionType = Literal[0, 1, 2]
+CompressionType = Union[Literal[0, 1, 2, 3, 4, 5], "v4_constants.CompressionAlgorithm"]
 DataGroupType = Union["v2_v3_blocks.DataGroup", "v4_blocks.DataGroup"]
-DbcFileType = tuple[Union[StrPathType, CanMatrix], int]
+DbcFileType = tuple[StrPathType | CanMatrix, int]
 EmptyChannelsType = Literal["skip", "zeros"]
 FloatInterpolationModeType = Literal[0, 1]
 InputType = Union[BufferedReader, BytesIO, StrPathType, ZipFile, BZ2File, GzipFile]

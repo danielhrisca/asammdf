@@ -1,9 +1,7 @@
 """asammdf utility functions for channel conversions"""
 
 from copy import deepcopy
-from typing import Optional, overload, Union
-
-from typing_extensions import Literal
+from typing import Literal, overload
 
 from ..types import ChannelConversionType
 from . import v2_v3_blocks as v3b
@@ -14,7 +12,7 @@ from . import v4_constants as v4c
 
 @overload
 def conversion_transfer(
-    conversion: Optional[ChannelConversionType], version: Literal[3] = ..., copy: bool = ...
+    conversion: ChannelConversionType | None, version: Literal[3] = ..., copy: bool = ...
 ) -> v3b.ChannelConversion: ...
 
 
@@ -25,7 +23,7 @@ def conversion_transfer(
 
 
 def conversion_transfer(
-    conversion: Optional[ChannelConversionType], version: int = 3, copy: bool = False
+    conversion: ChannelConversionType | None, version: int = 3, copy: bool = False
 ) -> ChannelConversionType:
     """Convert between MDF4 and MDF3 channel conversions.
 
@@ -56,141 +54,142 @@ def conversion_transfer(
             else:
                 unit = conversion.unit.strip(" \r\n\t\0").encode("latin-1")
 
-                if conversion_type == v4c.CONVERSION_TYPE_NON:
-                    conversion = v3b.ChannelConversion(unit=unit, conversion_type=v3c.CONVERSION_TYPE_NONE)
+                match conversion_type:
+                    case v4c.CONVERSION_TYPE_NON:
+                        conversion = v3b.ChannelConversion(unit=unit, conversion_type=v3c.CONVERSION_TYPE_NONE)
 
-                elif conversion_type == v4c.CONVERSION_TYPE_LIN:
-                    conversion = v3b.ChannelConversion(
-                        unit=unit,
-                        conversion_type=v3c.CONVERSION_TYPE_LINEAR,
-                        a=conversion.a,
-                        b=conversion.b,
-                    )
+                    case v4c.CONVERSION_TYPE_LIN:
+                        conversion = v3b.ChannelConversion(
+                            unit=unit,
+                            conversion_type=v3c.CONVERSION_TYPE_LINEAR,
+                            a=conversion.a,
+                            b=conversion.b,
+                        )
 
-                elif conversion_type == v4c.CONVERSION_TYPE_RAT:
-                    conversion = v3b.ChannelConversion(
-                        unit=unit,
-                        conversion_type=v3c.CONVERSION_TYPE_RAT,
-                        P1=conversion.P1,
-                        P2=conversion.P2,
-                        P3=conversion.P3,
-                        P4=conversion.P4,
-                        P5=conversion.P5,
-                        P6=conversion.P6,
-                    )
+                    case v4c.CONVERSION_TYPE_RAT:
+                        conversion = v3b.ChannelConversion(
+                            unit=unit,
+                            conversion_type=v3c.CONVERSION_TYPE_RAT,
+                            P1=conversion.P1,
+                            P2=conversion.P2,
+                            P3=conversion.P3,
+                            P4=conversion.P4,
+                            P5=conversion.P5,
+                            P6=conversion.P6,
+                        )
 
-                elif conversion_type == v4c.CONVERSION_TYPE_TAB:
-                    conversion_ = {}
-                    conversion_["ref_param_nr"] = conversion.val_param_nr // 2
-                    for i in range(conversion.val_param_nr // 2):
-                        conversion_[f"raw_{i}"] = conversion[f"raw_{i}"]
-                        conversion_[f"phys_{i}"] = conversion[f"phys_{i}"]
+                    case v4c.CONVERSION_TYPE_TAB:
+                        conversion_ = {}
+                        conversion_["ref_param_nr"] = conversion.val_param_nr // 2
+                        for i in range(conversion.val_param_nr // 2):
+                            conversion_[f"raw_{i}"] = conversion[f"raw_{i}"]
+                            conversion_[f"phys_{i}"] = conversion[f"phys_{i}"]
 
-                    conversion = v3b.ChannelConversion(
-                        unit=unit,
-                        conversion_type=v3c.CONVERSION_TYPE_TAB,
-                        **conversion_,
-                    )
+                        conversion = v3b.ChannelConversion(
+                            unit=unit,
+                            conversion_type=v3c.CONVERSION_TYPE_TAB,
+                            **conversion_,
+                        )
 
-                elif conversion_type == v4c.CONVERSION_TYPE_TABI:
-                    conversion_ = {}
-                    conversion_["ref_param_nr"] = conversion.val_param_nr // 2
-                    for i in range(conversion.val_param_nr // 2):
-                        conversion_[f"raw_{i}"] = conversion[f"raw_{i}"]
-                        conversion_[f"phys_{i}"] = conversion[f"phys_{i}"]
+                    case v4c.CONVERSION_TYPE_TABI:
+                        conversion_ = {}
+                        conversion_["ref_param_nr"] = conversion.val_param_nr // 2
+                        for i in range(conversion.val_param_nr // 2):
+                            conversion_[f"raw_{i}"] = conversion[f"raw_{i}"]
+                            conversion_[f"phys_{i}"] = conversion[f"phys_{i}"]
 
-                    conversion = v3b.ChannelConversion(
-                        unit=unit,
-                        conversion_type=v3c.CONVERSION_TYPE_TABI,
-                        **conversion_,
-                    )
+                        conversion = v3b.ChannelConversion(
+                            unit=unit,
+                            conversion_type=v3c.CONVERSION_TYPE_TABI,
+                            **conversion_,
+                        )
 
-                elif conversion_type == v4c.CONVERSION_TYPE_ALG:
-                    formula = conversion.formula.replace("X", "X1")
-                    conversion = v3b.ChannelConversion(
-                        formula=formula,
-                        unit=unit,
-                        conversion_type=v3c.CONVERSION_TYPE_FORMULA,
-                    )
+                    case v4c.CONVERSION_TYPE_ALG:
+                        formula = conversion.formula.replace("X", "X1")
+                        conversion = v3b.ChannelConversion(
+                            formula=formula,
+                            unit=unit,
+                            conversion_type=v3c.CONVERSION_TYPE_FORMULA,
+                        )
 
-                elif conversion_type == v4c.CONVERSION_TYPE_RTAB:
-                    nr = (conversion.val_param_nr - 1) // 3
-                    kargs = {
-                        "ref_param_nr": nr,
-                        "conversion_type": v3c.CONVERSION_TYPE_TABI,
-                    }
+                    case v4c.CONVERSION_TYPE_RTAB:
+                        nr = (conversion.val_param_nr - 1) // 3
+                        kargs = {
+                            "ref_param_nr": nr,
+                            "conversion_type": v3c.CONVERSION_TYPE_TABI,
+                        }
 
-                    for i in range(nr):
-                        l_ = conversion[f"lower_{i}"]
-                        u_ = conversion[f"upper_{i}"]
-                        p_ = conversion[f"phys_{i}"]
-                        kargs[f"raw_{i}"] = l_
-                        kargs[f"raw_{i}"] = u_ - 0.000_001
-                        kargs[f"phys_{i}"] = p_
-                        kargs[f"phys_{i}"] = p_
+                        for i in range(nr):
+                            l_ = conversion[f"lower_{i}"]
+                            u_ = conversion[f"upper_{i}"]
+                            p_ = conversion[f"phys_{i}"]
+                            kargs[f"raw_{i}"] = l_
+                            kargs[f"raw_{i}"] = u_ - 0.000_001
+                            kargs[f"phys_{i}"] = p_
+                            kargs[f"phys_{i}"] = p_
 
-                    conversion = v3b.ChannelConversion(unit=unit, **kargs)
+                        conversion = v3b.ChannelConversion(unit=unit, **kargs)
 
-                elif conversion_type == v4c.CONVERSION_TYPE_TABX:
-                    nr = conversion.val_param_nr
+                    case v4c.CONVERSION_TYPE_TABX:
+                        nr = conversion.val_param_nr
 
-                    kargs = {
-                        "ref_param_nr": nr + 1,
-                        "unit": unit,
-                        "conversion_type": v3c.CONVERSION_TYPE_RTABX,
-                    }
-                    for i in range(nr):
-                        kargs[f"lower_{i}"] = conversion[f"val_{i}"]
-                        kargs[f"upper_{i}"] = conversion[f"val_{i}"]
+                        kargs = {
+                            "ref_param_nr": nr + 1,
+                            "unit": unit,
+                            "conversion_type": v3c.CONVERSION_TYPE_RTABX,
+                        }
+                        for i in range(nr):
+                            kargs[f"lower_{i}"] = conversion[f"val_{i}"]
+                            kargs[f"upper_{i}"] = conversion[f"val_{i}"]
+                            if isinstance(
+                                conversion.referenced_blocks[f"text_{i}"],
+                                v4b.ChannelConversion,
+                            ):
+                                kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"].name.encode("latin-1")
+                            else:
+                                kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]
+
+                        new_conversion = v3b.ChannelConversion(**kargs)
                         if isinstance(
-                            conversion.referenced_blocks[f"text_{i}"],
+                            conversion.referenced_blocks["default_addr"],
                             v4b.ChannelConversion,
                         ):
-                            kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"].name.encode("latin-1")
+                            default_addr = conversion.referenced_blocks["default_addr"].name.encode("latin-1")
                         else:
-                            kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]
+                            default_addr = conversion.referenced_blocks["default_addr"]
+                        new_conversion.referenced_blocks["default_addr"] = default_addr
 
-                    new_conversion = v3b.ChannelConversion(**kargs)
-                    if isinstance(
-                        conversion.referenced_blocks["default_addr"],
-                        v4b.ChannelConversion,
-                    ):
-                        default_addr = conversion.referenced_blocks["default_addr"].name.encode("latin-1")
-                    else:
-                        default_addr = conversion.referenced_blocks["default_addr"]
-                    new_conversion.referenced_blocks["default_addr"] = default_addr
+                        conversion = new_conversion
 
-                    conversion = new_conversion
+                    case v4c.CONVERSION_TYPE_RTABX:
+                        nr = conversion.val_param_nr // 2
+                        kargs = {
+                            "ref_param_nr": nr + 1,
+                            "unit": unit,
+                            "conversion_type": v3c.CONVERSION_TYPE_RTABX,
+                        }
+                        for i in range(nr):
+                            kargs[f"lower_{i}"] = conversion[f"lower_{i}"]
+                            kargs[f"upper_{i}"] = conversion[f"upper_{i}"]
+                            if isinstance(
+                                conversion.referenced_blocks[f"text_{i}"],
+                                v4b.ChannelConversion,
+                            ):
+                                kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"].name.encode("latin-1")
+                            else:
+                                kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]
 
-                elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
-                    nr = conversion.val_param_nr // 2
-                    kargs = {
-                        "ref_param_nr": nr + 1,
-                        "unit": unit,
-                        "conversion_type": v3c.CONVERSION_TYPE_RTABX,
-                    }
-                    for i in range(nr):
-                        kargs[f"lower_{i}"] = conversion[f"lower_{i}"]
-                        kargs[f"upper_{i}"] = conversion[f"upper_{i}"]
+                        new_conversion = v3b.ChannelConversion(**kargs)
                         if isinstance(
-                            conversion.referenced_blocks[f"text_{i}"],
+                            conversion.referenced_blocks["default_addr"],
                             v4b.ChannelConversion,
                         ):
-                            kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"].name.encode("latin-1")
+                            default_addr = conversion.referenced_blocks["default_addr"].name.encode("latin-1")
                         else:
-                            kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]
+                            default_addr = conversion.referenced_blocks["default_addr"]
+                        new_conversion.referenced_blocks["default_addr"] = default_addr
 
-                    new_conversion = v3b.ChannelConversion(**kargs)
-                    if isinstance(
-                        conversion.referenced_blocks["default_addr"],
-                        v4b.ChannelConversion,
-                    ):
-                        default_addr = conversion.referenced_blocks["default_addr"].name.encode("latin-1")
-                    else:
-                        default_addr = conversion.referenced_blocks["default_addr"]
-                    new_conversion.referenced_blocks["default_addr"] = default_addr
-
-                    conversion = new_conversion
+                        conversion = new_conversion
 
     else:
         if not conversion or conversion.id == b"##CC":
@@ -200,90 +199,91 @@ def conversion_transfer(
             conversion_type = conversion.conversion_type
             unit = conversion.unit_field.decode("latin-1").strip(" \r\n\t\0")
 
-            if conversion_type == v3c.CONVERSION_TYPE_NONE:
-                conversion = v4b.ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_NON)
+            match conversion_type:
+                case v3c.CONVERSION_TYPE_NONE:
+                    conversion = v4b.ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_NON)
 
-            elif conversion_type == v3c.CONVERSION_TYPE_LINEAR:
-                conversion = v4b.ChannelConversion(
-                    conversion_type=v4c.CONVERSION_TYPE_LIN,
-                    a=conversion.a,
-                    b=conversion.b,
-                )
+                case v3c.CONVERSION_TYPE_LINEAR:
+                    conversion = v4b.ChannelConversion(
+                        conversion_type=v4c.CONVERSION_TYPE_LIN,
+                        a=conversion.a,
+                        b=conversion.b,
+                    )
 
-            elif conversion_type == v3c.CONVERSION_TYPE_RAT:
-                conversion = v4b.ChannelConversion(
-                    conversion_type=v4c.CONVERSION_TYPE_RAT,
-                    P1=conversion.P1,
-                    P2=conversion.P2,
-                    P3=conversion.P3,
-                    P4=conversion.P4,
-                    P5=conversion.P5,
-                    P6=conversion.P6,
-                )
+                case v3c.CONVERSION_TYPE_RAT:
+                    conversion = v4b.ChannelConversion(
+                        conversion_type=v4c.CONVERSION_TYPE_RAT,
+                        P1=conversion.P1,
+                        P2=conversion.P2,
+                        P3=conversion.P3,
+                        P4=conversion.P4,
+                        P5=conversion.P5,
+                        P6=conversion.P6,
+                    )
 
-            elif conversion_type == v3c.CONVERSION_TYPE_FORMULA:
-                formula = conversion.formula
-                conversion = v4b.ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_ALG, formula=formula)
+                case v3c.CONVERSION_TYPE_FORMULA:
+                    formula = conversion.formula
+                    conversion = v4b.ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_ALG, formula=formula)
 
-            elif conversion_type == v3c.CONVERSION_TYPE_TAB:
-                conversion_ = {}
-                conversion_["val_param_nr"] = conversion.ref_param_nr * 2
-                for i in range(conversion.ref_param_nr):
-                    conversion_[f"raw_{i}"] = conversion[f"raw_{i}"]
-                    conversion_[f"phys_{i}"] = conversion[f"phys_{i}"]
+                case v3c.CONVERSION_TYPE_TAB:
+                    conversion_ = {}
+                    conversion_["val_param_nr"] = conversion.ref_param_nr * 2
+                    for i in range(conversion.ref_param_nr):
+                        conversion_[f"raw_{i}"] = conversion[f"raw_{i}"]
+                        conversion_[f"phys_{i}"] = conversion[f"phys_{i}"]
 
-                conversion = v4b.ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_TAB, **conversion_)
+                    conversion = v4b.ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_TAB, **conversion_)
 
-            elif conversion_type == v3c.CONVERSION_TYPE_TABI:
-                conversion_ = {}
-                conversion_["val_param_nr"] = conversion.ref_param_nr * 2
-                for i in range(conversion.ref_param_nr):
-                    conversion_[f"raw_{i}"] = conversion[f"raw_{i}"]
-                    conversion_[f"phys_{i}"] = conversion[f"phys_{i}"]
+                case v3c.CONVERSION_TYPE_TABI:
+                    conversion_ = {}
+                    conversion_["val_param_nr"] = conversion.ref_param_nr * 2
+                    for i in range(conversion.ref_param_nr):
+                        conversion_[f"raw_{i}"] = conversion[f"raw_{i}"]
+                        conversion_[f"phys_{i}"] = conversion[f"phys_{i}"]
 
-                conversion = v4b.ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_TABI, **conversion_)
+                    conversion = v4b.ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_TABI, **conversion_)
 
-            elif conversion_type == v3c.CONVERSION_TYPE_TABX:
-                nr = conversion["ref_param_nr"]
-                kargs = {
-                    "val_param_nr": nr,
-                    "ref_param_nr": nr + 1,
-                    "conversion_type": v4c.CONVERSION_TYPE_TABX,
-                }
-                for i in range(nr):
-                    kargs[f"val_{i}"] = conversion[f"param_val_{i}"]
-                    kargs[f"text_{i}"] = conversion[f"text_{i}"]
+                case v3c.CONVERSION_TYPE_TABX:
+                    nr = conversion["ref_param_nr"]
+                    kargs = {
+                        "val_param_nr": nr,
+                        "ref_param_nr": nr + 1,
+                        "conversion_type": v4c.CONVERSION_TYPE_TABX,
+                    }
+                    for i in range(nr):
+                        kargs[f"val_{i}"] = conversion[f"param_val_{i}"]
+                        kargs[f"text_{i}"] = conversion[f"text_{i}"]
 
-                conversion = v4b.ChannelConversion(**kargs)
+                    conversion = v4b.ChannelConversion(**kargs)
 
-            elif conversion_type == v3c.CONVERSION_TYPE_RTABX:
-                nr = conversion["ref_param_nr"] - 1
-                kargs = {
-                    "val_param_nr": nr * 2,
-                    "ref_param_nr": nr + 1,
-                    "conversion_type": v4c.CONVERSION_TYPE_RTABX,
-                    "default_addr": conversion.referenced_blocks["default_addr"],
-                }
-                for i in range(nr):
-                    kargs[f"lower_{i}"] = conversion[f"lower_{i}"]
-                    kargs[f"upper_{i}"] = conversion[f"upper_{i}"]
-                    kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]
+                case v3c.CONVERSION_TYPE_RTABX:
+                    nr = conversion["ref_param_nr"] - 1
+                    kargs = {
+                        "val_param_nr": nr * 2,
+                        "ref_param_nr": nr + 1,
+                        "conversion_type": v4c.CONVERSION_TYPE_RTABX,
+                        "default_addr": conversion.referenced_blocks["default_addr"],
+                    }
+                    for i in range(nr):
+                        kargs[f"lower_{i}"] = conversion[f"lower_{i}"]
+                        kargs[f"upper_{i}"] = conversion[f"upper_{i}"]
+                        kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]
 
-                conversion = v4b.ChannelConversion(**kargs)
+                    conversion = v4b.ChannelConversion(**kargs)
 
             conversion.unit = unit
 
     return conversion
 
 
-def inverse_conversion(conversion: Optional[Union[ChannelConversionType, dict]]) -> Optional[v4b.ChannelConversion]:
+def inverse_conversion(conversion: ChannelConversionType | dict | None) -> v4b.ChannelConversion | None:
 
     if isinstance(conversion, v3b.ChannelConversion):
         conversion = conversion_transfer(conversion, version=4)
 
     if conversion:
         if not isinstance(conversion, dict):
-            conversion = to_dict(conversion)
+            conversion = to_dict(conversion) or {}
 
         if "a" in conversion:
             conv = {
@@ -458,7 +458,7 @@ def from_dict(conversion: dict[str, object]) -> v4b.ChannelConversion:
     return conversion
 
 
-def to_dict(conversion: ChannelConversionType) -> Optional[dict]:
+def to_dict(conversion: ChannelConversionType) -> dict | None:
     if not conversion:
         return None
 
@@ -473,71 +473,72 @@ def to_dict(conversion: ChannelConversionType) -> Optional[dict]:
         "comment": conversion.comment,
     }
 
-    if conversion_type == v4c.CONVERSION_TYPE_LIN:
-        conversion_dict["a"] = conversion.a
-        conversion_dict["b"] = conversion.b
-        conversion_dict["conversion_type"] = conversion_type
+    match conversion_type:
+        case v4c.CONVERSION_TYPE_LIN:
+            conversion_dict["a"] = conversion.a
+            conversion_dict["b"] = conversion.b
+            conversion_dict["conversion_type"] = conversion_type
 
-    elif conversion_type == v4c.CONVERSION_TYPE_ALG:
-        conversion_dict["formula"] = conversion["formula"]
-        conversion_dict["conversion_type"] = conversion_type
+        case v4c.CONVERSION_TYPE_ALG:
+            conversion_dict["formula"] = conversion["formula"]
+            conversion_dict["conversion_type"] = conversion_type
 
-    elif conversion_type == v4c.CONVERSION_TYPE_RAT:
-        conversion_dict.update({key: conversion[key] for key in [f"P{i}" for i in range(1, 7)]})
-        conversion_dict["conversion_type"] = conversion_type
+        case v4c.CONVERSION_TYPE_RAT:
+            conversion_dict.update({key: conversion[key] for key in [f"P{i}" for i in range(1, 7)]})
+            conversion_dict["conversion_type"] = conversion_type
 
-    elif conversion_type in (v4c.CONVERSION_TYPE_TAB, v4c.CONVERSION_TYPE_TABI):
-        params = conversion["val_param_nr"] // 2
-        conversion_dict.update({key: conversion[key] for key in [f"phys_{nr}" for nr in range(params)]})
-        conversion_dict.update({key: conversion[key] for key in [f"raw_{nr}" for nr in range(params)]})
-        conversion_dict["conversion_type"] = conversion_type
+        case v4c.CONVERSION_TYPE_TAB | v4c.CONVERSION_TYPE_TABI:
+            params = conversion["val_param_nr"] // 2
+            conversion_dict.update({key: conversion[key] for key in [f"phys_{nr}" for nr in range(params)]})
+            conversion_dict.update({key: conversion[key] for key in [f"raw_{nr}" for nr in range(params)]})
+            conversion_dict["conversion_type"] = conversion_type
 
-    elif conversion_type == v4c.CONVERSION_TYPE_RTAB:
-        params = (conversion["val_param_nr"] - 1) // 3
-        conversion_dict.update({key: conversion[key] for key in [f"lower_{nr}" for nr in range(params)]})
-        conversion_dict.update({key: conversion[key] for key in [f"upper_{nr}" for nr in range(params)]})
-        conversion_dict.update({key: conversion[key] for key in [f"phys_{nr}" for nr in range(params)]})
-        conversion_dict["conversion_type"] = conversion_type
-        conversion_dict["default"] = conversion.default
+        case v4c.CONVERSION_TYPE_RTAB:
+            params = (conversion["val_param_nr"] - 1) // 3
+            conversion_dict.update({key: conversion[key] for key in [f"lower_{nr}" for nr in range(params)]})
+            conversion_dict.update({key: conversion[key] for key in [f"upper_{nr}" for nr in range(params)]})
+            conversion_dict.update({key: conversion[key] for key in [f"phys_{nr}" for nr in range(params)]})
+            conversion_dict["conversion_type"] = conversion_type
+            conversion_dict["default"] = conversion.default
 
-    elif conversion_type == v4c.CONVERSION_TYPE_TABX:
-        nr = conversion.ref_param_nr - 1
+        case v4c.CONVERSION_TYPE_TABX:
+            nr = conversion.ref_param_nr - 1
 
-        conversion_dict["conversion_type"] = conversion_type
+            conversion_dict["conversion_type"] = conversion_type
 
-        for key, val in conversion.referenced_blocks.items():
-            if isinstance(val, str):
-                conversion_dict[key] = val
-            elif isinstance(val, v4b.ChannelConversion):
-                conversion_dict[key] = to_dict(val)
-            elif val is None:
-                conversion_dict[key] = ""
-            else:
-                conversion_dict[key] = val.decode("utf-8", errors="replace")
+            for key, val in conversion.referenced_blocks.items():
+                if isinstance(val, str):
+                    conversion_dict[key] = val
+                elif isinstance(val, v4b.ChannelConversion):
+                    conversion_dict[key] = to_dict(val)
+                elif val is None:
+                    conversion_dict[key] = ""
+                else:
+                    conversion_dict[key] = val.decode("utf-8", errors="replace")
 
-        for i in range(nr):
-            conversion_dict[f"val_{i}"] = conversion[f"val_{i}"]
+            for i in range(nr):
+                conversion_dict[f"val_{i}"] = conversion[f"val_{i}"]
 
-    elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
-        nr = conversion.ref_param_nr - 1
+        case v4c.CONVERSION_TYPE_RTABX:
+            nr = conversion.ref_param_nr - 1
 
-        conversion_dict["conversion_type"] = conversion_type
+            conversion_dict["conversion_type"] = conversion_type
 
-        for key, val in conversion.referenced_blocks.items():
-            if isinstance(val, str):
-                conversion_dict[key] = val
-            elif isinstance(val, v4b.ChannelConversion):
-                conversion_dict[key] = to_dict(val)
-            elif val is None:
-                conversion_dict[key] = ""
-            else:
-                conversion_dict[key] = val.decode("utf-8", errors="replace")
+            for key, val in conversion.referenced_blocks.items():
+                if isinstance(val, str):
+                    conversion_dict[key] = val
+                elif isinstance(val, v4b.ChannelConversion):
+                    conversion_dict[key] = to_dict(val)
+                elif val is None:
+                    conversion_dict[key] = ""
+                else:
+                    conversion_dict[key] = val.decode("utf-8", errors="replace")
 
-        for i in range(nr):
-            conversion_dict[f"upper_{i}"] = conversion[f"upper_{i}"]
-            conversion_dict[f"lower_{i}"] = conversion[f"lower_{i}"]
+            for i in range(nr):
+                conversion_dict[f"upper_{i}"] = conversion[f"upper_{i}"]
+                conversion_dict[f"lower_{i}"] = conversion[f"lower_{i}"]
 
-    else:
-        conversion_dict = None
+        case _:
+            conversion_dict = None
 
     return conversion_dict

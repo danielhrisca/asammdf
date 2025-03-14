@@ -3,7 +3,7 @@ from collections.abc import Callable, Iterator
 import logging
 from os import PathLike
 from pathlib import Path
-from typing import Any, Generic, Optional, TypeVar, Union
+from typing import Any, Generic, TypeVar
 
 import numpy as np
 from numpy.typing import NDArray
@@ -25,18 +25,18 @@ __all__ = ["MDF_Common"]
 
 
 class MdfKwargs(TypedDict, total=False):
-    temporary_folder: Optional[Union[str, bytes, PathLike[str], PathLike[bytes]]]
+    temporary_folder: str | bytes | PathLike[str] | PathLike[bytes] | None
     raise_on_multiple_occurrences: bool
     use_display_names: bool
     fill_0_for_missing_computation_channels: bool
     remove_source_from_channel_names: bool
-    password: Optional[str]
-    progress: Union[Callable[[int, int], None], Any]
-    callback: Union[Callable[[int, int], None], Any]
+    password: str | None
+    progress: Callable[[int, int], None] | Any
+    callback: Callable[[int, int], None] | Any
 
 
 class CommonKwargs(MdfKwargs, total=False):
-    original_name: Required[Optional[Union[str, Path]]]
+    original_name: Required[str | Path | None]
     __internal__: bool
 
 
@@ -72,11 +72,11 @@ class Group(Generic[_DG, _CG, _CN]):
         self.data_group: _DG = data_group
         self.channel_group: _CG
         self.channels: list[_CN] = []
-        self.channel_dependencies: list[Optional[v3b.ChannelDependency]] = []
-        self.signal_data: list[Optional[tuple[list[SignalDataBlockInfo], Iterator[SignalDataBlockInfo]]]] = []
-        self.record: Optional[list[Optional[tuple[np.dtype[Any], int, int, int]]]] = None
+        self.channel_dependencies: list[v3b.ChannelDependency | None] = []
+        self.signal_data: list[tuple[list[SignalDataBlockInfo], Iterator[SignalDataBlockInfo]] | None] = []
+        self.record: list[tuple[np.dtype[Any], int, int, int] | None] | None = None
         self.record_size: dict[int, int] = {}
-        self.trigger: Optional[v3b.TriggerBlock] = None
+        self.trigger: v3b.TriggerBlock | None = None
         self.sorted: bool
         self.string_dtypes: list[np.dtype[np.bytes_]] = []
         self.data_blocks: list[DataBlockInfo] = []
@@ -152,15 +152,15 @@ class MDF_Common(ABC, Generic[_Group]):
         self.channels_db: ChannelsDB
         self._raise_on_multiple_occurrences: bool
 
-    def _set_temporary_master(self, master: Optional[NDArray[Any]]) -> None:
+    def _set_temporary_master(self, master: NDArray[Any] | None) -> None:
         self._master = master
 
     # @lru_cache(maxsize=1024)
     def _validate_channel_selection(
         self,
-        name: Optional[str] = None,
-        group: Optional[int] = None,
-        index: Optional[int] = None,
+        name: str | None = None,
+        group: int | None = None,
+        index: int | None = None,
     ) -> tuple[int, int]:
         """Validate channel selection.
 

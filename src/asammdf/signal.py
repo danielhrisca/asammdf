@@ -3,7 +3,7 @@
 from collections.abc import Iterator
 import logging
 from textwrap import fill
-from typing import Any, Optional, overload, Union
+from typing import Any, overload, Union
 
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike, NDArray
@@ -81,21 +81,21 @@ class Signal:
         timestamps: ArrayLike,
         unit: str = "",
         name: str = "",
-        conversion: Optional[Union[dict[str, Any], ChannelConversionType]] = None,
+        conversion: dict[str, Any] | ChannelConversionType | None = None,
         comment: str = "",
         raw: bool = True,
-        master_metadata: Optional[tuple[str, SyncType]] = None,
-        display_names: Optional[dict[str, str]] = None,
-        attachment: Optional[tuple[bytes, Optional[str], Optional[str]]] = None,
-        source: Optional[SourceType] = None,
-        bit_count: Optional[int] = None,
-        invalidation_bits: Optional[ArrayLike] = None,
-        encoding: Optional[str] = None,
+        master_metadata: tuple[str, SyncType] | None = None,
+        display_names: dict[str, str] | None = None,
+        attachment: tuple[bytes, str | None, str | None] | None = None,
+        source: SourceType | None = None,
+        bit_count: int | None = None,
+        invalidation_bits: ArrayLike | None = None,
+        encoding: str | None = None,
         group_index: int = -1,
         channel_index: int = -1,
         flags: Flags = Flags.no_flags,
-        virtual_conversion: Optional[Union[dict[str, Any], ChannelConversionType]] = None,
-        virtual_master_conversion: Optional[Union[dict[str, Any], ChannelConversionType]] = None,
+        virtual_conversion: dict[str, Any] | ChannelConversionType | None = None,
+        virtual_master_conversion: dict[str, Any] | ChannelConversionType | None = None,
     ) -> None:
         if not name:
             message = (
@@ -158,7 +158,7 @@ class Signal:
             if source:
                 if not isinstance(source, Source):
                     source = Source.from_source(source)
-            self.source: Optional[Source] = source
+            self.source: Source | None = source
 
             if bit_count is None:
                 self.bit_count = self.samples.dtype.itemsize * 8
@@ -167,7 +167,7 @@ class Signal:
 
             self.invalidation_bits = invalidation_bits
 
-            self.conversion: Optional[ChannelConversionType]
+            self.conversion: ChannelConversionType | None
             if conversion:
                 if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
                     self.conversion = from_dict(conversion)
@@ -176,7 +176,7 @@ class Signal:
             else:
                 self.conversion = None
 
-            self.virtual_conversion: Optional[ChannelConversionType]
+            self.virtual_conversion: ChannelConversionType | None
             if self.flags & self.Flags.virtual:
                 if not isinstance(virtual_conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
                     self.virtual_conversion = from_dict(virtual_conversion)
@@ -185,7 +185,7 @@ class Signal:
             else:
                 self.virtual_conversion = None
 
-            self.virtual_master_conversion: Optional[ChannelConversionType]
+            self.virtual_master_conversion: ChannelConversionType | None
             if self.flags & self.Flags.virtual_master:
                 if not isinstance(virtual_master_conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
                     self.virtual_master_conversion = from_dict(virtual_master_conversion)
@@ -293,14 +293,15 @@ class Signal:
                     plt.show()
                 else:
                     master_name, sync_type = self.master_metadata
-                    if sync_type in (0, 1):
-                        plt.xlabel(f"{master_name} [s]")
-                    elif sync_type == 2:
-                        plt.xlabel(f"{master_name} [deg]")
-                    elif sync_type == 3:
-                        plt.xlabel(f"{master_name} [m]")
-                    elif sync_type == 4:
-                        plt.xlabel(f"{master_name} [index]")
+                    match sync_type:
+                        case 0 | 1:
+                            plt.xlabel(f"{master_name} [s]")
+                        case 2:
+                            plt.xlabel(f"{master_name} [deg]")
+                        case 3:
+                            plt.xlabel(f"{master_name} [m]")
+                        case 4:
+                            plt.xlabel(f"{master_name} [index]")
                     plt.ylabel(f"[{self.unit}]")
                     plt.plot(self.timestamps, self.samples, "b")
                     plt.plot(self.timestamps, self.samples, "b.")
@@ -436,15 +437,15 @@ class Signal:
 
     def cut(
         self,
-        start: Optional[float] = None,
-        stop: Optional[float] = None,
+        start: float | None = None,
+        stop: float | None = None,
         include_ends: bool = True,
-        integer_interpolation_mode: Union[
-            IntInterpolationModeType, IntegerInterpolation
-        ] = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
-        float_interpolation_mode: Union[
-            FloatInterpolationModeType, FloatInterpolation
-        ] = FloatInterpolation.LINEAR_INTERPOLATION,
+        integer_interpolation_mode: (
+            IntInterpolationModeType | IntegerInterpolation
+        ) = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
+        float_interpolation_mode: (
+            FloatInterpolationModeType | FloatInterpolation
+        ) = FloatInterpolation.LINEAR_INTERPOLATION,
     ) -> "Signal":
         """Cut the signal according to the *start* and *stop* values, by using
         the insertion indexes in the signal's *time* axis.
@@ -913,12 +914,12 @@ class Signal:
     def interp(
         self,
         new_timestamps: NDArray[Any],
-        integer_interpolation_mode: Union[
-            IntInterpolationModeType, IntegerInterpolation
-        ] = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
-        float_interpolation_mode: Union[
-            FloatInterpolationModeType, FloatInterpolation
-        ] = FloatInterpolation.LINEAR_INTERPOLATION,
+        integer_interpolation_mode: (
+            IntInterpolationModeType | IntegerInterpolation
+        ) = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
+        float_interpolation_mode: (
+            FloatInterpolationModeType | FloatInterpolation
+        ) = FloatInterpolation.LINEAR_INTERPOLATION,
     ) -> "Signal":
         """Returns a new *Signal* interpolated using the *new_timestamps*.
 
@@ -1102,7 +1103,7 @@ class Signal:
                 virtual_master_conversion=self.virtual_master_conversion,
             )
 
-    def __apply_func(self, other: Union["Signal", NDArray[Any], Optional[int]], func_name: str) -> "Signal":
+    def __apply_func(self, other: Union["Signal", NDArray[Any], int | None], func_name: str) -> "Signal":
         """Delegate operations to the *samples* attribute, but in a
         time-correct manner by considering the *timestamps*.
         """
@@ -1209,64 +1210,64 @@ class Signal:
             virtual_master_conversion=self.virtual_master_conversion,
         )
 
-    def __sub__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __sub__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__apply_func(other, "__sub__")
 
-    def __isub__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __isub__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__sub__(other)
 
-    def __rsub__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __rsub__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return -self.__sub__(other)
 
-    def __add__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __add__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__apply_func(other, "__add__")
 
-    def __iadd__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __iadd__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__add__(other)
 
-    def __radd__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __radd__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__add__(other)
 
-    def __truediv__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __truediv__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__apply_func(other, "__truediv__")
 
-    def __itruediv__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __itruediv__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__truediv__(other)
 
-    def __rtruediv__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __rtruediv__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__apply_func(other, "__rtruediv__")
 
-    def __mul__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __mul__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__apply_func(other, "__mul__")
 
-    def __imul__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __imul__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__mul__(other)
 
-    def __rmul__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __rmul__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__mul__(other)
 
-    def __floordiv__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __floordiv__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__apply_func(other, "__floordiv__")
 
-    def __ifloordiv__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __ifloordiv__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__truediv__(other)
 
-    def __rfloordiv__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __rfloordiv__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return 1 / self.__apply_func(other, "__rfloordiv__")
 
-    def __mod__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __mod__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__apply_func(other, "__mod__")
 
-    def __pow__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __pow__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__apply_func(other, "__pow__")
 
-    def __and__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __and__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__apply_func(other, "__and__")
 
-    def __or__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __or__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__apply_func(other, "__or__")
 
-    def __xor__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __xor__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__apply_func(other, "__xor__")
 
     def __invert__(self) -> "Signal":
@@ -1290,35 +1291,35 @@ class Signal:
             virtual_master_conversion=self.virtual_master_conversion,
         )
 
-    def __lshift__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __lshift__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__apply_func(other, "__lshift__")
 
-    def __rshift__(self, other: Union["Signal", NDArray[Any], Optional[int]]) -> "Signal":
+    def __rshift__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
         return self.__apply_func(other, "__rshift__")
 
-    def __lt__(self, other: Optional[Union["Signal", NDArray[Any]]]) -> "Signal":
+    def __lt__(self, other: Union["Signal", NDArray[Any]] | None) -> "Signal":
         return self.__apply_func(other, "__lt__")
 
-    def __le__(self, other: Optional[Union["Signal", NDArray[Any]]]) -> "Signal":
+    def __le__(self, other: Union["Signal", NDArray[Any]] | None) -> "Signal":
         return self.__apply_func(other, "__le__")
 
-    def __gt__(self, other: Optional[Union["Signal", NDArray[Any]]]) -> "Signal":
+    def __gt__(self, other: Union["Signal", NDArray[Any]] | None) -> "Signal":
         return self.__apply_func(other, "__gt__")
 
-    def __ge__(self, other: Optional[Union["Signal", NDArray[Any]]]) -> "Signal":
+    def __ge__(self, other: Union["Signal", NDArray[Any]] | None) -> "Signal":
         return self.__apply_func(other, "__ge__")
 
-    def __eq__(self, other: Optional[Union["Signal", NDArray[Any]]]) -> "Signal":
+    def __eq__(self, other: Union["Signal", NDArray[Any]] | None) -> "Signal":
         return self.__apply_func(other, "__eq__")
 
-    def __ne__(self, other: Optional[Union["Signal", NDArray[Any]]]) -> "Signal":
+    def __ne__(self, other: Union["Signal", NDArray[Any]] | None) -> "Signal":
         return self.__apply_func(other, "__ne__")
 
     def __iter__(self) -> Iterator[Any]:
         yield from (self.samples, self.timestamps, self.unit, self.name)
 
     def __reversed__(self) -> Iterator[tuple[int, tuple[Any, Any]]]:
-        return enumerate(zip(reversed(self.samples), reversed(self.timestamps)))
+        return enumerate(zip(reversed(self.samples), reversed(self.timestamps), strict=False))
 
     def __len__(self) -> int:
         return len(self.samples)
@@ -1345,9 +1346,9 @@ class Signal:
     def __getitem__(self, val: str) -> NDArray[Any]: ...
 
     @overload
-    def __getitem__(self, val: Union[int, slice, ArrayLike]) -> "Signal": ...
+    def __getitem__(self, val: int | slice | ArrayLike) -> "Signal": ...
 
-    def __getitem__(self, val: Union[int, slice, ArrayLike, str]) -> Union[NDArray[Any], "Signal"]:
+    def __getitem__(self, val: int | slice | ArrayLike | str) -> Union[NDArray[Any], "Signal"]:
         if isinstance(val, str):
             return self.samples[val]
         else:
@@ -1373,7 +1374,7 @@ class Signal:
                 virtual_master_conversion=self.virtual_master_conversion,
             )
 
-    def __setitem__(self, idx: Union[int, slice, ArrayLike], val: Any) -> None:
+    def __setitem__(self, idx: int | slice | ArrayLike, val: Any) -> None:
         self.samples[idx] = val
 
     def astype(self, np_type: DTypeLike) -> "Signal":

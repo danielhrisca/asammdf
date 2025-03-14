@@ -93,7 +93,7 @@ class TestTabChannels(TestFileWidget):
             # Evaluate
             self.assertListEqual(sub_windows, self.get_sub_windows())
             self.assertListEqual(titles, sorted(w.windowTitle() for w in self.widget.mdi_area.subWindowList()))
-            for old, new in zip(dspf_data, get_dspf_data(self.widget.mdi_area.subWindowList())):
+            for old, new in zip(dspf_data, get_dspf_data(self.widget.mdi_area.subWindowList()), strict=False):
                 if isinstance(old, dict):
                     self.assertListEqual(new["channels"], old["channels"])
                     self.assertEqual(new["plot_bg_color"], old["plot_bg_color"])

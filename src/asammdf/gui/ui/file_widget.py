@@ -373,11 +373,21 @@ class Ui_file_widget(object):
         self.gridLayout_22.setSpacing(1)
         self.gridLayout_22.setObjectName(u"gridLayout_22")
         self.gridLayout_22.setContentsMargins(1, 1, 1, 1)
-        self.mdf_split_size = QDoubleSpinBox(self.MDF)
-        self.mdf_split_size.setObjectName(u"mdf_split_size")
-        self.mdf_split_size.setMaximum(4.000000000000000)
+        self.mdf_compression = QComboBox(self.MDF)
+        self.mdf_compression.setObjectName(u"mdf_compression")
 
-        self.gridLayout_22.addWidget(self.mdf_split_size, 4, 1, 1, 1)
+        self.gridLayout_22.addWidget(self.mdf_compression, 2, 1, 1, 1)
+
+        self.label_28 = QLabel(self.MDF)
+        self.label_28.setObjectName(u"label_28")
+
+        self.gridLayout_22.addWidget(self.label_28, 4, 0, 1, 1)
+
+        self.mdf_split = QCheckBox(self.MDF)
+        self.mdf_split.setObjectName(u"mdf_split")
+        self.mdf_split.setChecked(True)
+
+        self.gridLayout_22.addWidget(self.mdf_split, 3, 0, 1, 2)
 
         self.label_29 = QLabel(self.MDF)
         self.label_29.setObjectName(u"label_29")
@@ -390,16 +400,6 @@ class Ui_file_widget(object):
         self.line_14.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_22.addWidget(self.line_14, 1, 0, 1, 2)
-
-        self.mdf_compression = QComboBox(self.MDF)
-        self.mdf_compression.setObjectName(u"mdf_compression")
-
-        self.gridLayout_22.addWidget(self.mdf_compression, 2, 1, 1, 1)
-
-        self.label_27 = QLabel(self.MDF)
-        self.label_27.setObjectName(u"label_27")
-
-        self.gridLayout_22.addWidget(self.label_27, 0, 0, 1, 1)
 
         self.groupBox_9 = QGroupBox(self.MDF)
         self.groupBox_9.setObjectName(u"groupBox_9")
@@ -428,10 +428,10 @@ class Ui_file_widget(object):
 
         self.gridLayout_22.addWidget(self.groupBox_9, 5, 0, 1, 2)
 
-        self.label_28 = QLabel(self.MDF)
-        self.label_28.setObjectName(u"label_28")
+        self.label_27 = QLabel(self.MDF)
+        self.label_27.setObjectName(u"label_27")
 
-        self.gridLayout_22.addWidget(self.label_28, 4, 0, 1, 1)
+        self.gridLayout_22.addWidget(self.label_27, 0, 0, 1, 1)
 
         self.mdf_version = QComboBox(self.MDF)
         self.mdf_version.setObjectName(u"mdf_version")
@@ -439,11 +439,11 @@ class Ui_file_widget(object):
 
         self.gridLayout_22.addWidget(self.mdf_version, 0, 1, 1, 1)
 
-        self.mdf_split = QCheckBox(self.MDF)
-        self.mdf_split.setObjectName(u"mdf_split")
-        self.mdf_split.setChecked(True)
+        self.mdf_split_size = QDoubleSpinBox(self.MDF)
+        self.mdf_split_size.setObjectName(u"mdf_split_size")
+        self.mdf_split_size.setMaximum(4.000000000000000)
 
-        self.gridLayout_22.addWidget(self.mdf_split, 3, 0, 1, 2)
+        self.gridLayout_22.addWidget(self.mdf_split_size, 4, 1, 1, 1)
 
         self.output_options.addWidget(self.MDF)
         self.HDF5 = QWidget()
@@ -649,7 +649,7 @@ class Ui_file_widget(object):
 
         self.delimiter = QLineEdit(self.CSV)
         self.delimiter.setObjectName(u"delimiter")
-        self.delimiter.setMaxLength(1)
+        self.delimiter.setMaxLength(2)
         self.delimiter.setClearButtonEnabled(False)
 
         self.gridLayout.addWidget(self.delimiter, 8, 1, 1, 2)
@@ -859,7 +859,7 @@ class Ui_file_widget(object):
 
         self.delimiter_bus = QLineEdit(self.groupBox_3)
         self.delimiter_bus.setObjectName(u"delimiter_bus")
-        self.delimiter_bus.setMaxLength(1)
+        self.delimiter_bus.setMaxLength(2)
         self.delimiter_bus.setClearButtonEnabled(False)
 
         self.gridLayout_6.addWidget(self.delimiter_bus, 6, 2, 1, 1)
@@ -913,33 +913,10 @@ class Ui_file_widget(object):
 
         self.gridLayout_5.addWidget(self.label__1, 0, 0, 1, 1)
 
-        self.line_12 = QFrame(self.groupBox_2)
-        self.line_12.setObjectName(u"line_12")
-        self.line_12.setFrameShape(QFrame.Shape.HLine)
-        self.line_12.setFrameShadow(QFrame.Shadow.Sunken)
-
-        self.gridLayout_5.addWidget(self.line_12, 3, 0, 1, 3)
-
         self.label_26 = QLabel(self.groupBox_2)
         self.label_26.setObjectName(u"label_26")
 
-        self.gridLayout_5.addWidget(self.label_26, 2, 1, 1, 1)
-
-        self.extract_bus_format = QComboBox(self.groupBox_2)
-        self.extract_bus_format.setObjectName(u"extract_bus_format")
-        self.extract_bus_format.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
-
-        self.gridLayout_5.addWidget(self.extract_bus_format, 1, 1, 1, 2)
-
-        self.extract_bus_compression = QComboBox(self.groupBox_2)
-        self.extract_bus_compression.setObjectName(u"extract_bus_compression")
-        self.extract_bus_compression.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
-
-        self.gridLayout_5.addWidget(self.extract_bus_compression, 0, 1, 1, 2)
-
-        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.gridLayout_5.addItem(self.horizontalSpacer_4, 4, 0, 1, 1)
+        self.gridLayout_5.addWidget(self.label_26, 3, 1, 1, 1)
 
         self.extract_bus_btn = QPushButton(self.groupBox_2)
         self.extract_bus_btn.setObjectName(u"extract_bus_btn")
@@ -947,7 +924,30 @@ class Ui_file_widget(object):
         icon11.addFile(u":/down.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.extract_bus_btn.setIcon(icon11)
 
-        self.gridLayout_5.addWidget(self.extract_bus_btn, 4, 1, 1, 2)
+        self.gridLayout_5.addWidget(self.extract_bus_btn, 5, 1, 1, 2)
+
+        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_5.addItem(self.horizontalSpacer_4, 5, 0, 1, 1)
+
+        self.extract_bus_format = QComboBox(self.groupBox_2)
+        self.extract_bus_format.setObjectName(u"extract_bus_format")
+        self.extract_bus_format.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+
+        self.gridLayout_5.addWidget(self.extract_bus_format, 1, 1, 1, 2)
+
+        self.line_12 = QFrame(self.groupBox_2)
+        self.line_12.setObjectName(u"line_12")
+        self.line_12.setFrameShape(QFrame.Shape.HLine)
+        self.line_12.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.gridLayout_5.addWidget(self.line_12, 4, 0, 1, 3)
+
+        self.extract_bus_compression = QComboBox(self.groupBox_2)
+        self.extract_bus_compression.setObjectName(u"extract_bus_compression")
+        self.extract_bus_compression.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+
+        self.gridLayout_5.addWidget(self.extract_bus_compression, 0, 1, 1, 2)
 
         self.label_24 = QLabel(self.groupBox_2)
         self.label_24.setObjectName(u"label_24")
@@ -1067,7 +1067,7 @@ class Ui_file_widget(object):
         self.retranslateUi(file_widget)
 
         self.aspects.setCurrentIndex(0)
-        self.output_options.setCurrentIndex(3)
+        self.output_options.setCurrentIndex(0)
         self.quoting.setCurrentIndex(1)
         self.quoting_bus.setCurrentIndex(1)
         self.tabWidget.setCurrentIndex(0)
@@ -1165,15 +1165,15 @@ class Ui_file_widget(object):
 #endif // QT_CONFIG(tooltip)
         self.raster_search_btn.setText("")
         self.resample_time_from_zero.setText(QCoreApplication.translate("file_widget", u"Time from 0s", None))
-        self.groupBox_10.setTitle(QCoreApplication.translate("file_widget", u"Ouput format", None))
-        self.mdf_split_size.setSuffix(QCoreApplication.translate("file_widget", u"MB", None))
+        self.groupBox_10.setTitle(QCoreApplication.translate("file_widget", u"Output format", None))
+        self.label_28.setText(QCoreApplication.translate("file_widget", u"Split size ", None))
+        self.mdf_split.setText(QCoreApplication.translate("file_widget", u"Split data blocks", None))
         self.label_29.setText(QCoreApplication.translate("file_widget", u"Compression", None))
-        self.label_27.setText(QCoreApplication.translate("file_widget", u"Version", None))
         self.groupBox_9.setTitle(QCoreApplication.translate("file_widget", u"Scramble", None))
         self.scramble_btn.setText(QCoreApplication.translate("file_widget", u"Scramble texts", None))
         self.label_61.setText(QCoreApplication.translate("file_widget", u"Anonymize the measurements: scramble all texts and replace them with random strings", None))
-        self.label_28.setText(QCoreApplication.translate("file_widget", u"Split size ", None))
-        self.mdf_split.setText(QCoreApplication.translate("file_widget", u"Split data blocks", None))
+        self.label_27.setText(QCoreApplication.translate("file_widget", u"Version", None))
+        self.mdf_split_size.setSuffix(QCoreApplication.translate("file_widget", u"MB", None))
         self.label_67.setText(QCoreApplication.translate("file_widget", u"Compression", None))
         self.label_65.setText(QCoreApplication.translate("file_widget", u"Empty channels", None))
         self.single_time_base.setText(QCoreApplication.translate("file_widget", u"Single time base", None))
@@ -1259,3 +1259,4 @@ class Ui_file_widget(object):
         self.aspects.setTabText(self.aspects.indexOf(self.info_tab), QCoreApplication.translate("file_widget", u"Info", None))
         self.aspects.setTabText(self.aspects.indexOf(self.attachments_tab), QCoreApplication.translate("file_widget", u"Attachments", None))
     # retranslateUi
+

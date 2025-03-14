@@ -1,5 +1,6 @@
 """asammdf utility functions and classes"""
 
+from collections import namedtuple
 from collections.abc import Callable, Collection, Iterator
 from copy import deepcopy
 from functools import lru_cache
@@ -20,7 +21,16 @@ from time import perf_counter
 from traceback import format_exc
 from types import TracebackType
 import typing
-from typing import Any, Optional, overload, Protocol, TYPE_CHECKING, TypeVar, Union
+from typing import (
+    Any,
+    Literal,
+    Optional,
+    overload,
+    Protocol,
+    TYPE_CHECKING,
+    TypeVar,
+    Union,
+)
 import xml.etree.ElementTree as ET
 
 from canmatrix.canmatrix import CanMatrix, matrix_class
@@ -33,7 +43,6 @@ import pandas as pd
 from pandas import Series
 from typing_extensions import (
     Buffer,
-    Literal,
     NotRequired,
     ParamSpec,
     runtime_checkable,
@@ -71,10 +80,10 @@ except:
     except:
 
         class DetectDict(TypedDict):
-            encoding: Optional[str]
+            encoding: str | None
 
         def detect(text: bytes) -> DetectDict:
-            encoding: Optional[str]
+            encoding: str | None
             for encoding in ("utf-8", "latin-1", "cp1250", "cp1252"):
                 try:
                     text.decode(encoding)
@@ -243,26 +252,26 @@ def matlab_compatible(name: str) -> str:
 class FileLike(Protocol):
     def __iter__(self) -> Iterator[bytes]: ...
     def close(self) -> None: ...
-    def read(self, size: Optional[int] = -1, /) -> bytes: ...
+    def read(self, size: int | None = -1, /) -> bytes: ...
     def seek(self, target: int, whence: int = 0, /) -> int: ...
     def tell(self) -> int: ...
     def write(self, buffer: Buffer, /) -> int: ...
 
 
 class BlockKwargs(TypedDict, total=False):
-    stream: Union[FileLike, mmap.mmap]
+    stream: FileLike | mmap.mmap
     mapped: bool
     address: int
 
 
-def stream_is_mmap(_stream: Union[FileLike, mmap.mmap], mapped: bool) -> TypeIs[mmap.mmap]:
+def stream_is_mmap(_stream: FileLike | mmap.mmap, mapped: bool) -> TypeIs[mmap.mmap]:
     return mapped
 
 
 @overload
 def get_text_v3(
     address: int,
-    stream: Union[FileLike, mmap.mmap],
+    stream: FileLike | mmap.mmap,
     mapped: bool = ...,
     decode: Literal[True] = ...,
 ) -> str: ...
@@ -271,15 +280,13 @@ def get_text_v3(
 @overload
 def get_text_v3(
     address: int,
-    stream: Union[FileLike, mmap.mmap],
+    stream: FileLike | mmap.mmap,
     mapped: bool = ...,
     decode: Literal[False] = ...,
 ) -> bytes: ...
 
 
-def get_text_v3(
-    address: int, stream: Union[FileLike, mmap.mmap], mapped: bool = False, decode: bool = True
-) -> Union[bytes, str]:
+def get_text_v3(address: int, stream: FileLike | mmap.mmap, mapped: bool = False, decode: bool = True) -> bytes | str:
     """Faster way to extract strings from MDF versions 2 and 3 TextBlock.
 
     Parameters
@@ -314,7 +321,7 @@ def get_text_v3(
         size = UINT16_u(stream.read(2))[0] - 4
         text_bytes = stream.read(size).split(b"\0", 1)[0].strip(b" \r\t\n")
 
-    text: Union[bytes, str]
+    text: bytes | str
 
     if decode:
         try:
@@ -334,28 +341,37 @@ def get_text_v3(
     return text
 
 
+MappedText = namedtuple("MappedText", ["raw", "decoded"])
+
+
 @overload
 def get_text_v4(
     address: int,
-    stream: Union[FileLike, mmap.mmap],
+    stream: FileLike | mmap.mmap,
     mapped: bool = ...,
     decode: Literal[True] = ...,
+    tx_map: dict | None = ...,
 ) -> str: ...
 
 
 @overload
 def get_text_v4(
     address: int,
-    stream: Union[FileLike, mmap.mmap],
+    stream: FileLike | mmap.mmap,
     mapped: bool = ...,
     *,
     decode: Literal[False],
+    tx_map: dict | None,
 ) -> bytes: ...
 
 
 def get_text_v4(
-    address: int, stream: Union[FileLike, mmap.mmap], mapped: bool = False, decode: bool = True
-) -> Union[bytes, str]:
+    address: int,
+    stream: FileLike | mmap.mmap,
+    mapped: bool = False,
+    decode: bool = True,
+    tx_map: dict | None = None,
+) -> bytes | str:
     """Faster way to extract strings from MDF version 4 TextBlock.
 
     Parameters
@@ -366,6 +382,12 @@ def get_text_v4(
         File IO handle.
     decode : bool, default True
         Use auto-detection to detect character encoding.
+    mapped: bool
+        flag for mapped stream
+    decode: bool
+        option to return decoded str instead of raw btyes
+    tx_map : dict | None
+        map that contains interned strings
 
     Returns
     -------
@@ -373,39 +395,42 @@ def get_text_v4(
         Unicode string or bytes object depending on the ``decode`` argument.
     """
 
+    if mapped_text := tx_map.get(address, None):
+        return mapped_text.decoded if decode else mapped_text.raw
+
     if address == 0:
+        tx_map[address] = MappedText(b"", "")
         return "" if decode else b""
 
     if stream_is_mmap(stream, mapped):
         block_id, size = BLK_COMMON_uf(stream, address)
         if block_id not in (b"##TX", b"##MD"):
+            tx_map[address] = MappedText(b"", "")
             return "" if decode else b""
         text_bytes = stream[address + 24 : address + size].split(b"\0", 1)[0].strip(b" \r\t\n")
     else:
         stream.seek(address)
         block_id, size = BLK_COMMON_u(stream.read(24))
         if block_id not in (b"##TX", b"##MD"):
+            tx_map[address] = MappedText(b"", "")
             return "" if decode else b""
         text_bytes = stream.read(size - 24).split(b"\0", 1)[0].strip(b" \r\t\n")
 
-    text: Union[bytes, str]
+    try:
+        decoded_text = text_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        encoding = detect(text_bytes)["encoding"]
+        if encoding:
+            try:
+                decoded_text = text_bytes.decode(encoding, "ignore")
+            except:
+                decoded_text = "<!text_decode_error>"
+        else:
+            decoded_text = "<!text_decode_error>"
 
-    if decode:
-        try:
-            text = text_bytes.decode("utf-8")
-        except UnicodeDecodeError:
-            encoding = detect(text_bytes)["encoding"]
-            if encoding:
-                try:
-                    text = text_bytes.decode(encoding, "ignore")
-                except:
-                    text = "<!text_decode_error>"
-            else:
-                text = "<!text_decode_error>"
-    else:
-        text = text_bytes
+    tx_map[address] = MappedText(text_bytes, decoded_text)
 
-    return text
+    return decoded_text if decode else text_bytes
 
 
 def sanitize_xml(text: str) -> str:
@@ -546,44 +571,42 @@ def get_fmt_v3(data_type: int, size: int, byte_order: int = v3c.BYTE_ORDER_INTEL
             else:
                 size = size // 8
 
-            if data_type == v3c.DATA_TYPE_UNSIGNED_INTEL:
-                fmt = f"<u{size}"
-
-            elif data_type == v3c.DATA_TYPE_UNSIGNED:
-                if byte_order == v3c.BYTE_ORDER_INTEL:
+            match data_type:
+                case v3c.DATA_TYPE_UNSIGNED_INTEL:
                     fmt = f"<u{size}"
-                else:
+
+                case v3c.DATA_TYPE_UNSIGNED:
+                    if byte_order == v3c.BYTE_ORDER_INTEL:
+                        fmt = f"<u{size}"
+                    else:
+                        fmt = f">u{size}"
+
+                case v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
                     fmt = f">u{size}"
 
-            elif data_type == v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
-                fmt = f">u{size}"
-
-            elif data_type == v3c.DATA_TYPE_SIGNED_INTEL:
-                fmt = f"<i{size}"
-
-            elif data_type == v3c.DATA_TYPE_SIGNED:
-                if byte_order == v3c.BYTE_ORDER_INTEL:
+                case v3c.DATA_TYPE_SIGNED_INTEL:
                     fmt = f"<i{size}"
-                else:
+
+                case v3c.DATA_TYPE_SIGNED:
+                    if byte_order == v3c.BYTE_ORDER_INTEL:
+                        fmt = f"<i{size}"
+                    else:
+                        fmt = f">i{size}"
+
+                case v3c.DATA_TYPE_SIGNED_MOTOROLA:
                     fmt = f">i{size}"
 
-            elif data_type == v3c.DATA_TYPE_SIGNED_MOTOROLA:
-                fmt = f">i{size}"
-
-            elif data_type in (v3c.DATA_TYPE_FLOAT_INTEL, v3c.DATA_TYPE_DOUBLE_INTEL):
-                fmt = f"<f{size}"
-
-            elif data_type in (
-                v3c.DATA_TYPE_FLOAT_MOTOROLA,
-                v3c.DATA_TYPE_DOUBLE_MOTOROLA,
-            ):
-                fmt = f">f{size}"
-
-            elif data_type in (v3c.DATA_TYPE_FLOAT, v3c.DATA_TYPE_DOUBLE):
-                if byte_order == v3c.BYTE_ORDER_INTEL:
+                case v3c.DATA_TYPE_FLOAT_INTEL | v3c.DATA_TYPE_DOUBLE_INTEL:
                     fmt = f"<f{size}"
-                else:
+
+                case v3c.DATA_TYPE_FLOAT_MOTOROLA | v3c.DATA_TYPE_DOUBLE_MOTOROLA:
                     fmt = f">f{size}"
+
+                case v3c.DATA_TYPE_FLOAT | v3c.DATA_TYPE_DOUBLE:
+                    if byte_order == v3c.BYTE_ORDER_INTEL:
+                        fmt = f"<f{size}"
+                    else:
+                        fmt = f">f{size}"
 
     return fmt
 
@@ -632,27 +655,28 @@ def get_fmt_v4(data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_V
             fmt = "V6"
 
     elif channel_type in v4c.VIRTUAL_TYPES:
-        if data_type == v4c.DATA_TYPE_UNSIGNED_INTEL:
-            fmt = "<u8"
+        match data_type:
+            case v4c.DATA_TYPE_UNSIGNED_INTEL:
+                fmt = "<u8"
 
-        elif data_type == v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
-            fmt = ">u8"
+            case v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
+                fmt = ">u8"
 
-        elif data_type == v4c.DATA_TYPE_SIGNED_INTEL:
-            fmt = "<i8"
+            case v4c.DATA_TYPE_SIGNED_INTEL:
+                fmt = "<i8"
 
-        elif data_type == v4c.DATA_TYPE_SIGNED_MOTOROLA:
-            fmt = ">i8"
+            case v4c.DATA_TYPE_SIGNED_MOTOROLA:
+                fmt = ">i8"
 
-        elif data_type == v4c.DATA_TYPE_REAL_INTEL:
-            fmt = "<f8"
+            case v4c.DATA_TYPE_REAL_INTEL:
+                fmt = "<f8"
 
-        elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
-            fmt = ">f8"
-        elif data_type == v4c.DATA_TYPE_COMPLEX_INTEL:
-            fmt = "<c8"
-        elif data_type == v4c.DATA_TYPE_COMPLEX_MOTOROLA:
-            fmt = ">c8"
+            case v4c.DATA_TYPE_REAL_MOTOROLA:
+                fmt = ">f8"
+            case v4c.DATA_TYPE_COMPLEX_INTEL:
+                fmt = "<c8"
+            case v4c.DATA_TYPE_COMPLEX_MOTOROLA:
+                fmt = ">c8"
 
     else:
         if size > 64 and data_type in (
@@ -674,27 +698,28 @@ def get_fmt_v4(data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_V
             else:
                 size = size // 8
 
-            if data_type == v4c.DATA_TYPE_UNSIGNED_INTEL:
-                fmt = f"<u{size}"
+            match data_type:
+                case v4c.DATA_TYPE_UNSIGNED_INTEL:
+                    fmt = f"<u{size}"
 
-            elif data_type == v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
-                fmt = f">u{size}"
+                case v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
+                    fmt = f">u{size}"
 
-            elif data_type == v4c.DATA_TYPE_SIGNED_INTEL:
-                fmt = f"<i{size}"
+                case v4c.DATA_TYPE_SIGNED_INTEL:
+                    fmt = f"<i{size}"
 
-            elif data_type == v4c.DATA_TYPE_SIGNED_MOTOROLA:
-                fmt = f">i{size}"
+                case v4c.DATA_TYPE_SIGNED_MOTOROLA:
+                    fmt = f">i{size}"
 
-            elif data_type == v4c.DATA_TYPE_REAL_INTEL:
-                fmt = f"<f{size}"
+                case v4c.DATA_TYPE_REAL_INTEL:
+                    fmt = f"<f{size}"
 
-            elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
-                fmt = f">f{size}"
-            elif data_type == v4c.DATA_TYPE_COMPLEX_INTEL:
-                fmt = f"<c{size}"
-            elif data_type == v4c.DATA_TYPE_COMPLEX_MOTOROLA:
-                fmt = f">c{size}"
+                case v4c.DATA_TYPE_REAL_MOTOROLA:
+                    fmt = f">f{size}"
+                case v4c.DATA_TYPE_COMPLEX_INTEL:
+                    fmt = f"<c{size}"
+                case v4c.DATA_TYPE_COMPLEX_MOTOROLA:
+                    fmt = f">c{size}"
 
     return fmt
 
@@ -729,36 +754,37 @@ def fmt_to_datatype_v3(fmt: dtype[Any], shape: tuple[int, ...], array: bool = Fa
         for dim in shape[1:]:
             size *= dim
     else:
-        if kind == "u":
-            if byteorder == "<":
+        match kind:
+            case "u":
+                if byteorder == "<":
+                    data_type = v3c.DATA_TYPE_UNSIGNED_INTEL
+                else:
+                    data_type = v3c.DATA_TYPE_UNSIGNED_MOTOROLA
+            case "i":
+                if byteorder == "<":
+                    data_type = v3c.DATA_TYPE_SIGNED_INTEL
+                else:
+                    data_type = v3c.DATA_TYPE_SIGNED_MOTOROLA
+            case "f":
+                if byteorder == "<":
+                    if size == 32:
+                        data_type = v3c.DATA_TYPE_FLOAT
+                    else:
+                        data_type = v3c.DATA_TYPE_DOUBLE
+                else:
+                    if size == 32:
+                        data_type = v3c.DATA_TYPE_FLOAT_MOTOROLA
+                    else:
+                        data_type = v3c.DATA_TYPE_DOUBLE_MOTOROLA
+            case "S" | "V":
+                data_type = v3c.DATA_TYPE_STRING
+            case "b":
                 data_type = v3c.DATA_TYPE_UNSIGNED_INTEL
-            else:
-                data_type = v3c.DATA_TYPE_UNSIGNED_MOTOROLA
-        elif kind == "i":
-            if byteorder == "<":
-                data_type = v3c.DATA_TYPE_SIGNED_INTEL
-            else:
-                data_type = v3c.DATA_TYPE_SIGNED_MOTOROLA
-        elif kind == "f":
-            if byteorder == "<":
-                if size == 32:
-                    data_type = v3c.DATA_TYPE_FLOAT
-                else:
-                    data_type = v3c.DATA_TYPE_DOUBLE
-            else:
-                if size == 32:
-                    data_type = v3c.DATA_TYPE_FLOAT_MOTOROLA
-                else:
-                    data_type = v3c.DATA_TYPE_DOUBLE_MOTOROLA
-        elif kind in "SV":
-            data_type = v3c.DATA_TYPE_STRING
-        elif kind == "b":
-            data_type = v3c.DATA_TYPE_UNSIGNED_INTEL
-            size = 1
-        else:
-            message = f"Unknown type: dtype={fmt}, shape={shape}"
-            logger.exception(message)
-            raise MdfException(message)
+                size = 1
+            case _:
+                message = f"Unknown type: dtype={fmt}, shape={shape}"
+                logger.exception(message)
+                raise MdfException(message)
 
     return data_type, size
 
@@ -825,35 +851,36 @@ def fmt_to_datatype_v4(fmt: dtype[Any], shape: tuple[int, ...], array: bool = Fa
             size *= dim
 
     else:
-        if kind == "u":
-            if byteorder == "<":
+        match kind:
+            case "u":
+                if byteorder == "<":
+                    data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
+                else:
+                    data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
+            case "i":
+                if byteorder == "<":
+                    data_type = v4c.DATA_TYPE_SIGNED_INTEL
+                else:
+                    data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
+            case "f":
+                if byteorder == "<":
+                    data_type = v4c.DATA_TYPE_REAL_INTEL
+                else:
+                    data_type = v4c.DATA_TYPE_REAL_MOTOROLA
+            case "S" | "V":
+                data_type = v4c.DATA_TYPE_STRING_LATIN_1
+            case "b":
                 data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
-            else:
-                data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
-        elif kind == "i":
-            if byteorder == "<":
-                data_type = v4c.DATA_TYPE_SIGNED_INTEL
-            else:
-                data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
-        elif kind == "f":
-            if byteorder == "<":
-                data_type = v4c.DATA_TYPE_REAL_INTEL
-            else:
-                data_type = v4c.DATA_TYPE_REAL_MOTOROLA
-        elif kind in "SV":
-            data_type = v4c.DATA_TYPE_STRING_LATIN_1
-        elif kind == "b":
-            data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
-            size = 1
-        elif kind == "c":
-            if byteorder == "<":
-                data_type = v4c.DATA_TYPE_COMPLEX_INTEL
-            else:
-                data_type = v4c.DATA_TYPE_COMPLEX_MOTOROLA
-        else:
-            message = f"Unknown type: dtype={fmt}, shape={shape}"
-            logger.exception(message)
-            raise MdfException(message)
+                size = 1
+            case "c":
+                if byteorder == "<":
+                    data_type = v4c.DATA_TYPE_COMPLEX_INTEL
+                else:
+                    data_type = v4c.DATA_TYPE_COMPLEX_MOTOROLA
+            case _:
+                message = f"Unknown type: dtype={fmt}, shape={shape}"
+                logger.exception(message)
+                raise MdfException(message)
 
     return data_type, size
 
@@ -891,7 +918,7 @@ def as_non_byte_sized_signed_int(integer_array: NDArray[Any], bit_length: int) -
 
 
 def count_channel_groups(
-    stream: Union[FileLike, mmap.mmap], include_channels: bool = False, mapped: bool = False
+    stream: FileLike | mmap.mmap, include_channels: bool = False, mapped: bool = False
 ) -> tuple[int, int]:
     """Count all channel groups as fast as possible. This is used to provide
     reliable progress information when loading a file using the GUI.
@@ -1204,7 +1231,7 @@ def cut_video_stream(stream: bytes, start: float, end: float, fmt: str) -> bytes
     return result
 
 
-def get_video_stream_duration(stream: bytes) -> Optional[float]:
+def get_video_stream_duration(stream: bytes) -> float | None:
     with TemporaryDirectory() as tmp:
         in_file = Path(tmp) / "in"
         in_file.write_bytes(stream)
@@ -1457,9 +1484,9 @@ class DataBlockInfo:
         compressed_size: int,
         param: int,
         invalidation_block: Optional["InvalidationBlockInfo"] = None,
-        block_limit: Optional[int] = None,
-        first_timestamp: Optional[bytes] = None,
-        last_timestamp: Optional[bytes] = None,
+        block_limit: int | None = None,
+        first_timestamp: bytes | None = None,
+        last_timestamp: bytes | None = None,
     ) -> None:
         self.address = address
         self.block_type = block_type
@@ -1491,7 +1518,7 @@ class Fragment:
         data: bytes,
         record_offset: int = -1,
         record_count: int = -1,
-        invalidation_data: Optional[bytes] = None,
+        invalidation_data: bytes | None = None,
         is_record: bool = True,
     ) -> None:
         self.data = data
@@ -1520,7 +1547,7 @@ class InvalidationBlockInfo(DataBlockInfo):
         compressed_size: int,
         param: int,
         all_valid: bool = False,
-        block_limit: Optional[int] = None,
+        block_limit: int | None = None,
     ) -> None:
         super().__init__(address, block_type, original_size, compressed_size, param, block_limit=block_limit)
         self.all_valid = all_valid
@@ -1553,7 +1580,7 @@ class SignalDataBlockInfo:
         original_size: int,
         block_type: int = v4c.DT_BLOCK,
         param: int = 0,
-        compressed_size: Optional[int] = None,
+        compressed_size: int | None = None,
         location: int = v4c.LOCATION_ORIGINAL_FILE,
     ) -> None:
         self.address = address
@@ -1640,7 +1667,7 @@ def csv_int2hex(val: "pd.Series[bool]") -> str:
 csv_int2hex = np.vectorize(csv_int2hex, otypes=[str])
 
 
-def csv_bytearray2hex(val: NDArray[Any], size: Optional[int] = None) -> str:
+def csv_bytearray2hex(val: NDArray[Any], size: int | None = None) -> str:
     """Format CAN payload as hex strings.
 
     b'\xa2\xc3\x08' -> A2 C3 08
@@ -1683,8 +1710,8 @@ class _Kwargs(TypedDict, total=False):
 
 
 def load_can_database(
-    path: Union[str, PathLike[str]], contents: Optional[Union[bytes, str]] = None, **kwargs: Unpack[_Kwargs]
-) -> Optional[CanMatrix]:
+    path: str | PathLike[str], contents: bytes | str | None = None, **kwargs: Unpack[_Kwargs]
+) -> CanMatrix | None:
     """
 
     Parameters
@@ -1759,9 +1786,9 @@ def load_can_database(
     return can_matrix
 
 
-def all_blocks_addresses(obj: Union[FileLike, mmap.mmap]) -> tuple[dict[int, bytes], dict[bytes, list[int]], list[int]]:
+def all_blocks_addresses(obj: FileLike | mmap.mmap) -> tuple[dict[int, bytes], dict[bytes, list[int]], list[int]]:
     DG = "DG\x00\x00\x00\x00\x40\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00"
-    others = "(D[VTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX)\x00\x00\x00\x00"
+    others = "(D[VTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX|GD)\x00\x00\x00\x00"
     pattern = re.compile(
         f"(?P<block>##({DG}|{others}))".encode("ascii"),
         re.DOTALL | re.MULTILINE,
@@ -1772,7 +1799,7 @@ def all_blocks_addresses(obj: Union[FileLike, mmap.mmap]) -> tuple[dict[int, byt
     except:
         pass
 
-    source: Union[Buffer, bytes]
+    source: Buffer | bytes
     try:
         re.search(pattern, obj)  # type: ignore[arg-type]
         source = typing.cast(Buffer, obj)
@@ -1854,8 +1881,8 @@ def escape_xml_string(string: str) -> str:
     return string.translate(table)
 
 
-def extract_mime_names(data: "QtCore.QMimeData", disable_new_channels: Optional[bool] = None) -> list[str]:
-    def fix_comparison_name(data: Any, disable_new_channels: Optional[bool] = None) -> None:
+def extract_mime_names(data: "QtCore.QMimeData", disable_new_channels: bool | None = None) -> list[str]:
+    def fix_comparison_name(data: Any, disable_new_channels: bool | None = None) -> None:
         for item in data:
             if item["type"] == "channel":
                 if disable_new_channels is not None:
@@ -1894,7 +1921,7 @@ def set_mime_enable(mime: list[Any], enable: bool) -> None:
 
 class _ChannelBaseDict(TypedDict):
     color: str
-    comment: Optional[str]
+    comment: str | None
     common_axis: bool
     enabled: bool
     flags: int
@@ -1919,7 +1946,7 @@ class _ChannelComputedDict(_ChannelBaseDict):
     computation: dict[str, object]
     computed: Literal[True]
     conversion: object
-    user_defined_name: Optional[str]
+    user_defined_name: str | None
 
 
 _ChannelDict = Union[_ChannelComputedDict, _ChannelNotComputedDict]
@@ -1928,21 +1955,21 @@ _ChannelDict = Union[_ChannelComputedDict, _ChannelNotComputedDict]
 class _ChannelGroupDict(TypedDict):
     channels: list[Union[_ChannelDict, "_ChannelGroupDict"]]
     enabled: bool
-    name: Optional[str]
+    name: str | None
     origin_uuid: str
-    pattern: Optional[dict[str, object]]
+    pattern: dict[str, object] | None
     ranges: list[dict[str, object]]
     type: Literal["group"]
 
 
 def load_dsp(
     file: Path, background: str = "#000000", flat: bool = False, colors_as_string: bool = False
-) -> Union[dict[str, object], list[str]]:
+) -> dict[str, object] | list[str]:
     if not colors_as_string and isinstance(background, str):
         background = fn.mkColor(background)
 
-    def parse_conversions(display: Optional[lxml.etree._Element]) -> dict[Optional[str], dict[str, object]]:
-        conversions: dict[Optional[str], dict[str, object]] = {}
+    def parse_conversions(display: lxml.etree._Element | None) -> dict[str | None, dict[str, object]]:
+        conversions: dict[str | None, dict[str, object]] = {}
 
         if display is None:
             return conversions
@@ -1957,58 +1984,59 @@ def load_dsp(
                 }
 
                 conversion_type = int(item.attrib["cnv_type"])
-                if conversion_type == 0:
-                    conv["conversion_type"] = v4c.CONVERSION_TYPE_LIN
+                match conversion_type:
+                    case 0:
+                        conv["conversion_type"] = v4c.CONVERSION_TYPE_LIN
 
-                    coeffs = item.find("COEFFS_LINIAR")
+                        coeffs = item.find("COEFFS_LINIAR")
 
-                    if coeffs is None:
-                        raise RuntimeError("cannot find 'COEFFS_LINIAR' element")
+                        if coeffs is None:
+                            raise RuntimeError("cannot find 'COEFFS_LINIAR' element")
 
-                    conv["a"] = float(coeffs.attrib["P1"])
-                    conv["b"] = float(coeffs.attrib["P2"])
+                        conv["a"] = float(coeffs.attrib["P1"])
+                        conv["b"] = float(coeffs.attrib["P2"])
 
-                elif conversion_type == 9:
-                    conv["conversion_type"] = v4c.CONVERSION_TYPE_RAT
+                    case 9:
+                        conv["conversion_type"] = v4c.CONVERSION_TYPE_RAT
 
-                    coeffs = item.find("COEFFS")
+                        coeffs = item.find("COEFFS")
 
-                    if coeffs is None:
-                        raise RuntimeError("cannot find 'COEFFS' element")
+                        if coeffs is None:
+                            raise RuntimeError("cannot find 'COEFFS' element")
 
-                    for i in range(1, 7):
-                        conv[f"P{i}"] = float(coeffs.attrib[f"P{i}"])
+                        for i in range(1, 7):
+                            conv[f"P{i}"] = float(coeffs.attrib[f"P{i}"])
 
-                elif conversion_type == 11:
-                    conv["conversion_type"] = v4c.CONVERSION_TYPE_TABX
-                    vtab = item.find("COMPU_VTAB")
+                    case 11:
+                        conv["conversion_type"] = v4c.CONVERSION_TYPE_TABX
+                        vtab = item.find("COMPU_VTAB")
 
-                    if vtab is not None:
-                        for i, item in enumerate(vtab.findall("tab")):
-                            conv[f"val_{i}"] = float(item.attrib["min"])
-                            text = item.get("text")
+                        if vtab is not None:
+                            for i, item in enumerate(vtab.findall("tab")):
+                                conv[f"val_{i}"] = float(item.attrib["min"])
+                                text = item.get("text")
+                                if isinstance(text, bytes):
+                                    text = text.decode("utf-8", errors="replace")
+                                conv[f"text_{i}"] = text
+
+                    case 12:
+                        conv["conversion_type"] = v4c.CONVERSION_TYPE_RTABX
+                        vtab = item.find("COMPU_VTAB_RANGE")
+
+                        if vtab is not None:
+                            text = vtab.get("default")
                             if isinstance(text, bytes):
                                 text = text.decode("utf-8", errors="replace")
-                            conv[f"text_{i}"] = text
-
-                elif conversion_type == 12:
-                    conv["conversion_type"] = v4c.CONVERSION_TYPE_RTABX
-                    vtab = item.find("COMPU_VTAB_RANGE")
-
-                    if vtab is not None:
-                        text = vtab.get("default")
-                        if isinstance(text, bytes):
-                            text = text.decode("utf-8", errors="replace")
-                        conv["default_addr"] = vtab.get("default")
-                        for i, item in enumerate(vtab.findall("tab_range")):
-                            conv[f"upper_{i}"] = float(item.attrib["max"])
-                            conv[f"lower_{i}"] = float(item.attrib["min"])
-                            text = item.get("text")
-                            if isinstance(text, bytes):
-                                text = text.decode("utf-8", errors="replace")
-                            conv[f"text_{i}"] = text
-                else:
-                    continue
+                            conv["default_addr"] = vtab.get("default")
+                            for i, item in enumerate(vtab.findall("tab_range")):
+                                conv[f"upper_{i}"] = float(item.attrib["max"])
+                                conv[f"lower_{i}"] = float(item.attrib["min"])
+                                text = item.get("text")
+                                if isinstance(text, bytes):
+                                    text = text.decode("utf-8", errors="replace")
+                                conv[f"text_{i}"] = text
+                    case _:
+                        continue
 
                 conversions[name] = conv
 
@@ -2019,9 +2047,9 @@ def load_dsp(
         return conversions
 
     def parse_channels(
-        display: lxml.etree._Element, conversions: dict[Optional[str], dict[str, object]]
-    ) -> list[Union[_ChannelGroupDict, _ChannelDict]]:
-        channels: list[Union[_ChannelGroupDict, _ChannelDict]] = []
+        display: lxml.etree._Element, conversions: dict[str | None, dict[str, object]]
+    ) -> list[_ChannelGroupDict | _ChannelDict]:
+        channels: list[_ChannelGroupDict | _ChannelDict] = []
         for elem in display.iterchildren():
             if elem.tag == "CHANNEL":
                 channel_name = elem.attrib["name"]
@@ -2198,8 +2226,8 @@ def load_dsp(
 
         return channels
 
-    def parse_virtual_channels(display: Optional[lxml.etree._Element]) -> dict[Optional[str], dict[str, object]]:
-        channels: dict[Optional[str], dict[str, object]] = {}
+    def parse_virtual_channels(display: lxml.etree._Element | None) -> dict[str | None, dict[str, object]]:
+        channels: dict[str | None, dict[str, object]] = {}
 
         if display is None:
             return channels
@@ -2238,7 +2266,7 @@ def load_dsp(
 
         return channels
 
-    def parse_c_functions(display: Optional[lxml.etree._Element]) -> Collection[str]:
+    def parse_c_functions(display: lxml.etree._Element | None) -> Collection[str]:
         c_functions: set[str] = set()
 
         if display is None:
@@ -2268,7 +2296,7 @@ def load_dsp(
     c_functions = parse_c_functions(dsp)
 
     functions: dict[str, object] = {}
-    virtual_channels: list[Union[_ChannelGroupDict, _ChannelDict]] = []
+    virtual_channels: list[_ChannelGroupDict | _ChannelDict] = []
 
     for i, ch in enumerate(parse_virtual_channels(dsp.find("VIRTUAL_CHANNEL")).values()):
         virtual_channels.append(
@@ -2295,7 +2323,7 @@ def load_dsp(
                 "ranges": [],
                 "unit": "",
                 "conversion": ch["vtab"],
-                "user_defined_name": typing.cast(Optional[str], ch["name"]),
+                "user_defined_name": typing.cast(str | None, ch["name"]),
                 "comment": f"Datalyser virtual channel: {ch['comment']}",
                 "origin_uuid": "000000000000",
                 "type": "channel",
@@ -2318,7 +2346,7 @@ def load_dsp(
         )
 
     windows: list[dict[str, object]] = []
-    info: Union[dict[str, object], list[str]] = {
+    info: dict[str, object] | list[str] = {
         "selected_channels": [],
         "windows": windows,
         "has_virtual_channels": bool(virtual_channels),
@@ -2346,7 +2374,7 @@ def load_dsp(
     return info
 
 
-def flatten_dsp(channels: list[Union[_ChannelGroupDict, _ChannelDict]]) -> list[str]:
+def flatten_dsp(channels: list[_ChannelGroupDict | _ChannelDict]) -> list[str]:
     res: list[str] = []
 
     for item in channels:
@@ -2362,45 +2390,46 @@ def load_channel_names_from_file(file_name: str, lab_section: str = "") -> list[
     file_path = Path(file_name)
     channels: Collection[str]
     extension = file_path.suffix.lower()
-    if extension == ".dsp":
-        channels = load_dsp(file_path, flat=True)
+    match extension:
+        case ".dsp":
+            channels = load_dsp(file_path, flat=True)
 
-    elif extension == ".dspf":
-        with open(file_path) as infile:
-            info = json.load(infile)
+        case ".dspf":
+            with open(file_path) as infile:
+                info = json.load(infile)
 
-        channels = []
-        for window in info["windows"]:
-            if window["type"] == "Plot":
-                channels.extend(flatten_dsp(window["configuration"]["channels"]))
-            elif window["type"] == "Numeric":
-                channels.extend([item["name"] for item in window["configuration"]["channels"]])
-            elif window["type"] == "Tabular":
-                channels.extend(window["configuration"]["channels"])
+            channels = []
+            for window in info["windows"]:
+                if window["type"] == "Plot":
+                    channels.extend(flatten_dsp(window["configuration"]["channels"]))
+                elif window["type"] == "Numeric":
+                    channels.extend([item["name"] for item in window["configuration"]["channels"]])
+                elif window["type"] == "Tabular":
+                    channels.extend(window["configuration"]["channels"])
 
-    elif extension == ".lab":
-        info = load_lab(file_path)
-        if info:
-            if len(info) > 1 and lab_section:
-                channels = info[lab_section]
-            else:
-                channels = list(info.values())[0]
+        case ".lab":
+            info = load_lab(file_path)
+            if info:
+                if len(info) > 1 and lab_section:
+                    channels = info[lab_section]
+                else:
+                    channels = list(info.values())[0]
 
-            channels = [name.split(";")[0] for name in channels]
+                channels = [name.split(";")[0] for name in channels]
 
-    elif extension == ".cfg":
-        with open(file_path) as infile:
-            info = json.load(infile)
-        channels = info.get("selected_channels", [])
-    elif extension == ".txt":
-        try:
+        case ".cfg":
             with open(file_path) as infile:
                 info = json.load(infile)
             channels = info.get("selected_channels", [])
-        except:
-            with open(file_path) as infile:
-                channels = [line.strip() for line in infile.readlines()]
-                channels = [name for name in channels if name]
+        case ".txt":
+            try:
+                with open(file_path) as infile:
+                    info = json.load(infile)
+                channels = info.get("selected_channels", [])
+            except:
+                with open(file_path) as infile:
+                    channels = [line.strip() for line in infile.readlines()]
+                    channels = [name for name in channels if name]
 
     return sorted(set(channels))
 
@@ -2469,7 +2498,7 @@ class Timer:
         return self
 
     def __exit__(
-        self, type: Optional[type[BaseException]], value: Optional[BaseException], traceback: Optional[TracebackType]
+        self, type: type[BaseException] | None, value: BaseException | None, traceback: TracebackType | None
     ) -> None:
         now = perf_counter()
         self.total_time += now - self.start

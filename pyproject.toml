@@ -1,12 +1,12 @@
 [build-system]
-requires = ["scikit-build-core", "numpy"]
+requires = ["scikit-build-core", "numpy>=2.0.0"]
 build-backend = "scikit_build_core.build"
 
 [project]
 name = "asammdf"
 description = "ASAM MDF measurement data file parser"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "LGPLv3+" }
 authors = [{ name = "Daniel Hrisca", email = "daniel.hrisca@gmail.com" }]
 dynamic = ["version"]
@@ -16,7 +16,6 @@ classifiers = [
     "Topic :: Software Development",
     "Topic :: Scientific/Engineering",
     "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -34,15 +33,15 @@ keywords = [
     "measurement",
 ]
 dependencies = [
-    "canmatrix[arxml,dbc]==1.0",
+    "canmatrix[arxml,dbc]>=1.2",
     "isal; platform_machine == 'x86_64' or platform_machine == 'AMD64'",
     "lxml>=4.9.3",
     "lz4",
     "numexpr",
-    "numpy>=1.23.0",
+    "numpy>=2.0.0",
     "pandas",
     "python-dateutil",
-    "typing-extensions~=4.6",
+    "typing-extensions~=4.10",
 ]
 
 [project.optional-dependencies]
@@ -67,12 +66,12 @@ Source = "https://github.com/danielhrisca/asammdf"
 metadata.version.provider = "scikit_build_core.metadata.regex"
 metadata.version.input = "src/asammdf/version.py"
 wheel.packages = ["src/asammdf"]
-wheel.py-api = "cp39"
+wheel.py-api = "cp310"
 
 [tool.black]
 line-length = 120
 required-version = "25"
-target-version = ['py39']
+target-version = ['py310']
 force-exclude = '''
 (
     ^/ext |
@@ -107,7 +106,7 @@ exclude = [
     "ext/",
     "test/",
 ]
-python_version = "3.9"
+python_version = "3.10"
 plugins = ["numpy.typing.mypy_plugin"]
 strict = true
 
@@ -144,7 +143,7 @@ module = [
 ignore_errors = true
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 extend-exclude = ["./src/asammdf/gui/ui", "./ext"]
 force-exclude = true
 

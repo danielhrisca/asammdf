@@ -32,6 +32,7 @@ from ...blocks.v4_constants import (
     BUS_TYPE_FLEXRAY,
     BUS_TYPE_LIN,
     BUS_TYPE_USB,
+    CompressionAlgorithm,
     FLAG_AT_TO_STRING,
     FLAG_CG_BUS_EVENT,
 )
@@ -43,7 +44,13 @@ from ..dialogs.gps_dialog import GPSDialog
 from ..dialogs.messagebox import MessageBox
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..ui.file_widget import Ui_file_widget
-from ..utils import GREEN, HelperChannel, run_thread_with_progress, setup_progress
+from ..utils import (
+    COMPRESSION_OPTIONS,
+    GREEN,
+    HelperChannel,
+    run_thread_with_progress,
+    setup_progress,
+)
 from .attachment import Attachment
 from .can_bus_trace import CANBusTrace
 from .database_item import DatabaseItem
@@ -225,7 +232,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             try:
                                 float(units[0])
                             except:
-                                units = dict(zip(names, units))
+                                units = dict(zip(names, units, strict=False))
                             else:
                                 csv.seek(0)
                                 csv.readline()
@@ -320,18 +327,20 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.output_options.setCurrentIndex(0)
 
+            self.mdf_version.currentTextChanged.connect(self.mdf_format_changed)
             self.mdf_version.insertItems(0, mdf_module.SUPPORTED_VERSIONS)
             self.mdf_version.setCurrentText("4.10")
-            self.mdf_compression.insertItems(0, ("no compression", "deflate", "transposed deflate"))
+
             self.mdf_compression.setCurrentText("transposed deflate")
             self.mdf_split_size.setValue(4)
 
+            self.extract_bus_format.currentTextChanged.connect(self.mdf_format_changed)
             self.extract_bus_format.insertItems(0, mdf_module.SUPPORTED_VERSIONS)
             self.extract_bus_format.setCurrentText("4.10")
+
             index = self.extract_bus_format.findText(self.mdf.version)
             if index >= 0:
                 self.extract_bus_format.setCurrentIndex(index)
-            self.extract_bus_compression.insertItems(0, ("no compression", "deflate", "transposed deflate"))
             self.extract_bus_compression.setCurrentText("transposed deflate")
             self.extract_bus_btn.clicked.connect(self.extract_bus_logging)
             self.extract_bus_csv_btn.clicked.connect(self.extract_bus_csv_logging)
@@ -527,13 +536,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         buses = can_databases[::2]
         dbs = can_databases[1::2]
 
-        databases["CAN"] = list(zip(buses, dbs))
+        databases["CAN"] = list(zip(buses, dbs, strict=False))
 
         lin_databases = self._settings.value("lin_databases", [])
         buses = lin_databases[::2]
         dbs = lin_databases[1::2]
 
-        databases["LIN"] = list(zip(buses, dbs))
+        databases["LIN"] = list(zip(buses, dbs, strict=False))
 
         for bus, database in databases["CAN"]:
             item = QtWidgets.QListWidgetItem()
@@ -1812,6 +1821,19 @@ MultiRasterSeparator;&
             kwargs={},
         )
 
+    @QtCore.Slot(str)
+    def mdf_format_changed(self, format):
+        sender = self.sender()
+        options = COMPRESSION_OPTIONS.get(format, ())
+
+        if sender is self.extract_bus_format:
+            self.extract_bus_compression.clear()
+            self.extract_bus_compression.addItems(options)
+
+        elif sender is self.mdf_version:
+            self.mdf_compression.clear()
+            self.mdf_compression.addItems(options)
+
     def extract_bus_logging_finished(self):
         if self._progress.error is None and self._progress.result is not TERMINATED:
             file_name, message = self._progress.result
@@ -2005,6 +2027,9 @@ MultiRasterSeparator;&
         quotechar = self.quotechar_bus.text() or '"'
         quoting = self.quoting_bus.currentText()
         add_units = self.add_units_bus.checkState() == QtCore.Qt.CheckState.Checked
+
+        if delimiter == "\\t":
+            delimiter = "\t"
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
@@ -2581,7 +2606,7 @@ MultiRasterSeparator;&
         if output_format == "MDF":
             new = {
                 "mdf_version": self.mdf_version.currentText(),
-                "mdf_compression": self.mdf_compression.currentIndex(),
+                "mdf_compression": CompressionAlgorithm(self.mdf_compression.currentIndex()),
                 "mdf_split": self.mdf_split.checkState() == QtCore.Qt.CheckState.Checked,
                 "mdf_split_size": self.mdf_split_size.value() * 1024 * 1024,
             }
@@ -2981,6 +3006,9 @@ MultiRasterSeparator;&
             quotechar = self.quotechar.text() or '"'
             quoting = self.quoting.currentText()
             add_units = self.add_units.checkState() == QtCore.Qt.CheckState.Checked
+
+            if delimiter == "\\t":
+                delimiter = "\t"
 
             target = self.mdf.export if mdf is None else mdf.export
             kwargs = {
