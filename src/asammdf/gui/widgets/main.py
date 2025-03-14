@@ -579,6 +579,17 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setShortcut(QtGui.QKeySequence("Ctrl+P"))
         display_format_actions.addAction(action)
 
+        action = QtGui.QAction("{: <20}\tCtrl+T".format("ASCII"), menu)
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key.Key_T,
+                modifier=QtCore.Qt.KeyboardModifier.ControlModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Ctrl+T"))
+        display_format_actions.addAction(action)
+
         # scaled display
 
         samples_format_actions = QtGui.QActionGroup(self)
@@ -673,6 +684,54 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/arrow_next_higher.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        action = QtGui.QAction(icon, "{: <20}\tCtrl+PgUp".format("Move cursor to next higher"), menu)
+        action.triggered.connect(
+            partial(
+                self.plot_action, key=QtCore.Qt.Key.Key_PageUp, modifiers=QtCore.Qt.KeyboardModifier.ControlModifier
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Ctrl+PgUp"))
+        cursors_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/arrow_previous_higher.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        action = QtGui.QAction(icon, "{: <20}\tCtrl+Shift+PgUp".format("Move cursor to previous higher"), menu)
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key.Key_PageUp,
+                modifiers=QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+PgUp"))
+        cursors_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/arrow_next_lower.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        action = QtGui.QAction(icon, "{: <20}\tCtrl+PgDown".format("Move cursor to next lower"), menu)
+        action.triggered.connect(
+            partial(
+                self.plot_action, key=QtCore.Qt.Key.Key_PageDown, modifiers=QtCore.Qt.KeyboardModifier.ControlModifier
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Ctrl+PgDown"))
+        cursors_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/arrow_previous_lower.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        action = QtGui.QAction(icon, "{: <20}\tCtrl+Shift+PgDown".format("Move cursor to previous lower"), menu)
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key.Key_PageDown,
+                modifiers=QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+PgDown"))
+        cursors_actions.addAction(action)
+
+        icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/range.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         action = QtGui.QAction(icon, "{: <20}\tR".format("Range"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key.Key_R))
@@ -722,15 +781,23 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.plot_menu.addSeparator()
         self.plot_menu.addActions(plot_actions.actions())
         self.plot_menu.addSeparator()
-        self.plot_menu.addActions(channel_shift_actions.actions())
+        submenu = QtWidgets.QMenu("Channel shifting", self.plot_menu)
+        submenu.addActions(channel_shift_actions.actions())
+        self.plot_menu.addMenu(submenu)
         self.plot_menu.addSeparator()
-        self.plot_menu.addActions(cursors_actions.actions())
+        submenu = QtWidgets.QMenu("Cursors and bookmarks", self.plot_menu)
+        submenu.addActions(cursors_actions.actions())
+        self.plot_menu.addMenu(submenu)
         self.plot_menu.addSeparator()
-        self.plot_menu.addActions(display_format_actions.actions())
+        submenu = QtWidgets.QMenu("Display mode", self.plot_menu)
+        submenu.addActions(display_format_actions.actions())
+        submenu.addSeparator()
+        submenu.addActions(samples_format_actions.actions())
+        self.plot_menu.addMenu(submenu)
         self.plot_menu.addSeparator()
-        self.plot_menu.addActions(samples_format_actions.actions())
-        self.plot_menu.addSeparator()
-        self.plot_menu.addActions(subs.actions())
+        submenu = QtWidgets.QMenu("Windows", self.plot_menu)
+        submenu.addActions(subs.actions())
+        self.plot_menu.addMenu(submenu)
         self.plot_menu.addSeparator()
         self.plot_menu.addActions(info.actions())
         self.menubar.addMenu(self.plot_menu)

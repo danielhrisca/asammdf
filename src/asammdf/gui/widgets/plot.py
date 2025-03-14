@@ -3914,6 +3914,22 @@ class PlotGraphics(pg.PlotWidget):
                 QtCore.Qt.KeyboardModifier.NoModifier,
                 QtCore.Qt.Key.Key_Insert,
             ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+                QtCore.Qt.Key.Key_PageUp,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_PageUp,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+                QtCore.Qt.Key.Key_PageDown,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_PageDown,
+            ).toCombined(),
         }
 
         events = events or []
