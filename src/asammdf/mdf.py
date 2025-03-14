@@ -1201,8 +1201,17 @@ class MDF:
 
         single_time_base : bool, default False
             Resample all channels to common time base.
-        raster : float, optional
+        raster : float | array-like | str, optional
             Time raster for resampling. Valid if *single_time_base* is *True*.
+            It can be:
+
+            * a float step value
+            * a channel name whose timestamps will be used as raster (starting
+              with asammdf 5.5.0)
+            * an array (starting with asammdf 5.5.0)
+
+            See `resample` for examples of using this argument.
+
         time_from_zero : bool, default True
             Adjust time channel to start from 0.
         use_display_names : bool, default True
@@ -3017,7 +3026,7 @@ class MDF:
 
             .. versionadded:: 5.21.0
 
-        raster : float | np.ndarray | str, optional
+        raster : float | array-like | str, optional
             New raster that can be:
 
             * a float step value
@@ -3057,7 +3066,7 @@ class MDF:
 
         Parameters
         ----------
-        raster : float | np.ndarray | str
+        raster : float | array-like | str
             New raster that can be:
 
             * a float step value
@@ -4184,7 +4193,7 @@ class MDF:
 
             .. versionadded:: 5.13.0
 
-        raster : float | np.ndarray | str, optional
+        raster : float | array-like | str, optional
             New raster that can be:
 
             * a float step value
@@ -4256,7 +4265,7 @@ class MDF:
 
             The default is to select all channels.
 
-        raster : float | np.ndarray | str, optional
+        raster : float | array-like | str, optional
             New raster that can be:
 
             * a float step value
@@ -4668,7 +4677,7 @@ class MDF:
 
             The default is to select all channels.
 
-        raster : float | np.ndarray | str, optional
+        raster : float | array-like | str, optional
             New raster that can be:
 
             * a float step value
