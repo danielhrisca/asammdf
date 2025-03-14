@@ -687,6 +687,15 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/lock_range.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        action = QtGui.QAction(icon, "{: <20}\tShift+Y".format("Swap range lock"), menu)
+        action.triggered.connect(
+            partial(self.plot_action, key=QtCore.Qt.Key.Key_Y, modifier=QtCore.Qt.KeyboardModifier.ShiftModifier)
+        )
+        action.setShortcut(QtGui.QKeySequence("Shift+Y"))
+        cursors_actions.addAction(action)
+
+        icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/bookmark.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         action = QtGui.QAction(icon, "{: <20}\tCtrl+I".format("Insert bookmark"), menu)
         action.triggered.connect(
