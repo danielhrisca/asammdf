@@ -305,7 +305,6 @@ class QWorkerThread(QtCore.QThread):
 
 
 class ProgressDialog(QtWidgets.QProgressDialog):
-
     NONE = NONE
     TERMINATED = TERMINATED
 
@@ -384,7 +383,6 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             QtCore.QTimer.singleShot(50, self.close)
 
     def close(self, reject=False):
-
         if self.thread and not self.thread.isFinished():
             loop = QtCore.QEventLoop()
             self.thread.finished.connect(loop.quit)
@@ -801,7 +799,7 @@ def computation_to_python_function(description):
         for match in VARIABLE.finditer(exp):
             name = match.group("var")
             if name not in translation:
-                arg = f"arg{len(translation)+1}"
+                arg = f"arg{len(translation) + 1}"
                 translation[name] = arg
                 args.append(f"{arg}=0")
                 fargs[arg] = [name.strip("}{")]
@@ -1128,7 +1126,7 @@ def value_as_bin(value, dtype):
 
     nibles = []
     for byte in byte_string:
-        nibles.extend((f"{byte >> 4:04b}", f"{byte & 0xf:04b}"))
+        nibles.extend((f"{byte >> 4:04b}", f"{byte & 0xF:04b}"))
 
     return ".".join(nibles)
 
@@ -1213,7 +1211,6 @@ def generate_python_variables(definition: str, in_globals: dict | None = None) -
         if contains_imports(definition):
             trace = "Cannot use import statements in the definition"
         else:
-
             _globals = in_globals or generate_python_function_globals()
 
             try:
@@ -1225,7 +1222,6 @@ def generate_python_variables(definition: str, in_globals: dict | None = None) -
 
 
 def generate_python_function_globals() -> dict:
-
     func_globals = {
         "bisect": bisect,
         "collections": collections,

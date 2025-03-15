@@ -1700,7 +1700,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.setStyleSheet(SCROLLBAR_STYLE.format(font_size=size, color=color))
 
     def set_style(self):
-
         dark = (
             QtWidgets.QApplication.instance().palette().window().color().value()
             < QtWidgets.QApplication.instance().palette().windowText().color().value()

@@ -3,6 +3,7 @@
 """
 Main test function to execute all tests found in the current directory
 """
+
 from pathlib import Path
 import sys
 import unittest
