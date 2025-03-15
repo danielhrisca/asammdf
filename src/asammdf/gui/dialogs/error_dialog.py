@@ -8,7 +8,7 @@ from ..ui.error_dialog import Ui_ErrorDialog
 class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
     def __init__(self, title, message, trace, *args, **kwargs):
         remote = kwargs.pop("remote", False)
-        timeout = kwargs.pop("timeout", int(os.environ.get("ASAMMDF_ERROR_DIALOG_TIMEOUT", 90)))
+        timeout = kwargs.pop("timeout", int(os.environ.get("ASAMMDF_ERROR_DIALOG_TIMEOUT", "90")))
         logger = kwargs.pop("logger", None)
 
         super().__init__(*args, **kwargs)

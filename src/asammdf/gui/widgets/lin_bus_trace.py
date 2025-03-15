@@ -29,7 +29,7 @@ class LINBusTrace(TabularBase):
 
         super().__init__(signals, ranges)
 
-        self.signals_descr = {name: 0 for name in signals.columns}
+        self.signals_descr = dict.fromkeys(signals.columns, 0)
         self.start = start.astimezone(LOCAL_TIMEZONE)
         self.pattern = {}
         self.format = format

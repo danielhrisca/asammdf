@@ -767,8 +767,8 @@ class FormatedAxis(pg.AxisItem):
 
             elif isinstance(lineAlpha, float):
                 lineAlpha *= 255
-                lineAlpha = max(0, int(round(lineAlpha)))
-                lineAlpha = min(255, int(round(lineAlpha)))
+                lineAlpha = max(0, round(lineAlpha))
+                lineAlpha = min(255, round(lineAlpha))
             elif isinstance(lineAlpha, int):
                 if (lineAlpha > 255) or (lineAlpha < 0):
                     raise ValueError("lineAlpha should be [0..255]")
