@@ -1284,6 +1284,7 @@ class PlotSignal(Signal):
 
         if numeric and kind not in "uif":
             samples = self.raw_samples
+            kind = self.raw_samples.dtype.kind
 
         if self.samples.size == 0 or timestamp < self.timestamps[0]:
             value = "n.a."
@@ -1308,6 +1309,48 @@ class PlotSignal(Signal):
                 value = int(value)
 
         return value, kind, self.format
+
+    def timestamp_of_next_different_value(self, timestamp, mode="higher", previous=False):
+        if self.mode == "raw":
+            kind = self.raw_samples.dtype.kind
+            samples = self.raw_samples
+        else:
+            kind = self.phys_samples.dtype.kind
+            samples = self.phys_samples
+
+        if kind not in "uif":
+            samples = self.raw_samples
+            kind = self.raw_samples.dtype.kind
+
+        if kind == "S" or self.samples.size == 0 or timestamp < self.timestamps[0] or timestamp > self.timestamps[-1]:
+            new_timestamp = timestamp
+        else:
+            index = np.searchsorted(self.timestamps, timestamp, side="left")
+
+            value = samples[index]
+
+            match mode:
+                case "higher":
+                    idx = np.argwhere(samples > value).ravel()
+                case "lower":
+                    idx = np.argwhere(samples < value).ravel()
+                case _:
+                    idx = np.argwhere(samples != value).ravel()
+
+            if previous:
+                idx = idx[idx < index]
+            else:
+                idx = idx[idx > index]
+
+            if len(idx) == 0:
+                new_timestamp = timestamp
+            else:
+                if previous:
+                    new_timestamp = self.timestamps[idx[-1]]
+                else:
+                    new_timestamp = self.timestamps[idx[0]]
+
+        return new_timestamp
 
     @property
     def y_range(self):
@@ -3914,6 +3957,30 @@ class PlotGraphics(pg.PlotWidget):
                 QtCore.Qt.KeyboardModifier.NoModifier,
                 QtCore.Qt.Key.Key_Insert,
             ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+                QtCore.Qt.Key.Key_PageUp,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_PageUp,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+                QtCore.Qt.Key.Key_PageDown,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_PageDown,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.AltModifier,
+                QtCore.Qt.Key.Key_Left,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.AltModifier,
+                QtCore.Qt.Key.Key_Right,
+            ).toCombined(),
         }
 
         events = events or []
@@ -5004,6 +5071,62 @@ class PlotGraphics(pg.PlotWidget):
                 self.zoom_changed.emit(False)
 
                 self.update()
+
+            elif (
+                key in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_Right)
+                and modifier == QtCore.Qt.KeyboardModifier.AltModifier
+            ):
+                if self.region is None:
+
+                    pos = self.cursor1.value()
+                    sig, idx = self.signal_by_uuid(self.current_uuid)
+
+                    timestamp = sig.timestamp_of_next_different_value(
+                        pos, mode="different", previous=key == QtCore.Qt.Key.Key_Left
+                    )
+
+                    self.cursor1.set_value(timestamp)
+
+                else:
+                    pos = self.region.moving_cursor.value()
+                    sig, idx = self.signal_by_uuid(self.current_uuid)
+
+                    timestamp = sig.timestamp_of_next_different_value(
+                        pos, mode="different", previous=key == QtCore.Qt.Key.Key_Left
+                    )
+
+                    self.region.moving_cursor.set_value(timestamp)
+
+            elif key in (QtCore.Qt.Key.Key_PageUp, QtCore.Qt.Key.Key_PageDown) and modifier in (
+                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+            ):
+                if self.region is None:
+
+                    pos = self.cursor1.value()
+                    sig, idx = self.signal_by_uuid(self.current_uuid)
+
+                    timestamp = sig.timestamp_of_next_different_value(
+                        pos,
+                        mode="higher" if key == QtCore.Qt.Key.Key_PageUp else "lower",
+                        previous=modifier
+                        == QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                    )
+
+                    self.cursor1.set_value(timestamp)
+
+                else:
+                    pos = self.region.moving_cursor.value()
+                    sig, idx = self.signal_by_uuid(self.current_uuid)
+
+                    timestamp = sig.timestamp_of_next_different_value(
+                        pos,
+                        mode="higher" if key == QtCore.Qt.Key.Key_PageUp else "lower",
+                        previous=modifier
+                        == QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                    )
+
+                    self.region.moving_cursor.set_value(timestamp)
 
             elif key in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_Right) and modifier in (
                 QtCore.Qt.KeyboardModifier.NoModifier,

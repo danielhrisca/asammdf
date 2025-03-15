@@ -1,8 +1,12 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource>
 	<file alias="attach.png">images/attach.png</file>
-	<file alias="window.png">images/window.png</file>
+	
     <file alias="alphabetical_sorting.png">images/alphabetical_sorting.png</file>
+    <file alias="arrow_next_higher.png">images/arrow_next_higher.png</file>
+    <file alias="arrow_next_lower.png">images/arrow_next_lower.png</file>
+    <file alias="arrow_previous_higher.png">images/arrow_previous_higher.png</file>
+    <file alias="arrow_previous_lower.png">images/arrow_previous_lower.png</file>
     <file alias="asammdf.png">images/asammdf.png</file>
     <file alias="axis.png">images/axis.png</file>
     <file alias="axis_on.png">images/axis_on.png</file>
@@ -79,6 +83,7 @@
     <file alias="undo.png">images/undo.png</file>
     <file alias="unlocked.png">images/unlocked.png</file>
     <file alias="up.png">images/up.png</file>
+    <file alias="window.png">images/window.png</file>
     <file alias="zoom-in.png">images/zoom-in.png</file>
     <file alias="zoom-out.png">images/zoom-out.png</file>
 </qresource>
