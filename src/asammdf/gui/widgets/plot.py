@@ -5077,7 +5077,6 @@ class PlotGraphics(pg.PlotWidget):
                 and modifier == QtCore.Qt.KeyboardModifier.AltModifier
             ):
                 if self.region is None:
-
                     pos = self.cursor1.value()
                     sig, idx = self.signal_by_uuid(self.current_uuid)
 
@@ -5102,7 +5101,6 @@ class PlotGraphics(pg.PlotWidget):
                 QtCore.Qt.KeyboardModifier.ControlModifier,
             ):
                 if self.region is None:
-
                     pos = self.cursor1.value()
                     sig, idx = self.signal_by_uuid(self.current_uuid)
 
