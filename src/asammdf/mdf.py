@@ -3240,7 +3240,7 @@ class MDF:
         if isinstance(raster, (int, float)):
             raster = float(raster)
             if raster <= 0:
-                raise MdfException("The raster value must be >= 0")
+                raise MdfException("The raster value must be > 0")
             raster = master_using_raster(self, raster)
         elif isinstance(raster, str):
             raster = self.get(raster, raw=True, ignore_invalidation_bits=True).timestamps
@@ -4414,7 +4414,7 @@ class MDF:
                 if isinstance(raster, (int, float)):
                     raster = float(raster)
                     if raster <= 0:
-                        raise MdfException("The raster value must be >= 0")
+                        raise MdfException("The raster value must be > 0")
                     raster = master_using_raster(self, raster)
                 elif isinstance(raster, str):
                     raster = self.get(raster, raw=True, ignore_invalidation_bits=True).timestamps
@@ -4831,7 +4831,7 @@ class MDF:
             if isinstance(raster, (int, float)):
                 raster = float(raster)
                 if raster <= 0:
-                    raise MdfException("The raster value must be >= 0")
+                    raise MdfException("The raster value must be > 0")
                 raster = master_using_raster(self, raster)
             elif isinstance(raster, str):
                 raster = self.get(raster).timestamps
