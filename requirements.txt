@@ -8,5 +8,5 @@
 build
 mypy~=1.14
 pre-commit
-ruff~=0.9.0  # Aligned with .pre-commit-config.yaml
+ruff~=0.11.0  # Aligned with .pre-commit-config.yaml
 tox

@@ -3832,7 +3832,6 @@ class ChannelConversion(_ChannelConversionBase):
                     masked_values = (masks & val).tolist()
 
                     for on, conv in zip(masked_values, phys, strict=False):
-
                         if isinstance(conv, bytes):
                             if conv:
                                 new_val.append(conv)
@@ -5565,7 +5564,6 @@ class GuardBlock:
         return gd
 
     def to_blocks(self, address: int, blocks: list[Any], defined_texts: dict[str, int]) -> int:
-
         blocks.append(self)
         self.address = address
         self.gd_addr = self.guarded_block.address if self.guarded_block else 0

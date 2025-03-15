@@ -5966,7 +5966,6 @@ class MDF4(MDF_Common[Group]):
                         fields.append((vals, sig_size))
 
                 case v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
-
                     if not signal.flags["C_CONTIGUOUS"]:
                         signal = np.ascontiguousarray(signal)
 

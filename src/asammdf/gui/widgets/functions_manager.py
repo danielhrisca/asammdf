@@ -128,7 +128,6 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
         self.showMaximized()
 
     def add_definition(self):
-
         if previous := self.functions_list.currentItem():
             name = previous.text()
             previous.setIcon(QtGui.QIcon())
