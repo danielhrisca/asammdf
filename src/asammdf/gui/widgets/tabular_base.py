@@ -314,7 +314,7 @@ class DataTableModel(QtCore.QAbstractTableModel):
 
             if type(cell_is_na) == bool and cell_is_na:
                 return "●"
-            elif isinstance(cell, (bytes, np.bytes_)):
+            elif isinstance(cell, bytes | np.bytes_):
                 return cell.decode("utf-8", "replace")
             else:
                 return value_as_str(cell, self.format, None, self.float_precision)
@@ -359,7 +359,7 @@ class DataTableModel(QtCore.QAbstractTableModel):
             elif isinstance(cell, pd.Timestamp):
                 return int(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
             else:
-                if self.float_precision == -1 and isinstance(cell, (float, np.floating)):
+                if self.float_precision == -1 and isinstance(cell, float | np.floating):
                     return int(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
                 else:
                     return int(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
@@ -2044,7 +2044,7 @@ class DataFrameViewer(QtWidgets.QWidget):
 
         for name in df.columns:
             col = df[name]
-            if isinstance(col.values[0], (bytes, np.bytes_)):
+            if isinstance(col.values[0], bytes | np.bytes_):
                 df[name] = pd.Series(col, dtype=pd.StringDtype())
 
         if self.dataView.model().float_precision != -1:

@@ -1272,7 +1272,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self.open_batch_files(event)
 
     def _open_file(self, file_name):
-        if isinstance(file_name, (tuple, list)):
+        if isinstance(file_name, tuple | list):
             file_names = file_name
         else:
             file_names = [file_name]

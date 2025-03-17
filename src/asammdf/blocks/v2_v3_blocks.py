@@ -1478,7 +1478,7 @@ address: {hex(self.address)}
         scalar = False
 
         if not isinstance(values, np.ndarray):
-            if isinstance(values, (int, float)):
+            if isinstance(values, int | float):
                 new_values = np.array([values])
                 scalar = True
             else:

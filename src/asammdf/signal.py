@@ -171,7 +171,7 @@ class Signal:
 
             self.conversion: ChannelConversionType | None
             if conversion:
-                if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
+                if not isinstance(conversion, v4b.ChannelConversion | v3b.ChannelConversion):
                     self.conversion = from_dict(conversion)
                 else:
                     self.conversion = conversion
@@ -180,7 +180,7 @@ class Signal:
 
             self.virtual_conversion: ChannelConversionType | None
             if self.flags & self.Flags.virtual:
-                if not isinstance(virtual_conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
+                if not isinstance(virtual_conversion, v4b.ChannelConversion | v3b.ChannelConversion):
                     self.virtual_conversion = from_dict(virtual_conversion)
                 else:
                     self.virtual_conversion = virtual_conversion
@@ -189,7 +189,7 @@ class Signal:
 
             self.virtual_master_conversion: ChannelConversionType | None
             if self.flags & self.Flags.virtual_master:
-                if not isinstance(virtual_master_conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
+                if not isinstance(virtual_master_conversion, v4b.ChannelConversion | v3b.ChannelConversion):
                     self.virtual_master_conversion = from_dict(virtual_master_conversion)
                 else:
                     self.virtual_master_conversion = virtual_master_conversion

@@ -3092,7 +3092,7 @@ class ChannelConversion(_ChannelConversionBase):
         scalar = False
 
         if not isinstance(values, np.ndarray):
-            if isinstance(values, (int, float)):
+            if isinstance(values, int | float):
                 values = np.array([values])
                 scalar = True
             else:

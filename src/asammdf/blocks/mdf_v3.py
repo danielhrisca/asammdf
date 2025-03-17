@@ -3778,7 +3778,7 @@ class MDF3(MDF_Common[Group]):
         else:
             group_sets: dict[int, set[int]] = {}
             for item in channels:
-                if isinstance(item, (list, tuple)):
+                if isinstance(item, list | tuple):
                     if len(item) not in (2, 3):
                         raise MdfException(
                             "The items used for filtering must be strings, "

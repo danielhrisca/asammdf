@@ -21,9 +21,9 @@ class ViewTree(QTreeWidget):
             elif isinstance(value, dict):
                 for key, val in sorted(value.items()):
                     new_item(item, str(key), val)
-            elif isinstance(value, (list, tuple)):
+            elif isinstance(value, list | tuple):
                 for val in value:
-                    text = str(val) if not isinstance(val, (dict, list, tuple)) else f"[{type(val).__name__}]"
+                    text = str(val) if not isinstance(val, dict | list | tuple) else f"[{type(val).__name__}]"
                     new_item(item, text, val)
             else:
                 new_item(item, str(value))

@@ -8294,7 +8294,7 @@ class MDF4(MDF_Common[Group]):
         else:
             gps = {}
             for item in channels:
-                if isinstance(item, (list, tuple)):
+                if isinstance(item, list | tuple):
                     if len(item) not in (2, 3):
                         raise MdfException(
                             "The items used for filtering must be strings, "
@@ -8938,7 +8938,7 @@ class MDF4(MDF_Common[Group]):
         if database is None:
             return self.get(name)
 
-        if isinstance(database, (str, Path)):
+        if isinstance(database, str | Path):
             database_path = Path(database)
             if database_path.suffix.lower() not in (".arxml", ".dbc"):
                 message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{database_path}"'
@@ -9194,7 +9194,7 @@ class MDF4(MDF_Common[Group]):
         if database is None:
             return self.get(name)
 
-        if isinstance(database, (str, Path)):
+        if isinstance(database, str | Path):
             database_path = Path(database)
             if database_path.suffix.lower() not in (".arxml", ".dbc", ".ldf"):
                 message = f'Expected .dbc, .arxml or .ldf file as LIN channel attachment but got "{database_path}"'

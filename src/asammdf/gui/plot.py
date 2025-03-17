@@ -37,7 +37,7 @@ def plot(signals, title="", validate=True, index_only=False):
         app.setApplicationName("py-asammdf")
 
         if validate:
-            if isinstance(signals, (tuple, list)):
+            if isinstance(signals, tuple | list):
                 signals = [signal.validate() for signal in signals]
             else:
                 signals = [signals.validate()]
@@ -52,7 +52,7 @@ def plot(signals, title="", validate=True, index_only=False):
         if title.strip():
             main.setWindowTitle(title.strip())
         else:
-            if isinstance(signals, (tuple, list)):
+            if isinstance(signals, tuple | list):
                 main.setWindowTitle(", ".join(sig.name for sig in signals))
             else:
                 main.setWindowTitle(signals.name)

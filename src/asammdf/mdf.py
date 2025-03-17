@@ -299,7 +299,7 @@ class MDF:
 
         if name:
             if is_file_like(name):
-                if isinstance(name, (BytesIO, BufferedIOBase)):
+                if isinstance(name, BytesIO | BufferedIOBase):
                     original_name = None
                     file_stream = name
                     do_close = False
@@ -3237,7 +3237,7 @@ class MDF:
                 if progress.stop:
                     return TERMINATED
 
-        if isinstance(raster, (int, float)):
+        if isinstance(raster, int | float):
             raster = float(raster)
             if raster <= 0:
                 raise MdfException("The raster value must be >= 0")
@@ -3558,7 +3558,7 @@ class MDF:
         indexes = []
 
         for item in channels:
-            if not isinstance(item, (list, tuple)):
+            if not isinstance(item, list | tuple):
                 item = [item]
             indexes.append(self._validate_channel_selection(*item))
 
@@ -3776,7 +3776,7 @@ class MDF:
         indexes = []
 
         for item in channels:
-            if not isinstance(item, (list, tuple)):
+            if not isinstance(item, list | tuple):
                 item = [item]
             indexes.append(self._validate_channel_selection(*item))
 
@@ -4411,7 +4411,7 @@ class MDF:
             masters = {index: self.get_master(index) for index in self.virtual_groups}
 
             if raster is not None:
-                if isinstance(raster, (int, float)):
+                if isinstance(raster, int | float):
                     raster = float(raster)
                     if raster <= 0:
                         raise MdfException("The raster value must be >= 0")
@@ -4828,7 +4828,7 @@ class MDF:
         self._set_temporary_master(None)
 
         if raster is not None:
-            if isinstance(raster, (int, float)):
+            if isinstance(raster, int | float):
                 raster = float(raster)
                 if raster <= 0:
                     raise MdfException("The raster value must be >= 0")

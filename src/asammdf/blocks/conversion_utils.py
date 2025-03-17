@@ -374,7 +374,7 @@ def from_dict(conversion: dict[str, object]) -> v4b.ChannelConversion:
         nr = 0
         while f"text_{nr}" in conversion:
             val = conversion[f"text_{nr}"]
-            if isinstance(val, (bytes, str)):
+            if isinstance(val, bytes | str):
                 partial_conversion = {
                     "conversion_type": v4c.CONVERSION_TYPE_RTABX,
                     f"upper_{nr}": conversion[f"upper_{nr}"],
