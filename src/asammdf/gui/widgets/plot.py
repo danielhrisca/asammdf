@@ -5087,6 +5087,10 @@ class PlotGraphics(pg.PlotWidget):
 
                     self.cursor1.set_value(timestamp)
 
+                    view_range = self.viewbox.viewRange()[0]
+                    x_size = view_range[1] - view_range[0]
+                    self.viewbox.setXRange(timestamp - x_size / 2, timestamp + x_size / 2, padding=0)
+
                 else:
                     pos = self.region.moving_cursor.value()
                     sig, idx = self.signal_by_uuid(self.current_uuid)
@@ -5096,6 +5100,10 @@ class PlotGraphics(pg.PlotWidget):
                     )
 
                     self.region.moving_cursor.set_value(timestamp)
+
+                    view_range = sorted([line.value() for line in self.region.lines])
+                    x_size = view_range[1] - view_range[0]
+                    self.viewbox.setXRange(view_range[0] - x_size * 0.05, view_range[1] + x_size * 0.05, padding=0)
 
             elif key in (QtCore.Qt.Key.Key_PageUp, QtCore.Qt.Key.Key_PageDown) and modifier in (
                 QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
@@ -5115,6 +5123,10 @@ class PlotGraphics(pg.PlotWidget):
 
                     self.cursor1.set_value(timestamp)
 
+                    view_range = self.viewbox.viewRange()
+                    x_size = view_range[1] - view_range[0]
+                    self.viewbox.setXRange(timestamp - x_size / 2, timestamp + x_size / 2, padding=0)
+
                 else:
                     pos = self.region.moving_cursor.value()
                     sig, idx = self.signal_by_uuid(self.current_uuid)
@@ -5127,6 +5139,10 @@ class PlotGraphics(pg.PlotWidget):
                     )
 
                     self.region.moving_cursor.set_value(timestamp)
+
+                    view_range = sorted([line.value() for line in self.region.lines])
+                    x_size = view_range[1] - view_range[0]
+                    self.viewbox.setXRange(view_range[0] - x_size * 0.05, view_range[1] + x_size * 0.05, padding=0)
 
             elif key in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_Right) and modifier in (
                 QtCore.Qt.KeyboardModifier.NoModifier,
