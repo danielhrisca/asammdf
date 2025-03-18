@@ -1968,7 +1968,7 @@ class _ChannelComputedDict(_ChannelBaseDict):
     user_defined_name: str | None
 
 
-_ChannelDict = Union[_ChannelComputedDict, _ChannelNotComputedDict]
+_ChannelDict = _ChannelComputedDict | _ChannelNotComputedDict
 
 
 class _ChannelGroupDict(TypedDict):
