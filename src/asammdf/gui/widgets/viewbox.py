@@ -187,6 +187,11 @@ class ViewBoxWithCursor(pg.ViewBox):
 
         self._settings = QtCore.QSettings()
 
+    def close(self):
+        self.cursor = None
+        self.plot = None
+        super().close()
+
     def __repr__(self):
         return "ASAM ViewBox"
 

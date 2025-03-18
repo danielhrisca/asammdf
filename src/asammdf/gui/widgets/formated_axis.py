@@ -286,6 +286,7 @@ class FormatedAxis(pg.AxisItem):
         return super().resizeEvent(ev)
 
     def close(self):
+        self.linked_signal = None
         if self.plus is not None:
             self.scene().removeItem(self.plus)
         if self.minus is not None:
