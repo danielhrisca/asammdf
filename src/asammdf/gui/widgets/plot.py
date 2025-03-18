@@ -4194,13 +4194,14 @@ class PlotGraphics(pg.PlotWidget):
         self.last_click = perf_counter()
 
     def close(self):
-        self._can_trim = False
-        self._can_paint = False
-        self._can_compute_all_timebase = False
-        self._can_paint_global = False
-        self.plot_parent = None
-        self.mdf = None
-        super().close()
+        if self.plotItem is not None:
+            self._can_trim = False
+            self._can_paint = False
+            self._can_compute_all_timebase = False
+            self._can_paint_global = False
+            self.plot_parent = None
+            self.mdf = None
+            super().close()
 
     def _compute_all_timebase(self):
         if self._can_compute_all_timebase:
