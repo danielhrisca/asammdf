@@ -5,7 +5,7 @@ import numpy as np
 from numpy import searchsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from .. import utils
+from ...blocks import utils
 from ..dialogs.messagebox import MessageBox
 from ..ui.bar import Ui_BarDisplay
 from .channel_bar_display import ChannelBarDisplay

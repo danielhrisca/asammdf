@@ -114,9 +114,9 @@ def monkey_patch_pyqtgraph():
 
 import asammdf.mdf as mdf_module
 
+from ...blocks import utils
 from ...blocks.utils import extract_mime_names
 from ...signal import Signal
-from .. import utils
 from ..dialogs.define_channel import DefineChannel
 from ..utils import copy_ranges
 from .channel_stats import ChannelStats
