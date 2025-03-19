@@ -352,10 +352,17 @@ def extract_mux(
         # else:
         #    print(f"    no payload found to merge")
 
-    if payload.shape[0] == 0 or message.size > payload.shape[1] or message.size == 0:
+    if message.size == 0 or payload.shape[1] == 0:
         return extracted_signals
 
-        return extracted_signals
+    elif message.size > payload.shape[1]:
+        extra_bytes = message.size - payload.shape[1]
+        payload = np.column_stack(
+            [
+                payload,
+                np.full(len(payload), 0xff, dtype=f"({extra_bytes},)u1"),
+            ]
+        )
 
     pairs = {}
     for signal in message:
