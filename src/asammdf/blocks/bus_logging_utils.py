@@ -360,7 +360,7 @@ def extract_mux(
         payload = np.column_stack(
             [
                 payload,
-                np.full(len(payload), 0xff, dtype=f"({extra_bytes},)u1"),
+                np.full(len(payload), 0xFF, dtype=f"({extra_bytes},)u1"),
             ]
         )
 

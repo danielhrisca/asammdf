@@ -116,8 +116,9 @@ import asammdf.mdf as mdf_module
 
 from ...blocks.utils import extract_mime_names
 from ...signal import Signal
+from .. import utils
 from ..dialogs.define_channel import DefineChannel
-from ..utils import COLORS, COLORS_COUNT, copy_ranges
+from ..utils import copy_ranges
 from .channel_stats import ChannelStats
 from .cursor import Bookmark, Cursor, Region
 from .dict_to_tree import ComputedChannelInfoWindow
@@ -271,9 +272,9 @@ class PlotSignal(Signal):
         }
 
         if getattr(signal, "color", None):
-            color = signal.color or COLORS[index % COLORS_COUNT]
+            color = signal.color or utils.COLORS[index % utils.COLORS_COUNT]
         else:
-            color = COLORS[index % COLORS_COUNT]
+            color = utils.COLORS[index % utils.COLORS_COUNT]
         self.color = fn.mkColor(color)
         self.color_name = self.color.name()
         self.pen = fn.mkPen(color=color, style=QtCore.Qt.PenStyle.SolidLine)
@@ -3987,7 +3988,7 @@ class PlotGraphics(pg.PlotWidget):
         events = events or []
 
         for i, event_info in enumerate(events):
-            color = COLORS[COLORS_COUNT - (i % COLORS_COUNT) - 1]
+            color = utils.COLORS[utils.COLORS_COUNT - (i % utils.COLORS_COUNT) - 1]
             if isinstance(event_info, list | tuple):
                 to_display = event_info
                 labels = [" - Start", " - End"]
@@ -5916,7 +5917,7 @@ class PlotGraphics(pg.PlotWidget):
                         plot_foreground = self._settings.value("plot_foreground", "#ffffff")
                         axis.set_pen(fn.mkPen(plot_foreground))
                         axis.setTextPen(plot_foreground)
-                        
+
                 axis.setLabel(self.common_axis_label)
 
         else:
