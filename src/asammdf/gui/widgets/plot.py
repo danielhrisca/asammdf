@@ -5905,12 +5905,18 @@ class PlotGraphics(pg.PlotWidget):
 
         if uuid in self.common_axis_items:
             if self.current_uuid not in self.common_axis_items or force:
-                if self._settings.value("plot_background") == "Black":
-                    axis.set_pen(fn.mkPen("#FFFFFF"))
-                    axis.setTextPen("#FFFFFF")
-                else:
-                    axis.set_pen(fn.mkPen("#000000"))
-                    axis.setTextPen("#000000")
+                match self._settings.value("plot_background"):
+                    case "Black":
+                        axis.set_pen(fn.mkPen("#FFFFFF"))
+                        axis.setTextPen("#FFFFFF")
+                    case "White":
+                        axis.set_pen(fn.mkPen("#000000"))
+                        axis.setTextPen("#000000")
+                    case _:
+                        plot_foreground = self._settings.value("plot_foreground", "#ffffff")
+                        axis.set_pen(fn.mkPen(plot_foreground))
+                        axis.setTextPen(plot_foreground)
+                        
                 axis.setLabel(self.common_axis_label)
 
         else:
