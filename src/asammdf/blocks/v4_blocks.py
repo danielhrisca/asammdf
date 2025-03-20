@@ -1761,11 +1761,11 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
         return result
 
     def get_byte_offset_factors(self) -> list[int]:
-        """Returns list of factors f(d), used to calculate byte offset."""
+        """Return a list of factors f(d), used to calculate byte offset."""
         return self._factors(self.byte_offset_base)
 
     def get_bit_pos_inval_factors(self) -> list[int]:
-        """Returns list of factors f(d), used to calculate invalidation bit
+        """Return a list of factors f(d), used to calculate invalidation bit
         position.
         """
         return self._factors(self.invalidation_bit_base)

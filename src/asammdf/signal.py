@@ -921,7 +921,7 @@ class Signal:
             FloatInterpolationModeType | FloatInterpolation
         ) = FloatInterpolation.LINEAR_INTERPOLATION,
     ) -> "Signal":
-        """Returns a new `Signal` interpolated using the `new_timestamps`.
+        """Return a new `Signal` interpolated using the `new_timestamps`.
 
         Parameters
         ----------
@@ -1378,7 +1378,7 @@ class Signal:
         self.samples[idx] = val
 
     def astype(self, np_type: DTypeLike) -> "Signal":
-        """Returns new `Signal` with samples of dtype `np_type`.
+        """Return a new `Signal` with samples of dtype `np_type`.
 
         Parameters
         ----------

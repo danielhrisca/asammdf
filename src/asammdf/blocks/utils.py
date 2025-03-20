@@ -1160,7 +1160,7 @@ class UniqueDB:
         self._db: dict[str, int] = {}
 
     def get_unique_name(self, name: str) -> str:
-        """Returns an available unique name.
+        """Return an available unique name.
 
         Parameters
         ----------
