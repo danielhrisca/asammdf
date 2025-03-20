@@ -4717,18 +4717,14 @@ class PlotGraphics(pg.PlotWidget):
 
             elif key == QtCore.Qt.Key.Key_G:
                 if modifier == QtCore.Qt.KeyboardModifier.NoModifier:
-                    y = self.y_axis.grid
-                    x = self.x_axis.grid
+                    next_grid = {
+                        (False, False): (True, False),
+                        (True, False): (True, True),
+                        (True, True): (False, True),
+                        (False, True): (False, False),
+                    }
 
-                    if x and y:
-                        self.y_axis.grid = False
-                        self.x_axis.grid = False
-                    elif x:
-                        self.y_axis.grid = True
-                        self.x_axis.grid = True
-                    else:
-                        self.y_axis.grid = False
-                        self.x_axis.grid = True
+                    self.x_axis.grid, self.y_axis.grid = next_grid[(self.x_axis.grid, self.y_axis.grid)]
 
                     self.x_axis.picture = None
                     self.y_axis.picture = None
