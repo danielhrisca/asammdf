@@ -194,10 +194,13 @@ class ViewBoxWithCursor(pg.ViewBox):
         self.hover_at.emit(self.mapSceneToView(event.scenePos()))
 
     def setMouseMode(self, mode):
-        """
-        Set the mouse interaction mode. *mode* must be either ViewBoxWithCursor.PanMode, ViewBoxWithCursor.CursorMode or ViewBoxWithCursor.RectMode.
-        In PanMode, the left mouse button pans the view and the right button scales.
-        In RectMode, the left button draws a rectangle which updates the visible region (this mode is more suitable for single-button mice)
+        """Set the mouse interaction mode. `mode` must be either
+        ViewBoxWithCursor.PanMode, ViewBoxWithCursor.CursorMode or
+        ViewBoxWithCursor.RectMode.
+        In PanMode, the left mouse button pans the view and the right button
+        scales.
+        In RectMode, the left button draws a rectangle which updates the visible
+        region (this mode is more suitable for single-button mice).
         """
         if mode not in [
             ViewBoxWithCursor.PanMode,

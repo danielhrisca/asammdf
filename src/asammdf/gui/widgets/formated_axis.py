@@ -150,7 +150,7 @@ class FormatedAxis(pg.AxisItem):
         return [val[:80] for val in strns]
 
     def setLabel(self, text=None, units=None, unitPrefix=None, **args):
-        """overwrites pyqtgraph setLabel"""
+        """Override pyqtgraph.AxisItem.setLabel."""
         show_label = False
         if text is not None:
             self.labelText = text
@@ -671,10 +671,9 @@ class FormatedAxis(pg.AxisItem):
             self.picture = picture
 
     def generateDrawSpecs(self, p, ratio):
-        """
-        Calls tickValues() and tickStrings() to determine where and how ticks should
-        be drawn, then generates from this a set of drawing commands to be
-        interpreted by drawPicture().
+        """Call tickValues() and tickStrings() to determine where and how ticks
+        should be drawn, then generates from this a set of drawing commands to
+        be interpreted by drawPicture().
         """
         bounds = self.mapRectFromParent(self.geometry())
 
