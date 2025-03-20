@@ -709,14 +709,19 @@ class MDF:
         * use_display_names = True
         * single_bit_uint_as_bool = False
         * integer_interpolation = 0 (repeat previous sample)
-        * float_interpolation = 1 (linear interpolation)
         * copy_on_get = True
+        * float_interpolation = 1 (linear interpolation)
         * raise_on_multiple_occurrences = True
         * temporary_folder = ""
         * fill_0_for_missing_computation_channels = False
 
         Parameters
         ----------
+        from_other : MDF, optional
+            Copy configuration options from other MDF.
+
+            .. versionadded:: 6.2.0
+
         read_fragment_size : int, optional
             Size hint of split data blocks. If the initial size is smaller, then
             no data list is used. The actual split size depends on the data
@@ -756,11 +761,6 @@ class MDF:
         raise_on_multiple_occurrences : bool, optional
             Raise MdfException when there are multiple channel occurrences in
             the file and the `get` call is ambiguous.
-
-            .. versionadded:: 6.2.0
-
-        from_other : MDF, optional
-            Copy configuration options from other MDF.
 
             .. versionadded:: 6.2.0
 
@@ -1198,7 +1198,6 @@ class MDF:
 
         Other Parameters
         ----------------
-
         single_time_base : bool, default False
             Resample all channels to common time base.
         raster : float | array-like | str, optional
@@ -2976,11 +2975,43 @@ class MDF:
 
         Parameters
         ----------
+        raster : float | array-like | str, optional
+            New raster that can be:
+
+            * a float step value
+            * a channel name whose timestamps will be used as raster (starting
+              with asammdf 5.5.0)
+            * an array (starting with asammdf 5.5.0)
+
+            See `resample` for examples of using this argument.
+
+            .. versionadded:: 5.21.0
+
+        time_from_zero : bool, default True
+            Adjust time channel to start from 0.
+
+        empty_channels : {'skip', 'zeros'}, default 'skip'
+            Behaviour for channels without samples.
+
+            .. versionadded:: 5.21.0
+
+        keep_arrays : bool, default False
+            Keep arrays and structure channels as well as the component
+            channels. If *True* this can be very slow. If *False* only the
+            component channels are saved, and their names will be prefixed with
+            the parent channel.
+
+            .. versionadded:: 5.21.0
+
         use_display_names : bool, default False
             Use display name instead of standard channel name, if available.
 
             .. versionadded:: 5.21.0
 
+        time_as_date : bool, default False
+            The DataFrame index will contain the datetime timestamps according
+            to the measurement start time. If *True* then the argument
+            ``time_from_zero`` will be ignored.
         reduce_memory_usage : bool, default False
             Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
@@ -3007,34 +3038,9 @@ class MDF:
 
             .. versionadded:: 5.21.0
 
-        keep_arrays : bool, default False
-            Keep arrays and structure channels as well as the component
-            channels. If *True* this can be very slow. If *False* only the
-            component channels are saved, and their names will be prefixed with
-            the parent channel.
-
-            .. versionadded:: 5.21.0
-
-        empty_channels : {'skip', 'zeros'}, default 'skip'
-            Behaviour for channels without samples.
-
-            .. versionadded:: 5.21.0
-
         only_basenames : bool, default False
             Use just the field names, without prefix, for structures and channel
             arrays.
-
-            .. versionadded:: 5.21.0
-
-        raster : float | array-like | str, optional
-            New raster that can be:
-
-            * a float step value
-            * a channel name whose timestamps will be used as raster (starting
-              with asammdf 5.5.0)
-            * an array (starting with asammdf 5.5.0)
-
-            See `resample` for examples of using this argument.
 
             .. versionadded:: 5.21.0
         """
@@ -4152,8 +4158,38 @@ class MDF:
         ----------
         index : int
             Channel group index.
+        raster : float | array-like | str, optional
+            New raster that can be:
+
+            * a float step value
+            * a channel name whose timestamps will be used as raster (starting
+              with asammdf 5.5.0)
+            * an array (starting with asammdf 5.5.0)
+
+            See `resample` for examples of using this argument.
+
+        time_from_zero : bool, default True
+            Adjust time channel to start from 0.
+
+        empty_channels : {'skip', 'zeros'}, default 'skip'
+            Behaviour for channels without samples.
+
+            .. versionadded:: 5.8.0
+
+        keep_arrays : bool, default False
+            Keep arrays and structure channels as well as the component
+            channels. If *True* this can be very slow. If *False* only the
+            component channels are saved, and their names will be prefixed with
+            the parent channel.
+
+            .. versionadded:: 5.8.0
+
         use_display_names : bool, default False
             Use display name instead of standard channel name, if available.
+        time_as_date : bool, default False
+            The DataFrame index will contain the datetime timestamps according
+            to the measurement start time. If *True* then the argument
+            ``time_from_zero`` will be ignored.
         reduce_memory_usage : bool, default False
             Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
@@ -4177,37 +4213,11 @@ class MDF:
 
             .. versionadded:: 5.8.0
 
-        keep_arrays : bool, default False
-            Keep arrays and structure channels as well as the component
-            channels. If *True* this can be very slow. If *False* only the
-            component channels are saved, and their names will be prefixed with
-            the parent channel.
-
-            .. versionadded:: 5.8.0
-
-        time_from_zero : bool, default True
-            Adjust time channel to start from 0.
-
-        empty_channels : {'skip', 'zeros'}, default 'skip'
-            Behaviour for channels without samples.
-
-            .. versionadded:: 5.8.0
-
         only_basenames : bool, default False
             Use just the field names, without prefix, for structures and channel
             arrays.
 
             .. versionadded:: 5.13.0
-
-        raster : float | array-like | str, optional
-            New raster that can be:
-
-            * a float step value
-            * a channel name whose timestamps will be used as raster (starting
-              with asammdf 5.5.0)
-            * an array (starting with asammdf 5.5.0)
-
-            See `resample` for examples of using this argument.
 
         Returns
         -------
@@ -4285,13 +4295,13 @@ class MDF:
             Adjust time channel to start from 0.
         empty_channels : {'skip', 'zeros'}, default 'skip'
             Behaviour for channels without samples.
-        use_display_names : bool, default False
-            Use display name instead of standard channel name, if available.
         keep_arrays : bool, default False
             Keep arrays and structure channels as well as the component
             channels. If *True* this can be very slow. If *False* only the
             component channels are saved, and their names will be prefixed with
             the parent channel.
+        use_display_names : bool, default False
+            Use display name instead of standard channel name, if available.
         time_as_date : bool, default False
             The DataFrame index will contain the datetime timestamps according
             to the measurement start time. If *True* then the argument
@@ -4322,11 +4332,11 @@ class MDF:
         only_basenames : bool, default False
             Use just the field names, without prefix, for structures and channel
             arrays.
+        chunk_ram_size : int, default 200 * 1024 * 1024 (= 200 MB)
+            Desired DataFrame RAM usage in bytes.
         interpolate_outwards_with_nan : bool, default False
             Use NaN values for the samples that lie outside of the original
             signal's timestamps.
-        chunk_ram_size : int, default 200 * 1024 * 1024 (= 200 MB)
-            Desired DataFrame RAM usage in bytes.
         numeric_1D_only : bool, default False
             Only keep the 1D-columns that have numeric values.
 
@@ -4697,13 +4707,13 @@ class MDF:
             Adjust time channel to start from 0.
         empty_channels : {'skip', 'zeros'}, default 'skip'
             Behaviour for channels without samples.
-        use_display_names : bool, default False
-            Use display name instead of standard channel name, if available.
         keep_arrays : bool, default False
             Keep arrays and structure channels as well as the component
             channels. If *True* this can be very slow. If *False* only the
             component channels are saved, and their names will be prefixed with
             the parent channel.
+        use_display_names : bool, default False
+            Use display name instead of standard channel name, if available.
         time_as_date : bool, default False
             The DataFrame index will contain the datetime timestamps according
             to the measurement start time. If *True* then the argument
@@ -4751,6 +4761,8 @@ class MDF:
 
             .. versionadded:: 5.15.0
 
+        numeric_1D_only : bool, default False
+            Only keep the 1D-columns that have numeric values.
         use_polars : bool, default False
             Return polars.DataFrame instead of pandas.DataFrame.
 
