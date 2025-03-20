@@ -905,7 +905,7 @@ class ChannelConversionKwargs(BlockKwargs, total=False):
 class ChannelConversion(_ChannelConversionBase):
     """CCBLOCK class.
 
-    *ChannelConversion* has the following common fields:
+    `ChannelConversion` has the following common fields:
 
     * ``id`` - bytes : block ID; always b'CC'
     * ``block_len`` - int : block bytes size
@@ -916,7 +916,7 @@ class ChannelConversion(_ChannelConversionBase):
     * ``conversion_type`` - int : integer code for conversion type
     * ``ref_param_nr`` - int : number of referenced parameters
 
-    *ChannelConversion* has the following specific fields:
+    `ChannelConversion` has the following specific fields:
 
     * linear conversion
 
@@ -2452,7 +2452,7 @@ class DataBlockKwargs(BlockKwargs, total=False):
 class DataBlock:
     """Data Block class (pseudo block not defined by the MDF 3 standard).
 
-    *DataBlock* attributes:
+    `DataBlock` attributes:
 
     * ``data`` - bytes : raw samples bytes
     * ``address`` - int : block address

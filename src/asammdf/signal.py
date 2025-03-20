@@ -1,4 +1,4 @@
-"""asammdf *Signal* class module for time-correct signal processing"""
+"""asammdf `Signal` class module for time-correct signal processing"""
 
 from collections.abc import Iterator
 import logging
@@ -32,12 +32,12 @@ logger = logging.getLogger("asammdf")
 
 
 class Signal:
-    """The *Signal* represents a channel described by its samples and timestamps.
-    It can perform arithmetic operations against other *Signal* or numeric types.
-    The operations are computed in respect to the timestamps (time-correct).
-    The non-float signals are not interpolated, instead the last value relative
-    to the current timestamp is used.
-    *samples*, *timestamps* and *name* are mandatory arguments.
+    """The `Signal` represents a channel described by its samples and
+    timestamps. It can perform arithmetic operations against other `Signal`
+    objects or numeric types. The operations are computed in respect to the
+    timestamps (time-correct). The non-float signals are not interpolated,
+    instead the last value relative to the current timestamp is used.
+    `samples`, `timestamps` and `name` are mandatory arguments.
 
     Parameters
     ----------
@@ -447,8 +447,8 @@ class Signal:
             FloatInterpolationModeType | FloatInterpolation
         ) = FloatInterpolation.LINEAR_INTERPOLATION,
     ) -> "Signal":
-        """Cut the signal according to the *start* and *stop* values, by using
-        the insertion indexes in the signal's *time* axis.
+        """Cut the signal according to the `start` and `stop` values, by using
+        the insertion indexes in the signal's time axis.
 
         Parameters
         ----------
@@ -457,8 +457,8 @@ class Signal:
         stop : float, optional
             Stop timestamp for cutting.
         include_ends : bool, default True
-            Include the *start* and *stop* timestamps after cutting the signal.
-            If *start* and *stop* are not found in the original timestamps,
+            Include the `start` and `stop` timestamps after cutting the signal.
+            If `start` and `stop` are not found in the original timestamps,
             then the new samples will be computed using interpolation.
         integer_interpolation_mode : int, default 0
             Interpolation mode for integer signals.
@@ -482,7 +482,7 @@ class Signal:
         Returns
         -------
         result : Signal
-            New *Signal* cut from the original.
+            New `Signal` cut from the original.
 
         Examples
         --------
@@ -855,7 +855,7 @@ class Signal:
         Returns
         -------
         signal : Signal
-            New extended *Signal*.
+            New extended `Signal`.
         """
         if len(self.timestamps):
             last_stamp = self.timestamps[-1]
@@ -921,7 +921,7 @@ class Signal:
             FloatInterpolationModeType | FloatInterpolation
         ) = FloatInterpolation.LINEAR_INTERPOLATION,
     ) -> "Signal":
-        """Returns a new *Signal* interpolated using the *new_timestamps*.
+        """Returns a new `Signal` interpolated using the `new_timestamps`.
 
         Parameters
         ----------
@@ -950,7 +950,7 @@ class Signal:
         Returns
         -------
         signal : Signal
-            New interpolated *Signal*.
+            New interpolated `Signal`.
         """
 
         integer_interpolation_mode = IntegerInterpolation(integer_interpolation_mode)
@@ -1104,8 +1104,8 @@ class Signal:
             )
 
     def __apply_func(self, other: Union["Signal", NDArray[Any], int | None], func_name: str) -> "Signal":
-        """Delegate operations to the *samples* attribute, but in a
-        time-correct manner by considering the *timestamps*.
+        """Delegate operations to the `samples` attribute, but in a
+        time-correct manner by considering the `timestamps`.
         """
 
         if isinstance(other, Signal):
@@ -1378,7 +1378,7 @@ class Signal:
         self.samples[idx] = val
 
     def astype(self, np_type: DTypeLike) -> "Signal":
-        """Returns new *Signal* with samples of dtype *np_type*.
+        """Returns new `Signal` with samples of dtype `np_type`.
 
         Parameters
         ----------
@@ -1388,7 +1388,7 @@ class Signal:
         Returns
         -------
         signal : Signal
-            New *Signal* with the samples of dtype *np_type*.
+            New `Signal` with the samples of dtype `np_type`.
         """
         return Signal(
             self.samples.astype(np_type),
@@ -1421,7 +1421,7 @@ class Signal:
         Returns
         -------
         phys : Signal
-            New *Signal* with physical values.
+            New `Signal` with physical values.
         """
 
         if not self.raw or self.conversion is None:

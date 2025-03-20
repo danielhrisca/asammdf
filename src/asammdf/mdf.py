@@ -209,7 +209,7 @@ def master_using_raster(mdf: MDF_v2_v3_v4, raster: RasterType, endpoint: bool = 
 
 class MDF:
     r"""Unified access to MDF v3 and v4 files. Underlying _mdf's attributes and
-    methods are linked to the `MDF` object via *setattr*. This is done to expose
+    methods are linked to the `MDF` object via `setattr`. This is done to expose
     them to the user code and for performance considerations.
 
     Parameters
@@ -700,7 +700,7 @@ class MDF:
         temporary_folder: str | None = None,
         fill_0_for_missing_computation_channels: bool | None = None,
     ) -> None:
-        """Configure *MDF* parameters.
+        """Configure `MDF` parameters.
 
         The default values for the options are the following:
 
@@ -819,7 +819,7 @@ class MDF:
             self._raise_on_multiple_occurrences = bool(raise_on_multiple_occurrences)
 
     def convert(self, version: str, progress=None) -> MDF:
-        """Convert *MDF* to other version.
+        """Convert `MDF` to other version.
 
         Parameters
         ----------
@@ -830,7 +830,7 @@ class MDF:
         Returns
         -------
         out : MDF
-            New *MDF* object.
+            New `MDF` object.
         """
         version = validate_version_argument(version)
 
@@ -901,9 +901,8 @@ class MDF:
         time_from_zero: bool = False,
         progress=None,
     ) -> MDF:
-        """Cut *MDF* file. *start* and *stop* limits are absolute values
-        or values relative to the first timestamp depending on the *whence*
-        argument.
+        """Cut `MDF`. `start` and `stop` are absolute values or values relative
+        to the first timestamp depending on the `whence` argument.
 
         Parameters
         ----------
@@ -924,8 +923,8 @@ class MDF:
             '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and
             in this case the original file version is used.
         include_ends : bool, default True
-            Include the *start* and *stop* timestamps after cutting the signal.
-            If *start* and *stop* are not found in the original timestamps,
+            Include the `start` and `stop` timestamps after cutting the signal.
+            If `start` and `stop` are not found in the original timestamps,
             then the new samples will be computed using interpolation.
         time_from_zero : bool, default False
             Start timestamps from 0s in the cut measurement.
@@ -933,7 +932,7 @@ class MDF:
         Returns
         -------
         out : MDF
-            New *MDF* object.
+            New `MDF` object.
         """
 
         if version is None:
@@ -1163,11 +1162,11 @@ class MDF:
         progress=None,
         **kwargs,
     ) -> None:
-        r"""Export *MDF* to other formats. The *MDF* file name is used if
-        available, else the *filename* argument must be provided.
+        r"""Export `MDF` to other formats. The `MDF` file name is used if
+        available, else the `filename` argument must be provided.
 
-        The *pandas* export option was removed. You should use the method
-        *to_dataframe* instead.
+        The pandas export option was removed. You should use the method
+        `to_dataframe` instead.
 
         Parameters
         ----------
@@ -1178,12 +1177,12 @@ class MDF:
               will generate a new csv file for each data group
               (<MDFNAME>_DataGroup_<cntr>.csv)
 
-            * `hdf5` : HDF5 file output; each *MDF* data group is mapped to
-              a *HDF5* group with the name 'DataGroup_<cntr>'
+            * `hdf5` : HDF5 file output; each `MDF` data group is mapped to
+              an HDF5 group with the name 'DataGroup_<cntr>'
               (where <cntr> is the index)
 
             * `mat` : Matlab .mat version 4, 5 or 7.3 export. If
-              *single_time_base==False* the channels will be renamed in the mat
+              `single_time_base=False` the channels will be renamed in the mat
               file to 'D<cntr>_<channel name>'. The channel group master will
               be renamed to 'DM<cntr>_<channel name>'
               (*<cntr>* is the data group index starting from 0)
@@ -1201,7 +1200,7 @@ class MDF:
         single_time_base : bool, default False
             Resample all channels to common time base.
         raster : float | array-like | str, optional
-            Time raster for resampling. Valid if *single_time_base* is *True*.
+            Time raster for resampling. Valid if `single_time_base` is *True*.
             It can be:
 
             * a float step value
@@ -1228,9 +1227,9 @@ class MDF:
         compression : str | bool, optional
             Compression to be used.
 
-            * for ``parquet`` : 'GZIP', 'SNAPPY' or 'LZ4'
-            * for ``hfd5`` : 'gzip', 'lzf' or 'szip'
-            * for ``mat`` : bool
+            * for `parquet` : 'GZIP', 'SNAPPY' or 'LZ4'
+            * for `hfd5` : 'gzip', 'lzf' or 'szip'
+            * for `mat` : bool
 
             .. versionadded:: 8.1.0
 
@@ -1243,7 +1242,7 @@ class MDF:
 
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
-            if *raw=False*. If this is *True* then the raw numeric values will
+            if `raw=False`. If this is *True* then the raw numeric values will
             be used, and the conversion will not be applied.
 
             .. versionadded:: 5.8.0
@@ -2042,8 +2041,8 @@ class MDF:
             logger.warning(message)
 
     def filter(self, channels: ChannelsType, version: str | None = None, progress=None) -> MDF:
-        """Return new *MDF* object that contains only the channels listed in the
-        *channels* argument.
+        """Return new `MDF` object that contains only the channels listed in the
+        `channels` argument.
 
         Parameters
         ----------
@@ -2063,7 +2062,7 @@ class MDF:
         Returns
         -------
         mdf : MDF
-            New *MDF* object.
+            New `MDF` object.
 
         Examples
         --------
@@ -2230,7 +2229,7 @@ class MDF:
 
         This is usefull in case of large files with a small number of channels.
 
-        If the *raster* keyword argument is not *None* the output is
+        If the `raster` keyword argument is not *None* the output is
         interpolated accordingly.
 
         Parameters
@@ -2245,7 +2244,7 @@ class MDF:
             Time raster in seconds.
         samples_only : bool, default False
             If *True* return only the channel samples as np.ndarray; if
-            *False* return a *Signal* object.
+            *False* return a `Signal` object.
         raw : bool, default False
             Return channel samples without applying the conversion rule.
         """
@@ -2281,12 +2280,12 @@ class MDF:
         structure (same number of groups, and same channels in each group).
 
         The order of the input files is always preserved, only the samples'
-        timestamps are influenced by the ``sync`` argument.
+        timestamps are influenced by the `sync` argument.
 
         Parameters
         ----------
         files : list | tuple
-            List of *MDF* file names or *MDF*, zipfile.ZipFile, bz2.BZ2File or
+            List of MDF file names or `MDF`, zipfile.ZipFile, bz2.BZ2File or
             gzip.GzipFile instances.
 
             .. versionchanged:: 6.2.0
@@ -2319,7 +2318,7 @@ class MDF:
         Returns
         -------
         concatenated : MDF
-            New *MDF* object with concatenated channels.
+            New `MDF` object with concatenated channels.
 
         Raises
         ------
@@ -2732,17 +2731,18 @@ class MDF:
         progress=None,
         **kwargs,
     ) -> MDF:
-        """Stack several files and return the stacked *MDF* object.
+        """Stack several files and return the stacked `MDF` object.
 
         Parameters
         ----------
         files : list | tuple
-            List of *MDF* file names or *MDF*, zipfile.ZipFile, bz2.BZ2File or
+            List of MDF file names or `MDF`, zipfile.ZipFile, bz2.BZ2File or
             gzip.GzipFile instances.
 
             .. versionchanged:: 6.2.0
 
                 Added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile.
+
         version : str, default '4.10'
             Merged file version.
         sync : bool, default True
@@ -2758,7 +2758,7 @@ class MDF:
         Returns
         -------
         stacked : MDF
-            New *MDF* object with stacked channels.
+            New `MDF` object with stacked channels.
 
         Examples
         --------
@@ -2921,7 +2921,7 @@ class MDF:
         copy_master: bool = True,
         raw: bool | dict[str, bool] = False,
     ) -> Iterator[Signal]:
-        """Generator that yields a *Signal* for each non-master channel.
+        """Generator that yields a `Signal` for each non-master channel.
 
         Parameters
         ----------
@@ -2935,7 +2935,7 @@ class MDF:
             .. versionchanged:: 8.0.0
 
                 Provide individual raw mode based on a dict. If the argument is
-                given as dict then it must contain the key ``__default__`` with
+                given as dict then it must contain the key '__default__' with
                 the default raw value. The dict keys are the channel names and
                 the values are the boolean raw values for each channel.
         """
@@ -3011,7 +3011,7 @@ class MDF:
         time_as_date : bool, default False
             The DataFrame index will contain the datetime timestamps according
             to the measurement start time. If *True* then the argument
-            ``time_from_zero`` will be ignored.
+            `time_from_zero` will be ignored.
         reduce_memory_usage : bool, default False
             Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
@@ -3027,13 +3027,13 @@ class MDF:
             .. versionchanged:: 8.0.0
 
                 Provide individual raw mode based on a dict. If the argument is
-                given as dict then it must contain the key ``__default__`` with
+                given as dict then it must contain the key '__default__' with
                 the default raw value. The dict keys are the channel names and
                 the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
-            if *raw=False*. If this is *True* then the raw numeric values will
+            if `raw=False`. If this is *True* then the raw numeric values will
             be used, and the conversion will not be applied.
 
             .. versionadded:: 5.21.0
@@ -3067,7 +3067,7 @@ class MDF:
         time_from_zero: bool = False,
         progress=None,
     ) -> MDF:
-        """Resample all channels using the given raster. See *configure* to
+        """Resample all channels using the given raster. See `configure` to
         select the interpolation method for integer and float channels.
 
         Parameters
@@ -3091,7 +3091,7 @@ class MDF:
         Returns
         -------
         mdf : MDF
-            New *MDF* object with resampled channels.
+            New `MDF` object with resampled channels.
 
         Examples
         --------
@@ -3275,11 +3275,11 @@ class MDF:
         record_count: int | None = None,
         validate: bool = False,
     ) -> list[Signal]:
-        """Retrieve the channels listed in the *channels* argument as *Signal*
+        """Retrieve the channels listed in the `channels` argument as `Signal`
         objects.
 
-        .. note:: The *dataframe* argument was removed in version 5.8.0,
-                  use the ``to_dataframe`` method instead.
+        .. note:: The `dataframe` argument was removed in version 5.8.0,
+                  use the `to_dataframe` method instead.
 
         Parameters
         ----------
@@ -3300,7 +3300,7 @@ class MDF:
             .. versionchanged:: 8.0.0
 
                 Provide individual raw mode based on a dict. If the argument is
-                given as dict then it must contain the key ``__default__`` with
+                given as dict then it must contain the key '__default__' with
                 the default raw value. The dict keys are the channel names and
                 the values are the boolean raw values for each channel.
 
@@ -3309,7 +3309,7 @@ class MDF:
             use a shared array for channels of the same channel group.
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
-            if *raw=False*. If this is *True* then the raw numeric values will
+            if `raw=False`. If this is *True* then the raw numeric values will
             be used, and the conversion will not be applied.
 
             .. versionchanged:: 5.8.0
@@ -3325,7 +3325,7 @@ class MDF:
         Returns
         -------
         signals : list
-            List of *Signal* objects based on the input channel list.
+            List of `Signal` objects based on the input channel list.
 
         Examples
         --------
@@ -3580,11 +3580,11 @@ class MDF:
         record_count: int | None = None,
         validate: bool = False,
     ) -> list[Signal]:
-        """Retrieve the channels listed in the *channels* argument as *Signal*
+        """Retrieve the channels listed in the `channels` argument as `Signal`
         objects.
 
-        .. note:: The *dataframe* argument was removed in version 5.8.0,
-                  use the ``to_dataframe`` method instead.
+        .. note:: The `dataframe` argument was removed in version 5.8.0,
+                  use the `to_dataframe` method instead.
 
         Parameters
         ----------
@@ -3605,7 +3605,7 @@ class MDF:
             .. versionchanged:: 8.0.0
 
                 Provide individual raw mode based on a dict. If the argument is
-                given as dict then it must contain the key ``__default__`` with
+                given as dict then it must contain the key '__default__' with
                 the default raw value. The dict keys are the channel names and
                 the values are the boolean raw values for each channel.
 
@@ -3614,7 +3614,7 @@ class MDF:
             use a shared array for channels of the same channel group.
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
-            if *raw=False*. If this is *True* then the raw numeric values will
+            if `raw=False`. If this is *True* then the raw numeric values will
             be used, and the conversion will not be applied.
 
             .. versionchanged:: 5.8.0
@@ -3630,7 +3630,7 @@ class MDF:
         Returns
         -------
         signals : list
-            List of *Signal* objects based on the input channel list.
+            List of `Signal` objects based on the input channel list.
 
         Examples
         --------
@@ -4189,7 +4189,7 @@ class MDF:
         time_as_date : bool, default False
             The DataFrame index will contain the datetime timestamps according
             to the measurement start time. If *True* then the argument
-            ``time_from_zero`` will be ignored.
+            `time_from_zero` will be ignored.
         reduce_memory_usage : bool, default False
             Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
@@ -4202,13 +4202,13 @@ class MDF:
             .. versionchanged:: 8.0.0
 
                 Provide individual raw mode based on a dict. If the argument is
-                given as dict then it must contain the key ``__default__`` with
+                given as dict then it must contain the key '__default__' with
                 the default raw value. The dict keys are the channel names and
                 the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
-            if *raw=False*. If this is *True* then the raw numeric values will
+            if `raw=False`. If this is *True* then the raw numeric values will
             be used, and the conversion will not be applied.
 
             .. versionadded:: 5.8.0
@@ -4305,7 +4305,7 @@ class MDF:
         time_as_date : bool, default False
             The DataFrame index will contain the datetime timestamps according
             to the measurement start time. If *True* then the argument
-            ``time_from_zero`` will be ignored.
+            `time_from_zero` will be ignored.
         reduce_memory_usage : bool, default False
             Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
@@ -4316,13 +4316,13 @@ class MDF:
             .. versionchanged:: 8.0.0
 
                 Provide individual raw mode based on a dict. If the argument is
-                given as dict then it must contain the key ``__default__`` with
+                given as dict then it must contain the key '__default__' with
                 the default raw value. The dict keys are the channel names and
                 the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
-            if *raw=False*. If this is *True* then the raw numeric values will
+            if `raw=False`. If this is *True* then the raw numeric values will
             be used, and the conversion will not be applied.
         use_interpolation : bool, default True
             Option to perform interpolations when multiple timestamp rasters are
@@ -4717,7 +4717,7 @@ class MDF:
         time_as_date : bool, default False
             The DataFrame index will contain the datetime timestamps according
             to the measurement start time. If *True* then the argument
-            ``time_from_zero`` will be ignored.
+            `time_from_zero` will be ignored.
         reduce_memory_usage : bool, default False
             Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
@@ -4730,13 +4730,13 @@ class MDF:
             .. versionchanged:: 8.0.0
 
                 Provide individual raw mode based on a dict. If the argument is
-                given as dict then it must contain the key ``__default__`` with
+                given as dict then it must contain the key '__default__' with
                 the default raw value. The dict keys are the channel names and
                 the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
-            if *raw=False*. If this is *True* then the raw numeric values will
+            if `raw=False`. If this is *True* then the raw numeric values will
             be used, and the conversion will not be applied.
 
             .. versionadded:: 5.8.0
@@ -5147,7 +5147,7 @@ class MDF:
         Returns
         -------
         mdf : MDF
-            New *MDF* object that contains the succesfully extracted signals.
+            New `MDF` object that contains the succesfully extracted signals.
 
         Examples
         --------
@@ -5857,7 +5857,7 @@ class MDF:
         version: str | None = None,
         progress=None,
     ) -> MDF:
-        """Clean up timestamps and convert *MDF* to other version.
+        """Clean up timestamps and convert `MDF` to other version.
 
         .. versionadded:: 5.22.0
 
@@ -5879,7 +5879,7 @@ class MDF:
         Returns
         -------
         out : MDF
-            New *MDF* object.
+            New `MDF` object.
         """
 
         if version is None:

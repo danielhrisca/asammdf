@@ -303,7 +303,7 @@ def get_text_v3(address: int, stream: FileLike | mmap.mmap, mapped: bool = False
     Returns
     -------
     text : str | bytes
-        Unicode string or bytes object depending on the ``decode`` argument.
+        Unicode string or bytes object depending on the `decode` argument.
     """
 
     if address == 0:
@@ -392,7 +392,7 @@ def get_text_v4(
     Returns
     -------
     text : str | bytes
-        Unicode string or bytes object depending on the ``decode`` argument.
+        Unicode string or bytes object depending on the `decode` argument.
     """
 
     if mapped_text := tx_map.get(address, None):
@@ -1109,7 +1109,7 @@ class ChannelsDB(dict[str, tuple[tuple[int, int], ...]]):
 
 
 def randomized_string(size: int) -> bytes:
-    """Get a null-terminated string of length *size*.
+    """Get a null-terminated string of length `size`.
 
     Parameters
     ----------
@@ -1852,7 +1852,7 @@ def plausible_timestamps(
     Returns
     -------
     all_ok, idx : (bool, np.ndarray)
-        The *all_ok* flag to indicate if all the timestamps are ok; this can
+        The `all_ok` flag to indicate if all the timestamps are ok; this can
         be checked before applying the indexing array.
     """
 

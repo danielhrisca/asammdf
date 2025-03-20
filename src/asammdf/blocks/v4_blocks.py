@@ -100,9 +100,9 @@ __all__ = [
 
 class AttachmentBlock:
     """When adding new attachments only embedded attachments are allowed, with
-    keyword argument *data* of type bytes.
+    keyword argument `data` of type bytes.
 
-    *AttachmentBlock* has the following attributes, which are also available as
+    `AttachmentBlock` has the following attributes, which are also available as
     dict-like key-value pairs.
 
     ATBLOCK fields:
@@ -378,7 +378,7 @@ class Channel:
     the display name information from the channel comment is not processed
     (this is done to avoid expensive XML operations).
 
-    *Channel* has the following attributes, which are also available as
+    `Channel` has the following attributes, which are also available as
     dict-like key-value pairs.
 
     CNBLOCK fields:
@@ -1789,7 +1789,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 
 
 class ChannelGroup:
-    """*ChannelGroup* has the following attributes, which are also available as
+    """`ChannelGroup` has the following attributes, which are also available as
     dict-like key-value pairs.
 
     CGBLOCK fields:
@@ -2218,7 +2218,7 @@ class _ChannelConversionBase:
 
 
 class ChannelConversion(_ChannelConversionBase):
-    """*ChannelConversion* has the following attributes, which are also
+    """`ChannelConversion` has the following attributes, which are also
     available as dict-like key-value pairs.
 
     CCBLOCK common fields:
@@ -4298,7 +4298,7 @@ formula: {self.formula}
 class DataBlock:
     """Common implementation for DTBLOCK/RDBLOCK/SDBLOCK/DVBLOCK/DIBLOCK.
 
-    *DataBlock* has the following attributes, which are also available as
+    `DataBlock` has the following attributes, which are also available as
     dict-like key-value pairs.
 
     DTBLOCK fields:
@@ -4380,7 +4380,7 @@ class DataBlock:
 
 
 class DataZippedBlock:
-    """*DataZippedBlock* has the following attributes, which are also available
+    """`DataZippedBlock` has the following attributes, which are also available
     as dict-like key-value pairs.
 
     DZBLOCK fields:
@@ -4593,7 +4593,7 @@ class DataZippedBlock:
 
 
 class DataGroup:
-    """*DataGroup* has the following attributes, which are also available as
+    """`DataGroup` has the following attributes, which are also available as
     dict-like key-value pairs.
 
     DGBLOCK fields:
@@ -4770,7 +4770,7 @@ class _DataListBase:
 
 
 class DataList(_DataListBase):
-    """*DataList* has the following attributes, which are also available as
+    """`DataList` has the following attributes, which are also available as
     dict-like key-value pairs.
 
     DLBLOCK common fields:
@@ -4946,7 +4946,7 @@ class _EventBlockBase:
 
 
 class EventBlock(_EventBlockBase):
-    """*EventBlock* has the following attributes, which are also available as
+    """`EventBlock` has the following attributes, which are also available as
     dict-like key-value pairs.
 
     EVBLOCK fields:
@@ -5202,7 +5202,7 @@ class EventBlock(_EventBlockBase):
 
 
 class FileIdentificationBlock:
-    """*FileIdentificationBlock* has the following attributes, which are also
+    """`FileIdentificationBlock` has the following attributes, which are also
     available as dict-like key-value pairs.
 
     IDBLOCK fields:
@@ -5279,7 +5279,7 @@ class FileIdentificationBlock:
 
 
 class FileHistory:
-    """*FileHistory* has the following attributes, which are also available as
+    """`FileHistory` has the following attributes, which are also available as
     dict-like key-value pairs.
 
     FHBLOCK fields:
@@ -5458,7 +5458,7 @@ class FileHistory:
 
 
 class GuardBlock:
-    """*GuardBlock* has the following attributes, which are also available as
+    """`GuardBlock` has the following attributes, which are also available as
     dict-like key-value pairs.
 
     GDBLOCK fields:
@@ -5578,7 +5578,7 @@ class GuardBlock:
 
 
 class HeaderBlock:
-    """*HeaderBlock* has the following attributes, which are also available as
+    """`HeaderBlock` has the following attributes, which are also available as
     dict-like key-value pairs.
 
     HDBLOCK fields:
@@ -5921,7 +5921,7 @@ class HeaderBlock:
 
 
 class HeaderList:
-    """*HeaderList* has the following attributes, which are also available as
+    """`HeaderList` has the following attributes, which are also available as
     dict-like key-value pairs.
 
     HLBLOCK fields:
@@ -6015,7 +6015,7 @@ class _ListDataBase:
 
 
 class ListData(_ListDataBase):
-    """*ListData* has the following attributes, which are also available as
+    """`ListData` has the following attributes, which are also available as
     dict-like key-value pairs.
 
     LDBLOCK common fields:
@@ -6252,7 +6252,7 @@ class ListData(_ListDataBase):
 
 
 class SourceInformation:
-    """*SourceInformation* has the following attributes, which are also
+    """`SourceInformation` has the following attributes, which are also
     available as dict-like key-value pairs.
 
     SIBLOCK fields:
@@ -6520,7 +6520,7 @@ comment: {self.comment}
 class TextBlock:
     """Common TXBLOCK and MDBLOCK class.
 
-    *TextBlock* has the following attributes, which are also available as
+    `TextBlock` has the following attributes, which are also available as
     dict-like key-value pairs.
 
     TXBLOCK fields:

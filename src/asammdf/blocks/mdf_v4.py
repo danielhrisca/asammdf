@@ -177,18 +177,19 @@ Group = mdf_common.Group[DataGroup, ChannelGroup, Channel]
 
 
 class MDF4(MDF_Common[Group]):
-    r"""The *header* attribute is a *HeaderBlock*.
+    r"""The `header` attribute is a `HeaderBlock`.
 
-    The *groups* attribute is a list of Group objects, each one with the
+    The `groups` attribute is a list of `Group` objects, each one with the
     following attributes:
 
-    * ``data_group`` - DataGroup object
-    * ``channel_group`` - ChannelGroup object
-    * ``channels`` - list of Channel objects with the same order as found in
+    * ``data_group`` - `DataGroup` object
+    * ``channel_group`` - `ChannelGroup` object
+    * ``channels`` - list of `Channel` objects with the same order as found in
       the MDF file
-    * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel
-      arrays; list of Channel objects in case of structure channel composition
-    * ``data_blocks`` - list of DataBlockInfo objects, each one containing
+    * ``channel_dependencies`` - list of `ChannelArrayBlock` objects in case of
+      channel arrays; list of `Channel` objects in case of structure channel
+      composition
+    * ``data_blocks`` - list of `DataBlockInfo` objects, each one containing
       address, type, size and other information about the block
     * ``data_location`` - integer code for data location (original file,
       temporary file or memory)
@@ -2692,15 +2693,15 @@ class MDF4(MDF_Common[Group]):
     ) -> int | None:
         """Append a new data group.
 
-        For channel dependencies type Signals, the *samples* attribute must be
+        For channel dependencies type Signals, the `samples` attribute must be
         a np.recarray.
 
         Parameters
         ----------
         signals : list | Signal | pandas.DataFrame
-            List of *Signal* objects, or a single *Signal* object, or a pandas
-            *DataFrame* object. All bytes columns in the pandas *DataFrame*
-            must be *utf-8* encoded.
+            List of `Signal` objects, or a single `Signal` object, or a pandas
+            DataFrame object. All bytes columns in the DataFrame must be
+            *utf-8* encoded.
         acq_name : str, optional
             Channel group acquisition name.
         acq_source : Source, optional
@@ -5876,11 +5877,11 @@ class MDF4(MDF_Common[Group]):
     def extend(self, index: int, signals: list[tuple[NDArray[Any], NDArray[Any] | None]]) -> None:
         """Extend a group with new samples.
 
-        *signals* contains (values, invalidation_bits) pairs for each extended
+        `signals` contains (values, invalidation_bits) pairs for each extended
         signal. The first pair is the master channel's pair, and the next pairs
         must respect the same order in which the signals were appended. The
-        samples must have raw or physical values according to the *Signals*
-        used for the initial append.
+        samples must have raw or physical values according to the signals used
+        for the initial append.
 
         Parameters
         ----------
@@ -6172,11 +6173,11 @@ class MDF4(MDF_Common[Group]):
     def _extend_column_oriented(self, index: int, signals: list[tuple[NDArray[Any], NDArray[Any] | None]]) -> None:
         """Extend a group with new samples.
 
-        *signals* contains (values, invalidation_bits) pairs for each extended
+        `signals` contains (values, invalidation_bits) pairs for each extended
         signal. The first pair is the master channel's pair, and the next pairs
         must respect the same order in which the signals were appended. The
-        samples must have raw or physical values according to the *Signals*
-        used for the initial append.
+        samples must have raw or physical values according to the signals used
+        for the initial append.
 
         Parameters
         ----------
@@ -6685,23 +6686,23 @@ class MDF4(MDF_Common[Group]):
         skip_channel_validation: bool = False,
     ) -> Signal | tuple[NDArray[Any], NDArray[Any]]:
         """Get channel samples. The raw data group samples are not loaded to
-        memory so it is advised to use ``filter`` or ``select`` instead of
-        performing several ``get`` calls.
+        memory so it is advised to use `filter` or `select` instead of
+        performing several `get` calls.
 
         The channel can be specified in two ways:
 
-        * Using the first positional argument *name*.
+        * Using the first positional argument `name`.
 
-          * If there are multiple occurrences for this channel then the *group*
-            and *index* arguments can be used to select a specific group.
+          * If there are multiple occurrences for this channel then the `group`
+            and `index` arguments can be used to select a specific group.
           * If there are multiple occurrences for this channel and either the
-            *group* or *index* arguments is None then a warning is issued.
+            `group` or `index` arguments is None then a warning is issued.
 
-        * Using the group number (keyword argument *group*) and the channel
-          number (keyword argument *index*). Use *info* method for group and
+        * Using the group number (keyword argument `group`) and the channel
+          number (keyword argument `index`). Use `info` method for group and
           channel numbers.
 
-        If the *raster* keyword argument is not *None* the output is
+        If the `raster` keyword argument is not *None* the output is
         interpolated accordingly.
 
         Parameters
@@ -6716,7 +6717,7 @@ class MDF4(MDF_Common[Group]):
             Time raster in seconds.
         samples_only : bool, default False
             If *True* return only the channel samples as np.ndarray; if *False*
-            return a *Signal* object.
+            return a `Signal` object.
         data : bytes, optional
             Prevent redundant data read by providing the raw data group samples.
         raw : bool, default False
@@ -6724,14 +6725,14 @@ class MDF4(MDF_Common[Group]):
         ignore_invalidation_bits : bool, default False
             Option to ignore invalidation bits.
         record_offset : int, optional
-            If *data=None* use this to select the record offset from which the
+            If `data=None` use this to select the record offset from which the
             group data should be loaded.
         record_count : int, optional
             Number of records to read; default *None* and in this case all
             available records are used.
         skip_channel_validation : bool, default False
             Skip validation of channel name, group index and channel index. If
-            *True*, the caller has to make sure that the *group* and *index*
+            *True*, the caller has to make sure that the `group` and `index`
             arguments are provided and are correct.
 
             .. versionadded:: 7.0.0
@@ -6739,13 +6740,13 @@ class MDF4(MDF_Common[Group]):
         Returns
         -------
         res : (np.ndarray, np.ndarray) | Signal
-            Returns *Signal* if *samples_only=False* (default option),
+            Returns `Signal` if `samples_only=False` (default option),
             otherwise returns a (np.ndarray, np.ndarray) tuple of samples and
             invalidation bits. If invalidation bits are not used or if
-            *ignore_invalidation_bits* is False, then the second item will be
+            `ignore_invalidation_bits` is False, then the second item will be
             None.
 
-            The *Signal* samples are:
+            The `Signal` samples are:
 
             * np.recarray for channels that have composition/channel
               array address or for channels of type CANOPENDATE, CANOPENTIME
@@ -6758,9 +6759,9 @@ class MDF4(MDF_Common[Group]):
         * if the channel name is not found
         * if the group index is out of range
         * if the channel index is out of range
-        * if there are multiple channel occurrences in the file and the arguments
-          *name*, *group*, *index* are ambiguous. This behaviour can be turned off
-          by setting raise_on_multiple_occurrences to *False*.
+        * if there are multiple channel occurrences in the file and the
+          arguments `name`, `group`, `index` are ambiguous. This behaviour can
+          be turned off by setting raise_on_multiple_occurrences to *False*.
 
         Examples
         --------
@@ -8625,7 +8626,7 @@ class MDF4(MDF_Common[Group]):
         data : (bytes, int, int, bytes | None), optional
             (data block raw bytes, fragment offset, count, invalidation bytes).
         record_offset : int, optional
-            If *data=None* use this to select the record offset from which the
+            If `data=None` use this to select the record offset from which the
             group data should be loaded.
         record_count : int, optional
             Number of records to read; default *None* and in this case all
@@ -9361,7 +9362,7 @@ class MDF4(MDF_Common[Group]):
         progress=None,
         add_history_block: bool = True,
     ) -> Path:
-        """Save MDF to *dst*. If overwrite is *True* then the destination file
+        """Save `MDF` to `dst`. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>',
         where '<cntr>' is the first counter that produces a new file name that
         does not already exist in the filesystem.
@@ -10262,15 +10263,15 @@ class MDF4(MDF_Common[Group]):
 
         The channel can be specified in two ways:
 
-        * Using the first positional argument *name*.
+        * Using the first positional argument `name`.
 
-          * If there are multiple occurrences for this channel then the *group*
-            and *index* arguments can be used to select a specific group.
+          * If there are multiple occurrences for this channel then the `group`
+            and `index` arguments can be used to select a specific group.
           * If there are multiple occurrences for this channel and either the
-            *group* or *index* arguments is None then a warning is issued.
+            `group` or `index` arguments is None then a warning is issued.
 
-        * Using the group number (keyword argument *group*) and the channel
-          number (keyword argument *index*). Use *info* method for group and
+        * Using the group number (keyword argument `group`) and the channel
+          number (keyword argument `index`). Use `info` method for group and
           channel numbers.
 
         Parameters
@@ -10309,15 +10310,15 @@ class MDF4(MDF_Common[Group]):
 
         The channel can be specified in two ways:
 
-        * Using the first positional argument *name*.
+        * Using the first positional argument `name`.
 
-          * If there are multiple occurrences for this channel then the *group*
-            and *index* arguments can be used to select a specific group.
+          * If there are multiple occurrences for this channel then the `group`
+            and `index` arguments can be used to select a specific group.
           * If there are multiple occurrences for this channel and either the
-            *group* or *index* arguments is None then a warning is issued.
+            `group` or `index` arguments is None then a warning is issued.
 
-        * Using the group number (keyword argument *group*) and the channel
-          number (keyword argument *index*). Use *info* method for group and
+        * Using the group number (keyword argument `group`) and the channel
+          number (keyword argument `index`). Use `info` method for group and
           channel numbers.
 
         Parameters
