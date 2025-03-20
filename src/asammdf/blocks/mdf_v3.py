@@ -120,7 +120,8 @@ class TriggerInfoDict(TypedDict):
 class MDF3(MDF_Common[Group]):
     """The *header* attribute is a *HeaderBlock*.
 
-    The *groups* attribute is a list of dicts, each one with the following keys:
+    The *groups* attribute is a list of Group objects, each one with the
+    following attributes:
 
     * ``data_group`` - DataGroup object
     * ``channel_group`` - ChannelGroup object
@@ -128,7 +129,8 @@ class MDF3(MDF_Common[Group]):
       the MDF file
     * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel
       arrays; list of Channel objects in case of structure channel composition
-    * ``data_block`` - address of data block
+    * ``data_blocks`` - list of DataBlockInfo objects, each one containing
+      address, type, size and other information about the block
     * ``data_location``- integer code for data location (original file,
       temporary file or memory)
     * ``data_block_addr`` - list of raw samples starting addresses
