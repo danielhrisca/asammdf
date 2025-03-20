@@ -3308,6 +3308,9 @@ class MDF:
 
             .. versionchanged:: 5.8.0
 
+        record_count : int, optional
+            Number of records to read; default *None* and in this case all
+            available records are used.
         validate : bool, default False
             Consider the invalidation bits.
 
@@ -3610,6 +3613,9 @@ class MDF:
 
             .. versionchanged:: 5.8.0
 
+        record_count : int, optional
+            Number of records to read; default *None* and in this case all
+            available records are used.
         validate : bool, default False
             Consider the invalidation bits.
 
