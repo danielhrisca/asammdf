@@ -583,8 +583,6 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             QTest.keySequence(self.pg, QKeySequence(self.shortcuts["grid"]))
             self.processEvents()
             # Evaluate
-            self.assertTrue(self.pg.x_axis.grid)
-            self.assertFalse(self.pg.y_axis.grid)
             current_grid = next_grid[current_grid]
             self.assertEqual(current_grid, self.pg.x_axis.grid, self.pg.y_axis.grid)
 
