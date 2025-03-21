@@ -196,7 +196,7 @@ static PyObject *extract(PyObject *self, PyObject *args)
   PyObject *signal_data, *is_byte_array, *offsets, *offsets_list = NULL;
   char *buf;
   PyArrayObject *vals;
-  PyArray_Descr *descr;
+  PyArray_Descr *descr_init, *descr;
   unsigned char *addr2;
 
   if (!PyArg_ParseTuple(args, "OOO", &signal_data, &is_byte_array, &offsets))
@@ -287,8 +287,9 @@ static PyObject *extract(PyObject *self, PyObject *args)
       npy_intp dims[1];
       dims[0] = count;
 
-      descr = PyArray_DescrFromType(NPY_STRING);
-      descr = PyArray_DescrNew(descr);
+      descr_init = PyArray_DescrFromType(NPY_STRING);
+      descr = PyArray_DescrNew(descr_init);
+      Py_XDECREF(descr_init);
 #if NPY_ABI_VERSION < 0x02000000
       descr->elsize = (int)max;
 #else
@@ -319,9 +320,9 @@ static PyObject *extract(PyObject *self, PyObject *args)
           size = calc_size(&buf[offset]);
           memcpy(addr2, &buf[offset + 4], size);
         }
-        Py_XDECREF(offsets_list);
       }
     }
+    if (offsets_list) Py_XDECREF(offsets_list);
   }
 
   return (PyObject *)vals;
@@ -1380,6 +1381,7 @@ static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
 static PyObject *get_invalidation_bits_array_C(uint8_t * data, int64_t cycles, int64_t invalidation_pos, int64_t invalidation_size)
 {
   if (invalidation_pos < 0) {
+    Py_INCREF(Py_None);
     return Py_None;
   }
 
