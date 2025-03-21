@@ -3198,7 +3198,7 @@ class MDF3(MDF_Common[Group]):
 
         if raster is not None:
             raise PendingDeprecationWarning(
-                "the argument raster is deprecated since version 5.13.0 " "and will be removed in a future release"
+                "the argument raster is deprecated since version 5.13.0 and will be removed in a future release"
             )
 
         fragment = data
@@ -3454,7 +3454,7 @@ class MDF3(MDF_Common[Group]):
                     else:
                         cntr += 1
                 message = (
-                    f'Destination file "{dst}" already exists ' f'and "overwrite" is False. Saving MDF file as "{name}"'
+                    f'Destination file "{dst}" already exists and "overwrite" is False. Saving MDF file as "{name}"'
                 )
                 logger.warning(message)
                 dst = name
