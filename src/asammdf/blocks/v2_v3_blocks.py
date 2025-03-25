@@ -141,7 +141,7 @@ class Channel:
 
     * ``address`` - int : block address inside MDF file
     * ``comment`` - str : channel comment
-    * ``conversion`` - ChannelConversion : channel conversion; *None* if the
+    * ``conversion`` - ChannelConversion : channel conversion; None if the
       channel has no conversion
     * ``display_names`` - dict : channel display names
 
@@ -150,8 +150,8 @@ class Channel:
             Changed from str to dict.
 
     * ``name`` - str : full channel name
-    * ``source`` - SourceInformation : channel source information; *None* if
-      the channel has no source information
+    * ``source`` - SourceInformation : channel source information; None if the
+      channel has no source information
 
     Parameters
     ----------
@@ -160,7 +160,7 @@ class Channel:
     stream : handle
         File handle; to be used for objects created from file.
     load_metadata : bool
-        Option to load conversion, source and display_names; default *True*.
+        Option to load conversion, source and display_names; default is True.
     for dynamically created objects :
         See the key-value pairs.
 

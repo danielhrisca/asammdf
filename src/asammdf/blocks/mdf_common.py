@@ -166,15 +166,15 @@ class MDF_Common(ABC, Generic[_Group]):
 
         The channel can be specified in two ways:
 
-        * Using the first positional argument *name*.
+        * Using the first positional argument `name`.
 
-          * If there are multiple occurrences for this channel then the *group*
-            and *index* arguments can be used to select a specific group.
+          * If there are multiple occurrences for this channel, then the `group`
+            and `index` arguments can be used to select a specific group.
           * If there are multiple occurrences for this channel and either the
-            *group* or *index* arguments is None then a warning is issued.
+            `group` or `index` arguments is None, then a warning is issued.
 
-        * Using the group number (keyword argument *group*) and the channel
-          number (keyword argument *index*). Use *info* method for group and
+        * Using the group number (keyword argument `group`) and the channel
+          number (keyword argument `index`). Use `info` method for group and
           channel numbers.
 
         Parameters
@@ -200,7 +200,7 @@ class MDF_Common(ABC, Generic[_Group]):
         * if the channel index is out of range
         * if there are multiple channel occurrences in the file and the
           arguments `name`, `group`, `index` are ambiguous. This behaviour can
-          be turned off by setting raise_on_multiple_occurrences to *False*.
+          be turned off by setting raise_on_multiple_occurrences to False.
         """
 
         if name is None:

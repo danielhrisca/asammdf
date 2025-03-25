@@ -295,7 +295,7 @@ def get_text_v3(address: int, stream: FileLike | mmap.mmap, mapped: bool = False
         TextBlock address.
     stream : handle
         File IO handle.
-    mapped: bool, default False
+    mapped : bool, default False
         Flag for mapped stream.
     decode : bool, default True
         Use auto-detection to detect character encoding.
@@ -382,7 +382,7 @@ def get_text_v4(
         TextBlock address.
     stream : handle
         File IO handle.
-    mapped: bool, default False
+    mapped : bool, default False
         Flag for mapped stream.
     decode : bool, default True
         Option to return decoded str instead of raw bytes.
@@ -929,7 +929,7 @@ def count_channel_groups(
         Opened file handle.
     include_channels : bool, default False
         Also count channels.
-    mapped: bool, default False
+    mapped : bool, default False
         Flag for mapped stream.
 
     Returns
@@ -1725,11 +1725,10 @@ def load_can_database(
     fd : bool, optional
         If supplied, only buses with the same FD kind will be loaded.
     load_flat : bool, optional
-        If *True*, all the CAN messages found in multiple buses will be
-        contained in the CAN database object. By default the first bus will be
-        returned.
+        If True, all the CAN messages found in multiple buses will be contained
+        in the CAN database object. By default the first bus will be returned.
     cluster_name : str, optional
-        If supplied load just the clusters with this name.
+        If supplied, load just the clusters with this name.
 
     Returns
     -------

@@ -433,13 +433,13 @@ class Channel:
     * ``attachments`` - list : list of referenced attachment blocks indexes;
       the index reference to the attachment block index
     * ``comment`` - str : channel comment
-    * ``conversion`` - ChannelConversion : channel conversion; *None* if the
+    * ``conversion`` - ChannelConversion : channel conversion; None if the
       channel has no conversion
     * ``display_name`` - str : channel display name; this is extracted from the
       XML channel comment
     * ``name`` - str : channel name
-    * ``source`` - SourceInformation : channel source information; *None* if
-      the channel has no source information
+    * ``source`` - SourceInformation : channel source information; None if the
+      channel has no source information
     * ``unit`` - str : channel unit
 
     Parameters
@@ -449,10 +449,10 @@ class Channel:
     stream : handle
         File handle; to be used for objects created from file.
     load_metadata : bool
-        Option to load conversion, source and display_name; default *True*.
+        Option to load conversion, source and display_name; default is True.
     parse_xml_comment : bool
         Option to parse XML channel comment to search for display name; default
-        *True*.
+        is True.
     for dynamically created objects :
         See the key-value pairs.
     """
@@ -6543,7 +6543,7 @@ class TextBlock:
         File handle.
     meta : bool
         Flag to set the block type to MDBLOCK for dynamically created objects;
-        default *False*.
+        default is False.
     text : bytes/str
         Text content for dynamically created objects.
     """

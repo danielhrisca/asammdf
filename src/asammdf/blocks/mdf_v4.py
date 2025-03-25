@@ -211,7 +211,7 @@ class MDF4(MDF_Common[Group]):
         MDF file version ('4.00', '4.10', '4.11', '4.20').
     use_display_names : bool, default True
         Parse the XML channel comment to search for the display name; XML
-        parsing is quite expensive so setting this to *False* can decrease the
+        parsing is quite expensive so setting this to False can decrease the
         loading times very much.
     remove_source_from_channel_names : bool, default False
         Remove source from channel names ("Speed\XCP3" -> "Speed").
@@ -6693,17 +6693,17 @@ class MDF4(MDF_Common[Group]):
 
         * Using the first positional argument `name`.
 
-          * If there are multiple occurrences for this channel then the `group`
+          * If there are multiple occurrences for this channel, then the `group`
             and `index` arguments can be used to select a specific group.
           * If there are multiple occurrences for this channel and either the
-            `group` or `index` arguments is None then a warning is issued.
+            `group` or `index` arguments is None, then a warning is issued.
 
         * Using the group number (keyword argument `group`) and the channel
           number (keyword argument `index`). Use `info` method for group and
           channel numbers.
 
-        If the `raster` keyword argument is not *None* the output is
-        interpolated accordingly.
+        If the `raster` keyword argument is not None, the output is interpolated
+        accordingly.
 
         Parameters
         ----------
@@ -6716,7 +6716,7 @@ class MDF4(MDF_Common[Group]):
         raster : float, optional
             Time raster in seconds.
         samples_only : bool, default False
-            If *True* return only the channel samples as np.ndarray; if *False*
+            If True, return only the channel samples as np.ndarray; if False,
             return a `Signal` object.
         data : bytes, optional
             Prevent redundant data read by providing the raw data group samples.
@@ -6725,14 +6725,14 @@ class MDF4(MDF_Common[Group]):
         ignore_invalidation_bits : bool, default False
             Option to ignore invalidation bits.
         record_offset : int, optional
-            If `data=None` use this to select the record offset from which the
+            If `data=None`, use this to select the record offset from which the
             group data should be loaded.
         record_count : int, optional
-            Number of records to read; default *None* and in this case all
+            Number of records to read; default is None and in this case all
             available records are used.
         skip_channel_validation : bool, default False
             Skip validation of channel name, group index and channel index. If
-            *True*, the caller has to make sure that the `group` and `index`
+            True, the caller has to make sure that the `group` and `index`
             arguments are provided and are correct.
 
             .. versionadded:: 7.0.0
@@ -6761,7 +6761,7 @@ class MDF4(MDF_Common[Group]):
         * if the channel index is out of range
         * if there are multiple channel occurrences in the file and the
           arguments `name`, `group`, `index` are ambiguous. This behaviour can
-          be turned off by setting raise_on_multiple_occurrences to *False*.
+          be turned off by setting raise_on_multiple_occurrences to False.
 
         Examples
         --------
@@ -8626,10 +8626,10 @@ class MDF4(MDF_Common[Group]):
         data : (bytes, int, int, bytes | None), optional
             (data block raw bytes, fragment offset, count, invalidation bytes).
         record_offset : int, optional
-            If `data=None` use this to select the record offset from which the
+            If `data=None`, use this to select the record offset from which the
             group data should be loaded.
         record_count : int, optional
-            Number of records to read; default *None* and in this case all
+            Number of records to read; default is None and in this case all
             available records are used.
 
         Returns
@@ -9362,8 +9362,8 @@ class MDF4(MDF_Common[Group]):
         progress=None,
         add_history_block: bool = True,
     ) -> Path:
-        """Save `MDF` to `dst`. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appended with '.<cntr>',
+        """Save `MDF` to `dst`. If `overwrite` is True, then the destination
+        file is overwritten, otherwise the file name is appended with '.<cntr>',
         where '<cntr>' is the first counter that produces a new file name that
         does not already exist in the filesystem.
 
@@ -10265,10 +10265,10 @@ class MDF4(MDF_Common[Group]):
 
         * Using the first positional argument `name`.
 
-          * If there are multiple occurrences for this channel then the `group`
+          * If there are multiple occurrences for this channel, then the `group`
             and `index` arguments can be used to select a specific group.
           * If there are multiple occurrences for this channel and either the
-            `group` or `index` arguments is None then a warning is issued.
+            `group` or `index` arguments is None, then a warning is issued.
 
         * Using the group number (keyword argument `group`) and the channel
           number (keyword argument `index`). Use `info` method for group and
@@ -10312,10 +10312,10 @@ class MDF4(MDF_Common[Group]):
 
         * Using the first positional argument `name`.
 
-          * If there are multiple occurrences for this channel then the `group`
+          * If there are multiple occurrences for this channel, then the `group`
             and `index` arguments can be used to select a specific group.
           * If there are multiple occurrences for this channel and either the
-            `group` or `index` arguments is None then a warning is issued.
+            `group` or `index` arguments is None, then a warning is issued.
 
         * Using the group number (keyword argument `group`) and the channel
           number (keyword argument `index`). Use `info` method for group and

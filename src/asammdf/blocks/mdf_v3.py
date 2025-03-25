@@ -2627,10 +2627,10 @@ class MDF3(MDF_Common[Group]):
 
         * Using the first positional argument `name`.
 
-          * If there are multiple occurrences for this channel then the `group`
+          * If there are multiple occurrences for this channel, then the `group`
             and `index` arguments can be used to select a specific group.
           * If there are multiple occurrences for this channel and either the
-            `group` or `index` arguments is None then a warning is issued.
+            `group` or `index` arguments is None, then a warning is issued.
 
         * Using the group number (keyword argument `group`) and the channel
           number (keyword argument `index`). Use `info` method for group and
@@ -2674,10 +2674,10 @@ class MDF3(MDF_Common[Group]):
 
         * Using the first positional argument `name`.
 
-          * If there are multiple occurrences for this channel then the `group`
+          * If there are multiple occurrences for this channel, then the `group`
             and `index` arguments can be used to select a specific group.
           * If there are multiple occurrences for this channel and either the
-            `group` or `index` arguments is None then a warning is issued.
+            `group` or `index` arguments is None, then a warning is issued.
 
         * Using the group number (keyword argument `group`) and the channel
           number (keyword argument `index`). Use `info` method for group and
@@ -2757,17 +2757,17 @@ class MDF3(MDF_Common[Group]):
 
         * Using the first positional argument `name`.
 
-          * If there are multiple occurrences for this channel then the `group`
+          * If there are multiple occurrences for this channel, then the `group`
             and `index` arguments can be used to select a specific group.
           * If there are multiple occurrences for this channel and either the
-            `group` or `index` arguments is None then a warning is issued.
+            `group` or `index` arguments is None, then a warning is issued.
 
         * Using the group number (keyword argument `group`) and the channel
           number (keyword argument `index`). Use `info` method for group and
           channel numbers.
 
-        If the `raster` keyword argument is not *None* the output is
-        interpolated accordingly.
+        If the `raster` keyword argument is not None, the output is interpolated
+        accordingly.
 
         Parameters
         ----------
@@ -2780,7 +2780,7 @@ class MDF3(MDF_Common[Group]):
         raster : float, optional
             Time raster in seconds.
         samples_only : bool, default False
-            If *True* return only the channel samples as np.ndarray; if *False*
+            If True, return only the channel samples as np.ndarray; if False,
             return a `Signal` object.
         data : bytes, optional
             Prevent redundant data read by providing the raw data group samples.
@@ -2789,14 +2789,14 @@ class MDF3(MDF_Common[Group]):
         ignore_invalidation_bits : bool, default False
             Only defined to have the same API with the MDF v4.
         record_offset : int, optional
-            If `data=None` use this to select the record offset from which the
+            If `data=None`, use this to select the record offset from which the
             group data should be loaded.
         record_count : int, optional
-            Number of records to read; default *None* and in this case all
+            Number of records to read; default is None and in this case all
             available records are used.
         skip_channel_validation : bool, default False
             Skip validation of channel name, group index and channel index. If
-            *True*, the caller has to make sure that the `group` and `index`
+            True, the caller has to make sure that the `group` and `index`
             arguments are provided and are correct.
 
             .. versionadded:: 7.0.0
@@ -2823,7 +2823,7 @@ class MDF3(MDF_Common[Group]):
         * if the channel index is out of range
         * if there are multiple channel occurrences in the file and the
           arguments `name`, `group`, `index` are ambiguous. This behaviour can
-          be turned off by setting raise_on_multiple_occurrences to *False*.
+          be turned off by setting raise_on_multiple_occurrences to False.
 
         Examples
         --------
@@ -3173,10 +3173,10 @@ class MDF3(MDF_Common[Group]):
             .. deprecated:: 5.13.0
 
         record_offset : int, optional
-            If `data=None` use this to select the record offset from which the
+            If `data=None`, use this to select the record offset from which the
             group data should be loaded.
         record_count : int, optional
-            Number of records to read; default *None* and in this case all
+            Number of records to read; default is None and in this case all
             available records are used.
 
         Returns
@@ -3407,8 +3407,8 @@ class MDF3(MDF_Common[Group]):
         progress: Any | None = None,
         add_history_block: bool = True,
     ) -> Path | object:
-        """Save `MDF` to `dst`. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appended with '.<cntr>',
+        """Save `MDF` to `dst`. If `overwrite` is True, then the destination
+        file is overwritten, otherwise the file name is appended with '.<cntr>',
         where '<cntr>' is the first counter that produces a new file name that
         does not already exist in the filesystem.
 

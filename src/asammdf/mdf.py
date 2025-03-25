@@ -230,16 +230,16 @@ class MDF:
 
     channels : iterable, optional
         Channel names that will be used for selective loading. This can
-        dramatically improve the file loading time. Default *None* -> load all
+        dramatically improve the file loading time. Default is None -> load all
         channels.
 
         .. versionadded:: 6.1.0
 
-        .. versionchanged:: 6.3.0 Make the default *None*.
+        .. versionchanged:: 6.3.0 Make the default None.
 
     use_display_names : bool, default True
         For MDF v4 files, parse the XML channel comment to search for the
-        display name; XML parsing is quite expensive so setting this to *False*
+        display name; XML parsing is quite expensive so setting this to False
         can decrease the loading times very much.
     remove_source_from_channel_names : bool, default False
         Remove source from channel names ("Speed\XCP3" -> "Speed").
@@ -771,7 +771,7 @@ class MDF:
 
         fill_0_for_missing_computation_channels : bool, optional
             When a channel required by a computed channel is missing, then fill
-            with 0 values. If *False* then the computation will fail and the
+            with 0 values. If False, then the computation will fail and the
             computed channel will be marked as not existing.
 
             .. versionadded:: 7.1.0
@@ -907,10 +907,10 @@ class MDF:
         Parameters
         ----------
         start : float, optional
-            Start time; default *None*. If *None* then the start of measurement
+            Start time; default is None. If None, the start of the measurement
             is used.
         stop : float, optional
-            Stop time; default *None*. If *None* then the end of measurement is
+            Stop time; default is None. If None, the end of the measurement is
             used.
         whence : int, default 0
             How to search for the start and stop values.
@@ -920,8 +920,8 @@ class MDF:
 
         version : str, optional
             New MDF file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
-            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and
-            in this case the original file version is used.
+            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default is None
+            and in this case the original file version is used.
         include_ends : bool, default True
             Include the `start` and `stop` timestamps after cutting the signal.
             If `start` and `stop` are not found in the original timestamps,
@@ -1163,7 +1163,7 @@ class MDF:
         **kwargs,
     ) -> None:
         r"""Export `MDF` to other formats. The `MDF` file name is used if
-        available, else the `filename` argument must be provided.
+        available, otherwise the `filename` argument must be provided.
 
         The pandas export option was removed. You should use the method
         `to_dataframe` instead.
@@ -1182,12 +1182,13 @@ class MDF:
               (where <cntr> is the index)
 
             * `mat` : Matlab .mat version 4, 5 or 7.3 export. If
-              `single_time_base=False` the channels will be renamed in the mat
+              `single_time_base=False`, the channels will be renamed in the mat
               file to 'D<cntr>_<channel name>'. The channel group master will
               be renamed to 'DM<cntr>_<channel name>'
               (*<cntr>* is the data group index starting from 0)
 
             * `parquet` : export to Apache parquet format
+
             * `asc` : Vector ASCII format for bus logging
 
                 .. versionadded:: 7.3.3
@@ -1200,7 +1201,7 @@ class MDF:
         single_time_base : bool, default False
             Resample all channels to common time base.
         raster : float | array-like | str, optional
-            Time raster for resampling. Valid if `single_time_base` is *True*.
+            Time raster for resampling. Valid if `single_time_base` is True.
             It can be:
 
             * a float step value
@@ -1242,7 +1243,7 @@ class MDF:
 
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
-            if `raw=False`. If this is *True* then the raw numeric values will
+            if `raw=False`. If this is True, then the raw numeric values will
             be used, and the conversion will not be applied.
 
             .. versionadded:: 5.8.0
@@ -2056,8 +2057,8 @@ class MDF:
 
         version : str, optional
             New MDF file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
-            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and
-            in this case the original file version is used.
+            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default is None
+            and in this case the original file version is used.
 
         Returns
         -------
@@ -2229,8 +2230,8 @@ class MDF:
 
         This is usefull in case of large files with a small number of channels.
 
-        If the `raster` keyword argument is not *None* the output is
-        interpolated accordingly.
+        If the `raster` keyword argument is not None, the output is interpolated
+        accordingly.
 
         Parameters
         ----------
@@ -2243,8 +2244,8 @@ class MDF:
         raster : float, optional
             Time raster in seconds.
         samples_only : bool, default False
-            If *True* return only the channel samples as np.ndarray; if
-            *False* return a `Signal` object.
+            If True, return only the channel samples as np.ndarray; if False,
+            return a `Signal` object.
         raw : bool, default False
             Return channel samples without applying the conversion rule.
         """
@@ -2935,7 +2936,7 @@ class MDF:
             .. versionchanged:: 8.0.0
 
                 Provide individual raw mode based on a dict. If the argument is
-                given as dict then it must contain the key '__default__' with
+                given as dict, then it must contain the key '__default__' with
                 the default raw value. The dict keys are the channel names and
                 the values are the boolean raw values for each channel.
         """
@@ -2997,7 +2998,7 @@ class MDF:
 
         keep_arrays : bool, default False
             Keep arrays and structure channels as well as the component
-            channels. If *True* this can be very slow. If *False* only the
+            channels. If True, this can be very slow. If False, only the
             component channels are saved, and their names will be prefixed with
             the parent channel.
 
@@ -3010,7 +3011,7 @@ class MDF:
 
         time_as_date : bool, default False
             The DataFrame index will contain the datetime timestamps according
-            to the measurement start time. If *True* then the argument
+            to the measurement start time. If True, then the argument
             `time_from_zero` will be ignored.
         reduce_memory_usage : bool, default False
             Reduce memory usage by converting all float columns to float32 and
@@ -3027,13 +3028,13 @@ class MDF:
             .. versionchanged:: 8.0.0
 
                 Provide individual raw mode based on a dict. If the argument is
-                given as dict then it must contain the key '__default__' with
+                given as dict, then it must contain the key '__default__' with
                 the default raw value. The dict keys are the channel names and
                 the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
-            if `raw=False`. If this is *True* then the raw numeric values will
+            if `raw=False`. If this is True, then the raw numeric values will
             be used, and the conversion will not be applied.
 
             .. versionadded:: 5.21.0
@@ -3082,8 +3083,8 @@ class MDF:
 
         version : str, optional
             New MDF file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
-            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and
-            in this case the original file version is used.
+            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default is None
+            and in this case the original file version is used.
 
         time_from_zero : bool, default False
             Start timestamps from 0s in the resampled measurement.
@@ -3300,7 +3301,7 @@ class MDF:
             .. versionchanged:: 8.0.0
 
                 Provide individual raw mode based on a dict. If the argument is
-                given as dict then it must contain the key '__default__' with
+                given as dict, then it must contain the key '__default__' with
                 the default raw value. The dict keys are the channel names and
                 the values are the boolean raw values for each channel.
 
@@ -3309,13 +3310,13 @@ class MDF:
             use a shared array for channels of the same channel group.
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
-            if `raw=False`. If this is *True* then the raw numeric values will
+            if `raw=False`. If this is True, then the raw numeric values will
             be used, and the conversion will not be applied.
 
             .. versionchanged:: 5.8.0
 
         record_count : int, optional
-            Number of records to read; default *None* and in this case all
+            Number of records to read; default is None and in this case all
             available records are used.
         validate : bool, default False
             Consider the invalidation bits.
@@ -3605,7 +3606,7 @@ class MDF:
             .. versionchanged:: 8.0.0
 
                 Provide individual raw mode based on a dict. If the argument is
-                given as dict then it must contain the key '__default__' with
+                given as dict, then it must contain the key '__default__' with
                 the default raw value. The dict keys are the channel names and
                 the values are the boolean raw values for each channel.
 
@@ -3614,13 +3615,13 @@ class MDF:
             use a shared array for channels of the same channel group.
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
-            if `raw=False`. If this is *True* then the raw numeric values will
+            if `raw=False`. If this is True, then the raw numeric values will
             be used, and the conversion will not be applied.
 
             .. versionchanged:: 5.8.0
 
         record_count : int, optional
-            Number of records to read; default *None* and in this case all
+            Number of records to read; default is None and in this case all
             available records are used.
         validate : bool, default False
             Consider the invalidation bits.
@@ -3803,7 +3804,7 @@ class MDF:
         name : str | pathlib.Path
             File name.
         skip_attachments : bool, default False
-            Skip scrambling of attachments data if *True*.
+            Skip scrambling of attachments data if True.
 
             .. versionadded:: 5.9.0
 
@@ -4178,7 +4179,7 @@ class MDF:
 
         keep_arrays : bool, default False
             Keep arrays and structure channels as well as the component
-            channels. If *True* this can be very slow. If *False* only the
+            channels. If True, this can be very slow. If False, only the
             component channels are saved, and their names will be prefixed with
             the parent channel.
 
@@ -4188,7 +4189,7 @@ class MDF:
             Use display name instead of standard channel name, if available.
         time_as_date : bool, default False
             The DataFrame index will contain the datetime timestamps according
-            to the measurement start time. If *True* then the argument
+            to the measurement start time. If True, then the argument
             `time_from_zero` will be ignored.
         reduce_memory_usage : bool, default False
             Reduce memory usage by converting all float columns to float32 and
@@ -4202,13 +4203,13 @@ class MDF:
             .. versionchanged:: 8.0.0
 
                 Provide individual raw mode based on a dict. If the argument is
-                given as dict then it must contain the key '__default__' with
+                given as dict, then it must contain the key '__default__' with
                 the default raw value. The dict keys are the channel names and
                 the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
-            if `raw=False`. If this is *True* then the raw numeric values will
+            if `raw=False`. If this is True, then the raw numeric values will
             be used, and the conversion will not be applied.
 
             .. versionadded:: 5.8.0
@@ -4297,14 +4298,14 @@ class MDF:
             Behaviour for channels without samples.
         keep_arrays : bool, default False
             Keep arrays and structure channels as well as the component
-            channels. If *True* this can be very slow. If *False* only the
+            channels. If True, this can be very slow. If False, only the
             component channels are saved, and their names will be prefixed with
             the parent channel.
         use_display_names : bool, default False
             Use display name instead of standard channel name, if available.
         time_as_date : bool, default False
             The DataFrame index will contain the datetime timestamps according
-            to the measurement start time. If *True* then the argument
+            to the measurement start time. If True, then the argument
             `time_from_zero` will be ignored.
         reduce_memory_usage : bool, default False
             Reduce memory usage by converting all float columns to float32 and
@@ -4316,17 +4317,17 @@ class MDF:
             .. versionchanged:: 8.0.0
 
                 Provide individual raw mode based on a dict. If the argument is
-                given as dict then it must contain the key '__default__' with
+                given as dict, then it must contain the key '__default__' with
                 the default raw value. The dict keys are the channel names and
                 the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
-            if `raw=False`. If this is *True* then the raw numeric values will
+            if `raw=False`. If this is True, then the raw numeric values will
             be used, and the conversion will not be applied.
         use_interpolation : bool, default True
             Option to perform interpolations when multiple timestamp rasters are
-            present. If *False* then DataFrame columns will be automatically
+            present. If False, then DataFrame columns will be automatically
             filled with NaNs where the DataFrame index values are not found in
             the current column's timestamps.
         only_basenames : bool, default False
@@ -4709,14 +4710,14 @@ class MDF:
             Behaviour for channels without samples.
         keep_arrays : bool, default False
             Keep arrays and structure channels as well as the component
-            channels. If *True* this can be very slow. If *False* only the
+            channels. If True, this can be very slow. If False, only the
             component channels are saved, and their names will be prefixed with
             the parent channel.
         use_display_names : bool, default False
             Use display name instead of standard channel name, if available.
         time_as_date : bool, default False
             The DataFrame index will contain the datetime timestamps according
-            to the measurement start time. If *True* then the argument
+            to the measurement start time. If True, then the argument
             `time_from_zero` will be ignored.
         reduce_memory_usage : bool, default False
             Reduce memory usage by converting all float columns to float32 and
@@ -4730,20 +4731,20 @@ class MDF:
             .. versionchanged:: 8.0.0
 
                 Provide individual raw mode based on a dict. If the argument is
-                given as dict then it must contain the key '__default__' with
+                given as dict, then it must contain the key '__default__' with
                 the default raw value. The dict keys are the channel names and
                 the values are the boolean raw values for each channel.
 
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
-            if `raw=False`. If this is *True* then the raw numeric values will
+            if `raw=False`. If this is True, then the raw numeric values will
             be used, and the conversion will not be applied.
 
             .. versionadded:: 5.8.0
 
         use_interpolation : bool, default True
             Option to perform interpolations when multiple timestamp rasters are
-            present. If *False* then DataFrame columns will be automatically
+            present. If False, then DataFrame columns will be automatically
             filled with NaNs where the DataFrame index values are not found in
             the current column's timestamps.
 
@@ -5873,8 +5874,8 @@ class MDF:
             Maximum plausible exponent used for the timestamps float values.
         version : str, optional
             New MDF file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
-            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and
-            in this case the original file version is used.
+            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default is None
+            and in this case the original file version is used.
 
         Returns
         -------
