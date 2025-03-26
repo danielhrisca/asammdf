@@ -566,10 +566,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         """
         # Check if the grid is available
 
-
         if self.plot.hide_axes_btn.isFlat():
             QTest.mouseClick(self.plot.hide_axes_btn, Qt.MouseButton.LeftButton)
-            
+
         next_grid = {
             (False, False): (True, False),
             (True, False): (True, True),

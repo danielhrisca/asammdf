@@ -1620,12 +1620,15 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier
         ):
             event.accept()
-            if key == QtCore.Qt.Key.Key_H:
-                self.format_selection.setCurrentText("hex")
-            elif key == QtCore.Qt.Key.Key_B:
-                self.format_selection.setCurrentText("bin")
-            else:
-                self.format_selection.setCurrentText("phys")
+            match key:
+                case QtCore.Qt.Key.Key_H:
+                    self.format_selection.setCurrentText("hex")
+                case QtCore.Qt.Key.Key_B:
+                    self.format_selection.setCurrentText("bin")
+                case QtCore.Qt.Key.Key_P:
+                    self.format_selection.setCurrentText("phys")
+                case QtCore.Qt.Key.Key_T:
+                    self.format_selection.setCurrentText("ascii")
 
         elif key == QtCore.Qt.Key.Key_S and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
             event.accept()

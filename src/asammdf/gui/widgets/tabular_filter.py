@@ -59,30 +59,8 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                             f"{column_name} requires an integer target value",
                         )
                 else:
-                    if self.int_format == "hex":
-                        try:
-                            self._target = int(target, 16)
-                            self.target.setText(f"0x{self._target:X}")
-                        except:
-                            MessageBox.warning(
-                                None,
-                                "Wrong target value",
-                                f"{column_name} requires a hex-format integer target value",
-                            )
-                    elif self.int_format == "bin":
-                        try:
-                            self._target = int(target, 2)
-                            self.target.setText(f"0b{self._target:b}")
-                        except:
-                            MessageBox.warning(
-                                None,
-                                "Wrong target value",
-                                f"{column_name} requires a bin-format integer target value",
-                            )
-                    else:
-                        try:
-                            self._target = int(target)
-                        except:
+                    match self.int_format:
+                        case "hex":
                             try:
                                 self._target = int(target, 16)
                                 self.target.setText(f"0x{self._target:X}")
@@ -90,8 +68,42 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                                 MessageBox.warning(
                                     None,
                                     "Wrong target value",
-                                    f"{column_name} requires an integer target value",
+                                    f"{column_name} requires a hex-format integer target value",
                                 )
+                        case "bin":
+                            try:
+                                self._target = int(target, 2)
+                                self.target.setText(f"0b{self._target:b}")
+                            except:
+                                MessageBox.warning(
+                                    None,
+                                    "Wrong target value",
+                                    f"{column_name} requires a bin-format integer target value",
+                                )
+                        case "ascii":
+                            try:
+                                self._target = ord(target)
+                                self.target.setText(target)
+                            except:
+                                MessageBox.warning(
+                                    None,
+                                    "Wrong target value",
+                                    f"{column_name} requires a hex-format integer target value",
+                                )
+
+                        case _:
+                            try:
+                                self._target = int(target)
+                            except:
+                                try:
+                                    self._target = int(target, 16)
+                                    self.target.setText(f"0x{self._target:X}")
+                                except:
+                                    MessageBox.warning(
+                                        None,
+                                        "Wrong target value",
+                                        f"{column_name} requires an integer target value",
+                                    )
             elif kind == "f":
                 try:
                     self._target = float(target)

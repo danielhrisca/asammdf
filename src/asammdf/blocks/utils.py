@@ -108,9 +108,9 @@ C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\
 target_byte_order = "<=" if sys.byteorder == "little" else ">="
 
 COLOR_MAPS = {
-    "Accent": ("#7fc97f", "#beaed4", "#fdc086", "#ffff99", "#386cb0", "#f027f", "#bf5b16", "#666666"),
-    "Dark2": ("#1b9e77", "#d95f2", "#7570b3", "#e7298a", "#66a61e", "#e6ab2", "#a6761d", "#666666"),
-    "Paired": (
+    "Accent": ["#7fc97f", "#beaed4", "#fdc086", "#ffff99", "#386cb0", "#f0027f", "#bf5b16", "#666666"],
+    "Dark2": ["#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666"],
+    "Paired": [
         "#a6cee3",
         "#1f78b4",
         "#b2df8a",
@@ -118,17 +118,17 @@ COLOR_MAPS = {
         "#fb9a99",
         "#e31a1c",
         "#fdbf6f",
-        "#ff7f0",
+        "#ff7f00",
         "#cab2d6",
         "#6a3d9a",
         "#ffff99",
         "#b15928",
-    ),
-    "Pastel1": ("#fbb4ae", "#b3cde3", "#ccebc5", "#decbe4", "#fed9a6", "#ffffcc", "#e5d8bd", "#fddaec", "#f2f2f2"),
-    "Pastel2": ("#b3e2cd", "#fdcdac", "#cbd5e8", "#f4cae4", "#e6f5c9", "#fff2ae", "#f1e2cc", "#cccccc"),
-    "Set1": ("#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f0", "#ffff33", "#a65628", "#f781bf", "#999999"),
-    "Set2": ("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#ffd92f", "#e5c494", "#b3b3b3"),
-    "Set3": (
+    ],
+    "Pastel1": ["#fbb4ae", "#b3cde3", "#ccebc5", "#decbe4", "#fed9a6", "#ffffcc", "#e5d8bd", "#fddaec", "#f2f2f2"],
+    "Pastel2": ["#b3e2cd", "#fdcdac", "#cbd5e8", "#f4cae4", "#e6f5c9", "#fff2ae", "#f1e2cc", "#cccccc"],
+    "Set1": ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00", "#ffff33", "#a65628", "#f781bf", "#999999"],
+    "Set2": ["#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#ffd92f", "#e5c494", "#b3b3b3"],
+    "Set3": [
         "#8dd3c7",
         "#ffffb3",
         "#bebada",
@@ -141,10 +141,10 @@ COLOR_MAPS = {
         "#bc80bd",
         "#ccebc5",
         "#ffed6f",
-    ),
-    "tab10": (
+    ],
+    "tab10": [
         "#1f77b4",
-        "#ff7fe",
+        "#ff7f0e",
         "#2ca02c",
         "#d62728",
         "#9467bd",
@@ -153,11 +153,11 @@ COLOR_MAPS = {
         "#7f7f7f",
         "#bcbd22",
         "#17becf",
-    ),
-    "tab20": (
+    ],
+    "tab20": [
         "#1f77b4",
         "#aec7e8",
-        "#ff7fe",
+        "#ff7f0e",
         "#ffbb78",
         "#2ca02c",
         "#98df8a",
@@ -175,8 +175,8 @@ COLOR_MAPS = {
         "#dbdb8d",
         "#17becf",
         "#9edae5",
-    ),
-    "tab20b": (
+    ],
+    "tab20b": [
         "#393b79",
         "#5254a3",
         "#6b6ecf",
@@ -197,13 +197,13 @@ COLOR_MAPS = {
         "#a55194",
         "#ce6dbd",
         "#de9ed6",
-    ),
-    "tab20c": (
+    ],
+    "tab20c": [
         "#3182bd",
         "#6baed6",
         "#9ecae1",
         "#c6dbef",
-        "#e655d",
+        "#e6550d",
         "#fd8d3c",
         "#fdae6b",
         "#fdd0a2",
@@ -219,7 +219,7 @@ COLOR_MAPS = {
         "#969696",
         "#bdbdbd",
         "#d9d9d9",
-    ),
+    ],
 }
 
 COLORS = COLOR_MAPS["tab10"]
