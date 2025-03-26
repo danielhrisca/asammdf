@@ -1989,8 +1989,7 @@ class DataFrameViewer(QtWidgets.QWidget):
 
     @timeit
     def copy(self, header=False):
-        """Copy the selected cells to clipboard in an Excel-pasteable format.
-        """
+        """Copy the selected cells to clipboard in an Excel-pasteable format."""
         # Get the bounds using the top left and bottom right selected cells
 
         fmt = self.dataView.model().format

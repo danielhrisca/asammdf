@@ -2930,15 +2930,15 @@ class MDF:
             Do not yield master channels.
         copy_master : bool, default True
             Copy master for each yielded channel.
-        raw : bool | dict[str, bool], default False
+        raw : bool | dict, default False
             Return raw channels instead of converted.
 
             .. versionchanged:: 8.0.0
 
-                Provide individual raw mode based on a dict. If the argument is
-                given as dict, then it must contain the key '__default__' with
-                the default raw value. The dict keys are the channel names and
-                the values are the boolean raw values for each channel.
+                Provide individual raw mode based on a dict. The dict keys are
+                channel names and each value is a boolean that sets whether to
+                return raw samples for that channel. The key '__default__' is
+                mandatory and sets the raw mode for all channels not specified.
         """
 
         if isinstance(raw, dict):
@@ -3020,17 +3020,17 @@ class MDF:
 
             .. versionadded:: 5.21.0
 
-        raw : bool | dict[str, bool], default False
+        raw : bool | dict, default False
             The DataFrame will contain the raw channel values.
 
             .. versionadded:: 5.21.0
 
             .. versionchanged:: 8.0.0
 
-                Provide individual raw mode based on a dict. If the argument is
-                given as dict, then it must contain the key '__default__' with
-                the default raw value. The dict keys are the channel names and
-                the values are the boolean raw values for each channel.
+                Provide individual raw mode based on a dict. The dict keys are
+                channel names and each value is a boolean that sets whether to
+                return raw samples for that channel. The key '__default__' is
+                mandatory and sets the raw mode for all channels not specified.
 
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
@@ -3295,15 +3295,15 @@ class MDF:
         record_offset : int, optional
             Record number offset; optimization to get the last part of signal
             samples.
-        raw : bool | dict[str, bool], default False
+        raw : bool | dict, default False
             Get raw channel samples.
 
             .. versionchanged:: 8.0.0
 
-                Provide individual raw mode based on a dict. If the argument is
-                given as dict, then it must contain the key '__default__' with
-                the default raw value. The dict keys are the channel names and
-                the values are the boolean raw values for each channel.
+                Provide individual raw mode based on a dict. The dict keys are
+                channel names and each value is a boolean that sets whether to
+                return raw samples for that channel. The key '__default__' is
+                mandatory and sets the raw mode for all channels not specified.
 
         copy_master : bool, default True
             Option to get a new timestamps array for each selected Signal or to
@@ -3600,15 +3600,15 @@ class MDF:
         record_offset : int, optional
             Record number offset; optimization to get the last part of signal
             samples.
-        raw : bool | dict[str, bool], default False
+        raw : bool | dict, default False
             Get raw channel samples.
 
             .. versionchanged:: 8.0.0
 
-                Provide individual raw mode based on a dict. If the argument is
-                given as dict, then it must contain the key '__default__' with
-                the default raw value. The dict keys are the channel names and
-                the values are the boolean raw values for each channel.
+                Provide individual raw mode based on a dict. The dict keys are
+                channel names and each value is a boolean that sets whether to
+                return raw samples for that channel. The key '__default__' is
+                mandatory and sets the raw mode for all channels not specified.
 
         copy_master : bool, default True
             Option to get a new timestamps array for each selected Signal or to
@@ -4195,17 +4195,17 @@ class MDF:
             Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
             in integer columns.
-        raw : bool | dict[str, bool], default False
+        raw : bool | dict, default False
             The DataFrame will contain the raw channel values.
 
             .. versionadded:: 5.7.0
 
             .. versionchanged:: 8.0.0
 
-                Provide individual raw mode based on a dict. If the argument is
-                given as dict, then it must contain the key '__default__' with
-                the default raw value. The dict keys are the channel names and
-                the values are the boolean raw values for each channel.
+                Provide individual raw mode based on a dict. The dict keys are
+                channel names and each value is a boolean that sets whether to
+                return raw samples for that channel. The key '__default__' is
+                mandatory and sets the raw mode for all channels not specified.
 
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
@@ -4311,15 +4311,15 @@ class MDF:
             Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
             in integer columns.
-        raw : bool | dict[str, bool], default False
+        raw : bool | dict, default False
             The columns will contain the raw values.
 
             .. versionchanged:: 8.0.0
 
-                Provide individual raw mode based on a dict. If the argument is
-                given as dict, then it must contain the key '__default__' with
-                the default raw value. The dict keys are the channel names and
-                the values are the boolean raw values for each channel.
+                Provide individual raw mode based on a dict. The dict keys are
+                channel names and each value is a boolean that sets whether to
+                return raw samples for that channel. The key '__default__' is
+                mandatory and sets the raw mode for all channels not specified.
 
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
@@ -4723,17 +4723,17 @@ class MDF:
             Reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can represent the values found
             in integer columns.
-        raw : bool | dict[str, bool], default False
+        raw : bool | dict, default False
             The columns will contain the raw values.
 
             .. versionadded:: 5.7.0
 
             .. versionchanged:: 8.0.0
 
-                Provide individual raw mode based on a dict. If the argument is
-                given as dict, then it must contain the key '__default__' with
-                the default raw value. The dict keys are the channel names and
-                the values are the boolean raw values for each channel.
+                Provide individual raw mode based on a dict. The dict keys are
+                channel names and each value is a boolean that sets whether to
+                return raw samples for that channel. The key '__default__' is
+                mandatory and sets the raw mode for all channels not specified.
 
         ignore_value2text_conversions : bool, default False
             Valid only for the channels that have value to text conversions and
