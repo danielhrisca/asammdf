@@ -1275,7 +1275,7 @@ class PlotSignal(Signal):
 
         return value, kind, self.format
 
-    def value_at_timestamp(self, timestamp, numeric=False):
+    def value_at_timestamp(self, timestamp, numeric=False, strict_timebase=True):
         if self.mode == "raw":
             kind = self.raw_samples.dtype.kind
             samples = self.raw_samples
@@ -1287,11 +1287,13 @@ class PlotSignal(Signal):
             samples = self.raw_samples
             kind = self.raw_samples.dtype.kind
 
-        if self.samples.size == 0 or timestamp < self.timestamps[0]:
+        if self.samples.size == 0 or (strict_timebase and not (self.timestamps[0] <= timestamp <= self.timestamps[-1])):
             value = "n.a."
         else:
             if timestamp > self.timestamps[-1]:
                 index = -1
+            elif timestamp < self.timestamps[0]:
+                index = 0
             else:
                 index = np.searchsorted(self.timestamps, timestamp, side="left")
 
@@ -6227,6 +6229,7 @@ class PlotGraphics(pg.PlotWidget):
             self.viewbox_geometry = geometry
 
     def value_at_cursor(self, uuid=None):
+
         uuid = uuid or self.current_uuid
 
         if not uuid:
@@ -6240,7 +6243,7 @@ class PlotGraphics(pg.PlotWidget):
             timestamp = cursor.value()
             sig, idx = self.signal_by_uuid(uuid)
             sig_y_bottom, sig_y_top = sig.y_range
-            y, *_ = sig.value_at_timestamp(timestamp, numeric=True)
+            y, *_ = sig.value_at_timestamp(timestamp, numeric=True, strict_timebase=False)
 
         else:
             sig, idx = self.signal_by_uuid(uuid)
