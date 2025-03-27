@@ -437,9 +437,6 @@ class ViewBoxWithCursor(pg.ViewBox):
         self.sigRangeChangedManually.emit(mask)
 
     def vertical_zoom(self, zoom_in=True):
-        if self.state["mouseMode"] == ViewBoxWithCursor.CursorMode:
-            return
-
         mask = [False, self.state["mouseEnabled"][1]]
 
         pos = self.geometry().center()
