@@ -3236,6 +3236,12 @@ class Plot(QtWidgets.QWidget):
 
             self.plot.block_zoom_signal = False
 
+    def selected_items(self):
+        uuids = [
+            item.uuid for item in self.channel_selection.selectedItems() if item.type() == ChannelsTreeItem.Channel
+        ]
+        return set(uuids)
+
     def set_conversion(self, uuid, conversion):
         self.plot.set_conversion(uuid, conversion)
         self.cursor_moved()
@@ -5824,6 +5830,13 @@ class PlotGraphics(pg.PlotWidget):
         if candidates:
             candidates.sort()
             self.curve_clicked.emit(candidates[0][1])
+
+    def selected_items(self):
+        uuids = self.plot_parent.selected_items()
+        if self.current_uuid:
+            uuids.add(self.current_uuid)
+
+        return uuids, self.current_uuid
 
     def set_color(self, uuid, color):
         sig, index = self.signal_by_uuid(uuid)
