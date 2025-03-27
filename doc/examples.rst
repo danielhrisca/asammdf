@@ -155,9 +155,9 @@ Working with Signal
     allsum.plot()
 
     # inplace operations
-    pow2 *= -1
-    pow2.name = '- Uint8_Signal ^ 2'
-    pow2.plot()
+    prod *= -1
+    prod.name = '- Uint8_Signal * Float64_Signal'
+    prod.plot()
 
     # cut signal
     s_int32.plot()
@@ -386,7 +386,7 @@ MF4 demo file generator
     ]
 
     sig = Signal(
-        np.core.records.fromarrays(samples, dtype=np.dtype(types)),
+        np.rec.fromarrays(samples, dtype=np.dtype(types)),
         t,
         name='Channel_lookup_with_axis',
         unit='A',
@@ -404,7 +404,7 @@ MF4 demo file generator
     ]
 
     sig = Signal(
-        np.core.records.fromarrays(samples, dtype=np.dtype(types)),
+        np.rec.fromarrays(samples, dtype=np.dtype(types)),
         t,
         name='Channel_lookup_with_default_axis',
         unit='mA',
@@ -436,7 +436,7 @@ MF4 demo file generator
     ]
 
     sig = Signal(
-        np.core.records.fromarrays(samples, dtype=np.dtype(types)),
+        np.rec.fromarrays(samples, dtype=np.dtype(types)),
         t,
         name='Channel_structure_composition',
         comment='Structure channel composition',
@@ -459,7 +459,7 @@ MF4 demo file generator
         ('level44', np.float64),
     ]
 
-    l4_arr = np.core.records.fromarrays(l4_arr, dtype=types)
+    l4_arr = np.rec.fromarrays(l4_arr, dtype=types)
 
     l3_arr = [
         l4_arr,
@@ -473,7 +473,7 @@ MF4 demo file generator
         ('level33', l4_arr.dtype),
     ]
 
-    l3_arr = np.core.records.fromarrays(l3_arr, dtype=types)
+    l3_arr = np.rec.fromarrays(l3_arr, dtype=types)
 
 
     l2_arr = [
@@ -486,7 +486,7 @@ MF4 demo file generator
         ('level22', l3_arr.dtype),
     ]
 
-    l2_arr = np.core.records.fromarrays(l2_arr, dtype=types)
+    l2_arr = np.rec.fromarrays(l2_arr, dtype=types)
 
 
     l1_arr = [
@@ -497,7 +497,7 @@ MF4 demo file generator
         ('level11', l2_arr.dtype),
     ]
 
-    l1_arr = np.core.records.fromarrays(l1_arr, dtype=types)
+    l1_arr = np.rec.fromarrays(l1_arr, dtype=types)
 
 
     sigs.append(
