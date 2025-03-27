@@ -334,52 +334,52 @@ class Ui_batch_widget(object):
 
         self.output_options = QStackedWidget(self.groupBox_11)
         self.output_options.setObjectName(u"output_options")
-        self.MDF_2 = QWidget()
-        self.MDF_2.setObjectName(u"MDF_2")
-        self.gridLayout_25 = QGridLayout(self.MDF_2)
+        self.MDF = QWidget()
+        self.MDF.setObjectName(u"MDF")
+        self.gridLayout_25 = QGridLayout(self.MDF)
         self.gridLayout_25.setSpacing(1)
         self.gridLayout_25.setObjectName(u"gridLayout_25")
         self.gridLayout_25.setContentsMargins(1, 1, 1, 1)
-        self.mdf_split = QCheckBox(self.MDF_2)
+        self.mdf_split = QCheckBox(self.MDF)
         self.mdf_split.setObjectName(u"mdf_split")
         self.mdf_split.setChecked(True)
 
         self.gridLayout_25.addWidget(self.mdf_split, 3, 0, 1, 2)
 
-        self.mdf_compression = QComboBox(self.MDF_2)
+        self.mdf_compression = QComboBox(self.MDF)
         self.mdf_compression.setObjectName(u"mdf_compression")
 
         self.gridLayout_25.addWidget(self.mdf_compression, 2, 1, 1, 1)
 
-        self.label_39 = QLabel(self.MDF_2)
+        self.label_39 = QLabel(self.MDF)
         self.label_39.setObjectName(u"label_39")
 
         self.gridLayout_25.addWidget(self.label_39, 2, 0, 1, 1)
 
-        self.label_40 = QLabel(self.MDF_2)
+        self.label_40 = QLabel(self.MDF)
         self.label_40.setObjectName(u"label_40")
 
         self.gridLayout_25.addWidget(self.label_40, 0, 0, 1, 1)
 
-        self.line_17 = QFrame(self.MDF_2)
+        self.line_17 = QFrame(self.MDF)
         self.line_17.setObjectName(u"line_17")
         self.line_17.setFrameShape(QFrame.Shape.HLine)
         self.line_17.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_25.addWidget(self.line_17, 1, 0, 1, 2)
 
-        self.label_38 = QLabel(self.MDF_2)
+        self.label_38 = QLabel(self.MDF)
         self.label_38.setObjectName(u"label_38")
 
         self.gridLayout_25.addWidget(self.label_38, 4, 0, 1, 1)
 
-        self.mdf_version = QComboBox(self.MDF_2)
+        self.mdf_version = QComboBox(self.MDF)
         self.mdf_version.setObjectName(u"mdf_version")
         self.mdf_version.setMinimumSize(QSize(0, 0))
 
         self.gridLayout_25.addWidget(self.mdf_version, 0, 1, 1, 1)
 
-        self.groupBox_12 = QGroupBox(self.MDF_2)
+        self.groupBox_12 = QGroupBox(self.MDF)
         self.groupBox_12.setObjectName(u"groupBox_12")
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         sizePolicy.setHorizontalStretch(0)
@@ -415,20 +415,20 @@ class Ui_batch_widget(object):
 
         self.gridLayout_25.addWidget(self.groupBox_12, 5, 0, 1, 2)
 
-        self.mdf_split_size = QDoubleSpinBox(self.MDF_2)
+        self.mdf_split_size = QDoubleSpinBox(self.MDF)
         self.mdf_split_size.setObjectName(u"mdf_split_size")
         self.mdf_split_size.setMaximum(4.000000000000000)
 
         self.gridLayout_25.addWidget(self.mdf_split_size, 4, 1, 1, 1)
 
-        self.output_options.addWidget(self.MDF_2)
-        self.HDF5_2 = QWidget()
-        self.HDF5_2.setObjectName(u"HDF5_2")
-        self.gridLayout_17 = QGridLayout(self.HDF5_2)
+        self.output_options.addWidget(self.MDF)
+        self.HDF5 = QWidget()
+        self.HDF5.setObjectName(u"HDF5")
+        self.gridLayout_17 = QGridLayout(self.HDF5)
         self.gridLayout_17.setSpacing(1)
         self.gridLayout_17.setObjectName(u"gridLayout_17")
         self.gridLayout_17.setContentsMargins(1, 1, 1, 1)
-        self.empty_channels = QComboBox(self.HDF5_2)
+        self.empty_channels = QComboBox(self.HDF5)
         self.empty_channels.setObjectName(u"empty_channels")
 
         self.gridLayout_17.addWidget(self.empty_channels, 8, 1, 1, 1)
@@ -437,81 +437,81 @@ class Ui_batch_widget(object):
 
         self.gridLayout_17.addItem(self.verticalSpacer_12, 9, 0, 1, 1)
 
-        self.label_71 = QLabel(self.HDF5_2)
+        self.label_71 = QLabel(self.HDF5)
         self.label_71.setObjectName(u"label_71")
 
         self.gridLayout_17.addWidget(self.label_71, 7, 0, 1, 1)
 
-        self.label_66 = QLabel(self.HDF5_2)
+        self.label_66 = QLabel(self.HDF5)
         self.label_66.setObjectName(u"label_66")
 
         self.gridLayout_17.addWidget(self.label_66, 8, 0, 1, 1)
 
-        self.export_compression = QComboBox(self.HDF5_2)
+        self.export_compression = QComboBox(self.HDF5)
         self.export_compression.setObjectName(u"export_compression")
 
         self.gridLayout_17.addWidget(self.export_compression, 7, 1, 1, 1)
 
-        self.line_32 = QFrame(self.HDF5_2)
+        self.line_32 = QFrame(self.HDF5)
         self.line_32.setObjectName(u"line_32")
         self.line_32.setFrameShape(QFrame.Shape.HLine)
         self.line_32.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_17.addWidget(self.line_32, 4, 0, 1, 2)
 
-        self.raw = QCheckBox(self.HDF5_2)
+        self.raw = QCheckBox(self.HDF5)
         self.raw.setObjectName(u"raw")
 
         self.gridLayout_17.addWidget(self.raw, 3, 0, 1, 2)
 
-        self.time_as_date = QCheckBox(self.HDF5_2)
+        self.time_as_date = QCheckBox(self.HDF5)
         self.time_as_date.setObjectName(u"time_as_date")
 
         self.gridLayout_17.addWidget(self.time_as_date, 2, 0, 1, 2)
 
-        self.time_from_zero = QCheckBox(self.HDF5_2)
+        self.time_from_zero = QCheckBox(self.HDF5)
         self.time_from_zero.setObjectName(u"time_from_zero")
 
         self.gridLayout_17.addWidget(self.time_from_zero, 1, 0, 1, 2)
 
-        self.single_time_base = QCheckBox(self.HDF5_2)
+        self.single_time_base = QCheckBox(self.HDF5)
         self.single_time_base.setObjectName(u"single_time_base")
 
         self.gridLayout_17.addWidget(self.single_time_base, 0, 0, 1, 2)
 
-        self.use_display_names = QCheckBox(self.HDF5_2)
+        self.use_display_names = QCheckBox(self.HDF5)
         self.use_display_names.setObjectName(u"use_display_names")
 
         self.gridLayout_17.addWidget(self.use_display_names, 5, 0, 1, 2)
 
-        self.reduce_memory_usage = QCheckBox(self.HDF5_2)
+        self.reduce_memory_usage = QCheckBox(self.HDF5)
         self.reduce_memory_usage.setObjectName(u"reduce_memory_usage")
 
         self.gridLayout_17.addWidget(self.reduce_memory_usage, 6, 0, 1, 2)
 
-        self.output_options.addWidget(self.HDF5_2)
-        self.MAT_2 = QWidget()
-        self.MAT_2.setObjectName(u"MAT_2")
-        self.gridLayout_18 = QGridLayout(self.MAT_2)
+        self.output_options.addWidget(self.HDF5)
+        self.MAT = QWidget()
+        self.MAT.setObjectName(u"MAT")
+        self.gridLayout_18 = QGridLayout(self.MAT)
         self.gridLayout_18.setSpacing(1)
         self.gridLayout_18.setObjectName(u"gridLayout_18")
         self.gridLayout_18.setContentsMargins(1, 1, 1, 1)
-        self.label_41 = QLabel(self.MAT_2)
+        self.label_41 = QLabel(self.MAT)
         self.label_41.setObjectName(u"label_41")
 
         self.gridLayout_18.addWidget(self.label_41, 10, 0, 1, 1)
 
-        self.label_72 = QLabel(self.MAT_2)
+        self.label_72 = QLabel(self.MAT)
         self.label_72.setObjectName(u"label_72")
 
         self.gridLayout_18.addWidget(self.label_72, 7, 0, 1, 1)
 
-        self.label_73 = QLabel(self.MAT_2)
+        self.label_73 = QLabel(self.MAT)
         self.label_73.setObjectName(u"label_73")
 
         self.gridLayout_18.addWidget(self.label_73, 9, 0, 1, 1)
 
-        self.export_compression_mat = QComboBox(self.MAT_2)
+        self.export_compression_mat = QComboBox(self.MAT)
         self.export_compression_mat.setObjectName(u"export_compression_mat")
 
         self.gridLayout_18.addWidget(self.export_compression_mat, 7, 1, 1, 1)
@@ -520,64 +520,64 @@ class Ui_batch_widget(object):
 
         self.gridLayout_18.addItem(self.verticalSpacer_13, 11, 0, 1, 1)
 
-        self.line_33 = QFrame(self.MAT_2)
+        self.line_33 = QFrame(self.MAT)
         self.line_33.setObjectName(u"line_33")
         self.line_33.setFrameShape(QFrame.Shape.HLine)
         self.line_33.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_18.addWidget(self.line_33, 4, 0, 1, 2)
 
-        self.empty_channels_mat = QComboBox(self.MAT_2)
+        self.empty_channels_mat = QComboBox(self.MAT)
         self.empty_channels_mat.setObjectName(u"empty_channels_mat")
 
         self.gridLayout_18.addWidget(self.empty_channels_mat, 8, 1, 1, 1)
 
-        self.mat_format = QComboBox(self.MAT_2)
+        self.mat_format = QComboBox(self.MAT)
         self.mat_format.setObjectName(u"mat_format")
 
         self.gridLayout_18.addWidget(self.mat_format, 9, 1, 1, 1)
 
-        self.oned_as = QComboBox(self.MAT_2)
+        self.oned_as = QComboBox(self.MAT)
         self.oned_as.setObjectName(u"oned_as")
 
         self.gridLayout_18.addWidget(self.oned_as, 10, 1, 1, 1)
 
-        self.label_74 = QLabel(self.MAT_2)
+        self.label_74 = QLabel(self.MAT)
         self.label_74.setObjectName(u"label_74")
 
         self.gridLayout_18.addWidget(self.label_74, 8, 0, 1, 1)
 
-        self.raw_mat = QCheckBox(self.MAT_2)
+        self.raw_mat = QCheckBox(self.MAT)
         self.raw_mat.setObjectName(u"raw_mat")
 
         self.gridLayout_18.addWidget(self.raw_mat, 3, 0, 1, 2)
 
-        self.use_display_names_mat = QCheckBox(self.MAT_2)
+        self.use_display_names_mat = QCheckBox(self.MAT)
         self.use_display_names_mat.setObjectName(u"use_display_names_mat")
 
         self.gridLayout_18.addWidget(self.use_display_names_mat, 5, 0, 1, 2)
 
-        self.reduce_memory_usage_mat = QCheckBox(self.MAT_2)
+        self.reduce_memory_usage_mat = QCheckBox(self.MAT)
         self.reduce_memory_usage_mat.setObjectName(u"reduce_memory_usage_mat")
 
         self.gridLayout_18.addWidget(self.reduce_memory_usage_mat, 6, 0, 1, 2)
 
-        self.time_as_date_mat = QCheckBox(self.MAT_2)
+        self.time_as_date_mat = QCheckBox(self.MAT)
         self.time_as_date_mat.setObjectName(u"time_as_date_mat")
 
         self.gridLayout_18.addWidget(self.time_as_date_mat, 2, 0, 1, 2)
 
-        self.time_from_zero_mat = QCheckBox(self.MAT_2)
+        self.time_from_zero_mat = QCheckBox(self.MAT)
         self.time_from_zero_mat.setObjectName(u"time_from_zero_mat")
 
         self.gridLayout_18.addWidget(self.time_from_zero_mat, 1, 0, 1, 2)
 
-        self.single_time_base_mat = QCheckBox(self.MAT_2)
+        self.single_time_base_mat = QCheckBox(self.MAT)
         self.single_time_base_mat.setObjectName(u"single_time_base_mat")
 
         self.gridLayout_18.addWidget(self.single_time_base_mat, 0, 0, 1, 2)
 
-        self.output_options.addWidget(self.MAT_2)
+        self.output_options.addWidget(self.MAT)
         self.CSV = QWidget()
         self.CSV.setObjectName(u"CSV")
         self.gridLayout_2 = QGridLayout(self.CSV)
@@ -696,9 +696,9 @@ class Ui_batch_widget(object):
         self.gridLayout_2.addWidget(self.add_units, 6, 0, 1, 2)
 
         self.output_options.addWidget(self.CSV)
-        self.page = QWidget()
-        self.page.setObjectName(u"page")
-        self.output_options.addWidget(self.page)
+        self.ASC = QWidget()
+        self.ASC.setObjectName(u"ASC")
+        self.output_options.addWidget(self.ASC)
 
         self.verticalLayout_21.addWidget(self.output_options)
 
@@ -1147,7 +1147,7 @@ class Ui_batch_widget(object):
         self.retranslateUi(batch_widget)
 
         self.aspects.setCurrentIndex(0)
-        self.output_options.setCurrentIndex(3)
+        self.output_options.setCurrentIndex(0)
         self.quoting.setCurrentIndex(1)
         self.quoting_bus.setCurrentIndex(1)
         self.tabWidget.setCurrentIndex(0)
