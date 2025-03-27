@@ -15,6 +15,7 @@
 .. role:: magenta
 .. role:: orange
 .. role:: brown
+.. default-role:: py:obj
 
 .. _v4blocks:
 
