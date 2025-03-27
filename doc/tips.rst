@@ -72,7 +72,7 @@ have a big impact on the loading performance of measurements with high channel
 count. 
 
 You can use the keyword only argument *use_display_names* when creating MDF
-objects to control the XML parsing (default is *False*). This means that the display names will not be
+objects to control the XML parsing (default is True). This means that the display names will be
 available when calling the *get* method.
 
 
