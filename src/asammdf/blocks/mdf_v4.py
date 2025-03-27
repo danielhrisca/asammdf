@@ -6755,13 +6755,13 @@ class MDF4(MDF_Common[Group]):
         Raises
         ------
         MdfException
-
-        * if the channel name is not found
-        * if the group index is out of range
-        * if the channel index is out of range
-        * if there are multiple channel occurrences in the file and the
-          arguments `name`, `group`, `index` are ambiguous. This behaviour can
-          be turned off by setting raise_on_multiple_occurrences to False.
+            * if the channel name is not found
+            * if the group index is out of range
+            * if the channel index is out of range
+            * if there are multiple channel occurrences in the file and the
+              arguments `name`, `group`, `index` are ambiguous. This behaviour
+              can be turned off by setting `raise_on_multiple_occurrences` to
+              False.
 
         Examples
         --------
