@@ -88,7 +88,7 @@ The following settings are available
 
       * ``Disabled``
       * ``Enabled``
-	  
+
 * **Ignore value2text conversions**: do not apply the value to text conversions
 
       * ``Disabled``
@@ -98,11 +98,11 @@ The following settings are available
 
       * ``Black``
       * ``White``
-	  
+
 * **Plot X axis**: select how the X axis will be displayed
 
-      * ``seconds`` 
-	  * ``time`` : values will be formatted as hours, minutes and seconds
+      * ``seconds``
+      * ``time`` : values will be formatted as hours, minutes and seconds
       * ``date`` : the values will use the measurement start datetime
       
 * **Theme**: switch application theme

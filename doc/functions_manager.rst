@@ -38,7 +38,7 @@ Python function rules
 =====================
 The user defines the functions using Python syntax; this means that the function definition must be valid in Python code.
 
-Further more the following rules and restrictions must be followed:
+Furthermore the following rules and restrictions must be followed:
 
     * all function arguments must have default numeric values: this means that the definition `def Function1(a, b, t=0)` is not 
       accepted, instead the user must provide default values such as `def Function1(a=1.5, b=0, t=0)`
@@ -46,7 +46,7 @@ Further more the following rules and restrictions must be followed:
       This means that the definition `def Function1(a=1.5, b=0)` is not valid, instead the user can write something like this 
       `def Function1(a=1.5, b=0, t=0)`
     * always return numeric values on all the branches: Python functions automatically return `None` if no `return` is explicitly 
-      written. The user must take care that all possible code braces return numeric values. 
+      written. The user must take care that all possible code branches return numeric values.
       
       
         .. code:: python
