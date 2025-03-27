@@ -38,12 +38,12 @@ Features
 
 * add and extract attachments for mdf version 4
 * handle large files (for example merging two files, each with 14000 channels and 5GB size, on a RaspberryPi)
-* extract channel data, master channel and extra channel information as *Signal* objects for unified operations with v3 and v4 files
-* time domain operation using the *Signal* class
+* extract channel data, master channel and extra channel information as `Signal` objects for unified operations with v3 and v4 files
+* time domain operation using the `Signal` class
 
   * pandas DataFrames are good if all the channels have the same time base
   * a measurement will usually have channels from different sources at different rates
-  * the *Signal* class facilitates operations with such channels
+  * the `Signal` class facilitates operations with such channels
 
 * graphical interface to visualize channels and perform operations with the files
 
@@ -67,7 +67,7 @@ Major features not implemented (yet)
   * full support for remaining mdf 4 channel arrays types
   * xml schema for MDBLOCK: most metadata stored in the comment blocks will not be available
   * full handling of event blocks: events are transferred to the new files (in case of calling methods
-    that return new *MDF* objects) but no new events can be created
+    that return new `MDF` objects) but no new events can be created
   * channels with default X axis: the default X axis is ignored and the channel group's master channel
     is used
   * attachment encryption/decryption using user provided encryption/decryption functions; this is not
@@ -76,7 +76,7 @@ Major features not implemented (yet)
 
 Dependencies
 ============
-asammdf uses the following libraries
+`asammdf` uses the following libraries
 
 * numpy : the heart that makes all tick 
 * numexpr : for algebraic and rational channel conversions
@@ -109,7 +109,7 @@ Other optional dependencies
 
 Installation
 ============
-*asammdf* is available on
+`asammdf` is available on
 
 * GitHub: https://github.com/danielhrisca/asammdf/
 * PyPI: https://pypi.org/project/asammdf/
@@ -138,7 +138,7 @@ If you enjoy this library please consider making a donation to the
 
 Contributors
 ------------
-Thanks to all who contributed with commits to *asammdf*
+Thanks to all who contributed with commits to `asammdf`
 
 
 .. raw:: html

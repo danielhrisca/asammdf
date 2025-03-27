@@ -23,14 +23,14 @@ API
 MDF
 ===
 
-This class acts as a proxy for the *MDF2*, *MDF3* and *MDF4* classes.
-All attribute access is delegated to the underlying *_mdf* attribute (MDF2, MDF3 or MDF4 object).
+This class acts as a proxy for the `MDF2`, `MDF3` and `MDF4` classes.
+All attribute access is delegated to the underlying `_mdf` attribute (MDF2, MDF3 or MDF4 object).
 See MDF3 and MDF4 for available extra methods (MDF2 and MDF3 share the same implementation).
 
-An empty MDF file is created if the *name* argument is not provided.
-If the *name* argument is provided then the file must exist in the filesystem, otherwise an exception is raised.
+An empty MDF file is created if the `name` argument is not provided.
+If the `name` argument is provided then the file must exist in the filesystem, otherwise an exception is raised.
 
-The best practice is to use the MDF as a context manager. This way all resources are released correctly in case of exceptions.
+The best practice is to use the `MDF` as a context manager. This way all resources are released correctly in case of exceptions.
 
 .. code::
 
