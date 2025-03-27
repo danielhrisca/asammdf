@@ -325,7 +325,7 @@ class Signal:
                     shape = samples.shape[1:]
 
                     fig = plt.figure()
-                    fig.canvas.set_window_title(self.name)
+                    fig.canvas.manager.set_window_title(self.name)
                     fig.text(
                         0.95,
                         0.05,
@@ -380,7 +380,7 @@ class Signal:
 
                 else:
                     fig = plt.figure()
-                    fig.canvas.set_window_title(self.name)
+                    fig.canvas.manager.set_window_title(self.name)
                     fig.text(
                         0.95,
                         0.05,
