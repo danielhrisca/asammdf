@@ -2424,12 +2424,21 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.keyPressEvent(event)
 
     def close(self):
+        if self.closed:
+            return
+
         self.closed = True
 
         self.channel_selection.blockSignals(True)
+        self.channel_selection.model().blockSignals(True)
+        self.channel_selection.verticalScrollBar().blockSignals(True)
+        self.splitter.blockSignals(True)
         self.plot.blockSignals(True)
         self.plot._can_paint_global = False
         self.owner = None
+        self._inhibit_timestamp_signals_timer.blockSignals(True)
+        self._inhibit_timestamp_signals_timer.stop()
+        self.info.blockSignals(True)
 
         tree = self.channel_selection
         tree.plot = None
@@ -2456,6 +2465,9 @@ class Plot(QtWidgets.QWidget):
         self.plot.signals.clear()
         self.plot._uuid_map.clear()
         self.plot._timebase_db.clear()
+        for axis in self.plot.axes:
+            if isinstance(axis, FormatedAxis):
+                axis.blockSignals(True)
         self.plot.axes = None
         self.plot.plot_parent = None
         self.plot.close()
@@ -4201,6 +4213,18 @@ class PlotGraphics(pg.PlotWidget):
         self.last_click = perf_counter()
 
     def close(self):
+        self.viewbox.blockSignals(True)
+        self.scene_.blockSignals(True)
+        if self.cursor1 is not None:
+            self.cursor1.blockSignals(True)
+        if self.region is not None:
+            self.region.blockSignals(True)
+        self._enable_timer.stop()
+        self._enable_timer.blockSignals(True)
+        self.flash_curve_timer.stop()
+        self.flash_curve_timer.blockSignals(True)
+        self.y_axis.blockSignals(True)
+
         if self.plotItem is not None:
             self._can_trim = False
             self._can_paint = False
