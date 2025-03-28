@@ -638,8 +638,8 @@ class MDF4(MDF_Common[Group]):
                     record_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
 
             if self.identification["unfinalized_standard_flags"] & v4c.FLAG_UNFIN_UPDATE_CG_COUNTER:
-                total_size = int(10**12)
-                inval_total_size = int(10**12)
+                total_size = 10**12
+                inval_total_size = 10**12
 
             data_blocks_info = self._get_data_blocks_info(
                 address=address,
@@ -9488,7 +9488,7 @@ class MDF4(MDF_Common[Group]):
                             if split_size == 0:
                                 split_size = samples_size
                             chunks = float(total_size) / split_size
-                            chunks = int(ceil(chunks))
+                            chunks = ceil(chunks)
 
                             self._read_fragment_size = split_size
                         else:
@@ -9798,7 +9798,7 @@ class MDF4(MDF_Common[Group]):
                             split_size = self._write_fragment_size
                             if self._write_fragment_size:
                                 chunks = float(len(sdata)) / split_size
-                                chunks = int(ceil(chunks))
+                                chunks = ceil(chunks)
                             else:
                                 chunks = 1
 
