@@ -182,7 +182,6 @@ def master_using_raster(mdf: MDF_v2_v3_v4, raster: RasterType, endpoint: bool = 
             group = mdf.groups[group_index]
             cycles_nr = group.channel_group.cycles_nr
             if cycles_nr:
-
                 master_min = mdf.get_master(group_index, record_offset=0, record_count=1)
                 if len(master_min):
                     t_min.append(master_min[0])
@@ -414,7 +413,7 @@ class MDF:
                 self._mdf = mdf_v4.MDF4(version=version, **kwargs)
             else:
                 message = (
-                    f'"{version}" is not a supported MDF file version; ' f"Supported versions are {SUPPORTED_VERSIONS}"
+                    f'"{version}" is not a supported MDF file version; Supported versions are {SUPPORTED_VERSIONS}'
                 )
                 raise MdfException(message)
 
@@ -1300,7 +1299,7 @@ class MDF:
         fmt = fmt.lower()
 
         if fmt != "pandas" and filename is None and self.name is None:
-            message = "Must specify filename for export" "if MDF was created without a file name"
+            message = "Must specify filename for export if MDF was created without a file name"
             logger.warning(message)
             return
 
@@ -1735,7 +1734,7 @@ class MDF:
                     if progress is not None and progress.stop:
                         return TERMINATED
 
-                    message = f"Exporting group {i+1} of {gp_count}"
+                    message = f"Exporting group {i + 1} of {gp_count}"
                     logger.info(message)
 
                     if len(virtual_group.groups) == 1:
@@ -2034,7 +2033,7 @@ class MDF:
                 write_parquet(df, filename)
 
         else:
-            message = 'Unsupported export type "{}". ' 'Please select "csv", "excel", "hdf5", "mat" or "pandas"'
+            message = 'Unsupported export type "{}". Please select "csv", "excel", "hdf5", "mat" or "pandas"'
             message.format(fmt)
             logger.warning(message)
 
@@ -2827,7 +2826,7 @@ class MDF:
 
             if progress is not None:
                 progress.signals.setLabelText.emit(
-                    f"Stacking file {mdf_index+1} of {files_nr}\n" f"{mdf.original_name.name}"
+                    f"Stacking file {mdf_index + 1} of {files_nr}\n{mdf.original_name.name}"
                 )
 
             if mdf_index == 0:
@@ -2884,9 +2883,9 @@ class MDF:
 
                 if dg_cntr is not None:
                     for index in range(dg_cntr, len(stacked.groups)):
-                        stacked.groups[index].channel_group.comment = (
-                            f'stacked from channel group {i} of "{mdf.name.parent}"'
-                        )
+                        stacked.groups[
+                            index
+                        ].channel_group.comment = f'stacked from channel group {i} of "{mdf.name.parent}"'
 
             if progress is not None:
                 if callable(progress):
@@ -5069,7 +5068,6 @@ class MDF:
             return pl.DataFrame(df)
 
         else:
-
             strings, nonstrings = {}, {}
 
             for col, series in df.items():
@@ -5590,7 +5588,7 @@ class MDF:
             out = tmp
 
         if not out.groups:
-            logger.warning(f'No CAN signals could be extracted from "{self.name}". The' "output file will be empty.")
+            logger.warning(f'No CAN signals could be extracted from "{self.name}". The output file will be empty.')
 
         return out
 
@@ -5842,7 +5840,7 @@ class MDF:
         }
 
         if not out.groups:
-            logger.warning(f'No LIN signals could be extracted from "{self.name}". The' "output file will be empty.")
+            logger.warning(f'No LIN signals could be extracted from "{self.name}". The output file will be empty.')
 
         return out
 
@@ -6431,15 +6429,15 @@ class MDF:
 
                 elif row["type"] == "FLEXRAY":
                     if row["Event Type"] == "FlexRay Frame":
-                        frame_flags = f'{row["FrameFlags"]:x}'
-                        controller_flags = f'{row["ControllerFlags"]:x}'
+                        frame_flags = f"{row['FrameFlags']:x}"
+                        controller_flags = f"{row['ControllerFlags']:x}"
                         data = row["Data Bytes"]
-                        header_crc = f'{row["Header CRC"]:x}'
-                        data_length = f'{row["Data Length"]:x}'
-                        payload_length = f'{row["Payload Length"]:x}'
-                        bus = f'{row["Bus"] + 1:x}'
-                        slot = f'{row["ID"]:x}'
-                        cycle = f'{row["Cycle"]:x}'
+                        header_crc = f"{row['Header CRC']:x}"
+                        data_length = f"{row['Data Length']:x}"
+                        payload_length = f"{row['Payload Length']:x}"
+                        bus = f"{row['Bus'] + 1:x}"
+                        slot = f"{row['ID']:x}"
+                        cycle = f"{row['Cycle']:x}"
                         dir = row["Direction"]
                         t = row["timestamps"]
 
@@ -6448,13 +6446,13 @@ class MDF:
                         )
 
                     elif row["Event Type"] == "FlexRay NullFrame":
-                        frame_flags = f'{row["FrameFlags"]:x}'
-                        controller_flags = f'{row["ControllerFlags"]:x}'
-                        header_crc = f'{row["Header CRC"]:x}'
-                        payload_length = f'{row["Payload Length"]:x}'
-                        bus = f'{row["Bus"] + 1:x}'
-                        slot = f'{row["ID"]:x}'
-                        cycle = f'{row["Cycle"]:x}'
+                        frame_flags = f"{row['FrameFlags']:x}"
+                        controller_flags = f"{row['ControllerFlags']:x}"
+                        header_crc = f"{row['Header CRC']:x}"
+                        payload_length = f"{row['Payload Length']:x}"
+                        bus = f"{row['Bus'] + 1:x}"
+                        slot = f"{row['ID']:x}"
+                        cycle = f"{row['Cycle']:x}"
                         dir = row["Direction"]
                         t = row["timestamps"]
 
