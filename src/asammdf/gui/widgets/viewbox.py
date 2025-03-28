@@ -437,46 +437,15 @@ class ViewBoxWithCursor(pg.ViewBox):
         self.sigRangeChangedManually.emit(mask)
 
     def vertical_zoom(self, zoom_in=True):
-        mask = [False, self.state["mouseEnabled"][1]]
-
-        pos = self.geometry().center()
+        if not self.state["mouseEnabled"][1]:
+            return
 
         factor = self._settings.value("zoom_wheel_factor", 0.165, type=float)
 
         if zoom_in:
-            s = [(None if m is False else 1 + factor) for m in mask]
+            scale = 1 / (1 + factor)
         else:
-            s = [(None if m is False else 1 / (1 + factor)) for m in mask]
-
-        if any(np.isnan(v) for v in s if v is not None):
-            return
-
-        center = pg.Point(fn.invertQTransform(self.childGroup.transform()).map(pos))
-
-        self._resetTarget()
-
-        if s is not None:
-            x, y = s[0], s[1]
-
-        affect = [x is not None, y is not None]
-        if not any(affect):
-            return
-
-        scale = pg.Point([1.0 if x is None else x, 1.0 if y is None else y])
-
-        if self.state["aspectLocked"] is not False:
-            scale[0] = scale[1]
-
-        vr = self.targetRect()
-        if center is None:
-            center = pg.Point(vr.center())
-        else:
-            center = pg.Point(center)
-
-        tl = center + (vr.topLeft() - center) * scale
-        br = center + (vr.bottomRight() - center) * scale
-
-        y_range = br.y(), tl.y()
+            scale = 1 + factor
 
         zoom_y_mode = self._settings.value("zoom_y_mode", "")
 
@@ -496,12 +465,7 @@ class ViewBoxWithCursor(pg.ViewBox):
                 if isinstance(y_pos_val, int | float):
                     delta_proc = sig_y_top / (sig_y_top - sig_y_bottom)
 
-                    delta = sig_y_top - sig_y_bottom
-
-                    if not zoom_in:
-                        delta *= 1 / (1 + factor)
-                    else:
-                        delta *= 1 + factor
+                    delta = (sig_y_top - sig_y_bottom) * scale
 
                     end = delta_proc * delta
                     start = end - delta
@@ -517,14 +481,30 @@ class ViewBoxWithCursor(pg.ViewBox):
                 sig, idx = self.plot.signal_by_uuid(uuid)
                 y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor(uuid=uuid)
                 if isinstance(y_pos_val, int | float):
-                    delta = y_range[1] - y_range[0]
-                    y_range = y_pos_val - delta / 2, y_pos_val + delta / 2
+                    delta = (sig_y_top - sig_y_bottom) * scale
+                    new_y_range = y_pos_val - delta / 2, y_pos_val + delta / 2
 
                     if uuid == current_uuid:
-                        viewbox_y_range = y_range
+                        viewbox_y_range = new_y_range
                     else:
-                        sig.y_range = y_range
+                        sig.y_range = new_y_range
+
+        else:
+            for uuid in selected_uuids:
+                sig, idx = self.plot.signal_by_uuid(uuid)
+                y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor(uuid=uuid)
+
+                center = (sig_y_top + sig_y_bottom) / 2
+                half_range = (sig_y_top - sig_y_bottom) * scale / 2
+
+                new_y_range = center - half_range, center + half_range
+
+                if uuid == current_uuid:
+                    viewbox_y_range = new_y_range
+                else:
+                    sig.y_range = new_y_range
 
         if viewbox_y_range is not None:
             self.setRange(xRange=None, yRange=viewbox_y_range, padding=0)
+            mask = [False, True]
             self.sigRangeChangedManually.emit(mask)
