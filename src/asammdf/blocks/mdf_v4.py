@@ -1582,7 +1582,7 @@ class MDF4(MDF_Common[Group]):
                 if block_limit is not None:
                     new_data = new_data[:block_limit]
 
-                if len(data) > split_size - cur_size:
+                if len(new_data) > split_size - cur_size:
                     new_data = memoryview(new_data)
 
                 if rm and invalidation_size:
@@ -1693,6 +1693,7 @@ class MDF4(MDF_Common[Group]):
                             record_count -= split_size
                             if record_count <= 0:
                                 finished = True
+                                cur_size = 0
                                 break
                         else:
                             if rm and invalidation_size:
@@ -1715,11 +1716,13 @@ class MDF4(MDF_Common[Group]):
                         inv_size -= invalidation_split_size - cur_invalidation_size
 
                 if finished:
+                    cur_size = 0
+                    original_size = 0
                     if rm and invalidation_size:
                         invalidation_data = []
                     break
 
-                if original_size:
+                if original_size > 0:
                     buffer_view[cur_size : cur_size + original_size] = new_data
                     cur_size += original_size
 
@@ -1727,7 +1730,11 @@ class MDF4(MDF_Common[Group]):
                         invalidation_data.append(new_invalidation_data)
                         cur_invalidation_size += inv_size
 
-                if (vv := (perf_counter() - tt)) > 10:
+                    if record_count is not None and cur_size >= record_count:
+                        finished = True
+                        break
+
+                if 0 and (vv := (perf_counter() - tt)) > 10:
                     print(f"{ss / 1024/1024 / vv:.6f} MB/s {cc=} {vv=}")
                     cc = 0
                     ss = 0
