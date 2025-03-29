@@ -39,13 +39,7 @@ from numpy import (
 )
 from numpy.typing import ArrayLike, DTypeLike, NDArray
 from pandas import DataFrame
-from typing_extensions import (
-    Any,
-    overload,
-    SupportsBytes,
-    TypedDict,
-    Unpack,
-)
+from typing_extensions import Any, overload, SupportsBytes, TypedDict, Unpack
 
 from .. import tool
 from ..signal import Signal

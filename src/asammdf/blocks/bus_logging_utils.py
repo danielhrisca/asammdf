@@ -378,8 +378,7 @@ def extract_mux(
     for pair, pair_signals in pairs.items():
         entry = bus, message_id, is_extended, original_message_id, muxer, *pair
 
-        signals: dict[str, ExtractedSignal] = {}
-        extracted_signals[entry] = signals
+        signals = extracted_signals.setdefault(entry, {})
 
         if muxer_values is not None:
             min_, max_ = pair
@@ -453,12 +452,10 @@ def extract_mux(
     return extracted_signals
 
 
-def get_conversion(signal: Signal) -> v4b.ChannelConversion | None:
+def get_conversion(signal: Signal) -> v4b.ChannelConversion:
     conv: v4b.ChannelConversionKwargs = {}
 
     a, b = float(signal.factor), float(signal.offset)
-
-    conv = {}
 
     scale_ranges = getattr(signal, "scale_ranges", None)
     if scale_ranges:
@@ -472,7 +469,7 @@ def get_conversion(signal: Signal) -> v4b.ChannelConversion | None:
             conv[f"lower_{i}"] = val  # type: ignore[literal-required]
             conv[f"text_{i}"] = text  # type: ignore[literal-required]
 
-        conv["default_addr"] = typing.cast(v4b.ChannelConversion, from_dict({"a": a, "b": b}))
+        conv["default_addr"] = from_dict({"a": a, "b": b})
 
     elif signal.values:
 
@@ -481,7 +478,7 @@ def get_conversion(signal: Signal) -> v4b.ChannelConversion | None:
             conv[f"lower_{i}"] = val  # type: ignore[literal-required]
             conv[f"text_{i}"] = text  # type: ignore[literal-required]
 
-        conv["default_addr"] = typing.cast(v4b.ChannelConversion, from_dict({"a": a, "b": b}))
+        conv["default_addr"] = from_dict({"a": a, "b": b})
 
     else:
         conv["a"] = a

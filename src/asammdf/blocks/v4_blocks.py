@@ -25,14 +25,7 @@ from lz4.frame import decompress as lz_decompress
 from numexpr import evaluate
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
-from typing_extensions import (
-    Any,
-    Buffer,
-    overload,
-    SupportsBytes,
-    TypedDict,
-    Unpack,
-)
+from typing_extensions import Any, Buffer, overload, SupportsBytes, TypedDict, Unpack
 
 from .. import tool
 from . import utils
