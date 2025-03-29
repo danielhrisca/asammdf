@@ -1,7 +1,6 @@
 """ASAM MDF version 2 file format module"""
 
 from os import PathLike
-from typing import Optional, Union
 
 from typing_extensions import Unpack
 
@@ -18,7 +17,7 @@ class MDF2(MDF3):
 
     def __init__(
         self,
-        name: Optional[Union[str, PathLike[str], FileLike]] = None,
+        name: str | PathLike[str] | FileLike | None = None,
         version: Version2 = "2.14",
         **kwargs: Unpack[Kwargs],
     ) -> None:

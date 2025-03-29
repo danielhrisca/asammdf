@@ -9,7 +9,6 @@ import sys
 from textwrap import wrap
 from traceback import format_exc
 import typing
-from typing import Optional, Union
 import xml.etree.ElementTree as ET
 
 import dateutil.tz
@@ -77,9 +76,9 @@ __all__ = [
 
 
 class ChannelKwargs(BlockKwargs, total=False):
-    parsed_strings: Optional[tuple[str, dict[str, str]]]
-    cc_map: dict[Union[bytes, int], "ChannelConversion"]
-    si_map: dict[Union[bytes, int], "ChannelExtension"]
+    parsed_strings: tuple[str, dict[str, str]] | None
+    cc_map: dict[bytes | int, "ChannelConversion"]
+    si_map: dict[bytes | int, "ChannelExtension"]
     block_len: int
     next_ch_addr: int
     conversion_addr: int
@@ -213,7 +212,7 @@ class Channel:
         self.name = self.comment = self.unit = ""
         self.display_names: dict[str, str] = {}
         self.conversion = self.source = None
-        self.dtype_fmt: Optional[np.dtype[Any]] = None
+        self.dtype_fmt: np.dtype[Any] | None = None
 
         try:
             stream = kwargs["stream"]
@@ -579,8 +578,8 @@ class Channel:
     def to_blocks(
         self,
         address: int,
-        blocks: list[Union[bytes, SupportsBytes]],
-        defined_texts: dict[Union[bytes, str], int],
+        blocks: list[bytes | SupportsBytes],
+        defined_texts: dict[bytes | str, int],
         cc_map: dict[bytes, int],
         si_map: dict[bytes, int],
     ) -> int:
@@ -897,7 +896,7 @@ class ChannelConversionKwargs(BlockKwargs, total=False):
     P5: float
     P6: float
     P7: float
-    formula: Union[bytes, str]
+    formula: bytes | str
     ref_param_nr: int
     CANapeHiddenExtra: bytes
     default_addr: bytes
@@ -992,7 +991,7 @@ class ChannelConversion(_ChannelConversionBase):
 
         self.unit = self.formula = ""
 
-        self.referenced_blocks: dict[str, Union[bytes, ChannelConversion]] = {}
+        self.referenced_blocks: dict[str, bytes | ChannelConversion] = {}
 
         if "raw_bytes" in kwargs or "stream" in kwargs:
             mapped = kwargs.get("mapped", False)
@@ -1327,8 +1326,8 @@ class ChannelConversion(_ChannelConversionBase):
     def to_blocks(
         self,
         address: int,
-        blocks: list[Union[bytes, SupportsBytes]],
-        defined_texts: dict[Union[bytes, str], int],
+        blocks: list[bytes | SupportsBytes],
+        defined_texts: dict[bytes | str, int],
         cc_map: dict[bytes, int],
     ) -> int:
         self.unit_field = self.unit.encode("latin-1", "ignore")[:19]
@@ -1483,7 +1482,7 @@ address: {hex(self.address)}
         as_object: bool = ...,
         as_bytes: bool = ...,
         ignore_value2text_conversions: bool = ...,
-    ) -> Union[NDArray[Any], np.number[Any]]: ...
+    ) -> NDArray[Any] | np.number[Any]: ...
 
     def convert(
         self,
@@ -1491,7 +1490,7 @@ address: {hex(self.address)}
         as_object: bool = False,
         as_bytes: bool = False,
         ignore_value2text_conversions: bool = False,
-    ) -> Union[NDArray[Any], np.number[Any]]:
+    ) -> NDArray[Any] | np.number[Any]:
         conversion_type = self.conversion_type
         scalar = False
 
@@ -1543,7 +1542,7 @@ address: {hex(self.address)}
                 raw_vals = np.array([self[f"param_val_{i}"] for i in range(nr)])
                 phys = np.array([self[f"text_{i}"] for i in range(nr)])
 
-                x = sorted(zip(raw_vals, phys))
+                x = sorted(zip(raw_vals, phys, strict=False))
                 raw_vals = np.array([e[0] for e in x], dtype="<i8")
                 phys = np.array([e[1] for e in x])
 
@@ -1565,7 +1564,7 @@ address: {hex(self.address)}
             if not ignore_value2text_conversions:
                 nr = self.ref_param_nr - 1
 
-                phys_list: list[Optional[Union[bytes, ChannelConversion]]] = []
+                phys_list: list[bytes | ChannelConversion | None] = []
                 for i in range(nr):
                     value = self.referenced_blocks[f"text_{i}"]
                     phys_list.append(value)
@@ -2092,8 +2091,8 @@ class ChannelExtension:
     def to_blocks(
         self,
         address: int,
-        blocks: list[Union[bytes, SupportsBytes]],
-        defined_texts: dict[Union[bytes, str], int],
+        blocks: list[bytes | SupportsBytes],
+        defined_texts: dict[bytes | str, int],
         cc_map: dict[bytes, int],
     ) -> int:
         if self.type == v23c.SOURCE_ECU:
@@ -2358,8 +2357,8 @@ class ChannelGroup:
     def to_blocks(
         self,
         address: int,
-        blocks: list[Union[bytes, SupportsBytes]],
-        defined_texts: dict[Union[bytes, str], int],
+        blocks: list[bytes | SupportsBytes],
+        defined_texts: dict[bytes | str, int],
         si_map: dict[bytes, int],
     ) -> int:
         key = "comment_addr"
@@ -3185,7 +3184,7 @@ class ProgramBlock:
 
 
 class TextBlockKwargs(BlockKwargs, total=False):
-    text: Union[bytes, str]
+    text: bytes | str
 
 
 class TextBlock:
@@ -3365,7 +3364,7 @@ class TriggerBlock:
                 key = f"trigger_{i}_posttime"
                 self[key] = kwargs[key]  # type: ignore[literal-required]
 
-    def to_blocks(self, address: int, blocks: list[Union[bytes, SupportsBytes]]) -> int:
+    def to_blocks(self, address: int, blocks: list[bytes | SupportsBytes]) -> int:
         key = "text_addr"
         text = self.comment
         if text:

@@ -286,6 +286,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 "channels with integer data type (raw values) that have a conversion that outputs float "
                 "values will use linear interpolation, otherwise the previous sample is used",
             ),
+            strict=False,
         ):
             action = QtGui.QAction(option, menu)
             action.setCheckable(True)

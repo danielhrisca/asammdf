@@ -23,7 +23,7 @@ import tempfile
 from tempfile import gettempdir, NamedTemporaryFile
 from traceback import format_exc
 import typing
-from typing import BinaryIO, Optional, Union
+from typing import BinaryIO, Literal
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import canmatrix
@@ -60,7 +60,6 @@ from pandas import DataFrame, Series
 from typing_extensions import (
     Any,
     Buffer,
-    Literal,
     overload,
     SupportsBytes,
     TypedDict,
@@ -292,9 +291,9 @@ class MDF4(MDF_Common[Group]):
 
     def __init__(
         self,
-        name: Optional[Union[BufferedReader, BytesIO, StrPathType]] = None,
+        name: BufferedReader | BytesIO | StrPathType | None = None,
         version: Version = "4.10",
-        channels: Optional[list[str]] = None,
+        channels: list[str] | None = None,
         **kwargs: Unpack[Kwargs],
     ) -> None:
         if not kwargs.get("__internal__", False):
@@ -311,7 +310,7 @@ class MDF4(MDF_Common[Group]):
         self.channels_db = ChannelsDB()
         self.masters_db: dict[int, int] = {}
         self.attachments: list[AttachmentBlock] = []
-        self._attachments_cache: dict[Union[bytes, str], int] = {}
+        self._attachments_cache: dict[bytes | str, int] = {}
         self.file_comment = None
         self.events: list[EventBlock] = []
         self.bus_logging_map: BusLoggingMap = {"CAN": {}, "ETHERNET": {}, "FLEXRAY": {}, "LIN": {}}
@@ -321,9 +320,9 @@ class MDF4(MDF_Common[Group]):
         self._master_channel_metadata: dict[int, tuple[str, int]] = {}
         self._invalidation_cache: dict[tuple[int, int, int, int], InvalidationArray] = {}
         self._external_dbc_cache: dict[bytes, CanMatrix] = {}
-        self._si_map: dict[Union[bytes, int, Source], SourceInformation] = {}
+        self._si_map: dict[bytes | int | Source, SourceInformation] = {}
         self._file_si_map: dict[object, object] = {}
-        self._cc_map: dict[Union[bytes, int], ChannelConversion] = {}
+        self._cc_map: dict[bytes | int, ChannelConversion] = {}
         self._file_cc_map: dict[object, object] = {}
         self._cg_map: dict[int, int] = {}
         self._cn_data_map: dict[int, tuple[int, int]] = {}
@@ -342,8 +341,8 @@ class MDF4(MDF_Common[Group]):
             self.use_load_filter = True
 
         self._tempfile = NamedTemporaryFile(dir=self.temporary_folder)
-        self._mapped_file: Optional[BinaryIO] = None
-        self._file: Optional[Union[FileLike, mmap.mmap]] = None
+        self._mapped_file: BinaryIO | None = None
+        self._file: FileLike | mmap.mmap | None = None
 
         self._read_fragment_size = GLOBAL_OPTIONS["read_fragment_size"]
         self._write_fragment_size = GLOBAL_OPTIONS["write_fragment_size"]
@@ -366,7 +365,7 @@ class MDF4(MDF_Common[Group]):
         self.copy_on_get = kwargs.get("copy_on_get", True)
         self.compact_vlsd = kwargs.get("compact_vlsd", False)
 
-        self.virtual_groups: dict[Optional[int], VirtualChannelGroup] = {}  # master group 2 referencing groups
+        self.virtual_groups: dict[int | None, VirtualChannelGroup] = {}  # master group 2 referencing groups
         self.virtual_groups_map: dict[int, int] = {}  # group index 2 master group
 
         self.vlsd_max_length: dict[tuple[int, str], int] = (
@@ -444,7 +443,7 @@ class MDF4(MDF_Common[Group]):
 
             self.name = Path("__new__.mf4")
 
-        self._parent: Optional[object] = None
+        self._parent: object | None = None
 
     def __del__(self) -> None:
         self.close()
@@ -497,9 +496,9 @@ class MDF4(MDF_Common[Group]):
 
     def _read(
         self,
-        stream: Union[FileLike, mmap.mmap],
+        stream: FileLike | mmap.mmap,
         mapped: bool = False,
-        progress: Optional[Union[Callable[[int, int], None], Any]] = None,
+        progress: Callable[[int, int], None] | Any | None = None,
     ) -> None:
         self._mapped = mapped
         dg_cntr = 0
@@ -855,19 +854,19 @@ class MDF4(MDF_Common[Group]):
         self,
         ch_addr: int,
         grp: Group,
-        stream: Union[FileLike, mmap.mmap],
+        stream: FileLike | mmap.mmap,
         dg_cntr: int,
         ch_cntr: int,
         parent_channel: Channel,
         mapped: bool = ...,
-    ) -> tuple[int, Union[list[ChannelArrayBlock], list[tuple[int, int]]], np.dtype[Any]]: ...
+    ) -> tuple[int, list[ChannelArrayBlock] | list[tuple[int, int]], np.dtype[Any]]: ...
 
     @overload
     def _read_channels(
         self,
         ch_addr: int,
         grp: Group,
-        stream: Union[FileLike, mmap.mmap],
+        stream: FileLike | mmap.mmap,
         dg_cntr: int,
         ch_cntr: int,
         parent_channel: None = ...,
@@ -878,12 +877,12 @@ class MDF4(MDF_Common[Group]):
         self,
         ch_addr: int,
         grp: Group,
-        stream: Union[FileLike, mmap.mmap],
+        stream: FileLike | mmap.mmap,
         dg_cntr: int,
         ch_cntr: int,
-        parent_channel: Optional[Channel] = None,
+        parent_channel: Channel | None = None,
         mapped: bool = False,
-    ) -> tuple[int, Optional[Union[list[ChannelArrayBlock], list[tuple[int, int]]]], Optional[np.dtype[Any]]]:
+    ) -> tuple[int, list[ChannelArrayBlock] | list[tuple[int, int]] | None, np.dtype[Any] | None]:
         filter_channels = self.use_load_filter
         use_display_names = self._use_display_names
 
@@ -894,8 +893,8 @@ class MDF4(MDF_Common[Group]):
         unique_names = UniqueDB()
 
         if parent_channel:
-            composition: Optional[list[tuple[int, int]]] = []
-            composition_channels: Optional[list[Channel]] = []
+            composition: list[tuple[int, int]] | None = []
+            composition_channels: list[Channel] | None = []
         else:
             composition = composition_channels = None
 
@@ -1202,7 +1201,7 @@ class MDF4(MDF_Common[Group]):
                                     # update byte offset & position of invalidation bit
                                     byte_offset = bit_offset = 0
                                     for coord, byte_factor, bit_factor in zip(
-                                        nd_coords, byte_offset_factors, bit_pos_inval_factors
+                                        nd_coords, byte_offset_factors, bit_pos_inval_factors, strict=False
                                     ):
                                         byte_offset += coord * byte_factor
                                         bit_offset += coord * bit_factor
@@ -1286,9 +1285,9 @@ class MDF4(MDF_Common[Group]):
 
     def _load_signal_data(
         self,
-        group: Optional[Group] = None,
-        index: Optional[int] = None,
-        offsets: Optional[tuple[int, int]] = None,
+        group: Group | None = None,
+        index: int | None = None,
+        offsets: tuple[int, int] | None = None,
     ) -> bytes:
         """this method is used to get the channel signal data, usually for
         VLSD channels
@@ -1311,7 +1310,7 @@ class MDF4(MDF_Common[Group]):
             info_blocks = group.signal_data[index]
 
             if info_blocks is not None:
-                stream: Union[tempfile._TemporaryFileWrapper[bytes], FileLike, mmap.mmap]
+                stream: tempfile._TemporaryFileWrapper[bytes] | FileLike | mmap.mmap
                 if offsets is None:
                     data_list: list[bytes] = []
 
@@ -1448,7 +1447,7 @@ class MDF4(MDF_Common[Group]):
         self,
         group: Group,
         record_offset: int = 0,
-        record_count: Optional[int] = None,
+        record_count: int | None = None,
         optimize_read: bool = False,
     ) -> Iterator[Fragment]:
         """get group's data block bytes"""
@@ -1465,9 +1464,9 @@ class MDF4(MDF_Common[Group]):
         data_blocks_info_generator = group.data_blocks_info_generator
         channel_group = group.channel_group
 
-        stream: Union[FileLike, mmap.mmap, tempfile._TemporaryFileWrapper[bytes]]
+        stream: FileLike | mmap.mmap | tempfile._TemporaryFileWrapper[bytes]
         if group.data_location == v4c.LOCATION_ORIGINAL_FILE:
-            stream = typing.cast(Union[FileLike, mmap.mmap], self._file)
+            stream = typing.cast(FileLike | mmap.mmap, self._file)
         else:
             stream = self._tempfile
 
@@ -1828,7 +1827,7 @@ class MDF4(MDF_Common[Group]):
                 else:
                     yield Fragment(b"", 0, 0, None)
 
-    def _prepare_record(self, group: Group) -> list[Optional[tuple[np.dtype[Any], int, int, int]]]:
+    def _prepare_record(self, group: Group) -> list[tuple[np.dtype[Any], int, int, int] | None]:
         """compute record
 
         Parameters
@@ -1845,7 +1844,7 @@ class MDF4(MDF_Common[Group]):
         if group.record is None:
             channels = group.channels
 
-            record: list[Optional[tuple[np.dtype[Any], int, int, int]]] = []
+            record: list[tuple[np.dtype[Any], int, int, int] | None] = []
 
             for idx, new_ch in enumerate(channels):
                 start_offset = new_ch.byte_offset
@@ -1903,7 +1902,7 @@ class MDF4(MDF_Common[Group]):
     def _uses_ld(
         self,
         address: int,
-        stream: Union[FileLike, mmap.mmap],
+        stream: FileLike | mmap.mmap,
         block_type: bytes = b"##DT",
         mapped: bool = False,
     ) -> bool:
@@ -1953,7 +1952,7 @@ class MDF4(MDF_Common[Group]):
     def _get_data_blocks_info(
         self,
         address: int,
-        stream: Union[FileLike, mmap.mmap],
+        stream: FileLike | mmap.mmap,
         block_type: bytes = b"##DT",
         mapped: bool = False,
         total_size: int = 0,
@@ -2550,7 +2549,7 @@ class MDF4(MDF_Common[Group]):
     def _get_signal_data_blocks_info(
         self,
         address: int,
-        stream: Union[FileLike, mmap.mmap],
+        stream: FileLike | mmap.mmap,
     ) -> Iterator[SignalDataBlockInfo]:
         if not address:
             raise MdfException(f"Expected non-zero SDBLOCK address but got 0x{address:X}")
@@ -2654,9 +2653,9 @@ class MDF4(MDF_Common[Group]):
     def _filter_occurrences(
         self,
         occurrences: Iterator[tuple[int, int]],
-        source_name: Optional[str] = None,
-        source_path: Optional[str] = None,
-        acq_name: Optional[str] = None,
+        source_name: str | None = None,
+        source_path: str | None = None,
+        acq_name: str | None = None,
     ) -> Iterator[tuple[int, int]]:
         if source_name is not None:
             occurrences = (
@@ -2751,33 +2750,33 @@ class MDF4(MDF_Common[Group]):
     def append(
         self,
         signals: DataFrame,
-        acq_name: Optional[str] = None,
-        acq_source: Optional[Source] = None,
+        acq_name: str | None = None,
+        acq_source: Source | None = None,
         comment: str = "Python",
         common_timebase: bool = False,
-        units: Optional[dict[str, str]] = None,
+        units: dict[str, str] | None = None,
     ) -> None: ...
 
     @overload
     def append(
         self,
-        signals: Union[list[Signal], Signal],
-        acq_name: Optional[str] = None,
-        acq_source: Optional[Source] = None,
+        signals: list[Signal] | Signal,
+        acq_name: str | None = None,
+        acq_source: Source | None = None,
         comment: str = "Python",
         common_timebase: bool = False,
-        units: Optional[dict[str, str]] = None,
+        units: dict[str, str] | None = None,
     ) -> int: ...
 
     def append(
         self,
-        signals: Union[list[Signal], Signal, DataFrame],
-        acq_name: Optional[str] = None,
-        acq_source: Optional[Source] = None,
+        signals: list[Signal] | Signal | DataFrame,
+        acq_name: str | None = None,
+        acq_source: Source | None = None,
         comment: str = "Python",
         common_timebase: bool = False,
-        units: Optional[dict[str, str]] = None,
-    ) -> Optional[int]:
+        units: dict[str, str] | None = None,
+    ) -> int | None:
         """Appends a new data group.
 
         For channel dependencies type Signals, the *samples* attribute must be
@@ -2915,7 +2914,7 @@ class MDF4(MDF_Common[Group]):
         gp.channel_group.acq_source = source_block
         gp.channel_group.comment = comment
         record = gp.record = []
-        inval_bits: dict[tuple[int, int], Union[list[InvalidationArray], InvalidationArray]] = {
+        inval_bits: dict[tuple[int, int], list[InvalidationArray] | InvalidationArray] = {
             InvalidationArray.ORIGIN_UNKNOWN: []
         }
 
@@ -2928,7 +2927,7 @@ class MDF4(MDF_Common[Group]):
 
         self.groups.append(gp)
 
-        fields: list[tuple[Union[bytes, NDArray[Any]], int]] = []
+        fields: list[tuple[bytes | NDArray[Any], int]] = []
 
         ch_cntr = 0
         offset = 0
@@ -3355,7 +3354,7 @@ class MDF4(MDF_Common[Group]):
                 gp_dep.append(None)
 
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
-                vals: Union[bytes, NDArray[Any]]
+                vals: bytes | NDArray[Any]
                 if names == v4c.CANOPEN_TIME_FIELDS:
                     record.append(
                         (
@@ -3988,9 +3987,9 @@ class MDF4(MDF_Common[Group]):
     def _append_column_oriented(
         self,
         signals: list[Signal],
-        acq_name: Optional[str] = None,
-        acq_source: Optional[SourceInformation] = None,
-        comment: Optional[str] = None,
+        acq_name: str | None = None,
+        acq_source: SourceInformation | None = None,
+        comment: str | None = None,
     ) -> int:
         defined_texts: dict[str, int] = {}
         si_map = self._si_map
@@ -4032,7 +4031,7 @@ class MDF4(MDF_Common[Group]):
         self.groups.append(gp)
 
         ch_cntr = 0
-        types: list[Union[tuple[str, np.dtype[Any], tuple[int, ...]], DTypeLike]] = []
+        types: list[tuple[str, np.dtype[Any], tuple[int, ...]] | DTypeLike] = []
         ch_cntr = 0
         offset = 0
 
@@ -4702,7 +4701,7 @@ class MDF4(MDF_Common[Group]):
 
                 # conversions for channel
                 conversion = conversion_transfer(
-                    typing.cast(Optional[v3b.ChannelConversion], signal.conversion), version=4
+                    typing.cast(v3b.ChannelConversion | None, signal.conversion), version=4
                 )
                 if signal.raw:
                     ch.conversion = conversion
@@ -4804,10 +4803,10 @@ class MDF4(MDF_Common[Group]):
     def _append_dataframe(
         self,
         df: DataFrame,
-        acq_name: Optional[str] = None,
-        acq_source: Optional[SourceInformation] = None,
-        comment: Optional[str] = None,
-        units: Optional[dict[str, str]] = None,
+        acq_name: str | None = None,
+        acq_source: SourceInformation | None = None,
+        comment: str | None = None,
+        units: dict[str, str] | None = None,
     ) -> None:
         """Appends a new data group from a Pandas DataFrame."""
         units = units or {}
@@ -4842,7 +4841,7 @@ class MDF4(MDF_Common[Group]):
         self.groups.append(gp)
 
         fields: list[NDArray[Any]] = []
-        types: list[Union[DTypeLike, tuple[str, np.dtype[Any], tuple[int, ...]]]] = []
+        types: list[DTypeLike | tuple[str, np.dtype[Any], tuple[int, ...]]] = []
         ch_cntr = 0
         offset = 0
         field_names = UniqueDB()
@@ -5103,7 +5102,7 @@ class MDF4(MDF_Common[Group]):
         ch_cntr: int,
         defined_texts: dict[str, int],
         invalidation_bytes_nr: int,
-        inval_bits: dict[tuple[int, int], Union[list[InvalidationArray], InvalidationArray]],
+        inval_bits: dict[tuple[int, int], list[InvalidationArray] | InvalidationArray],
     ) -> tuple[int, int, int, tuple[int, int], list[tuple[NDArray[Any], int]]]:
         si_map = self._si_map
 
@@ -5155,7 +5154,7 @@ class MDF4(MDF_Common[Group]):
         if attachment is not None:
             cn_kwargs["attachment_addr"] = 0
 
-        def source_bus(source: Optional[Source]) -> TypeIs[Source]:
+        def source_bus(source: Source | None) -> TypeIs[Source]:
             return source is not None and source.source_type == v4c.SOURCE_BUS
 
         if source_bus(signal.source):
@@ -5605,7 +5604,7 @@ class MDF4(MDF_Common[Group]):
         if attachment is not None:
             cn_kwargs["attachment_addr"] = 0
 
-        def source_bus(source: Optional[Source]) -> TypeIs[Source]:
+        def source_bus(source: Source | None) -> TypeIs[Source]:
             return source is not None and source.source_type == v4c.SOURCE_BUS
 
         if source_bus(signal.source):
@@ -5959,7 +5958,7 @@ class MDF4(MDF_Common[Group]):
 
         return offset, dg_cntr, ch_cntr, struct_self, fields, types
 
-    def extend(self, index: int, signals: list[tuple[NDArray[Any], Optional[NDArray[np.bool]]]]) -> None:
+    def extend(self, index: int, signals: list[tuple[NDArray[Any], NDArray[np.bool] | None]]) -> None:
         """Extend a group with new samples. *signals* contains (values, invalidation_bits)
         pairs for each extended signal. The first pair is the master channel's pair, and the
         next pairs must respect the same order in which the signals were appended. The samples must have raw
@@ -6003,8 +6002,8 @@ class MDF4(MDF_Common[Group]):
 
         stream = self._tempfile
 
-        fields: list[tuple[Union[bytes, NDArray[Any]], int]] = []
-        inval_bits_map: dict[tuple[int, int], Union[list[InvalidationArray], InvalidationArray]] = {
+        fields: list[tuple[bytes | NDArray[Any], int]] = []
+        inval_bits_map: dict[tuple[int, int], list[InvalidationArray] | InvalidationArray] = {
             InvalidationArray.ORIGIN_UNKNOWN: []
         }
 
@@ -6012,7 +6011,9 @@ class MDF4(MDF_Common[Group]):
 
         invalidation_bytes_nr = gp.channel_group.invalidation_bytes_nr
         signal_types = typing.cast(list[tuple[int, int]], gp.signal_types)
-        for i, ((signal, invalidation_bits), (sig_type, sig_size)) in enumerate(zip(signals, signal_types)):
+        for i, ((signal, invalidation_bits), (sig_type, sig_size)) in enumerate(
+            zip(signals, signal_types, strict=False)
+        ):
             if invalidation_bytes_nr:
                 if invalidation_bits is not None:
                     if not isinstance(invalidation_bits, InvalidationArray):
@@ -6263,9 +6264,7 @@ class MDF4(MDF_Common[Group]):
                         param=0,
                     )
 
-    def _extend_column_oriented(
-        self, index: int, signals: list[tuple[NDArray[Any], Optional[NDArray[np.bool]]]]
-    ) -> None:
+    def _extend_column_oriented(self, index: int, signals: list[tuple[NDArray[Any], NDArray[np.bool] | None]]) -> None:
         """Extend a group with new samples. *signals* contains (values, invalidation_bits)
         pairs for each extended signal. The first pair is the master channel's pair, and the
         next pairs must respect the same order in which the signals were appended. The samples must have raw
@@ -6411,13 +6410,13 @@ class MDF4(MDF_Common[Group]):
     def attach(
         self,
         data: bytes,
-        file_name: Optional[Union[str, PathLike[str]]] = None,
-        hash_sum: Optional[bytes] = None,
+        file_name: str | PathLike[str] | None = None,
+        hash_sum: bytes | None = None,
         comment: str = "",
         compression: bool = True,
         mime: str = r"application/octet-stream",
         embedded: bool = True,
-        password: Optional[Union[str, bytes]] = None,
+        password: str | bytes | None = None,
     ) -> int:
         """Attach embedded attachment as application/octet-stream.
 
@@ -6454,7 +6453,7 @@ class MDF4(MDF_Common[Group]):
         if password and not CRYPTOGRAPHY_AVAILABLE:
             raise MdfException("cryptography must be installed for attachment encryption")
 
-        hash_digest: Union[bytes, str]
+        hash_digest: bytes | str
         if hash_sum is None:
             worker = md5()
             worker.update(data)
@@ -6465,7 +6464,7 @@ class MDF4(MDF_Common[Group]):
         if hash_digest in self._attachments_cache:
             return self._attachments_cache[hash_digest]
 
-        hash_sum_encrypted: Union[bytes, str]
+        hash_sum_encrypted: bytes | str
         if password:
             if isinstance(password, str):
                 password = password.encode("utf-8")
@@ -6619,9 +6618,9 @@ class MDF4(MDF_Common[Group]):
 
     def _extract_attachment(
         self,
-        index: Optional[int] = None,
-        password: Optional[Union[str, bytes]] = None,
-    ) -> tuple[Union[bytes, str], Path, Union[bytes, str]]:
+        index: int | None = None,
+        password: str | bytes | None = None,
+    ) -> tuple[bytes | str, Path, bytes | str]:
         """extract attachment data by index. If it is an embedded attachment,
         then this method creates the new file according to the attachment file
         name information
@@ -6651,8 +6650,8 @@ class MDF4(MDF_Common[Group]):
         current_path = Path.cwd()
         file_path = Path(attachment.file_name or "embedded")
 
-        data: Union[bytes, str]
-        md5_sum: Union[bytes, str]
+        data: bytes | str
+        md5_sum: bytes | str
 
         try:
             os.chdir(self.name.resolve().parent)
@@ -6745,84 +6744,84 @@ class MDF4(MDF_Common[Group]):
     @overload
     def get(
         self,
-        name: Optional[str] = ...,
-        group: Optional[int] = ...,
-        index: Optional[int] = ...,
-        raster: Optional[RasterType] = ...,
+        name: str | None = ...,
+        group: int | None = ...,
+        index: int | None = ...,
+        raster: RasterType | None = ...,
         samples_only: Literal[False] = ...,
-        data: Optional[Fragment] = ...,
+        data: Fragment | None = ...,
         raw: bool = ...,
         ignore_invalidation_bits: bool = ...,
         record_offset: int = ...,
-        record_count: Optional[int] = ...,
+        record_count: int | None = ...,
         skip_channel_validation: bool = ...,
     ) -> Signal: ...
 
     @overload
     def get(
         self,
-        name: Optional[str] = ...,
-        group: Optional[int] = ...,
-        index: Optional[int] = ...,
-        raster: Optional[RasterType] = ...,
+        name: str | None = ...,
+        group: int | None = ...,
+        index: int | None = ...,
+        raster: RasterType | None = ...,
         *,
         samples_only: Literal[True],
-        data: Optional[Fragment] = ...,
+        data: Fragment | None = ...,
         raw: bool = ...,
         ignore_invalidation_bits: Literal[False] = ...,
         record_offset: int = ...,
-        record_count: Optional[int] = ...,
+        record_count: int | None = ...,
         skip_channel_validation: bool = ...,
     ) -> tuple[NDArray[Any], NDArray[np.bool]]: ...
 
     @overload
     def get(
         self,
-        name: Optional[str] = ...,
-        group: Optional[int] = ...,
-        index: Optional[int] = ...,
-        raster: Optional[RasterType] = ...,
+        name: str | None = ...,
+        group: int | None = ...,
+        index: int | None = ...,
+        raster: RasterType | None = ...,
         *,
         samples_only: Literal[True],
-        data: Optional[Fragment] = ...,
+        data: Fragment | None = ...,
         raw: bool = ...,
         ignore_invalidation_bits: Literal[True],
         record_offset: int = ...,
-        record_count: Optional[int] = ...,
+        record_count: int | None = ...,
         skip_channel_validation: bool = ...,
     ) -> tuple[NDArray[Any], None]: ...
 
     @overload
     def get(
         self,
-        name: Optional[str] = ...,
-        group: Optional[int] = ...,
-        index: Optional[int] = ...,
-        raster: Optional[RasterType] = ...,
+        name: str | None = ...,
+        group: int | None = ...,
+        index: int | None = ...,
+        raster: RasterType | None = ...,
         *,
         samples_only: Literal[True],
-        data: Optional[Fragment] = ...,
+        data: Fragment | None = ...,
         raw: bool = ...,
         ignore_invalidation_bits: bool = ...,
         record_offset: int = ...,
-        record_count: Optional[int] = ...,
+        record_count: int | None = ...,
         skip_channel_validation: bool = ...,
-    ) -> tuple[NDArray[Any], Optional[NDArray[np.bool]]]: ...
+    ) -> tuple[NDArray[Any], NDArray[np.bool] | None]: ...
 
     def get(
         self,
-        name: Optional[str] = None,
-        group: Optional[int] = None,
-        index: Optional[int] = None,
-        raster: Optional[RasterType] = None,
+        name: str | None = None,
+        group: int | None = None,
+        index: int | None = None,
+        raster: RasterType | None = None,
         samples_only: bool = False,
-        data: Optional[Fragment] = None,
+        data: Fragment | None = None,
         raw: bool = False,
         ignore_invalidation_bits: bool = False,
         record_offset: int = 0,
-        record_count: Optional[int] = None,
+        record_count: int | None = None,
         skip_channel_validation: bool = False,
-    ) -> Union[Signal, tuple[NDArray[Any], Optional[NDArray[np.bool]]]]:
+    ) -> Signal | tuple[NDArray[Any], NDArray[np.bool] | None]:
         """Gets channel samples. The raw data group samples are not loaded to
         memory so it is advised to use ``filter`` or ``select`` instead of
         performing several ``get`` calls.
@@ -6968,7 +6967,7 @@ class MDF4(MDF_Common[Group]):
 
         master_is_required = not samples_only or bool(raster)
 
-        vals: Optional[NDArray[Any]] = None
+        vals: NDArray[Any] | None = None
         all_invalid = False
 
         if channel.byte_offset + (channel.bit_offset + channel.bit_count) / 8 > grp.channel_group.samples_byte_nr:
@@ -7059,7 +7058,7 @@ class MDF4(MDF_Common[Group]):
         if all_invalid:
             invalidation_bits = np.ones(len(samples), dtype=bool)
 
-        res: Union[tuple[NDArray[Any], Optional[NDArray[np.bool]]], Signal]
+        res: tuple[NDArray[Any], NDArray[np.bool] | None] | Signal
         if samples_only:
             if not raw:
                 conversion = channel.conversion
@@ -7151,11 +7150,11 @@ class MDF4(MDF_Common[Group]):
         group_index: int,
         channel_index: int,
         dependency_list: list[tuple[int, int]],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: Literal[False],
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: Literal[False],
         raw: bool,
     ) -> tuple[NDArray[Any], None, NDArray[np.bool], None]: ...
@@ -7168,11 +7167,11 @@ class MDF4(MDF_Common[Group]):
         group_index: int,
         channel_index: int,
         dependency_list: list[tuple[int, int]],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: Literal[True],
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: Literal[False],
         raw: bool,
     ) -> tuple[NDArray[Any], None, None, None]: ...
@@ -7185,11 +7184,11 @@ class MDF4(MDF_Common[Group]):
         group_index: int,
         channel_index: int,
         dependency_list: list[tuple[int, int]],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: Literal[False],
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: Literal[True],
         raw: bool,
     ) -> tuple[NDArray[Any], NDArray[Any], NDArray[np.bool], None]: ...
@@ -7202,11 +7201,11 @@ class MDF4(MDF_Common[Group]):
         group_index: int,
         channel_index: int,
         dependency_list: list[tuple[int, int]],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: Literal[True],
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: Literal[True],
         raw: bool,
     ) -> tuple[NDArray[Any], NDArray[Any], None, None]: ...
@@ -7219,14 +7218,14 @@ class MDF4(MDF_Common[Group]):
         group_index: int,
         channel_index: int,
         dependency_list: list[tuple[int, int]],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: bool,
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: bool,
         raw: bool,
-    ) -> tuple[NDArray[Any], Optional[NDArray[Any]], Optional[NDArray[np.bool]], None]: ...
+    ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[np.bool] | None, None]: ...
 
     def _get_structure(
         self,
@@ -7235,14 +7234,14 @@ class MDF4(MDF_Common[Group]):
         group_index: int,
         channel_index: int,
         dependency_list: list[tuple[int, int]],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: bool,
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: bool,
         raw: bool,
-    ) -> tuple[NDArray[Any], Optional[NDArray[Any]], Optional[NDArray[np.bool]], None]:
+    ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[np.bool] | None, None]:
         grp = group
         gp_nr = group_index
         # get data group record
@@ -7266,7 +7265,7 @@ class MDF4(MDF_Common[Group]):
                 for (dg_nr, ch_nr) in dependency_list
             ),
         ]
-        channel_values: Union[list[NDArray[Any]], list[list[NDArray[Any]]]]
+        channel_values: list[NDArray[Any]] | list[list[NDArray[Any]]]
         if all(conditions):
             fast_path = True
             flat_channel_values: list[NDArray[Any]] = []
@@ -7391,7 +7390,7 @@ class MDF4(MDF_Common[Group]):
                         )
             else:
                 arrays = [lst[0] for lst in channel_values_list]
-            types: DTypeLike = [(name_, arr.dtype, arr.shape[1:]) for name_, arr in zip(names, arrays)]
+            types: DTypeLike = [(name_, arr.dtype, arr.shape[1:]) for name_, arr in zip(names, arrays, strict=False)]
             types = np.dtype(types)
 
             vals = np.rec.fromarrays(arrays, dtype=types)
@@ -7451,11 +7450,11 @@ class MDF4(MDF_Common[Group]):
         group_index: int,
         channel_index: int,
         dependency_list: list[ChannelArrayBlock],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: Literal[False],
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: Literal[False],
     ) -> tuple[NDArray[Any], None, NDArray[np.bool], None]: ...
 
@@ -7467,11 +7466,11 @@ class MDF4(MDF_Common[Group]):
         group_index: int,
         channel_index: int,
         dependency_list: list[ChannelArrayBlock],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: Literal[True],
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: Literal[False],
     ) -> tuple[NDArray[Any], None, None, None]: ...
 
@@ -7483,11 +7482,11 @@ class MDF4(MDF_Common[Group]):
         group_index: int,
         channel_index: int,
         dependency_list: list[ChannelArrayBlock],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: Literal[False],
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: Literal[True],
     ) -> tuple[NDArray[Any], NDArray[Any], NDArray[np.bool], None]: ...
 
@@ -7499,11 +7498,11 @@ class MDF4(MDF_Common[Group]):
         group_index: int,
         channel_index: int,
         dependency_list: list[ChannelArrayBlock],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: Literal[True],
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: Literal[True],
     ) -> tuple[NDArray[Any], NDArray[Any], None, None]: ...
 
@@ -7515,13 +7514,13 @@ class MDF4(MDF_Common[Group]):
         group_index: int,
         channel_index: int,
         dependency_list: list[ChannelArrayBlock],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: bool,
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: bool,
-    ) -> tuple[NDArray[Any], Optional[NDArray[Any]], Optional[NDArray[np.bool]], None]: ...
+    ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[np.bool] | None, None]: ...
 
     def _get_array(
         self,
@@ -7530,13 +7529,13 @@ class MDF4(MDF_Common[Group]):
         group_index: int,
         channel_index: int,
         dependency_list: list[ChannelArrayBlock],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: bool,
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: bool,
-    ) -> tuple[NDArray[Any], Optional[NDArray[Any]], Optional[NDArray[np.bool]], None]:
+    ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[np.bool] | None, None]:
         grp = group
         gp_nr = group_index
         ch_nr = channel_index
@@ -7590,7 +7589,7 @@ class MDF4(MDF_Common[Group]):
         invalidation_arrays: list[InvalidationArray] = []
         count = 0
 
-        timestamps: Optional[NDArray[Any]]
+        timestamps: NDArray[Any] | None
         for fragment in fragments:
             arrays: list[NDArray[Any]] = []
             types: list[tuple[str, np.dtype[Any], tuple[int, ...]]] = []
@@ -7861,7 +7860,7 @@ class MDF4(MDF_Common[Group]):
         # bit_count,
         dtype: np.dtype[Any],
         fragment: Fragment,
-    ) -> tuple[NDArray[Any], None, Optional[InvalidationArray], None]:
+    ) -> tuple[NDArray[Any], None, InvalidationArray | None, None]:
         buffer: Buffer
         if fragment.is_record:
             buffer = get_channel_raw_bytes(
@@ -7889,15 +7888,15 @@ class MDF4(MDF_Common[Group]):
         group: Group,
         group_index: int,
         channel_index: int,
-        dependency_list: Optional[Union[list[ChannelArrayBlock], list[tuple[int, int]]]],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        dependency_list: list[ChannelArrayBlock] | list[tuple[int, int]] | None,
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: Literal[False],
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: Literal[False],
         skip_vlsd: bool = ...,
-    ) -> tuple[NDArray[Any], None, NDArray[np.bool], Optional[str]]: ...
+    ) -> tuple[NDArray[Any], None, NDArray[np.bool], str | None]: ...
 
     @overload
     def _get_scalar(
@@ -7906,15 +7905,15 @@ class MDF4(MDF_Common[Group]):
         group: Group,
         group_index: int,
         channel_index: int,
-        dependency_list: Optional[Union[list[ChannelArrayBlock], list[tuple[int, int]]]],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        dependency_list: list[ChannelArrayBlock] | list[tuple[int, int]] | None,
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: Literal[True],
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: Literal[False],
         skip_vlsd: bool = ...,
-    ) -> tuple[NDArray[Any], None, None, Optional[str]]: ...
+    ) -> tuple[NDArray[Any], None, None, str | None]: ...
 
     @overload
     def _get_scalar(
@@ -7923,15 +7922,15 @@ class MDF4(MDF_Common[Group]):
         group: Group,
         group_index: int,
         channel_index: int,
-        dependency_list: Optional[Union[list[ChannelArrayBlock], list[tuple[int, int]]]],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        dependency_list: list[ChannelArrayBlock] | list[tuple[int, int]] | None,
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: Literal[False],
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: Literal[True],
         skip_vlsd: bool = ...,
-    ) -> tuple[NDArray[Any], NDArray[Any], NDArray[np.bool], Optional[str]]: ...
+    ) -> tuple[NDArray[Any], NDArray[Any], NDArray[np.bool], str | None]: ...
 
     @overload
     def _get_scalar(
@@ -7940,15 +7939,15 @@ class MDF4(MDF_Common[Group]):
         group: Group,
         group_index: int,
         channel_index: int,
-        dependency_list: Optional[Union[list[ChannelArrayBlock], list[tuple[int, int]]]],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        dependency_list: list[ChannelArrayBlock] | list[tuple[int, int]] | None,
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: Literal[True],
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: Literal[True],
         skip_vlsd: bool = ...,
-    ) -> tuple[NDArray[Any], NDArray[Any], None, Optional[str]]: ...
+    ) -> tuple[NDArray[Any], NDArray[Any], None, str | None]: ...
 
     @overload
     def _get_scalar(
@@ -7957,15 +7956,15 @@ class MDF4(MDF_Common[Group]):
         group: Group,
         group_index: int,
         channel_index: int,
-        dependency_list: Optional[Union[list[ChannelArrayBlock], list[tuple[int, int]]]],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        dependency_list: list[ChannelArrayBlock] | list[tuple[int, int]] | None,
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: bool,
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: bool,
         skip_vlsd: bool = ...,
-    ) -> tuple[NDArray[Any], Optional[NDArray[Any]], Optional[NDArray[np.bool]], Optional[str]]: ...
+    ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[np.bool] | None, str | None]: ...
 
     def _get_scalar(
         self,
@@ -7973,15 +7972,15 @@ class MDF4(MDF_Common[Group]):
         group: Group,
         group_index: int,
         channel_index: int,
-        dependency_list: Optional[Union[list[ChannelArrayBlock], list[tuple[int, int]]]],
-        raster: Optional[RasterType],
-        data: Optional[Fragment],
+        dependency_list: list[ChannelArrayBlock] | list[tuple[int, int]] | None,
+        raster: RasterType | None,
+        data: Fragment | None,
         ignore_invalidation_bits: bool,
         record_offset: int,
-        record_count: Optional[int],
+        record_count: int | None,
         master_is_required: bool,
         skip_vlsd: bool = False,
-    ) -> tuple[NDArray[Any], Optional[NDArray[Any]], Optional[NDArray[np.bool]], Optional[str]]:
+    ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[np.bool] | None, str | None]:
 
         grp = group
         # get group data
@@ -8001,13 +8000,13 @@ class MDF4(MDF_Common[Group]):
         channel_type = channel.channel_type
         bit_count = channel.bit_count
 
-        encoding: Optional[str] = None
+        encoding: str | None = None
 
         channel_dtype = channel.dtype_fmt
 
         vals: NDArray[Any]
-        timestamps: Optional[NDArray[Any]] = None
-        invalidation_bits: Optional[NDArray[np.bool]] = None
+        timestamps: NDArray[Any] | None = None
+        invalidation_bits: NDArray[np.bool] | None = None
 
         # get channel values
         if channel_type in {
@@ -8679,11 +8678,11 @@ class MDF4(MDF_Common[Group]):
 
     def included_channels(
         self,
-        index: Optional[int] = None,
-        channels: Optional[ChannelsType] = None,
+        index: int | None = None,
+        channels: ChannelsType | None = None,
         skip_master: bool = True,
         minimal: bool = True,
-    ) -> dict[Optional[int], dict[int, list[int]]]:
+    ) -> dict[int | None, dict[int, list[int]]]:
         if channels is None:
             virtual_channel_group = self.virtual_groups[index]
             groups = virtual_channel_group.groups
@@ -8829,12 +8828,12 @@ class MDF4(MDF_Common[Group]):
     def _yield_selected_signals(
         self,
         index: int,
-        groups: Optional[dict[int, list[int]]] = None,
+        groups: dict[int, list[int]] | None = None,
         record_offset: int = 0,
-        record_count: Optional[int] = None,
+        record_count: int | None = None,
         skip_master: bool = True,
-        version: Optional[str] = None,
-    ) -> Iterator[Union[list[Signal], list[tuple[NDArray[Any], None]]]]:
+        version: str | None = None,
+    ) -> Iterator[list[Signal] | list[tuple[NDArray[Any], None]]]:
         version = version or self.version
         virtual_channel_group = self.virtual_groups[index]
         record_size = virtual_channel_group.record_size
@@ -8869,7 +8868,7 @@ class MDF4(MDF_Common[Group]):
             if group_index == index:
                 master_index = idx
 
-        encodings: dict[int, list[Optional[tuple[Optional[str], np.dtype[Any]]]]] = {
+        encodings: dict[int, list[tuple[str | None, np.dtype[Any]] | None]] = {
             group_index: [None] for group_index in groups
         }
 
@@ -8917,13 +8916,13 @@ class MDF4(MDF_Common[Group]):
             _master = self.get_master(index, data=fragments[master_index], one_piece=True)
             self._set_temporary_master(_master)
 
-            signals: Union[list[Signal], list[tuple[NDArray[Any], None]]]
+            signals: list[Signal] | list[tuple[NDArray[Any], None]]
             if idx == 0:
                 signals = []
             else:
                 signals = [(_master, None)]
 
-            for fragment, (group_index, channels) in zip(fragments, groups.items()):
+            for fragment, (group_index, channels) in zip(fragments, groups.items(), strict=False):
                 grp = self.groups[group_index]
                 if not grp.single_channel_dtype:
                     self._prepare_record(grp)
@@ -8948,7 +8947,7 @@ class MDF4(MDF_Common[Group]):
 
                     if idx == 0:
                         sigs = typing.cast(list[Signal], signals)
-                        for channel_index, raw_data in zip(channels, channels_raw_data):
+                        for channel_index, raw_data in zip(channels, channels_raw_data, strict=False):
                             signal = self.get(
                                 group=group_index,
                                 index=channel_index,
@@ -8972,7 +8971,7 @@ class MDF4(MDF_Common[Group]):
                             sigs.append(signal)
 
                     else:
-                        for channel_index, raw_data in zip(channels, channels_raw_data):
+                        for channel_index, raw_data in zip(channels, channels_raw_data, strict=False):
                             samples, invalidation_bits = self.get(
                                 group=group_index,
                                 index=channel_index,
@@ -9026,7 +9025,7 @@ class MDF4(MDF_Common[Group]):
                 if version < "4.00":
                     if idx == 0:
                         sigs = typing.cast(list[Signal], signals)
-                        for sig, channel_index in zip(sigs, channels):
+                        for sig, channel_index in zip(sigs, channels, strict=False):
                             if sig.samples.dtype.kind == "S":
                                 strsig = self.get(
                                     group=group_index,
@@ -9052,7 +9051,9 @@ class MDF4(MDF_Common[Group]):
                             else:
                                 encodings[group_index].append(None)
                     else:
-                        for i, (sig_samples, encoding_tuple) in enumerate(zip(signals, encodings[group_index])):
+                        for i, (sig_samples, encoding_tuple) in enumerate(
+                            zip(signals, encodings[group_index], strict=False)
+                        ):
                             if encoding_tuple:
                                 encoding, _dtype = encoding_tuple
                                 samples = sig_samples[0]
@@ -9075,9 +9076,9 @@ class MDF4(MDF_Common[Group]):
     def get_master(
         self,
         index: int,
-        data: Optional[Fragment] = None,
+        data: Fragment | None = None,
         record_offset: int = 0,
-        record_count: Optional[int] = None,
+        record_count: int | None = None,
         one_piece: bool = False,
     ) -> NDArray[Any]:
         """Returns master channel samples for given group.
@@ -9279,9 +9280,9 @@ class MDF4(MDF_Common[Group]):
         self,
         bus: BusType,
         name: str,
-        database: Optional[Union[CanMatrix, StrPathType]] = None,
+        database: CanMatrix | StrPathType | None = None,
         ignore_invalidation_bits: bool = False,
-        data: Optional[Fragment] = None,
+        data: Fragment | None = None,
         raw: bool = False,
         ignore_value2text_conversion: bool = True,
     ) -> Signal:
@@ -9342,9 +9343,9 @@ class MDF4(MDF_Common[Group]):
     def get_can_signal(
         self,
         name: str,
-        database: Optional[Union[CanMatrix, StrPathType]] = None,
+        database: CanMatrix | StrPathType | None = None,
         ignore_invalidation_bits: bool = False,
-        data: Optional[Fragment] = None,
+        data: Fragment | None = None,
         raw: bool = False,
         ignore_value2text_conversion: bool = True,
     ) -> Signal:
@@ -9428,7 +9429,7 @@ class MDF4(MDF_Common[Group]):
 
         name_ = name.split(".")
 
-        message_id: Union[str, int]
+        message_id: str | int
         if len(name_) == 3:
             can_id_str, message_id_str, signal_name = name_
 
@@ -9615,9 +9616,9 @@ class MDF4(MDF_Common[Group]):
     def get_lin_signal(
         self,
         name: str,
-        database: Optional[Union[CanMatrix, str, Path]] = None,
+        database: CanMatrix | str | Path | None = None,
         ignore_invalidation_bits: bool = False,
-        data: Optional[Fragment] = None,
+        data: Fragment | None = None,
         raw: bool = False,
         ignore_value2text_conversion: bool = True,
     ) -> Signal:
@@ -9688,7 +9689,7 @@ class MDF4(MDF_Common[Group]):
             message_id_str, signal_name = name_
 
             match = v4c.LIN_DATA_FRAME_PATTERN.search(message_id_str)
-            message_id: Union[str, int]
+            message_id: str | int
             if match is None:
                 message_id = message_id_str
             else:
@@ -9834,12 +9835,12 @@ class MDF4(MDF_Common[Group]):
 
     def save(
         self,
-        dst: Union[FileLike, str, PathLike[str]],
+        dst: FileLike | str | PathLike[str],
         overwrite: bool = False,
         compression: CompressionType = v4c.CompressionAlgorithm.NO_COMPRESSION,
-        progress: Optional[Any] = None,
+        progress: Any | None = None,
         add_history_block: bool = True,
-    ) -> Union[Path, Terminated]:
+    ) -> Path | Terminated:
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>', were
         '<cntr>' is the first counter that produces a new file name
@@ -9929,9 +9930,9 @@ class MDF4(MDF_Common[Group]):
         cg_map = {}
 
         try:
-            defined_texts: dict[Union[bytes, str], int] = {"": 0, b"": 0}
-            cc_map: dict[Union[bytes, int], int] = {}
-            si_map: dict[Union[bytes, int], int] = {}
+            defined_texts: dict[bytes | str, int] = {"": 0, b"": 0}
+            cc_map: dict[bytes | int, int] = {}
+            si_map: dict[bytes | int, int] = {}
 
             groups_nr = len(self.groups)
 
@@ -9939,7 +9940,7 @@ class MDF4(MDF_Common[Group]):
             tell = dst_.tell
             seek = dst_.seek
 
-            blocks: list[Union[bytes, SupportsBytes]] = []
+            blocks: list[bytes | SupportsBytes] = []
 
             write(bytes(self.identification))
 
@@ -10023,7 +10024,7 @@ class MDF4(MDF_Common[Group]):
                                     "param": param,
                                     "original_type": b"DV",
                                 }
-                                data_block: Union[DataZippedBlock, DataBlock] = DataZippedBlock(**dz_kwargs)
+                                data_block: DataZippedBlock | DataBlock = DataZippedBlock(**dz_kwargs)
                             else:
                                 data_block = DataBlock(data=data_, type="DV")
                             write(bytes(data_block))
@@ -10046,7 +10047,7 @@ class MDF4(MDF_Common[Group]):
                                         "param": param,
                                         "original_type": b"DI",
                                     }
-                                    inval_block: Union[DataZippedBlock, DataBlock] = DataZippedBlock(**dz_kwargs)
+                                    inval_block: DataZippedBlock | DataBlock = DataZippedBlock(**dz_kwargs)
                                 else:
                                     inval_block = DataBlock(data=inval_, type="DI")
                                 write(bytes(inval_block))
@@ -10308,7 +10309,7 @@ class MDF4(MDF_Common[Group]):
 
                             if chunks == 1:
                                 if compression and self.version > "4.00":
-                                    signal_data: Union[DataZippedBlock, DataBlock] = DataZippedBlock(
+                                    signal_data: DataZippedBlock | DataBlock = DataZippedBlock(
                                         data=sdata,
                                         zip_type=v4c.FLAG_DZ_DEFLATE,
                                         original_type=b"SD",
@@ -10624,7 +10625,7 @@ class MDF4(MDF_Common[Group]):
                 for block in blocks:
                     write(bytes(block))
 
-            for gp, rec_id in zip(self.groups, gp_rec_ids):
+            for gp, rec_id in zip(self.groups, gp_rec_ids, strict=False):
                 gp.data_group.record_id_len = rec_id
 
             if valid_data_groups:
@@ -10643,7 +10644,7 @@ class MDF4(MDF_Common[Group]):
             seek(v4c.IDENTIFICATION_BLOCK_SIZE)
             write(bytes(self.header))
 
-            for orig_addr, gp in zip(original_data_addresses, self.groups):
+            for orig_addr, gp in zip(original_data_addresses, self.groups, strict=False):
                 gp.data_group.data_block_addr = orig_addr
 
             at_map = {value: key for key, value in at_map.items()}
@@ -10724,9 +10725,9 @@ class MDF4(MDF_Common[Group]):
 
     def get_channel_metadata(
         self,
-        name: Optional[str] = None,
-        group: Optional[int] = None,
-        index: Optional[int] = None,
+        name: str | None = None,
+        group: int | None = None,
+        index: int | None = None,
     ) -> Channel:
         gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
@@ -10738,9 +10739,9 @@ class MDF4(MDF_Common[Group]):
 
     def get_channel_unit(
         self,
-        name: Optional[str] = None,
-        group: Optional[int] = None,
-        index: Optional[int] = None,
+        name: str | None = None,
+        group: int | None = None,
+        index: int | None = None,
     ) -> str:
         """Gets channel unit.
 
@@ -10791,9 +10792,9 @@ class MDF4(MDF_Common[Group]):
 
     def get_channel_comment(
         self,
-        name: Optional[str] = None,
-        group: Optional[int] = None,
-        index: Optional[int] = None,
+        name: str | None = None,
+        group: int | None = None,
+        index: int | None = None,
     ) -> str:
         """Gets channel comment.
 
@@ -10838,7 +10839,7 @@ class MDF4(MDF_Common[Group]):
 
         return extract_xml_comment(channel.comment)
 
-    def _finalize(self, stream: Union[FileLike, mmap.mmap]) -> None:
+    def _finalize(self, stream: FileLike | mmap.mmap) -> None:
         """
         Attempt finalization of the file.
         :return:    None
@@ -10992,11 +10993,11 @@ class MDF4(MDF_Common[Group]):
 
     def _sort(
         self,
-        stream: Union[FileLike, mmap.mmap],
+        stream: FileLike | mmap.mmap,
         compress: bool = True,
         current_progress_index: int = 0,
         max_progress_count: int = 0,
-        progress: Optional[Callable[[int, int], None]] = None,
+        progress: Callable[[int, int], None] | None = None,
     ) -> None:
         flags = self.identification.unfinalized_standard_flags
 
@@ -11107,8 +11108,8 @@ class MDF4(MDF_Common[Group]):
                     for rec_id, records in partial_records.items():
                         channel_group = cg_map[rec_id]
 
-                        dg_cntr: Optional[int]
-                        ch_cntr: Optional[int]
+                        dg_cntr: int | None
+                        ch_cntr: int | None
                         if channel_group.address in self._cn_data_map:
                             dg_cntr, ch_cntr = self._cn_data_map[channel_group.address]
                         else:
@@ -11579,7 +11580,7 @@ class MDF4(MDF_Common[Group]):
                             else:
                                 index = msg_map[msg]
 
-                                sigs_samples: list[tuple[NDArray[Any], Optional[NDArray[np.bool]]]] = []
+                                sigs_samples: list[tuple[NDArray[Any], NDArray[np.bool] | None]] = []
 
                                 for name_, signal in signals.items():
                                     sigs_samples.append((signal["samples"], signal["invalidation_bits"]))
@@ -11654,7 +11655,7 @@ class MDF4(MDF_Common[Group]):
         else:
             messages = {frame.arbitration_id.id: frame for frame in dbc}
 
-            msg_map: dict[tuple[Optional[int], Optional[int], bool, Optional[int], Optional[str], int, int], int] = {}
+            msg_map: dict[tuple[int | None, int | None, bool, int | None, str | None, int, int], int] = {}
 
             self._prepare_record(group)
             data = self._load_data(group, optimize_read=False)
@@ -11749,7 +11750,7 @@ class MDF4(MDF_Common[Group]):
                         else:
                             index = msg_map[msg]
 
-                            sigs_samples: list[tuple[NDArray[Any], Optional[NDArray[np.bool]]]] = []
+                            sigs_samples: list[tuple[NDArray[Any], NDArray[np.bool] | None]] = []
 
                             for name_, signal in signals.items():
                                 sigs_samples.append((signal["samples"], signal["invalidation_bits"]))
@@ -11771,8 +11772,8 @@ def debug_channel(
     mdf: MDF4,
     group: Group,
     channel: Channel,
-    dependency: Optional[Union[list[ChannelArrayBlock], list[tuple[int, int]]]],
-    file: Optional[StringIO] = None,
+    dependency: list[ChannelArrayBlock] | list[tuple[int, int]] | None,
+    file: StringIO | None = None,
 ) -> None:
     """use this to print debug information in case of errors
 

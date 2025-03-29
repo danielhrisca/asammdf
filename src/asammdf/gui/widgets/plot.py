@@ -3923,7 +3923,7 @@ class PlotGraphics(pg.PlotWidget):
             else:
                 to_display = [event_info]
                 labels = [""]
-            for event, label in zip(to_display, labels):
+            for event, label in zip(to_display, labels, strict=False):
                 bookmark = Bookmark(
                     pos=event["value"],
                     message=event["description"],

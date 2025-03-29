@@ -5,8 +5,9 @@ from enum import IntEnum
 import re
 import struct
 import sys
+from typing import Literal
 
-from typing_extensions import Buffer, Literal
+from typing_extensions import Buffer
 
 from .blocks_common import UnpackFrom
 

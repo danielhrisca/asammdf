@@ -4,9 +4,9 @@ asammdf utility functions for channel conversions
 
 from copy import deepcopy
 import typing
-from typing import Optional, Union
+from typing import Literal
 
-from typing_extensions import Literal, overload
+from typing_extensions import overload
 
 from ..types import ChannelConversionType
 from . import v2_v3_blocks as v3b
@@ -17,7 +17,7 @@ from . import v4_constants as v4c
 
 @overload
 def conversion_transfer(
-    conversion: Optional[ChannelConversionType], version: Literal[3] = ..., copy: bool = ...
+    conversion: ChannelConversionType | None, version: Literal[3] = ..., copy: bool = ...
 ) -> v3b.ChannelConversion: ...
 
 
@@ -32,8 +32,8 @@ def conversion_transfer(conversion: None, version: Literal[4], copy: bool = ...)
 
 
 def conversion_transfer(
-    conversion: Optional[ChannelConversionType], version: int = 3, copy: bool = False
-) -> Optional[ChannelConversionType]:
+    conversion: ChannelConversionType | None, version: int = 3, copy: bool = False
+) -> ChannelConversionType | None:
     """convert between mdf4 and mdf3 channel conversions
 
     Parameters
@@ -53,7 +53,7 @@ def conversion_transfer(
     """
 
     if version <= 3:
-        conversion = typing.cast(Optional[v4b.ChannelConversion], conversion)
+        conversion = typing.cast(v4b.ChannelConversion | None, conversion)
         if conversion is None:
             conversion = v3b.ChannelConversion(conversion_type=v3c.CONVERSION_TYPE_NONE)
         else:
@@ -275,8 +275,8 @@ def conversion_transfer(
 
 
 def inverse_conversion(
-    conversion: Optional[Union[ChannelConversionType, dict[str, object]]],
-) -> Optional[v4b.ChannelConversion]:
+    conversion: ChannelConversionType | dict[str, object] | None,
+) -> v4b.ChannelConversion | None:
 
     if isinstance(conversion, v3b.ChannelConversion):
         conversion = conversion_transfer(conversion, version=4)
@@ -336,7 +336,7 @@ def inverse_conversion(
     return conv
 
 
-def from_dict(conversion_dict: v4b.ChannelConversionKwargs) -> Optional[v4b.ChannelConversion]:
+def from_dict(conversion_dict: v4b.ChannelConversionKwargs) -> v4b.ChannelConversion | None:
     if not conversion_dict:
         conversion = None
 
@@ -470,7 +470,7 @@ def to_dict(conversion: ChannelConversionType) -> dict[str, object]: ...
 def to_dict(conversion: None) -> None: ...
 
 
-def to_dict(conversion: Optional[ChannelConversionType]) -> Optional[dict[str, object]]:
+def to_dict(conversion: ChannelConversionType | None) -> dict[str, object] | None:
     if not conversion:
         return None
 

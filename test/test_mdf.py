@@ -712,7 +712,7 @@ class TestMDF(unittest.TestCase):
 
                     self.assertFalse(set(target_names) - set(channel_list))
 
-                    for name, sig in zip(channel_list, selected_signals):
+                    for name, sig in zip(channel_list, selected_signals, strict=False):
                         target = np.load(signals[name])
                         self.assertTrue(np.array_equal(target, sig.samples))
 

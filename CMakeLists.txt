@@ -10,16 +10,16 @@ find_package(
   ${SKBUILD_SABI_COMPONENT}
   NumPy
   )
-  
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(LIBDEFLATE_COMPRESSION_SUPPORT OFF)
 set(LIBDEFLATE_GZIP_SUPPORT OFF)
 set(LIBDEFLATE_BUILD_GZIP OFF)
-  
+
   # Add submodule libdeflate
 add_subdirectory(ext/libdeflate EXCLUDE_FROM_ALL)
 
-python_add_library(cutils MODULE WITH_SOABI USE_SABI 3.9 src/asammdf/blocks/cutils.c)
+python_add_library(cutils MODULE WITH_SOABI USE_SABI 3.10 src/asammdf/blocks/cutils.c)
 
 target_link_libraries(cutils PRIVATE Python::NumPy libdeflate::libdeflate_static)
 

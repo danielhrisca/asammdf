@@ -6,7 +6,7 @@ build-backend = "scikit_build_core.build"
 name = "asammdf"
 description = "ASAM MDF measurement data file parser"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "LGPLv3+" }
 authors = [{ name = "Daniel Hrisca", email = "daniel.hrisca@gmail.com" }]
 dynamic = ["version"]
@@ -16,7 +16,6 @@ classifiers = [
     "Topic :: Software Development",
     "Topic :: Scientific/Engineering",
     "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -67,12 +66,12 @@ Source = "https://github.com/danielhrisca/asammdf"
 metadata.version.provider = "scikit_build_core.metadata.regex"
 metadata.version.input = "src/asammdf/version.py"
 wheel.packages = ["src/asammdf"]
-wheel.py-api = "cp39"
+wheel.py-api = "cp310"
 
 [tool.black]
 line-length = 120
 required-version = "25"
-target-version = ['py39']
+target-version = ['py310']
 force-exclude = '''
 (
     ^/ext |
@@ -107,7 +106,7 @@ exclude = [
     "ext/",
     "test/",
 ]
-python_version = "3.9"
+python_version = "3.10"
 plugins = ["numpy.typing.mypy_plugin"]
 strict = true
 
@@ -142,7 +141,7 @@ module = [
 ignore_errors = true
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 extend-exclude = ["./src/asammdf/gui/ui", "./ext"]
 force-exclude = true
 
@@ -168,6 +167,7 @@ ignore = [
     "PLW2901", # redefined-loop-name
     "RUF012",  # mutable-class-default
     "RUF015",  # unnecessary-iterable-allocation-for-first-element
+    "UP038",
 ]
 
 [tool.ruff.lint.isort]

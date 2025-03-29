@@ -1,6 +1,5 @@
 from traceback import format_exc
 import typing
-from typing import Optional
 
 from canmatrix import Frame, Signal
 import numpy as np
@@ -250,9 +249,9 @@ class ExtractedSignal(TypedDict):
     comment: str
     unit: str
     samples: NDArray[Any]
-    conversion: Optional[v4b.ChannelConversion]
+    conversion: v4b.ChannelConversion | None
     t: NDArray[Any]
-    invalidation_bits: Optional[NDArray[Any]]
+    invalidation_bits: NDArray[Any] | None
 
 
 def merge_cantp(payload: NDArray[Any], ts: NDArray[Any]) -> tuple[NDArray[Any], NDArray[Any]]:
@@ -262,7 +261,7 @@ def merge_cantp(payload: NDArray[Any], ts: NDArray[Any]) -> tuple[NDArray[Any], 
     merged = []
     t_out = []
     merging = np.array([], "uint8")
-    for frame, t in zip(payload, ts):
+    for frame, t in zip(payload, ts, strict=False):
         if frame[0] & 0xF0 == INITIAL:
             expected_size = np.uint16(256) * (frame[0] & 0x0F) + frame[1]
             merging = np.array(frame[2:8], "uint8")
@@ -279,20 +278,18 @@ def merge_cantp(payload: NDArray[Any], ts: NDArray[Any]) -> tuple[NDArray[Any], 
 def extract_mux(
     payload: NDArray[Any],
     message: Frame,
-    message_id: Optional[int],
-    bus: Optional[int],
+    message_id: int | None,
+    bus: int | None,
     t: NDArray[Any],
-    muxer: Optional[str] = None,
-    muxer_values: Optional[NDArray[Any]] = None,
-    original_message_id: Optional[int] = None,
+    muxer: str | None = None,
+    muxer_values: NDArray[Any] | None = None,
+    original_message_id: int | None = None,
     raw: bool = False,
     include_message_name: bool = False,
     ignore_value2text_conversion: bool = True,
     is_j1939: bool = False,
     is_extended: bool = False,
-) -> dict[
-    tuple[Optional[int], Optional[int], bool, Optional[int], Optional[str], int, int], dict[str, ExtractedSignal]
-]:
+) -> dict[tuple[int | None, int | None, bool, int | None, str | None, int, int], dict[str, ExtractedSignal]]:
     """extract multiplexed CAN signals from the raw payload
 
     Parameters
@@ -342,7 +339,7 @@ def extract_mux(
                         sig.mux_val_grp.insert(0, (int(sig.multiplex), int(sig.multiplex)))
 
     extracted_signals: dict[
-        tuple[Optional[int], Optional[int], bool, Optional[int], Optional[str], int, int], dict[str, ExtractedSignal]
+        tuple[int | None, int | None, bool, int | None, str | None, int, int], dict[str, ExtractedSignal]
     ] = {}
 
     # (Too?) simple check for ISO-TP CAN data - if it has flow control, we believe its ISO-TP
@@ -447,7 +444,7 @@ def extract_mux(
     return extracted_signals
 
 
-def get_conversion(signal: Signal) -> Optional[v4b.ChannelConversion]:
+def get_conversion(signal: Signal) -> v4b.ChannelConversion | None:
     conv: v4b.ChannelConversionKwargs = {}
 
     a, b = float(signal.factor), float(signal.offset)

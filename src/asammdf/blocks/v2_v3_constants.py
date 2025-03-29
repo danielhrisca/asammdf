@@ -2,8 +2,9 @@
 
 from collections.abc import Callable
 import struct
+from typing import Literal
 
-from typing_extensions import Buffer, Literal
+from typing_extensions import Buffer
 
 from .blocks_common import UnpackFrom
 

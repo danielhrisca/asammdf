@@ -18,7 +18,6 @@ import pathlib
 import shutil
 import sys
 import time
-from typing import Union
 import unittest
 from unittest import mock
 
@@ -472,7 +471,7 @@ class OpenFileContextManager:
         __exit__: close file object. If exc_type, exc_val, exc_tb, raise exception.
     """
 
-    def __init__(self, file_path: Union[str, pathlib.Path]):
+    def __init__(self, file_path: str | pathlib.Path):
         """
         Parameters
         ----------

@@ -232,7 +232,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             try:
                                 float(units[0])
                             except:
-                                units = dict(zip(names, units))
+                                units = dict(zip(names, units, strict=False))
                             else:
                                 csv.seek(0)
                                 csv.readline()
@@ -536,13 +536,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         buses = can_databases[::2]
         dbs = can_databases[1::2]
 
-        databases["CAN"] = list(zip(buses, dbs))
+        databases["CAN"] = list(zip(buses, dbs, strict=False))
 
         lin_databases = self._settings.value("lin_databases", [])
         buses = lin_databases[::2]
         dbs = lin_databases[1::2]
 
-        databases["LIN"] = list(zip(buses, dbs))
+        databases["LIN"] = list(zip(buses, dbs, strict=False))
 
         for bus, database in databases["CAN"]:
             item = QtWidgets.QListWidgetItem()

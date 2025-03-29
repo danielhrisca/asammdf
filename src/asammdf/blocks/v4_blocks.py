@@ -15,7 +15,7 @@ from textwrap import wrap
 import time
 from traceback import format_exc
 import typing
-from typing import Optional, TYPE_CHECKING, Union
+from typing import Literal, TYPE_CHECKING, Union
 from xml.dom import minidom
 import xml.etree.ElementTree as ET
 
@@ -28,7 +28,6 @@ from numpy.typing import ArrayLike, NDArray
 from typing_extensions import (
     Any,
     Buffer,
-    Literal,
     overload,
     SupportsBytes,
     TypedDict,
@@ -124,7 +123,7 @@ class AttachmentBlockKwargs(BlockKwargs, total=False):
     data: bytes
     comment: str
     mime: str
-    file_name: Union[str, PathLike[str]]
+    file_name: str | PathLike[str]
     compression: bool
     embedded: bool
     creator_index: int
@@ -331,7 +330,7 @@ class AttachmentBlock:
             return b""
 
     def to_blocks(
-        self, address: int, blocks: list[Union[bytes, SupportsBytes]], defined_texts: dict[Union[bytes, str], int]
+        self, address: int, blocks: list[bytes | SupportsBytes], defined_texts: dict[bytes | str, int]
     ) -> int:
         text = self.file_name
         if text:
@@ -405,9 +404,9 @@ class AttachmentBlock:
 class ChannelKwargs(BlockKwargs, total=False):
     at_map: dict[int, int]
     tx_map: TxMap
-    parsed_strings: Optional[tuple[str, dict[str, str], str]]
+    parsed_strings: tuple[str, dict[str, str], str] | None
     use_display_names: bool
-    cc_map: dict[Union[bytes, int], "ChannelConversion"]
+    cc_map: dict[bytes | int, "ChannelConversion"]
     si_map: dict[Union[bytes, int, "Source"], "SourceInformation"]
     channel_type: int
     sync_type: int
@@ -1111,7 +1110,7 @@ class Channel:
             del self.display_names[self.name]
 
         self.standard_C_size = True
-        self.fast_path: Optional[tuple[int, int, int, int, int, np.dtype[Any]]] = None
+        self.fast_path: tuple[int, int, int, int, int, np.dtype[Any]] | None = None
 
     def __getitem__(self, item: str) -> object:
         return getattr(self, item)
@@ -1122,10 +1121,10 @@ class Channel:
     def to_blocks(
         self,
         address: int,
-        blocks: list[Union[bytes, SupportsBytes]],
-        defined_texts: dict[Union[bytes, str], int],
-        cc_map: dict[Union[bytes, int], int],
-        si_map: dict[Union[bytes, int], int],
+        blocks: list[bytes | SupportsBytes],
+        defined_texts: dict[bytes | str, int],
+        cc_map: dict[bytes | int, int],
+        si_map: dict[bytes | int, int],
     ) -> int:
         text = self.name
         if text in defined_texts:
@@ -1513,12 +1512,12 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
     """
 
     def __init__(self, **kwargs: Unpack[ChannelArrayBlockKwargs]) -> None:
-        self.axis_channels: list[Optional[tuple[int, int]]] = []
-        self.dynamic_size_channels: list[Optional[tuple[int, int]]] = []
-        self.input_quantity_channels: list[Optional[tuple[int, int]]] = []
-        self.output_quantity_channel: Optional[tuple[int, int]] = None
-        self.comparison_quantity_channel: Optional[tuple[int, int]] = None
-        self.axis_conversions: list[Optional[ChannelConversion]] = []
+        self.axis_channels: list[tuple[int, int] | None] = []
+        self.dynamic_size_channels: list[tuple[int, int] | None] = []
+        self.input_quantity_channels: list[tuple[int, int] | None] = []
+        self.output_quantity_channel: tuple[int, int] | None = None
+        self.comparison_quantity_channel: tuple[int, int] | None = None
+        self.axis_conversions: list[ChannelConversion | None] = []
 
         try:
             self.address = address = kwargs["address"]
@@ -1986,10 +1985,10 @@ class ChannelGroup:
     )
 
     def __init__(self, **kwargs: Unpack[ChannelGroupKwargs]) -> None:
-        self.comment: Optional[str] = ""
-        self.acq_name: Optional[str] = ""
+        self.comment: str | None = ""
+        self.acq_name: str | None = ""
         self.acq_source = None
-        self.cg_master_index: Optional[int] = None
+        self.cg_master_index: int | None = None
 
         try:
             self.address = address = kwargs["address"]
@@ -2150,9 +2149,9 @@ class ChannelGroup:
     def to_blocks(
         self,
         address: int,
-        blocks: list[Union[bytes, SupportsBytes]],
-        defined_texts: dict[Union[bytes, str], int],
-        si_map: dict[Union[bytes, int], int],
+        blocks: list[bytes | SupportsBytes],
+        defined_texts: dict[bytes | str, int],
+        si_map: dict[bytes | int, int],
     ) -> int:
         text = self.acq_name
         if text:
@@ -2385,18 +2384,18 @@ class ChannelConversionKwargs(BlockKwargs, total=False):
 
 class _BoundCache(TypedDict):
     phys: list[Union[bytes, "ChannelConversion"]]
-    lower: Union[NDArray[Any], list[Any]]
-    upper: Union[NDArray[Any], list[Any]]
+    lower: NDArray[Any] | list[Any]
+    upper: NDArray[Any] | list[Any]
     type: Literal["big", "small"]
 
 
 class _ValsCache(TypedDict):
     phys: list[Union[bytes, "ChannelConversion"]]
-    raw_vals: Union[NDArray[Any], list[Any]]
+    raw_vals: NDArray[Any] | list[Any]
     type: Literal["big", "small"]
 
 
-_Cache = Union[_BoundCache, _ValsCache]
+_Cache = _BoundCache | _ValsCache
 
 
 class ChannelConversion(_ChannelConversionBase):
@@ -2499,7 +2498,7 @@ class ChannelConversion(_ChannelConversionBase):
     """
 
     def __init__(self, **kwargs: Unpack[ChannelConversionKwargs]) -> None:
-        self._cache: Optional[_Cache] = None
+        self._cache: _Cache | None = None
         self.is_user_defined = False
 
         if "stream" in kwargs:
@@ -2805,7 +2804,7 @@ class ChannelConversion(_ChannelConversionBase):
                 for i, val in enumerate(values):
                     self[f"mask_{i}"] = val
 
-            self.referenced_blocks: dict[str, Union[bytes, ChannelConversion]] = {}
+            self.referenced_blocks: dict[str, bytes | ChannelConversion] = {}
 
             tx_map = kwargs["tx_map"]
 
@@ -3163,9 +3162,9 @@ class ChannelConversion(_ChannelConversionBase):
     def to_blocks(
         self,
         address: int,
-        blocks: list[Union[bytes, SupportsBytes]],
-        defined_texts: dict[Union[bytes, str], int],
-        cc_map: dict[Union[bytes, int], int],
+        blocks: list[bytes | SupportsBytes],
+        defined_texts: dict[bytes | str, int],
+        cc_map: dict[bytes | int, int],
     ) -> int:
         if id(self) in cc_map:
             return address
@@ -3277,7 +3276,7 @@ class ChannelConversion(_ChannelConversionBase):
     @overload
     def convert(
         self,
-        values: Union[list[Any], NDArray[Any]],
+        values: list[Any] | NDArray[Any],
         as_object: bool = ...,
         as_bytes: bool = ...,
         ignore_value2text_conversions: bool = ...,
@@ -3290,7 +3289,7 @@ class ChannelConversion(_ChannelConversionBase):
         as_object: bool = ...,
         as_bytes: bool = ...,
         ignore_value2text_conversions: bool = ...,
-    ) -> Union[NDArray[Any], np.number[Any]]: ...
+    ) -> NDArray[Any] | np.number[Any]: ...
 
     def convert(
         self,
@@ -3298,7 +3297,7 @@ class ChannelConversion(_ChannelConversionBase):
         as_object: bool = False,
         as_bytes: bool = False,
         ignore_value2text_conversions: bool = False,
-    ) -> Union[NDArray[Any], np.number[Any]]:
+    ) -> NDArray[Any] | np.number[Any]:
         identical = ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_NON)
         scalar = False
 
@@ -3455,7 +3454,7 @@ class ChannelConversion(_ChannelConversionBase):
                 nr = self.val_param_nr
                 raw = [self[f"val_{i}"] for i in range(nr)]
 
-                phys: list[Union[bytes, ChannelConversion]] = []
+                phys: list[bytes | ChannelConversion] = []
                 for i in range(nr):
                     tx_ref = self.referenced_blocks[f"text_{i}"]
                     if isinstance(tx_ref, bytes):
@@ -3463,7 +3462,7 @@ class ChannelConversion(_ChannelConversionBase):
                     else:
                         phys.append(tx_ref)
 
-                pairs = sorted(zip(raw, phys))
+                pairs = sorted(zip(raw, phys, strict=False))
                 raw_vals = np.array([e[0] for e in pairs], dtype="<i8")
                 phys = [e[1] for e in pairs]
 
@@ -3472,19 +3471,19 @@ class ChannelConversion(_ChannelConversionBase):
                     ref = identical
 
                 if isinstance(ref, bytes):
-                    default: Union[bytes, ChannelConversion] = identical
+                    default: bytes | ChannelConversion = identical
                 else:
                     default = ref
 
             else:
-                self._cache = typing.cast(Optional[_ValsCache], self._cache)
+                self._cache = typing.cast(_ValsCache | None, self._cache)
                 if self._cache is None or self._cache["type"] != "big":
                     nr = self.val_param_nr
                     raw = [self[f"val_{i}"] for i in range(nr)]
 
                     phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
 
-                    pairs = sorted(zip(raw, phys))
+                    pairs = sorted(zip(raw, phys, strict=False))
                     raw_vals = np.array([e[0] for e in pairs], dtype="<i8")
                     phys = [e[1] for e in pairs]
 
@@ -3641,7 +3640,7 @@ class ChannelConversion(_ChannelConversionBase):
                     else:
                         phys.append(tx_ref)
 
-                pairs = sorted(zip(raw, phys))
+                pairs = sorted(zip(raw, phys, strict=False))
                 raw = [e[0] for e in pairs]
                 phys = [e[1] for e in pairs]
 
@@ -3657,14 +3656,14 @@ class ChannelConversion(_ChannelConversionBase):
                 default_is_bytes = False
 
             else:
-                self._cache = typing.cast(Optional[_ValsCache], self._cache)
+                self._cache = typing.cast(_ValsCache | None, self._cache)
                 if self._cache is None or self._cache["type"] != "small":
                     nr = self.val_param_nr
                     raw = [self[f"val_{i}"] for i in range(nr)]
 
                     phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
 
-                    pairs = sorted(zip(raw, phys))
+                    pairs = sorted(zip(raw, phys, strict=False))
                     raw = [e[0] for e in pairs]
                     phys = [e[1] for e in pairs]
 
@@ -3791,7 +3790,7 @@ class ChannelConversion(_ChannelConversionBase):
                 lower = [self[f"lower_{i}"] for i in range(nr)]
                 upper = [self[f"upper_{i}"] for i in range(nr)]
 
-                triplets = sorted(zip(lower, upper, phys))
+                triplets = sorted(zip(lower, upper, phys, strict=False))
                 lower_vals = np.array([e[0] for e in triplets], dtype="<i8")
                 upper_vals = np.array([e[1] for e in triplets], dtype="<i8")
                 phys = [e[2] for e in triplets]
@@ -3807,7 +3806,7 @@ class ChannelConversion(_ChannelConversionBase):
                 default_is_bytes = False
 
             else:
-                self._cache = typing.cast(Optional[_BoundCache], self._cache)
+                self._cache = typing.cast(_BoundCache | None, self._cache)
                 if self._cache is None or self._cache["type"] != "big":
                     nr = self.val_param_nr // 2
 
@@ -3816,7 +3815,7 @@ class ChannelConversion(_ChannelConversionBase):
                     lower = [self[f"lower_{i}"] for i in range(nr)]
                     upper = [self[f"upper_{i}"] for i in range(nr)]
 
-                    triplets = sorted(zip(lower, upper, phys))
+                    triplets = sorted(zip(lower, upper, phys, strict=False))
                     lower_vals = np.array([e[0] for e in triplets], dtype="<i8")
                     upper_vals = np.array([e[1] for e in triplets], dtype="<i8")
                     phys = [e[2] for e in triplets]
@@ -3899,7 +3898,7 @@ class ChannelConversion(_ChannelConversionBase):
                 lower = [self[f"lower_{i}"] for i in range(nr)]
                 upper = [self[f"upper_{i}"] for i in range(nr)]
 
-                triplets = sorted(zip(lower, upper, phys))
+                triplets = sorted(zip(lower, upper, phys, strict=False))
                 lower = [e[0] for e in triplets]
                 upper = [e[1] for e in triplets]
                 phys = [e[2] for e in triplets]
@@ -3915,7 +3914,7 @@ class ChannelConversion(_ChannelConversionBase):
                 default_is_bytes = False
 
             else:
-                self._cache = typing.cast(Optional[_BoundCache], self._cache)
+                self._cache = typing.cast(_BoundCache | None, self._cache)
                 if self._cache is None or self._cache["type"] != "small":
                     nr = self.val_param_nr // 2
 
@@ -3924,7 +3923,7 @@ class ChannelConversion(_ChannelConversionBase):
                     lower = [self[f"lower_{i}"] for i in range(nr)]
                     upper = [self[f"upper_{i}"] for i in range(nr)]
 
-                    triplets = sorted(zip(lower, upper, phys))
+                    triplets = sorted(zip(lower, upper, phys, strict=False))
                     lower = [e[0] for e in triplets]
                     upper = [e[1] for e in triplets]
                     phys = [e[2] for e in triplets]
@@ -3953,7 +3952,7 @@ class ChannelConversion(_ChannelConversionBase):
 
             if new_values.dtype.kind in "ui":
                 for v in objects:
-                    for l, u, p in zip(lower, upper, phys):
+                    for l, u, p in zip(lower, upper, phys, strict=False):
                         if l <= v <= u:
                             if isinstance(p, bytes):
                                 ret.append(p)
@@ -3977,7 +3976,7 @@ class ChannelConversion(_ChannelConversionBase):
 
             else:
                 for v in objects:
-                    for l, u, p in zip(lower, upper, phys):
+                    for l, u, p in zip(lower, upper, phys, strict=False):
                         if l <= v < u:
                             if isinstance(p, bytes):
                                 ret.append(p)
@@ -4072,7 +4071,7 @@ class ChannelConversion(_ChannelConversionBase):
                     new_val: list[bytes] = []
                     masked_values = typing.cast(list[int], (masks & val).tolist())
 
-                    for on, conv in zip(masked_values, block_or_cc_list):
+                    for on, conv in zip(masked_values, block_or_cc_list, strict=False):
 
                         if isinstance(conv, bytes):
                             if conv:
@@ -4983,7 +4982,7 @@ class DataGroup:
         return dg
 
     def to_blocks(
-        self, address: int, blocks: list[Union[bytes, SupportsBytes]], defined_texts: dict[Union[bytes, str], int]
+        self, address: int, blocks: list[bytes | SupportsBytes], defined_texts: dict[bytes | str, int]
     ) -> int:
         text = self.comment
         if text:
@@ -5304,8 +5303,8 @@ class EventBlock(_EventBlockBase):
 
     def __init__(self, **kwargs: Unpack[EventBlockKwargs]) -> None:
         self.name = self.comment = self.group_name = ""
-        self.scopes: list[Union[tuple[int, int], int]] = []
-        self.parent: Optional[int] = None
+        self.scopes: list[tuple[int, int] | int] = []
+        self.parent: int | None = None
         self.range_start = None
 
         if "stream" in kwargs:
@@ -5706,7 +5705,7 @@ class FileHistory:
             self.time_stamp = datetime.fromtimestamp(time.time(), tz=localtz)
 
     def to_blocks(
-        self, address: int, blocks: list[Union[bytes, SupportsBytes]], defined_texts: dict[Union[bytes, str], int]
+        self, address: int, blocks: list[bytes | SupportsBytes], defined_texts: dict[bytes | str, int]
     ) -> int:
         text = self.comment
         if text:
@@ -6070,7 +6069,7 @@ class HeaderBlock:
                     common_properties_to_xml(list_element, value)
 
                 else:
-                    value = typing.cast(Optional[str], value)
+                    value = typing.cast(str | None, value)
                     ET.SubElement(root, "e", name=name).text = value
 
         root = ET.Element("HDcomment")
@@ -6294,7 +6293,7 @@ class HeaderBlock:
 
         return start_time
 
-    def to_blocks(self, address: int, blocks: list[Union[bytes, SupportsBytes]]) -> int:
+    def to_blocks(self, address: int, blocks: list[bytes | SupportsBytes]) -> int:
         blocks.append(self)
         self.address = address
         address += self.block_len
@@ -6830,9 +6829,9 @@ comment: {self.comment}
     def to_blocks(
         self,
         address: int,
-        blocks: list[Union[bytes, SupportsBytes]],
-        defined_texts: dict[Union[bytes, str], int],
-        si_map: dict[Union[bytes, int], int],
+        blocks: list[bytes | SupportsBytes],
+        defined_texts: dict[bytes | str, int],
+        si_map: dict[bytes | int, int],
     ) -> int:
         id_ = id(self)
         if id_ in si_map:
@@ -6936,7 +6935,7 @@ comment: {self.comment}
 
 class TextBlockKwargs(BlockKwargs, total=False):
     safe: bool
-    text: Union[bytes, str]
+    text: bytes | str
     meta: bool
 
 
