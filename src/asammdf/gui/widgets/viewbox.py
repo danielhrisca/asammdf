@@ -76,12 +76,28 @@ class ViewBoxMenu(QtWidgets.QMenu):
         center_on_mouse.setActionGroup(group)
         self.y_zoom_mode_menu.addAction(center_on_mouse)
 
-        if self._settings.value("zoom_y_center_on_cursor", True, type=bool):
+        pin_zero_level = QtGui.QAction("Pin zero level", self.y_zoom_mode_menu)
+        pin_zero_level.setCheckable(True)
+        pin_zero_level.setActionGroup(group)
+        self.y_zoom_mode_menu.addAction(pin_zero_level)
+
+        zoom_y_mode = self._settings.value("zoom_y_mode", "")
+        if not zoom_y_mode:
+            if self._settings.value("zoom_y_center_on_cursor", True, type=bool):
+                zoom_y_mode = "center_on_cursor"
+            else:
+                zoom_y_mode = "center_on_mouse"
+
+        if zoom_y_mode == "pin_zero_level":
+            pin_zero_level.setChecked(True)
+        elif zoom_y_mode == "center_on_cursor":
             center_on_cursor.setChecked(True)
-        else:
+        elif zoom_y_mode == "center_on_mouse":
             center_on_mouse.setChecked(True)
-        center_on_cursor.triggered.connect(partial(self.set_y_zoom_mode, True))
-        center_on_mouse.triggered.connect(partial(self.set_y_zoom_mode, False))
+
+        center_on_cursor.triggered.connect(partial(self.set_y_zoom_mode, "center_on_cursor"))
+        center_on_mouse.triggered.connect(partial(self.set_y_zoom_mode, "center_on_mouse"))
+        pin_zero_level.triggered.connect(partial(self.set_y_zoom_mode, "pin_zero_level"))
 
         self.addMenu(self.x_zoom_mode_menu)
 
@@ -114,8 +130,10 @@ class ViewBoxMenu(QtWidgets.QMenu):
     def set_x_zoom_mode(self, on_cursor=True):
         self._settings.setValue("zoom_x_center_on_cursor", on_cursor)
 
-    def set_y_zoom_mode(self, on_cursor=True):
-        self._settings.setValue("zoom_y_center_on_cursor", on_cursor)
+    def set_y_zoom_mode(self, zoom_mode="center_on_cursor"):
+        if zoom_mode != "pin_zero_level":
+            self._settings.setValue("zoom_y_center_on_cursor", zoom_mode == "center_on_cursor")
+        self._settings.setValue("zoom_y_mode", zoom_mode)
 
 
 class ViewBoxWithCursor(pg.ViewBox):
@@ -168,6 +186,11 @@ class ViewBoxWithCursor(pg.ViewBox):
         self.plot = plot
 
         self._settings = QtCore.QSettings()
+
+    def close(self):
+        self.cursor = None
+        self.plot = None
+        super().close()
 
     def __repr__(self):
         return "ASAM ViewBox"
@@ -234,6 +257,7 @@ class ViewBoxWithCursor(pg.ViewBox):
                 tr = tr.map(dif * mask) - tr.map(pg.Point(0, 0))
 
                 x = tr.x() if mask[0] == 1 else None
+                mask[1] = 0
 
                 self._resetTarget()
                 if x is not None:
@@ -323,9 +347,13 @@ class ViewBoxWithCursor(pg.ViewBox):
 
         pos = ev.pos()
 
-        s = 1.02 ** (ev.delta() * self.state["wheelScaleFactor"])  # actual scaling factor
+        factor = self._settings.value("zoom_wheel_factor", 0.165, type=float)
 
-        s = [(None if m is False else s) for m in mask]
+        if ev.delta() > 0:
+            s = [(None if m is False else 1 / (1 + factor)) for m in mask]
+        else:
+            s = [(None if m is False else 1 + factor) for m in mask]
+
         if any(np.isnan(v) for v in s if v is not None):
             return
 
@@ -367,8 +395,32 @@ class ViewBoxWithCursor(pg.ViewBox):
             pos = self.cursor.value()
             x_range = pos - delta / 2, pos + delta / 2
 
-        if self._settings.value("zoom_y_center_on_cursor", True, type=bool):
-            y_pos_val, sig_y_top, sig_y_bottom = self.plot.value_at_cursor()
+        zoom_y_mode = self._settings.value("zoom_y_mode", "")
+
+        if not zoom_y_mode:
+            if self._settings.value("zoom_y_center_on_cursor", False, type=bool):
+                zoom_y_mode = "center_on_cursor"
+            else:
+                zoom_y_mode = "center_on_mouse"
+
+        if zoom_y_mode == "pin_zero_level":
+            y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor()
+            delta_proc = sig_y_top / (sig_y_top - sig_y_bottom)
+
+            delta = sig_y_top - sig_y_bottom
+
+            if ev.delta() > 0:
+                delta *= 1 / (1 + factor)
+            else:
+                delta *= 1 + factor
+
+            end = delta_proc * delta
+            start = end - delta
+
+            y_range = start, end
+
+        elif zoom_y_mode == "center_on_cursor":
+            y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor()
             if isinstance(y_pos_val, (int, float)):
                 delta = y_range[1] - y_range[0]
                 y_range = y_pos_val - delta / 2, y_pos_val + delta / 2
@@ -383,3 +435,76 @@ class ViewBoxWithCursor(pg.ViewBox):
 
         ev.accept()
         self.sigRangeChangedManually.emit(mask)
+
+    def vertical_zoom(self, zoom_in=True):
+        if not self.state["mouseEnabled"][1]:
+            return
+
+        factor = self._settings.value("zoom_wheel_factor", 0.165, type=float)
+
+        if zoom_in:
+            scale = 1 / (1 + factor)
+        else:
+            scale = 1 + factor
+
+        zoom_y_mode = self._settings.value("zoom_y_mode", "")
+
+        if not zoom_y_mode:
+            if self._settings.value("zoom_y_center_on_cursor", False, type=bool):
+                zoom_y_mode = "center_on_cursor"
+            else:
+                zoom_y_mode = "center_on_mouse"
+
+        selected_uuids, current_uuid = self.plot.selected_items()
+        viewbox_y_range = None
+
+        if zoom_y_mode == "pin_zero_level":
+            for uuid in selected_uuids:
+                sig, idx = self.plot.signal_by_uuid(uuid)
+                y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor(uuid=uuid)
+                if isinstance(y_pos_val, (int, float)):
+                    delta_proc = sig_y_top / (sig_y_top - sig_y_bottom)
+
+                    delta = (sig_y_top - sig_y_bottom) * scale
+
+                    end = delta_proc * delta
+                    start = end - delta
+                    y_range = start, end
+
+                    if uuid == current_uuid:
+                        viewbox_y_range = y_range
+                    else:
+                        sig.y_range = y_range
+
+        elif zoom_y_mode == "center_on_cursor":
+            for uuid in selected_uuids:
+                sig, idx = self.plot.signal_by_uuid(uuid)
+                y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor(uuid=uuid)
+                if isinstance(y_pos_val, (int, float)):
+                    delta = (sig_y_top - sig_y_bottom) * scale
+                    new_y_range = y_pos_val - delta / 2, y_pos_val + delta / 2
+
+                    if uuid == current_uuid:
+                        viewbox_y_range = new_y_range
+                    else:
+                        sig.y_range = new_y_range
+
+        else:
+            for uuid in selected_uuids:
+                sig, idx = self.plot.signal_by_uuid(uuid)
+                y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor(uuid=uuid)
+
+                center = (sig_y_top + sig_y_bottom) / 2
+                half_range = (sig_y_top - sig_y_bottom) * scale / 2
+
+                new_y_range = center - half_range, center + half_range
+
+                if uuid == current_uuid:
+                    viewbox_y_range = new_y_range
+                else:
+                    sig.y_range = new_y_range
+
+        if viewbox_y_range is not None:
+            self.setRange(xRange=None, yRange=viewbox_y_range, padding=0)
+            mask = [False, True]
+            self.sigRangeChangedManually.emit(mask)

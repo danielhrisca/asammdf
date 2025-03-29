@@ -70,6 +70,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.splitter.setStretchFactor(1, 1)
 
         self.raster_type_channel.toggled.connect(self.set_raster_type)
+        self.set_raster_type()
 
         for widget in (
             self.concatenate_format,
@@ -229,15 +230,17 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.mdf_compression.clear()
             self.mdf_compression.addItems(options)
 
-    def set_raster_type(self, event):
+    def set_raster_type(self, event=None):
         if self.raster_type_channel.isChecked():
             self.raster_channel.setEnabled(True)
+            self.raster_search_btn.setEnabled(True)
             self.raster.setEnabled(False)
             self.raster.setValue(0)
         else:
+            self.raster_search_btn.setEnabled(False)
             self.raster_channel.setEnabled(False)
-            self.raster_channel.setCurrentIndex(0)
             self.raster.setEnabled(True)
+            self.raster_channel.setCurrentIndex(0)
 
     def export_changed(self, name):
         if name == "parquet":
@@ -489,6 +492,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         quotechar = self.quotechar_bus.text() or '"'
         quoting = self.quoting_bus.currentText()
         add_units = self.add_units_bus.checkState() == QtCore.Qt.CheckState.Checked
+
+        if delimiter == "\\t":
+            delimiter = "\t"
 
         count = self.files_list.count()
 
@@ -1004,6 +1010,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 show_apply=True,
                 parent=self,
                 return_names=True,
+                apply_text="Set raster channel",
             )
             dlg.setModal(True)
             dlg.exec_()
@@ -1131,6 +1138,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
         if not count:
             self.filter_tree.clear()
+            self.raster_channel.clear()
             return
         else:
             uuid = os.urandom(6).hex()
@@ -1142,6 +1150,14 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 file_name = source_files[0]
 
             mdf = self._as_mdf(file_name)
+
+            self.raster_channel.clear()
+            if not self.raster_channel.count():
+                self.raster_channel.setSizeAdjustPolicy(
+                    QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+                )
+            self.raster_channel.addItems(sorted(mdf.channels_db, key=lambda x: x.lower()))
+            self.raster_channel.setMinimumWidth(100)
 
             try:
                 widget = self.filter_tree
@@ -1689,6 +1705,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 quoting = self.quoting.currentText()
                 add_units = self.add_units.checkState() == QtCore.Qt.CheckState.Checked
 
+                if delimiter == "\\t":
+                    delimiter = "\t"
+
                 target = mdf.export
                 kwargs = {
                     "fmt": opts.output_format.lower(),
@@ -1725,9 +1744,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
     def output_format_changed(self, name):
         if name == "MDF":
-            self.output_options.setCurrentWidget(self.MDF_2)
+            self.output_options.setCurrentWidget(self.MDF)
         elif name == "MAT":
-            self.output_options.setCurrentWidget(self.MAT_2)
+            self.output_options.setCurrentWidget(self.MAT)
 
             self.export_compression_mat.clear()
             self.export_compression_mat.addItems(["enabled", "disabled"])
@@ -1735,9 +1754,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         elif name == "CSV":
             self.output_options.setCurrentWidget(self.CSV)
         elif name == "ASC":
-            self.output_options.setCurrentWidget(self.page)
+            self.output_options.setCurrentWidget(self.ASC)
         else:
-            self.output_options.setCurrentWidget(self.HDF5_2)
+            self.output_options.setCurrentWidget(self.HDF5)
             if name == "Parquet":
                 self.export_compression.setEnabled(True)
                 self.export_compression.clear()

@@ -555,80 +555,35 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
 
         Events:
             - If axes are hidden - press "Show axes" button
-            - Press Key "G" 3 times
+            - Press Key "G" 20 times
 
         Evaluate:
             - Evaluate that grid is displayed in order after pressing key "G":
-                1. Is only X axes grid.
-                2. Is X and Y axes grid.
-                3. There is no grid.
+                1. Is only X axis grid.
+                2. Is X and Y axes grids.
+                3. Is only Y axis grid
+                4. There is no grid.
         """
         # Check if the grid is available
+
         if self.plot.hide_axes_btn.isFlat():
             QTest.mouseClick(self.plot.hide_axes_btn, Qt.MouseButton.LeftButton)
-        # case 1: X and Y axes is hidden
-        if not self.pg.x_axis.grid and not self.pg.y_axis.grid:
-            with self.subTest("test_shortcut_key_G_no_grid_displayed"):
-                # press key "G"
-                QTest.keySequence(self.pg, QKeySequence(self.shortcuts["grid"]))
-                self.processEvents()
-                # Evaluate
-                self.assertTrue(self.pg.x_axis.grid)
-                self.assertFalse(self.pg.y_axis.grid)
-                # press key "G"
-                QTest.keySequence(self.pg, QKeySequence(self.shortcuts["grid"]))
-                self.processEvents()
-                # Evaluate
-                self.assertTrue(self.pg.x_axis.grid)
-                self.assertTrue(self.pg.y_axis.grid)
-                # press key "G"
-                QTest.keySequence(self.pg, QKeySequence(self.shortcuts["grid"]))
-                self.processEvents()
-                # Evaluate
-                self.assertFalse(self.pg.x_axis.grid)
-                self.assertFalse(self.pg.y_axis.grid)
-        # case 2: X is visible, Y is hidden
-        elif self.pg.x_axis.grid and not self.pg.y_axis.grid:
-            with self.subTest("test_shortcut_key_G_X_grid_already_displayed"):
-                # press key "G"
-                QTest.keySequence(self.pg, QKeySequence(self.shortcuts["grid"]))
-                self.processEvents()
-                # Evaluate
-                self.assertTrue(self.pg.x_axis.grid)
-                self.assertTrue(self.pg.y_axis.grid)
-                # press key "G"
-                QTest.keySequence(self.pg, QKeySequence(self.shortcuts["grid"]))
-                self.processEvents()
-                # Evaluate
-                self.assertFalse(self.pg.x_axis.grid)
-                self.assertFalse(self.pg.y_axis.grid)
-                # press key "G"
-                QTest.keySequence(self.pg, QKeySequence(self.shortcuts["grid"]))
-                self.processEvents()
-                # Evaluate
-                self.assertTrue(self.pg.x_axis.grid)
-                self.assertFalse(self.pg.y_axis.grid)
-        # case 3: X and Y axes is visible
-        else:
-            with self.subTest("test_shortcut_key_G_XU_grid_already_displayed"):
-                # press key "G"
-                QTest.keySequence(self.pg, QKeySequence(self.shortcuts["grid"]))
-                self.processEvents()
-                # Evaluate
-                self.assertTrue(self.pg.x_axis.grid)
-                self.assertFalse(self.pg.y_axis.grid)
-                # press key "G"
-                QTest.keySequence(self.pg, QKeySequence(self.shortcuts["grid"]))
-                self.processEvents()
-                # Evaluate
-                self.assertTrue(self.pg.x_axis.grid)
-                self.assertTrue(self.pg.y_axis.grid)
-                # press key "G"
-                QTest.keySequence(self.pg, QKeySequence(self.shortcuts["grid"]))
-                self.processEvents()
-                # Evaluate
-                self.assertFalse(self.pg.x_axis.grid)
-                self.assertFalse(self.pg.y_axis.grid)
+
+        next_grid = {
+            (False, False): (True, False),
+            (True, False): (True, True),
+            (True, True): (False, True),
+            (False, True): (False, False),
+        }
+
+        current_grid = self.pg.x_axis.grid, self.pg.y_axis.grid
+        for i in range(20):
+            # press key "G"
+            QTest.keySequence(self.pg, QKeySequence(self.shortcuts["grid"]))
+            self.processEvents()
+            # Evaluate
+            current_grid = next_grid[current_grid]
+            self.assertEqual(current_grid, self.pg.x_axis.grid, self.pg.y_axis.grid)
 
     def test_go_to_timestamp_shortcut(self):
         """

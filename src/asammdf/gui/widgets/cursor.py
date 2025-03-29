@@ -257,6 +257,9 @@ class Cursor(pg.InfiniteLine):
         self.hoverPen = QtGui.QPen(color.name())
         self.update()
 
+    def isMovable(self):
+        return self.movable
+
     @property
     def line_width(self):
         return self._line_width

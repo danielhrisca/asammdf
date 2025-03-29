@@ -215,7 +215,7 @@ def extract_signal(
                 vals &= (2**bit_count) - 1
 
     if signed and not is_float:
-        if bit_count not in (8, 16, 32, 64):
+        if extra_bytes or bit_count not in (8, 16, 32, 64):
             vals = as_non_byte_sized_signed_int(vals, bit_count)
         else:
             vals = vals.view(f"i{std_size}")
@@ -353,8 +353,17 @@ def extract_mux(
         # else:
         #    print(f"    no payload found to merge")
 
-    if payload.shape[0] == 0 or message.size > payload.shape[1] or message.size == 0:
+    if message.size == 0 or payload.shape[1] == 0:
         return extracted_signals
+
+    elif message.size > payload.shape[1]:
+        extra_bytes = message.size - payload.shape[1]
+        payload = np.column_stack(
+            [
+                payload,
+                np.full(len(payload), 0xFF, dtype=f"({extra_bytes},)u1"),
+            ]
+        )
 
     pairs: dict[tuple[int, int], list[Signal]] = {}
     for signal in message:

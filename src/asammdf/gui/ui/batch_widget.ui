@@ -601,9 +601,9 @@
                  <item>
                   <widget class="QStackedWidget" name="output_options">
                    <property name="currentIndex">
-                    <number>3</number>
+                    <number>0</number>
                    </property>
-                   <widget class="QWidget" name="MDF_2">
+                   <widget class="QWidget" name="MDF">
                     <layout class="QGridLayout" name="gridLayout_25" columnstretch="0,0">
                      <property name="leftMargin">
                       <number>1</number>
@@ -753,7 +753,7 @@
                      </item>
                     </layout>
                    </widget>
-                   <widget class="QWidget" name="HDF5_2">
+                   <widget class="QWidget" name="HDF5">
                     <layout class="QGridLayout" name="gridLayout_17">
                      <property name="leftMargin">
                       <number>1</number>
@@ -854,7 +854,7 @@
                      </item>
                     </layout>
                    </widget>
-                   <widget class="QWidget" name="MAT_2">
+                   <widget class="QWidget" name="MAT">
                     <layout class="QGridLayout" name="gridLayout_18">
                      <property name="leftMargin">
                       <number>1</number>
@@ -1072,7 +1072,7 @@
                         <string>,</string>
                        </property>
                        <property name="maxLength">
-                        <number>1</number>
+                        <number>2</number>
                        </property>
                        <property name="clearButtonEnabled">
                         <bool>false</bool>
@@ -1168,7 +1168,7 @@
                      </item>
                     </layout>
                    </widget>
-                   <widget class="QWidget" name="page"/>
+                   <widget class="QWidget" name="ASC"/>
                   </widget>
                  </item>
                 </layout>
@@ -1480,7 +1480,7 @@
                   <string>,</string>
                  </property>
                  <property name="maxLength">
-                  <number>1</number>
+                  <number>2</number>
                  </property>
                  <property name="clearButtonEnabled">
                   <bool>false</bool>

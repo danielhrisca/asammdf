@@ -321,6 +321,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             QtWidgets.QApplication.processEvents()
 
             self.raster_type_channel.toggled.connect(self.set_raster_type)
+            self.set_raster_type()
             if progress:
                 progress.setValue(90)
             QtWidgets.QApplication.processEvents()
@@ -584,15 +585,17 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     def sizeHint(self):
         return QtCore.QSize(1, 1)
 
-    def set_raster_type(self, event):
+    def set_raster_type(self, event=None):
         if self.raster_type_channel.isChecked():
             self.raster_channel.setEnabled(True)
+            self.raster_search_btn.setEnabled(True)
             self.raster.setEnabled(False)
             self.raster.setValue(0)
         else:
+            self.raster_search_btn.setEnabled(False)
             self.raster_channel.setEnabled(False)
-            self.raster_channel.setCurrentIndex(0)
             self.raster.setEnabled(True)
+            self.raster_channel.setCurrentIndex(0)
 
     def update_all_channel_trees(self):
         widgetList = [self.channels_tree, self.filter_tree]
@@ -2028,6 +2031,9 @@ MultiRasterSeparator;&
         quoting = self.quoting_bus.currentText()
         add_units = self.add_units_bus.checkState() == QtCore.Qt.CheckState.Checked
 
+        if delimiter == "\\t":
+            delimiter = "\t"
+
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
             "Select output CSV file",
@@ -3003,6 +3009,9 @@ MultiRasterSeparator;&
             quotechar = self.quotechar.text() or '"'
             quoting = self.quoting.currentText()
             add_units = self.add_units.checkState() == QtCore.Qt.CheckState.Checked
+
+            if delimiter == "\\t":
+                delimiter = "\t"
 
             target = self.mdf.export if mdf is None else mdf.export
             kwargs = {

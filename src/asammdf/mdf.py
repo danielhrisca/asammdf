@@ -1603,8 +1603,12 @@ class MDF:
                                     return TERMINATED
 
         elif fmt == "csv":
+            delimiter = kwargs.get("delimiter", ",")[0]
+            if delimiter == "\\t":
+                delimiter = "\t"
+
             fmtparams = {
-                "delimiter": kwargs.get("delimiter", ",")[0],
+                "delimiter": delimiter,
                 "doublequote": kwargs.get("doublequote", True),
                 "lineterminator": kwargs.get("lineterminator", "\r\n"),
                 "quotechar": kwargs.get("quotechar", '"')[0],
@@ -3237,7 +3241,7 @@ class MDF:
         if isinstance(raster, (int, float)):
             raster = float(raster)
             if raster <= 0:
-                raise MdfException("The raster value must be >= 0")
+                raise MdfException("The raster value must be > 0")
             raster = master_using_raster(self, raster)
         elif isinstance(raster, str):
             raster = self.get(raster, raw=True, ignore_invalidation_bits=True).timestamps
@@ -4411,7 +4415,7 @@ class MDF:
                 if isinstance(raster, (int, float)):
                     raster = float(raster)
                     if raster <= 0:
-                        raise MdfException("The raster value must be >= 0")
+                        raise MdfException("The raster value must be > 0")
                     raster = master_using_raster(self, raster)
                 elif isinstance(raster, str):
                     raster = self.get(raster, raw=True, ignore_invalidation_bits=True).timestamps
@@ -4828,7 +4832,7 @@ class MDF:
             if isinstance(raster, (int, float)):
                 raster = float(raster)
                 if raster <= 0:
-                    raise MdfException("The raster value must be >= 0")
+                    raise MdfException("The raster value must be > 0")
                 raster = master_using_raster(self, raster)
             elif isinstance(raster, str):
                 raster = self.get(raster).timestamps

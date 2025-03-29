@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core", "numpy"]
+requires = ["scikit-build-core", "numpy>=2.0.0"]
 build-backend = "scikit_build_core.build"
 
 [project]
@@ -37,21 +37,32 @@ dependencies = [
     "isal; platform_machine == 'x86_64' or platform_machine == 'AMD64'",
     "lxml>=4.9.3",
     "lz4",
-    "numexpr",
-    "numpy>=1.23.0",
-    "pandas",
+    "numexpr>=2.10.0",
+    "numpy>=2.0.0",
+    "pandas>=2.2.2",
     "python-dateutil",
     "typing-extensions~=4.10",
 ]
 
 [project.optional-dependencies]
 decode = ["faust-cchardet==2.1.19", "chardet"]
-export = ["pyarrow", "h5py", "hdf5storage>=0.1.19", "python-snappy", "polars"]
-testing = ["h5py", "pyarrow", "python-can", "scipy"]
-export-matlab-v5 = ["scipy"]
-gui = ["natsort", "PySide6", "pyqtgraph", "pyqtlet2[PySide6]", "packaging"]
+export = [
+    "pyarrow>=17.0.0",
+    "h5py>=3.11",
+    "hdf5storage>=0.1.19",
+    "python-snappy",
+    "polars>=1.1.0",
+]
+export-matlab-v5 = ["scipy>=1.13.0"]
+gui = [
+    "natsort",
+    "PySide6>=6.7.0",
+    "pyqtgraph>=0.13.4",
+    "pyqtlet2[PySide6]",
+    "packaging",
+]
 encryption = ["cryptography", "keyring"]
-symbolic-math = ["sympy"]
+symbolic-math = ["sympy>=1.13.0"]
 filesystem = ["fsspec"]
 
 [project.scripts]
@@ -167,7 +178,7 @@ ignore = [
     "PLW2901", # redefined-loop-name
     "RUF012",  # mutable-class-default
     "RUF015",  # unnecessary-iterable-allocation-for-first-element
-    "UP038",
+    "UP038",   # non-pep604-isinstance
 ]
 
 [tool.ruff.lint.isort]

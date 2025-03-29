@@ -75,7 +75,6 @@ def monkey_patch_pyqtgraph():
             try:
                 return cached_mkColor_factory(*args)
             except:
-                # print(args, format_exc(), sep='\n')
                 return mkColor_factory(*args)
 
     @lru_cache(maxsize=2048)
@@ -115,10 +114,11 @@ def monkey_patch_pyqtgraph():
 
 import asammdf.mdf as mdf_module
 
+from ...blocks import utils
 from ...blocks.utils import extract_mime_names
 from ...signal import Signal
 from ..dialogs.define_channel import DefineChannel
-from ..utils import COLORS, COLORS_COUNT, copy_ranges
+from ..utils import copy_ranges
 from .channel_stats import ChannelStats
 from .cursor import Bookmark, Cursor, Region
 from .dict_to_tree import ComputedChannelInfoWindow
@@ -272,9 +272,9 @@ class PlotSignal(Signal):
         }
 
         if getattr(signal, "color", None):
-            color = signal.color or COLORS[index % COLORS_COUNT]
+            color = signal.color or utils.COLORS[index % utils.COLORS_COUNT]
         else:
-            color = COLORS[index % COLORS_COUNT]
+            color = utils.COLORS[index % utils.COLORS_COUNT]
         self.color = fn.mkColor(color)
         self.color_name = self.color.name()
         self.pen = fn.mkPen(color=color, style=QtCore.Qt.PenStyle.SolidLine)
@@ -1275,7 +1275,7 @@ class PlotSignal(Signal):
 
         return value, kind, self.format
 
-    def value_at_timestamp(self, timestamp, numeric=False):
+    def value_at_timestamp(self, timestamp, numeric=False, strict_timebase=True):
         if self.mode == "raw":
             kind = self.raw_samples.dtype.kind
             samples = self.raw_samples
@@ -1285,12 +1285,15 @@ class PlotSignal(Signal):
 
         if numeric and kind not in "uif":
             samples = self.raw_samples
+            kind = self.raw_samples.dtype.kind
 
-        if self.samples.size == 0 or timestamp < self.timestamps[0]:
+        if self.samples.size == 0 or (strict_timebase and not (self.timestamps[0] <= timestamp <= self.timestamps[-1])):
             value = "n.a."
         else:
             if timestamp > self.timestamps[-1]:
                 index = -1
+            elif timestamp < self.timestamps[0]:
+                index = 0
             else:
                 index = np.searchsorted(self.timestamps, timestamp, side="left")
 
@@ -1309,6 +1312,48 @@ class PlotSignal(Signal):
                 value = int(value)
 
         return value, kind, self.format
+
+    def timestamp_of_next_different_value(self, timestamp, mode="higher", previous=False):
+        if self.mode == "raw":
+            kind = self.raw_samples.dtype.kind
+            samples = self.raw_samples
+        else:
+            kind = self.phys_samples.dtype.kind
+            samples = self.phys_samples
+
+        if kind not in "uif":
+            samples = self.raw_samples
+            kind = self.raw_samples.dtype.kind
+
+        if kind == "S" or self.samples.size == 0 or timestamp < self.timestamps[0] or timestamp > self.timestamps[-1]:
+            new_timestamp = timestamp
+        else:
+            index = np.searchsorted(self.timestamps, timestamp, side="left")
+
+            value = samples[index]
+
+            match mode:
+                case "higher":
+                    idx = np.argwhere(samples > value).ravel()
+                case "lower":
+                    idx = np.argwhere(samples < value).ravel()
+                case _:
+                    idx = np.argwhere(samples != value).ravel()
+
+            if previous:
+                idx = idx[idx < index]
+            else:
+                idx = idx[idx > index]
+
+            if len(idx) == 0:
+                new_timestamp = timestamp
+            else:
+                if previous:
+                    new_timestamp = self.timestamps[idx[-1]]
+                else:
+                    new_timestamp = self.timestamps[idx[0]]
+
+        return new_timestamp
 
     @property
     def y_range(self):
@@ -2381,22 +2426,31 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.keyPressEvent(event)
 
     def close(self):
+        if self.closed:
+            return
+
         self.closed = True
 
         self.channel_selection.blockSignals(True)
+        self.channel_selection.model().blockSignals(True)
+        self.channel_selection.verticalScrollBar().blockSignals(True)
+        self.splitter.blockSignals(True)
         self.plot.blockSignals(True)
         self.plot._can_paint_global = False
         self.owner = None
+        self._inhibit_timestamp_signals_timer.blockSignals(True)
+        self._inhibit_timestamp_signals_timer.stop()
+        self.info.blockSignals(True)
 
         tree = self.channel_selection
         tree.plot = None
         iterator = QtWidgets.QTreeWidgetItemIterator(tree)
         while item := iterator.value():
             item.signal = None
-
             iterator += 1
 
         tree.clear()
+        tree.close()
         self._visible_items.clear()
 
         for sig in self.plot.signals:
@@ -2413,13 +2467,19 @@ class Plot(QtWidgets.QWidget):
         self.plot.signals.clear()
         self.plot._uuid_map.clear()
         self.plot._timebase_db.clear()
+        for axis in self.plot.axes:
+            if isinstance(axis, FormatedAxis):
+                axis.blockSignals(True)
         self.plot.axes = None
         self.plot.plot_parent = None
+        self.plot.close()
 
         bookmarks = self.plot.bookmarks
         self.plot.bookmarks = []
 
         self.verify_bookmarks.emit(bookmarks, self)
+
+        self.mdf = None
 
         super().close()
 
@@ -3190,6 +3250,12 @@ class Plot(QtWidgets.QWidget):
 
             self.plot.block_zoom_signal = False
 
+    def selected_items(self):
+        uuids = [
+            item.uuid for item in self.channel_selection.selectedItems() if item.type() == ChannelsTreeItem.Channel
+        ]
+        return set(uuids)
+
     def set_conversion(self, uuid, conversion):
         self.plot.set_conversion(uuid, conversion)
         self.cursor_moved()
@@ -3592,8 +3658,6 @@ class PlotGraphics(pg.PlotWidget):
         self._can_paint_global = True
         self.mdf = mdf
 
-        self._can_paint = True
-
         self.setAcceptDrops(True)
 
         self._last_size = self.geometry()
@@ -3860,6 +3924,10 @@ class PlotGraphics(pg.PlotWidget):
                 QtCore.Qt.Key.Key_Y,
             ).toCombined(),
             QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_Y,
+            ).toCombined(),
+            QtCore.QKeyCombination(
                 QtCore.Qt.KeyboardModifier.NoModifier,
                 QtCore.Qt.Key.Key_Left,
             ).toCombined(),
@@ -3911,12 +3979,36 @@ class PlotGraphics(pg.PlotWidget):
                 QtCore.Qt.KeyboardModifier.NoModifier,
                 QtCore.Qt.Key.Key_Insert,
             ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+                QtCore.Qt.Key.Key_PageUp,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_PageUp,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+                QtCore.Qt.Key.Key_PageDown,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.Key.Key_PageDown,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.AltModifier,
+                QtCore.Qt.Key.Key_Left,
+            ).toCombined(),
+            QtCore.QKeyCombination(
+                QtCore.Qt.KeyboardModifier.AltModifier,
+                QtCore.Qt.Key.Key_Right,
+            ).toCombined(),
         }
 
         events = events or []
 
         for i, event_info in enumerate(events):
-            color = COLORS[COLORS_COUNT - (i % COLORS_COUNT) - 1]
+            color = utils.COLORS[utils.COLORS_COUNT - (i % utils.COLORS_COUNT) - 1]
             if isinstance(event_info, (list, tuple)):
                 to_display = event_info
                 labels = [" - Start", " - End"]
@@ -4102,7 +4194,7 @@ class PlotGraphics(pg.PlotWidget):
                     start, stop = self.region.getRegion()
 
                     if self.region_lock is not None:
-                        self.region.setRegion((self.region_lock, pos.x()))
+                        self.region.moving_cursor.setPos(pos)
                     else:
                         if modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
                             self.region.setRegion((start, pos.x()))
@@ -4123,8 +4215,26 @@ class PlotGraphics(pg.PlotWidget):
         self.last_click = perf_counter()
 
     def close(self):
-        self._can_paint_global = False
-        super().close()
+        self.viewbox.blockSignals(True)
+        self.scene_.blockSignals(True)
+        if self.cursor1 is not None:
+            self.cursor1.blockSignals(True)
+        if self.region is not None:
+            self.region.blockSignals(True)
+        self._enable_timer.stop()
+        self._enable_timer.blockSignals(True)
+        self.flash_curve_timer.stop()
+        self.flash_curve_timer.blockSignals(True)
+        self.y_axis.blockSignals(True)
+
+        if self.plotItem is not None:
+            self._can_trim = False
+            self._can_paint = False
+            self._can_compute_all_timebase = False
+            self._can_paint_global = False
+            self.plot_parent = None
+            self.mdf = None
+            super().close()
 
     def _compute_all_timebase(self):
         if self._can_compute_all_timebase:
@@ -4160,7 +4270,10 @@ class PlotGraphics(pg.PlotWidget):
         x = pos.x()
         y = event.scenePos().y()
 
-        if self.cursor1 is not None:
+        if self.region and self.region.moving_cursor is not None:
+            self.region.moving_cursor.setPos(pos)
+
+        elif self.cursor1 is not None:
             self.cursor1.setPos(pos)
             self.cursor1.sigPositionChangeFinished.emit(self.cursor1)
 
@@ -4477,14 +4590,52 @@ class PlotGraphics(pg.PlotWidget):
 
                 if self.region_lock is not None:
                     self.region_lock = None
-                    self.region.lines[0].setMovable(True)
-                    self.region.lines[0].locked = False
+                    for i in range(2):
+                        self.region.lines[i].setMovable(True)
+                        self.region.lines[i].locked = False
                     self.region.movable = True
+                    self.region.moving_cursor = self.region.lines[0]
                 else:
                     self.region_lock = self.region.getRegion()[0]
                     self.region.lines[0].setMovable(False)
                     self.region.lines[0].locked = True
+                    self.region.lines[1].setMovable(True)
+                    self.region.lines[1].locked = False
+                    self.region.moving_cursor = self.region.lines[1]
                     self.region.movable = False
+
+                self.update()
+
+            elif key == QtCore.Qt.Key.Key_Y and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier:
+                if self.region is None:
+                    event_ = QtGui.QKeyEvent(
+                        QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_R, QtCore.Qt.KeyboardModifier.NoModifier
+                    )
+                    self.keyPressEvent(event_)
+
+                    self.region.lines[0].setMovable(False)
+                    self.region.lines[0].locked = True
+                    self.region.lines[1].setMovable(True)
+                    self.region.lines[1].locked = False
+                    self.region.movable = False
+                    self.region.moving_cursor = self.region.lines[1]
+                    self.region_lock = self.region.lines[0].value()
+
+                else:
+                    if self.region.lines[0].isMovable():
+                        self.region_lock = self.region.lines[0].value()
+                        self.region.lines[0].setMovable(False)
+                        self.region.lines[0].locked = True
+                        self.region.lines[1].setMovable(True)
+                        self.region.lines[1].locked = False
+                        self.region.moving_cursor = self.region.lines[1]
+                    else:
+                        self.region_lock = self.region.lines[1].value()
+                        self.region.lines[0].setMovable(True)
+                        self.region.lines[0].locked = False
+                        self.region.lines[1].setMovable(False)
+                        self.region.lines[1].locked = True
+                        self.region.moving_cursor = self.region.lines[0]
 
                 self.update()
 
@@ -4598,18 +4749,14 @@ class PlotGraphics(pg.PlotWidget):
 
             elif key == QtCore.Qt.Key.Key_G:
                 if modifier == QtCore.Qt.KeyboardModifier.NoModifier:
-                    y = self.y_axis.grid
-                    x = self.x_axis.grid
+                    next_grid = {
+                        (False, False): (True, False),
+                        (True, False): (True, True),
+                        (True, True): (False, True),
+                        (False, True): (False, False),
+                    }
 
-                    if x and y:
-                        self.y_axis.grid = False
-                        self.x_axis.grid = False
-                    elif x:
-                        self.y_axis.grid = True
-                        self.x_axis.grid = True
-                    else:
-                        self.y_axis.grid = False
-                        self.x_axis.grid = True
+                    self.x_axis.grid, self.y_axis.grid = next_grid[(self.x_axis.grid, self.y_axis.grid)]
 
                     self.x_axis.picture = None
                     self.y_axis.picture = None
@@ -4654,41 +4801,9 @@ class PlotGraphics(pg.PlotWidget):
                 and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
                 and not self.locked
             ):
-                if key == QtCore.Qt.Key.Key_I:
-                    factor = 0.165
-                else:
-                    factor = -0.165
-
                 self.block_zoom_signal = True
 
-                if self._settings.value("zoom_y_center_on_cursor", True, type=bool):
-                    value_info = self.value_at_cursor()
-                    if not isinstance(value_info[0], (int, float)):
-                        delta_proc = 0
-                    else:
-                        y, sig_y_bottom, sig_y_top = value_info
-                        delta_proc = (y - (sig_y_top + sig_y_bottom) / 2) / (sig_y_top - sig_y_bottom)
-                else:
-                    delta_proc = 0
-
-                for sig in self.signals:
-                    sig_y_bottom, sig_y_top = sig.y_range
-
-                    # center on the signal cursor Y value
-                    shift = delta_proc * (sig_y_top - sig_y_bottom)
-                    sig_y_top, sig_y_bottom = sig_y_top + shift, sig_y_bottom + shift
-
-                    delta = sig_y_top - sig_y_bottom
-                    sig_y_top -= delta * factor
-                    sig_y_bottom += delta * factor
-
-                    sig, idx = self.signal_by_uuid(sig.uuid)
-
-                    axis = self.axes[idx]
-                    if isinstance(axis, FormatedAxis):
-                        axis.setRange(sig_y_bottom, sig_y_top)
-                    else:
-                        self.set_y_range(sig.uuid, (sig_y_bottom, sig_y_top))
+                self.viewbox.vertical_zoom(zoom_in=key == QtCore.Qt.Key.Key_I)
 
                 self.block_zoom_signal = False
                 self.zoom_changed.emit(False)
@@ -4992,6 +5107,78 @@ class PlotGraphics(pg.PlotWidget):
                 self.zoom_changed.emit(False)
 
                 self.update()
+
+            elif (
+                key in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_Right)
+                and modifier == QtCore.Qt.KeyboardModifier.AltModifier
+            ):
+                if self.region is None:
+
+                    pos = self.cursor1.value()
+                    sig, idx = self.signal_by_uuid(self.current_uuid)
+
+                    timestamp = sig.timestamp_of_next_different_value(
+                        pos, mode="different", previous=key == QtCore.Qt.Key.Key_Left
+                    )
+
+                    self.cursor1.set_value(timestamp)
+
+                    view_range = self.viewbox.viewRange()[0]
+                    x_size = view_range[1] - view_range[0]
+                    self.viewbox.setXRange(timestamp - x_size / 2, timestamp + x_size / 2, padding=0)
+
+                else:
+                    pos = self.region.moving_cursor.value()
+                    sig, idx = self.signal_by_uuid(self.current_uuid)
+
+                    timestamp = sig.timestamp_of_next_different_value(
+                        pos, mode="different", previous=key == QtCore.Qt.Key.Key_Left
+                    )
+
+                    self.region.moving_cursor.set_value(timestamp)
+
+                    view_range = sorted([line.value() for line in self.region.lines])
+                    x_size = view_range[1] - view_range[0]
+                    self.viewbox.setXRange(view_range[0] - x_size * 0.05, view_range[1] + x_size * 0.05, padding=0)
+
+            elif key in (QtCore.Qt.Key.Key_PageUp, QtCore.Qt.Key.Key_PageDown) and modifier in (
+                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                QtCore.Qt.KeyboardModifier.ControlModifier,
+            ):
+                if self.region is None:
+
+                    pos = self.cursor1.value()
+                    sig, idx = self.signal_by_uuid(self.current_uuid)
+
+                    timestamp = sig.timestamp_of_next_different_value(
+                        pos,
+                        mode="higher" if key == QtCore.Qt.Key.Key_PageUp else "lower",
+                        previous=modifier
+                        == QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                    )
+
+                    self.cursor1.set_value(timestamp)
+
+                    view_range = self.viewbox.viewRange()
+                    x_size = view_range[1] - view_range[0]
+                    self.viewbox.setXRange(timestamp - x_size / 2, timestamp + x_size / 2, padding=0)
+
+                else:
+                    pos = self.region.moving_cursor.value()
+                    sig, idx = self.signal_by_uuid(self.current_uuid)
+
+                    timestamp = sig.timestamp_of_next_different_value(
+                        pos,
+                        mode="higher" if key == QtCore.Qt.Key.Key_PageUp else "lower",
+                        previous=modifier
+                        == QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                    )
+
+                    self.region.moving_cursor.set_value(timestamp)
+
+                    view_range = sorted([line.value() for line in self.region.lines])
+                    x_size = view_range[1] - view_range[0]
+                    self.viewbox.setXRange(view_range[0] - x_size * 0.05, view_range[1] + x_size * 0.05, padding=0)
 
             elif key in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_Right) and modifier in (
                 QtCore.Qt.KeyboardModifier.NoModifier,
@@ -5670,6 +5857,13 @@ class PlotGraphics(pg.PlotWidget):
             candidates.sort()
             self.curve_clicked.emit(candidates[0][1])
 
+    def selected_items(self):
+        uuids = self.plot_parent.selected_items()
+        if self.current_uuid:
+            uuids.add(self.current_uuid)
+
+        return uuids, self.current_uuid
+
     def set_color(self, uuid, color):
         sig, index = self.signal_by_uuid(uuid)
 
@@ -5747,12 +5941,18 @@ class PlotGraphics(pg.PlotWidget):
 
         if uuid in self.common_axis_items:
             if self.current_uuid not in self.common_axis_items or force:
-                if self._settings.value("plot_background") == "Black":
-                    axis.set_pen(fn.mkPen("#FFFFFF"))
-                    axis.setTextPen("#FFFFFF")
-                else:
-                    axis.set_pen(fn.mkPen("#000000"))
-                    axis.setTextPen("#000000")
+                match self._settings.value("plot_background"):
+                    case "Black":
+                        axis.set_pen(fn.mkPen("#FFFFFF"))
+                        axis.setTextPen("#FFFFFF")
+                    case "White":
+                        axis.set_pen(fn.mkPen("#000000"))
+                        axis.setTextPen("#000000")
+                    case _:
+                        plot_foreground = self._settings.value("plot_foreground", "#ffffff")
+                        axis.set_pen(fn.mkPen(plot_foreground))
+                        axis.setTextPen(plot_foreground)
+
                 axis.setLabel(self.common_axis_label)
 
         else:
@@ -6029,6 +6229,7 @@ class PlotGraphics(pg.PlotWidget):
             self.viewbox_geometry = geometry
 
     def value_at_cursor(self, uuid=None):
+
         uuid = uuid or self.current_uuid
 
         if not uuid:
@@ -6042,7 +6243,7 @@ class PlotGraphics(pg.PlotWidget):
             timestamp = cursor.value()
             sig, idx = self.signal_by_uuid(uuid)
             sig_y_bottom, sig_y_top = sig.y_range
-            y, *_ = sig.value_at_timestamp(timestamp, numeric=True)
+            y, *_ = sig.value_at_timestamp(timestamp, numeric=True, strict_timebase=False)
 
         else:
             sig, idx = self.signal_by_uuid(uuid)

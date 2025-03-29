@@ -196,7 +196,7 @@ static PyObject *extract(PyObject *self, PyObject *args)
   PyObject *signal_data, *is_byte_array, *offsets, *offsets_list = NULL;
   char *buf;
   PyArrayObject *vals;
-  PyArray_Descr *descr;
+  PyArray_Descr *descr_init, *descr;
   unsigned char *addr2;
 
   if (!PyArg_ParseTuple(args, "OOO", &signal_data, &is_byte_array, &offsets))
@@ -287,8 +287,9 @@ static PyObject *extract(PyObject *self, PyObject *args)
       npy_intp dims[1];
       dims[0] = count;
 
-      descr = PyArray_DescrFromType(NPY_STRING);
-      descr = PyArray_DescrNew(descr);
+      descr_init = PyArray_DescrFromType(NPY_STRING);
+      descr = PyArray_DescrNew(descr_init);
+      Py_XDECREF(descr_init);
 #if NPY_ABI_VERSION < 0x02000000
       descr->elsize = (int)max;
 #else
@@ -319,9 +320,9 @@ static PyObject *extract(PyObject *self, PyObject *args)
           size = calc_size(&buf[offset]);
           memcpy(addr2, &buf[offset + 4], size);
         }
-        Py_XDECREF(offsets_list);
       }
     }
+    if (offsets_list) Py_XDECREF(offsets_list);
   }
 
   return (PyObject *)vals;
@@ -593,7 +594,7 @@ void positions_long(PyObject *samples, PyObject *timestamps, PyObject *plot_samp
   indata = (int32_t *)PyArray_GETPTR1((PyArrayObject *)samples, 0);
   outdata = (int32_t *)PyArray_GETPTR1((PyArrayObject *)result, 0);
 
-  long *ps;
+  int32_t *ps;
   double tmin, tmax, *ts, *pt;
 
   ps = (int32_t *)PyArray_GETPTR1((PyArrayObject *)plot_samples, 0);
@@ -1364,8 +1365,8 @@ static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
 
     npy_intp dims[1];
     dims[0] = count;
-    out = (PyArrayObject *)PyArray_EMPTY(1, dims, NPY_BOOL, 0);
-    outptr = (uint8_t *)PyArray_GETPTR1(out, 0);
+    out = PyArray_EMPTY(1, dims, NPY_BOOL, 0);
+    outptr = (uint8_t *)PyArray_GETPTR1((PyArrayObject *)out, 0);
 
     for (int i=0; i<count; i++) {
       *outptr++ = (*inptr) & mask ? 1 : 0;
@@ -1380,6 +1381,7 @@ static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
 static PyObject *get_invalidation_bits_array_C(uint8_t * data, int64_t cycles, int64_t invalidation_pos, int64_t invalidation_size)
 {
   if (invalidation_pos < 0) {
+    Py_INCREF(Py_None);
     return Py_None;
   }
 
@@ -1393,9 +1395,9 @@ static PyObject *get_invalidation_bits_array_C(uint8_t * data, int64_t cycles, i
 
     npy_intp dims[1];
     dims[0] = cycles;
-    out = (PyArrayObject *)PyArray_EMPTY(1, dims, NPY_BOOL, 0);
+    out = PyArray_EMPTY(1, dims, NPY_BOOL, 0);
     if (!out) return NULL;
-    outptr = (uint8_t *)PyArray_GETPTR1(out, 0);
+    outptr = (uint8_t *)PyArray_GETPTR1((PyArrayObject *)out, 0);
 
     for (int i=0; i<cycles; i++) {
       *outptr++ = (*inptr) & mask ? 1 : 0;
@@ -1766,7 +1768,7 @@ static PyObject *data_block_from_arrays(PyObject *self, PyObject *args)
           inptr = (uint8_t *) PyBytes_AsString(array);
         }
         else {
-          if (!PyArray_IS_C_CONTIGUOUS(array))
+          if (!PyArray_IS_C_CONTIGUOUS((PyArrayObject *) array))
           {
             copy_array = PyArray_NewCopy((PyArrayObject *)array, NPY_CORDER);
             array = copy_array;
@@ -1951,7 +1953,7 @@ static PyObject *bytes_dtype_size(PyObject *self, PyObject *args)
   }
   else
   {
-    count = (Py_ssize_t) *PyArray_SHAPE(data);
+    count = (Py_ssize_t) *PyArray_SHAPE((PyArrayObject *)data);
     pointer = (PyObject **)PyArray_GETPTR1((PyArrayObject *)data, 0);
     for (i=0; i<count; i++, pointer++) {
       if (!PyBytes_Check(*pointer)) {

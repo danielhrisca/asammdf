@@ -41,21 +41,6 @@ NO_ERROR_ICON = None
 
 COMPUTED_FUNCTION_ERROR_VALUE = float("nan")
 
-
-COLORS = [
-    "#1f77b4",
-    "#ff7f0e",
-    "#2ca02c",
-    "#d62728",
-    "#9467bd",
-    "#8c564b",
-    "#e377c2",
-    "#7f7f7f",
-    "#bcbd22",
-    "#17becf",
-]
-COLORS_COUNT = len(COLORS)
-
 SUPPORTED_FILE_EXTENSIONS = {".csv", ".zip", ".erg", ".dat", ".mdf", ".mf4", ".mf4z"}
 SUPPORTED_BUS_DATABASE_EXTENSIONS = {".arxml", ".dbc", ".xml"}
 
@@ -1159,17 +1144,18 @@ def value_as_str(value, format, dtype=None, precision=3):
         kind = "S"
 
     if kind in "ui":
-        if format == "bin":
-            string = value_as_bin(value, dtype)
-        elif format == "hex":
-            string = value_as_hex(value, dtype)
-        elif format == "ascii":
-            if 0 < value < 0x110000:
-                string = chr(value)
-            else:
+        match format:
+            case "bin":
+                string = value_as_bin(value, dtype)
+            case "hex":
+                string = value_as_hex(value, dtype)
+            case "ascii":
+                if 0 < value < 0x110000:
+                    string = chr(value)
+                else:
+                    string = str(value)
+            case _:
                 string = str(value)
-        else:
-            string = str(value)
     elif kind in "SUV":
         string = str(value)
     else:
