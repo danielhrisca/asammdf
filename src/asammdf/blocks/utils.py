@@ -22,7 +22,7 @@ from time import perf_counter
 from traceback import format_exc
 from types import TracebackType
 import typing
-from typing import Literal, NewType, Optional, TYPE_CHECKING, Union
+from typing import Final, Literal, Optional, TYPE_CHECKING, Union
 import xml.etree.ElementTree as ET
 
 from canmatrix.canmatrix import CanMatrix, matrix_class
@@ -96,16 +96,19 @@ except:
 if TYPE_CHECKING:
     from PySide6 import QtCore
 
-Terminated = NewType("Terminated", object)
 
-THREAD_COUNT = max(multiprocessing.cpu_count() - 1, 1)
-TERMINATED = Terminated(object())
-NONE = object()
-COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
-C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
-target_byte_order = "<=" if sys.byteorder == "little" else ">="
+class Terminated:
+    pass
 
-COLOR_MAPS = {
+
+THREAD_COUNT: Final = max(multiprocessing.cpu_count() - 1, 1)
+TERMINATED: Final = Terminated()
+NONE: Final = object()
+COMPARISON_NAME: Final = re.compile(r"(\s*\d+:)?(?P<name>.+)")
+C_FUNCTION: Final = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
+target_byte_order: Final = "<=" if sys.byteorder == "little" else ">="
+
+COLOR_MAPS: Final = {
     "Accent": ["#7fc97f", "#beaed4", "#fdc086", "#ffff99", "#386cb0", "#f0027f", "#bf5b16", "#666666"],
     "Dark2": ["#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666"],
     "Paired": [
@@ -220,8 +223,8 @@ COLOR_MAPS = {
     ],
 }
 
-COLORS = COLOR_MAPS["tab10"]
-COLORS_COUNT = len(COLORS)
+COLORS: Final = COLOR_MAPS["tab10"]
+COLORS_COUNT: Final = len(COLORS)
 
 UINT8_u: Callable[[Buffer], tuple[int]] = Struct("<B").unpack
 UINT16_u: Callable[[Buffer], tuple[int]] = Struct("<H").unpack
@@ -239,7 +242,7 @@ TWO_UINT64_uf: UnpackFrom[tuple[int, int]] = Struct("<2Q").unpack_from
 BLK_COMMON_uf: UnpackFrom[tuple[bytes, int]] = Struct("<4s4xQ").unpack_from
 BLK_COMMON_u: Callable[[Buffer], tuple[bytes, int]] = Struct("<4s4xQ8x").unpack
 
-EMPTY_TUPLE = ()
+EMPTY_TUPLE: Final = ()
 
 _xmlns_pattern = re.compile(' xmlns="[^"]*"')
 
@@ -267,21 +270,21 @@ __all__ = [
 ]
 
 _channel_count = (1000, 2000, 10000, 20000)
-CHANNEL_COUNT = arange(0, 20000, 1000, dtype=np.dtype("<u4"))
+CHANNEL_COUNT: Final = arange(0, 20000, 1000, dtype=np.dtype("<u4"))
 
 _convert = (10 * 2**20, 20 * 2**20, 30 * 2**20, 40 * 2**20)
-CONVERT = interp(CHANNEL_COUNT, _channel_count, _convert).astype("<u4")
+CONVERT: Final = interp(CHANNEL_COUNT, _channel_count, _convert).astype("<u4")
 
 _merge = (10 * 2**20, 20 * 2**20, 35 * 2**20, 60 * 2**20)
-MERGE = interp(CHANNEL_COUNT, _channel_count, _merge).astype("<u4")
+MERGE: Final = interp(CHANNEL_COUNT, _channel_count, _merge).astype("<u4")
 
-MDF2_VERSIONS = ("2.00", "2.10", "2.14")
-MDF3_VERSIONS = ("3.00", "3.10", "3.20", "3.30")
-MDF4_VERSIONS = ("4.00", "4.10", "4.11", "4.20")
-SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
+MDF2_VERSIONS: Final = ("2.00", "2.10", "2.14")
+MDF3_VERSIONS: Final = ("3.00", "3.10", "3.20", "3.30")
+MDF4_VERSIONS: Final = ("4.00", "4.10", "4.11", "4.20")
+SUPPORTED_VERSIONS: Final = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 
 
-ALLOWED_MATLAB_CHARS = set(string.ascii_letters + string.digits + "_")
+ALLOWED_MATLAB_CHARS: Final = set(string.ascii_letters + string.digits + "_")
 
 
 class MdfException(Exception):

@@ -9,6 +9,7 @@ import sys
 from textwrap import wrap
 from traceback import format_exc
 import typing
+from typing import Final
 import xml.etree.ElementTree as ET
 
 import dateutil.tz
@@ -35,8 +36,8 @@ try:
 except:
     lambdify, symbols = None, None
 
-SEEK_START = v23c.SEEK_START
-SEEK_END = v23c.SEEK_END
+SEEK_START: Final = v23c.SEEK_START
+SEEK_END: Final = v23c.SEEK_END
 
 
 CHANNEL_DISPLAYNAME_u = v23c.CHANNEL_DISPLAYNAME_u

@@ -15,7 +15,7 @@ from textwrap import wrap
 import time
 from traceback import format_exc
 import typing
-from typing import Literal, TYPE_CHECKING, Union
+from typing import Final, Literal, TYPE_CHECKING, Union
 from xml.dom import minidom
 import xml.etree.ElementTree as ET
 
@@ -25,14 +25,7 @@ from lz4.frame import decompress as lz_decompress
 from numexpr import evaluate
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
-from typing_extensions import (
-    Any,
-    Buffer,
-    overload,
-    SupportsBytes,
-    TypedDict,
-    Unpack,
-)
+from typing_extensions import Any, Buffer, overload, SupportsBytes, TypedDict, Unpack
 
 from .. import tool
 from . import utils
@@ -83,18 +76,18 @@ except:
 if TYPE_CHECKING:
     from .source_utils import Source
 
-SEEK_START = v4c.SEEK_START
-SEEK_END = v4c.SEEK_END
-COMMON_SIZE = v4c.COMMON_SIZE
+SEEK_START: Final = v4c.SEEK_START
+SEEK_END: Final = v4c.SEEK_END
+COMMON_SIZE: Final = v4c.COMMON_SIZE
 COMMON_u = v4c.COMMON_u
 COMMON_uf = v4c.COMMON_uf
 
-CN_BLOCK_SIZE = v4c.CN_BLOCK_SIZE
-CN_SINGLE_ATTACHMENT_BLOCK_SIZE = v4c.CN_SINGLE_ATTACHMENT_BLOCK_SIZE
+CN_BLOCK_SIZE: Final = v4c.CN_BLOCK_SIZE
+CN_SINGLE_ATTACHMENT_BLOCK_SIZE: Final = v4c.CN_SINGLE_ATTACHMENT_BLOCK_SIZE
 SIMPLE_CHANNEL_PARAMS_uf = v4c.SIMPLE_CHANNEL_PARAMS_uf
 SINGLE_ATTACHMENT_CHANNEL_PARAMS_uf = v4c.SINGLE_ATTACHMENT_CHANNEL_PARAMS_uf
 
-EIGHT_BYTES = bytes(8)
+EIGHT_BYTES: Final = bytes(8)
 
 logger = logging.getLogger("asammdf")
 
@@ -565,10 +558,11 @@ class Channel:
     )
 
     def __init__(self, **kwargs: Unpack[ChannelKwargs]) -> None:
+        self.dtype_fmt: np.dtype[Any] = np.dtype(np.void)
+
         if "stream" in kwargs:
             self.address = address = kwargs["address"]
             self.attachment = None
-            self.dtype_fmt: np.dtype[Any]
             stream = kwargs["stream"]
             mapped = kwargs["mapped"]
 

@@ -11,12 +11,7 @@ from typing import Generic
 
 import numpy as np
 from numpy.typing import DTypeLike, NDArray
-from typing_extensions import (
-    Any,
-    Required,
-    TypedDict,
-    TypeVar,
-)
+from typing_extensions import Any, Required, TypedDict, TypeVar
 
 from . import v2_v3_blocks as v3b
 from . import v4_blocks as v4b

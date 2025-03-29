@@ -1,7 +1,7 @@
 from enum import IntEnum
 import os
 from os import PathLike
-from typing import Literal
+from typing import Final, Literal
 
 from typing_extensions import Any, TypedDict
 
@@ -30,7 +30,7 @@ class _GlobalOptions(TypedDict):
     fill_0_for_missing_computation_channels: bool
 
 
-GLOBAL_OPTIONS: _GlobalOptions = {
+GLOBAL_OPTIONS: Final[_GlobalOptions] = {
     "read_fragment_size": 256 * 1024 * 1024,
     "write_fragment_size": 4 * 1024 * 1024,
     "use_display_names": True,

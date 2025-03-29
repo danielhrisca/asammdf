@@ -53,12 +53,11 @@ def conversion_transfer(
     """
 
     if version <= 3:
-        conversion = typing.cast(v4b.ChannelConversion | None, conversion)
         if conversion is None:
             conversion = v3b.ChannelConversion(conversion_type=v3c.CONVERSION_TYPE_NONE)
         else:
             conversion_type = conversion.conversion_type
-            if conversion.id == b"CC":
+            if isinstance(conversion, v3b.ChannelConversion):
                 if copy:
                     conversion = deepcopy(conversion)
             else:
@@ -160,6 +159,8 @@ def conversion_transfer(
                             default_addr = conversion.referenced_blocks["default_addr"]
                         new_conversion.referenced_blocks["default_addr"] = default_addr
 
+                        conversion = new_conversion
+
                     case v4c.CONVERSION_TYPE_RTABX:
                         nr = conversion.val_param_nr // 2
                         v3_kwargs = {
@@ -189,8 +190,7 @@ def conversion_transfer(
                         conversion = new_conversion
 
     else:
-        conversion = typing.cast(v3b.ChannelConversion, conversion)
-        if not conversion or conversion.id == b"##CC":
+        if not conversion or isinstance(conversion, v4b.ChannelConversion):
             if copy:
                 conversion = deepcopy(conversion)
         else:
@@ -275,60 +275,63 @@ def conversion_transfer(
 
 
 def inverse_conversion(
-    conversion: ChannelConversionType | dict[str, object] | None,
+    conversion: (
+        ChannelConversionType | v3b.ChannelConversionKwargs | v4b.ChannelConversionKwargs | dict[str, object] | None
+    ),
 ) -> v4b.ChannelConversion | None:
+    if not conversion:
+        return None
 
     if isinstance(conversion, v3b.ChannelConversion):
         conversion = conversion_transfer(conversion, version=4)
 
-    if conversion:
-        if not isinstance(conversion, dict):
-            conversion = to_dict(conversion) or {}
+    conversion_dict: v3b.ChannelConversionKwargs | v4b.ChannelConversionKwargs | dict[str, object]
+    if not isinstance(conversion, dict):
+        conversion_dict = to_dict(conversion)
+    else:
+        conversion_dict = conversion
 
-        if "a" in conversion:
-            kwargs: v4b.ChannelConversionKwargs = {
-                "conversion_type": v4c.CONVERSION_TYPE_LIN,
-                "a": 1 / typing.cast(float, conversion["a"]),
-                "b": typing.cast(float, conversion["b"]) / typing.cast(float, conversion["a"]),
-            }
-            conv = v4b.ChannelConversion(**kwargs)
+    if "a" in conversion_dict:
+        kwargs: v4b.ChannelConversionKwargs = {
+            "conversion_type": v4c.CONVERSION_TYPE_LIN,
+            "a": 1 / typing.cast(float, conversion_dict["a"]),
+            "b": typing.cast(float, conversion_dict["b"]) / typing.cast(float, conversion_dict["a"]),
+        }
+        conv = v4b.ChannelConversion(**kwargs)
 
-        elif "P1" in conversion:
-            a, b, c, d, e, f = (typing.cast(float, conversion[f"P{i}"]) for i in range(1, 7))
+    elif "P1" in conversion_dict:
+        a, b, c, d, e, f = (typing.cast(float, conversion_dict[f"P{i}"]) for i in range(1, 7))  # type: ignore[literal-required]
 
-            if e == 0 and f == 0:
-                if d == 0 and a == 0:
-                    conv = None
-                else:
-                    kwargs = {
-                        "P1": 0,
-                        "P2": e,
-                        "P3": -b,
-                        "P4": 0,
-                        "P5": -d,
-                        "P6": a,
-                        "conversion_type": v4c.CONVERSION_TYPE_RAT,
-                    }
-                    conv = v4b.ChannelConversion(**kwargs)
+        if e == 0 and f == 0:
+            if d == 0 and a == 0:
+                conv = None
+            else:
+                kwargs = {
+                    "P1": 0,
+                    "P2": e,
+                    "P3": -b,
+                    "P4": 0,
+                    "P5": -d,
+                    "P6": a,
+                    "conversion_type": v4c.CONVERSION_TYPE_RAT,
+                }
+                conv = v4b.ChannelConversion(**kwargs)
 
-            elif a == 0 and d == 0:
+        elif a == 0 and d == 0:
 
-                if e == 0 and b == 0:
-                    conv = None
-                else:
-                    kwargs = {
-                        "P1": 0,
-                        "P2": -f,
-                        "P3": c,
-                        "P4": 0,
-                        "P5": e,
-                        "P6": -b,
-                        "conversion_type": v4c.CONVERSION_TYPE_RAT,
-                    }
-                    conv = v4b.ChannelConversion(**kwargs)
-
-        else:
-            conv = None
+            if e == 0 and b == 0:
+                conv = None
+            else:
+                kwargs = {
+                    "P1": 0,
+                    "P2": -f,
+                    "P3": c,
+                    "P4": 0,
+                    "P5": e,
+                    "P6": -b,
+                    "conversion_type": v4c.CONVERSION_TYPE_RAT,
+                }
+                conv = v4b.ChannelConversion(**kwargs)
 
     else:
         conv = None
@@ -336,7 +339,15 @@ def inverse_conversion(
     return conv
 
 
-def from_dict(conversion_dict: v4b.ChannelConversionKwargs) -> v4b.ChannelConversion | None:
+@overload
+def from_dict(conversion_dict: v4b.ChannelConversionKwargs | dict[str, object]) -> v4b.ChannelConversion: ...
+
+
+@overload
+def from_dict(conversion_dict: None) -> None: ...
+
+
+def from_dict(conversion_dict: v4b.ChannelConversionKwargs | dict[str, object] | None) -> v4b.ChannelConversion | None:
     if not conversion_dict:
         conversion = None
 
@@ -345,7 +356,7 @@ def from_dict(conversion_dict: v4b.ChannelConversionKwargs) -> v4b.ChannelConver
         conversion = v4b.ChannelConversion(**conversion_dict)
 
     elif "formula" in conversion_dict:
-        conversion_dict["formula"] = conversion_dict["formula"]
+        conversion_dict["formula"] = typing.cast(str, conversion_dict["formula"])
         conversion_dict["conversion_type"] = v4c.CONVERSION_TYPE_ALG
         conversion = v4b.ChannelConversion(**conversion_dict)
 
@@ -371,21 +382,20 @@ def from_dict(conversion_dict: v4b.ChannelConversionKwargs) -> v4b.ChannelConver
         while f"text_{nr}" in conversion_dict:
             val = conversion_dict[f"text_{nr}"]  # type: ignore[literal-required]
             if isinstance(val, (bytes, str)):
-                partial_conversion: v4b.ChannelConversionKwargs = {
+                partial_conversion: dict[str, object] = {
                     "conversion_type": v4c.CONVERSION_TYPE_RTABX,
-                    f"upper_{nr}": conversion_dict[f"upper_{nr}"],  # type: ignore[misc]
-                    f"lower_{nr}": conversion_dict[f"lower_{nr}"],
+                    f"upper_{nr}": conversion_dict[f"upper_{nr}"],  # type: ignore[literal-required]
+                    f"lower_{nr}": conversion_dict[f"lower_{nr}"],  # type: ignore[literal-required]
                     f"text_{nr}": (
-                        conversion_dict[f"text_{nr}"]
-                        if isinstance(conversion_dict[f"text_{nr}"], bytes)
-                        else conversion_dict[f"text_{nr}"].encode("utf-8")
+                        text
+                        if isinstance((text := typing.cast(bytes | str, conversion_dict[f"text_{nr}"])), bytes)  # type: ignore[literal-required]
+                        else text.encode("utf-8")
                     ),
                     "default": b"",
                 }
-                conversion_dict[f"text_{nr}"] = typing.cast(v4b.ChannelConversion, from_dict(partial_conversion))  # type: ignore[literal-required]
+                conversion_dict[f"text_{nr}"] = from_dict(partial_conversion)  # type: ignore[literal-required]
             elif isinstance(val, dict):
-                val = typing.cast(v4b.ChannelConversionKwargs, val)
-                conversion_dict[f"text_{nr}"] = typing.cast(v4b.ChannelConversion, from_dict(val))  # type: ignore[literal-required]
+                conversion_dict[f"text_{nr}"] = from_dict(val)  # type: ignore[literal-required]
 
             nr += 1
 
@@ -409,16 +419,14 @@ def from_dict(conversion_dict: v4b.ChannelConversionKwargs) -> v4b.ChannelConver
             if isinstance(val, str):
                 conversion_dict[f"text_{nr}"] = val.encode("utf-8")  # type: ignore[literal-required]
             elif isinstance(val, dict):
-                val = typing.cast(v4b.ChannelConversionKwargs, val)
-                conversion_dict[f"text_{nr}"] = typing.cast(v4b.ChannelConversion, from_dict(val))  # type: ignore[literal-required]
+                conversion_dict[f"text_{nr}"] = from_dict(val)  # type: ignore[literal-required]
             nr += 1
 
         val = conversion_dict.get("default_addr", b"")
         if isinstance(val, str):
             conversion_dict["default_addr"] = val.encode("utf-8")
         elif isinstance(val, dict):
-            val = typing.cast(v4b.ChannelConversionKwargs, val)
-            conversion_dict["default_addr"] = typing.cast(v4b.ChannelConversion, from_dict(val))
+            conversion_dict["default_addr"] = from_dict(val)
 
         conversion_dict["ref_param_nr"] = nr + 1
         conversion = v4b.ChannelConversion(**conversion_dict)
@@ -431,8 +439,7 @@ def from_dict(conversion_dict: v4b.ChannelConversionKwargs) -> v4b.ChannelConver
             if isinstance(val, str):
                 conversion_dict[f"text_{nr}"] = val.encode("utf-8")  # type: ignore[literal-required]
             elif isinstance(val, dict):
-                val = typing.cast(v4b.ChannelConversionKwargs, val)
-                conversion_dict[f"text_{nr}"] = typing.cast(v4b.ChannelConversion, from_dict(val))  # type: ignore[literal-required]
+                conversion_dict[f"text_{nr}"] = from_dict(val)  # type: ignore[literal-required]
             nr += 1
 
         conversion_dict["ref_param_nr"] = nr + 1
@@ -441,8 +448,7 @@ def from_dict(conversion_dict: v4b.ChannelConversionKwargs) -> v4b.ChannelConver
         if isinstance(val, str):
             conversion_dict["default_addr"] = val.encode("utf-8")
         elif isinstance(val, dict):
-            val = typing.cast(v4b.ChannelConversionKwargs, val)
-            conversion_dict["default_addr"] = typing.cast(v4b.ChannelConversion, from_dict(val))
+            conversion_dict["default_addr"] = from_dict(val)
         conversion = v4b.ChannelConversion(**conversion_dict)
 
     elif "default_addr" in conversion_dict:
@@ -451,8 +457,7 @@ def from_dict(conversion_dict: v4b.ChannelConversionKwargs) -> v4b.ChannelConver
         if isinstance(val, str):
             conversion_dict["default_addr"] = val.encode("utf-8")
         elif isinstance(val, dict):
-            val = typing.cast(v4b.ChannelConversionKwargs, val)
-            conversion_dict["default_addr"] = typing.cast(v4b.ChannelConversion, from_dict(val))
+            conversion_dict["default_addr"] = from_dict(val)
         conversion_dict["ref_param_nr"] = 1
         conversion = v4b.ChannelConversion(**conversion_dict)
 
@@ -475,50 +480,52 @@ def to_dict(conversion: ChannelConversionType | None) -> dict[str, object] | Non
         return None
 
     if isinstance(conversion, v3b.ChannelConversion):
-        conversion = conversion_transfer(conversion, version=4)
+        conversion_v4 = conversion_transfer(conversion, version=4)
+    else:
+        conversion_v4 = conversion
 
-    conversion_type = conversion.conversion_type
+    conversion_type = conversion_v4.conversion_type
 
     conversion_dict: dict[str, object] = {
-        "name": conversion.name,
-        "unit": conversion.unit,
-        "comment": conversion.comment,
+        "name": conversion_v4.name,
+        "unit": conversion_v4.unit,
+        "comment": conversion_v4.comment,
     }
 
     match conversion_type:
         case v4c.CONVERSION_TYPE_LIN:
-            conversion_dict["a"] = conversion.a
-            conversion_dict["b"] = conversion.b
+            conversion_dict["a"] = conversion_v4.a
+            conversion_dict["b"] = conversion_v4.b
             conversion_dict["conversion_type"] = conversion_type
 
         case v4c.CONVERSION_TYPE_ALG:
-            conversion_dict["formula"] = conversion["formula"]
+            conversion_dict["formula"] = conversion_v4.formula
             conversion_dict["conversion_type"] = conversion_type
 
         case v4c.CONVERSION_TYPE_RAT:
-            conversion_dict.update({key: conversion[key] for key in [f"P{i}" for i in range(1, 7)]})
+            conversion_dict.update({key: conversion_v4[key] for key in [f"P{i}" for i in range(1, 7)]})
             conversion_dict["conversion_type"] = conversion_type
 
         case v4c.CONVERSION_TYPE_TAB | v4c.CONVERSION_TYPE_TABI:
-            params = conversion.val_param_nr // 2
-            conversion_dict.update({key: conversion[key] for key in [f"phys_{nr}" for nr in range(params)]})
-            conversion_dict.update({key: conversion[key] for key in [f"raw_{nr}" for nr in range(params)]})
+            params = conversion_v4.val_param_nr // 2
+            conversion_dict.update({key: conversion_v4[key] for key in [f"phys_{nr}" for nr in range(params)]})
+            conversion_dict.update({key: conversion_v4[key] for key in [f"raw_{nr}" for nr in range(params)]})
             conversion_dict["conversion_type"] = conversion_type
 
         case v4c.CONVERSION_TYPE_RTAB:
-            params = (conversion.val_param_nr - 1) // 3
-            conversion_dict.update({key: conversion[key] for key in [f"lower_{nr}" for nr in range(params)]})
-            conversion_dict.update({key: conversion[key] for key in [f"upper_{nr}" for nr in range(params)]})
-            conversion_dict.update({key: conversion[key] for key in [f"phys_{nr}" for nr in range(params)]})
+            params = (conversion_v4.val_param_nr - 1) // 3
+            conversion_dict.update({key: conversion_v4[key] for key in [f"lower_{nr}" for nr in range(params)]})
+            conversion_dict.update({key: conversion_v4[key] for key in [f"upper_{nr}" for nr in range(params)]})
+            conversion_dict.update({key: conversion_v4[key] for key in [f"phys_{nr}" for nr in range(params)]})
             conversion_dict["conversion_type"] = conversion_type
-            conversion_dict["default"] = conversion.default
+            conversion_dict["default"] = conversion_v4.default
 
         case v4c.CONVERSION_TYPE_TABX:
-            nr = conversion.ref_param_nr - 1
+            nr = conversion_v4.ref_param_nr - 1
 
             conversion_dict["conversion_type"] = conversion_type
 
-            for key, val in conversion.referenced_blocks.items():
+            for key, val in conversion_v4.referenced_blocks.items():
                 if isinstance(val, str):
                     conversion_dict[key] = val
                 elif isinstance(val, v4b.ChannelConversion):
@@ -529,14 +536,14 @@ def to_dict(conversion: ChannelConversionType | None) -> dict[str, object] | Non
                     conversion_dict[key] = val.decode("utf-8", errors="replace")
 
             for i in range(nr):
-                conversion_dict[f"val_{i}"] = conversion[f"val_{i}"]
+                conversion_dict[f"val_{i}"] = conversion_v4[f"val_{i}"]
 
         case v4c.CONVERSION_TYPE_RTABX:
-            nr = conversion.ref_param_nr - 1
+            nr = conversion_v4.ref_param_nr - 1
 
             conversion_dict["conversion_type"] = conversion_type
 
-            for key, val in conversion.referenced_blocks.items():
+            for key, val in conversion_v4.referenced_blocks.items():
                 if isinstance(val, str):
                     conversion_dict[key] = val
                 elif isinstance(val, v4b.ChannelConversion):
@@ -547,8 +554,8 @@ def to_dict(conversion: ChannelConversionType | None) -> dict[str, object] | Non
                     conversion_dict[key] = val.decode("utf-8", errors="replace")
 
             for i in range(nr):
-                conversion_dict[f"upper_{i}"] = conversion[f"upper_{i}"]
-                conversion_dict[f"lower_{i}"] = conversion[f"lower_{i}"]
+                conversion_dict[f"upper_{i}"] = conversion_v4[f"upper_{i}"]
+                conversion_dict[f"lower_{i}"] = conversion_v4[f"lower_{i}"]
 
         case _:
             return None

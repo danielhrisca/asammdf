@@ -23,7 +23,7 @@ import tempfile
 from tempfile import gettempdir, NamedTemporaryFile
 from traceback import format_exc
 import typing
-from typing import BinaryIO, Literal
+from typing import BinaryIO, Final, Literal, TYPE_CHECKING
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import canmatrix
@@ -77,7 +77,6 @@ from ..types import (
     StrPathType,
 )
 from . import bus_logging_utils, mdf_common, utils
-from . import v2_v3_blocks as v3b
 from . import v4_constants as v4c
 from .conversion_utils import conversion_transfer
 from .cutils import (
@@ -166,6 +165,9 @@ try:
 except ImportError:
     from zlib import decompress
 
+if TYPE_CHECKING:
+    from ..mdf import MDF
+
 try:
     decode = np.strings.decode
     encode = np.strings.encode
@@ -173,20 +175,20 @@ except:
     decode = np.char.decode
     encode = np.char.encode
 
-MASTER_CHANNELS = (v4c.CHANNEL_TYPE_MASTER, v4c.CHANNEL_TYPE_VIRTUAL_MASTER)
-COMMON_SIZE = v4c.COMMON_SIZE
+MASTER_CHANNELS: Final = (v4c.CHANNEL_TYPE_MASTER, v4c.CHANNEL_TYPE_VIRTUAL_MASTER)
+COMMON_SIZE: Final = v4c.COMMON_SIZE
 COMMON_u = v4c.COMMON_u
 COMMON_uf = v4c.COMMON_uf
 
-COMMON_SHORT_SIZE = v4c.COMMON_SHORT_SIZE
+COMMON_SHORT_SIZE: Final = v4c.COMMON_SHORT_SIZE
 COMMON_SHORT_uf = v4c.COMMON_SHORT_uf
 COMMON_SHORT_u = v4c.COMMON_SHORT_u
-VALID_DATA_TYPES = v4c.VALID_DATA_TYPES
+VALID_DATA_TYPES: Final = v4c.VALID_DATA_TYPES
 
-EMPTY_TUPLE = ()
+EMPTY_TUPLE: Final = ()
 
 # 100 extra steps for the sorting, 1 step after sorting and 1 step at finish
-SORT_STEPS = 102
+SORT_STEPS: Final = 102
 
 
 logger = logging.getLogger("asammdf")
@@ -443,7 +445,7 @@ class MDF4(MDF_Common[Group]):
 
             self.name = Path("__new__.mf4")
 
-        self._parent: object | None = None
+        self._parent: MDF | None = None
 
     def __del__(self) -> None:
         self.close()
@@ -1662,7 +1664,7 @@ class MDF4(MDF_Common[Group]):
 
                     else:
                         seek(invalidation_info.address)
-                        original_size = typing.cast(int, invalidation_info.original_size)
+                        original_size = typing.cast(int, invalidation_info.compressed_size)
                         new_invalidation_data = read(original_size)
                         if invalidation_info.block_type == v4c.DZ_BLOCK_DEFLATE:
                             new_invalidation_data = decompress(
@@ -1891,7 +1893,7 @@ class MDF4(MDF_Common[Group]):
                         elif size > 8:
                             bit_offset += 16 - bit_size
 
-                    if not new_ch.dtype_fmt:
+                    if new_ch.dtype_fmt == np.dtype(np.void):
                         new_ch.dtype_fmt = np.dtype(get_fmt_v4(data_type, size, ch_type))
 
                     if (
@@ -4721,9 +4723,7 @@ class MDF4(MDF_Common[Group]):
                 ch.display_names = signal.display_names
 
                 # conversions for channel
-                conversion = conversion_transfer(
-                    typing.cast(v3b.ChannelConversion | None, signal.conversion), version=4
-                )
+                conversion = conversion_transfer(signal.conversion, version=4)
                 if signal.raw:
                     ch.conversion = conversion
 
