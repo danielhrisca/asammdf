@@ -4,7 +4,8 @@ from PySide6 import QtCore, QtTest
 from PySide6.QtWidgets import QPushButton as QBtn
 from PySide6.QtWidgets import QTreeWidgetItemIterator
 
-from asammdf.gui.utils import BLUE, COLORS
+from asammdf.blocks.utils import COLORS
+from asammdf.gui.utils import BLUE
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
