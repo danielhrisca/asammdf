@@ -10,7 +10,7 @@ Welcome to asammdf's documentation!
 
 *asammdf* supports MDF versions 2 (.dat), 3 (.mdf) and 4 (.mf4).
 
-*asammdf* works on Python >= 3.9 (for Python 2.7, 3.4 and 3.5 see the 4.x.y releases)
+*asammdf* works on Python >= 3.10 (for Python 2.7, 3.4 and 3.5 see the 4.x.y releases)
 
 
 .. toctree::

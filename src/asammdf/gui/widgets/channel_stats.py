@@ -91,7 +91,7 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
                     label = self.findChild(QtWidgets.QLabel, name)
 
                     if precision >= 0:
-                        if isinstance(value, float | np.floating):
+                        if isinstance(value, (float, np.floating)):
                             label.setText(fmt.format(value))
                         else:
                             label.setText(str(value))

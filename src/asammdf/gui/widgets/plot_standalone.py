@@ -32,7 +32,7 @@ class PlotWindow(QtWidgets.QMainWindow):
         self._settings = QtCore.QSettings()
         self.with_dots = self._settings.value("dots", False, type=bool)
 
-        if isinstance(signals, list | tuple):
+        if isinstance(signals, (list, tuple)):
             signals = {sig.name: PlotSignal(sig) for sig in signals}
 
         self.plot = Plot({}, self.with_dots)

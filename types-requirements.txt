@@ -5,3 +5,4 @@ types-lxml
 types-psutil
 types-PyAutoGUI
 types-python-dateutil
+types-zstd

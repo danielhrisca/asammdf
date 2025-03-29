@@ -292,7 +292,7 @@ class OnlineBackEnd:
                 value = signal.get_value(sorted_column_index)
                 if value is None:
                     nones.append(signal)
-                elif isinstance(value, np.flexible | bytes):
+                elif isinstance(value, (np.flexible, bytes)):
                     string.append(signal)
                 else:
                     numeric.append(signal)
@@ -441,7 +441,7 @@ class OfflineBackEnd:
                 value = signal.get_value(sorted_column_index, self.timestamp)
                 if value is None:
                     nones.append(signal)
-                elif isinstance(value, np.flexible | bytes):
+                elif isinstance(value, (np.flexible, bytes)):
                     string.append(signal)
                 else:
                     numeric.append(signal)
@@ -531,11 +531,11 @@ class TableModel(QtCore.QAbstractTableModel):
         if role == QtCore.Qt.ItemDataRole.DisplayRole:
             if cell is None:
                 return "●"
-            elif isinstance(cell, bytes | np.bytes_):
+            elif isinstance(cell, (bytes, np.bytes_)):
                 return cell.decode("utf-8", "replace")
             elif isinstance(cell, str):
                 return cell
-            elif isinstance(cell, np.ndarray | np.record | np.recarray):
+            elif isinstance(cell, (np.ndarray, np.record, np.recarray)):
                 return str(cell[0])
             else:
                 if np.isnan(cell):

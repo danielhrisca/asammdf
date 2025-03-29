@@ -4,11 +4,12 @@ from gzip import GzipFile
 from io import BufferedRandom, BufferedReader, BufferedWriter, BytesIO
 from mmap import mmap
 from os import PathLike
-from typing import Any, Literal, TYPE_CHECKING, Union
+from typing import Literal, TYPE_CHECKING, Union
 from zipfile import ZipFile
 
 from canmatrix import CanMatrix
 from numpy.typing import NDArray
+from typing_extensions import Any
 
 if TYPE_CHECKING:
     from .blocks import v2_v3_blocks, v4_blocks, v4_constants

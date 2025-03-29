@@ -38,7 +38,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         global_variables = global_variables or ""
         _in_globals = generate_python_function_globals()
         ret = generate_python_variables(global_variables, in_globals=_in_globals)
-        self.global_variables = {name: val for name, val in _in_globals.items() if isinstance(val, int | float)}
+        self.global_variables = {name: val for name, val in _in_globals.items() if isinstance(val, (int, float))}
 
         self.setWindowFlags(QtCore.Qt.WindowType.WindowMinMaxButtonsHint | self.windowFlags())
 

@@ -2,8 +2,6 @@
 asammdf utility functions for source information
 """
 
-from __future__ import annotations
-
 from functools import lru_cache
 
 from ..types import SourceType
@@ -60,7 +58,7 @@ class Source:
 
     @classmethod
     @lru_cache(128)
-    def from_source(cls, source: SourceType) -> Source:
+    def from_source(cls, source: SourceType) -> "Source":
         if isinstance(source, v3b.ChannelExtension):
             if source.type == v3c.SOURCE_ECU:
                 return cls(

@@ -2,11 +2,13 @@
 
 from collections.abc import Iterator
 import logging
+from pathlib import Path
 from textwrap import fill
-from typing import Any, overload, Union
+from typing import Union
 
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike, NDArray
+from typing_extensions import Any, overload
 
 from .blocks import v2_v3_blocks as v3b
 from .blocks import v4_blocks as v4b
@@ -19,7 +21,6 @@ from .types import (
     FloatInterpolationModeType,
     IntInterpolationModeType,
     SourceType,
-    SyncType,
 )
 from .version import __version__
 
@@ -29,6 +30,22 @@ except:
     encode = np.char.encode
 
 logger = logging.getLogger("asammdf")
+
+ORIGIN_UNKNOWN = (-1, -1)
+
+
+class InvalidationArray(np.ndarray[tuple[int], np.dtype[np.bool]]):
+    ORIGIN_UNKNOWN = ORIGIN_UNKNOWN
+
+    def __new__(cls, input_array: ArrayLike, origin: tuple[int, int] = ORIGIN_UNKNOWN) -> "InvalidationArray":
+        obj = np.asarray(input_array).view(cls)
+        obj.origin = origin
+        return obj
+
+    def __array_finalize__(self, obj: NDArray[np.bool] | None) -> None:
+        if obj is None:
+            return
+        self.origin: tuple[int, int] = getattr(obj, "origin", ORIGIN_UNKNOWN)
 
 
 class Signal:
@@ -86,16 +103,16 @@ class Signal:
         conversion: dict[str, Any] | ChannelConversionType | None = None,
         comment: str = "",
         raw: bool = True,
-        master_metadata: tuple[str, SyncType] | None = None,
+        master_metadata: tuple[str, int] | None = None,
         display_names: dict[str, str] | None = None,
-        attachment: tuple[bytes, str | None, str | None] | None = None,
+        attachment: tuple[bytes | str, Path, bytes | str] | None = None,
         source: SourceType | None = None,
         bit_count: int | None = None,
         invalidation_bits: ArrayLike | None = None,
         encoding: str | None = None,
         group_index: int = -1,
         channel_index: int = -1,
-        flags: Flags = Flags.no_flags,
+        flags: int = Flags.no_flags,
         virtual_conversion: dict[str, Any] | ChannelConversionType | None = None,
         virtual_master_conversion: dict[str, Any] | ChannelConversionType | None = None,
     ) -> None:
@@ -131,11 +148,10 @@ class Signal:
             else:
                 self.samples = samples
 
-            self.timestamps: NDArray[Any]
             if not isinstance(timestamps, np.ndarray):
                 self.timestamps = np.array(timestamps, dtype=np.float64)
             else:
-                self.timestamps = timestamps
+                self.timestamps: NDArray[Any] = timestamps
 
             if self.samples.shape[0] != self.timestamps.shape[0]:
                 message = "{} samples and timestamps length mismatch ({} vs {})"
@@ -155,7 +171,7 @@ class Signal:
             self.encoding = encoding
             self.group_index = group_index
             self.channel_index = channel_index
-            self._invalidation_bits = None
+            self._invalidation_bits: InvalidationArray | None = None
 
             if source:
                 if not isinstance(source, Source):
@@ -171,7 +187,7 @@ class Signal:
 
             self.conversion: ChannelConversionType | None
             if conversion:
-                if not isinstance(conversion, v4b.ChannelConversion | v3b.ChannelConversion):
+                if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
                     self.conversion = from_dict(conversion)
                 else:
                     self.conversion = conversion
@@ -180,7 +196,7 @@ class Signal:
 
             self.virtual_conversion: ChannelConversionType | None
             if self.flags & self.Flags.virtual:
-                if not isinstance(virtual_conversion, v4b.ChannelConversion | v3b.ChannelConversion):
+                if not isinstance(virtual_conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
                     self.virtual_conversion = from_dict(virtual_conversion)
                 else:
                     self.virtual_conversion = virtual_conversion
@@ -189,7 +205,7 @@ class Signal:
 
             self.virtual_master_conversion: ChannelConversionType | None
             if self.flags & self.Flags.virtual_master:
-                if not isinstance(virtual_master_conversion, v4b.ChannelConversion | v3b.ChannelConversion):
+                if not isinstance(virtual_master_conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
                     self.virtual_master_conversion = from_dict(virtual_master_conversion)
                 else:
                     self.virtual_master_conversion = virtual_master_conversion
@@ -197,11 +213,11 @@ class Signal:
                 self.virtual_master_conversion = None
 
     @property
-    def invalidation_bits(self):
+    def invalidation_bits(self) -> InvalidationArray | None:
         return self._invalidation_bits
 
     @invalidation_bits.setter
-    def invalidation_bits(self, value):
+    def invalidation_bits(self, value: ArrayLike | None) -> None:
         if value is None:
             self._invalidation_bits = None
 
@@ -1354,9 +1370,9 @@ class Signal:
     def __getitem__(self, val: str) -> NDArray[Any]: ...
 
     @overload
-    def __getitem__(self, val: int | slice | ArrayLike) -> "Signal": ...
+    def __getitem__(self, val: int | slice) -> "Signal": ...
 
-    def __getitem__(self, val: int | slice | ArrayLike | str) -> Union[NDArray[Any], "Signal"]:
+    def __getitem__(self, val: int | slice | str) -> Union[NDArray[Any], "Signal"]:
         if isinstance(val, str):
             return self.samples[val]
         else:
@@ -1536,23 +1552,6 @@ class Signal:
             virtual_conversion=self.virtual_conversion,
             virtual_master_conversion=self.virtual_master_conversion,
         )
-
-
-ORIGIN_UNKNOWN = (-1, -1)
-
-
-class InvalidationArray(np.ndarray):
-    ORIGIN_UNKNOWN = ORIGIN_UNKNOWN
-
-    def __new__(cls, input_array, origin=ORIGIN_UNKNOWN):
-        obj = np.asarray(input_array).view(cls)
-        obj.origin = origin
-        return obj
-
-    def __array_finalize__(self, obj):
-        if obj is None:
-            return
-        self.origin = getattr(obj, "origin", ORIGIN_UNKNOWN)
 
 
 if __name__ == "__main__":

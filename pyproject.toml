@@ -46,9 +46,21 @@ dependencies = [
 
 [project.optional-dependencies]
 decode = ["faust-cchardet==2.1.19", "chardet"]
-export = ["pyarrow>=17.0.0", "h5py>=3.11", "hdf5storage>=0.1.19", "python-snappy", "polars>=1.1.0"]
+export = [
+    "pyarrow>=17.0.0",
+    "h5py>=3.11",
+    "hdf5storage>=0.1.19",
+    "python-snappy",
+    "polars>=1.1.0",
+]
 export-matlab-v5 = ["scipy>=1.13.0"]
-gui = ["natsort", "PySide6>=6.7.0", "pyqtgraph>=0.13.4", "pyqtlet2[PySide6]", "packaging"]
+gui = [
+    "natsort",
+    "PySide6>=6.7.0",
+    "pyqtgraph>=0.13.4",
+    "pyqtlet2[PySide6]",
+    "packaging",
+]
 encryption = ["cryptography", "keyring"]
 symbolic-math = ["sympy>=1.13.0"]
 filesystem = ["fsspec"]
@@ -117,6 +129,8 @@ module = [
     "fsspec.*",
     "h5py.*",
     "hdf5storage.*",
+    "isal.*",
+    "lz4.*",
     "mdfreader.*",
     "mfile.*",
     "numexpr.*",
@@ -131,10 +145,6 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = [
     "asammdf.app.asammdfgui",
-    "asammdf.blocks.bus_logging_utils",
-    "asammdf.blocks.conversion_utils",
-    "asammdf.blocks.mdf_v4",
-    "asammdf.blocks.v4_blocks",
     "asammdf.gui.*",
     "asammdf.mdf",
     "asammdf.signal",

@@ -501,7 +501,7 @@ def compute_signal(
                 raise Exception(trace)
 
             numeric_global_variables = {
-                name: float(val) for name, val in _globals.items() if isinstance(val, int | float)
+                name: float(val) for name, val in _globals.items() if isinstance(val, (int, float))
             }
 
             for function_name, definition in functions.items():
@@ -550,13 +550,13 @@ def compute_signal(
 
             triggering = description.get("triggering", "triggering_on_all")
             if triggering == "triggering_on_all":
-                timestamps = [sig.timestamps for sig in signals if not isinstance(sig, int | float)]
+                timestamps = [sig.timestamps for sig in signals if not isinstance(sig, (int, float))]
 
                 if timestamps:
                     common_timebase = reduce(np.union1d, timestamps)
                 else:
                     common_timebase = all_timebase
-                signals = [sig.interp(common_timebase) if not isinstance(sig, int | float) else sig for sig in signals]
+                signals = [sig.interp(common_timebase) if not isinstance(sig, (int, float)) else sig for sig in signals]
 
             elif triggering == "triggering_on_channel":
                 triggering_channel = description["triggering_value"]
@@ -565,13 +565,13 @@ def compute_signal(
                     common_timebase = measured_signals[triggering_channel].timestamps
                 else:
                     common_timebase = np.array([])
-                signals = [sig.interp(common_timebase) if not isinstance(sig, int | float) else sig for sig in signals]
+                signals = [sig.interp(common_timebase) if not isinstance(sig, (int, float)) else sig for sig in signals]
             else:
                 step = float(description["triggering_value"])
 
                 common_timebase = []
                 for signal in signals:
-                    if isinstance(signal, int | float):
+                    if isinstance(signal, (int, float)):
                         continue
 
                     if len(signal):
@@ -590,13 +590,13 @@ def compute_signal(
                 else:
                     common_timebase = np.array([])
 
-                signals = [sig.interp(common_timebase) if not isinstance(sig, int | float) else sig for sig in signals]
+                signals = [sig.interp(common_timebase) if not isinstance(sig, (int, float)) else sig for sig in signals]
 
             if not isinstance(common_timebase, np.ndarray):
                 common_timebase = np.array(common_timebase)
 
             for i, (signal, arg_name) in enumerate(zip(signals, found_args, strict=False)):
-                if isinstance(signal, int | float):
+                if isinstance(signal, (int, float)):
                     value = signal
                     signals[i] = Signal(
                         name=arg_name, samples=np.full(len(common_timebase), value), timestamps=common_timebase
@@ -974,7 +974,7 @@ def get_colors_using_ranges(value, ranges, default_background_color, default_fon
         return new_background_color, new_font_color
 
     if ranges:
-        if isinstance(value, float | int | np.number):
+        if isinstance(value, (float, int, np.number)):
             level_class = float
         else:
             level_class = str
@@ -1045,7 +1045,7 @@ def get_color_using_ranges(
         return new_color
 
     if ranges:
-        if isinstance(value, float | int | np.number):
+        if isinstance(value, (float, int, np.number)):
             level_class = float
         else:
             level_class = str
@@ -1128,7 +1128,7 @@ def value_as_hex(value, dtype):
 
 def value_as_str(value, format, dtype=None, precision=3):
     float_fmt = f"{{:.0{precision}f}}" if precision >= 0 else "{}"
-    if isinstance(value, float | np.floating):
+    if isinstance(value, (float, np.floating)):
         kind = "f"
 
     elif isinstance(value, int):
@@ -1327,7 +1327,7 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
         sample_by_sample = False
         trace = f"Sample by sample: {format_exc()}"
     else:
-        if not isinstance(res, int | float):
+        if not isinstance(res, (int, float)):
             sample_by_sample = False
             trace = "Sample by sample: The function did not return a numeric scalar value"
 
@@ -1349,7 +1349,7 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
         else:
             trace = f"Complete signal: {format_exc()}"
     else:
-        if not isinstance(res, tuple | list | np.ndarray):
+        if not isinstance(res, (tuple, list, np.ndarray)):
             complete_signal = False
             if trace:
                 trace += "\n\nComplete signal: The function did not return an list, tuple or np.ndarray"
