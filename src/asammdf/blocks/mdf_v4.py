@@ -8713,7 +8713,7 @@ class MDF4(MDF_Common[Group]):
                 # and that there are no padding bytes
                 if len(group.channels) == 1 and time_ch.dtype_fmt.itemsize == record_size:
                     if one_piece:
-                        data_bytes, offset, _count, _ = data.data, data.record_offset, data.record_count
+                        data_bytes, offset, _count = data.data, data.record_offset, data.record_count
 
                         t = frombuffer(data_bytes, dtype=time_ch.dtype_fmt)
                     else:
