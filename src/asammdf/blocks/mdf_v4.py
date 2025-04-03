@@ -8052,7 +8052,7 @@ class MDF4(MDF_Common[Group]):
             v4c.CHANNEL_TYPE_VIRTUAL,
             v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
         }:
-            if not channel.dtype_fmt:
+            if channel.dtype_fmt == np.dtype(np.void):
                 channel.dtype_fmt = np.dtype(get_fmt_v4(data_type, 64))
             ch_dtype = channel.dtype_fmt
 
