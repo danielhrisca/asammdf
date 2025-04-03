@@ -54,7 +54,7 @@ def monkey_patch_pyqtgraph():
 
         res = [
             (
-                symbol if isinstance(symbol, str | int) else getId(symbol),
+                symbol if isinstance(symbol, (str, int)) else getId(symbol),
                 size,
                 getId(pen),
                 getId(brush),
@@ -4009,7 +4009,7 @@ class PlotGraphics(pg.PlotWidget):
 
         for i, event_info in enumerate(events):
             color = utils.COLORS[utils.COLORS_COUNT - (i % utils.COLORS_COUNT) - 1]
-            if isinstance(event_info, list | tuple):
+            if isinstance(event_info, (list, tuple)):
                 to_display = event_info
                 labels = [" - Start", " - End"]
             else:

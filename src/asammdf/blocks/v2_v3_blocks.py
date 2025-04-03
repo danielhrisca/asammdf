@@ -9,14 +9,14 @@ import sys
 from textwrap import wrap
 from traceback import format_exc
 import typing
-from typing import Any, SupportsBytes
+from typing import Final
 import xml.etree.ElementTree as ET
 
 import dateutil.tz
 from numexpr import evaluate
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
-from typing_extensions import TypedDict, Unpack
+from typing_extensions import Any, overload, SupportsBytes, TypedDict, Unpack
 
 from .. import tool
 from . import utils
@@ -36,8 +36,8 @@ try:
 except:
     lambdify, symbols = None, None
 
-SEEK_START = v23c.SEEK_START
-SEEK_END = v23c.SEEK_END
+SEEK_START: Final = v23c.SEEK_START
+SEEK_END: Final = v23c.SEEK_END
 
 
 CHANNEL_DISPLAYNAME_u = v23c.CHANNEL_DISPLAYNAME_u
@@ -1467,18 +1467,36 @@ address: {hex(self.address)}
 
         return "\n".join(metadata)
 
+    @overload
+    def convert(
+        self,
+        values: NDArray[Any],
+        as_object: bool = ...,
+        as_bytes: bool = ...,
+        ignore_value2text_conversions: bool = ...,
+    ) -> NDArray[Any]: ...
+
+    @overload
+    def convert(  # type: ignore[overload-cannot-match, unused-ignore]
+        self,
+        values: ArrayLike,
+        as_object: bool = ...,
+        as_bytes: bool = ...,
+        ignore_value2text_conversions: bool = ...,
+    ) -> NDArray[Any] | np.number[Any]: ...
+
     def convert(
         self,
         values: ArrayLike,
         as_object: bool = False,
         as_bytes: bool = False,
         ignore_value2text_conversions: bool = False,
-    ) -> NDArray[Any] | Any:
+    ) -> NDArray[Any] | np.number[Any]:
         conversion_type = self.conversion_type
         scalar = False
 
         if not isinstance(values, np.ndarray):
-            if isinstance(values, int | float):
+            if isinstance(values, (int, float)):
                 new_values = np.array([values])
                 scalar = True
             else:
@@ -1510,10 +1528,10 @@ address: {hex(self.address)}
 
                 inds = np.searchsorted(raw_vals, new_values)
 
-                inds[inds >= dim] = dim - 1  # type: ignore[index,unused-ignore]
+                inds[inds >= dim] = dim - 1  # type: ignore[index, unused-ignore]
 
                 inds2 = inds - 1
-                inds2[inds2 < 0] = 0  # type: ignore[index,unused-ignore]
+                inds2[inds2 < 0] = 0  # type: ignore[index, unused-ignore]
 
                 cond = np.abs(new_values - raw_vals[inds]) >= np.abs(new_values - raw_vals[inds2])
 
@@ -1541,13 +1559,13 @@ address: {hex(self.address)}
                 new_values[idx] = default
                 idx = np.argwhere(idx1 == idx2).flatten()
                 if len(idx):
-                    new_values[idx] = phys[idx1[idx]]  # type: ignore[index,unused-ignore]
+                    new_values[idx] = phys[idx1[idx]]  # type: ignore[index, unused-ignore]
 
         elif conversion_type == v23c.CONVERSION_TYPE_RTABX:
             if not ignore_value2text_conversions:
                 nr = self.ref_param_nr - 1
 
-                phys_list: list[bytes | ChannelConversion] = []
+                phys_list: list[bytes | ChannelConversion | None] = []
                 for i in range(nr):
                     value = self.referenced_blocks[f"text_{i}"]
                     phys_list.append(value)
@@ -1588,7 +1606,7 @@ address: {hex(self.address)}
 
                         idx = np.argwhere(idx1 == idx2).flatten()
                         if len(idx):
-                            new_values[idx] = phys[idx1[idx]]  # type: ignore[index,unused-ignore]
+                            new_values[idx] = phys[idx1[idx]]  # type: ignore[index, unused-ignore]
                     else:
                         new_values = phys[idx1]
 
@@ -1685,7 +1703,7 @@ address: {hex(self.address)}
                     new_values = expr(new_values)
 
         if scalar:
-            return new_values[0]
+            return typing.cast(np.number[Any], new_values[0])
         else:
             return new_values
 

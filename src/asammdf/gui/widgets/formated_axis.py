@@ -528,7 +528,7 @@ class FormatedAxis(pg.AxisItem):
 
                         y_pos_val, sig_y_bottom, sig_y_top = plot.value_at_cursor()
 
-                        if isinstance(y_pos_val, int | float):
+                        if isinstance(y_pos_val, (int, float)):
                             delta_proc = (y_pos_val - (sig_y_top + sig_y_bottom) / 2) / (sig_y_top - sig_y_bottom)
                             shift = delta_proc * (sig_y_top - sig_y_bottom)
                             sig_y_top, sig_y_bottom = sig_y_top + shift, sig_y_bottom + shift

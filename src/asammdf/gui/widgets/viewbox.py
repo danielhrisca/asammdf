@@ -421,7 +421,7 @@ class ViewBoxWithCursor(pg.ViewBox):
 
         elif zoom_y_mode == "center_on_cursor":
             y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor()
-            if isinstance(y_pos_val, int | float):
+            if isinstance(y_pos_val, (int, float)):
                 delta = y_range[1] - y_range[0]
                 y_range = y_pos_val - delta / 2, y_pos_val + delta / 2
 
@@ -462,7 +462,7 @@ class ViewBoxWithCursor(pg.ViewBox):
             for uuid in selected_uuids:
                 sig, idx = self.plot.signal_by_uuid(uuid)
                 y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor(uuid=uuid)
-                if isinstance(y_pos_val, int | float):
+                if isinstance(y_pos_val, (int, float)):
                     delta_proc = sig_y_top / (sig_y_top - sig_y_bottom)
 
                     delta = (sig_y_top - sig_y_bottom) * scale
@@ -480,7 +480,7 @@ class ViewBoxWithCursor(pg.ViewBox):
             for uuid in selected_uuids:
                 sig, idx = self.plot.signal_by_uuid(uuid)
                 y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor(uuid=uuid)
-                if isinstance(y_pos_val, int | float):
+                if isinstance(y_pos_val, (int, float)):
                     delta = (sig_y_top - sig_y_bottom) * scale
                     new_y_range = y_pos_val - delta / 2, y_pos_val + delta / 2
 

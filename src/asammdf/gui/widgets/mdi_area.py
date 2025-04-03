@@ -391,7 +391,7 @@ def get_required_from_computed(channel):
                 ):
                     if isinstance(op, str):
                         names.append(op)
-                    elif isinstance(op, int | float):
+                    elif isinstance(op, (int, float)):
                         pass
                     else:
                         names.extend(get_required_from_computed(op))
@@ -424,7 +424,7 @@ def get_required_from_computed(channel):
             for op in (channel["operand1"], channel["operand2"]):
                 if isinstance(op, str):
                     names.append(op)
-                elif isinstance(op, int | float):
+                elif isinstance(op, (int, float)):
                     pass
                 else:
                     names.extend(get_required_from_computed(op))
@@ -4347,7 +4347,7 @@ class WithMDIArea:
             self._busy = False
             return
 
-        if not isinstance(x_range, tuple | list):
+        if not isinstance(x_range, (tuple, list)):
             self._busy = False
             return
 
