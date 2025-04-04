@@ -1664,8 +1664,9 @@ class MDF4(MDF_Common[Group]):
 
                     else:
                         seek(invalidation_info.address)
-                        original_size = typing.cast(int, invalidation_info.compressed_size)
-                        new_invalidation_data = read(original_size)
+                        compressed_size = typing.cast(int, invalidation_info.compressed_size)
+                        new_invalidation_data = read(compressed_size)
+                        original_size = typing.cast(int, invalidation_info.original_size)
                         if invalidation_info.block_type == v4c.DZ_BLOCK_DEFLATE:
                             new_invalidation_data = decompress(
                                 new_invalidation_data,
@@ -1677,7 +1678,7 @@ class MDF4(MDF_Common[Group]):
                                 bufsize=original_size,
                             )
                             cols = typing.cast(int, invalidation_info.param)
-                            lines = typing.cast(int, invalidation_info.original_size) // cols
+                            lines = original_size // cols
 
                             nd = frombuffer(new_invalidation_data[: lines * cols], dtype=uint8)
                             nd = nd.reshape((cols, lines))
@@ -8051,7 +8052,7 @@ class MDF4(MDF_Common[Group]):
             v4c.CHANNEL_TYPE_VIRTUAL,
             v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
         }:
-            if not channel.dtype_fmt:
+            if channel.dtype_fmt == np.dtype(np.void):
                 channel.dtype_fmt = np.dtype(get_fmt_v4(data_type, 64))
             ch_dtype = channel.dtype_fmt
 
