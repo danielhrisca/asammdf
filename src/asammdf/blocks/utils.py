@@ -9,7 +9,6 @@ import json
 import logging
 import mmap
 import multiprocessing
-from os import PathLike
 from pathlib import Path
 from random import randint
 import re
@@ -51,6 +50,7 @@ from typing_extensions import (
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
 from .blocks_common import UnpackFrom
+from .types import StrPath
 
 try:
     from pyqtgraph import functions as fn
@@ -396,6 +396,10 @@ def get_text_v3(
 ) -> bytes: ...
 
 
+@overload
+def get_text_v3(address: int, stream: FileLike | mmap.mmap, mapped: bool = ..., decode: bool = ...) -> bytes | str: ...
+
+
 def get_text_v3(address: int, stream: FileLike | mmap.mmap, mapped: bool = False, decode: bool = True) -> bytes | str:
     """faster way to extract strings from mdf versions 2 and 3 TextBlock
 
@@ -478,6 +482,17 @@ def get_text_v4(
     decode: Literal[False],
     tx_map: TxMap,
 ) -> bytes: ...
+
+
+@overload
+def get_text_v4(
+    address: int,
+    stream: FileLike | mmap.mmap,
+    mapped: bool = ...,
+    decode: bool = ...,
+    *,
+    tx_map: TxMap,
+) -> bytes | str: ...
 
 
 def get_text_v4(
@@ -1158,15 +1173,19 @@ def count_channel_groups(
 
 
 @overload
-def validate_version_argument(version: str, hint: Literal[2]) -> v3c.Version2: ...
+def validate_version_argument(version: v3c.Version2, hint: Literal[2]) -> v3c.Version2: ...
 
 
 @overload
-def validate_version_argument(version: str, hint: Literal[3]) -> v3c.Version: ...
+def validate_version_argument(version: v3c.Version2 | v3c.Version, hint: Literal[3]) -> v3c.Version2 | v3c.Version: ...
 
 
 @overload
-def validate_version_argument(version: str, hint: Literal[4] = ...) -> v4c.Version: ...
+def validate_version_argument(version: v4c.Version, hint: Literal[4] = ...) -> v4c.Version: ...
+
+
+@overload
+def validate_version_argument(version: str, hint: int = ...) -> v3c.Version2 | v3c.Version | v4c.Version: ...
 
 
 def validate_version_argument(version: str, hint: int = 4) -> v3c.Version2 | v3c.Version | v4c.Version:
@@ -1429,7 +1448,7 @@ def components(
     channel_name: str,
     unique_names: UniqueDB,
     prefix: str = ...,
-    master: Optional["pd.Index[float]"] = ...,
+    master: Union[NDArray[Any], "pd.Index[Any]"] | None = ...,
     only_basenames: bool = ...,
     use_polars: Literal[False] = ...,
 ) -> Iterator[tuple[str, "pd.Series[Any]"]]: ...
@@ -1441,7 +1460,7 @@ def components(
     channel_name: str,
     unique_names: UniqueDB,
     prefix: str = ...,
-    master: Optional["pd.Index[float]"] = ...,
+    master: Union[NDArray[Any], "pd.Index[Any]"] | None = ...,
     only_basenames: bool = ...,
     *,
     use_polars: Literal[True],
@@ -1453,7 +1472,7 @@ def components(
     channel_name: str,
     unique_names: UniqueDB,
     prefix: str = "",
-    master: Optional["pd.Index[float]"] = None,
+    master: Union[NDArray[Any], "pd.Index[Any]"] | None = None,
     only_basenames: bool = False,
     use_polars: bool = False,
 ) -> Iterator[tuple[str, Union["pd.Series[Any]", list[object]]]]:
@@ -1772,7 +1791,7 @@ def downcast(array: NDArray[Any]) -> NDArray[Any]:
     return array
 
 
-def csv_int2bin(val: int) -> str:
+def _csv_int2bin(val: int) -> str:
     """format CAN id as bin
 
     100 -> 1100100
@@ -1782,10 +1801,10 @@ def csv_int2bin(val: int) -> str:
     return f"{val:b}"
 
 
-csv_int2bin = np.vectorize(csv_int2bin, otypes=[str])
+csv_int2bin = np.vectorize(_csv_int2bin, otypes=[str])
 
 
-def csv_int2hex(val: "pd.Series[bool]") -> str:
+def _csv_int2hex(val: "pd.Series[int]") -> str:
     """format CAN id as hex
 
     100 -> 64
@@ -1795,10 +1814,10 @@ def csv_int2hex(val: "pd.Series[bool]") -> str:
     return f"{val:X}"
 
 
-csv_int2hex = np.vectorize(csv_int2hex, otypes=[str])
+csv_int2hex = np.vectorize(_csv_int2hex, otypes=[str])
 
 
-def csv_bytearray2hex(val: NDArray[Any], size: int | None = None) -> str:
+def _csv_bytearray2hex(val: NDArray[Any], size: int | None = None) -> str:
     """format CAN payload as hex strings
 
     b'\xa2\xc3\x08' -> A2 C3 08
@@ -1815,7 +1834,7 @@ def csv_bytearray2hex(val: NDArray[Any], size: int | None = None) -> str:
     return hex_val
 
 
-csv_bytearray2hex = np.vectorize(csv_bytearray2hex, otypes=[str])
+csv_bytearray2hex = np.vectorize(_csv_bytearray2hex, otypes=[str])
 
 
 def pandas_query_compatible(name: str) -> str:
@@ -1842,7 +1861,7 @@ class _Kwargs(TypedDict, total=False):
 
 
 def load_can_database(
-    path: str | PathLike[str], contents: bytes | str | None = None, **kwargs: Unpack[_Kwargs]
+    path: StrPath, contents: bytes | str | None = None, **kwargs: Unpack[_Kwargs]
 ) -> CanMatrix | None:
     """
 
@@ -1937,10 +1956,10 @@ def all_blocks_addresses(obj: FileLike | mmap.mmap) -> tuple[dict[int, bytes], d
         pass
 
     source: Buffer | bytes
-    try:
-        re.search(pattern, obj)  # type: ignore[arg-type]
-        source = typing.cast(Buffer, obj)
-    except TypeError:
+    if isinstance(obj, Buffer):
+        re.search(pattern, obj)
+        source = obj
+    else:
         source = obj.read()
 
     addresses: list[int] = []

@@ -7,7 +7,6 @@ from datetime import datetime, timedelta, timezone
 from hashlib import md5
 import inspect
 import logging
-from os import PathLike
 from pathlib import Path
 import re
 from struct import pack, unpack, unpack_from
@@ -31,6 +30,7 @@ from .. import tool
 from . import utils
 from . import v4_constants as v4c
 from .cutils import bytes_dtype_size
+from .types import StrPath
 from .utils import (
     block_fields,
     BlockKwargs,
@@ -116,7 +116,7 @@ class AttachmentBlockKwargs(BlockKwargs, total=False):
     data: bytes
     comment: str
     mime: str
-    file_name: str | PathLike[str]
+    file_name: StrPath
     compression: bool
     embedded: bool
     creator_index: int
@@ -1979,7 +1979,7 @@ class ChannelGroup:
     )
 
     def __init__(self, **kwargs: Unpack[ChannelGroupKwargs]) -> None:
-        self.comment: str | None = ""
+        self.comment = ""
         self.acq_name: str | None = ""
         self.acq_source = None
         self.cg_master_index: int | None = None
@@ -3277,7 +3277,7 @@ class ChannelConversion(_ChannelConversionBase):
     ) -> NDArray[Any]: ...
 
     @overload
-    def convert(  # type: ignore[overload-cannot-match, unused-ignore]
+    def convert(
         self,
         values: ArrayLike,
         as_object: bool = ...,
@@ -3679,7 +3679,7 @@ class ChannelConversion(_ChannelConversionBase):
                 name = names[0]
                 vals = new_values[name]
                 shape = vals.shape
-                objects = typing.cast(list[Any], vals.ravel().tolist())
+                objects = vals.ravel().tolist()
 
                 ret: list[object] = []
                 all_bytes = True

@@ -1,4 +1,7 @@
+from typing import Any
+
 import numpy as np
+import numpy.typing as npt
 
 from asammdf import MDF, Signal
 
@@ -21,7 +24,7 @@ sig = Signal(
 sigs.append(sig)
 
 # linear
-conversion = {"a": 2, "b": -0.5}
+conversion: dict[str, object] = {"a": 2, "b": -0.5}
 sig = Signal(
     np.ones(cycles, dtype=np.int64),
     t,
@@ -58,9 +61,9 @@ sig = Signal(
 sigs.append(sig)
 
 # string channel
-sig = [f"String channel sample {j}".encode("ascii") for j in range(cycles)]
+strings = [f"String channel sample {j}".encode("ascii") for j in range(cycles)]
 sig = Signal(
-    np.array(sig),
+    np.array(strings),
     t,
     name="Channel_string",
     comment="String channel",
@@ -139,13 +142,13 @@ mdf.append(sigs, comment="single dimensional channels", common_timebase=True)
 sigs = []
 
 # lookup tabel with axis
-samples = [
+samples: list[npt.NDArray[Any]] = [
     np.ones((cycles, 2, 3), dtype=np.uint64) * 1,
     np.ones((cycles, 2), dtype=np.uint64) * 2,
     np.ones((cycles, 3), dtype=np.uint64) * 3,
 ]
 
-types = [
+types: list[npt.DTypeLike] = [
     ("Channel_lookup_with_axis", "(2, 3)<u8"),
     ("channel_axis_1", "(2, )<u8"),
     ("channel_axis_2", "(3, )<u8"),
@@ -207,7 +210,7 @@ sigs.append(sig)
 
 
 # nested structures
-l4_arr = [
+arrays = [
     np.ones(cycles, dtype=np.float64) * 41,
     np.ones(cycles, dtype=np.float64) * 42,
     np.ones(cycles, dtype=np.float64) * 43,
@@ -221,9 +224,9 @@ types = [
     ("level44", np.float64),
 ]
 
-l4_arr = np.rec.fromarrays(l4_arr, dtype=types)
+l4_arr = np.rec.fromarrays(arrays, dtype=types)
 
-l3_arr = [
+arrays = [
     l4_arr,
     l4_arr,
     l4_arr,
@@ -235,24 +238,24 @@ types = [
     ("level33", l4_arr.dtype),
 ]
 
-l3_arr = np.rec.fromarrays(l3_arr, dtype=types)
+l3_arr = np.rec.fromarrays(arrays, dtype=types)
 
 
-l2_arr = [
+arrays = [
     l3_arr,
     l3_arr,
 ]
 
 types = [("level21", l3_arr.dtype), ("level22", l3_arr.dtype)]
 
-l2_arr = np.rec.fromarrays(l2_arr, dtype=types)
+l2_arr = np.rec.fromarrays(arrays, dtype=types)
 
 
-l1_arr = [l2_arr]
+arrays = [l2_arr]
 
 types = [("level11", l2_arr.dtype)]
 
-l1_arr = np.rec.fromarrays(l1_arr, dtype=types)
+l1_arr = np.rec.fromarrays(arrays, dtype=types)
 
 
 sigs.append(Signal(l1_arr, t, name="Nested_structures"))

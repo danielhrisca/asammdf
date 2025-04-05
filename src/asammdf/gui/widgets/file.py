@@ -1187,7 +1187,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     if result == MessageBox.Yes:
                         display_file_name = str(Path(file_name).resolve())
 
-                        _password = self.mdf._password
+                        _password = self.mdf._mdf._password
 
                         uuid = self.mdf.uuid
 
@@ -1564,11 +1564,11 @@ MultiRasterSeparator;&
                 master_min = self.mdf.get_master(i, record_offset=0, record_count=1)
                 if len(master_min):
                     t_min.append(master_min[0])
-                self.mdf._master_channel_cache.clear()
+                self.mdf._mdf._master_channel_cache.clear()
                 master_max = self.mdf.get_master(i, record_offset=cycles_nr - 1, record_count=1)
                 if len(master_max):
                     t_max.append(master_max[0])
-                self.mdf._master_channel_cache.clear()
+                self.mdf._mdf._master_channel_cache.clear()
 
         if t_min:
             time_range = t_min, t_max
@@ -2112,8 +2112,8 @@ MultiRasterSeparator;&
         progress.signals.setLabelText.emit(f'Saving file to "{file_name}"')
 
         mdf.configure(
-            integer_interpolation=self.mdf._integer_interpolation,
-            float_interpolation=self.mdf._float_interpolation,
+            integer_interpolation=self.mdf._mdf._integer_interpolation,
+            float_interpolation=self.mdf._mdf._float_interpolation,
         )
 
         result = mdf.export(
@@ -2811,8 +2811,8 @@ MultiRasterSeparator;&
         self.mdf.configure(read_fragment_size=split_size)
 
         mdf = None
-        integer_interpolation = self.mdf._integer_interpolation
-        float_interpolation = self.mdf._float_interpolation
+        integer_interpolation = self.mdf._mdf._integer_interpolation
+        float_interpolation = self.mdf._mdf._float_interpolation
 
         if needs_filter:
             icon = QtGui.QIcon()
@@ -2954,7 +2954,7 @@ MultiRasterSeparator;&
             if handle_overwrite:
                 dspf = self.to_config()
 
-                _password = self.mdf._password
+                _password = self.mdf._mdf._password
                 self.mdf.close()
 
                 windows = list(self.mdi_area.subWindowList())
@@ -3104,7 +3104,7 @@ MultiRasterSeparator;&
                 "The display file can only be embedded in .mf4 or .mf4z files" f"\n{original_file_name}",
             )
 
-        _password = self.mdf._password
+        _password = self.mdf._mdf._password
 
         uuid = self.mdf.uuid
 

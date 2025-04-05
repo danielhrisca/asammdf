@@ -15,13 +15,13 @@ from .blocks import v4_blocks as v4b
 from .blocks.conversion_utils import from_dict
 from .blocks.options import FloatInterpolation, IntegerInterpolation
 from .blocks.source_utils import Source
-from .blocks.utils import extract_xml_comment, MdfException, SignalFlags
-from .types import (
+from .blocks.types import (
     ChannelConversionType,
     FloatInterpolationModeType,
     IntInterpolationModeType,
     SourceType,
 )
+from .blocks.utils import extract_xml_comment, MdfException, SignalFlags
 from .version import __version__
 
 if TYPE_CHECKING:

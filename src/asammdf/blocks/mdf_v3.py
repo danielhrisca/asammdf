@@ -10,7 +10,6 @@ import logging
 from math import ceil
 import mmap
 import os
-from os import PathLike
 from pathlib import Path
 import sys
 from tempfile import NamedTemporaryFile
@@ -43,18 +42,17 @@ from typing_extensions import Any, overload, SupportsBytes, TypedDict, Unpack
 
 from .. import tool
 from ..signal import Signal
-from ..types import ChannelsType, CompressionType, RasterType, StrPathType
 from . import mdf_common, utils
 from . import v2_v3_constants as v23c
 from .conversion_utils import conversion_transfer
 from .cutils import data_block_from_arrays, get_channel_raw_bytes
-from .mdf_common import CommonKwargs, MDF_Common
+from .mdf_common import MDF_Common, MdfCommonKwargs
 from .options import GLOBAL_OPTIONS
 from .source_utils import Source
+from .types import ChannelsType, CompressionType, RasterType, StrPath
 from .utils import (
     as_non_byte_sized_signed_int,
     CHANNEL_COUNT,
-    ChannelsDB,
     CONVERT,
     count_channel_groups,
     DataBlockInfo,
@@ -109,7 +107,7 @@ __all__ = ["MDF3"]
 Group = mdf_common.GroupV3
 
 
-class Kwargs(CommonKwargs, total=False):
+class Kwargs(MdfCommonKwargs, total=False):
     skip_sorting: bool
 
 
@@ -192,7 +190,7 @@ class MDF3(MDF_Common[Group]):
 
     def __init__(
         self,
-        name: str | PathLike[str] | FileLike | None = None,
+        name: StrPath | FileLike | None = None,
         version: Version2 | Version = "3.30",
         channels: list[str] | None = None,
         **kwargs: Unpack[Kwargs],
@@ -215,8 +213,6 @@ class MDF3(MDF_Common[Group]):
 
         self.temporary_folder = kwargs.get("temporary_folder", GLOBAL_OPTIONS["temporary_folder"])
 
-        self.groups: list[Group] = []
-        self.channels_db = ChannelsDB()
         self.masters_db: dict[int, int] = {}
         self.version: str = version
 
@@ -235,9 +231,6 @@ class MDF3(MDF_Common[Group]):
         self._single_bit_uint_as_bool = GLOBAL_OPTIONS["single_bit_uint_as_bool"]
         self._integer_interpolation = GLOBAL_OPTIONS["integer_interpolation"]
         self._float_interpolation = GLOBAL_OPTIONS["float_interpolation"]
-        self._raise_on_multiple_occurrences = kwargs.get(
-            "raise_on_multiple_occurrences", GLOBAL_OPTIONS["raise_on_multiple_occurrences"]
-        )
         self._use_display_names = kwargs.get("use_display_names", GLOBAL_OPTIONS["use_display_names"])
         self._fill_0_for_missing_computation_channels = kwargs.get(
             "fill_0_for_missing_computation_channels", GLOBAL_OPTIONS["fill_0_for_missing_computation_channels"]
@@ -247,17 +240,18 @@ class MDF3(MDF_Common[Group]):
         self._si_map: dict[bytes | int, ChannelExtension] = {}
         self._cc_map: dict[bytes | int, ChannelConversion] = {}
 
-        self.last_call_info: dict[str, object] = {}
         self._master: NDArray[Any] | None = None
 
         self.virtual_groups_map: dict[int, int] = {}
         self.virtual_groups: dict[int, VirtualChannelGroup] = {}
 
-        self.vlsd_max_length: dict[tuple[str, int], int] = {}
+        self.vlsd_max_length: dict[tuple[int, str], int] = {}
 
         self._delete_on_close = False
 
         progress = kwargs.get("progress", None)
+
+        super().__init__(kwargs.get("raise_on_multiple_occurrences", GLOBAL_OPTIONS["raise_on_multiple_occurrences"]))
 
         if name:
             if is_file_like(name):
@@ -688,6 +682,23 @@ class MDF3(MDF_Common[Group]):
         else:
             return vals
 
+    @overload
+    def _read(
+        self,
+        stream: FileLike | mmap.mmap,
+        mapped: bool = ...,
+        progress: None = ...,
+    ) -> None: ...
+
+    @overload
+    def _read(
+        self,
+        stream: FileLike | mmap.mmap,
+        mapped: bool = ...,
+        *,
+        progress: Callable[[int, int], None] | Any,
+    ) -> Terminated | None: ...
+
     def _read(
         self,
         stream: FileLike | mmap.mmap,
@@ -957,28 +968,26 @@ class MDF3(MDF_Common[Group]):
 
     def _filter_occurrences(
         self,
-        occurrences: Sequence[tuple[int, int]],
+        occurrences: Iterator[tuple[int, int]],
         source_name: str | None = None,
         source_path: str | None = None,
         acq_name: str | None = None,
     ) -> Iterator[tuple[int, int]]:
-        occurrences_iter = iter(occurrences)
-
         if source_name is not None:
-            occurrences_iter = (
+            occurrences = (
                 (gp_idx, cn_idx)
-                for gp_idx, cn_idx in occurrences_iter
+                for gp_idx, cn_idx in occurrences
                 if (source := self.groups[gp_idx].channels[cn_idx].source) is not None and source.name == source_name
             )
 
         if source_path is not None:
-            occurrences_iter = (
+            occurrences = (
                 (gp_idx, cn_idx)
-                for gp_idx, cn_idx in occurrences_iter
+                for gp_idx, cn_idx in occurrences
                 if (source := self.groups[gp_idx].channels[cn_idx].source) is not None and source.path == source_path
             )
 
-        return occurrences_iter
+        return occurrences
 
     def add_trigger(
         self,
@@ -1086,6 +1095,17 @@ class MDF3(MDF_Common[Group]):
         common_timebase: bool = ...,
         units: dict[str, str] | None = ...,
     ) -> None: ...
+
+    @overload
+    def append(
+        self,
+        signals: list[Signal] | Signal | DataFrame,
+        acq_name: str | None = ...,
+        acq_source: Source | None = ...,
+        comment: str = ...,
+        common_timebase: bool = ...,
+        units: dict[str, str] | None = ...,
+    ) -> int | None: ...
 
     def append(
         self,
@@ -2403,7 +2423,7 @@ class MDF3(MDF_Common[Group]):
         except:
             print(format_exc())
 
-    def extend(self, index: int, signals: list[tuple[NDArray[Any], NDArray[np.bool] | None]]) -> None:
+    def extend(self, index: int, signals: Sequence[tuple[NDArray[Any], NDArray[np.bool] | None]]) -> None:
         """Extend a group with new samples. *signals* contains (values, invalidation_bits)
         pairs for each extended signal. Since MDF3 does not support invalidation
         bits, the second item of each pair must be None. The first pair is the master channel's pair, and the
@@ -2746,6 +2766,22 @@ class MDF3(MDF_Common[Group]):
         record_count: int | None = ...,
         skip_channel_validation: bool = ...,
     ) -> tuple[NDArray[Any], None]: ...
+
+    @overload
+    def get(
+        self,
+        name: str | None = ...,
+        group: int | None = ...,
+        index: int | None = ...,
+        raster: RasterType | None = ...,
+        samples_only: bool = ...,
+        data: tuple[bytes, int, int | None] | None = ...,
+        raw: bool = ...,
+        ignore_invalidation_bits: bool = ...,
+        record_offset: int = ...,
+        record_count: int | None = ...,
+        skip_channel_validation: bool = ...,
+    ) -> Signal | tuple[NDArray[Any], None]: ...
 
     def get(
         self,
@@ -3365,10 +3401,12 @@ class MDF3(MDF_Common[Group]):
         >>> mdf = MDF('test.mdf')
         >>> mdf.info()
         """
-        info: dict[str, object] = {}
-        for key in ("author", "department", "project", "subject"):
-            value = self.header[key]
-            info[key] = value
+        info: dict[str, object] = {
+            "author": self.header.author,
+            "department": self.header.department,
+            "project": self.header.project,
+            "subject": self.header.subject,
+        }
         info["version"] = self.version
         info["groups"] = len(self.groups)
         for i, gp in enumerate(self.groups):
@@ -3405,9 +3443,30 @@ class MDF3(MDF_Common[Group]):
     def start_time(self, timestamp: datetime) -> None:
         self.header.start_time = timestamp
 
+    @overload
     def save(
         self,
-        dst: StrPathType,
+        dst: StrPath,
+        overwrite: bool = ...,
+        compression: CompressionType = ...,
+        progress: None = ...,
+        add_history_block: bool = ...,
+    ) -> Path: ...
+
+    @overload
+    def save(
+        self,
+        dst: StrPath,
+        overwrite: bool = ...,
+        compression: CompressionType = ...,
+        *,
+        progress: Any,
+        add_history_block: bool = ...,
+    ) -> Path | Terminated: ...
+
+    def save(
+        self,
+        dst: StrPath,
         overwrite: bool = False,
         compression: CompressionType = 0,
         progress: Any | None = None,

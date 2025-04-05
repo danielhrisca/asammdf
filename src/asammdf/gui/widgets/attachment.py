@@ -19,7 +19,7 @@ class Attachment(Ui_Attachment, QtWidgets.QWidget):
         attachment = self.file.mdf.attachments[self.index]
         encryption_info = extract_encryption_information(attachment.comment)
         password = None
-        if encryption_info.get("encrypted", False) and self.file.mdf._password is None:
+        if encryption_info.get("encrypted", False) and self.file.mdf._mdf._password is None:
             text, ok = QtWidgets.QInputDialog.getText(
                 self,
                 "Attachment password",

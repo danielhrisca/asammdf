@@ -373,8 +373,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             if mdf is TERMINATED:
                 return
 
-            mdf.last_call_info = {}
-
             result = mdf.extract_bus_logging(
                 database_files=database_files,
                 version=version,
@@ -569,8 +567,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             if mdf is TERMINATED:
                 return
-
-            mdf.last_call_info = {}
 
             result = mdf.extract_bus_logging(
                 database_files=database_files,

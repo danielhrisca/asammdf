@@ -2,11 +2,13 @@
 module to generate benchmark graphs from textul result file
 """
 
+from typing import Literal
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-def generate_graphs(result, topic, aspect, for_doc=False):
+def generate_graphs(result: str, topic: str, aspect: Literal["ram", "time"], for_doc: bool = False) -> None:
     """genrate graphs from result file
 
     Parameters
