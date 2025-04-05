@@ -62,6 +62,7 @@ gui = [
     "packaging",
 ]
 encryption = ["cryptography", "keyring"]
+plot = ["matplotlib"]
 symbolic-math = ["sympy>=1.13.0"]
 filesystem = ["fsspec"]
 
@@ -134,6 +135,7 @@ module = [
     "lz4.*",
     "mdfreader.*",
     "mfile.*",
+    "mpl_toolkits.*",
     "numexpr.*",
     "pyqtgraph.*",
     "pyqtlet2.*",
@@ -144,12 +146,7 @@ module = [
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = [
-    "asammdf.app.asammdfgui",
-    "asammdf.gui.*",
-    "asammdf.mdf",
-    "asammdf.signal",
-]
+module = ["asammdf.app.asammdfgui", "asammdf.gui.*", "asammdf.mdf"]
 ignore_errors = true
 
 [tool.ruff]
