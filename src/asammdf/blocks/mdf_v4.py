@@ -6577,7 +6577,7 @@ class MDF4(MDF_Common[Group]):
         file_path = Path(file_name)
 
         mime: str | None
-        
+
         mime, _ = guess_type(Path(file_path))
         if mime is None:
             suffix = file_path.suffix.lower().strip(".")
