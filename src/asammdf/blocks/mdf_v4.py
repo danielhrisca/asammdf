@@ -12,6 +12,7 @@ from hashlib import md5
 from io import BufferedReader, BytesIO, StringIO
 import logging
 from math import ceil, floor
+from mimetypes import guess_type
 import mmap
 import os
 from os import PathLike
@@ -6573,11 +6574,17 @@ class MDF4(MDF_Common[Group]):
 
         self.attachments.append(at_block)
 
-        suffix = Path(file_name).suffix.lower().strip(".")
-        if suffix == "a2l":
-            mime = "application/A2L"
-        else:
-            mime = f"application/x-{suffix}"
+        file_path = Path(file_name)
+
+        mime: str | None
+        
+        mime, _ = guess_type(Path(file_path))
+        if mime is None:
+            suffix = file_path.suffix.lower().strip(".")
+            if suffix == "a2l":
+                mime = "application/A2L"
+            else:
+                mime = f"application/x-{suffix}"
 
         at_block.mime = mime
 
