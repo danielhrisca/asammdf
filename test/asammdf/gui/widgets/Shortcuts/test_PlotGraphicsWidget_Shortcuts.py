@@ -583,7 +583,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             self.processEvents()
             # Evaluate
             current_grid = next_grid[current_grid]
-            self.assertEqual(current_grid, self.pg.x_axis.grid, self.pg.y_axis.grid)
+            self.assertEqual(current_grid, (self.pg.x_axis.grid, self.pg.y_axis.grid))
 
     def test_go_to_timestamp_shortcut(self):
         """
