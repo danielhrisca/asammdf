@@ -211,6 +211,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         self.restore_export_settings()
         self.connect_export_updates()
+        self.files_list.itemSelectionChanged.connect(self.update_channel_tree)
 
     @QtCore.Slot(str)
     def mdf_format_changed(self, format):
@@ -1134,20 +1135,29 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         if self.filter_view.currentIndex() == -1 or self._ignore:
             return
 
-        count = self.files_list.count()
-        source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
-        if not count:
+        if not self.files_list.count():
             self.filter_tree.clear()
             self.raster_channel.clear()
             return
         else:
             uuid = os.urandom(6).hex()
+            selected_files = self.files_list.selectedItems()
+            file_name = None
 
-            for file_name in source_files:
-                if file_name.suffix.lower() in (".mdf", ".mf4"):
-                    break
+            if not selected_files:
+                for _ in range(self.files_list.count()):
+                    path = Path(self.files_list.item(_).text())
+                    if path.suffix.lower() in (".mdf", ".mf4"):
+                        file_name = path
+                        break
             else:
-                file_name = source_files[0]
+                for file_name in selected_files:
+                    path = Path(file_name.text())
+                    if path.suffix.lower() in (".mdf", ".mf4"):
+                        file_name = path
+                        break
+            if not file_name:
+                return
 
             mdf = self._as_mdf(file_name)
 

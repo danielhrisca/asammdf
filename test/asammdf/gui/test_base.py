@@ -50,7 +50,7 @@ class TestBase(unittest.TestCase):
     - provide method to execute widget
     - setUp ErrorDialog for evaluation raised exceptions
     """
-    
+
     pyqtgraph.setConfigOption("background", "k")
     pyqtgraph.setConfigOption("foreground", "w")
 

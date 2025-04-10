@@ -658,10 +658,10 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertIsNotNone(self.add_channels([35]))
         self.mouseClick_WidgetItem(self.channels[0])
         self.processEvents()
-        
+
         self.pg.viewbox.menu.set_x_zoom_mode()
         self.pg.viewbox.menu.set_y_zoom_mode()
-        
+
         # click con center
         QTest.mouseClick(
             self.plot.plot.viewport(),
