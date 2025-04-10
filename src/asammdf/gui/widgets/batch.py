@@ -1156,6 +1156,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     if path.suffix.lower() in (".mdf", ".mf4"):
                         file_name = path
                         break
+                        
             if not file_name:
                 return
 
