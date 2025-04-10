@@ -145,6 +145,30 @@ class Ui_ScaleDialog(object):
 
         self.gridLayout.addWidget(self.fast_shift_down_btn, 6, 0, 1, 1)
 
+        self.label_6 = QLabel(self.groupBox_2)
+        self.label_6.setObjectName(u"label_6")
+        self.label_6.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+
+        self.gridLayout.addWidget(self.label_6, 3, 1, 1, 1)
+
+        self.label_7 = QLabel(self.groupBox_2)
+        self.label_7.setObjectName(u"label_7")
+        self.label_7.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+
+        self.gridLayout.addWidget(self.label_7, 4, 1, 1, 1)
+
+        self.label_11 = QLabel(self.groupBox_2)
+        self.label_11.setObjectName(u"label_11")
+        self.label_11.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+
+        self.gridLayout.addWidget(self.label_11, 5, 1, 1, 1)
+
+        self.label_12 = QLabel(self.groupBox_2)
+        self.label_12.setObjectName(u"label_12")
+        self.label_12.setAlignment(Qt.AlignmentFlag.AlignRight|Qt.AlignmentFlag.AlignTrailing|Qt.AlignmentFlag.AlignVCenter)
+
+        self.gridLayout.addWidget(self.label_12, 6, 1, 1, 1)
+
 
         self.gridLayout_3.addWidget(self.groupBox_2, 2, 1, 1, 1)
 
@@ -284,6 +308,10 @@ class Ui_ScaleDialog(object):
         self.shift_up_btn.setText(QCoreApplication.translate("ScaleDialog", u"Shift up", None))
         self.zoom_in_btn.setText(QCoreApplication.translate("ScaleDialog", u"Zoom in", None))
         self.fast_shift_down_btn.setText(QCoreApplication.translate("ScaleDialog", u"Fast shift down", None))
+        self.label_6.setText(QCoreApplication.translate("ScaleDialog", u"<html><head/><body><p>Shift + \u2191</p></body></html>", None))
+        self.label_7.setText(QCoreApplication.translate("ScaleDialog", u"<html><head/><body><p>Shift + \u2193</p></body></html>", None))
+        self.label_11.setText(QCoreApplication.translate("ScaleDialog", u"Shift + PageUp", None))
+        self.label_12.setText(QCoreApplication.translate("ScaleDialog", u"Shift + PageDown", None))
         self.plot.setText("")
         self.groupBox_3.setTitle(QCoreApplication.translate("ScaleDialog", u"Expected signal values", None))
         self.label_5.setText(QCoreApplication.translate("ScaleDialog", u"Signal max", None))
@@ -297,3 +325,4 @@ class Ui_ScaleDialog(object):
         self.y_top.setText("")
         self.y_bottom.setText("")
     # retranslateUi
+
