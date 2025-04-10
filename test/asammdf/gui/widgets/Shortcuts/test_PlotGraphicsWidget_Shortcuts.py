@@ -16,7 +16,6 @@ from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestPlotGraphicsShortcuts(TestPlotWidget):
-
     def setUp(self):
         """
         Events:
@@ -583,7 +582,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             self.processEvents()
             # Evaluate
             current_grid = next_grid[current_grid]
-            self.assertEqual(current_grid, self.pg.x_axis.grid, self.pg.y_axis.grid)
+            self.assertEqual(current_grid, (self.pg.x_axis.grid, self.pg.y_axis.grid))
 
     def test_go_to_timestamp_shortcut(self):
         """
@@ -641,22 +640,13 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         def get_expected_result(step, is_x_axis: bool):
             if is_x_axis:
                 delta = self.pg.x_range[1] - self.pg.x_range[0]
-                cursor_pos = self.pg.cursor1.value()
+                val = self.pg.cursor1.value()
                 step = delta * step
-                return cursor_pos - delta / 2 - step, cursor_pos + delta / 2 + step
+                return val - delta / 2 - step, val + delta / 2 + step
             else:
-                bottom = self.pg.signals[0].y_range[1]  # 0
-                top = self.pg.signals[0].y_range[0]  # 255
-                delta = top - bottom
-                cursor_pos = self.pg.cursor1.value()
-                y_value = self.pg.signals[0].value_at_timestamp(cursor_pos, numeric=True)[0]
-
-                dp = (y_value - (top + bottom) / 2) / (top - bottom)  # -0.468627
-
-                shift = dp * delta  # -119.5
-                top, bottom = shift + top, shift + bottom  # 135.5, 119.5
-                delta = top - bottom
-                return top - delta * step, bottom + delta * step
+                val, bottom, top = self.pg.value_at_cursor()
+                delta = (top - bottom) * step
+                return val - delta / 2, val + delta / 2
 
         # Setup
         if self.plot.lock_btn.isFlat():
@@ -666,6 +656,12 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         x_step = 0.25
 
         self.assertIsNotNone(self.add_channels([35]))
+        self.mouseClick_WidgetItem(self.channels[0])
+        self.processEvents()
+        
+        self.pg.viewbox.menu.set_x_zoom_mode()
+        self.pg.viewbox.menu.set_y_zoom_mode()
+        
         # click con center
         QTest.mouseClick(
             self.plot.plot.viewport(),
@@ -689,29 +685,30 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         x_zoom_out_range = self.pg.x_range
 
         # Events with pressed Shift
-        expected_y_zoom_in_range = get_expected_result(y_step, False)
+        expected_y_zoom_in_range = get_expected_result(1 / (1 + y_step), False)
         # Press "I"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["y_zoom_in"]))
         self.processEvents()
         y_zoom_in_range = self.pg.signals[0].y_range
 
-        expected_y_zoom_out_range = get_expected_result(-y_step, False)
+        expected_y_zoom_out_range = get_expected_result(1 + y_step, False)
         # Press "O"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["y_zoom_out"]))
         self.processEvents()
 
         y_zoom_out_range = self.pg.signals[0].y_range
         # Evaluate
+        delta = pow(10, -4)
         # Key Shift wasn't pressed
-        self.assertAlmostEqual(x_zoom_in_range[0], expected_x_zoom_in_range[0], delta=0.0001)
-        self.assertAlmostEqual(x_zoom_in_range[1], expected_x_zoom_in_range[1], delta=0.0001)
-        self.assertAlmostEqual(x_zoom_out_range[0], expected_x_zoom_out_range[0], delta=0.0001)
-        self.assertAlmostEqual(x_zoom_out_range[1], expected_x_zoom_out_range[1], delta=0.0001)
+        self.assertAlmostEqual(x_zoom_in_range[0], expected_x_zoom_in_range[0], delta=delta)
+        self.assertAlmostEqual(x_zoom_in_range[1], expected_x_zoom_in_range[1], delta=delta)
+        self.assertAlmostEqual(x_zoom_out_range[0], expected_x_zoom_out_range[0], delta=delta)
+        self.assertAlmostEqual(x_zoom_out_range[1], expected_x_zoom_out_range[1], delta=delta)
         # Key Shift was pressed
-        self.assertAlmostEqual(y_zoom_in_range[0], expected_y_zoom_in_range[0], delta=0.0001)
-        self.assertAlmostEqual(y_zoom_in_range[1], expected_y_zoom_in_range[1], delta=0.0001)
-        self.assertAlmostEqual(y_zoom_out_range[0], expected_y_zoom_out_range[0], delta=0.0001)
-        self.assertAlmostEqual(y_zoom_out_range[1], expected_y_zoom_out_range[1], delta=0.0001)
+        self.assertAlmostEqual(y_zoom_in_range[0], expected_y_zoom_in_range[0], delta=delta)
+        self.assertAlmostEqual(y_zoom_in_range[1], expected_y_zoom_in_range[1], delta=delta)
+        self.assertAlmostEqual(y_zoom_out_range[0], expected_y_zoom_out_range[0], delta=delta)
+        self.assertAlmostEqual(y_zoom_out_range[1], expected_y_zoom_out_range[1], delta=delta)
 
     def test_range_shortcut(self):
         """

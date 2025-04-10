@@ -433,9 +433,9 @@ class TestPushButtons(TestPlotWidget):
         """
         Events:
             - Display 2 signal on plot
-            - Press `Lock` button in order to lock y-axis
+            - Press `Lock` button to lock y-axis
             - Move signal using drag-and-drop technique on both axis
-            - Press `Lock` button in order to lock y-axis
+            - Press `Lock` button to unlock y-axis
             - Move signal using drag-and-drop technique on both axis
 
         Evaluate:
@@ -477,7 +477,7 @@ class TestPushButtons(TestPlotWidget):
 
         # move channels on plot graphics
         move_signal(50, 50)
-        self.processEvents(1)
+        self.processEvents(0.5)
 
         # Evaluate
         self.assertTrue(self.plot.locked)
@@ -494,7 +494,7 @@ class TestPushButtons(TestPlotWidget):
 
         # move channels on plot graphics
         move_signal(-50, 50)
-        self.processEvents(1)
+        self.processEvents(0.5)
 
         # Evaluate
         self.assertFalse(self.plot.locked)
