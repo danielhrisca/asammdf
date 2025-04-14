@@ -503,6 +503,7 @@ def get_comparison_mime(data, uuids):
             for uuid in uuids:
                 new_item = dict(item)
                 new_item["origin_uuid"] = uuid
+                new_item["uuid"] = os.urandom(6).hex()
                 entries.append(new_item)
 
         else:
@@ -1216,10 +1217,8 @@ class WithMDIArea:
                         sig.ranges = sig_uuid["ranges"]
                         sig.color = fn.mkColor(sig_uuid.get("color", "#505050"))
 
-                        if not hasattr(self, "mdf"):
-                            # MainWindow => comparison plots
-
-                            sig.tooltip = f"{sig.name}\n@ {file.file_name}"
+                        if self.comparison:
+                            sig.tooltip = f"{sig.name}\n@ {file.mdf.orignial_name}"
                             sig.name = f"{file_index+1}: {sig.name}"
 
                     signals.extend(selected_signals)
@@ -1291,10 +1290,9 @@ class WithMDIArea:
                         sig.color = sig_.get("color", None)
                         sig.uuid = sig_["uuid"]
 
-                        if not hasattr(self, "mdf"):
-                            # MainWindow => comparison plots
+                        if self.comparison:
 
-                            sig.tooltip = f"{sig.name}\n@ {file.file_name}"
+                            sig.tooltip = f"{sig.name}\n@ {file.mdf.original_name}"
                             sig.name = f"{file_index+1}: {sig.name}"
 
                         if sig.samples.dtype.kind not in "SU" and (
@@ -2321,12 +2319,7 @@ class WithMDIArea:
         else:
             flatten_entries = get_flatten_entries_from_mime(names)
 
-            uuids = {entry["origin_uuid"] for entry in flatten_entries}
-
-            for uuid in uuids:
-                if self.file_by_uuid(uuid):
-                    break
-            else:
+            if not self.comparison:
                 names = substitude_mime_uuids(names, uuid=self.uuid, force=True)
                 flatten_entries = get_flatten_entries_from_mime(names)
 
@@ -2384,13 +2377,11 @@ class WithMDIArea:
                 sig.name = sig_[0] or sig.name
                 sig.ranges = sig_obj["ranges"]
                 sig.uuid = sig_obj["uuid"]
-                sig.color = fn.mkColor(sig_obj.get("color", "#505050"))
+                if "color" in sig_obj:
+                    sig.color = fn.mkColor(sig_obj["color"])
 
-                if not hasattr(self, "mdf"):
-                    # MainWindow => comparison plots
-
-                    sig.tooltip = f"{sig.name}\n@ {file.file_name}"
-                    sig.name = f"{file_index+1}: {sig.name}"
+                if self.comparison:
+                    sig.tooltip = f"{sig.name}\n@ {file.mdf.original_name}"
 
             signals.extend(selected_signals)
 
@@ -2510,15 +2501,12 @@ class WithMDIArea:
             mime_data = signals
 
         flatten_entries = get_flatten_entries_from_mime(mime_data)
-        uuids = {entry["origin_uuid"] for entry in flatten_entries}
 
-        for uuid in uuids:
-            if self.file_by_uuid(uuid):
-                break
-        else:
+        if not self.comparison:
             mime_data = substitude_mime_uuids(mime_data, uuid=self.uuid, force=True)
             flatten_entries = get_flatten_entries_from_mime(mime_data)
 
+        # TO DO : is this necessary here?
         for entry in flatten_entries:
             entry["enabled"] = not disable_new_channels
 
@@ -2575,11 +2563,8 @@ class WithMDIArea:
                 sig.ranges = sig_["ranges"]
                 sig.enable = sig_["enabled"]
 
-                if not hasattr(self, "mdf"):
-                    # MainWindow => comparison plots
-
-                    sig.tooltip = f"{sig.name}\n@ {file.file_name}"
-                    sig.name = f"{file_index+1}: {sig.name}"
+                if self.comparison:
+                    sig.tooltip = f"{sig.name}\n@ {file.mdf.original_name}"
 
                 signals[sig_uuid] = sig
 
@@ -2681,7 +2666,6 @@ class WithMDIArea:
             sig.flags &= ~sig.Flags.computed
             sig.computation = {}
             sig.origin_uuid = sig_.get("origin_uuid", self.uuid)
-            sig.origin_uuid = self.uuid
             sig.group_index = NOT_FOUND
             sig.channel_index = NOT_FOUND
             sig.enable = sig_["enabled"]
@@ -2699,6 +2683,8 @@ class WithMDIArea:
 
             signals[uuid] = sig
 
+        # TO DO:
+        # fix for comparison mode where self.mdf does not exist
         if computed:
             measured_signals = {sig.uuid: sig for sig in signals.values()}
             if measured_signals:
@@ -2768,7 +2754,7 @@ class WithMDIArea:
 
             signals.update(computed_signals)
 
-        if hasattr(self, "mdf"):
+        if not self.comparison:
             events = []
             origin = self.mdf.start_time
 
@@ -2828,10 +2814,11 @@ class WithMDIArea:
             else:
                 origin = self.files.widget(0).mdf.start_time
 
-        if hasattr(self, "mdf"):
+        if not self.comparison:
             mdf = self.mdf
         else:
             mdf = None
+
         plot = Plot(
             [],
             events=events,
@@ -2967,8 +2954,7 @@ class WithMDIArea:
 
             file_index, file = file_info
 
-            if not hasattr(self, "mdf"):
-                # MainWindow => comparison plots
+            if self.comparison:
                 for entry in signals_:
                     if entry["origin_uuid"] != uuid:
                         continue
@@ -3009,8 +2995,7 @@ class WithMDIArea:
                 use_interpolation=QtCore.QSettings().value("tabular_interpolation", True, type=bool),
             )
 
-            if not hasattr(self, "mdf"):
-                # MainWindow => comparison plots
+            if self.comparison:
                 columns = {name: f"{file_index+1}: {name}" for name in df.columns}
                 df.rename(columns=columns, inplace=True)
 
@@ -3511,13 +3496,29 @@ class WithMDIArea:
         # patterns
         pattern_info = window_info["configuration"].get("pattern", {})
         if pattern_info:
-            plot_signals = extract_signals_using_pattern(
-                mdf=self.mdf,
-                channels_db=None,
-                pattern_info=pattern_info,
-                ignore_value2text_conversions=self.ignore_value2text_conversions,
-                uuid=self.uuid,
-            )
+            if self.comparison:
+                plot_signals = {}
+                for file_index, file in enumerate(self.iter_files()):
+                    new_plot_signals = extract_signals_using_pattern(
+                        mdf=file.mdf,
+                        channels_db=None,
+                        pattern_info=pattern_info,
+                        ignore_value2text_conversions=self.ignore_value2text_conversions,
+                        uuid=file.uuid,
+                    )
+                    for sig in new_plot_signals.values():
+                        sig.name = f"{file_index + 1}: {sig.name}"
+
+                    plot_signals |= new_plot_signals
+
+            else:
+                plot_signals = extract_signals_using_pattern(
+                    mdf=self.mdf,
+                    channels_db=None,
+                    pattern_info=pattern_info,
+                    ignore_value2text_conversions=self.ignore_value2text_conversions,
+                    uuid=self.uuid,
+                )
 
             mime_data = None
             descriptions = {}
@@ -3712,7 +3713,7 @@ class WithMDIArea:
 
                 signals[uuid] = sig
 
-        if hasattr(self, "mdf"):
+        if not self.comparison:
             events = []
             origin = self.mdf.start_time
 
@@ -3771,7 +3772,7 @@ class WithMDIArea:
             else:
                 origin = self.files.widget(0).mdf.start_time
 
-        if hasattr(self, "mdf"):
+        if not self.comparison:
             mdf = self.mdf
         else:
             mdf = None
@@ -4568,6 +4569,16 @@ class WithMDIArea:
             else:
                 return None
 
+    def iter_files(self):
+        if isinstance(self.files, QtWidgets.QMdiArea):
+            for file_index, file_window in enumerate(self.files.subWindowList()):
+                if widget := file_window.widget():
+                    yield widget
+        else:
+            for file_index in range(self.files.count()):
+                if widget := self.files.widget(file_index):
+                    yield widget
+
     def _show_overlapping_alias(self, sig):
         group_index, index, uuid = sig.group_index, sig.channel_index, sig.origin_uuid
         file_info = self.file_by_uuid(uuid)
@@ -4620,7 +4631,7 @@ class WithMDIArea:
                 )
 
     def verify_bookmarks(self, bookmarks, plot):
-        if not hasattr(self, "mdf"):
+        if self.comparison:
             return
 
         original_file_name = Path(self.mdf.original_name)

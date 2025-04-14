@@ -208,6 +208,8 @@ class PlotSignal(Signal):
         self.individual_axis = False
         self.computation = signal.computation
         self.original_name = getattr(signal, "original_name", None)
+        if hasattr(signal, "tooltip"):
+            self.tooltip = signal.tooltip
 
         self.y_link = False
 
@@ -3399,9 +3401,11 @@ class Plot(QtWidgets.QWidget):
             "common_axis_y_range": [float(e) for e in self.plot.common_axis_y_range],
             "channels_header": [
                 self.splitter.sizes()[0],
-                [self.channel_selection.columnWidth(i) for i in range(5)],
+                [self.channel_selection.columnWidth(i) for i in range(self.channel_selection.columnCount())],
             ],
-            "channels_header_columns_visible": [not self.channel_selection.isColumnHidden(i) for i in range(5)],
+            "channels_header_columns_visible": [
+                not self.channel_selection.isColumnHidden(i) for i in range(self.channel_selection.columnCount())
+            ],
             "hide_axes": self.hide_axes_btn.isFlat(),
             "hide_selected_channel_value_panel": self.selected_channel_value_btn.isFlat(),
             "focused_mode": not self.focused_mode_btn.isFlat(),

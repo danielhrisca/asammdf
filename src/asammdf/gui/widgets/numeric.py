@@ -102,6 +102,8 @@ class SignalOnline:
             return self.scaled
         elif index == 3:
             return self.unit
+        elif index == 4:
+            return self.origin_uuid
 
 
 class SignalOffline:
@@ -142,6 +144,14 @@ class SignalOffline:
     def color(self, value):
         self.signal.color = value
 
+    @property
+    def origin_uuid(self):
+        return self.signal.origin_uuid
+
+    @origin_uuid.setter
+    def origin_uuid(self, value):
+        self.signal.origin_uuid = value
+
     def reset(self):
         self.signal = None
         self.exists = True
@@ -176,6 +186,8 @@ class SignalOffline:
                 return self.scaled
             elif index == 3:
                 return self.unit
+            elif index == 4:
+                return self.origin_uuid
 
 
 class OnlineBackEnd:
@@ -516,7 +528,7 @@ class TableModel(QtCore.QAbstractTableModel):
         pass
 
     def columnCount(self, parent=None):
-        return 4
+        return 5
 
     def rowCount(self, parent=None):
         return len(self.backend)
@@ -819,6 +831,7 @@ class TableView(QtWidgets.QTableView):
                     "ylink": False,
                     "individual_axis": False,
                     "y_range": signal.y_range,
+                    "origin_uuid": signal.origin_uuid,
                 }
 
                 for range_info in info["ranges"]:
@@ -853,6 +866,7 @@ class TableView(QtWidgets.QTableView):
                     signal.format = info["format"]
                     signal.color = fn.mkColor(info["color"])
                     signal.y_range = info["y_range"]
+                    signal.origin_uuid = info["origin_uuid"]
                     self.ranges[signal.entry] = copy_ranges(info["ranges"])
 
                 self.backend.update()
@@ -974,7 +988,7 @@ class TableView(QtWidgets.QTableView):
 
             entry = signal.entry if numeric_mode == "online" else signal.signal.entry
 
-            group_index, channel_index = entry
+            *_, group_index, channel_index = entry
 
             ranges = copy_ranges(self.ranges[signal.entry])
 
@@ -989,7 +1003,7 @@ class TableView(QtWidgets.QTableView):
                 "group_index": group_index,
                 "channel_index": channel_index,
                 "ranges": ranges,
-                "origin_uuid": str(entry[0]) if numeric_mode == "online" else signal.signal.origin_uuid,
+                "origin_uuid": str(entry[0]),
                 "type": "channel",
                 "uuid": os.urandom(6).hex(),
                 "color": signal.color.name(),
@@ -1049,7 +1063,7 @@ class HeaderModel(QtCore.QAbstractTableModel):
         self.backend = parent.backend
 
     def columnCount(self, parent=None):
-        return 4
+        return 5
 
     def rowCount(self, parent=None):
         return 1  # 1?
@@ -1057,7 +1071,7 @@ class HeaderModel(QtCore.QAbstractTableModel):
     def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
         col = index.column()
 
-        names = ["Name", "Raw", "Scaled", "Unit"]
+        names = ["Name", "Raw", "Scaled", "Unit", "Origin"]
 
         if role == QtCore.Qt.ItemDataRole.DisplayRole:
             return names[col]
@@ -1086,6 +1100,7 @@ class HeaderView(QtWidgets.QTableView):
     RawColumn = 1
     ScaledColumn = 2
     UnitColumn = 3
+    OriginColumn = 4
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -1128,11 +1143,12 @@ class HeaderView(QtWidgets.QTableView):
             self.RawColumn: self.columnWidth(self.RawColumn),
             self.ScaledColumn: self.columnWidth(self.ScaledColumn),
             self.UnitColumn: self.columnWidth(self.UnitColumn),
+            self.OriginColumn: self.columnWidth(self.OriginColumn),
         }
 
     def all_columns_width(self):
         widths = []
-        for column in (self.NameColumn, self.RawColumn, self.ScaledColumn, self.UnitColumn):
+        for column in (self.NameColumn, self.RawColumn, self.ScaledColumn, self.UnitColumn, self.OriginColumn):
             if self.isColumnHidden(column):
                 widths.append(self.columns_width.get(column, 100))
             else:
@@ -1144,6 +1160,7 @@ class HeaderView(QtWidgets.QTableView):
             "raw": not self.isColumnHidden(self.RawColumn),
             "scaled": not self.isColumnHidden(self.ScaledColumn),
             "unit": not self.isColumnHidden(self.UnitColumn),
+            "origin": not self.isColumnHidden(self.OriginColumn),
         }
 
     def showEvent(self, a0: QtGui.QShowEvent) -> None:
@@ -1525,6 +1542,12 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         action.toggled.connect(partial(header.toggle_column, column=header.UnitColumn))
         menu.addAction(action)
 
+        action = QtGui.QAction("Origin Column", menu)
+        action.setCheckable(True)
+        action.setChecked(not header.isColumnHidden(header.OriginColumn))
+        action.toggled.connect(partial(header.toggle_column, column=header.OriginColumn))
+        menu.addAction(action)
+
         action = QtGui.QAction("Hide header and controls", menu)
         action.setCheckable(True)
         action.setChecked(header.isHidden())
@@ -1733,9 +1756,14 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
     def add_new_channels(self, channels, mime_data=None):
         if self.mode == "online":
             others = []
-            for sig in channels:
+            for index, sig in enumerate(channels):
                 if sig is not None:
                     entry = (sig.origin_uuid, sig.name)
+
+                    if getattr(sig, "color", None):
+                        color = sig.color or utils.COLORS[index % utils.COLORS_COUNT]
+                    else:
+                        color = utils.COLORS[index % utils.COLORS_COUNT]
 
                     others.append(
                         SignalOnline(
@@ -1744,7 +1772,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                             entry=entry,
                             unit=sig.unit,
                             format=getattr(sig, "format", "phys"),
-                            color=getattr(sig, "color", "#505050"),
+                            color=color,
                         )
                     )
 
@@ -1758,16 +1786,16 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         else:
             others = []
-            for sig in channels:
+            for index, sig in enumerate(channels):
                 if sig is not None:
                     sig.flags &= ~sig.Flags.computed
                     sig.computation = None
                     ranges = sig.ranges
                     exists = getattr(sig, "exists", True)
-                    sig = PlotSignal(sig, allow_trim=False, allow_nans=True)
+                    sig = PlotSignal(sig, index=index, allow_trim=False, allow_nans=True)
                     if sig.conversion:
                         sig.phys_samples = sig.conversion.convert(sig.raw_samples, as_bytes=True)
-                    sig.entry = sig.group_index, sig.channel_index
+                    sig.entry = sig.origin_uuid, sig.group_index, sig.channel_index
 
                     others.append(
                         SignalOffline(

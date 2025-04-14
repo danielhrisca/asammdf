@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 import platform
 import sys
-from textwrap import wrap
 import webbrowser
 
 from natsort import natsorted
@@ -19,12 +18,18 @@ from ..dialogs.dependencies_dlg import DependenciesDlg
 from ..dialogs.functions_manager import FunctionsManagerDialog
 from ..dialogs.messagebox import MessageBox
 from ..dialogs.multi_search import MultiSearch
+from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..ui.main_window import Ui_PyMDFMainWindow
 from ..utils import draw_color_icon
 from .batch import BatchWidget
+from .can_bus_trace import CANBusTrace
 from .file import FileWidget
+from .flexray_bus_trace import FlexRayBusTrace
+from .gps import GPS
+from .lin_bus_trace import LINBusTrace
 from .mdi_area import MdiAreaWidget, WithMDIArea
 from .plot import Plot
+from .xy import XY
 
 
 class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
@@ -67,9 +72,16 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         multi_info.setIcon(icon)
         multi_info.clicked.connect(self.comparison_info)
 
+        multi_info2 = QtWidgets.QPushButton("Load dsp")
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        multi_info2.setIcon(icon)
+        multi_info2.clicked.connect(self.comparison_dsp)
+
         hbox = QtWidgets.QHBoxLayout()
         hbox.addWidget(multi_search)
         hbox.addWidget(multi_info)
+        hbox.addWidget(multi_info2)
         hbox.addStretch()
 
         self.mdi_area = MdiAreaWidget(self)
@@ -865,6 +877,32 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.show()
         self.fullscreen = None
 
+    def comparison_dsp(self, event=None):
+        windows = list(self.mdi_area.subWindowList())
+        for window in windows:
+            widget = window.widget()
+
+            self.mdi_area.removeSubWindow(window)
+            widget.setParent(None)
+            widget.close()
+            widget.deleteLater()
+            window.close()
+
+        import json
+        from traceback import format_exc
+
+        with open(r"d:\TMP\comp\float_plot.dspf") as infile:
+            info = json.load(infile)
+
+        windows = info.get("windows", [])
+        for i, window in enumerate(windows, 1):
+            window_type = window["type"]
+            window_title = window["title"]
+            try:
+                self.load_window(window)
+            except:
+                print(format_exc())
+
     def sizeHint(self):
         return QtCore.QSize(1, 1)
 
@@ -1433,32 +1471,46 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             elif self.files.count() and self.stackedWidget.currentIndex() == 2:
                 event.accept()
                 count = self.files.count()
-                channels_dbs = [self.files.widget(i).mdf.channels_db for i in range(count)]
-                measurements = [str(self.files.widget(i).mdf.name) for i in range(count)]
+                measurements = [self.files.widget(i).mdf for i in range(count)]
 
-                dlg = MultiSearch(channels_dbs, measurements, parent=self)
+                dlg = MultiSearch(measurements, parent=self)
                 dlg.setModal(True)
                 dlg.exec_()
                 result = dlg.result
                 if result:
-                    ret, ok = QtWidgets.QInputDialog.getItem(
-                        None,
-                        "Select window type",
-                        "Type:",
-                        ["Plot", "Numeric", "Tabular"],
-                        0,
-                        False,
-                    )
-                    if ok:
+                    options = [
+                        "New plot window",
+                        "New numeric window",
+                        "New tabular window",
+                    ] + [
+                        mdi.windowTitle()
+                        for mdi in self.mdi_area.subWindowList()
+                        if not isinstance(
+                            mdi.widget(),
+                            (CANBusTrace, LINBusTrace, FlexRayBusTrace, GPS, XY),
+                        )
+                    ]
+
+                    if active_window := self.mdi_area.activeSubWindow():
+                        default = active_window.windowTitle()
+                    else:
+                        default = None
+
+                    dialog = WindowSelectionDialog(options=options, default=default, parent=self)
+                    dialog.setModal(True)
+                    dialog.exec_()
+
+                    if dialog.result():
+
+                        window_type = dialog.selected_type()
+                        disable_new_channels = dialog.disable_new_channels()
+
                         names = []
-                        for file_index, entry in result:
-                            group, ch_index = entry
-                            mdf = self.files.widget(file_index).mdf
-                            uuid = self.files.widget(file_index).uuid
-                            name = mdf.groups[group].channels[ch_index].name
+
+                        for uuid, (group, ch_index), channel_name in sorted(result):
                             names.append(
                                 {
-                                    "name": name,
+                                    "name": channel_name,
                                     "origin_uuid": uuid,
                                     "type": "channel",
                                     "ranges": [],
@@ -1470,9 +1522,20 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                                     "precision": 3,
                                     "common_axis": False,
                                     "individual_axis": False,
+                                    "enabled": not disable_new_channels,
                                 }
                             )
-                        self.add_window((ret, names))
+                        if window_type == "New plot window":
+                            self.add_window(["Plot", names])
+                        elif window_type == "New numeric window":
+                            self.add_window(["Numeric", names])
+                        elif window_type == "New tabular window":
+                            self.add_window(["Tabular", names])
+                        else:
+                            for mdi in self.mdi_area.subWindowList():
+                                if mdi.windowTitle() == window_type:
+                                    self.add_new_channels(names, mdi.widget())
+                                    break
 
         elif key == QtCore.Qt.Key.Key_F11:
             self.toggle_fullscreen()
@@ -1500,13 +1563,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
     def comparison_info(self, event):
         count = self.files.count()
-        measurements = [str(self.files.widget(i).mdf.name) for i in range(count)]
+        measurements = [f"{self.files.widget(i).uuid}:\t{self.files.widget(i).mdf.name}" for i in range(count)]
 
-        info = []
-        for i, name in enumerate(measurements, 1):
-            info.extend(wrap(f"{i:> 2}: {name}", 120))
-
-        MessageBox.information(self, "Measurement files used for comparison", "\n".join(info))
+        MessageBox.information(self, "Measurement files used for comparison", "\n".join(measurements))
 
     def toggle_fullscreen(self):
         if self.files.count() > 0 or self.fullscreen is not None:

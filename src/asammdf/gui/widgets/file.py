@@ -940,7 +940,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         for mdi in self.mdi_area.subWindowList()
                         if not isinstance(
                             mdi.widget(),
-                            (CANBusTrace, LINBusTrace, FlexRayBusTrace, GPSDialog, XY),
+                            (CANBusTrace, LINBusTrace, FlexRayBusTrace, GPS, XY),
                         )
                     ]
 
