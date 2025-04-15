@@ -222,6 +222,9 @@ def extract_signals_using_pattern(
     elif not channels_db:
         channels_db = mdf.channels_db
 
+    origin_uuid = getattr(mdf, "uuid", os.urandom(6).hex())
+    origin_mdf = mdf.original_name.name
+
     pattern = pattern_info["pattern"]
     match_type = pattern_info["match_type"]
     case_sensitive = pattern_info.get("case_sensitive", False)
@@ -314,6 +317,8 @@ def extract_signals_using_pattern(
         sig.format = integer_format
         sig.ranges = []
         output_signals[uuid] = sig
+        sig.origin_uuid = origin_uuid
+        sig.origin_mdf = origin_mdf
 
     if as_names:
         return {sig.name for sig in signals}
@@ -1480,22 +1485,28 @@ class WithMDIArea:
     def add_window(self, args):
         window_type, names = args
 
-        if window_type == "CAN Bus Trace":
-            return self._add_can_bus_trace_window()
-        elif window_type == "FlexRay Bus Trace":
-            return self._add_flexray_bus_trace_window()
-        elif window_type == "LIN Bus Trace":
-            return self._add_lin_bus_trace_window()
-        elif window_type == "GPS":
-            return self._add_gps_window(names)
-        elif window_type == "Plot":
-            return self._add_plot_window(names)
-        elif window_type == "Numeric":
-            return self._add_numeric_window(names)
-        elif window_type == "Tabular":
-            return self._add_tabular_window(names)
-        elif window_type == "XY":
-            return self._add_xy_window(names)
+        if self.comparison:
+            if window_type == "Plot":
+                return self._add_plot_window(names)
+            elif window_type == "Numeric":
+                return self._add_numeric_window(names)
+        else:
+            if window_type == "CAN Bus Trace":
+                return self._add_can_bus_trace_window()
+            elif window_type == "FlexRay Bus Trace":
+                return self._add_flexray_bus_trace_window()
+            elif window_type == "LIN Bus Trace":
+                return self._add_lin_bus_trace_window()
+            elif window_type == "GPS":
+                return self._add_gps_window(names)
+            elif window_type == "Plot":
+                return self._add_plot_window(names)
+            elif window_type == "Numeric":
+                return self._add_numeric_window(names)
+            elif window_type == "Tabular":
+                return self._add_tabular_window(names)
+            elif window_type == "XY":
+                return self._add_xy_window(names)
 
     def _add_can_bus_trace_window(self, ranges=None):
         dfs = []
@@ -2343,6 +2354,7 @@ class WithMDIArea:
                 continue
 
             file_index, file = file_info
+            origin_mdf = file.mdf.original_name.name
 
             selected_signals = file.mdf.select(
                 uuids_signals,
@@ -2358,14 +2370,12 @@ class WithMDIArea:
                 sig.flags &= ~sig.Flags.computed
                 sig.computation = {}
                 sig.origin_uuid = uuid
+                sig.origin_mdf = origin_mdf
                 sig.name = sig_[0] or sig.name
                 sig.ranges = sig_obj["ranges"]
                 sig.uuid = sig_obj["uuid"]
                 if "color" in sig_obj:
                     sig.color = fn.mkColor(sig_obj["color"])
-
-                if self.comparison:
-                    sig.tooltip = f"{sig.name}\n@ {file.mdf.original_name}"
 
             signals.extend(selected_signals)
 
@@ -2410,6 +2420,7 @@ class WithMDIArea:
             uuid = os.urandom(6).hex()
             for sig, sig_obj in zip(not_found, not_found_objs, strict=False):
                 sig.origin_uuid = uuid
+                sig.origin_mdf = origin_mdf
                 sig.group_index = NOT_FOUND
                 sig.channel_index = randint(0, NOT_FOUND)
                 sig.exists = False
@@ -2533,12 +2544,15 @@ class WithMDIArea:
                 raw=True,
             )
 
+            origin_mdf = file.mdf.original_name.name
+
             for sig, (sig_uuid, sig_) in zip(selected_signals, uuids_signals.items(), strict=False):
                 sig.group_index = sig_["group_index"]
                 sig.channel_index = sig_["channel_index"]
                 sig.flags &= ~sig.Flags.computed
                 sig.computation = {}
                 sig.origin_uuid = uuid
+                sig.origin_mdf = origin_mdf
                 sig.name = sig_["name"] or sig.name
                 sig.uuid = sig_uuid
                 if "color" in sig_:
@@ -2588,6 +2602,7 @@ class WithMDIArea:
                         new_sig.flags &= ~sig.Flags.computed
                         new_sig.computation = {}
                         new_sig.origin_uuid = sig.origin_uuid
+                        new_sig.origin_mdf = origin_mdf
                         new_sig.uuid = os.urandom(6).hex()
                         new_sig.enable = getattr(sig, "enable", True)
 
@@ -2619,6 +2634,7 @@ class WithMDIArea:
                             new_sig.flags &= ~sig.Flags.computed
                             new_sig.computation = {}
                             new_sig.origin_uuid = sig.origin_uuid
+                            new_sig.origin_mdf = origin_mdf
                             new_sig.uuid = os.urandom(6).hex()
                             new_sig.enable = getattr(sig, "enable", True)
 
@@ -2791,16 +2807,11 @@ class WithMDIArea:
                             "type": v4c.EVENT_TYPE_TO_STRING[v4c.EVENT_TYPE_TRIGGER],
                         }
                         events.append(event)
+            mdf = self.mdf
+
         else:
             events = []
-            if isinstance(self.files, QtWidgets.QMdiArea):
-                origin = self.files.subWindowList()[0].widget().mdf.start_time
-            else:
-                origin = self.files.widget(0).mdf.start_time
-
-        if not self.comparison:
-            mdf = self.mdf
-        else:
+            origin = next(self.iter_files()).mdf.start_time
             mdf = None
 
         plot = Plot(
@@ -3197,16 +3208,22 @@ class WithMDIArea:
             return None
 
     def load_window(self, window_info):
-        functions = {
-            "Numeric": self._load_numeric_window,
-            "Plot": self._load_plot_window,
-            "GPS": self._load_gps_window,
-            "Tabular": self._load_tabular_window,
-            "CAN Bus Trace": self._load_can_bus_trace_window,
-            "FlexRay Bus Trace": self._load_flexray_bus_trace_window,
-            "LIN Bus Trace": self._load_lin_bus_trace_window,
-            "XY": self._load_xy_window,
-        }
+        if self.comparison:
+            functions = {
+                "Numeric": self._load_numeric_window,
+                "Plot": self._load_plot_window,
+            }
+        else:
+            functions = {
+                "Numeric": self._load_numeric_window,
+                "Plot": self._load_plot_window,
+                "GPS": self._load_gps_window,
+                "Tabular": self._load_tabular_window,
+                "CAN Bus Trace": self._load_can_bus_trace_window,
+                "FlexRay Bus Trace": self._load_flexray_bus_trace_window,
+                "LIN Bus Trace": self._load_lin_bus_trace_window,
+                "XY": self._load_xy_window,
+            }
 
         if window_info["type"] not in functions:
             self.unknown_windows.append(window_info)
@@ -3232,24 +3249,35 @@ class WithMDIArea:
                 self.windows_modified.emit()
 
     def _load_numeric_window(self, window_info):
-        uuid = self.uuid
         geometry = window_info.get("geometry", None)
 
         # patterns
         pattern_info = window_info["configuration"].get("pattern", {})
         if pattern_info:
-            signals = extract_signals_using_pattern(
-                mdf=self.mdf,
-                channels_db=None,
-                pattern_info=pattern_info,
-                ignore_value2text_conversions=self.ignore_value2text_conversions,
-                uuid=self.uuid,
-            )
+            if self.comparison:
+                signals = {}
+                for file_index, file in enumerate(self.iter_files()):
+                    new_plot_signals = extract_signals_using_pattern(
+                        mdf=file.mdf,
+                        channels_db=None,
+                        pattern_info=pattern_info,
+                        ignore_value2text_conversions=self.ignore_value2text_conversions,
+                        uuid=file.uuid,
+                    )
+                    signals |= new_plot_signals
+
+            else:
+                signals = extract_signals_using_pattern(
+                    mdf=self.mdf,
+                    channels_db=None,
+                    pattern_info=pattern_info,
+                    ignore_value2text_conversions=self.ignore_value2text_conversions,
+                    uuid=self.uuid,
+                )
 
             signals = list(signals.values())
 
             for sig in signals:
-                sig.origin_uuid = uuid
                 sig.computation = None
                 sig.ranges = []
 
@@ -3275,51 +3303,73 @@ class WithMDIArea:
             pattern_info["ranges"] = ranges
 
         else:
+            if self.comparison:
+                mdfs = [file.mdf for file in self.iter_files()]
+            else:
+                mdfs = [self.mdf]
+
             required = window_info["configuration"]["channels"]
 
-            found = [elem for elem in required if elem["name"] in self.mdf]
+            signals = []
 
-            signals_ = [(elem["name"], *self.mdf.whereis(elem["name"])[0]) for elem in found]
+            for mdf in mdfs:
+                origin_uuid = mdf.uuid
+                origin_mdf = mdf.original_name.name
 
-            if signals_:
+                mdf_required = [elem for elem in required if elem["origin_uuid"] == origin_uuid]
 
-                signals = self.mdf.select(
-                    signals_,
-                    ignore_value2text_conversions=self.ignore_value2text_conversions,
-                    copy_master=False,
-                    validate=True,
-                    raw=True,
-                )
-            else:
-                signals = []
+                found = [elem for elem in required if elem["name"] in mdf]
 
-            for sig, sig_, description in zip(signals, signals_, found, strict=False):
-                sig.group_index = sig_[1]
-                sig.channel_index = sig_[2]
-                sig.origin_uuid = uuid
-                sig.computation = None
-                ranges = description["ranges"]
-                for range in ranges:
-                    range["font_color"] = fn.mkBrush(range["font_color"])
-                    range["background_color"] = fn.mkBrush(range["background_color"])
-                sig.ranges = ranges
-                sig.format = description["format"]
-                sig.color = fn.mkColor(description.get("color", "#505050"))
+                signals_ = [(elem["name"], *mdf.whereis(elem["name"])[0]) for elem in found]
 
-            signals = [sig for sig in signals if not sig.samples.dtype.names and len(sig.samples.shape) <= 1]
+                if signals_:
 
-            signals = natsorted(signals, key=lambda x: x.name)
+                    mdf_signals = mdf.select(
+                        signals_,
+                        ignore_value2text_conversions=self.ignore_value2text_conversions,
+                        copy_master=False,
+                        validate=True,
+                        raw=True,
+                    )
+                else:
+                    mdf_signals = []
 
-            found = {sig.name for sig in signals}
-            required = {description["name"] for description in required}
-            not_found = [Signal([], [], name=name) for name in sorted(required - found)]
-            uuid = os.urandom(6).hex()
-            for sig in not_found:
-                sig.origin_uuid = uuid
-                sig.group_index = 0
-                sig.ranges = []
+                for sig, sig_, description in zip(mdf_signals, signals_, found, strict=False):
+                    sig.group_index = sig_[1]
+                    sig.channel_index = sig_[2]
+                    sig.origin_uuid = origin_uuid
+                    sig.origin_mdf = origin_mdf
+                    sig.computation = None
+                    ranges = description["ranges"]
+                    for range in ranges:
+                        range["font_color"] = fn.mkBrush(range["font_color"])
+                        range["background_color"] = fn.mkBrush(range["background_color"])
+                    sig.ranges = ranges
+                    sig.format = description["format"]
+                    sig.color = fn.mkColor(description.get("color", "#505050"))
+                    sig.uuid = os.urandom(6).hex()
 
-            signals.extend(not_found)
+                mdf_signals = [
+                    sig for sig in mdf_signals if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
+                ]
+
+                mdf_signals = natsorted(mdf_signals, key=lambda x: x.name)
+
+                mdf_found = {sig.name for sig in mdf_signals}
+                mdf_required = {description["name"] for description in mdf_required}
+                not_found = [Signal([], [], name=name) for name in sorted(mdf_required - mdf_found)]
+                for sig in not_found:
+                    sig.uuid = os.urandom(6).hex()
+                    sig.origin_uuid = origin_uuid
+                    sig.origin_mdf = origin_mdf
+                    sig.group_index = 0
+                    sig.ranges = []
+
+                mdf_signals.extend(not_found)
+
+                signals.extend(mdf_signals)
+
+            signals.sort(key=lambda x: (x.name, x.origin_uuid))
 
         numeric = Numeric(
             [],
@@ -3490,8 +3540,6 @@ class WithMDIArea:
                         ignore_value2text_conversions=self.ignore_value2text_conversions,
                         uuid=file.uuid,
                     )
-                    for sig in new_plot_signals.values():
-                        sig.name = f"{file_index + 1}: {sig.name}"
 
                     plot_signals |= new_plot_signals
 
@@ -3524,6 +3572,7 @@ class WithMDIArea:
             measured_signals = {}
             for mdf in mdfs:
                 origin_uuid = mdf.uuid
+                origin_mdf = mdf.original_name.name
 
                 measured_signals[origin_uuid] = mdf_measured = {}
                 mdf_not_found = {uuid: item for uuid, item in not_found.items() if item["origin_uuid"] == origin_uuid}
@@ -3549,6 +3598,7 @@ class WithMDIArea:
                     signal.group_index = sig_item["group_index"]
                     signal.channel_index = sig_item["channel_index"]
                     signal.origin_uuid = origin_uuid
+                    signal.origin_mdf = origin_mdf
                     signal.name = sig_item["name"]
                     signal.mode = sig_item.get("mode", "phys")
                     signal.uuid = sig_uuid
@@ -3601,6 +3651,7 @@ class WithMDIArea:
                         signal.flags &= ~signal.Flags.computed
                         signal.computation = {}
                         signal.origin_uuid = origin_uuid
+                        signal.origin_mdf = origin_mdf
                         signal.name = sig_name
                         signal.mode = description.get("mode", "phys")
                         signal.uuid = sig_uuid
@@ -3658,6 +3709,7 @@ class WithMDIArea:
                     signal.group_index = -1
                     signal.channel_index = -1
                     signal.origin_uuid = origin_uuid
+                    signal.origin_mdf = origin_mdf
                     signal.uuid = sig_uuid
 
                     if channel["flags"] & Signal.Flags.user_defined_conversion:
@@ -3678,6 +3730,7 @@ class WithMDIArea:
                         sig.uuid = uuid
 
                         sig.origin_uuid = origin_uuid
+                        sig.origin_mdf = origin_mdf
                         sig.group_index = NOT_FOUND
                         sig.channel_index = NOT_FOUND
                         sig.color = description["color"]

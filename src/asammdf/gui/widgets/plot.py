@@ -195,6 +195,7 @@ class PlotSignal(Signal):
         self.duplication = duplication
         self.uuid = getattr(signal, "uuid", os.urandom(6).hex())
         self.origin_uuid = getattr(signal, "origin_uuid", os.urandom(6).hex())
+        self.origin_mdf = getattr(signal, "origin_mdf", "")
 
         self.group_index = getattr(signal, "group_index", NOT_FOUND)
         self.channel_index = getattr(signal, "channel_index", NOT_FOUND)

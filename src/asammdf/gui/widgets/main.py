@@ -891,7 +891,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         import json
         from traceback import format_exc
 
-        with open(r"d:\TMP\comp\float_plot.dspf") as infile:
+        with open(r"d:\TMP\comp\float_plot_numeric.dspf") as infile:
             info = json.load(infile)
 
         windows = info.get("windows", [])
@@ -1481,7 +1481,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     options = [
                         "New plot window",
                         "New numeric window",
-                        "New tabular window",
                     ] + [
                         mdi.windowTitle()
                         for mdi in self.mdi_area.subWindowList()

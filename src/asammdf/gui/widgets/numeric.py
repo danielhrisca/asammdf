@@ -71,6 +71,14 @@ class SignalOnline:
         self.color = fn.mkColor(color)
 
     @property
+    def origin_mdf(self):
+        return ""
+
+    @origin_mdf.setter
+    def origin_mdf(self, value):
+        pass
+
+    @property
     def origin_uuid(self):
         return self.entry[0]
 
@@ -143,6 +151,14 @@ class SignalOffline:
     @color.setter
     def color(self, value):
         self.signal.color = value
+
+    @property
+    def origin_mdf(self):
+        return self.signal.origin_mdf
+
+    @origin_mdf.setter
+    def origin_mdf(self, value):
+        self.signal.origin_mdf = value
 
     @property
     def origin_uuid(self):
@@ -442,7 +458,7 @@ class OfflineBackEnd:
         sorted_column_index = self.sorted_column_index
 
         if sorted_column_index == 0:
-            self.signals = natsorted(self.signals, key=lambda x: x.name, reverse=self.sort_reversed)
+            self.signals = natsorted(self.signals, key=lambda x: (x.name, x.origin_uuid), reverse=self.sort_reversed)
 
         elif sorted_column_index in (1, 2):
             numeric = []
@@ -540,143 +556,148 @@ class TableModel(QtCore.QAbstractTableModel):
         signal = self.backend.signals[row]
         cell = self.backend.get_signal_value(signal, col)
 
-        if role == QtCore.Qt.ItemDataRole.DisplayRole:
-            if cell is None:
-                return "●"
-            elif isinstance(cell, (bytes, np.bytes_)):
-                return cell.decode("utf-8", "replace")
-            elif isinstance(cell, str):
-                return cell
-            elif isinstance(cell, (np.ndarray, np.record, np.recarray)):
-                return str(cell[0])
-            else:
-                if np.isnan(cell):
-                    return "NaN"
+        match role:
+            case QtCore.Qt.ItemDataRole.DisplayRole:
+                if cell is None:
+                    return "●"
+                elif isinstance(cell, (bytes, np.bytes_)):
+                    return cell.decode("utf-8", "replace")
+                elif isinstance(cell, str):
+                    return cell
+                elif isinstance(cell, (np.ndarray, np.record, np.recarray)):
+                    return str(cell[0])
                 else:
-                    return value_as_str(cell, signal.format, None, self.float_precision)
+                    if np.isnan(cell):
+                        return "NaN"
+                    else:
+                        return value_as_str(cell, signal.format, None, self.float_precision)
 
-        elif role == QtCore.Qt.ItemDataRole.BackgroundRole:
-            channel_ranges = self.view.ranges[signal.entry]
-            raw_cell = self.backend.get_signal_value(signal, 1)
-            scaled_cell = self.backend.get_signal_value(signal, 2)
-
-            try:
-                scaled_value = float(scaled_cell)
-                value = scaled_value
-            except:
-                scaled_value = str(scaled_cell)
+            case QtCore.Qt.ItemDataRole.BackgroundRole:
+                channel_ranges = self.view.ranges[signal.entry]
+                raw_cell = self.backend.get_signal_value(signal, 1)
+                scaled_cell = self.backend.get_signal_value(signal, 2)
 
                 try:
-                    raw_value = float(raw_cell)
-                    value = raw_value
-                except:
+                    scaled_value = float(scaled_cell)
                     value = scaled_value
+                except:
+                    scaled_value = str(scaled_cell)
 
-            new_background_color, new_font_color = get_colors_using_ranges(
-                value,
-                ranges=channel_ranges,
-                default_background_color=self.background_color,
-                default_font_color=signal.color,
-            )
+                    try:
+                        raw_value = float(raw_cell)
+                        value = raw_value
+                    except:
+                        value = scaled_value
 
-            return new_background_color if new_background_color != self.background_color else None
+                new_background_color, new_font_color = get_colors_using_ranges(
+                    value,
+                    ranges=channel_ranges,
+                    default_background_color=self.background_color,
+                    default_font_color=signal.color,
+                )
 
-        elif role == QtCore.Qt.ItemDataRole.ForegroundRole:
+                return new_background_color if new_background_color != self.background_color else None
 
-            channel_ranges = self.view.ranges[signal.entry]
-            raw_cell = self.backend.get_signal_value(signal, 1)
-            scaled_cell = self.backend.get_signal_value(signal, 2)
+            case QtCore.Qt.ItemDataRole.ForegroundRole:
 
-            try:
-                scaled_value = float(scaled_cell)
-                value = scaled_value
-            except:
-                scaled_value = str(scaled_cell)
+                channel_ranges = self.view.ranges[signal.entry]
+                raw_cell = self.backend.get_signal_value(signal, 1)
+                scaled_cell = self.backend.get_signal_value(signal, 2)
 
                 try:
-                    raw_value = float(raw_cell)
-                    value = raw_value
-                except:
+                    scaled_value = float(scaled_cell)
                     value = scaled_value
+                except:
+                    scaled_value = str(scaled_cell)
 
-            new_background_color, new_font_color = get_colors_using_ranges(
-                value,
-                ranges=channel_ranges,
-                default_background_color=self.background_color,
-                default_font_color=signal.color,
-            )
+                    try:
+                        raw_value = float(raw_cell)
+                        value = raw_value
+                    except:
+                        value = scaled_value
 
-            return new_font_color
+                new_background_color, new_font_color = get_colors_using_ranges(
+                    value,
+                    ranges=channel_ranges,
+                    default_background_color=self.background_color,
+                    default_font_color=signal.color,
+                )
 
-        elif role == QtCore.Qt.ItemDataRole.TextAlignmentRole:
-            if col:
-                return int(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
-            else:
-                return int(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
+                return new_font_color
 
-        elif role == QtCore.Qt.ItemDataRole.DecorationRole:
-            if col == 0:
-                if not signal.exists:
-                    icon = utils.ERROR_ICON
-                    if icon is None:
-                        utils.ERROR_ICON = QtGui.QIcon()
-                        utils.ERROR_ICON.addPixmap(
-                            QtGui.QPixmap(":/error.png"),
-                            QtGui.QIcon.Mode.Normal,
-                            QtGui.QIcon.State.Off,
-                        )
+            case QtCore.Qt.ItemDataRole.TextAlignmentRole:
+                if col:
+                    return int(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
+                else:
+                    return int(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
 
-                        utils.NO_ERROR_ICON = QtGui.QIcon()
-
+            case QtCore.Qt.ItemDataRole.DecorationRole:
+                if col == 0:
+                    if not signal.exists:
                         icon = utils.ERROR_ICON
-                else:
-                    icon = utils.NO_ERROR_ICON
-                    if icon is None:
-                        utils.ERROR_ICON = QtGui.QIcon()
-                        utils.ERROR_ICON.addPixmap(
-                            QtGui.QPixmap(":/error.png"),
-                            QtGui.QIcon.Mode.Normal,
-                            QtGui.QIcon.State.Off,
-                        )
+                        if icon is None:
+                            utils.ERROR_ICON = QtGui.QIcon()
+                            utils.ERROR_ICON.addPixmap(
+                                QtGui.QPixmap(":/error.png"),
+                                QtGui.QIcon.Mode.Normal,
+                                QtGui.QIcon.State.Off,
+                            )
 
-                        utils.NO_ERROR_ICON = QtGui.QIcon()
+                            utils.NO_ERROR_ICON = QtGui.QIcon()
 
+                            icon = utils.ERROR_ICON
+                    else:
                         icon = utils.NO_ERROR_ICON
+                        if icon is None:
+                            utils.ERROR_ICON = QtGui.QIcon()
+                            utils.ERROR_ICON.addPixmap(
+                                QtGui.QPixmap(":/error.png"),
+                                QtGui.QIcon.Mode.Normal,
+                                QtGui.QIcon.State.Off,
+                            )
 
-                return icon
+                            utils.NO_ERROR_ICON = QtGui.QIcon()
 
-            elif col in (1, 2):
-                has_ranges = bool(self.view.ranges.get(signal.entry, False))
-                if has_ranges:
-                    icon = utils.RANGE_INDICATOR_ICON
-                    if icon is None:
-                        utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
-                        utils.RANGE_INDICATOR_ICON.addPixmap(
-                            QtGui.QPixmap(":/paint.png"),
-                            QtGui.QIcon.Mode.Normal,
-                            QtGui.QIcon.State.Off,
-                        )
+                            icon = utils.NO_ERROR_ICON
 
-                        utils.NO_ERROR_ICON = QtGui.QIcon()
-                        utils.NO_ICON = QtGui.QIcon()
+                    return icon
 
+                elif col in (1, 2):
+                    has_ranges = bool(self.view.ranges.get(signal.entry, False))
+                    if has_ranges:
                         icon = utils.RANGE_INDICATOR_ICON
-                else:
-                    icon = utils.NO_ERROR_ICON
-                    if icon is None:
-                        utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
-                        utils.RANGE_INDICATOR_ICON.addPixmap(
-                            QtGui.QPixmap(":/paint.png"),
-                            QtGui.QIcon.Mode.Normal,
-                            QtGui.QIcon.State.Off,
-                        )
+                        if icon is None:
+                            utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
+                            utils.RANGE_INDICATOR_ICON.addPixmap(
+                                QtGui.QPixmap(":/paint.png"),
+                                QtGui.QIcon.Mode.Normal,
+                                QtGui.QIcon.State.Off,
+                            )
 
-                        utils.NO_ERROR_ICON = QtGui.QIcon()
-                        utils.NO_ICON = QtGui.QIcon()
+                            utils.NO_ERROR_ICON = QtGui.QIcon()
+                            utils.NO_ICON = QtGui.QIcon()
 
+                            icon = utils.RANGE_INDICATOR_ICON
+                    else:
                         icon = utils.NO_ERROR_ICON
+                        if icon is None:
+                            utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
+                            utils.RANGE_INDICATOR_ICON.addPixmap(
+                                QtGui.QPixmap(":/paint.png"),
+                                QtGui.QIcon.Mode.Normal,
+                                QtGui.QIcon.State.Off,
+                            )
 
-                return icon
+                            utils.NO_ERROR_ICON = QtGui.QIcon()
+                            utils.NO_ICON = QtGui.QIcon()
+
+                            icon = utils.NO_ERROR_ICON
+
+                    return icon
+
+            case QtCore.Qt.ItemDataRole.ToolTipRole:
+                if signal:
+                    return f'Origin = {signal.origin_uuid or "unknown"}\nMDF = {signal.origin_mdf or "unknown"}'
 
     def flags(self, index):
         return (
