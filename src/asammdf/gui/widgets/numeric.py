@@ -168,9 +168,10 @@ class SignalOffline:
     def origin_uuid(self, value):
         self.signal.origin_uuid = value
 
-    def reset(self):
-        self.signal = None
-        self.exists = True
+    def reset(self, exists=True):
+        self.signal.samples = self.signal.samples[:0]
+        self.signal.timestamps = self.signal.timestamps[:0]
+        self.exists = exists
         self.raw = None
         self.scaled = None
         self.last_timestamp = None
@@ -247,6 +248,9 @@ class OnlineBackEnd:
             self.sort_reversed = not self.sort_reversed
 
         self.sort()
+
+    def color_same_origin_signals(self, origin_uuid="", color=""):
+        pass
 
     def data_changed(self):
         self.refresh_ui()
@@ -355,6 +359,12 @@ class OnlineBackEnd:
                 self.sort()
             else:
                 self.data_changed()
+
+    def shift_same_origin_signals(self, origin_uuid="", delta=0.0):
+        pass
+
+    def update_missing_signals(self, uuids=()):
+        pass
 
     def reset(self):
         for sig in self.signals:
@@ -493,6 +503,13 @@ class OfflineBackEnd:
 
         self.data_changed()
 
+    def color_same_origin_signals(self, origin_uuid="", color=""):
+        for signal in self.signals:
+            if signal.origin_uuid == origin_uuid:
+                signal.color = color
+
+        self.data_changed()
+
     def get_timestamp(self, stamp):
         max_idx = len(self.timebase) - 1
         if max_idx == -1:
@@ -509,6 +526,18 @@ class OfflineBackEnd:
             self.sort()
         else:
             self.data_changed()
+
+    def shift_same_origin_signals(self, origin_uuid="", delta=0.0):
+        for signal in self.signals:
+            if signal.origin_uuid == origin_uuid:
+                signal.signal.timestamps = signal.signal.timestamps + delta
+
+        self.data_changed()
+
+    def update_missing_signals(self, uuids=()):
+        for signal in self.signals:
+            if signal.origin_uuid not in uuids:
+                signal.reset(exists=False)
 
     def reset(self):
         for sig in self.signals:
@@ -2135,6 +2164,15 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 self.match.setText(f"condition found for {signal_name}")
             else:
                 self.match.setText("condition not found")
+
+    def color_same_origin_signals(self, origin_uuid="", color=""):
+        self.backend.shift_same_origin_signals(origin_uuid=origin_uuid, color=color)
+
+    def shift_same_origin_signals(self, origin_uuid="", delta=0.0):
+        self.backend.shift_same_origin_signals(origin_uuid=origin_uuid, delta=delta)
+
+    def update_missing_signals(self, uuids=()):
+        self.backend.update_missing_signals(uuids)
 
     def keyPressEvent(self, event):
         key = event.key()

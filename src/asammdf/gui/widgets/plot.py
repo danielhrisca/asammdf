@@ -2486,6 +2486,15 @@ class Plot(QtWidgets.QWidget):
 
         super().close()
 
+    def color_same_origin_signals(self, origin_uuid="", color=""):
+        uuids = []
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while item := iterator.value():
+            if item.type() == item.Channel and item.signal.origin_uuid == origin_uuid:
+                item.color = color
+
+            iterator += 1
+
     def computation_channel_inserted(self, sig):
         sig.enable = True
 
@@ -3315,6 +3324,37 @@ class Plot(QtWidgets.QWidget):
         self._inhibit_timestamp_signals_timer.start(50)
         self.plot.cursor1.setPos(stamp)
         self.cursor_move_finished()
+
+    def shift_same_origin_signals(self, origin_uuid="", delta=0.0):
+        uuids = []
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while item := iterator.value():
+            if item.type() == item.Channel and item.signal.origin_uuid == origin_uuid:
+
+                uuids.append(item.signal.uuid)
+
+            iterator += 1
+
+        if not uuids:
+            return
+
+        self.plot.set_time_offset([False, delta, *uuids])
+
+    def update_missing_signals(self, uuids=()):
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while item := iterator.value():
+            if item.type() == item.Channel and item.signal.origin_uuid not in uuids:
+                signal = item.signal
+                signal.samples = signal.samples[:0]
+                signal.raw_samples = signal.raw_samples[:0]
+                signal.phys_samples = signal.phys_samples[:0]
+                signal.plot_samples = signal.plot_samples[:0]
+                signal.samples = signal.samples[:0]
+                signal.timestamps = signal.timestamps[:0]
+                item.does_not_exist(exists=False)
+                item.set_value("n.a.")
+
+            iterator += 1
 
     def _show_overlapping_alias(self, origin_uuid, uuid):
         for sig in self.plot.signals:

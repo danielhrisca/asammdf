@@ -22,14 +22,9 @@ from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..ui.main_window import Ui_PyMDFMainWindow
 from ..utils import draw_color_icon
 from .batch import BatchWidget
-from .can_bus_trace import CANBusTrace
 from .file import FileWidget
-from .flexray_bus_trace import FlexRayBusTrace
-from .gps import GPS
-from .lin_bus_trace import LINBusTrace
 from .mdi_area import get_functions, MdiAreaWidget, WithMDIArea
 from .plot import Plot
-from .xy import XY
 
 
 class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
@@ -84,7 +79,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         hbox.addWidget(multi_info2)
         hbox.addStretch()
 
-        self.mdi_area = MdiAreaWidget(self)
+        self.mdi_area = MdiAreaWidget(parent=self, comparison=True)
         self.mdi_area.add_window_request.connect(self.add_window)
         self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -1514,8 +1509,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 self.files.currentWidget().keyPressEvent(event)
             elif self.files.count() and self.stackedWidget.currentIndex() == 2:
                 event.accept()
-                count = self.files.count()
-                measurements = [self.files.widget(i).mdf for i in range(count)]
+                measurements = [file.mdf for file in self.iter_files()]
 
                 dlg = MultiSearch(measurements, parent=self)
                 dlg.setModal(True)
@@ -1525,14 +1519,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     options = [
                         "New plot window",
                         "New numeric window",
-                    ] + [
-                        mdi.windowTitle()
-                        for mdi in self.mdi_area.subWindowList()
-                        if not isinstance(
-                            mdi.widget(),
-                            (CANBusTrace, LINBusTrace, FlexRayBusTrace, GPS, XY),
-                        )
-                    ]
+                    ] + [mdi.windowTitle() for mdi in self.mdi_area.subWindowList()]
 
                     if active_window := self.mdi_area.activeSubWindow():
                         default = active_window.windowTitle()

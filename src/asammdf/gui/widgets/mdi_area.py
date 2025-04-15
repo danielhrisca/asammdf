@@ -827,13 +827,14 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
     add_window_request = QtCore.Signal(list)
     open_files_request = QtCore.Signal(object)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, comparison=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.setAcceptDrops(True)
         self.placeholder_text = (
             "Drag and drop channels, or select channels and press the <Create window> button, to create new windows"
         )
+        self.comparison = comparison
         self.show()
 
     def cascadeSubWindows(self):
@@ -875,7 +876,9 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
         else:
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
-                dialog = WindowSelectionDialog(parent=self)
+                dialog = WindowSelectionDialog(
+                    options=("Plot", "Numeric") if self.comparison else ("Plot", "Numeric", "Tabular"), parent=self
+                )
                 dialog.setModal(True)
                 dialog.exec_()
 
@@ -4475,6 +4478,17 @@ class WithMDIArea:
             self._splitter_source = None
 
         self._busy = False
+
+    def update_comparison_windows(self):
+        if not self.comparison:
+            return
+
+        uuids = {file.mdf.uuid for file in self.iter_files()}
+
+        windows = list(self.mdi_area.subWindowList())
+        for window in windows:
+            widget = window.widget()
+            widget.update_missing_signals(uuids)
 
     def update_functions(self, original_definitions, modified_definitions, new_global_variables):
         self.global_variables = new_global_variables
