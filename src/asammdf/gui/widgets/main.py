@@ -27,7 +27,7 @@ from .file import FileWidget
 from .flexray_bus_trace import FlexRayBusTrace
 from .gps import GPS
 from .lin_bus_trace import LINBusTrace
-from .mdi_area import MdiAreaWidget, WithMDIArea
+from .mdi_area import get_functions, MdiAreaWidget, WithMDIArea
 from .plot import Plot
 from .xy import XY
 
@@ -74,7 +74,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         multi_info2 = QtWidgets.QPushButton("Load dsp")
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         multi_info2.setIcon(icon)
         multi_info2.clicked.connect(self.comparison_dsp)
 
@@ -891,13 +891,57 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         import json
         from traceback import format_exc
 
-        with open(r"d:\TMP\comp\float_plot_numeric.dspf") as infile:
+        file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self,
+            "Select display file",
+            "",
+            "Display files (*.dspf)",
+            "Display files (*.dspf)",
+        )
+
+        if not file_name or Path(file_name).suffix.lower() != ".dspf":
+            return
+
+        with open(file_name) as infile:
             info = json.load(infile)
+
+        new_functions = {}
+
+        if "functions" in info:
+            for name, definition in info["functions"].items():
+                if name in self.functions:
+                    if self.functions[name] != definition:
+                        new_functions[os.urandom(6).hex()] = {
+                            "name": name,
+                            "definition": definition,
+                        }
+                else:
+                    new_functions[os.urandom(6).hex()] = {
+                        "name": name,
+                        "definition": definition,
+                    }
+
+        else:
+            for window in info["windows"]:
+                if window["type"] == "Plot":
+                    for name, definition in get_functions(window["configuration"]["channels"]).items():
+                        if name in self.functions:
+                            if self.functions[name] != definition:
+                                new_functions[os.urandom(6).hex()] = {
+                                    "name": name,
+                                    "definition": definition,
+                                }
+                        else:
+                            new_functions[os.urandom(6).hex()] = {
+                                "name": name,
+                                "definition": definition,
+                            }
+
+        if new_functions or info.get("global_variables", "") != self.global_variables:
+            self.update_functions({}, new_functions, f'{self.global_variables}\n{info.get("global_variables", "")}')
 
         windows = info.get("windows", [])
         for i, window in enumerate(windows, 1):
-            window_type = window["type"]
-            window_title = window["title"]
             try:
                 self.load_window(window)
             except:

@@ -3607,7 +3607,7 @@ class WithMDIArea:
                     plot_signals[sig_uuid] = signal
 
                 matrix_components = []
-                for nf_name in not_found:
+                for nf_name in mdf_not_found_names:
                     name, indexes = parse_matrix_component(nf_name)
                     if indexes and name in mdf:
                         matrix_components.append((name, indexes))
@@ -3723,7 +3723,7 @@ class WithMDIArea:
 
                     plot_signals[sig_uuid] = signal
 
-                for uuid, description in mdf_not_found:
+                for uuid, description in mdf_not_found.items():
                     if uuid not in plot_signals:
 
                         sig = Signal([], [], name=description["name"])
