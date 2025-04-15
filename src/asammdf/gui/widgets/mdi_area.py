@@ -3,7 +3,6 @@ import datetime
 from functools import partial
 import inspect
 import itertools
-import json
 import os
 from pathlib import Path
 from random import randint
@@ -95,28 +94,35 @@ def get_origin_uuid(item):
 
 def build_mime_from_config(
     items,
-    mdf=None,
+    mdfs=None,
     computed_origin_uuid=None,
     default_index=NOT_FOUND,
     top=True,
     has_flags=None,
 ):
-    if computed_origin_uuid is None:
-        computed_origin_uuid = os.urandom(6).hex()
+
+    if mdfs is None:
+        mdfs = [None]
+    elif not isinstance(mdfs, (tuple, list)):
+        mdfs = [mdfs]
+
     if top:
         rename_origin_uuid(items)
+        if not mdfs:
+            computed_origin_uuid = os.urandom(6).hex()
 
     descriptions = {}
     found = {}
     not_found = {}
     computed = {}
     mime = []
-    for item in items:
-        uuid = os.urandom(6).hex()
-        item["uuid"] = uuid
+    for cfg_item in items:
 
-        if item.get("type", "channel") == "group":
-            if item.get("pattern", None) is None:
+        if cfg_item.get("type", "channel") == "group":
+            uuid = os.urandom(6).hex()
+            cfg_item["uuid"] = uuid
+
+            if cfg_item.get("pattern", None) is None:
                 (
                     new_mine,
                     new_descriptions,
@@ -124,8 +130,8 @@ def build_mime_from_config(
                     new_not_found,
                     new_computed,
                 ) = build_mime_from_config(
-                    item["channels"],
-                    mdf,
+                    cfg_item["channels"],
+                    mdfs,
                     computed_origin_uuid,
                     default_index,
                     top=False,
@@ -136,59 +142,70 @@ def build_mime_from_config(
                 not_found.update(new_not_found)
                 computed.update(new_computed)
 
-                item["channels"] = new_mine
+                cfg_item["channels"] = new_mine
 
-                mime.append(item)
+                mime.append(cfg_item)
             else:
-                mime.append(item)
+                mime.append(cfg_item)
         else:
-            descriptions[uuid] = item
+            for mdf in mdfs:
+                if mdf is None:
+                    origin_uuid = computed_origin_uuid
+                else:
+                    origin_uuid = mdf.uuid
 
-            if has_flags is None:
-                has_flags = "flags" in item
+                uuid = os.urandom(6).hex()
+                item = deepcopy(cfg_item)
+                item["uuid"] = uuid
+                item["origin_uuid"] = origin_uuid
 
-            if has_flags:
-                # item["flags"] = Signal.Flags(item["flags"])
-                item_is_computed = item["flags"] & Signal.Flags.computed
+                descriptions[uuid] = item
 
-            else:
-                item_is_computed = item.get("computed", False)
-                flags = Signal.Flags.no_flags
+                if has_flags is None:
+                    has_flags = "flags" in item
 
-                if "comment" in item:
-                    flags |= Signal.Flags.user_defined_comment
-
-                if "conversion" in item:
-                    flags |= Signal.Flags.user_defined_conversion
-
-                if "user_defined_name" in item:
-                    flags |= Signal.Flags.user_defined_name
-
-                if item_is_computed:
-                    flags |= Signal.Flags.computed
-
-                item["flags"] = flags
-
-            if item_is_computed:
-                group_index, channel_index = -1, -1
-                computed[uuid] = item
-                item["computation"] = computation_to_python_function(item["computation"])
-                item["computation"].pop("definition", None)
-                item["origin_uuid"] = computed_origin_uuid
-
-            else:
-                occurrences = mdf.whereis(item["name"]) if mdf else None
-                if occurrences:
-                    group_index, channel_index = occurrences[0]
-                    found[uuid] = item["name"], group_index, channel_index
+                if has_flags:
+                    # item["flags"] = Signal.Flags(item["flags"])
+                    item_is_computed = item["flags"] & Signal.Flags.computed
 
                 else:
-                    group_index, channel_index = default_index, default_index
-                    not_found[item["name"]] = uuid
+                    item_is_computed = item.get("computed", False)
+                    flags = Signal.Flags.no_flags
 
-            item["group_index"] = group_index
-            item["channel_index"] = channel_index
-            mime.append(item)
+                    if "comment" in item:
+                        flags |= Signal.Flags.user_defined_comment
+
+                    if "conversion" in item:
+                        flags |= Signal.Flags.user_defined_conversion
+
+                    if "user_defined_name" in item:
+                        flags |= Signal.Flags.user_defined_name
+
+                    if item_is_computed:
+                        flags |= Signal.Flags.computed
+
+                    item["flags"] = flags
+
+                if item_is_computed:
+                    group_index, channel_index = -1, -1
+                    computed[uuid] = item
+                    item["computation"] = computation_to_python_function(item["computation"])
+                    item["computation"].pop("definition", None)
+                    item["origin_uuid"] = origin_uuid
+
+                else:
+                    occurrences = mdf.whereis(item["name"]) if mdf else None
+                    if occurrences:
+                        group_index, channel_index = occurrences[0]
+                        found[uuid] = item
+
+                    else:
+                        group_index, channel_index = default_index, default_index
+                        not_found[uuid] = item
+
+                item["group_index"] = group_index
+                item["channel_index"] = channel_index
+                mime.append(item)
 
     return mime, descriptions, found, not_found, computed
 
@@ -479,39 +496,6 @@ def parse_matrix_component(name):
             break
 
     return name, tuple(indexes)
-
-
-def load_comparison_display_file(file_name, uuids):
-    with open(file_name) as infile:
-        info = json.load(infile)
-    windows = info.get("windows", [])
-    plot_windows = []
-    for window in windows:
-        if window["type"] != "Plot":
-            continue
-
-        window["configuration"]["channels"] = get_comparison_mime(window["configuration"]["channels"], uuids)
-
-        plot_windows.append(window)
-
-
-def get_comparison_mime(data, uuids):
-    entries = []
-
-    for item in data:
-        if item.get("type", "channel") == "channel":
-            for uuid in uuids:
-                new_item = dict(item)
-                new_item["origin_uuid"] = uuid
-                new_item["uuid"] = os.urandom(6).hex()
-                entries.append(new_item)
-
-        else:
-            new_item = dict(item)
-            new_item["channels"] = get_comparison_mime(item["channels"], uuids)
-            entries.append(new_item)
-
-    return entries
 
 
 class MdiAreaMixin:
@@ -3524,194 +3508,200 @@ class WithMDIArea:
             descriptions = {}
 
         else:
+            if self.comparison:
+                mdfs = [file.mdf for file in self.iter_files()]
+            else:
+                mdfs = [self.mdf]
             (
                 mime_data,
                 descriptions,
                 found,
                 not_found,
                 computed,
-            ) = build_mime_from_config(window_info["configuration"]["channels"], self.mdf, self.uuid)
+            ) = build_mime_from_config(window_info["configuration"]["channels"], mdfs)
 
             plot_signals = {}
             measured_signals = {}
+            for mdf in mdfs:
+                origin_uuid = mdf.uuid
 
-            for (sig_uuid, entry), signal in zip(
-                found.items(),
-                self.mdf.select(
-                    list(found.values()),
-                    ignore_value2text_conversions=self.ignore_value2text_conversions,
-                    copy_master=False,
-                    validate=True,
-                    raw=True,
-                ),
-                strict=False,
-            ):
-                description = descriptions[sig_uuid]
+                measured_signals[origin_uuid] = mdf_measured = {}
+                mdf_not_found = {uuid: item for uuid, item in not_found.items() if item["origin_uuid"] == origin_uuid}
+                mdf_not_found_names = {item["name"]: item for item in mdf_not_found.values()}
+                mdf_computed = {uuid: item for uuid, item in computed.items() if item["origin_uuid"] == origin_uuid}
+                mdf_found = {uuid: item for uuid, item in found.items() if item["origin_uuid"] == origin_uuid}
 
-                signal.flags &= ~signal.Flags.computed
-                signal.computation = {}
-                signal.color = description["color"]
-                signal.group_index = entry[1]
-                signal.channel_index = entry[2]
-                signal.origin_uuid = self.uuid
-                signal.name = entry[0]
-                signal.mode = description.get("mode", "phys")
-                signal.uuid = sig_uuid
-
-                measured_signals[signal.name] = signal
-                plot_signals[sig_uuid] = signal
-
-            matrix_components = []
-            for nf_name in not_found:
-                name, indexes = parse_matrix_component(nf_name)
-                if indexes and name in self.mdf:
-                    matrix_components.append((name, indexes))
-
-            matrix_signals = {
-                str(matrix_element): sig
-                for sig, matrix_element in zip(
-                    self.mdf.select(
-                        [el[0] for el in matrix_components],
+                for (sig_uuid, sig_item), signal in zip(
+                    mdf_found.items(),
+                    mdf.select(
+                        [(item["name"], item["group_index"], item["channel_index"]) for item in mdf_found.values()],
                         ignore_value2text_conversions=self.ignore_value2text_conversions,
                         copy_master=False,
+                        validate=True,
+                        raw=True,
                     ),
-                    matrix_components,
                     strict=False,
-                )
-            }
+                ):
 
-            new_matrix_signals = {}
-            for signal_mat, (_n, indexes) in zip(matrix_signals.values(), matrix_components, strict=False):
-                indexes_string = "".join(f"[{_index}]" for _index in indexes)
-                sig_name = f"{signal_mat.name}{indexes_string}"
-
-                if sig_name in not_found:
-                    signal = deepcopy(signal_mat)
-                    samples = signal.samples
-                    if samples.dtype.names:
-                        samples = samples[signal.name]
-
-                    if len(samples.shape) <= len(indexes):
-                        # samples does not have enough dimensions
-                        continue
-
-                    for idx in indexes:
-                        samples = samples[:, idx]
-
-                    signal.samples = samples
-
-                    sig_uuid = not_found[sig_name]
-
-                    description = descriptions[sig_uuid]
-
-                    signal.color = description["color"]
                     signal.flags &= ~signal.Flags.computed
                     signal.computation = {}
-                    signal.origin_uuid = self.uuid
-                    signal.name = sig_name
-                    signal.mode = description.get("mode", "phys")
+                    signal.color = sig_item["color"]
+                    signal.group_index = sig_item["group_index"]
+                    signal.channel_index = sig_item["channel_index"]
+                    signal.origin_uuid = origin_uuid
+                    signal.name = sig_item["name"]
+                    signal.mode = sig_item.get("mode", "phys")
                     signal.uuid = sig_uuid
 
-                    measured_signals[signal.name] = signal
+                    mdf_measured[signal.name] = signal
+                    plot_signals[sig_uuid] = signal
+
+                matrix_components = []
+                for nf_name in not_found:
+                    name, indexes = parse_matrix_component(nf_name)
+                    if indexes and name in mdf:
+                        matrix_components.append((name, indexes))
+
+                matrix_signals = {
+                    str(matrix_element): sig
+                    for sig, matrix_element in zip(
+                        mdf.select(
+                            [el[0] for el in matrix_components],
+                            ignore_value2text_conversions=self.ignore_value2text_conversions,
+                            copy_master=False,
+                        ),
+                        matrix_components,
+                        strict=False,
+                    )
+                }
+
+                for signal_mat, (_n, indexes) in zip(matrix_signals.values(), matrix_components, strict=False):
+                    indexes_string = "".join(f"[{_index}]" for _index in indexes)
+                    sig_name = f"{signal_mat.name}{indexes_string}"
+
+                    if sig_name in mdf_not_found_names:
+                        signal = deepcopy(signal_mat)
+                        samples = signal.samples
+                        if samples.dtype.names:
+                            samples = samples[signal.name]
+
+                        if len(samples.shape) <= len(indexes):
+                            # samples does not have enough dimensions
+                            continue
+
+                        for idx in indexes:
+                            samples = samples[:, idx]
+
+                        signal.samples = samples
+
+                        description = mdf_not_found_names[sig_name]
+                        sig_uuid = description["uuid"]
+
+                        signal.color = description["color"]
+                        signal.flags &= ~signal.Flags.computed
+                        signal.computation = {}
+                        signal.origin_uuid = origin_uuid
+                        signal.name = sig_name
+                        signal.mode = description.get("mode", "phys")
+                        signal.uuid = sig_uuid
+
+                        mdf_measured[signal.name] = signal
+
+                        plot_signals[sig_uuid] = signal
+
+                if mdf_measured:
+                    all_timebase = np.unique(
+                        np.concatenate(
+                            list({id(sig.timestamps): sig.timestamps for sig in mdf_measured.values()}.values())
+                        )
+                    )
+                else:
+                    all_timebase = []
+
+                required_channels = []
+                for ch in mdf_computed.values():
+                    required_channels.extend(get_required_from_computed(ch))
+
+                required_channels = set(required_channels)
+
+                required_channels = [
+                    (channel, *mdf.whereis(channel)[0])
+                    for channel in required_channels
+                    if channel not in list(mdf_measured) and channel in mdf
+                ]
+                required_channels = {
+                    sig.name: sig
+                    for sig in mdf.select(
+                        required_channels,
+                        ignore_value2text_conversions=self.ignore_value2text_conversions,
+                        copy_master=False,
+                    )
+                }
+
+                required_channels.update(mdf_measured)
+
+                for sig_uuid, channel in mdf_computed.items():
+                    computation = channel["computation"]
+
+                    signal = compute_signal(
+                        computation,
+                        required_channels,
+                        all_timebase,
+                        self.functions,
+                        self.global_variables,
+                    )
+                    signal.color = channel["color"]
+                    signal.flags |= signal.Flags.computed
+                    signal.computation = channel["computation"]
+                    signal.name = channel["name"]
+                    signal.unit = channel["unit"]
+                    signal.group_index = -1
+                    signal.channel_index = -1
+                    signal.origin_uuid = origin_uuid
+                    signal.uuid = sig_uuid
+
+                    if channel["flags"] & Signal.Flags.user_defined_conversion:
+                        signal.conversion = from_dict(channel["conversion"])
+                        signal.flags |= signal.Flags.user_defined_conversion
+
+                    if channel["flags"] & Signal.Flags.user_defined_name:
+                        signal.original_name = channel["name"]
+                        signal.name = channel.get("user_defined_name", "") or ""
+                        signal.flags |= signal.Flags.user_defined_name
 
                     plot_signals[sig_uuid] = signal
 
-            measured_signals.update(new_matrix_signals)
+                for uuid, description in mdf_not_found:
+                    if uuid not in plot_signals:
 
-            if measured_signals:
-                all_timebase = np.unique(
-                    np.concatenate(
-                        list({id(sig.timestamps): sig.timestamps for sig in measured_signals.values()}.values())
-                    )
-                )
-            else:
-                all_timebase = []
+                        sig = Signal([], [], name=description["name"])
+                        sig.uuid = uuid
 
-            required_channels = []
-            for ch in computed.values():
-                required_channels.extend(get_required_from_computed(ch))
+                        sig.origin_uuid = origin_uuid
+                        sig.group_index = NOT_FOUND
+                        sig.channel_index = NOT_FOUND
+                        sig.color = description["color"]
 
-            required_channels = set(required_channels)
+                        if description["flags"] & Signal.Flags.user_defined_conversion:
+                            sig.conversion = from_dict(description["conversion"])
+                            sig.flags |= Signal.Flags.user_defined_conversion
 
-            required_channels = [
-                (channel, *self.mdf.whereis(channel)[0])
-                for channel in required_channels
-                if channel not in list(measured_signals) and channel in self.mdf
-            ]
-            required_channels = {
-                sig.name: sig
-                for sig in self.mdf.select(
-                    required_channels,
-                    ignore_value2text_conversions=self.ignore_value2text_conversions,
-                    copy_master=False,
-                )
-            }
+                        if description["flags"] & Signal.Flags.user_defined_name:
+                            sig.original_name = sig.name
+                            sig.name = description.get("user_defined_name", "") or ""
+                            sig.flags |= Signal.Flags.user_defined_name
 
-            required_channels.update(measured_signals)
+                        if description["flags"] & Signal.Flags.user_defined_unit:
+                            sig.unit = description.get("user_defined_unit", "") or ""
+                            sig.flags |= Signal.Flags.user_defined_unit
 
-            for sig_uuid, channel in computed.items():
-                computation = channel["computation"]
-
-                signal = compute_signal(
-                    computation,
-                    required_channels,
-                    all_timebase,
-                    self.functions,
-                    self.global_variables,
-                )
-                signal.color = channel["color"]
-                signal.flags |= signal.Flags.computed
-                signal.computation = channel["computation"]
-                signal.name = channel["name"]
-                signal.unit = channel["unit"]
-                signal.group_index = -1
-                signal.channel_index = -1
-                signal.origin_uuid = self.uuid
-                signal.uuid = sig_uuid
-
-                if channel["flags"] & Signal.Flags.user_defined_conversion:
-                    signal.conversion = from_dict(channel["conversion"])
-                    signal.flags |= signal.Flags.user_defined_conversion
-
-                if channel["flags"] & Signal.Flags.user_defined_name:
-                    signal.original_name = channel["name"]
-                    signal.name = channel.get("user_defined_name", "") or ""
-                    signal.flags |= signal.Flags.user_defined_name
-
-                plot_signals[sig_uuid] = signal
+                        plot_signals[uuid] = sig
 
         signals = {
             sig_uuid: sig
             for sig_uuid, sig in plot_signals.items()
             if sig.samples.dtype.kind not in "SU" and not sig.samples.dtype.names and not len(sig.samples.shape) > 1
         }
-
-        for uuid in descriptions:
-            if uuid not in signals:
-                description = descriptions[uuid]
-
-                sig = Signal([], [], name=description["name"])
-                sig.uuid = uuid
-
-                sig.origin_uuid = self.uuid
-                sig.group_index = NOT_FOUND
-                sig.channel_index = NOT_FOUND
-                sig.color = description["color"]
-
-                if description["flags"] & Signal.Flags.user_defined_conversion:
-                    sig.conversion = from_dict(description["conversion"])
-                    sig.flags |= Signal.Flags.user_defined_conversion
-
-                if description["flags"] & Signal.Flags.user_defined_name:
-                    sig.original_name = sig.name
-                    sig.name = description.get("user_defined_name", "") or ""
-                    sig.flags |= Signal.Flags.user_defined_name
-
-                if description["flags"] & Signal.Flags.user_defined_unit:
-                    sig.unit = description.get("user_defined_unit", "") or ""
-                    sig.flags |= Signal.Flags.user_defined_unit
-
-                signals[uuid] = sig
 
         if not self.comparison:
             events = []
@@ -3765,17 +3755,13 @@ class WithMDIArea:
                             "type": v4c.EVENT_TYPE_TO_STRING[v4c.EVENT_TYPE_TRIGGER],
                         }
                         events.append(event)
+            mdf = self.mdf
+
         else:
             events = []
-            if isinstance(self.files, QtWidgets.QMdiArea):
-                origin = self.files.subWindowList()[0].widget().mdf.start_time
-            else:
-                origin = self.files.widget(0).mdf.start_time
-
-        if not self.comparison:
-            mdf = self.mdf
-        else:
+            origin = next(self.iter_files()).mdf.start_time
             mdf = None
+
         plot = Plot(
             [],
             with_dots=self.with_dots,
