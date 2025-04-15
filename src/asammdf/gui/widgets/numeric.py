@@ -2172,7 +2172,12 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.backend.shift_same_origin_signals(origin_uuid=origin_uuid, delta=delta)
 
     def update_missing_signals(self, uuids=()):
-        self.backend.update_missing_signals(uuids)
+
+        self.channels.backend.signals = [
+            signal for signal in self.channels.backend.signals if signal.origin_uuid in uuids
+        ]
+
+        self.channels.backend.data_changed()
 
     def keyPressEvent(self, event):
         key = event.key()

@@ -1987,6 +1987,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             tree = self.treeWidget()
             if tree:
                 tree.color_changed.emit(self.uuid, value)
+
         elif self.type() == self.Group:
             count = self.childCount()
             for row in range(count):
