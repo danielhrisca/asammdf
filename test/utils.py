@@ -1,6 +1,8 @@
 from pathlib import Path
 
 import numpy as np
+import numpy.typing as npt
+from typing_extensions import Any
 
 from asammdf import MDF, Signal, SUPPORTED_VERSIONS
 import asammdf.blocks.v2_v3_blocks as v3b
@@ -8,21 +10,21 @@ import asammdf.blocks.v2_v3_constants as v3c
 import asammdf.blocks.v4_blocks as v4b
 import asammdf.blocks.v4_constants as v4c
 
-SUPPORTED_VERSIONS = SUPPORTED_VERSIONS[1:]
+SUPPORTED_VERSIONS = SUPPORTED_VERSIONS[1:]  # type: ignore[misc]
 
 cycles = 500
 channels_count = 20
 array_channels_count = 20
 
 
-def get_test_data(filename=""):
+def get_test_data(filename: str = "") -> Path:
     """
     Utility functions needed by all test scripts.
     """
     return Path(__file__).resolve().parent.joinpath("/data/", filename)
 
 
-def generate_test_file(tmpdir, version="4.10"):
+def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
     mdf = MDF(version=version)
 
     if version <= "3.30":
@@ -55,7 +57,7 @@ def generate_test_file(tmpdir, version="4.10"):
     # linear
     sigs = []
     for i in range(channels_count):
-        conversion = {
+        conversion: dict[str, Any] = {
             "conversion_type": v4c.CONVERSION_TYPE_LIN if version >= "4.00" else v3c.CONVERSION_TYPE_LINEAR,
             "a": float(i),
             "b": -0.5,
@@ -119,9 +121,9 @@ def generate_test_file(tmpdir, version="4.10"):
     sigs = []
     encoding = "latin-1" if version < "4.00" else "utf-8"
     for i in range(channels_count):
-        sig = [f"Channel {i} sample {j}".encode(encoding) for j in range(cycles)]
+        strings = [f"Channel {i} sample {j}".encode(encoding) for j in range(cycles)]
         sig = Signal(
-            np.array(sig),
+            np.array(strings),
             t,
             name=f"Channel_{i}",
             unit=f"unit_{i}",
@@ -179,8 +181,10 @@ def generate_test_file(tmpdir, version="4.10"):
     name = mdf.save(filename, overwrite=True)
     mdf.close()
 
+    return None
 
-def generate_arrays_test_file(tmpdir):
+
+def generate_arrays_test_file(tmpdir: str) -> Path | None:
     version = "4.10"
     mdf = MDF(version=version)
     filename = Path(tmpdir) / f"arrays_test_{version}.mf4"
@@ -193,13 +197,13 @@ def generate_arrays_test_file(tmpdir):
     # lookup tabel with axis
     sigs = []
     for i in range(array_channels_count):
-        samples = [
+        samples: list[npt.NDArray[Any]] = [
             np.ones((cycles, 2, 3), dtype=np.uint64) * i,
             np.ones((cycles, 2), dtype=np.uint64) * i,
             np.ones((cycles, 3), dtype=np.uint64) * i,
         ]
 
-        types = [
+        types: list[npt.DTypeLike] = [
             (f"Channel_{i}", "(2, 3)<u8"),
             (f"channel_{i}_axis_1", "(2, )<u8"),
             (f"channel_{i}_axis_2", "(3, )<u8"),
@@ -277,6 +281,8 @@ def generate_arrays_test_file(tmpdir):
     name = mdf.save(filename, overwrite=True)
 
     mdf.close()
+
+    return None
 
 
 if __name__ == "__main__":

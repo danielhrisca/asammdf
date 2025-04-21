@@ -13,11 +13,11 @@ from asammdf import MDF
 
 
 class TestCANBusLogging(unittest.TestCase):
-    tempdir_obd = None
-    tempdir_j1939 = None
+    tempdir_obd: tempfile.TemporaryDirectory[str]
+    tempdir_j1939: tempfile.TemporaryDirectory[str]
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.tempdir_obd = tempfile.TemporaryDirectory()
         cls.tempdir_j1939 = tempfile.TemporaryDirectory()
 
@@ -31,7 +31,7 @@ class TestCANBusLogging(unittest.TestCase):
         ZipFile(r"test.zip").extractall(cls.tempdir_j1939.name)
         Path("test.zip").unlink()
 
-    def test_obd_extract(self):
+    def test_obd_extract(self) -> None:
         print("OBD extract")
 
         temp_dir = Path(TestCANBusLogging.tempdir_obd.name)
@@ -39,9 +39,9 @@ class TestCANBusLogging(unittest.TestCase):
         for file in temp_dir.iterdir():
             print(file)
 
-        mdf = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
+        path = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
 
-        mdf = MDF(mdf)
+        mdf = MDF(path)
 
         dbc = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
 
@@ -59,14 +59,14 @@ class TestCANBusLogging(unittest.TestCase):
 
             self.assertTrue(np.array_equal(sig.samples, target), f"{name} {sig} {target}")
 
-    def test_j1939_extract(self):
+    def test_j1939_extract(self) -> None:
         print("J1939 extract")
 
         temp_dir = Path(TestCANBusLogging.tempdir_j1939.name)
 
-        mdf = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
+        path = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
 
-        mdf = MDF(mdf)
+        mdf = MDF(path)
 
         dbc = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
 
@@ -84,14 +84,14 @@ class TestCANBusLogging(unittest.TestCase):
 
             self.assertTrue(np.array_equal(values, target))
 
-    def test_almost_j1939_extract(self):
+    def test_almost_j1939_extract(self) -> None:
         print("non-standard J1939 extract")
 
         temp_dir = Path(TestCANBusLogging.tempdir_j1939.name)
 
-        mdf = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
+        path = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
 
-        mdf = MDF(mdf)
+        mdf = MDF(path)
 
         # dbc = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
         # This dbc throws exception without the suggested changes in branch "relaxed_j1939"...
@@ -111,14 +111,14 @@ class TestCANBusLogging(unittest.TestCase):
 
             self.assertTrue(np.array_equal(values, target))
 
-    def test_j1939_get_can_signal(self):
+    def test_j1939_get_can_signal(self) -> None:
         print("J1939 get CAN signal")
 
         temp_dir = Path(TestCANBusLogging.tempdir_j1939.name)
 
-        mdf = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
+        path = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
 
-        mdf = MDF(mdf)
+        mdf = MDF(path)
 
         dbc = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
 

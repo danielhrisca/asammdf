@@ -35,6 +35,7 @@ from pandas import Series
 from typing_extensions import (
     Any,
     Buffer,
+    LiteralString,
     NamedTuple,
     NotRequired,
     overload,
@@ -278,9 +279,9 @@ CONVERT: Final = interp(CHANNEL_COUNT, _channel_count, _convert).astype("<u4")
 _merge = (10 * 2**20, 20 * 2**20, 35 * 2**20, 60 * 2**20)
 MERGE: Final = interp(CHANNEL_COUNT, _channel_count, _merge).astype("<u4")
 
-MDF2_VERSIONS: Final = ("2.00", "2.10", "2.14")
-MDF3_VERSIONS: Final = ("3.00", "3.10", "3.20", "3.30")
-MDF4_VERSIONS: Final = ("4.00", "4.10", "4.11", "4.20")
+MDF2_VERSIONS: Final[tuple[LiteralString, ...]] = ("2.00", "2.10", "2.14")
+MDF3_VERSIONS: Final[tuple[LiteralString, ...]] = ("3.00", "3.10", "3.20", "3.30")
+MDF4_VERSIONS: Final[tuple[LiteralString, ...]] = ("4.00", "4.10", "4.11", "4.20")
 SUPPORTED_VERSIONS: Final = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 
 

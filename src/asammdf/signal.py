@@ -1130,7 +1130,7 @@ class Signal:
                 virtual_master_conversion=self.virtual_master_conversion,
             )
 
-    def __apply_func(self, other: Union["Signal", NDArray[Any], int | None], func_name: str) -> "Signal":
+    def __apply_func(self, other: Union["Signal", NDArray[Any], float] | None, func_name: str) -> "Signal":
         """delegate operations to the *samples* attribute, but in a time
         correct manner by considering the *timestamps*
 
@@ -1239,64 +1239,64 @@ class Signal:
             virtual_master_conversion=self.virtual_master_conversion,
         )
 
-    def __sub__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __sub__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__apply_func(other, "__sub__")
 
-    def __isub__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __isub__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__sub__(other)
 
-    def __rsub__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __rsub__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return -self.__sub__(other)
 
-    def __add__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __add__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__apply_func(other, "__add__")
 
-    def __iadd__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __iadd__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__add__(other)
 
-    def __radd__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __radd__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__add__(other)
 
-    def __truediv__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __truediv__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__apply_func(other, "__truediv__")
 
-    def __itruediv__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __itruediv__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__truediv__(other)
 
-    def __rtruediv__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __rtruediv__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__apply_func(other, "__rtruediv__")
 
-    def __mul__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __mul__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__apply_func(other, "__mul__")
 
-    def __imul__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __imul__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__mul__(other)
 
-    def __rmul__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __rmul__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__mul__(other)
 
-    def __floordiv__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __floordiv__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__apply_func(other, "__floordiv__")
 
-    def __ifloordiv__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __ifloordiv__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__truediv__(other)
 
-    def __rfloordiv__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __rfloordiv__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return 1 / self.__apply_func(other, "__rfloordiv__")
 
-    def __mod__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __mod__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__apply_func(other, "__mod__")
 
-    def __pow__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __pow__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__apply_func(other, "__pow__")
 
-    def __and__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __and__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__apply_func(other, "__and__")
 
-    def __or__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __or__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__apply_func(other, "__or__")
 
-    def __xor__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __xor__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__apply_func(other, "__xor__")
 
     def __invert__(self) -> "Signal":
@@ -1320,10 +1320,10 @@ class Signal:
             virtual_master_conversion=self.virtual_master_conversion,
         )
 
-    def __lshift__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __lshift__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__apply_func(other, "__lshift__")
 
-    def __rshift__(self, other: Union["Signal", NDArray[Any], int | None]) -> "Signal":
+    def __rshift__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
         return self.__apply_func(other, "__rshift__")
 
     def __lt__(self, other: Union["Signal", NDArray[Any]] | None) -> "Signal":
