@@ -98,13 +98,12 @@ if TYPE_CHECKING:
     from PySide6 import QtCore
 
 
-class Terminated:
-    pass
+class Terminated(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__("terminated by user", *args)
 
 
 THREAD_COUNT: Final = max(multiprocessing.cpu_count() - 1, 1)
-TERMINATED: Final = Terminated()
-NONE: Final = object()
 COMPARISON_NAME: Final = re.compile(r"(\s*\d+:)?(?P<name>.+)")
 C_FUNCTION: Final = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
 target_byte_order: Final = "<=" if sys.byteorder == "little" else ">="

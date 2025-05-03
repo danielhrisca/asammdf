@@ -26,7 +26,7 @@ from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..blocks.options import FloatInterpolation, IntegerInterpolation
-from ..blocks.utils import NONE, TERMINATED
+from ..blocks.utils import Terminated
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
 from .dialogs.messagebox import MessageBox
@@ -182,8 +182,6 @@ def excepthook(exc_type, exc_value, tracebackobj):
 
 
 def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progress=None):
-    termination_request = False
-
     thr = WorkerThread(target=target, kwargs=kwargs)
 
     thr.start()
@@ -205,6 +203,8 @@ def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progr
         progress.setValue(factor + offset)
 
     if thr.error:
+        if isinstance(thr.error, Terminated):
+            raise thr.error
         widget.progress = None
         if progress:
             progress.cancel()
@@ -212,10 +212,7 @@ def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progr
 
     widget.progress = None
 
-    if termination_request:
-        return TERMINATED
-    else:
-        return thr.output
+    return thr.output
 
 
 class QWorkerThread(QtCore.QThread):
@@ -268,7 +265,6 @@ class QWorkerThread(QtCore.QThread):
 
         self.kwargs = kwargs
         self.stop = False
-        self.TERMINATED = TERMINATED
 
     def run(self):
         """
@@ -291,14 +287,11 @@ class QWorkerThread(QtCore.QThread):
 
 class ProgressDialog(QtWidgets.QProgressDialog):
 
-    NONE = NONE
-    TERMINATED = TERMINATED
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.thread = None
         self.error = None
-        self.result = self.NONE
+        self.result = None
         self.close_on_finish = True
         self.hide_on_finish = False
 
@@ -310,7 +303,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self, target, args, kwargs, wait_here=False, close_on_finish=True, hide_on_finish=False
     ):
         self.show()
-        self.result = self.NONE
+        self.result = None
         self.error = None
         self.thread_finished = False
 
@@ -429,6 +422,8 @@ class WorkerThread(Thread):
     def run(self):
         try:
             self.output = self._target(*self._args, **self._kwargs)
+        except Terminated as error:
+            self.error = error
         except:
             self.error = traceback.format_exc()
 

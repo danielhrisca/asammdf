@@ -62,7 +62,6 @@ from .utils import (
     get_text_v3,
     is_file_like,
     MdfException,
-    TERMINATED,
     Terminated,
     UniqueDB,
     validate_version_argument,
@@ -682,29 +681,12 @@ class MDF3(MDF_Common[Group]):
         else:
             return vals
 
-    @overload
-    def _read(
-        self,
-        stream: FileLike | mmap.mmap,
-        mapped: bool = ...,
-        progress: None = ...,
-    ) -> None: ...
-
-    @overload
-    def _read(
-        self,
-        stream: FileLike | mmap.mmap,
-        mapped: bool = ...,
-        *,
-        progress: Callable[[int, int], None] | Any,
-    ) -> Terminated | None: ...
-
     def _read(
         self,
         stream: FileLike | mmap.mmap,
         mapped: bool = False,
         progress: Callable[[int, int], None] | Any | None = None,
-    ) -> Terminated | None:
+    ) -> None:
         filter_channels = self.use_load_filter
 
         cg_count, _ = count_channel_groups(stream)
@@ -914,7 +896,7 @@ class MDF3(MDF_Common[Group]):
                     else:
                         if progress.stop:
                             self.close()
-                            return TERMINATED
+                            raise Terminated
 
             # store channel groups record sizes dict and data block size in
             # each new group data belong to the initial unsorted group, and
@@ -963,8 +945,6 @@ class MDF3(MDF_Common[Group]):
                         ref_channel_addr = typing.cast(int, dep[f"ch_{i}"])
                         channel = ch_map[ref_channel_addr]
                         dep.referenced_channels.append(channel)
-
-        return None
 
     def _filter_occurrences(
         self,
@@ -3443,27 +3423,6 @@ class MDF3(MDF_Common[Group]):
     def start_time(self, timestamp: datetime) -> None:
         self.header.start_time = timestamp
 
-    @overload
-    def save(
-        self,
-        dst: StrPath,
-        overwrite: bool = ...,
-        compression: CompressionType = ...,
-        progress: None = ...,
-        add_history_block: bool = ...,
-    ) -> Path: ...
-
-    @overload
-    def save(
-        self,
-        dst: StrPath,
-        overwrite: bool = ...,
-        compression: CompressionType = ...,
-        *,
-        progress: Any,
-        add_history_block: bool = ...,
-    ) -> Path | Terminated: ...
-
     def save(
         self,
         dst: StrPath,
@@ -3471,7 +3430,7 @@ class MDF3(MDF_Common[Group]):
         compression: CompressionType = 0,
         progress: Any | None = None,
         add_history_block: bool = True,
-    ) -> Path | Terminated:
+    ) -> Path:
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>',
         were '<cntr>' is the first counter that produces a new file name (that
@@ -3652,7 +3611,7 @@ class MDF3(MDF_Common[Group]):
                         dst_.close()
                         self.close()
 
-                        return TERMINATED
+                        raise Terminated
 
             # update referenced channels addresses in the channel dependencies
             for gp in self.groups:
@@ -3684,7 +3643,7 @@ class MDF3(MDF_Common[Group]):
             if progress is not None and progress.stop:
                 dst_.close()
                 self.close()
-                return TERMINATED
+                raise Terminated
 
             if progress is not None:
                 blocks_nr = len(blocks)

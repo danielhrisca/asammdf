@@ -79,7 +79,6 @@ from .blocks.utils import (
     randomized_string,
     SignalDataBlockInfo,
     SUPPORTED_VERSIONS,
-    TERMINATED,
     Terminated,
     THREAD_COUNT,
     UINT16_u,
@@ -996,13 +995,7 @@ class MDF:
             raise MdfException("Attachments are only supported in MDF4 files")
         return self._mdf.extract_attachment(index=index, password=password)
 
-    @overload
-    def convert(self, version: str | Version, progress: None = ...) -> "MDF": ...
-
-    @overload
-    def convert(self, version: str | Version, progress: Any | None = ...) -> Union["MDF", Terminated]: ...
-
-    def convert(self, version: str | Version, progress: Any | None = None) -> Union["MDF", Terminated]:
+    def convert(self, version: str | Version, progress: Any | None = None) -> "MDF":
         """Convert *MDF* to other version.
 
         Parameters
@@ -1035,7 +1028,7 @@ class MDF:
                 progress.signals.setMaximum.emit(groups_nr)
 
                 if progress.stop:
-                    return TERMINATED
+                    raise Terminated
 
         self.configure(copy_on_get=False)
 
@@ -1059,7 +1052,7 @@ class MDF:
                     out.extend(cg_nr, sigs)
 
                 if progress and progress.stop:
-                    return TERMINATED
+                    raise Terminated
 
             if progress is not None:
                 if callable(progress):
@@ -1069,36 +1062,12 @@ class MDF:
                     progress.signals.setMaximum.emit(groups_nr)
 
                     if progress.stop:
-                        return TERMINATED
+                        raise Terminated
 
         out._transfer_metadata(self, message=f"Converted from {self.name}")
         self.configure(copy_on_get=True)
 
         return out
-
-    @overload
-    def cut(
-        self,
-        start: float | None = ...,
-        stop: float | None = ...,
-        whence: int = ...,
-        version: str | Version | None = ...,
-        include_ends: bool = ...,
-        time_from_zero: bool = ...,
-        progress: None = ...,
-    ) -> "MDF": ...
-
-    @overload
-    def cut(
-        self,
-        start: float | None = ...,
-        stop: float | None = ...,
-        whence: int = ...,
-        version: str | Version | None = ...,
-        include_ends: bool = ...,
-        time_from_zero: bool = ...,
-        progress: Any | None = ...,
-    ) -> Union["MDF", Terminated]: ...
 
     def cut(
         self,
@@ -1109,7 +1078,7 @@ class MDF:
         include_ends: bool = True,
         time_from_zero: bool = False,
         progress: Any | None = None,
-    ) -> Union["MDF", Terminated]:
+    ) -> "MDF":
         """Cut *MDF* file. *start* and *stop* limits are absolute values
         or values relative to the first timestamp depending on the *whence*
         argument.
@@ -1327,7 +1296,7 @@ class MDF:
                 idx += 1
 
                 if progress and progress.stop:
-                    return TERMINATED
+                    raise Terminated
 
             # if the cut interval is not found in the measurement
             # then append a data group with 0 cycles
@@ -1361,7 +1330,7 @@ class MDF:
 
                     if progress.stop:
                         print("return terminated")
-                        return TERMINATED
+                        raise Terminated
 
         self.configure(copy_on_get=True)
 
@@ -1602,31 +1571,13 @@ class MDF:
             ignore_value2text_conversion=ignore_value2text_conversion,
         )
 
-    @overload
-    def export(
-        self,
-        fmt: Literal["asc", "csv", "hdf5", "mat", "parquet"],
-        filename: StrPath | None = ...,
-        progress: None = ...,
-        **kwargs: Unpack[_ExportKwargs],
-    ) -> None: ...
-
-    @overload
-    def export(
-        self,
-        fmt: Literal["asc", "csv", "hdf5", "mat", "parquet"],
-        filename: StrPath | None = ...,
-        progress: Any | None = ...,
-        **kwargs: Unpack[_ExportKwargs],
-    ) -> Terminated | None: ...
-
     def export(
         self,
         fmt: Literal["asc", "csv", "hdf5", "mat", "parquet"],
         filename: StrPath | None = None,
         progress: Any | None = None,
         **kwargs: Unpack[_ExportKwargs],
-    ) -> Terminated | None:
+    ) -> None:
         r"""Export *MDF* to other formats. The *MDF* file name is used if
         available, else the *filename* argument must be provided.
 
@@ -1828,7 +1779,7 @@ class MDF:
                 progress.signals.setMaximum.emit(100)
 
                 if progress.stop:
-                    return TERMINATED
+                    raise Terminated
 
         if fmt == "asc":
             self._asc_export(filename.with_suffix(".asc"))
@@ -1857,12 +1808,12 @@ class MDF:
                     progress.signals.setMaximum.emit(groups_nr * 2)
 
                     if progress.stop:
-                        return TERMINATED
+                        raise Terminated
 
             for i, grp in enumerate(self.groups):
                 grp = typing.cast(mdf_v3.Group | mdf_v4.Group, grp)
                 if progress is not None and progress.stop:
-                    return TERMINATED
+                    raise Terminated
 
                 for ch in grp.channels:
                     if use_display_names:
@@ -1890,7 +1841,7 @@ class MDF:
                         progress.signals.setValue.emit(i + 1)
 
                         if progress.stop:
-                            return TERMINATED
+                            raise Terminated
 
         if fmt == "hdf5":
             filename = filename.with_suffix(".hdf")
@@ -1919,7 +1870,7 @@ class MDF:
                             progress.signals.setMaximum.emit(count * 2)
 
                             if progress.stop:
-                                return TERMINATED
+                                raise Terminated
 
                     samples: NDArray[Any] | pd.Series[Any]
                     for i, channel in enumerate(df):
@@ -1951,7 +1902,7 @@ class MDF:
                                 progress.signals.setValue.emit(i + 1)
 
                                 if progress.stop:
-                                    return TERMINATED
+                                    raise Terminated
 
             else:
                 with HDF5(str(filename), "w") as hdf:
@@ -1977,7 +1928,7 @@ class MDF:
                             progress.signals.setMaximum.emit(groups_nr)
 
                             if progress.stop:
-                                return TERMINATED
+                                raise Terminated
 
                     for i, (group_index, virtual_group) in enumerate(self.virtual_groups.items()):
                         included_channels = self.included_channels(group_index)[group_index]
@@ -1987,7 +1938,7 @@ class MDF:
 
                         unique_names = UniqueDB()
                         if progress is not None and progress.stop:
-                            return TERMINATED
+                            raise Terminated
 
                         if len(virtual_group.groups) == 1:
                             comment = self.groups[virtual_group.groups[0]].channel_group.comment
@@ -2063,7 +2014,7 @@ class MDF:
                                 progress.signals.setValue.emit(i + 1)
 
                                 if progress.stop:
-                                    return TERMINATED
+                                    raise Terminated
 
         elif fmt == "csv":
             delimiter = kwargs.get("delimiter", ",")[0]
@@ -2167,7 +2118,7 @@ class MDF:
                             progress.signals.setMaximum.emit(count)
 
                             if progress.stop:
-                                return TERMINATED
+                                raise Terminated
 
                     for i, row in enumerate(zip(*vals, strict=False)):
                         writer.writerow(row)
@@ -2178,7 +2129,7 @@ class MDF:
                             else:
                                 progress.signals.setValue.emit(i + 1)
                                 if progress.stop:
-                                    return TERMINATED
+                                    raise Terminated
 
             else:
                 add_units = kwargs.get("add_units", False)
@@ -2195,11 +2146,11 @@ class MDF:
                         progress.signals.setMaximum.emit(gp_count)
 
                         if progress.stop:
-                            return TERMINATED
+                            raise Terminated
 
                 for i, (group_index, virtual_group) in enumerate(self.virtual_groups.items()):
                     if progress is not None and progress.stop:
-                        return TERMINATED
+                        raise Terminated
 
                     message = f"Exporting group {i+1} of {gp_count}"
                     logger.info(message)
@@ -2319,7 +2270,7 @@ class MDF:
                             progress.signals.setValue.emit(i + 1)
 
                             if progress.stop:
-                                return TERMINATED
+                                raise Terminated
 
         elif fmt == "mat":
             filename = filename.with_suffix(".mat")
@@ -2355,11 +2306,11 @@ class MDF:
                         progress.signals.setMaximum.emit(groups_nr + 1)
 
                         if progress.stop:
-                            return TERMINATED
+                            raise Terminated
 
                 for i, (group_index, virtual_group) in enumerate(self.virtual_groups.items()):
                     if progress is not None and progress.stop:
-                        return TERMINATED
+                        raise Terminated
 
                     included_channels = self.included_channels(group_index)[group_index]
 
@@ -2420,7 +2371,7 @@ class MDF:
                             progress.signals.setValue.emit(i + 1)
 
                             if progress.stop:
-                                return TERMINATED
+                                raise Terminated
 
             else:
                 used_names = UniqueDB()
@@ -2436,7 +2387,7 @@ class MDF:
                         progress.signals.setMaximum.emit(count)
 
                         if progress.stop:
-                            return TERMINATED
+                            raise Terminated
 
                 for i, name in enumerate(df.columns):
                     channel_name = matlab_compatible(name)
@@ -2455,7 +2406,7 @@ class MDF:
                             progress.signals.setMaximum.emit(count)
 
                             if progress.stop:
-                                return TERMINATED
+                                raise Terminated
 
                 mdict["timestamps"] = df.index.values
 
@@ -2468,7 +2419,7 @@ class MDF:
                     progress.signals.setValue.emit(80)
 
                     if progress.stop:
-                        return TERMINATED
+                        raise Terminated
 
             if format == "7.3":
                 savemat(
@@ -2497,7 +2448,7 @@ class MDF:
                     progress.signals.setValue.emit(100)
 
                     if progress.stop:
-                        return TERMINATED
+                        raise Terminated
 
         elif fmt == "parquet":
             filename = filename.with_suffix(".parquet")
@@ -2514,28 +2465,12 @@ class MDF:
 
         return None
 
-    @overload
-    def filter(
-        self,
-        channels: ChannelsType,
-        version: str | Version | None = ...,
-        progress: None = ...,
-    ) -> "MDF": ...
-
-    @overload
-    def filter(
-        self,
-        channels: ChannelsType,
-        version: str | Version | None = ...,
-        progress: Any | None = ...,
-    ) -> Union["MDF", Terminated]: ...
-
     def filter(
         self,
         channels: ChannelsType,
         version: str | Version | None = None,
         progress: Any | None = None,
-    ) -> Union["MDF", Terminated]:
+    ) -> "MDF":
         """Return new *MDF* object that contains only the channels listed in the
         *channels* argument.
 
@@ -2642,7 +2577,7 @@ class MDF:
                 progress.signals.setMaximum.emit(groups_nr)
 
                 if progress.stop:
-                    return TERMINATED
+                    raise Terminated
 
         for i, (group_index, groups) in enumerate(gps.items()):
             for idx, sigs in enumerate(self._mdf._yield_selected_signals(group_index, groups=groups, version=version)):
@@ -2673,7 +2608,7 @@ class MDF:
                     mdf.extend(cg_nr, sigs)
 
                 if progress and progress.stop:
-                    return TERMINATED
+                    raise Terminated
 
             if progress is not None:
                 if callable(progress):
@@ -2682,7 +2617,7 @@ class MDF:
                     progress.signals.setValue.emit(i + 1)
 
                     if progress.stop:
-                        return TERMINATED
+                        raise Terminated
 
         self.configure(copy_on_get=True)
 
@@ -2776,30 +2711,6 @@ class MDF:
                 raw=raw,
             )
 
-    @overload
-    @staticmethod
-    def concatenate(
-        files: Sequence[Union["MDF", FileLike, StrPath]],
-        version: str | Version = ...,
-        sync: bool = ...,
-        add_samples_origin: bool = ...,
-        direct_timestamp_continuation: bool = ...,
-        progress: None = ...,
-        **kwargs: Unpack[_ConcatenateKwargs],
-    ) -> "MDF": ...
-
-    @overload
-    @staticmethod
-    def concatenate(
-        files: Sequence[Union["MDF", FileLike, StrPath]],
-        version: str | Version = ...,
-        sync: bool = ...,
-        add_samples_origin: bool = ...,
-        direct_timestamp_continuation: bool = ...,
-        progress: Any | None = ...,
-        **kwargs: Unpack[_ConcatenateKwargs],
-    ) -> Union["MDF", Terminated]: ...
-
     @staticmethod
     def concatenate(
         files: Sequence[Union["MDF", FileLike, StrPath]],
@@ -2809,7 +2720,7 @@ class MDF:
         direct_timestamp_continuation: bool = False,
         progress: Any | None = None,
         **kwargs: Unpack[_ConcatenateKwargs],
-    ) -> Union["MDF", Terminated]:
+    ) -> "MDF":
         """Concatenates several files. The files must have the same internal
         structure (same number of groups, and same channels in each group).
 
@@ -2888,7 +2799,7 @@ class MDF:
                 progress.signals.setWindowTitle.emit("Concatenating measurements")
 
                 if progress.stop:
-                    return TERMINATED
+                    raise Terminated
 
         mdf_nr = len(files)
         use_display_names = kwargs.get("use_display_names", False)
@@ -2997,7 +2908,7 @@ class MDF:
                         progress.signals.setMaximum.emit(groups_nr * mdf_nr)
 
                         if progress.stop:
-                            return TERMINATED
+                            raise Terminated
 
                 if isinstance(first_mdf._mdf, mdf_v4.MDF4):
                     w_mdf = first_mdf
@@ -3238,7 +3149,7 @@ class MDF:
                                 first_timestamp = master[0]
 
                     if progress and progress.stop:
-                        return TERMINATED
+                        raise Terminated
 
                 last_timestamps[i] = last_timestamp
 
@@ -3254,7 +3165,7 @@ class MDF:
                     progress.signals.setValue.emit(i + 1 + mdf_index * groups_nr)
 
                     if progress.stop:
-                        return TERMINATED
+                        raise Terminated
 
             if close and mdf_index:
                 mdf.close()
@@ -3272,26 +3183,6 @@ class MDF:
 
         return merged
 
-    @overload
-    @staticmethod
-    def stack(
-        files: Sequence[Union["MDF", FileLike, StrPath]],
-        version: str | Version = ...,
-        sync: bool = ...,
-        progress: None = ...,
-        **kwargs: Unpack[_StackKwargs],
-    ) -> "MDF": ...
-
-    @overload
-    @staticmethod
-    def stack(
-        files: Sequence[Union["MDF", FileLike, StrPath]],
-        version: str | Version = ...,
-        sync: bool = ...,
-        progress: Any | None = ...,
-        **kwargs: Unpack[_StackKwargs],
-    ) -> Union["MDF", Terminated]: ...
-
     @staticmethod
     def stack(
         files: Sequence[Union["MDF", FileLike, StrPath]],
@@ -3299,7 +3190,7 @@ class MDF:
         sync: bool = True,
         progress: Any | None = None,
         **kwargs: Unpack[_StackKwargs],
-    ) -> Union["MDF", Terminated]:
+    ) -> "MDF":
         """Stack several files and return the stacked *MDF* object.
 
         Parameters
@@ -3364,7 +3255,7 @@ class MDF:
                 progress.signals.setMaximum.emit(files_nr)
 
                 if progress.stop:
-                    return TERMINATED
+                    raise Terminated
 
         if sync:
             start_times: list[datetime] = []
@@ -3449,7 +3340,7 @@ class MDF:
                         stacked.extend(dg_cntr, signals_samples)
 
                     if progress and progress.stop:
-                        return TERMINATED
+                        raise Terminated
 
                 if dg_cntr is not None:
                     for index in range(dg_cntr, len(stacked.groups)):
@@ -3464,7 +3355,7 @@ class MDF:
                     progress.signals.setValue.emit(mdf_index)
 
                     if progress.stop:
-                        return TERMINATED
+                        raise Terminated
 
             mdf.configure(copy_on_get=True)
 
@@ -3475,7 +3366,7 @@ class MDF:
                 mdf.close()
 
             if progress is not None and progress.stop:
-                return TERMINATED
+                raise Terminated
 
         try:
             if kwargs.get("process_bus_logging", True):
@@ -3676,31 +3567,13 @@ class MDF:
 
         return master
 
-    @overload
-    def resample(
-        self,
-        raster: RasterType,
-        version: str | Version | None = ...,
-        time_from_zero: bool = ...,
-        progress: None = ...,
-    ) -> "MDF": ...
-
-    @overload
-    def resample(
-        self,
-        raster: RasterType,
-        version: str | Version | None = ...,
-        time_from_zero: bool = ...,
-        progress: Callable[[int, int], None] | Any | None = ...,
-    ) -> Union["MDF", Terminated]: ...
-
     def resample(
         self,
         raster: RasterType,
         version: str | Version | None = None,
         time_from_zero: bool = False,
         progress: Callable[[int, int], None] | Any | None = None,
-    ) -> Union["MDF", Terminated]:
+    ) -> "MDF":
         """Resample all channels using the given raster. See *configure* to select
         the interpolation method for integer channels.
 
@@ -3876,7 +3749,7 @@ class MDF:
                 progress.signals.setMaximum.emit(groups_nr)
 
                 if progress.stop:
-                    return TERMINATED
+                    raise Terminated
 
         if isinstance(raster, (int, float)):
             raster = float(raster)
@@ -3938,7 +3811,7 @@ class MDF:
                     progress.signals.setValue.emit(i + 1)
 
                     if progress.stop:
-                        return TERMINATED
+                        raise Terminated
 
         mdf._transfer_metadata(self, message=f"Resampled from {self.name}")
 
@@ -4470,31 +4343,13 @@ class MDF:
 
         return signals
 
-    @overload
-    @staticmethod
-    def scramble(
-        name: StrPath,
-        skip_attachments: bool = ...,
-        progress: None = ...,
-        **kwargs: Never,
-    ) -> Path: ...
-
-    @overload
-    @staticmethod
-    def scramble(
-        name: StrPath,
-        skip_attachments: bool = ...,
-        progress: Callable[[int, int], None] | Any | None = ...,
-        **kwargs: Never,
-    ) -> Path | Terminated: ...
-
     @staticmethod
     def scramble(
         name: StrPath,
         skip_attachments: bool = False,
         progress: Callable[[int, int], None] | Any | None = None,
         **kwargs: Never,
-    ) -> Path | Terminated:
+    ) -> Path:
         """Scramble text blocks and keep original file structure.
 
         Parameters
@@ -4526,7 +4381,7 @@ class MDF:
                 progress.signals.setMaximum.emit(100)
 
                 if progress.stop:
-                    return TERMINATED
+                    raise Terminated
 
         count = len(mdf.groups)
 
@@ -4660,7 +4515,7 @@ class MDF:
                             progress.signals.setValue.emit(int(idx / count * 66))
 
                             if progress.stop:
-                                return TERMINATED
+                                raise Terminated
 
             except:
                 print(f"Error while scrambling the file: {format_exc()}.\nWill now use fallback method")
@@ -4687,7 +4542,7 @@ class MDF:
                                 progress.signals.setValue.emit(66 + idx)
 
                                 if progress.stop:
-                                    return TERMINATED
+                                    raise Terminated
 
         else:
             stream = mdf._mdf._file
@@ -4770,7 +4625,7 @@ class MDF:
                         progress.signals.setValue.emit(int(idx / count * 66))
 
                         if progress.stop:
-                            return TERMINATED
+                            raise Terminated
 
             mdf.close()
 
@@ -4792,7 +4647,7 @@ class MDF:
                                 progress.signals.setValue.emit(66 + idx)
 
                                 if progress.stop:
-                                    return TERMINATED
+                                    raise Terminated
 
         if progress is not None:
             if callable(progress):
@@ -5376,7 +5231,7 @@ class MDF:
         only_basenames: bool = ...,
         interpolate_outwards_with_nan: bool = ...,
         numeric_1D_only: bool = ...,
-        progress: None = ...,
+        progress: Callable[[int, int], None] | Any | None = ...,
         use_polars: Literal[False] = ...,
     ) -> pd.DataFrame: ...
 
@@ -5397,10 +5252,9 @@ class MDF:
         only_basenames: bool = ...,
         interpolate_outwards_with_nan: bool = ...,
         numeric_1D_only: bool = ...,
-        progress: None = ...,
-        *,
-        use_polars: Literal[True],
-    ) -> pl.DataFrame: ...
+        progress: Callable[[int, int], None] | Any | None = ...,
+        use_polars: Literal[True] = ...,
+    ) -> "pl.DataFrame": ...
 
     @overload
     def to_dataframe(
@@ -5419,75 +5273,9 @@ class MDF:
         only_basenames: bool = ...,
         interpolate_outwards_with_nan: bool = ...,
         numeric_1D_only: bool = ...,
-        progress: None = ...,
+        progress: Callable[[int, int], None] | Any | None = ...,
         use_polars: bool = ...,
-    ) -> pd.DataFrame | pl.DataFrame: ...
-
-    @overload
-    def to_dataframe(
-        self,
-        channels: ChannelsType | None = ...,
-        raster: RasterType | None = ...,
-        time_from_zero: bool = ...,
-        empty_channels: EmptyChannelsType = ...,
-        keep_arrays: bool = ...,
-        use_display_names: bool = ...,
-        time_as_date: bool = ...,
-        reduce_memory_usage: bool = ...,
-        raw: bool | dict[str, bool] = ...,
-        ignore_value2text_conversions: bool = ...,
-        use_interpolation: bool = ...,
-        only_basenames: bool = ...,
-        interpolate_outwards_with_nan: bool = ...,
-        numeric_1D_only: bool = ...,
-        *,
-        progress: Callable[[int, int], None] | Any,
-        use_polars: Literal[False] = ...,
-    ) -> pd.DataFrame | Terminated: ...
-
-    @overload
-    def to_dataframe(
-        self,
-        channels: ChannelsType | None = ...,
-        raster: RasterType | None = ...,
-        time_from_zero: bool = ...,
-        empty_channels: EmptyChannelsType = ...,
-        keep_arrays: bool = ...,
-        use_display_names: bool = ...,
-        time_as_date: bool = ...,
-        reduce_memory_usage: bool = ...,
-        raw: bool | dict[str, bool] = ...,
-        ignore_value2text_conversions: bool = ...,
-        use_interpolation: bool = ...,
-        only_basenames: bool = ...,
-        interpolate_outwards_with_nan: bool = ...,
-        numeric_1D_only: bool = ...,
-        *,
-        progress: Callable[[int, int], None] | Any,
-        use_polars: Literal[True],
-    ) -> pl.DataFrame | Terminated: ...
-
-    @overload
-    def to_dataframe(
-        self,
-        channels: ChannelsType | None = ...,
-        raster: RasterType | None = ...,
-        time_from_zero: bool = ...,
-        empty_channels: EmptyChannelsType = ...,
-        keep_arrays: bool = ...,
-        use_display_names: bool = ...,
-        time_as_date: bool = ...,
-        reduce_memory_usage: bool = ...,
-        raw: bool | dict[str, bool] = ...,
-        ignore_value2text_conversions: bool = ...,
-        use_interpolation: bool = ...,
-        only_basenames: bool = ...,
-        interpolate_outwards_with_nan: bool = ...,
-        numeric_1D_only: bool = ...,
-        *,
-        progress: Callable[[int, int], None] | Any,
-        use_polars: bool = ...,
-    ) -> pd.DataFrame | pl.DataFrame | Terminated: ...
+    ) -> Union[pd.DataFrame, "pl.DataFrame"]: ...
 
     def to_dataframe(
         self,
@@ -5507,7 +5295,7 @@ class MDF:
         numeric_1D_only: bool = False,
         progress: Callable[[int, int], None] | Any | None = None,
         use_polars: bool = False,
-    ) -> pd.DataFrame | pl.DataFrame | Terminated:
+    ) -> Union[pd.DataFrame, "pl.DataFrame"]:
         """Generate pandas DataFrame.
 
         Parameters
@@ -5672,7 +5460,7 @@ class MDF:
                 progress.signals.setMaximum.emit(groups_nr)
 
                 if progress.stop:
-                    return TERMINATED
+                    raise Terminated
 
         for group_index, (virtual_group_index, virtual_group) in enumerate(self.virtual_groups.items()):
             if virtual_group.cycles_nr == 0 and empty_channels == "skip":
@@ -5876,7 +5664,7 @@ class MDF:
                     progress.signals.setValue.emit(group_index + 1)
 
                     if progress.stop:
-                        return TERMINATED
+                        raise Terminated
 
         if use_polars:
             data = typing.cast(dict[str, pl.Series], data)
@@ -5932,30 +5720,6 @@ class MDF:
 
             return df
 
-    @overload
-    def extract_bus_logging(
-        self,
-        database_files: dict[BusType, Iterable[DbcFileType]],
-        version: str | v4c.Version | None = ...,
-        ignore_invalid_signals: bool | None = ...,
-        consolidated_j1939: bool | None = ...,
-        ignore_value2text_conversion: bool = ...,
-        prefix: str = ...,
-        progress: None = ...,
-    ) -> "MDF": ...
-
-    @overload
-    def extract_bus_logging(
-        self,
-        database_files: dict[BusType, Iterable[DbcFileType]],
-        version: str | v4c.Version | None = ...,
-        ignore_invalid_signals: bool | None = ...,
-        consolidated_j1939: bool | None = ...,
-        ignore_value2text_conversion: bool = ...,
-        prefix: str = ...,
-        progress: Callable[[int, int], None] | Any | None = ...,
-    ) -> Union["MDF", Terminated]: ...
-
     def extract_bus_logging(
         self,
         database_files: dict[BusType, Iterable[DbcFileType]],
@@ -5965,7 +5729,7 @@ class MDF:
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
         progress: Callable[[int, int], None] | Any | None = None,
-    ) -> Union["MDF", Terminated]:
+    ) -> "MDF":
         """Extract all possible CAN signals using the provided databases.
 
         Changed in version 6.0.0 from `extract_can_logging`
@@ -6069,18 +5833,13 @@ class MDF:
         out.header.start_time = self.header.start_time
 
         if database_files.get("CAN", None):
-            result = self._mdf._extract_can_logging(
+            out._mdf = self._mdf._extract_can_logging(
                 out._mdf,
                 database_files["CAN"],
                 ignore_value2text_conversion,
                 prefix,
                 progress=progress,
             )
-
-            if isinstance(result, Terminated):
-                return result
-
-            out._mdf = result
 
             to_keep: list[tuple[None, int, int]] = []
             all_channels: list[tuple[None, int, int]] = []
@@ -6097,18 +5856,13 @@ class MDF:
                 out = tmp
 
         if database_files.get("LIN", None):
-            result = self._mdf._extract_lin_logging(
+            out._mdf = self._mdf._extract_lin_logging(
                 typing.cast(mdf_v4.MDF4, out._mdf),
                 database_files["LIN"],
                 ignore_value2text_conversion,
                 prefix,
                 progress=progress,
             )
-
-            if isinstance(result, Terminated):
-                return result
-
-            out._mdf = result
 
         return out
 
@@ -6129,26 +5883,6 @@ class MDF:
     def start_time(self, timestamp: datetime) -> None:
         self.header.start_time = timestamp
 
-    @overload
-    def save(
-        self,
-        dst: FileLike | StrPath,
-        overwrite: bool = ...,
-        compression: CompressionType = ...,
-        progress: None = ...,
-        add_history_block: bool = ...,
-    ) -> Path: ...
-
-    @overload
-    def save(
-        self,
-        dst: FileLike | StrPath,
-        overwrite: bool = ...,
-        compression: CompressionType = ...,
-        progress: Any | None = ...,
-        add_history_block: bool = ...,
-    ) -> Path | Terminated: ...
-
     def save(
         self,
         dst: FileLike | StrPath,
@@ -6156,7 +5890,7 @@ class MDF:
         compression: CompressionType = v4c.CompressionAlgorithm.NO_COMPRESSION,
         progress: Any | None = None,
         add_history_block: bool = True,
-    ) -> Path | Terminated:
+    ) -> Path:
         if isinstance(self._mdf, mdf_v4.MDF4):
             return self._mdf.save(
                 dst,
@@ -6177,28 +5911,6 @@ class MDF:
             add_history_block=add_history_block,
         )
 
-    @overload
-    def cleanup_timestamps(
-        self,
-        minimum: float,
-        maximum: float,
-        exp_min: int = -15,
-        exp_max: int = 15,
-        version: str | Version | None = ...,
-        progress: None = ...,
-    ) -> "MDF": ...
-
-    @overload
-    def cleanup_timestamps(
-        self,
-        minimum: float,
-        maximum: float,
-        exp_min: int = -15,
-        exp_max: int = 15,
-        version: str | Version | None = ...,
-        progress: Callable[[int, int], None] | Any | None = ...,
-    ) -> Union["MDF", Terminated]: ...
-
     def cleanup_timestamps(
         self,
         minimum: float,
@@ -6207,7 +5919,7 @@ class MDF:
         exp_max: int = 15,
         version: str | Version | None = None,
         progress: Callable[[int, int], None] | Any | None = None,
-    ) -> Union["MDF", Terminated]:
+    ) -> "MDF":
         """Convert *MDF* to other version.
 
         .. versionadded:: 5.22.0
@@ -6253,7 +5965,7 @@ class MDF:
                 progress.signals.setMaximum.emit(groups_nr)
 
                 if progress.stop:
-                    return TERMINATED
+                    raise Terminated
 
         self.configure(copy_on_get=False)
 
@@ -6308,7 +6020,7 @@ class MDF:
                     progress.signals.setValue.emit(i + 1)
 
                     if progress.stop:
-                        return TERMINATED
+                        raise Terminated
 
         out._transfer_metadata(self)
         self.configure(copy_on_get=True)

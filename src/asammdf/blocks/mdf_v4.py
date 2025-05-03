@@ -23,7 +23,7 @@ import tempfile
 from tempfile import gettempdir, NamedTemporaryFile
 from traceback import format_exc
 import typing
-from typing import BinaryIO, Final, Literal, TYPE_CHECKING, Union
+from typing import BinaryIO, Final, Literal, TYPE_CHECKING
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import canmatrix
@@ -112,7 +112,6 @@ from .utils import (
     load_can_database,
     MdfException,
     SignalDataBlockInfo,
-    TERMINATED,
     Terminated,
     THREAD_COUNT,
     TxMap,
@@ -9893,27 +9892,6 @@ class MDF4(MDF_Common[Group]):
 
         return info
 
-    @overload
-    def _extract_can_logging(
-        self,
-        output_file: "MDF4",
-        dbc_files: Iterable[DbcFileType],
-        ignore_value2text_conversion: bool = ...,
-        prefix: str = ...,
-        progress: None = ...,
-    ) -> "MDF4": ...
-
-    @overload
-    def _extract_can_logging(
-        self,
-        output_file: "MDF4",
-        dbc_files: Iterable[DbcFileType],
-        ignore_value2text_conversion: bool = ...,
-        prefix: str = ...,
-        *,
-        progress: Callable[[int, int], None] | Any,
-    ) -> Union["MDF4", Terminated]: ...
-
     def _extract_can_logging(
         self,
         output_file: "MDF4",
@@ -9921,7 +9899,7 @@ class MDF4(MDF_Common[Group]):
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
         progress: Callable[[int, int], None] | Any | None = None,
-    ) -> Union["MDF4", Terminated]:
+    ) -> "MDF4":
         out = output_file
 
         max_flags: list[list[list[bool]]] = []
@@ -9961,7 +9939,7 @@ class MDF4(MDF_Common[Group]):
                 progress.signals.setMaximum.emit(count)
 
                 if progress.stop:
-                    return TERMINATED
+                    raise Terminated
 
         cntr = 0
 
@@ -10262,7 +10240,7 @@ class MDF4(MDF_Common[Group]):
                         progress.signals.setValue.emit(cntr)
 
                         if progress.stop:
-                            return TERMINATED
+                            raise Terminated
 
             if current_not_found:
                 not_found_ids[dbc_name] = list(current_not_found)
@@ -10284,27 +10262,6 @@ class MDF4(MDF_Common[Group]):
 
         return out
 
-    @overload
-    def _extract_lin_logging(
-        self,
-        output_file: "MDF4",
-        dbc_files: Iterable[DbcFileType],
-        ignore_value2text_conversion: bool = ...,
-        prefix: str = ...,
-        progress: None = ...,
-    ) -> "MDF4": ...
-
-    @overload
-    def _extract_lin_logging(
-        self,
-        output_file: "MDF4",
-        dbc_files: Iterable[DbcFileType],
-        ignore_value2text_conversion: bool = ...,
-        prefix: str = ...,
-        *,
-        progress: Callable[[int, int], None] | Any,
-    ) -> Union["MDF4", Terminated]: ...
-
     def _extract_lin_logging(
         self,
         output_file: "MDF4",
@@ -10312,7 +10269,7 @@ class MDF4(MDF_Common[Group]):
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
         progress: Callable[[int, int], None] | Any | None = None,
-    ) -> Union["MDF4", Terminated]:
+    ) -> "MDF4":
         out = output_file
 
         valid_dbc_files: list[tuple[CanMatrix, StrPath, int]] = []
@@ -10350,7 +10307,7 @@ class MDF4(MDF_Common[Group]):
                 progress.signals.setMaximum.emit(count)
 
                 if progress.stop:
-                    return TERMINATED
+                    raise Terminated
 
         cntr = 0
 
@@ -10535,7 +10492,7 @@ class MDF4(MDF_Common[Group]):
                         progress.signals.setValue.emit(cntr)
 
                         if progress.stop:
-                            return TERMINATED
+                            raise Terminated
 
             if current_not_found_ids:
                 not_found_ids[dbc_name] = list(current_not_found_ids)
@@ -10573,27 +10530,6 @@ class MDF4(MDF_Common[Group]):
     def start_time(self, timestamp: datetime) -> None:
         self.header.start_time = timestamp
 
-    @overload
-    def save(
-        self,
-        dst: FileLike | StrPath,
-        overwrite: bool = ...,
-        compression: CompressionType = ...,
-        progress: None = ...,
-        add_history_block: bool = ...,
-    ) -> Path: ...
-
-    @overload
-    def save(
-        self,
-        dst: FileLike | StrPath,
-        overwrite: bool = ...,
-        compression: CompressionType = ...,
-        *,
-        progress: Any,
-        add_history_block: bool = ...,
-    ) -> Path | Terminated: ...
-
     def save(
         self,
         dst: FileLike | StrPath,
@@ -10601,7 +10537,7 @@ class MDF4(MDF_Common[Group]):
         compression: CompressionType = v4c.CompressionAlgorithm.NO_COMPRESSION,
         progress: Any | None = None,
         add_history_block: bool = True,
-    ) -> Path | Terminated:
+    ) -> Path:
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>', were
         '<cntr>' is the first counter that produces a new file name
@@ -11012,7 +10948,7 @@ class MDF4(MDF_Common[Group]):
                         dst_.close()
                         self.close()
 
-                        return TERMINATED
+                        raise Terminated
 
             address = tell()
 
@@ -11217,7 +11153,7 @@ class MDF4(MDF_Common[Group]):
                         dst_.close()
                         self.close()
 
-                        return TERMINATED
+                        raise Terminated
 
             for gp in self.groups:
                 for dep_list in gp.channel_dependencies:
@@ -11332,7 +11268,7 @@ class MDF4(MDF_Common[Group]):
             if progress is not None and progress.stop:
                 dst_.close()
                 self.close()
-                return TERMINATED
+                raise Terminated
 
             # attachments
             at_map: dict[int, int] = {}
