@@ -2667,8 +2667,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
             cache[signal_info[i].invalidation_bit_position] = inv_array;
             Py_XDECREF(origin);
           }
-					
-					Py_INCREF(cache[signal_info[i].invalidation_bit_position]);
+
+          Py_INCREF(cache[signal_info[i].invalidation_bit_position]);
           PyTuple_SetItem(ref, 1, cache[signal_info[i].invalidation_bit_position]);
         }
       }
@@ -2729,7 +2729,7 @@ static PyMethodDef myMethods[] = {
 
 
 static PyModuleDef_Slot _asammdf_slots[] = {
-    {0, NULL}
+  {0, NULL}
 };
 
 // Our Module Definition struct
