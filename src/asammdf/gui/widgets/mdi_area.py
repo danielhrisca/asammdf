@@ -4714,7 +4714,7 @@ class WithMDIArea:
         if result == MessageBox.StandardButton.No:
             return
 
-        _password = self.mdf._password
+        _password = self.mdf._mdf._password
 
         uuid = self.mdf.uuid
         dspf = self.to_config()

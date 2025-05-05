@@ -13,17 +13,17 @@ CHANNEL_LEN = 10000
 
 
 class TestMDF23(unittest.TestCase):
-    tempdir = None
+    tempdir: tempfile.TemporaryDirectory[str]
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.tempdir = tempfile.TemporaryDirectory()
 
-    def test_measurement(self):
+    def test_measurement(self) -> None:
         self.assertTrue(MDF2)
         self.assertTrue(MDF3)
 
-    def test_read_mdf2_00(self):
+    def test_read_mdf2_00(self) -> None:
         seed = np.random.randint(0, 2**31)
 
         np.random.seed(seed)
@@ -54,7 +54,7 @@ class TestMDF23(unittest.TestCase):
         self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
         self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
 
-    def test_read_mdf2_14(self):
+    def test_read_mdf2_14(self) -> None:
         seed = np.random.randint(0, 2**31)
 
         np.random.seed(seed)
@@ -85,7 +85,7 @@ class TestMDF23(unittest.TestCase):
         self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
         self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
 
-    def test_read_mdf3_00(self):
+    def test_read_mdf3_00(self) -> None:
         seed = np.random.randint(0, 2**31)
 
         np.random.seed(seed)
@@ -116,7 +116,7 @@ class TestMDF23(unittest.TestCase):
         self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
         self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
 
-    def test_read_mdf3_10(self):
+    def test_read_mdf3_10(self) -> None:
         seed = np.random.randint(0, 2**31)
 
         np.random.seed(seed)

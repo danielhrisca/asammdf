@@ -4,11 +4,11 @@ asammdf utility functions for source information
 
 from functools import lru_cache
 
-from ..types import SourceType
 from . import v2_v3_blocks as v3b
 from . import v2_v3_constants as v3c
 from . import v4_blocks as v4b
 from . import v4_constants as v4c
+from .types import SourceType
 
 
 class Source:
