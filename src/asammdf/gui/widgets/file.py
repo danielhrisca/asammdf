@@ -22,7 +22,7 @@ from ...blocks.utils import (
     load_channel_names_from_file,
     load_dsp,
     load_lab,
-    TERMINATED,
+    Terminated,
 )
 from ...blocks.v4_blocks import AttachmentBlock, FileHistory, HeaderBlock
 from ...blocks.v4_blocks import TextBlock as TextV4
@@ -265,16 +265,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         "process_bus_logging": process_bus_logging,
                     }
 
-                    self.mdf = run_thread_with_progress(
-                        self,
-                        target=target,
-                        kwargs=kwargs,
-                        factor=33,
-                        offset=0,
-                        progress=progress,
-                    )
-
-                    if self.mdf is TERMINATED:
+                    try:
+                        self.mdf = run_thread_with_progress(
+                            self,
+                            target=target,
+                            kwargs=kwargs,
+                            factor=33,
+                            offset=0,
+                            progress=progress,
+                        )
+                    except Terminated:
                         return
 
                     self.mdf.original_name = original_name
@@ -1187,7 +1187,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     if result == MessageBox.Yes:
                         display_file_name = str(Path(file_name).resolve())
 
-                        _password = self.mdf._password
+                        _password = self.mdf._mdf._password
 
                         uuid = self.mdf.uuid
 
@@ -1564,11 +1564,11 @@ MultiRasterSeparator;&
                 master_min = self.mdf.get_master(i, record_offset=0, record_count=1)
                 if len(master_min):
                     t_min.append(master_min[0])
-                self.mdf._master_channel_cache.clear()
+                self.mdf._mdf._master_channel_cache.clear()
                 master_max = self.mdf.get_master(i, record_offset=cycles_nr - 1, record_count=1)
                 if len(master_max):
                     t_max.append(master_max[0])
-                self.mdf._master_channel_cache.clear()
+                self.mdf._mdf._master_channel_cache.clear()
 
         if t_min:
             time_range = t_min, t_max
@@ -1808,7 +1808,7 @@ MultiRasterSeparator;&
         mdf_module.MDF.scramble(name=self.file_name, progress=progress)
 
     def scramble_finished(self):
-        if self._progress.error is None and self._progress.result is not TERMINATED:
+        if self._progress.error is None:
             path = Path(self.file_name)
             self.open_new_files.emit([str(path.with_suffix(f".scrambled{path.suffix}"))])
 
@@ -1838,7 +1838,7 @@ MultiRasterSeparator;&
             self.mdf_compression.addItems(options)
 
     def extract_bus_logging_finished(self):
-        if self._progress.error is None and self._progress.result is not TERMINATED:
+        if self._progress.error is None:
             file_name, message = self._progress.result
 
             self.output_info_bus.setPlainText("\n".join(message))
@@ -1911,30 +1911,22 @@ MultiRasterSeparator;&
         progress.signals.setLabelText.emit(f'Extracting Bus signals from "{self.file_name}"')
 
         # convert self.mdf
-        result = self.mdf.extract_bus_logging(
+        mdf = self.mdf.extract_bus_logging(
             database_files=database_files,
             version=version,
             prefix=self.prefix.text().strip(),
             progress=progress,
         )
 
-        if result is TERMINATED:
-            return
-        else:
-            mdf = result
-
         # then save it
         progress.signals.setLabelText.emit(f'Saving file to "{file_name}"')
 
-        result = mdf.save(
+        mdf.save(
             dst=file_name,
             compression=compression,
             overwrite=True,
             progress=progress,
         )
-
-        if result is TERMINATED:
-            return
 
         bus_call_info = dict(self.mdf.last_call_info)
 
@@ -1985,7 +1977,7 @@ MultiRasterSeparator;&
         return file_name, message
 
     def extract_bus_csv_logging_finished(self):
-        if self._progress.error is None and self._progress.result is not TERMINATED:
+        if self._progress.error is None:
             message = self._progress.result
 
             self.output_info_bus.setPlainText("\n".join(message))
@@ -2096,27 +2088,22 @@ MultiRasterSeparator;&
         progress.signals.setLabelText.emit(f'Extracting Bus signals from "{self.file_name}"')
 
         # convert self.mdf
-        result = self.mdf.extract_bus_logging(
+        mdf = self.mdf.extract_bus_logging(
             database_files=database_files,
             version=version,
             prefix=self.prefix.text().strip(),
             progress=progress,
         )
 
-        if result is TERMINATED:
-            return
-        else:
-            mdf = result
-
         # then save it
         progress.signals.setLabelText.emit(f'Saving file to "{file_name}"')
 
         mdf.configure(
-            integer_interpolation=self.mdf._integer_interpolation,
-            float_interpolation=self.mdf._float_interpolation,
+            integer_interpolation=self.mdf._mdf._integer_interpolation,
+            float_interpolation=self.mdf._mdf._float_interpolation,
         )
 
-        result = mdf.export(
+        mdf.export(
             fmt="csv",
             filename=file_name,
             single_time_base=single_time_base,
@@ -2134,9 +2121,6 @@ MultiRasterSeparator;&
             add_units=add_units,
             progress=progress,
         )
-
-        if result is TERMINATED:
-            return
 
         bus_call_info = dict(self.mdf.last_call_info)
 
@@ -2811,8 +2795,8 @@ MultiRasterSeparator;&
         self.mdf.configure(read_fragment_size=split_size)
 
         mdf = None
-        integer_interpolation = self.mdf._integer_interpolation
-        float_interpolation = self.mdf._float_interpolation
+        integer_interpolation = self.mdf._mdf._integer_interpolation
+        float_interpolation = self.mdf._mdf._float_interpolation
 
         if needs_filter:
             icon = QtGui.QIcon()
@@ -2822,16 +2806,11 @@ MultiRasterSeparator;&
             progress.signals.setLabelText.emit(f'Filtering selected channels from "{self.file_name}"')
 
             # filtering self.mdf
-            result = self.mdf.filter(
+            mdf = self.mdf.filter(
                 channels=channels,
                 version=opts.mdf_version if output_format == "MDF" else "4.10",
                 progress=progress,
             )
-
-            if result is TERMINATED:
-                return
-            else:
-                mdf = result
 
             mdf.configure(
                 read_fragment_size=split_size,
@@ -2858,14 +2837,11 @@ MultiRasterSeparator;&
                 progress=progress,
             )
 
-            if result is TERMINATED:
-                return
+            if mdf is None:
+                mdf = result
             else:
-                if mdf is None:
-                    mdf = result
-                else:
-                    mdf.close()
-                    mdf = result
+                mdf.close()
+                mdf = result
 
             mdf.configure(
                 read_fragment_size=split_size,
@@ -2898,14 +2874,11 @@ MultiRasterSeparator;&
                 progress=progress,
             )
 
-            if result is TERMINATED:
-                return
+            if mdf is None:
+                mdf = result
             else:
-                if mdf is None:
-                    mdf = result
-                else:
-                    mdf.close()
-                    mdf = result
+                mdf.close()
+                mdf = result
 
             mdf.configure(
                 read_fragment_size=split_size,
@@ -2925,15 +2898,10 @@ MultiRasterSeparator;&
                 )
 
                 # convert self.mdf
-                result = self.mdf.convert(
+                mdf = self.mdf.convert(
                     version=version,
                     progress=progress,
                 )
-
-                if result is TERMINATED:
-                    return
-                else:
-                    mdf = result
 
             mdf.configure(
                 read_fragment_size=split_size,
@@ -2954,7 +2922,7 @@ MultiRasterSeparator;&
             if handle_overwrite:
                 dspf = self.to_config()
 
-                _password = self.mdf._password
+                _password = self.mdf._mdf._password
                 self.mdf.close()
 
                 windows = list(self.mdi_area.subWindowList())
@@ -2966,15 +2934,12 @@ MultiRasterSeparator;&
                     widget.deleteLater()
                     window.close()
 
-            result = mdf.save(
+            mdf.save(
                 dst=file_name,
                 compression=opts.mdf_compression,
                 overwrite=True,
                 progress=progress,
             )
-
-            if result is TERMINATED:
-                return
 
             if handle_overwrite:
                 original_name = file_name
@@ -3104,7 +3069,7 @@ MultiRasterSeparator;&
                 "The display file can only be embedded in .mf4 or .mf4z files" f"\n{original_file_name}",
             )
 
-        _password = self.mdf._password
+        _password = self.mdf._mdf._password
 
         uuid = self.mdf.uuid
 

@@ -584,59 +584,56 @@ class Channel:
         cc_map: dict[bytes, int],
         si_map: dict[bytes, int],
     ) -> int:
-        key = "long_name_addr"
         text = self.name
         if self.block_len >= v23c.CN_LONGNAME_BLOCK_SIZE:
             if len(text) > 31:
                 if text in defined_texts:
-                    self[key] = defined_texts[text]
+                    self.long_name_addr = defined_texts[text]
                 else:
                     tx_block = TextBlock(text=text)
-                    self[key] = address
+                    self.long_name_addr = address
                     defined_texts[text] = address
                     tx_block.address = address
                     address += tx_block.block_len
                     blocks.append(tx_block)
             else:
-                self[key] = 0
+                self.long_name_addr = 0
 
         self.short_name = text.encode("latin-1", "backslashreplace")[:31]
 
-        key = "display_name_addr"
         text = list(self.display_names)[0] if self.display_names else ""
         if self.block_len >= v23c.CN_DISPLAYNAME_BLOCK_SIZE:
             if text:
                 if text in defined_texts:
-                    self[key] = defined_texts[text]
+                    self.display_name_addr = defined_texts[text]
                 else:
                     tx_block = TextBlock(text=text)
-                    self[key] = address
+                    self.display_name_addr = address
                     defined_texts[text] = address
                     tx_block.address = address
                     address += tx_block.block_len
                     blocks.append(tx_block)
             else:
-                self[key] = 0
+                self.display_name_addr = 0
 
-        key = "comment_addr"
         text = self.comment
         if text:
             if len(text) < 128:
                 self.description = text.encode("latin-1", "backslashreplace")[:127]
-                self[key] = 0
+                self.comment_addr = 0
             else:
                 if text in defined_texts:
-                    self[key] = defined_texts[text]
+                    self.comment_addr = defined_texts[text]
                 else:
                     tx_block = TextBlock(text=text)
-                    self[key] = address
+                    self.comment_addr = address
                     defined_texts[text] = address
                     tx_block.address = address
                     address += tx_block.block_len
                     blocks.append(tx_block)
                 self.description = b"\0"
         else:
-            self[key] = 0
+            self.comment_addr = 0
 
         conversion = self.conversion
         if conversion:
@@ -1317,7 +1314,7 @@ class ChannelConversion(_ChannelConversionBase):
                     self[f"lower_{i}"] = kwargs[f"lower_{i}"]  # type: ignore[literal-required]
                     self[f"upper_{i}"] = kwargs[f"upper_{i}"]  # type: ignore[literal-required]
                     key = f"text_{i}"
-                    self[key] = 0
+                    self.default_addr = 0
                     self.referenced_blocks[key] = kwargs[key]  # type: ignore[literal-required]
             else:
                 message = f'Conversion type "{kwargs["conversion_type"]}" not implemented'
@@ -1477,7 +1474,7 @@ address: {hex(self.address)}
     ) -> NDArray[Any]: ...
 
     @overload
-    def convert(  # type: ignore[overload-cannot-match, unused-ignore]
+    def convert(
         self,
         values: ArrayLike,
         as_object: bool = ...,
@@ -2362,20 +2359,19 @@ class ChannelGroup:
         defined_texts: dict[bytes | str, int],
         si_map: dict[bytes, int],
     ) -> int:
-        key = "comment_addr"
         text = self.comment
         if text:
             if text in defined_texts:
-                self[key] = defined_texts[text]
+                self.comment_addr = defined_texts[text]
             else:
                 tx_block = TextBlock(text=text)
-                self[key] = address
+                self.comment_addr = address
                 defined_texts[text] = address
                 tx_block.address = address
                 address += tx_block.block_len
                 blocks.append(tx_block)
         else:
-            self[key] = 0
+            self.comment_addr = 0
 
         blocks.append(self)
         self.address = address
@@ -2982,29 +2978,27 @@ class HeaderBlock:
         self.address = address
         address += self.block_len
 
-        key = "comment_addr"
         text = self.comment
         if text:
             if text in defined_texts:
-                self[key] = defined_texts[text]
+                self.comment_addr = defined_texts[text]
             else:
                 tx_block = TextBlock(text=text)
-                self[key] = address
+                self.comment_addr = address
                 defined_texts[text] = address
                 tx_block.address = address
                 address += tx_block.block_len
                 blocks.append(tx_block)
         else:
-            self[key] = 0
+            self.comment_addr = 0
 
-        key = "program_addr"
         if self.program:
-            self[key] = address
+            self.program_addr = address
             address += self.program.block_len
             blocks.append(self.program)
 
         else:
-            self[key] = 0
+            self.program_addr = 0
 
         self.author_field = self.author.encode("latin-1")
         self.department_field = self.department.encode("latin-1")
@@ -3366,15 +3360,14 @@ class TriggerBlock:
                 self[key] = kwargs[key]  # type: ignore[literal-required]
 
     def to_blocks(self, address: int, blocks: list[bytes | SupportsBytes]) -> int:
-        key = "text_addr"
         text = self.comment
         if text:
             tx_block = TextBlock(text=text)
-            self[key] = address
+            self.text_addr = address
             address += tx_block.block_len
             blocks.append(tx_block)
         else:
-            self[key] = 0
+            self.text_addr = 0
 
         blocks.append(self)
         self.address = address

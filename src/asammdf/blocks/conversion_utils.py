@@ -8,16 +8,16 @@ from typing import Literal
 
 from typing_extensions import overload
 
-from ..types import ChannelConversionType
 from . import v2_v3_blocks as v3b
 from . import v2_v3_constants as v3c
 from . import v4_blocks as v4b
 from . import v4_constants as v4c
+from .types import ChannelConversionType
 
 
 @overload
 def conversion_transfer(
-    conversion: ChannelConversionType | None, version: Literal[3] = ..., copy: bool = ...
+    conversion: ChannelConversionType | None, version: Literal[2, 3] = ..., copy: bool = ...
 ) -> v3b.ChannelConversion: ...
 
 
@@ -31,8 +31,14 @@ def conversion_transfer(
 def conversion_transfer(conversion: None, version: Literal[4], copy: bool = ...) -> None: ...
 
 
+@overload
 def conversion_transfer(
-    conversion: ChannelConversionType | None, version: int = 3, copy: bool = False
+    conversion: ChannelConversionType | None, version: Literal[2, 3, 4] = ..., copy: bool = ...
+) -> ChannelConversionType | None: ...
+
+
+def conversion_transfer(
+    conversion: ChannelConversionType | None, version: Literal[2, 3, 4] = 3, copy: bool = False
 ) -> ChannelConversionType | None:
     """convert between mdf4 and mdf3 channel conversions
 
@@ -347,6 +353,12 @@ def from_dict(conversion_dict: v4b.ChannelConversionKwargs | dict[str, object]) 
 def from_dict(conversion_dict: None) -> None: ...
 
 
+@overload
+def from_dict(
+    conversion_dict: v4b.ChannelConversionKwargs | dict[str, object] | None,
+) -> v4b.ChannelConversion | None: ...
+
+
 def from_dict(conversion_dict: v4b.ChannelConversionKwargs | dict[str, object] | None) -> v4b.ChannelConversion | None:
     if not conversion_dict:
         conversion = None
@@ -473,6 +485,10 @@ def to_dict(conversion: ChannelConversionType) -> dict[str, object]: ...
 
 @overload
 def to_dict(conversion: None) -> None: ...
+
+
+@overload
+def to_dict(conversion: ChannelConversionType | None) -> dict[str, object] | None: ...
 
 
 def to_dict(conversion: ChannelConversionType | None) -> dict[str, object] | None:

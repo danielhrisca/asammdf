@@ -1,23 +1,25 @@
 #!/usr/bin/env python
 from pathlib import Path
 import tempfile
+import typing
 import unittest
 
 import numpy as np
 
 from asammdf import MDF, Signal
+from asammdf.blocks import mdf_v3, mdf_v4
 import asammdf.blocks.v2_v3_constants as v23c
 import asammdf.blocks.v4_constants as v4c
 
 
 class TestEndianess(unittest.TestCase):
-    tempdir = None
+    tempdir: tempfile.TemporaryDirectory[str]
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.tempdir = tempfile.TemporaryDirectory()
 
-    def test_mixed(self):
+    def test_mixed(self) -> None:
         t = np.arange(15, dtype="<f8")
 
         s1 = Signal(np.frombuffer(b"\x00\x00\x00\x02" * 15, dtype=">u4"), t, name="Motorola")
@@ -44,7 +46,7 @@ class TestEndianess(unittest.TestCase):
                 assert np.array_equal(mdf.get("Motorola").samples, [2] * 15)
                 assert np.array_equal(mdf.get("Intel").samples, [4] * 15)
 
-    def test_not_aligned_mdf_v3(self):
+    def test_not_aligned_mdf_v3(self) -> None:
         t = np.arange(15, dtype="<f8")
 
         s1 = Signal(np.frombuffer(b"\x00\x00\x3f\x02" * 15, dtype=">u4"), t, name="Motorola")
@@ -62,12 +64,14 @@ class TestEndianess(unittest.TestCase):
         with MDF(version="3.30") as mdf_source:
             mdf_source.append([s1, s2, s3, s4], common_timebase=True)
 
-            ch3 = mdf_source.groups[0].channels[3]
+            mdf3 = typing.cast(mdf_v3.MDF3, mdf_source._mdf)
+
+            ch3 = mdf3.groups[0].channels[3]
             ch3.start_offset = 24 + t.itemsize * 8
             ch3.data_type = v23c.DATA_TYPE_UNSIGNED_MOTOROLA
             ch3.bit_count = 16
 
-            ch4 = mdf_source.groups[0].channels[4]
+            ch4 = mdf3.groups[0].channels[4]
             ch4.start_offset = 24 + t.itemsize * 8
             ch4.data_type = v23c.DATA_TYPE_UNSIGNED_INTEL
             ch4.bit_count = 16
@@ -78,12 +82,12 @@ class TestEndianess(unittest.TestCase):
                 assert np.array_equal(mdf.get("NotAlignedMotorola").samples, [0x0204] * 15)
                 assert np.array_equal(mdf.get("NotAlignedIntel").samples, [0x0402] * 15)
 
-            ch3 = mdf_source.groups[0].channels[3]
+            ch3 = mdf3.groups[0].channels[3]
             ch3.start_offset = 16 + t.itemsize * 8
             ch3.data_type = v23c.DATA_TYPE_UNSIGNED_MOTOROLA
             ch3.bit_count = 24
 
-            ch4 = mdf_source.groups[0].channels[4]
+            ch4 = mdf3.groups[0].channels[4]
             ch4.start_offset = 16 + t.itemsize * 8
             ch4.data_type = v23c.DATA_TYPE_UNSIGNED_INTEL
             ch4.bit_count = 24
@@ -95,12 +99,12 @@ class TestEndianess(unittest.TestCase):
 
                 assert np.array_equal(mdf.get("NotAlignedIntel").samples, [0x04023F] * 15)
 
-            ch3 = mdf_source.groups[0].channels[3]
+            ch3 = mdf3.groups[0].channels[3]
             ch3.start_offset = 16 + t.itemsize * 8 + 5
             ch3.data_type = v23c.DATA_TYPE_UNSIGNED_MOTOROLA
             ch3.bit_count = 21
 
-            ch4 = mdf_source.groups[0].channels[4]
+            ch4 = mdf3.groups[0].channels[4]
             ch4.start_offset = 16 + t.itemsize * 8 + 6
             ch4.data_type = v23c.DATA_TYPE_UNSIGNED_INTEL
             ch4.bit_count = 21
@@ -118,7 +122,7 @@ class TestEndianess(unittest.TestCase):
                     [(0xF8040200 >> 6) & (2**21 - 1)] * 15,
                 )
 
-    def test_not_aligned_mdf_v4(self):
+    def test_not_aligned_mdf_v4(self) -> None:
         t = np.arange(15, dtype="<f8")
 
         s1 = Signal(np.frombuffer(b"\x00\x00\x3f\x02" * 15, dtype=">u4"), t, name="Motorola")
@@ -136,12 +140,14 @@ class TestEndianess(unittest.TestCase):
         with MDF(version="4.11") as mdf_source:
             mdf_source.append([s1, s2, s3, s4], common_timebase=True)
 
-            ch3 = mdf_source.groups[0].channels[3]
+            mdf4 = typing.cast(mdf_v4.MDF4, mdf_source._mdf)
+
+            ch3 = mdf4.groups[0].channels[3]
             ch3.byte_offset = 3 + t.itemsize
             ch3.data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
             ch3.bit_count = 16
 
-            ch4 = mdf_source.groups[0].channels[4]
+            ch4 = mdf4.groups[0].channels[4]
             ch4.byte_offset = 3 + t.itemsize
             ch4.data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             ch4.bit_count = 16
@@ -153,12 +159,12 @@ class TestEndianess(unittest.TestCase):
 
                 assert np.array_equal(mdf.get("NotAlignedIntel").samples, [0x0402] * 15)
 
-            ch3 = mdf_source.groups[0].channels[3]
+            ch3 = mdf4.groups[0].channels[3]
             ch3.byte_offset = 2 + t.itemsize
             ch3.data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
             ch3.bit_count = 24
 
-            ch4 = mdf_source.groups[0].channels[4]
+            ch4 = mdf4.groups[0].channels[4]
             ch4.byte_offset = 2 + t.itemsize
             ch4.data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             ch4.bit_count = 24
@@ -170,13 +176,13 @@ class TestEndianess(unittest.TestCase):
 
                 assert np.array_equal(mdf.get("NotAlignedIntel").samples, [0x04023F] * 15)
 
-            ch3 = mdf_source.groups[0].channels[3]
+            ch3 = mdf4.groups[0].channels[3]
             ch3.byte_offset = 2 + t.itemsize
             ch3.data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
             ch3.bit_count = 21
             ch3.bit_offset = 5
 
-            ch4 = mdf_source.groups[0].channels[4]
+            ch4 = mdf4.groups[0].channels[4]
             ch4.byte_offset = 2 + t.itemsize
             ch4.data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             ch4.bit_count = 21
@@ -195,7 +201,7 @@ class TestEndianess(unittest.TestCase):
                     [(0xF8040200 >> 6) & (2**21 - 1)] * 15,
                 )
 
-    def test_overlapping_channels_mdf_v3(self):
+    def test_overlapping_channels_mdf_v3(self) -> None:
         t = np.arange(15, dtype="<f8")
 
         s1 = Signal(
@@ -219,6 +225,8 @@ class TestEndianess(unittest.TestCase):
         with MDF(version="3.30") as mdf_source:
             mdf_source.append([s1, s2, s3], common_timebase=True)
 
+            mdf3 = typing.cast(mdf_v3.MDF3, mdf_source._mdf)
+
             for parent_data_type in (
                 v23c.DATA_TYPE_DOUBLE_MOTOROLA,
                 v23c.DATA_TYPE_SIGNED_MOTOROLA,
@@ -227,15 +235,15 @@ class TestEndianess(unittest.TestCase):
                 v23c.DATA_TYPE_SIGNED_INTEL,
                 v23c.DATA_TYPE_UNSIGNED_INTEL,
             ):
-                parent = mdf_source.groups[0].channels[1]
+                parent = mdf3.groups[0].channels[1]
                 parent.data_type = parent_data_type
 
-                ch3 = mdf_source.groups[0].channels[2]
+                ch3 = mdf3.groups[0].channels[2]
                 ch3.start_offset = 24 + t.itemsize * 8
                 ch3.data_type = v23c.DATA_TYPE_UNSIGNED_MOTOROLA
                 ch3.bit_count = 16
 
-                ch4 = mdf_source.groups[0].channels[3]
+                ch4 = mdf3.groups[0].channels[3]
                 ch4.start_offset = 24 + t.itemsize * 8
                 ch4.data_type = v23c.DATA_TYPE_UNSIGNED_INTEL
                 ch4.bit_count = 16
@@ -247,12 +255,12 @@ class TestEndianess(unittest.TestCase):
 
                     assert np.array_equal(mdf.get("OverlappingIntel").samples, [0x0402] * 15)
 
-                ch3 = mdf_source.groups[0].channels[2]
+                ch3 = mdf3.groups[0].channels[2]
                 ch3.start_offset = 16 + t.itemsize * 8
                 ch3.data_type = v23c.DATA_TYPE_UNSIGNED_MOTOROLA
                 ch3.bit_count = 24
 
-                ch4 = mdf_source.groups[0].channels[3]
+                ch4 = mdf3.groups[0].channels[3]
                 ch4.start_offset = 16 + t.itemsize * 8
                 ch4.data_type = v23c.DATA_TYPE_UNSIGNED_INTEL
                 ch4.bit_count = 24
@@ -264,12 +272,12 @@ class TestEndianess(unittest.TestCase):
 
                     assert np.array_equal(mdf.get("OverlappingIntel").samples, [0x04023F] * 15)
 
-                ch3 = mdf_source.groups[0].channels[2]
+                ch3 = mdf3.groups[0].channels[2]
                 ch3.start_offset = 16 + t.itemsize * 8 + 5
                 ch3.data_type = v23c.DATA_TYPE_UNSIGNED_MOTOROLA
                 ch3.bit_count = 21
 
-                ch4 = mdf_source.groups[0].channels[3]
+                ch4 = mdf3.groups[0].channels[3]
                 ch4.start_offset = 16 + t.itemsize * 8 + 6
                 ch4.data_type = v23c.DATA_TYPE_UNSIGNED_INTEL
                 ch4.bit_count = 21
@@ -287,7 +295,7 @@ class TestEndianess(unittest.TestCase):
                         [(0xF8040200 >> 6) & (2**21 - 1)] * 15,
                     )
 
-    def test_overlapping_channels_mdf_v4(self):
+    def test_overlapping_channels_mdf_v4(self) -> None:
         t = np.arange(15, dtype="<f8")
 
         s1 = Signal(
@@ -311,6 +319,8 @@ class TestEndianess(unittest.TestCase):
         with MDF(version="4.11") as mdf_source:
             mdf_source.append([s1, s2, s3], common_timebase=True)
 
+            mdf4 = typing.cast(mdf_v4.MDF4, mdf_source._mdf)
+
             for parent_data_type in (
                 v4c.DATA_TYPE_REAL_MOTOROLA,
                 v4c.DATA_TYPE_SIGNED_MOTOROLA,
@@ -319,16 +329,16 @@ class TestEndianess(unittest.TestCase):
                 v4c.DATA_TYPE_SIGNED_INTEL,
                 v4c.DATA_TYPE_UNSIGNED_INTEL,
             ):
-                parent = mdf_source.groups[0].channels[1]
+                parent = mdf4.groups[0].channels[1]
                 parent.data_type = parent_data_type
 
-                ch3 = mdf_source.groups[0].channels[2]
+                ch3 = mdf4.groups[0].channels[2]
                 ch3.byte_offset = 3 + t.itemsize
                 ch3.data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
                 ch3.bit_count = 16
                 ch3.bit_offset = 0
 
-                ch4 = mdf_source.groups[0].channels[3]
+                ch4 = mdf4.groups[0].channels[3]
                 ch4.byte_offset = 3 + t.itemsize
                 ch4.data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
                 ch4.bit_count = 16
@@ -341,13 +351,13 @@ class TestEndianess(unittest.TestCase):
 
                     assert np.array_equal(mdf.get("OverlappingIntel").samples, [0x0402] * 15)
 
-                ch3 = mdf_source.groups[0].channels[2]
+                ch3 = mdf4.groups[0].channels[2]
                 ch3.byte_offset = 2 + t.itemsize
                 ch3.data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
                 ch3.bit_count = 24
                 ch3.bit_offset = 0
 
-                ch4 = mdf_source.groups[0].channels[3]
+                ch4 = mdf4.groups[0].channels[3]
                 ch4.byte_offset = 2 + t.itemsize
                 ch4.data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
                 ch4.bit_count = 24
@@ -360,13 +370,13 @@ class TestEndianess(unittest.TestCase):
 
                     assert np.array_equal(mdf.get("OverlappingIntel").samples, [0x04023F] * 15)
 
-                ch3 = mdf_source.groups[0].channels[2]
+                ch3 = mdf4.groups[0].channels[2]
                 ch3.byte_offset = 2 + t.itemsize
                 ch3.data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
                 ch3.bit_count = 21
                 ch3.bit_offset = 5
 
-                ch4 = mdf_source.groups[0].channels[3]
+                ch4 = mdf4.groups[0].channels[3]
                 ch4.byte_offset = 2 + t.itemsize
                 ch4.data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
                 ch4.bit_count = 21
@@ -385,13 +395,13 @@ class TestEndianess(unittest.TestCase):
                         [(0xF8040200 >> 6) & (2**21 - 1)] * 15,
                     )
 
-                ch3 = mdf_source.groups[0].channels[2]
+                ch3 = mdf4.groups[0].channels[2]
                 ch3.byte_offset = 3 + t.itemsize
                 ch3.data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
                 ch3.bit_count = 2
                 ch3.bit_offset = 1
 
-                ch4 = mdf_source.groups[0].channels[3]
+                ch4 = mdf4.groups[0].channels[3]
                 ch4.byte_offset = 3 + t.itemsize
                 ch4.data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
                 ch4.bit_count = 2
