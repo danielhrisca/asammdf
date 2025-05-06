@@ -71,6 +71,14 @@ class SignalOnline:
         self.color = fn.mkColor(color)
 
     @property
+    def origin_mdf(self):
+        return ""
+
+    @origin_mdf.setter
+    def origin_mdf(self, value):
+        pass
+
+    @property
     def origin_uuid(self):
         return self.entry[0]
 
@@ -102,6 +110,8 @@ class SignalOnline:
             return self.scaled
         elif index == 3:
             return self.unit
+        elif index == 4:
+            return self.origin_uuid
 
 
 class SignalOffline:
@@ -142,9 +152,26 @@ class SignalOffline:
     def color(self, value):
         self.signal.color = value
 
-    def reset(self):
-        self.signal = None
-        self.exists = True
+    @property
+    def origin_mdf(self):
+        return self.signal.origin_mdf
+
+    @origin_mdf.setter
+    def origin_mdf(self, value):
+        self.signal.origin_mdf = value
+
+    @property
+    def origin_uuid(self):
+        return self.signal.origin_uuid
+
+    @origin_uuid.setter
+    def origin_uuid(self, value):
+        self.signal.origin_uuid = value
+
+    def reset(self, exists=True):
+        self.signal.samples = self.signal.samples[:0]
+        self.signal.timestamps = self.signal.timestamps[:0]
+        self.exists = exists
         self.raw = None
         self.scaled = None
         self.last_timestamp = None
@@ -176,6 +203,8 @@ class SignalOffline:
                 return self.scaled
             elif index == 3:
                 return self.unit
+            elif index == 4:
+                return self.origin_uuid
 
 
 class OnlineBackEnd:
@@ -219,6 +248,9 @@ class OnlineBackEnd:
             self.sort_reversed = not self.sort_reversed
 
         self.sort()
+
+    def color_same_origin_signals(self, origin_uuid="", color=""):
+        pass
 
     def data_changed(self):
         self.refresh_ui()
@@ -328,6 +360,12 @@ class OnlineBackEnd:
             else:
                 self.data_changed()
 
+    def shift_same_origin_signals(self, origin_uuid="", delta=0.0):
+        pass
+
+    def update_missing_signals(self, uuids=()):
+        pass
+
     def reset(self):
         for sig in self.signals:
             sig.reset()
@@ -430,7 +468,7 @@ class OfflineBackEnd:
         sorted_column_index = self.sorted_column_index
 
         if sorted_column_index == 0:
-            self.signals = natsorted(self.signals, key=lambda x: x.name, reverse=self.sort_reversed)
+            self.signals = natsorted(self.signals, key=lambda x: (x.name, x.origin_uuid), reverse=self.sort_reversed)
 
         elif sorted_column_index in (1, 2):
             numeric = []
@@ -465,6 +503,13 @@ class OfflineBackEnd:
 
         self.data_changed()
 
+    def color_same_origin_signals(self, origin_uuid="", color=""):
+        for signal in self.signals:
+            if signal.origin_uuid == origin_uuid:
+                signal.color = color
+
+        self.data_changed()
+
     def get_timestamp(self, stamp):
         max_idx = len(self.timebase) - 1
         if max_idx == -1:
@@ -481,6 +526,18 @@ class OfflineBackEnd:
             self.sort()
         else:
             self.data_changed()
+
+    def shift_same_origin_signals(self, origin_uuid="", delta=0.0):
+        for signal in self.signals:
+            if signal.origin_uuid == origin_uuid:
+                signal.signal.timestamps = signal.signal.timestamps + delta
+
+        self.data_changed()
+
+    def update_missing_signals(self, uuids=()):
+        for signal in self.signals:
+            if signal.origin_uuid not in uuids:
+                signal.reset(exists=False)
 
     def reset(self):
         for sig in self.signals:
@@ -516,7 +573,7 @@ class TableModel(QtCore.QAbstractTableModel):
         pass
 
     def columnCount(self, parent=None):
-        return 4
+        return 5
 
     def rowCount(self, parent=None):
         return len(self.backend)
@@ -528,143 +585,148 @@ class TableModel(QtCore.QAbstractTableModel):
         signal = self.backend.signals[row]
         cell = self.backend.get_signal_value(signal, col)
 
-        if role == QtCore.Qt.ItemDataRole.DisplayRole:
-            if cell is None:
-                return "●"
-            elif isinstance(cell, (bytes, np.bytes_)):
-                return cell.decode("utf-8", "replace")
-            elif isinstance(cell, str):
-                return cell
-            elif isinstance(cell, (np.ndarray, np.record, np.recarray)):
-                return str(cell[0])
-            else:
-                if np.isnan(cell):
-                    return "NaN"
+        match role:
+            case QtCore.Qt.ItemDataRole.DisplayRole:
+                if cell is None:
+                    return "●"
+                elif isinstance(cell, (bytes, np.bytes_)):
+                    return cell.decode("utf-8", "replace")
+                elif isinstance(cell, str):
+                    return cell
+                elif isinstance(cell, (np.ndarray, np.record, np.recarray)):
+                    return str(cell[0])
                 else:
-                    return value_as_str(cell, signal.format, None, self.float_precision)
+                    if np.isnan(cell):
+                        return "NaN"
+                    else:
+                        return value_as_str(cell, signal.format, None, self.float_precision)
 
-        elif role == QtCore.Qt.ItemDataRole.BackgroundRole:
-            channel_ranges = self.view.ranges[signal.entry]
-            raw_cell = self.backend.get_signal_value(signal, 1)
-            scaled_cell = self.backend.get_signal_value(signal, 2)
-
-            try:
-                scaled_value = float(scaled_cell)
-                value = scaled_value
-            except:
-                scaled_value = str(scaled_cell)
+            case QtCore.Qt.ItemDataRole.BackgroundRole:
+                channel_ranges = self.view.ranges[signal.entry]
+                raw_cell = self.backend.get_signal_value(signal, 1)
+                scaled_cell = self.backend.get_signal_value(signal, 2)
 
                 try:
-                    raw_value = float(raw_cell)
-                    value = raw_value
-                except:
+                    scaled_value = float(scaled_cell)
                     value = scaled_value
+                except:
+                    scaled_value = str(scaled_cell)
 
-            new_background_color, new_font_color = get_colors_using_ranges(
-                value,
-                ranges=channel_ranges,
-                default_background_color=self.background_color,
-                default_font_color=signal.color,
-            )
+                    try:
+                        raw_value = float(raw_cell)
+                        value = raw_value
+                    except:
+                        value = scaled_value
 
-            return new_background_color if new_background_color != self.background_color else None
+                new_background_color, new_font_color = get_colors_using_ranges(
+                    value,
+                    ranges=channel_ranges,
+                    default_background_color=self.background_color,
+                    default_font_color=signal.color,
+                )
 
-        elif role == QtCore.Qt.ItemDataRole.ForegroundRole:
+                return new_background_color if new_background_color != self.background_color else None
 
-            channel_ranges = self.view.ranges[signal.entry]
-            raw_cell = self.backend.get_signal_value(signal, 1)
-            scaled_cell = self.backend.get_signal_value(signal, 2)
+            case QtCore.Qt.ItemDataRole.ForegroundRole:
 
-            try:
-                scaled_value = float(scaled_cell)
-                value = scaled_value
-            except:
-                scaled_value = str(scaled_cell)
+                channel_ranges = self.view.ranges[signal.entry]
+                raw_cell = self.backend.get_signal_value(signal, 1)
+                scaled_cell = self.backend.get_signal_value(signal, 2)
 
                 try:
-                    raw_value = float(raw_cell)
-                    value = raw_value
-                except:
+                    scaled_value = float(scaled_cell)
                     value = scaled_value
+                except:
+                    scaled_value = str(scaled_cell)
 
-            new_background_color, new_font_color = get_colors_using_ranges(
-                value,
-                ranges=channel_ranges,
-                default_background_color=self.background_color,
-                default_font_color=signal.color,
-            )
+                    try:
+                        raw_value = float(raw_cell)
+                        value = raw_value
+                    except:
+                        value = scaled_value
 
-            return new_font_color
+                new_background_color, new_font_color = get_colors_using_ranges(
+                    value,
+                    ranges=channel_ranges,
+                    default_background_color=self.background_color,
+                    default_font_color=signal.color,
+                )
 
-        elif role == QtCore.Qt.ItemDataRole.TextAlignmentRole:
-            if col:
-                return int(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
-            else:
-                return int(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
+                return new_font_color
 
-        elif role == QtCore.Qt.ItemDataRole.DecorationRole:
-            if col == 0:
-                if not signal.exists:
-                    icon = utils.ERROR_ICON
-                    if icon is None:
-                        utils.ERROR_ICON = QtGui.QIcon()
-                        utils.ERROR_ICON.addPixmap(
-                            QtGui.QPixmap(":/error.png"),
-                            QtGui.QIcon.Mode.Normal,
-                            QtGui.QIcon.State.Off,
-                        )
+            case QtCore.Qt.ItemDataRole.TextAlignmentRole:
+                if col:
+                    return int(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
+                else:
+                    return int(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
 
-                        utils.NO_ERROR_ICON = QtGui.QIcon()
-
+            case QtCore.Qt.ItemDataRole.DecorationRole:
+                if col == 0:
+                    if not signal.exists:
                         icon = utils.ERROR_ICON
-                else:
-                    icon = utils.NO_ERROR_ICON
-                    if icon is None:
-                        utils.ERROR_ICON = QtGui.QIcon()
-                        utils.ERROR_ICON.addPixmap(
-                            QtGui.QPixmap(":/error.png"),
-                            QtGui.QIcon.Mode.Normal,
-                            QtGui.QIcon.State.Off,
-                        )
+                        if icon is None:
+                            utils.ERROR_ICON = QtGui.QIcon()
+                            utils.ERROR_ICON.addPixmap(
+                                QtGui.QPixmap(":/error.png"),
+                                QtGui.QIcon.Mode.Normal,
+                                QtGui.QIcon.State.Off,
+                            )
 
-                        utils.NO_ERROR_ICON = QtGui.QIcon()
+                            utils.NO_ERROR_ICON = QtGui.QIcon()
 
+                            icon = utils.ERROR_ICON
+                    else:
                         icon = utils.NO_ERROR_ICON
+                        if icon is None:
+                            utils.ERROR_ICON = QtGui.QIcon()
+                            utils.ERROR_ICON.addPixmap(
+                                QtGui.QPixmap(":/error.png"),
+                                QtGui.QIcon.Mode.Normal,
+                                QtGui.QIcon.State.Off,
+                            )
 
-                return icon
+                            utils.NO_ERROR_ICON = QtGui.QIcon()
 
-            elif col in (1, 2):
-                has_ranges = bool(self.view.ranges.get(signal.entry, False))
-                if has_ranges:
-                    icon = utils.RANGE_INDICATOR_ICON
-                    if icon is None:
-                        utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
-                        utils.RANGE_INDICATOR_ICON.addPixmap(
-                            QtGui.QPixmap(":/paint.png"),
-                            QtGui.QIcon.Mode.Normal,
-                            QtGui.QIcon.State.Off,
-                        )
+                            icon = utils.NO_ERROR_ICON
 
-                        utils.NO_ERROR_ICON = QtGui.QIcon()
-                        utils.NO_ICON = QtGui.QIcon()
+                    return icon
 
+                elif col in (1, 2):
+                    has_ranges = bool(self.view.ranges.get(signal.entry, False))
+                    if has_ranges:
                         icon = utils.RANGE_INDICATOR_ICON
-                else:
-                    icon = utils.NO_ERROR_ICON
-                    if icon is None:
-                        utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
-                        utils.RANGE_INDICATOR_ICON.addPixmap(
-                            QtGui.QPixmap(":/paint.png"),
-                            QtGui.QIcon.Mode.Normal,
-                            QtGui.QIcon.State.Off,
-                        )
+                        if icon is None:
+                            utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
+                            utils.RANGE_INDICATOR_ICON.addPixmap(
+                                QtGui.QPixmap(":/paint.png"),
+                                QtGui.QIcon.Mode.Normal,
+                                QtGui.QIcon.State.Off,
+                            )
 
-                        utils.NO_ERROR_ICON = QtGui.QIcon()
-                        utils.NO_ICON = QtGui.QIcon()
+                            utils.NO_ERROR_ICON = QtGui.QIcon()
+                            utils.NO_ICON = QtGui.QIcon()
 
+                            icon = utils.RANGE_INDICATOR_ICON
+                    else:
                         icon = utils.NO_ERROR_ICON
+                        if icon is None:
+                            utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
+                            utils.RANGE_INDICATOR_ICON.addPixmap(
+                                QtGui.QPixmap(":/paint.png"),
+                                QtGui.QIcon.Mode.Normal,
+                                QtGui.QIcon.State.Off,
+                            )
 
-                return icon
+                            utils.NO_ERROR_ICON = QtGui.QIcon()
+                            utils.NO_ICON = QtGui.QIcon()
+
+                            icon = utils.NO_ERROR_ICON
+
+                    return icon
+
+            case QtCore.Qt.ItemDataRole.ToolTipRole:
+                if signal:
+                    return f'Origin = {signal.origin_uuid or "unknown"}\nMDF = {signal.origin_mdf or "unknown"}'
 
     def flags(self, index):
         return (
@@ -819,6 +881,7 @@ class TableView(QtWidgets.QTableView):
                     "ylink": False,
                     "individual_axis": False,
                     "y_range": signal.y_range,
+                    "origin_uuid": signal.origin_uuid,
                 }
 
                 for range_info in info["ranges"]:
@@ -853,6 +916,7 @@ class TableView(QtWidgets.QTableView):
                     signal.format = info["format"]
                     signal.color = fn.mkColor(info["color"])
                     signal.y_range = info["y_range"]
+                    signal.origin_uuid = info["origin_uuid"]
                     self.ranges[signal.entry] = copy_ranges(info["ranges"])
 
                 self.backend.update()
@@ -974,7 +1038,7 @@ class TableView(QtWidgets.QTableView):
 
             entry = signal.entry if numeric_mode == "online" else signal.signal.entry
 
-            group_index, channel_index = entry
+            *_, group_index, channel_index = entry
 
             ranges = copy_ranges(self.ranges[signal.entry])
 
@@ -989,7 +1053,7 @@ class TableView(QtWidgets.QTableView):
                 "group_index": group_index,
                 "channel_index": channel_index,
                 "ranges": ranges,
-                "origin_uuid": str(entry[0]) if numeric_mode == "online" else signal.signal.origin_uuid,
+                "origin_uuid": str(entry[0]),
                 "type": "channel",
                 "uuid": os.urandom(6).hex(),
                 "color": signal.color.name(),
@@ -1049,7 +1113,7 @@ class HeaderModel(QtCore.QAbstractTableModel):
         self.backend = parent.backend
 
     def columnCount(self, parent=None):
-        return 4
+        return 5
 
     def rowCount(self, parent=None):
         return 1  # 1?
@@ -1057,7 +1121,7 @@ class HeaderModel(QtCore.QAbstractTableModel):
     def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
         col = index.column()
 
-        names = ["Name", "Raw", "Scaled", "Unit"]
+        names = ["Name", "Raw", "Scaled", "Unit", "Origin"]
 
         if role == QtCore.Qt.ItemDataRole.DisplayRole:
             return names[col]
@@ -1086,6 +1150,7 @@ class HeaderView(QtWidgets.QTableView):
     RawColumn = 1
     ScaledColumn = 2
     UnitColumn = 3
+    OriginColumn = 4
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -1128,11 +1193,12 @@ class HeaderView(QtWidgets.QTableView):
             self.RawColumn: self.columnWidth(self.RawColumn),
             self.ScaledColumn: self.columnWidth(self.ScaledColumn),
             self.UnitColumn: self.columnWidth(self.UnitColumn),
+            self.OriginColumn: self.columnWidth(self.OriginColumn),
         }
 
     def all_columns_width(self):
         widths = []
-        for column in (self.NameColumn, self.RawColumn, self.ScaledColumn, self.UnitColumn):
+        for column in (self.NameColumn, self.RawColumn, self.ScaledColumn, self.UnitColumn, self.OriginColumn):
             if self.isColumnHidden(column):
                 widths.append(self.columns_width.get(column, 100))
             else:
@@ -1144,6 +1210,7 @@ class HeaderView(QtWidgets.QTableView):
             "raw": not self.isColumnHidden(self.RawColumn),
             "scaled": not self.isColumnHidden(self.ScaledColumn),
             "unit": not self.isColumnHidden(self.UnitColumn),
+            "origin": not self.isColumnHidden(self.OriginColumn),
         }
 
     def showEvent(self, a0: QtGui.QShowEvent) -> None:
@@ -1525,6 +1592,12 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         action.toggled.connect(partial(header.toggle_column, column=header.UnitColumn))
         menu.addAction(action)
 
+        action = QtGui.QAction("Origin Column", menu)
+        action.setCheckable(True)
+        action.setChecked(not header.isColumnHidden(header.OriginColumn))
+        action.toggled.connect(partial(header.toggle_column, column=header.OriginColumn))
+        menu.addAction(action)
+
         action = QtGui.QAction("Hide header and controls", menu)
         action.setCheckable(True)
         action.setChecked(header.isHidden())
@@ -1733,9 +1806,14 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
     def add_new_channels(self, channels, mime_data=None):
         if self.mode == "online":
             others = []
-            for sig in channels:
+            for index, sig in enumerate(channels):
                 if sig is not None:
                     entry = (sig.origin_uuid, sig.name)
+
+                    if getattr(sig, "color", None):
+                        color = sig.color or utils.COLORS[index % utils.COLORS_COUNT]
+                    else:
+                        color = utils.COLORS[index % utils.COLORS_COUNT]
 
                     others.append(
                         SignalOnline(
@@ -1744,7 +1822,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                             entry=entry,
                             unit=sig.unit,
                             format=getattr(sig, "format", "phys"),
-                            color=getattr(sig, "color", "#505050"),
+                            color=color,
                         )
                     )
 
@@ -1758,16 +1836,16 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         else:
             others = []
-            for sig in channels:
+            for index, sig in enumerate(channels):
                 if sig is not None:
                     sig.flags &= ~sig.Flags.computed
                     sig.computation = None
                     ranges = sig.ranges
                     exists = getattr(sig, "exists", True)
-                    sig = PlotSignal(sig, allow_trim=False, allow_nans=True)
+                    sig = PlotSignal(sig, index=index, allow_trim=False, allow_nans=True)
                     if sig.conversion:
                         sig.phys_samples = sig.conversion.convert(sig.raw_samples, as_bytes=True)
-                    sig.entry = sig.group_index, sig.channel_index
+                    sig.entry = sig.origin_uuid, sig.group_index, sig.channel_index
 
                     others.append(
                         SignalOffline(
@@ -2086,6 +2164,20 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 self.match.setText(f"condition found for {signal_name}")
             else:
                 self.match.setText("condition not found")
+
+    def color_same_origin_signals(self, origin_uuid="", color=""):
+        self.backend.shift_same_origin_signals(origin_uuid=origin_uuid, color=color)
+
+    def shift_same_origin_signals(self, origin_uuid="", delta=0.0):
+        self.backend.shift_same_origin_signals(origin_uuid=origin_uuid, delta=delta)
+
+    def update_missing_signals(self, uuids=()):
+
+        self.channels.backend.signals = [
+            signal for signal in self.channels.backend.signals if signal.origin_uuid in uuids
+        ]
+
+        self.channels.backend.data_changed()
 
     def keyPressEvent(self, event):
         key = event.key()

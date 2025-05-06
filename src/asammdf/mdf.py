@@ -833,10 +833,6 @@ class MDF:
         return self._mdf.groups
 
     @property
-    def virtual_groups(self) -> dict[int, VirtualChannelGroup]:
-        return self._mdf.virtual_groups
-
-    @property
     def channels_db(self) -> ChannelsDB:
         return self._mdf.channels_db
 
@@ -850,11 +846,23 @@ class MDF:
             raise MdfException("Attachments are only supported in MDF4 files")
         return self._mdf.attachments
 
+    @attachments.setter
+    def attachments(self, attachments_list: list[AttachmentBlock]) -> None:
+        if not isinstance(self._mdf, mdf_v4.MDF4):
+            raise MdfException("Attachments are only supported in MDF4 files")
+        self._mdf.attachments = attachments_list
+
     @property
     def events(self) -> list[EventBlock]:
         if not isinstance(self._mdf, mdf_v4.MDF4):
             raise MdfException("Events are only supported in MDF4 files")
         return self._mdf.events
+
+    @events.setter
+    def events(self, events_list: list[EventBlock]) -> None:
+        if not isinstance(self._mdf, mdf_v4.MDF4):
+            raise MdfException("Events are only supported in MDF4 files")
+        self._mdf.events = events_list
 
     @property
     def bus_logging_map(self) -> BusLoggingMap:
@@ -867,6 +875,34 @@ class MDF:
         if not isinstance(self._mdf, mdf_v4.MDF4):
             raise MdfException("last_call_info is only supported in MDF4 files")
         return self._mdf.last_call_info
+
+    @property
+    def file_history(self) -> list[FileHistory]:
+        if not isinstance(self._mdf, mdf_v4.MDF4):
+            raise MdfException("file_history is only supported in MDF4 files")
+        return self._mdf.file_history
+
+    @file_history.setter
+    def file_history(self, file_history_list: list[FileHistory]) -> None:
+        if not isinstance(self._mdf, mdf_v4.MDF4):
+            raise MdfException("file_history is only supported in MDF4 files")
+        self._mdf.file_history = file_history_list
+
+    @property
+    def virtual_groups(self) -> dict[int, VirtualChannelGroup]:
+        return self._mdf.virtual_groups
+
+    @virtual_groups.setter
+    def virtual_groups(self, groups: dict[int, VirtualChannelGroup]) -> None:
+        self._mdf.virtual_groups = groups
+
+    @property
+    def virtual_groups_map(self) -> dict[int, int]:
+        return self._mdf.virtual_groups_map
+
+    @virtual_groups_map.setter
+    def virtual_groups_map(self, groups_map: dict[int, int]) -> None:
+        self._mdf.virtual_groups_map = groups_map
 
     def add_trigger(
         self,

@@ -6084,7 +6084,7 @@ class HeaderBlock:
 
         comment_xml = minidom.parseString(comment_xml).toprettyxml(indent=" ")
 
-        return "\n".join(line for line in comment_xml.splitlines()[1:] if line.strip())
+        return "\n".join([line.strip() for line in comment_xml.splitlines()[1:]])
 
     @comment.setter
     def comment(self, string: str) -> None:

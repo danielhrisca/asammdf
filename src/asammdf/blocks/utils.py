@@ -2213,7 +2213,7 @@ def load_dsp(
         channels: list[_ChannelGroupDict | _ChannelDict] = []
         for elem in display.iterchildren():
             if elem.tag == "CHANNEL":
-                channel_name = elem.attrib["name"]
+                channel_name = elem.attrib["name"] or "unnamed"
 
                 comment_elem = elem.find("COMMENT")
                 if comment_elem is not None:
@@ -2301,7 +2301,7 @@ def load_dsp(
             elif str(elem.tag).startswith("GROUP"):
                 channels.append(
                     {
-                        "name": elem.get("data"),
+                        "name": elem.get("data") or "unnamed",
                         "enabled": elem.get("on") == "1",
                         "type": "group",
                         "channels": parse_channels(elem, conversions=conversions),
@@ -2325,7 +2325,7 @@ def load_dsp(
 
                     info: dict[str, object] = {
                         "pattern": elem.get("name_pattern"),
-                        "name": elem.get("name_pattern"),
+                        "name": elem.get("name_pattern") or "unnamed",
                         "match_type": "Wildcard",
                         "filter_type": filter_type,
                         "filter_value": filter_value,

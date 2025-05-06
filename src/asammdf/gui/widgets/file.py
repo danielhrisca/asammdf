@@ -439,82 +439,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.apply_btn.clicked.connect(self.apply_processing)
 
-        hide_embedded_btn = True
+        self.update_attachments()
 
-        if self.mdf.version >= "4.00" and self.mdf.attachments:
-            for i, attachment in enumerate(self.mdf.attachments, 1):
-                if attachment.file_name == "user_embedded_display.dspf" and attachment.mime == r"application/x-dspf":
-                    hide_embedded_btn = False
-
-                att = Attachment(i - 1, self)
-                att.number.setText(f"{i}.")
-
-                fields = []
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "ATBLOCK address")
-                field.setText(1, f"0x{attachment.address:X}")
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "File name")
-                field.setText(1, str(attachment.file_name))
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "MIME type")
-                field.setText(1, attachment.mime)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Comment")
-                field.setText(1, attachment.comment)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Flags")
-                if attachment.flags:
-                    flags = []
-                    for flag, string in FLAG_AT_TO_STRING.items():
-                        if attachment.flags & flag:
-                            flags.append(string)
-                    text = f'{attachment.flags} [0x{attachment.flags:X}= {", ".join(flags)}]'
-                else:
-                    text = "0"
-                field.setText(1, text)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "MD5 sum")
-                field.setText(1, attachment.md5_sum.hex().upper())
-                fields.append(field)
-
-                size = attachment.original_size
-                if size <= 1 << 10:
-                    text = f"{size} B"
-                elif size <= 1 << 20:
-                    text = f"{size/1024:.1f} KB"
-                elif size <= 1 << 30:
-                    text = f"{size/1024/1024:.1f} MB"
-                else:
-                    text = f"{size/1024/1024/1024:.1f} GB"
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Size")
-                field.setText(1, text)
-                fields.append(field)
-
-                att.fields.addTopLevelItems(fields)
-
-                item = QtWidgets.QListWidgetItem()
-                item.setSizeHint(att.sizeHint())
-                self.attachments.addItem(item)
-                self.attachments.setItemWidget(item, att)
-        else:
-            self.aspects.setTabVisible(4, False)
-
-        if hide_embedded_btn:
-            self.load_embedded_channel_list_btn.setDisabled(True)
         self.load_embedded_channel_list_btn.clicked.connect(self.load_embedded_display_file)
         self.save_embedded_channel_list_btn.clicked.connect(self.embed_display_file)
 
@@ -940,7 +866,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         for mdi in self.mdi_area.subWindowList()
                         if not isinstance(
                             mdi.widget(),
-                            (CANBusTrace, LINBusTrace, FlexRayBusTrace, GPSDialog, XY),
+                            (CANBusTrace, LINBusTrace, FlexRayBusTrace, GPS, XY),
                         )
                     ]
 
@@ -3261,74 +3187,7 @@ MultiRasterSeparator;&
         current_display["display_file_name"] = self.loaded_display_file[0]
         self.load_channel_list(file_name=current_display)
 
-        if self.mdf.attachments:
-            for i, attachment in enumerate(self.mdf.attachments, 1):
-                att = Attachment(i - 1, self.mdf)
-                att.number.setText(f"{i}.")
-
-                fields = []
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "ATBLOCK address")
-                field.setText(1, f"0x{attachment.address:X}")
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "File name")
-                field.setText(1, str(attachment.file_name))
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "MIME type")
-                field.setText(1, attachment.mime)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Comment")
-                field.setText(1, attachment.comment)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Flags")
-                if attachment.flags:
-                    flags = []
-                    for flag, string in FLAG_AT_TO_STRING.items():
-                        if attachment.flags & flag:
-                            flags.append(string)
-                    text = f'{attachment.flags} [0x{attachment.flags:X}= {", ".join(flags)}]'
-                else:
-                    text = "0"
-                field.setText(1, text)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "MD5 sum")
-                field.setText(1, attachment.md5_sum.hex().upper())
-                fields.append(field)
-
-                size = attachment.original_size
-                if size <= 1 << 10:
-                    text = f"{size} B"
-                elif size <= 1 << 20:
-                    text = f"{size / 1024:.1f} KB"
-                elif size <= 1 << 30:
-                    text = f"{size / 1024 / 1024:.1f} MB"
-                else:
-                    text = f"{size / 1024 / 1024 / 1024:.1f} GB"
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Size")
-                field.setText(1, text)
-                fields.append(field)
-
-                att.fields.addTopLevelItems(fields)
-
-                item = QtWidgets.QListWidgetItem()
-                item.setSizeHint(att.sizeHint())
-                self.attachments.addItem(item)
-                self.attachments.setItemWidget(item, att)
-
-            self.aspects.setTabVisible(4, True)
+        self.update_attachments()
 
     def load_embedded_display_file(self, event=None):
         if not self.load_embedded_channel_list_btn.isVisible() or not self.load_embedded_channel_list_btn.isEnabled():
@@ -3486,3 +3345,83 @@ MultiRasterSeparator;&
         self._settings.setValue("export/MAT/export_compression_mat", self.export_compression_mat.currentText())
         self._settings.setValue("export/MAT/mat_format", self.mat_format.currentText())
         self._settings.setValue("export/MAT/oned_as", self.oned_as.currentText())
+
+    def update_attachments(self):
+        self.attachments.clear()
+
+        hide_embedded_btn = True
+
+        if self.mdf.version >= "4.00" and self.mdf.attachments:
+            for i, attachment in enumerate(self.mdf.attachments, 1):
+                if attachment.file_name == "user_embedded_display.dspf" and attachment.mime == r"application/x-dspf":
+                    hide_embedded_btn = False
+
+                att = Attachment(i - 1, self)
+                att.number.setText(f"{i}.")
+
+                fields = []
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "ATBLOCK address")
+                field.setText(1, f"0x{attachment.address:X}")
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "File name")
+                field.setText(1, str(attachment.file_name))
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "MIME type")
+                field.setText(1, attachment.mime)
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "Comment")
+                field.setText(1, attachment.comment)
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "Flags")
+                if attachment.flags:
+                    flags = []
+                    for flag, string in FLAG_AT_TO_STRING.items():
+                        if attachment.flags & flag:
+                            flags.append(string)
+                    text = f'{attachment.flags} [0x{attachment.flags:X}= {", ".join(flags)}]'
+                else:
+                    text = "0"
+                field.setText(1, text)
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "MD5 sum")
+                field.setText(1, attachment.md5_sum.hex().upper())
+                fields.append(field)
+
+                size = attachment.original_size
+                if size <= 1 << 10:
+                    text = f"{size} B"
+                elif size <= 1 << 20:
+                    text = f"{size / 1024:.1f} KB"
+                elif size <= 1 << 30:
+                    text = f"{size / 1024 / 1024:.1f} MB"
+                else:
+                    text = f"{size / 1024 / 1024 / 1024:.1f} GB"
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "Size")
+                field.setText(1, text)
+                fields.append(field)
+
+                att.fields.addTopLevelItems(fields)
+
+                item = QtWidgets.QListWidgetItem()
+                item.setSizeHint(att.sizeHint())
+                self.attachments.addItem(item)
+                self.attachments.setItemWidget(item, att)
+        else:
+            self.aspects.setTabVisible(4, False)
+
+        if hide_embedded_btn:
+            self.load_embedded_channel_list_btn.setDisabled(True)

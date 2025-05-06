@@ -195,6 +195,7 @@ class PlotSignal(Signal):
         self.duplication = duplication
         self.uuid = getattr(signal, "uuid", os.urandom(6).hex())
         self.origin_uuid = getattr(signal, "origin_uuid", os.urandom(6).hex())
+        self.origin_mdf = getattr(signal, "origin_mdf", "")
 
         self.group_index = getattr(signal, "group_index", NOT_FOUND)
         self.channel_index = getattr(signal, "channel_index", NOT_FOUND)
@@ -208,6 +209,8 @@ class PlotSignal(Signal):
         self.individual_axis = False
         self.computation = signal.computation
         self.original_name = getattr(signal, "original_name", None)
+        if hasattr(signal, "tooltip"):
+            self.tooltip = signal.tooltip
 
         self.y_link = False
 
@@ -2483,6 +2486,14 @@ class Plot(QtWidgets.QWidget):
 
         super().close()
 
+    def color_same_origin_signals(self, origin_uuid="", color=""):
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while item := iterator.value():
+            if item.type() == item.Channel and item.signal.origin_uuid == origin_uuid:
+                item.color = color
+
+            iterator += 1
+
     def computation_channel_inserted(self, sig):
         sig.enable = True
 
@@ -3313,6 +3324,40 @@ class Plot(QtWidgets.QWidget):
         self.plot.cursor1.setPos(stamp)
         self.cursor_move_finished()
 
+    def shift_same_origin_signals(self, origin_uuid="", delta=0.0):
+        uuids = []
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while item := iterator.value():
+            if item.type() == item.Channel and item.signal.origin_uuid == origin_uuid:
+
+                uuids.append(item.signal.uuid)
+
+            iterator += 1
+
+        if not uuids:
+            return
+
+        self.plot.set_time_offset([False, delta, *uuids])
+
+    def update_missing_signals(self, uuids=()):
+        model = self.channel_selection.selectionModel()
+        model.clearSelection()
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while item := iterator.value():
+            if item.type() == item.Channel and item.signal.origin_uuid not in uuids:
+                item.setSelected(True)
+
+            iterator += 1
+
+        self.channel_selection.keyPressEvent(
+            QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Delete, QtCore.Qt.KeyboardModifier.NoModifier
+            )
+        )
+
+        self.plot.update()
+
     def _show_overlapping_alias(self, origin_uuid, uuid):
         for sig in self.plot.signals:
             if sig.uuid == uuid:
@@ -3399,9 +3444,11 @@ class Plot(QtWidgets.QWidget):
             "common_axis_y_range": [float(e) for e in self.plot.common_axis_y_range],
             "channels_header": [
                 self.splitter.sizes()[0],
-                [self.channel_selection.columnWidth(i) for i in range(5)],
+                [self.channel_selection.columnWidth(i) for i in range(self.channel_selection.columnCount())],
             ],
-            "channels_header_columns_visible": [not self.channel_selection.isColumnHidden(i) for i in range(5)],
+            "channels_header_columns_visible": [
+                not self.channel_selection.isColumnHidden(i) for i in range(self.channel_selection.columnCount())
+            ],
             "hide_axes": self.hide_axes_btn.isFlat(),
             "hide_selected_channel_value_panel": self.selected_channel_value_btn.isFlat(),
             "focused_mode": not self.focused_mode_btn.isFlat(),
@@ -3856,6 +3903,11 @@ class PlotGraphics(pg.PlotWidget):
         self._enable_timer = QtCore.QTimer()
         self._enable_timer.setSingleShot(True)
         self._enable_timer.timeout.connect(self._signals_enabled_changed_handler)
+
+        self._update_timer = QtCore.QTimer()
+        self._update_timer.setSingleShot(True)
+        self._update_timer.timeout.connect(self.update)
+        self._update_timer.setInterval(16)
 
         self._inhibit = False
 
@@ -5882,7 +5934,7 @@ class PlotGraphics(pg.PlotWidget):
             self.y_axis.set_pen(sig.pen)
             self.y_axis.setTextPen(sig.pen)
 
-        self.update()
+        self._update_timer.start()
 
     def set_common_axis(self, uuid, state):
         signal, idx = self.signal_by_uuid(uuid)
@@ -5899,7 +5951,7 @@ class PlotGraphics(pg.PlotWidget):
         self.common_axis_label = ", ".join(self.signal_by_uuid(uuid)[0].name for uuid in self.common_axis_items)
 
         self.set_current_uuid(self.current_uuid, True)
-        self.update()
+        self._update_timer.start()
 
     def set_conversion(self, uuid, conversion):
         sig, index = self.signal_by_uuid(uuid)
@@ -5993,7 +6045,7 @@ class PlotGraphics(pg.PlotWidget):
             self.get_axis(index).hide()
             sig.individual_axis = False
 
-        self.update()
+        self._update_timer.start()
 
     def set_line_interconnect(self, line_interconnect):
         self.line_interconnect = line_interconnect
@@ -6171,7 +6223,7 @@ class PlotGraphics(pg.PlotWidget):
         if emit:
             self.zoom_changed.emit(False)
         if update:
-            self.update()
+            self._update_timer.start()
 
     def signal_by_name(self, name):
         for i, sig in enumerate(self.signals):
