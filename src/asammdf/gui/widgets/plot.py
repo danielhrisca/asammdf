@@ -3324,7 +3324,7 @@ class Plot(QtWidgets.QWidget):
         self.plot.cursor1.setPos(stamp)
         self.cursor_move_finished()
 
-    def shift_same_origin_signals(self, origin_uuid="", delta=0.0):
+    def shift_same_origin_signals(self, origin_uuid="", delta=0.0, absolute=False):
         uuids = []
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
         while item := iterator.value():
@@ -3337,7 +3337,7 @@ class Plot(QtWidgets.QWidget):
         if not uuids:
             return
 
-        self.plot.set_time_offset([False, delta, *uuids])
+        self.plot.set_time_offset([absolute, delta, *uuids])
 
     def update_missing_signals(self, uuids=()):
         model = self.channel_selection.selectionModel()
