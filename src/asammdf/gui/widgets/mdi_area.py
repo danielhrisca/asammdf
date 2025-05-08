@@ -2892,6 +2892,9 @@ class WithMDIArea:
                 if item.pattern:
                     plot.pattern_group_added.emit(plot, item)
 
+        if self.comparison:
+            plot.channel_selection.setColumnHidden(plot.channel_selection.OriginColumn, False)
+
         self.windows_modified.emit()
 
         return w, plot
@@ -3936,6 +3939,9 @@ class WithMDIArea:
                     state = item.checkState(item.NameColumn)
                     plot.pattern_group_added.emit(plot, item)
                     item.setCheckState(item.NameColumn, state)
+
+        if self.comparison:
+            plot.channel_selection.setColumnHidden(plot.channel_selection.OriginColumn, False)
 
         if "common_axis_y_range" in window_info["configuration"]:
             plot.plot.common_axis_y_range = tuple(window_info["configuration"]["common_axis_y_range"])

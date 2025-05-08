@@ -3564,6 +3564,16 @@ class Plot(QtWidgets.QWidget):
 
             iterator += 1
 
+    def toggle_same_origin_signals(self, origin_uuid="", visible=True):
+        state = QtCore.Qt.CheckState.Checked if visible else QtCore.Qt.CheckState.Unchecked
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while item := iterator.value():
+            if item.type() == item.Channel and item.signal.origin_uuid == origin_uuid:
+                item.setCheckState(item.NameColumn, state)
+
+            iterator += 1
+
     def undo_zoom(self):
         if self.enable_zoom_history and self.zoom_history:
             self.zoom_history_index = max(self.zoom_history_index - 1, 0)
