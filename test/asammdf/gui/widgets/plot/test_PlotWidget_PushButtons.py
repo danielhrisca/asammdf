@@ -500,8 +500,9 @@ class TestPushButtons(TestPlotWidget):
         self.assertFalse(self.plot.locked)
         self.assertFalse(self.plot.channel_selection.isColumnHidden(self.plot.channel_selection.CommonAxisColumn))
         self.assertNotEqual(sig_0_y_range, self.plot_graph_channel_0.y_range)
-        for _ in range(len(trim_info)):
-            self.assertGreaterEqual(self.plot_graph_channel_0.trim_info[_], trim_info[_])
+        self.assertGreater(self.plot_graph_channel_0.trim_info[0], trim_info[0])  # start
+        self.assertGreater(self.plot_graph_channel_0.trim_info[1], trim_info[1])  # stop
+        self.assertEqual(self.plot_graph_channel_0.trim_info[2], trim_info[2])  # width
 
     def test_Plot_ChannelSelection_PushButtons_Zoom(self):
         """
