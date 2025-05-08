@@ -4335,7 +4335,7 @@ class WithMDIArea:
                     except:
                         pass
                     try:
-                        widget.region_modified_signal.disconnect(self.set_region)
+                        widget.region_moved_signal.disconnect(self.set_region)
                     except:
                         pass
                     try:
