@@ -252,7 +252,7 @@ class ExtractedSignal(TypedDict):
     samples: NDArray[Any]
     conversion: v4b.ChannelConversion | None
     t: NDArray[Any]
-    invalidation_bits: NDArray[Any] | None
+    invalidation_bits: NDArray[np.bool] | None
 
 
 def merge_cantp(payload: NDArray[Any], ts: NDArray[Any]) -> tuple[NDArray[Any], NDArray[Any]]:

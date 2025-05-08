@@ -2,10 +2,10 @@
 ASAM MDF version 4 file format module
 """
 
-from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterator
+from abc import ABC
+from collections import defaultdict
+from collections.abc import Callable, Iterable, Iterator
 import logging
-from os import PathLike
 from pathlib import Path
 from typing import Generic
 
@@ -15,6 +15,7 @@ from typing_extensions import Any, Required, TypedDict, TypeVar
 
 from . import v2_v3_blocks as v3b
 from . import v4_blocks as v4b
+from .types import DbcFileType, StrPath
 from .utils import (
     ChannelsDB,
     DataBlockInfo,
@@ -29,7 +30,7 @@ __all__ = ["MDF_Common"]
 
 
 class MdfKwargs(TypedDict, total=False):
-    temporary_folder: str | PathLike[str] | None
+    temporary_folder: StrPath | None
     raise_on_multiple_occurrences: bool
     use_display_names: bool
     fill_0_for_missing_computation_channels: bool
@@ -39,7 +40,7 @@ class MdfKwargs(TypedDict, total=False):
     callback: Callable[[int, int], None] | Any
 
 
-class CommonKwargs(MdfKwargs, total=False):
+class MdfCommonKwargs(MdfKwargs, total=False):
     original_name: Required[str | Path | None]
     __internal__: bool
 
@@ -94,12 +95,6 @@ class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
         self.uuid = ""
         self.data_location: int
         self.index = 0
-
-    def __getitem__(self, item: str) -> object:
-        return self.__getattribute__(item)
-
-    def __setitem__(self, item: str, value: object) -> None:
-        self.__setattr__(item, value)
 
     def set_blocks_info(self, info: list[DataBlockInfo]) -> None:
         self.data_blocks = info
@@ -159,11 +154,10 @@ _Group = TypeVar("_Group", GroupV3, GroupV4)
 class MDF_Common(ABC, Generic[_Group]):
     """Common methods for MDF objects."""
 
-    @abstractmethod
-    def __init__(self) -> None:
-        self.groups: list[_Group]
-        self.channels_db: ChannelsDB
-        self._raise_on_multiple_occurrences: bool
+    def __init__(self, raise_on_multiple_occurrences: bool) -> None:
+        self.groups: list[_Group] = []
+        self.channels_db = ChannelsDB()
+        self._raise_on_multiple_occurrences = raise_on_multiple_occurrences
 
     def _set_temporary_master(self, master: NDArray[Any] | None) -> None:
         self._master = master
@@ -292,3 +286,28 @@ class MDF_Common(ABC, Generic[_Group]):
                                 raise MdfException(message)
 
         return gp_nr, ch_nr
+
+
+class _BusInfo(TypedDict):
+    dbc_files: Iterable[DbcFileType]
+    unknown_id_count: int
+
+
+class CanInfo(_BusInfo):
+    total_unique_ids: set[tuple[int, bool]]
+    not_found_ids: defaultdict[StrPath, list[tuple[tuple[int, bool] | int, str]]]
+    found_ids: defaultdict[StrPath, set[tuple[tuple[int, int, bool], str]]]
+    unknown_ids: set[int | tuple[int, bool]]
+    max_flags: list[list[list[bool]]]
+
+
+class LinInfo(_BusInfo):
+    total_unique_ids: set[tuple[int, ...]]
+    not_found_ids: defaultdict[StrPath, list[tuple[int, str]]]
+    found_ids: defaultdict[StrPath, set[tuple[tuple[int, bool, bool], str]]]
+    unknown_ids: set[int]
+
+
+class LastCallInfo(TypedDict, total=False):
+    CAN: CanInfo
+    LIN: LinInfo

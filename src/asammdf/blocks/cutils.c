@@ -2667,8 +2667,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
             cache[signal_info[i].invalidation_bit_position] = inv_array;
             Py_XDECREF(origin);
           }
-					
-					Py_INCREF(cache[signal_info[i].invalidation_bit_position]);
+
+          Py_INCREF(cache[signal_info[i].invalidation_bit_position]);
           PyTuple_SetItem(ref, 1, cache[signal_info[i].invalidation_bit_position]);
         }
       }
@@ -2705,6 +2705,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 }
 
 
+
 // Our Module's Function Definition struct
 // We require this `NULL` to signal the end of our method
 // definition
@@ -2726,13 +2727,18 @@ static PyMethodDef myMethods[] = {
   {NULL, NULL, 0, NULL}
 };
 
+
+static PyModuleDef_Slot _asammdf_slots[] = {
+  {0, NULL}
+};
+
 // Our Module Definition struct
 static struct PyModuleDef cutils = {
-  PyModuleDef_HEAD_INIT,
-  "cutils",
-  "helper functions written in C for speed",
-  -1,
-  myMethods
+  .m_base = PyModuleDef_HEAD_INIT,
+  .m_name ="cutils",
+  .m_doc ="helper functions written in C for speed",
+  .m_slots = _asammdf_slots,
+  .m_methods = myMethods,
 };
 
 // Initializes our module using our above struct
@@ -2740,5 +2746,5 @@ PyMODINIT_FUNC PyInit_cutils(void)
 {
   import_array();
 
-  return PyModule_Create(&cutils);
+  return PyModuleDef_Init(&cutils);
 }

@@ -62,6 +62,7 @@ gui = [
     "packaging",
 ]
 encryption = ["cryptography", "keyring"]
+plot = ["matplotlib"]
 symbolic-math = ["sympy>=1.13.0"]
 filesystem = ["fsspec"]
 
@@ -108,18 +109,10 @@ skip = ["pp*", "*_ppc64le", "*-musllinux*", "*_s390x"]
 
 [tool.mypy]
 files = "."
-exclude = [
-    "benchmarks/",
-    "build/",
-    "ci/",
-    "dist/",
-    "doc/_build/",
-    "examples/",
-    "ext/",
-    "test/",
-]
+exclude = ["build/", "ci/", "dist/", "doc/_build/", "ext/", "test/asammdf/gui/"]
 python_version = "3.10"
 plugins = ["numpy.typing.mypy_plugin"]
+enable_error_code = ["deprecated"]
 strict = true
 
 [[tool.mypy.overrides]]
@@ -134,6 +127,7 @@ module = [
     "lz4.*",
     "mdfreader.*",
     "mfile.*",
+    "mpl_toolkits.*",
     "numexpr.*",
     "pyqtgraph.*",
     "pyqtlet2.*",
@@ -144,12 +138,7 @@ module = [
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = [
-    "asammdf.app.asammdfgui",
-    "asammdf.gui.*",
-    "asammdf.mdf",
-    "asammdf.signal",
-]
+module = ["asammdf.app.asammdfgui", "asammdf.gui.*"]
 ignore_errors = true
 
 [tool.ruff]

@@ -2,7 +2,9 @@ import numpy as np
 from numpy.typing import NDArray
 from typing_extensions import Any
 
+from ..signal import InvalidationArray
 from .blocks_common import UnpackFrom
+from .utils import DataBlockInfo
 
 def sort_data_block(
     signal_data: bytes,
@@ -24,3 +26,13 @@ def data_block_from_arrays(
     data_blocks: list[tuple[bytes | NDArray[Any], int]], cycles_obj: int, thread_count: int = 11
 ) -> bytearray: ...
 def bytes_dtype_size(ret: NDArray[Any]) -> int: ...
+def get_channel_raw_bytes_complete(
+    data_blocks_info: list[DataBlockInfo],
+    signals: list[tuple[int, int, int]],
+    file_name: str,
+    cycles: int,
+    record_size: int,
+    invalidation_bytes: int,
+    group_index: int,
+    thread_count: int = 11,
+) -> tuple[tuple[bytearray, InvalidationArray | None], ...]: ...

@@ -4,18 +4,17 @@ ASAM MDF version 4 file format module
 
 import bisect
 from collections import defaultdict, deque
-from collections.abc import Callable, Collection, Iterable, Iterator
+from collections.abc import Callable, Collection, Iterable, Iterator, Sequence
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
 from hashlib import md5
-from io import BufferedReader, BytesIO, StringIO
+from io import StringIO
 import logging
 from math import ceil, floor
 from mimetypes import guess_type
 import mmap
 import os
-from os import PathLike
 from pathlib import Path
 import re
 import shutil
@@ -70,13 +69,6 @@ from typing_extensions import (
 
 from .. import tool
 from ..signal import InvalidationArray, Signal
-from ..types import (
-    BusType,
-    ChannelsType,
-    CompressionType,
-    RasterType,
-    StrPathType,
-)
 from . import bus_logging_utils, mdf_common, utils
 from . import v4_constants as v4c
 from .conversion_utils import conversion_transfer
@@ -89,14 +81,21 @@ from .cutils import (
     get_vlsd_max_sample_size,
     sort_data_block,
 )
-from .mdf_common import CommonKwargs, MDF_Common
+from .mdf_common import LastCallInfo, MDF_Common, MdfCommonKwargs
 from .options import GLOBAL_OPTIONS
 from .source_utils import Source
+from .types import (
+    BusType,
+    ChannelsType,
+    CompressionType,
+    DbcFileType,
+    RasterType,
+    StrPath,
+)
 from .utils import (
     all_blocks_addresses,
     as_non_byte_sized_signed_int,
     CHANNEL_COUNT,
-    ChannelsDB,
     CONVERT,
     count_channel_groups,
     DataBlockInfo,
@@ -113,7 +112,6 @@ from .utils import (
     load_can_database,
     MdfException,
     SignalDataBlockInfo,
-    TERMINATED,
     Terminated,
     THREAD_COUNT,
     TxMap,
@@ -206,8 +204,9 @@ class BusLoggingMap(TypedDict):
     LIN: dict[int, int]
 
 
-class Kwargs(CommonKwargs, total=False):
+class Kwargs(MdfCommonKwargs, total=False):
     column_storage: bool
+    process_bus_logging: bool
 
 
 class MDF4(MDF_Common[Group]):
@@ -294,7 +293,7 @@ class MDF4(MDF_Common[Group]):
 
     def __init__(
         self,
-        name: BufferedReader | BytesIO | StrPathType | None = None,
+        name: StrPath | FileLike | None = None,
         version: Version = "4.10",
         channels: list[str] | None = None,
         **kwargs: Unpack[Kwargs],
@@ -308,9 +307,7 @@ class MDF4(MDF_Common[Group]):
 
         self._kwargs = kwargs
         self.original_name = kwargs["original_name"]
-        self.groups: list[Group] = []
         self.file_history: list[FileHistory] = []
-        self.channels_db = ChannelsDB()
         self.masters_db: dict[int, int] = {}
         self.attachments: list[AttachmentBlock] = []
         self._attachments_cache: dict[bytes | str, int] = {}
@@ -352,10 +349,6 @@ class MDF4(MDF_Common[Group]):
         self._single_bit_uint_as_bool = GLOBAL_OPTIONS["single_bit_uint_as_bool"]
         self._integer_interpolation = GLOBAL_OPTIONS["integer_interpolation"]
         self._float_interpolation = GLOBAL_OPTIONS["float_interpolation"]
-        self._raise_on_multiple_occurrences = kwargs.get(
-            "raise_on_multiple_occurrences",
-            GLOBAL_OPTIONS["raise_on_multiple_occurrences"],
-        )
         self._use_display_names = kwargs.get("use_display_names", GLOBAL_OPTIONS["use_display_names"])
         self._fill_0_for_missing_computation_channels = kwargs.get(
             "fill_0_for_missing_computation_channels",
@@ -368,7 +361,7 @@ class MDF4(MDF_Common[Group]):
         self.copy_on_get = kwargs.get("copy_on_get", True)
         self.compact_vlsd = kwargs.get("compact_vlsd", False)
 
-        self.virtual_groups: dict[int | None, VirtualChannelGroup] = {}  # master group 2 referencing groups
+        self.virtual_groups: dict[int, VirtualChannelGroup] = {}  # master group 2 referencing groups
         self.virtual_groups_map: dict[int, int] = {}  # group index 2 master group
 
         self.vlsd_max_length: dict[tuple[int, str], int] = (
@@ -377,7 +370,7 @@ class MDF4(MDF_Common[Group]):
 
         self._master = None
 
-        self.last_call_info = None
+        self.last_call_info: LastCallInfo = {}
 
         # make sure no appended block has the address 0
         self._tempfile.write(b"\0")
@@ -387,6 +380,8 @@ class MDF4(MDF_Common[Group]):
         progress = kwargs.get("progress", None)
 
         self._column_storage = False
+
+        super().__init__(kwargs.get("raise_on_multiple_occurrences", GLOBAL_OPTIONS["raise_on_multiple_occurrences"]))
 
         if name:
             if is_file_like(name):
@@ -399,7 +394,7 @@ class MDF4(MDF_Common[Group]):
                     with open(name, "rb") as stream:
                         identification = FileIdentificationBlock(stream=stream)
                         version_str = identification.version_str.decode("utf-8").strip(" \n\t\0")
-                        flags = identification["unfinalized_standard_flags"]
+                        flags = identification.unfinalized_standard_flags
 
                     if version_str >= "4.10" and flags:
                         tmpdir = Path(gettempdir())
@@ -2789,6 +2784,17 @@ class MDF4(MDF_Common[Group]):
         units: dict[str, str] | None = None,
     ) -> int: ...
 
+    @overload
+    def append(
+        self,
+        signals: list[Signal] | Signal | DataFrame,
+        acq_name: str | None = ...,
+        acq_source: Source | None = ...,
+        comment: str = ...,
+        common_timebase: bool = ...,
+        units: dict[str, str] | None = ...,
+    ) -> int | None: ...
+
     def append(
         self,
         signals: list[Signal] | Signal | DataFrame,
@@ -4012,7 +4018,7 @@ class MDF4(MDF_Common[Group]):
         signals: list[Signal],
         acq_name: str | None = None,
         acq_source: SourceInformation | None = None,
-        comment: str | None = None,
+        comment: str = "",
     ) -> int:
         defined_texts: dict[str, int] = {}
         si_map = self._si_map
@@ -4828,7 +4834,7 @@ class MDF4(MDF_Common[Group]):
         df: DataFrame,
         acq_name: str | None = None,
         acq_source: SourceInformation | None = None,
-        comment: str | None = None,
+        comment: str = "",
         units: dict[str, str] | None = None,
     ) -> None:
         """Appends a new data group from a Pandas DataFrame."""
@@ -5992,7 +5998,7 @@ class MDF4(MDF_Common[Group]):
 
         return offset, dg_cntr, ch_cntr, struct_self, fields, types
 
-    def extend(self, index: int, signals: list[tuple[NDArray[Any], NDArray[np.bool] | None]]) -> None:
+    def extend(self, index: int, signals: Sequence[tuple[NDArray[Any], NDArray[np.bool] | None]]) -> None:
         """Extend a group with new samples. *signals* contains (values, invalidation_bits)
         pairs for each extended signal. The first pair is the master channel's pair, and the
         next pairs must respect the same order in which the signals were appended. The samples must have raw
@@ -6299,7 +6305,9 @@ class MDF4(MDF_Common[Group]):
                         param=0,
                     )
 
-    def _extend_column_oriented(self, index: int, signals: list[tuple[NDArray[Any], NDArray[np.bool] | None]]) -> None:
+    def _extend_column_oriented(
+        self, index: int, signals: Sequence[tuple[NDArray[Any], NDArray[np.bool] | None]]
+    ) -> None:
         """Extend a group with new samples. *signals* contains (values, invalidation_bits)
         pairs for each extended signal. The first pair is the master channel's pair, and the
         next pairs must respect the same order in which the signals were appended. The samples must have raw
@@ -6446,7 +6454,7 @@ class MDF4(MDF_Common[Group]):
     def attach(
         self,
         data: bytes,
-        file_name: str | PathLike[str] | None = None,
+        file_name: StrPath | None = None,
         hash_sum: bytes | None = None,
         comment: str = "",
         compression: bool = True,
@@ -6570,21 +6578,21 @@ class MDF4(MDF_Common[Group]):
             comment=comment,
         )
         at_block.comment = comment
-        at_block["creator_index"] = creator_index
+        at_block.creator_index = creator_index
 
         self.attachments.append(at_block)
 
         file_path = Path(file_name)
 
-        mime: str | None
-
-        mime, _ = guess_type(Path(file_path))
-        if mime is None:
+        mime_type, _ = guess_type(Path(file_path))
+        if mime_type is None:
             suffix = file_path.suffix.lower().strip(".")
             if suffix == "a2l":
                 mime = "application/A2L"
             else:
                 mime = f"application/x-{suffix}"
+        else:
+            mime = mime_type
 
         at_block.mime = mime
 
@@ -6764,9 +6772,9 @@ class MDF4(MDF_Common[Group]):
                 if attachment.mime.startswith("text"):
                     data = data.decode("utf-8", errors="replace")
 
-                if flags & v4c.FLAG_AT_MD5_VALID and attachment["md5_sum"] != md5_sum:
+                if flags & v4c.FLAG_AT_MD5_VALID and attachment.md5_sum != md5_sum:
                     message = (
-                        f'ATBLOCK md5sum="{attachment["md5_sum"]}" '
+                        f'ATBLOCK md5sum="{attachment.md5_sum!r}" '
                         f"and external attachment data ({file_path}) "
                         f'md5sum="{md5_sum!r}"'
                     )
@@ -6814,7 +6822,7 @@ class MDF4(MDF_Common[Group]):
         record_offset: int = ...,
         record_count: int | None = ...,
         skip_channel_validation: bool = ...,
-    ) -> tuple[NDArray[Any], NDArray[np.bool]]: ...
+    ) -> tuple[NDArray[Any], NDArray[np.bool] | None]: ...
 
     @overload
     def get(
@@ -6849,6 +6857,22 @@ class MDF4(MDF_Common[Group]):
         record_count: int | None = ...,
         skip_channel_validation: bool = ...,
     ) -> tuple[NDArray[Any], NDArray[np.bool] | None]: ...
+
+    @overload
+    def get(
+        self,
+        name: str | None = ...,
+        group: int | None = ...,
+        index: int | None = ...,
+        raster: RasterType | None = ...,
+        samples_only: bool = ...,
+        data: Fragment | None = ...,
+        raw: bool = ...,
+        ignore_invalidation_bits: bool = ...,
+        record_offset: int = ...,
+        record_count: int | None = ...,
+        skip_channel_validation: bool = ...,
+    ) -> Signal | tuple[NDArray[Any], NDArray[np.bool] | None]: ...
 
     def get(
         self,
@@ -7199,7 +7223,7 @@ class MDF4(MDF_Common[Group]):
         record_count: int | None,
         master_is_required: Literal[False],
         raw: bool,
-    ) -> tuple[NDArray[Any], None, NDArray[np.bool], None]: ...
+    ) -> tuple[NDArray[Any], None, NDArray[np.bool] | None, None]: ...
 
     @overload
     def _get_structure(
@@ -7233,7 +7257,7 @@ class MDF4(MDF_Common[Group]):
         record_count: int | None,
         master_is_required: Literal[True],
         raw: bool,
-    ) -> tuple[NDArray[Any], NDArray[Any], NDArray[np.bool], None]: ...
+    ) -> tuple[NDArray[Any], NDArray[Any], NDArray[np.bool] | None, None]: ...
 
     @overload
     def _get_structure(
@@ -7502,7 +7526,7 @@ class MDF4(MDF_Common[Group]):
         record_offset: int,
         record_count: int | None,
         master_is_required: Literal[False],
-    ) -> tuple[NDArray[Any], None, NDArray[np.bool], None]: ...
+    ) -> tuple[NDArray[Any], None, NDArray[np.bool] | None, None]: ...
 
     @overload
     def _get_array(
@@ -7534,7 +7558,7 @@ class MDF4(MDF_Common[Group]):
         record_offset: int,
         record_count: int | None,
         master_is_required: Literal[True],
-    ) -> tuple[NDArray[Any], NDArray[Any], NDArray[np.bool], None]: ...
+    ) -> tuple[NDArray[Any], NDArray[Any], NDArray[np.bool] | None, None]: ...
 
     @overload
     def _get_array(
@@ -7942,7 +7966,7 @@ class MDF4(MDF_Common[Group]):
         record_count: int | None,
         master_is_required: Literal[False],
         skip_vlsd: bool = ...,
-    ) -> tuple[NDArray[Any], None, NDArray[np.bool], str | None]: ...
+    ) -> tuple[NDArray[Any], None, NDArray[np.bool] | None, str | None]: ...
 
     @overload
     def _get_scalar(
@@ -7976,7 +8000,7 @@ class MDF4(MDF_Common[Group]):
         record_count: int | None,
         master_is_required: Literal[True],
         skip_vlsd: bool = ...,
-    ) -> tuple[NDArray[Any], NDArray[Any], NDArray[np.bool], str | None]: ...
+    ) -> tuple[NDArray[Any], NDArray[Any], NDArray[np.bool] | None, str | None]: ...
 
     @overload
     def _get_scalar(
@@ -8731,8 +8755,10 @@ class MDF4(MDF_Common[Group]):
         channels: ChannelsType | None = None,
         skip_master: bool = True,
         minimal: bool = True,
-    ) -> dict[int | None, dict[int, list[int]]]:
+    ) -> dict[int, dict[int, list[int]]]:
         if channels is None:
+            if index is None:
+                raise ValueError("index cannot be None if channels is None")
             virtual_channel_group = self.virtual_groups[index]
             groups = virtual_channel_group.groups
 
@@ -9329,7 +9355,7 @@ class MDF4(MDF_Common[Group]):
         self,
         bus: BusType,
         name: str,
-        database: CanMatrix | StrPathType | None = None,
+        database: CanMatrix | StrPath | None = None,
         ignore_invalidation_bits: bool = False,
         data: Fragment | None = None,
         raw: bool = False,
@@ -9393,7 +9419,7 @@ class MDF4(MDF_Common[Group]):
     def get_can_signal(
         self,
         name: str,
-        database: CanMatrix | StrPathType | None = None,
+        database: CanMatrix | StrPath | None = None,
         ignore_invalidation_bits: bool = False,
         data: Fragment | None = None,
         raw: bool = False,
@@ -9866,6 +9892,627 @@ class MDF4(MDF_Common[Group]):
 
         return info
 
+    def _extract_can_logging(
+        self,
+        output_file: "MDF4",
+        dbc_files: Iterable[DbcFileType],
+        ignore_value2text_conversion: bool = True,
+        prefix: str = "",
+        progress: Callable[[int, int], None] | Any | None = None,
+    ) -> "MDF4":
+        out = output_file
+
+        max_flags: list[list[list[bool]]] = []
+
+        valid_dbc_files: list[tuple[CanMatrix, StrPath, int]] = []
+        unique_name = UniqueDB()
+        for dbc_name, bus_channel in dbc_files:
+            if isinstance(dbc_name, CanMatrix):
+                valid_dbc_files.append(
+                    (
+                        dbc_name,
+                        unique_name.get_unique_name("UserProvidedCanMatrix"),
+                        bus_channel,
+                    )
+                )
+            else:
+                dbc = load_can_database(Path(dbc_name))
+                if dbc is None:
+                    continue
+                else:
+                    valid_dbc_files.append((dbc, dbc_name, bus_channel))
+
+        count = sum(
+            1
+            for group in self.groups
+            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT
+            and group.channel_group.acq_source
+            and group.channel_group.acq_source.bus_type == v4c.BUS_TYPE_CAN
+        )
+        count *= len(valid_dbc_files)
+
+        if progress is not None:
+            if callable(progress):
+                progress(0, count)
+            else:
+                progress.signals.setValue.emit(0)
+                progress.signals.setMaximum.emit(count)
+
+                if progress.stop:
+                    raise Terminated
+
+        cntr = 0
+
+        total_unique_ids: set[tuple[int, bool]] = set()
+        found_ids: defaultdict[StrPath, set[tuple[tuple[int, int, bool], str]]] = defaultdict(set)
+        not_found_ids: defaultdict[StrPath, list[tuple[tuple[int, bool] | int, str]]] = defaultdict(list)
+        unknown_ids: defaultdict[int | tuple[int, bool], list[bool]] = defaultdict(list)
+
+        for dbc, dbc_name, bus_channel in valid_dbc_files:
+            messages = {(message.arbitration_id.id, message.arbitration_id.extended): message for message in dbc}
+
+            global_is_j1939 = dbc.attributes.get("ProtocolType", "").lower() == "j1939"
+            not_extended = [msg for msg in dbc if not msg.arbitration_id.extended]
+            if global_is_j1939 and not_extended:
+                logger.warning(
+                    f"Not all j1939 messages in <{dbc_name}> seem to use extended addressing. Disabling global j1939 flag..."
+                )
+                for msg in not_extended:
+                    logger.warning(f"  {msg} with id {msg.arbitration_id}")
+                global_is_j1939 = False  # Relax req on j1939 adressing
+
+            j1939_messages = {
+                (
+                    message.arbitration_id.pgn,
+                    message.arbitration_id.j1939_source,
+                ): message
+                for message in dbc
+                if message.is_j1939 or global_is_j1939
+            }
+
+            current_not_found = {
+                (
+                    (
+                        (message.arbitration_id.id, message.arbitration_id.extended)
+                        if not message.is_j1939 and not global_is_j1939
+                        else message.arbitration_id.pgn
+                    ),
+                    message.name,
+                )
+                for msg_id, message in messages.items()
+            }
+
+            msg_map: dict[tuple[int | None, int | None, bool, int | None, str | None, int, int], int] = {}
+
+            for i, group in enumerate(self.groups):
+                if (
+                    not group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT
+                    or (group.channel_group.acq_source and group.channel_group.acq_source.bus_type != v4c.BUS_TYPE_CAN)
+                    or not "CAN_DataFrame" in [ch.name for ch in group.channels]
+                ):
+                    continue
+
+                self._prepare_record(group)
+                data = self._load_data(group, optimize_read=False)
+
+                for fragment in data:
+                    self._set_temporary_master(None)
+                    self._set_temporary_master(self.get_master(i, data=fragment, one_piece=True))
+
+                    bus_ids = self.get(
+                        "CAN_DataFrame.BusChannel",
+                        group=i,
+                        data=fragment,
+                    ).samples.astype("<u1")
+
+                    msg_ids = self.get("CAN_DataFrame.ID", group=i, data=fragment).astype("<u4")
+                    try:
+                        msg_ide = self.get("CAN_DataFrame.IDE", group=i, data=fragment).samples.astype("<u1")
+                    except:
+                        msg_ide = ((msg_ids & 0x80000000) >> 31).samples
+
+                    msg_ids &= 0x1FFFFFFF
+
+                    data_bytes = self.get(
+                        "CAN_DataFrame.DataBytes",
+                        group=i,
+                        data=fragment,
+                    ).samples
+
+                    buses = np.unique(bus_ids)
+
+                    for bus in buses:
+                        if bus_channel and bus != bus_channel:
+                            continue
+
+                        idx = np.argwhere(bus_ids == bus).ravel()
+                        bus_t = msg_ids.timestamps[idx]
+                        bus_msg_ids = msg_ids.samples[idx]
+                        bus_msg_ide = msg_ide[idx]
+                        bus_data_bytes = data_bytes[idx]
+
+                        tmp_pgns = bus_msg_ids >> 8
+                        pss = tmp_pgns & 0xFF
+                        pfs = (bus_msg_ids >> 16) & 0xFF
+                        _pgns = tmp_pgns & 0x3FF00
+                        j1939_msg_pgns = np.where(pfs >= 240, _pgns + pss, _pgns)
+                        j9193_msg_sa = bus_msg_ids & 0xFF
+
+                        unique_ids = set(
+                            zip(
+                                typing.cast(list[int], bus_msg_ids.tolist()),
+                                typing.cast(list[bool], bus_msg_ide.tolist()),
+                                strict=False,
+                            )
+                        )
+
+                        total_unique_ids = total_unique_ids | set(unique_ids)
+
+                        for msg_id, is_extended in sorted(unique_ids):
+                            message = messages.get((msg_id, is_extended), None)
+
+                            if message is None:
+                                tmp_pgn = msg_id >> 8
+                                ps = tmp_pgn & 0xFF
+                                pf = (msg_id >> 16) & 0xFF
+                                _pgn = tmp_pgn & 0x3FF00
+                                msg_pgn = _pgn + ps if pf >= 240 else _pgn
+
+                                for (_pgn, _sa), _msg in j1939_messages.items():
+                                    if _pgn == msg_pgn:
+                                        message = _msg
+                                        break
+                                else:
+                                    unknown_ids[msg_id].append(True)
+                                    continue
+
+                            is_j1939 = message.is_j1939 or global_is_j1939
+                            if is_j1939:
+                                source_address = msg_id & 0xFF
+                                pgn_number = message.arbitration_id.pgn
+                                key = (pgn_number, source_address, True)
+                                found_ids[dbc_name].add((key, message.name))
+
+                                try:
+                                    current_not_found.remove((pgn_number, message.name))
+                                except KeyError:
+                                    pass
+
+                            else:
+                                key = msg_id, bool(is_extended), False
+
+                                found_ids[dbc_name].add((key, message.name))
+                                try:
+                                    current_not_found.remove(((msg_id, is_extended), message.name))
+                                except KeyError:
+                                    pass
+
+                            unknown_ids[(msg_id, is_extended)].append(False)
+
+                            if is_j1939:
+                                idx = np.argwhere(
+                                    (j1939_msg_pgns == pgn_number) & (j9193_msg_sa == source_address)
+                                ).ravel()
+                            else:
+                                idx = np.argwhere((bus_msg_ids == msg_id) & (bus_msg_ide == is_extended)).ravel()
+
+                            payload = bus_data_bytes[idx]
+                            t = bus_t[idx]
+
+                            try:
+                                extracted_signals = bus_logging_utils.extract_mux(
+                                    payload,
+                                    message,
+                                    msg_id,
+                                    bus,
+                                    t,
+                                    original_message_id=source_address if is_j1939 else None,
+                                    ignore_value2text_conversion=ignore_value2text_conversion,
+                                    is_j1939=is_j1939,
+                                    is_extended=is_extended,
+                                    raw=True,
+                                )
+                            except:
+                                print(format_exc())
+                                raise
+
+                            for entry, signals in extracted_signals.items():
+                                if len(next(iter(signals.values()))["samples"]) == 0:
+                                    continue
+
+                                if entry not in msg_map:
+                                    sigs: list[Signal] = []
+
+                                    index = len(out.groups)
+                                    msg_map[entry] = index
+
+                                    for name_, signal in signals.items():
+                                        signal_name = f"{prefix}{signal['name']}"
+                                        sig = Signal(
+                                            samples=signal["samples"],
+                                            timestamps=signal["t"],
+                                            name=signal_name,
+                                            comment=signal["comment"],
+                                            unit=signal["unit"],
+                                            invalidation_bits=signal["invalidation_bits"],
+                                            display_names={
+                                                f"CAN{bus}.{message.name}.{signal_name}": "bus",
+                                                f"{message.name}.{signal_name}": "message",
+                                            },
+                                            raw=True,
+                                            conversion=signal["conversion"],
+                                        )
+
+                                        sigs.append(sig)
+
+                                    if is_j1939:
+                                        if prefix:
+                                            comment = f"{prefix}: CAN{bus} ID=0x{msg_id:X} {message} PGN=0x{pgn_number:X} SA=0x{source_address:X}"
+                                        else:
+                                            comment = f"CAN{bus} ID=0x{msg_id:X} {message} PGN=0x{pgn_number:X} SA=0x{source_address:X}"
+                                        acq_name = f"SourceAddress = 0x{source_address}"
+                                    else:
+                                        if prefix:
+                                            acq_name = (
+                                                f"{prefix}: CAN{bus} message ID=0x{msg_id:X} EXT={bool(is_extended)}"
+                                            )
+                                            comment = f'{prefix}: CAN{bus} - message "{message}" 0x{msg_id:X} EXT={bool(is_extended)}'
+                                        else:
+                                            acq_name = f"CAN{bus} message ID=0x{msg_id:X} EXT={bool(is_extended)}"
+                                            comment = (
+                                                f"CAN{bus} - message {message} 0x{msg_id:X} EXT={bool(is_extended)}"
+                                            )
+
+                                    acq_source = Source(
+                                        name=acq_name,
+                                        path=f"CAN{int(bus)}.CAN_DataFrame.ID=0x{message.arbitration_id.id:X} EXT={bool(is_extended)}",
+                                        comment=f"""\
+<SIcomment>
+    <TX>CAN{bus} data frame 0x{message.arbitration_id.id:X} EXT={bool(is_extended)} - {message.name}</TX>
+    <bus name="CAN{int(bus)}"/>
+    <common_properties>
+        <e name="ChannelNo" type="integer">{int(bus)}</e>
+    </common_properties>
+</SIcomment>""",
+                                        source_type=v4c.SOURCE_BUS,
+                                        bus_type=v4c.BUS_TYPE_CAN,
+                                    )
+
+                                    for sig in sigs:
+                                        sig.source = acq_source
+
+                                    cg_nr = out.append(
+                                        sigs,
+                                        acq_name=acq_name,
+                                        acq_source=acq_source,
+                                        comment=comment,
+                                        common_timebase=True,
+                                    )
+
+                                    out.groups[cg_nr].channel_group.flags = v4c.FLAG_CG_BUS_EVENT
+
+                                    if is_j1939:
+                                        max_flags.append([[False]])
+                                        for ch_index, sig in enumerate(sigs, 1):
+                                            max_flags[cg_nr].append(
+                                                [
+                                                    (
+                                                        bool(np.all(sig.invalidation_bits))
+                                                        if sig.invalidation_bits is not None
+                                                        else False
+                                                    )
+                                                ]
+                                            )
+                                    else:
+                                        max_flags.append([[False]] * (len(sigs) + 1))
+
+                                else:
+                                    index = msg_map[entry]
+
+                                    signal_samples: list[tuple[NDArray[Any], NDArray[np.bool] | None]] = []
+
+                                    for name_, signal in signals.items():
+                                        signal_samples.append(
+                                            (
+                                                signal["samples"],
+                                                signal["invalidation_bits"],
+                                            )
+                                        )
+
+                                        t = signal["t"]
+
+                                    if is_j1939:
+                                        for ch_index, sig_sample in enumerate(signal_samples, 1):
+                                            max_flags[index][ch_index].append(
+                                                bool(np.all(sig_sample[1])) if sig_sample[1] is not None else False
+                                            )
+
+                                    signal_samples.insert(0, (t, None))
+
+                                    out.extend(index, signal_samples)
+                    self._set_temporary_master(None)
+
+                cntr += 1
+                if progress is not None:
+                    if callable(progress):
+                        progress(cntr, count)
+                    else:
+                        progress.signals.setValue.emit(cntr)
+
+                        if progress.stop:
+                            raise Terminated
+
+            if current_not_found:
+                not_found_ids[dbc_name] = list(current_not_found)
+
+        unknown_id_set = {msg_id for msg_id, not_found in unknown_ids.items() if all(not_found)}
+
+        self.last_call_info["CAN"] = {
+            "dbc_files": dbc_files,
+            "total_unique_ids": total_unique_ids,
+            "unknown_id_count": len(unknown_id_set),
+            "not_found_ids": not_found_ids,
+            "found_ids": found_ids,
+            "unknown_ids": unknown_id_set,
+            "max_flags": max_flags,
+        }
+
+        if not out.groups:
+            logger.warning(f'No CAN signals could be extracted from "{self.name}". The' "output file will be empty.")
+
+        return out
+
+    def _extract_lin_logging(
+        self,
+        output_file: "MDF4",
+        dbc_files: Iterable[DbcFileType],
+        ignore_value2text_conversion: bool = True,
+        prefix: str = "",
+        progress: Callable[[int, int], None] | Any | None = None,
+    ) -> "MDF4":
+        out = output_file
+
+        valid_dbc_files: list[tuple[CanMatrix, StrPath, int]] = []
+        unique_name = UniqueDB()
+        for dbc_name, bus_channel in dbc_files:
+            if isinstance(dbc_name, CanMatrix):
+                valid_dbc_files.append(
+                    (
+                        dbc_name,
+                        unique_name.get_unique_name("UserProvidedCanMatrix"),
+                        bus_channel,
+                    )
+                )
+            else:
+                dbc = load_can_database(Path(dbc_name))
+                if dbc is None:
+                    continue
+                else:
+                    valid_dbc_files.append((dbc, dbc_name, bus_channel))
+
+        count = sum(
+            1
+            for group in self.groups
+            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT
+            and group.channel_group.acq_source
+            and group.channel_group.acq_source.bus_type == v4c.BUS_TYPE_LIN
+        )
+        count *= len(valid_dbc_files)
+
+        if progress is not None:
+            if callable(progress):
+                progress(0, count)
+            else:
+                progress.signals.setValue.emit(0)
+                progress.signals.setMaximum.emit(count)
+
+                if progress.stop:
+                    raise Terminated
+
+        cntr = 0
+
+        total_unique_ids: set[tuple[int, ...]] = set()
+        found_ids: defaultdict[StrPath, set[tuple[tuple[int, bool, bool], str]]] = defaultdict(set)
+        not_found_ids: defaultdict[StrPath, list[tuple[int, str]]] = defaultdict(list)
+        unknown_ids: defaultdict[int, list[bool]] = defaultdict(list)
+
+        for dbc, dbc_name, bus_channel in valid_dbc_files:
+            messages = {message.arbitration_id.id: message for message in dbc}
+
+            current_not_found_ids = {(msg_id, message.name) for msg_id, message in messages.items()}
+
+            msg_map = {}
+
+            for i, group in enumerate(self.groups):
+                if (
+                    not group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT
+                    or (group.channel_group.acq_source and group.channel_group.acq_source.bus_type != v4c.BUS_TYPE_LIN)
+                    or not "LIN_Frame" in [ch.name for ch in group.channels]
+                ):
+                    continue
+
+                self._prepare_record(group)
+                data = self._load_data(group, optimize_read=False)
+
+                for fragment in data:
+                    self._set_temporary_master(None)
+                    self._set_temporary_master(self.get_master(i, data=fragment, one_piece=True))
+
+                    msg_ids = self.get("LIN_Frame.ID", group=i, data=fragment).astype("<u4") & 0x1FFFFFFF
+
+                    original_ids = msg_ids.samples.copy()
+
+                    data_bytes = self.get(
+                        "LIN_Frame.DataBytes",
+                        group=i,
+                        data=fragment,
+                    ).samples
+
+                    try:
+                        bus_ids = self.get(
+                            "LIN_Frame.BusChannel",
+                            group=i,
+                            data=fragment,
+                        ).samples.astype("<u1")
+                    except:
+                        bus_ids = np.ones(len(original_ids), dtype="u1")
+
+                    bus_t = msg_ids.timestamps
+                    bus_msg_ids = msg_ids.samples
+                    bus_data_bytes = data_bytes
+                    original_msg_ids = original_ids
+
+                    unique_ids = np.unique(np.rec.fromarrays([bus_msg_ids, bus_msg_ids]))
+
+                    total_unique_ids = total_unique_ids | {tuple(int(e) for e in f) for f in unique_ids}
+
+                    buses = np.unique(bus_ids)
+
+                    for bus in buses:
+                        if bus_channel and bus != bus_channel:
+                            continue
+
+                        for msg_id_record in sorted(unique_ids.tolist()):
+                            msg_id = int(msg_id_record[0])
+                            original_msg_id = int(msg_id_record[1])
+                            message = messages.get(msg_id, None)
+                            if message is None:
+                                unknown_ids[msg_id].append(True)
+                                continue
+
+                            found_ids[dbc_name].add(((msg_id, False, False), message.name))
+                            try:
+                                current_not_found_ids.remove((msg_id, message.name))
+                            except KeyError:
+                                pass
+
+                            unknown_ids[msg_id].append(False)
+
+                            idx = np.argwhere(bus_msg_ids == msg_id).ravel()
+                            payload = bus_data_bytes[idx]
+                            t = bus_t[idx]
+
+                            extracted_signals = bus_logging_utils.extract_mux(
+                                payload,
+                                message,
+                                msg_id,
+                                bus,
+                                t,
+                                original_message_id=None,
+                                ignore_value2text_conversion=ignore_value2text_conversion,
+                                raw=True,
+                            )
+
+                            for entry, signals in extracted_signals.items():
+                                if len(next(iter(signals.values()))["samples"]) == 0:
+                                    continue
+                                if entry not in msg_map:
+                                    sigs: list[Signal] = []
+
+                                    index = len(out.groups)
+                                    msg_map[entry] = index
+
+                                    for name_, signal in signals.items():
+                                        signal_name = f"{prefix}{signal['name']}"
+                                        sig = Signal(
+                                            samples=signal["samples"],
+                                            timestamps=signal["t"],
+                                            name=signal_name,
+                                            comment=signal["comment"],
+                                            unit=signal["unit"],
+                                            invalidation_bits=signal["invalidation_bits"],
+                                            display_names={
+                                                f"LIN{bus}.{message.name}.{signal_name}": "bus",
+                                                f"{message.name}.{signal_name}": "message",
+                                            },
+                                            raw=True,
+                                            conversion=signal["conversion"],
+                                        )
+
+                                        sigs.append(sig)
+
+                                    if prefix:
+                                        acq_name = f"{prefix}: from LIN{bus} message ID=0x{msg_id:X}"
+                                    else:
+                                        acq_name = f"from LIN{bus} message ID=0x{msg_id:X}"
+
+                                    acq_source = Source(
+                                        name=acq_name,
+                                        path=f"LIN{int(bus)}.LIN_Frame.ID=0x{message.arbitration_id.id:X}",
+                                        comment=f"""\
+<SIcomment>
+    <TX>LIN{bus} data frame 0x{message.arbitration_id.id:X} - {message.name}</TX>
+    <bus name="LIN{int(bus)}"/>
+    <common_properties>
+        <e name="ChannelNo" type="integer">{int(bus)}</e>
+    </common_properties>
+</SIcomment>""",
+                                        source_type=v4c.SOURCE_BUS,
+                                        bus_type=v4c.BUS_TYPE_LIN,
+                                    )
+
+                                    for sig in sigs:
+                                        sig.source = acq_source
+
+                                    cg_nr = out.append(
+                                        sigs,
+                                        acq_name=acq_name,
+                                        acq_source=acq_source,
+                                        comment=f"from LIN{bus} - message {message} 0x{msg_id:X}",
+                                        common_timebase=True,
+                                    )
+
+                                    out.groups[cg_nr].channel_group.flags = v4c.FLAG_CG_BUS_EVENT
+
+                                else:
+                                    index = msg_map[entry]
+
+                                    signal_samples: list[tuple[NDArray[Any], NDArray[np.bool] | None]] = []
+
+                                    for name_, signal in signals.items():
+                                        signal_samples.append(
+                                            (
+                                                signal["samples"],
+                                                signal["invalidation_bits"],
+                                            )
+                                        )
+
+                                        t = signal["t"]
+
+                                    signal_samples.insert(0, (t, None))
+
+                                    out.extend(index, signal_samples)
+                    self._set_temporary_master(None)
+
+                cntr += 1
+                if progress is not None:
+                    if callable(progress):
+                        progress(cntr, count)
+                    else:
+                        progress.signals.setValue.emit(cntr)
+
+                        if progress.stop:
+                            raise Terminated
+
+            if current_not_found_ids:
+                not_found_ids[dbc_name] = list(current_not_found_ids)
+
+        unknown_id_set = {msg_id for msg_id, not_found in unknown_ids.items() if all(not_found)}
+
+        self.last_call_info["LIN"] = {
+            "dbc_files": dbc_files,
+            "total_unique_ids": total_unique_ids,
+            "unknown_id_count": len(unknown_id_set),
+            "not_found_ids": not_found_ids,
+            "found_ids": found_ids,
+            "unknown_ids": unknown_id_set,
+        }
+
+        if not out.groups:
+            logger.warning(f'No LIN signals could be extracted from "{self.name}". The' "output file will be empty.")
+
+        return out
+
     @property
     def start_time(self) -> datetime:
         """Getter and setter of the measurement start timestamp.
@@ -9885,12 +10532,12 @@ class MDF4(MDF_Common[Group]):
 
     def save(
         self,
-        dst: FileLike | str | PathLike[str],
+        dst: FileLike | StrPath,
         overwrite: bool = False,
         compression: CompressionType = v4c.CompressionAlgorithm.NO_COMPRESSION,
         progress: Any | None = None,
         add_history_block: bool = True,
-    ) -> Path | Terminated:
+    ) -> Path:
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>', were
         '<cntr>' is the first counter that produces a new file name
@@ -10301,7 +10948,7 @@ class MDF4(MDF_Common[Group]):
                         dst_.close()
                         self.close()
 
-                        return TERMINATED
+                        raise Terminated
 
             address = tell()
 
@@ -10506,7 +11153,7 @@ class MDF4(MDF_Common[Group]):
                         dst_.close()
                         self.close()
 
-                        return TERMINATED
+                        raise Terminated
 
             for gp in self.groups:
                 for dep_list in gp.channel_dependencies:
@@ -10539,17 +11186,17 @@ class MDF4(MDF_Common[Group]):
                                     gp_nr, ch_nr = dep.output_quantity_channel
                                     grp = self.groups[gp_nr]
                                     ch = grp.channels[ch_nr]
-                                    dep["output_quantity_dg_addr"] = grp.data_group.address
-                                    dep["output_quantity_cg_addr"] = grp.channel_group.address
-                                    dep["output_quantity_ch_addr"] = ch.address
+                                    dep.output_quantity_dg_addr = grp.data_group.address
+                                    dep.output_quantity_cg_addr = grp.channel_group.address
+                                    dep.output_quantity_ch_addr = ch.address
 
                                 if dep.comparison_quantity_channel:
                                     gp_nr, ch_nr = dep.comparison_quantity_channel
                                     grp = self.groups[gp_nr]
                                     ch = grp.channels[ch_nr]
-                                    dep["comparison_quantity_dg_addr"] = grp.data_group.address
-                                    dep["comparison_quantity_cg_addr"] = grp.channel_group.address
-                                    dep["comparison_quantity_ch_addr"] = ch.address
+                                    dep.comparison_quantity_dg_addr = grp.data_group.address
+                                    dep.comparison_quantity_cg_addr = grp.channel_group.address
+                                    dep.comparison_quantity_ch_addr = ch.address
 
                                 for i, (gp_nr, ch_nr) in enumerate(filter(None, dep.axis_channels)):
                                     grp = self.groups[gp_nr]
@@ -10621,7 +11268,7 @@ class MDF4(MDF_Common[Group]):
             if progress is not None and progress.stop:
                 dst_.close()
                 self.close()
-                return TERMINATED
+                raise Terminated
 
             # attachments
             at_map: dict[int, int] = {}
@@ -11850,10 +12497,10 @@ def debug_channel(
 
     record = mdf._prepare_record(group)
     print("GROUP", "=" * 74, file=file)
-    print("sorted:", group["sorted"], file=file)
-    print("data location:", group["data_location"], file=file)
+    print("sorted:", group.sorted, file=file)
+    print("data location:", group.data_location, file=file)
     print("data blocks:", group.data_blocks, file=file)
-    print("dependencies", group["channel_dependencies"], file=file)
+    print("dependencies", group.channel_dependencies, file=file)
     print("record:", record, file=file)
     print(file=file)
 

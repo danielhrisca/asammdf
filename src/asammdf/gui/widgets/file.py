@@ -22,7 +22,7 @@ from ...blocks.utils import (
     load_channel_names_from_file,
     load_dsp,
     load_lab,
-    TERMINATED,
+    Terminated,
 )
 from ...blocks.v4_blocks import AttachmentBlock, FileHistory, HeaderBlock
 from ...blocks.v4_blocks import TextBlock as TextV4
@@ -265,16 +265,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         "process_bus_logging": process_bus_logging,
                     }
 
-                    self.mdf = run_thread_with_progress(
-                        self,
-                        target=target,
-                        kwargs=kwargs,
-                        factor=33,
-                        offset=0,
-                        progress=progress,
-                    )
-
-                    if self.mdf is TERMINATED:
+                    try:
+                        self.mdf = run_thread_with_progress(
+                            self,
+                            target=target,
+                            kwargs=kwargs,
+                            factor=33,
+                            offset=0,
+                            progress=progress,
+                        )
+                    except Terminated:
                         return
 
                     self.mdf.original_name = original_name
@@ -439,82 +439,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.apply_btn.clicked.connect(self.apply_processing)
 
-        hide_embedded_btn = True
+        self.update_attachments()
 
-        if self.mdf.version >= "4.00" and self.mdf.attachments:
-            for i, attachment in enumerate(self.mdf.attachments, 1):
-                if attachment.file_name == "user_embedded_display.dspf" and attachment.mime == r"application/x-dspf":
-                    hide_embedded_btn = False
-
-                att = Attachment(i - 1, self)
-                att.number.setText(f"{i}.")
-
-                fields = []
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "ATBLOCK address")
-                field.setText(1, f"0x{attachment.address:X}")
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "File name")
-                field.setText(1, str(attachment.file_name))
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "MIME type")
-                field.setText(1, attachment.mime)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Comment")
-                field.setText(1, attachment.comment)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Flags")
-                if attachment.flags:
-                    flags = []
-                    for flag, string in FLAG_AT_TO_STRING.items():
-                        if attachment.flags & flag:
-                            flags.append(string)
-                    text = f'{attachment.flags} [0x{attachment.flags:X}= {", ".join(flags)}]'
-                else:
-                    text = "0"
-                field.setText(1, text)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "MD5 sum")
-                field.setText(1, attachment.md5_sum.hex().upper())
-                fields.append(field)
-
-                size = attachment.original_size
-                if size <= 1 << 10:
-                    text = f"{size} B"
-                elif size <= 1 << 20:
-                    text = f"{size/1024:.1f} KB"
-                elif size <= 1 << 30:
-                    text = f"{size/1024/1024:.1f} MB"
-                else:
-                    text = f"{size/1024/1024/1024:.1f} GB"
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Size")
-                field.setText(1, text)
-                fields.append(field)
-
-                att.fields.addTopLevelItems(fields)
-
-                item = QtWidgets.QListWidgetItem()
-                item.setSizeHint(att.sizeHint())
-                self.attachments.addItem(item)
-                self.attachments.setItemWidget(item, att)
-        else:
-            self.aspects.setTabVisible(4, False)
-
-        if hide_embedded_btn:
-            self.load_embedded_channel_list_btn.setDisabled(True)
         self.load_embedded_channel_list_btn.clicked.connect(self.load_embedded_display_file)
         self.save_embedded_channel_list_btn.clicked.connect(self.embed_display_file)
 
@@ -940,7 +866,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         for mdi in self.mdi_area.subWindowList()
                         if not isinstance(
                             mdi.widget(),
-                            (CANBusTrace, LINBusTrace, FlexRayBusTrace, GPSDialog, XY),
+                            (CANBusTrace, LINBusTrace, FlexRayBusTrace, GPS, XY),
                         )
                     ]
 
@@ -1187,7 +1113,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     if result == MessageBox.Yes:
                         display_file_name = str(Path(file_name).resolve())
 
-                        _password = self.mdf._password
+                        _password = self.mdf._mdf._password
 
                         uuid = self.mdf.uuid
 
@@ -1564,11 +1490,11 @@ MultiRasterSeparator;&
                 master_min = self.mdf.get_master(i, record_offset=0, record_count=1)
                 if len(master_min):
                     t_min.append(master_min[0])
-                self.mdf._master_channel_cache.clear()
+                self.mdf._mdf._master_channel_cache.clear()
                 master_max = self.mdf.get_master(i, record_offset=cycles_nr - 1, record_count=1)
                 if len(master_max):
                     t_max.append(master_max[0])
-                self.mdf._master_channel_cache.clear()
+                self.mdf._mdf._master_channel_cache.clear()
 
         if t_min:
             time_range = t_min, t_max
@@ -1808,7 +1734,7 @@ MultiRasterSeparator;&
         mdf_module.MDF.scramble(name=self.file_name, progress=progress)
 
     def scramble_finished(self):
-        if self._progress.error is None and self._progress.result is not TERMINATED:
+        if self._progress.error is None:
             path = Path(self.file_name)
             self.open_new_files.emit([str(path.with_suffix(f".scrambled{path.suffix}"))])
 
@@ -1838,7 +1764,7 @@ MultiRasterSeparator;&
             self.mdf_compression.addItems(options)
 
     def extract_bus_logging_finished(self):
-        if self._progress.error is None and self._progress.result is not TERMINATED:
+        if self._progress.error is None:
             file_name, message = self._progress.result
 
             self.output_info_bus.setPlainText("\n".join(message))
@@ -1911,30 +1837,22 @@ MultiRasterSeparator;&
         progress.signals.setLabelText.emit(f'Extracting Bus signals from "{self.file_name}"')
 
         # convert self.mdf
-        result = self.mdf.extract_bus_logging(
+        mdf = self.mdf.extract_bus_logging(
             database_files=database_files,
             version=version,
             prefix=self.prefix.text().strip(),
             progress=progress,
         )
 
-        if result is TERMINATED:
-            return
-        else:
-            mdf = result
-
         # then save it
         progress.signals.setLabelText.emit(f'Saving file to "{file_name}"')
 
-        result = mdf.save(
+        mdf.save(
             dst=file_name,
             compression=compression,
             overwrite=True,
             progress=progress,
         )
-
-        if result is TERMINATED:
-            return
 
         bus_call_info = dict(self.mdf.last_call_info)
 
@@ -1985,7 +1903,7 @@ MultiRasterSeparator;&
         return file_name, message
 
     def extract_bus_csv_logging_finished(self):
-        if self._progress.error is None and self._progress.result is not TERMINATED:
+        if self._progress.error is None:
             message = self._progress.result
 
             self.output_info_bus.setPlainText("\n".join(message))
@@ -2096,27 +2014,22 @@ MultiRasterSeparator;&
         progress.signals.setLabelText.emit(f'Extracting Bus signals from "{self.file_name}"')
 
         # convert self.mdf
-        result = self.mdf.extract_bus_logging(
+        mdf = self.mdf.extract_bus_logging(
             database_files=database_files,
             version=version,
             prefix=self.prefix.text().strip(),
             progress=progress,
         )
 
-        if result is TERMINATED:
-            return
-        else:
-            mdf = result
-
         # then save it
         progress.signals.setLabelText.emit(f'Saving file to "{file_name}"')
 
         mdf.configure(
-            integer_interpolation=self.mdf._integer_interpolation,
-            float_interpolation=self.mdf._float_interpolation,
+            integer_interpolation=self.mdf._mdf._integer_interpolation,
+            float_interpolation=self.mdf._mdf._float_interpolation,
         )
 
-        result = mdf.export(
+        mdf.export(
             fmt="csv",
             filename=file_name,
             single_time_base=single_time_base,
@@ -2134,9 +2047,6 @@ MultiRasterSeparator;&
             add_units=add_units,
             progress=progress,
         )
-
-        if result is TERMINATED:
-            return
 
         bus_call_info = dict(self.mdf.last_call_info)
 
@@ -2811,8 +2721,8 @@ MultiRasterSeparator;&
         self.mdf.configure(read_fragment_size=split_size)
 
         mdf = None
-        integer_interpolation = self.mdf._integer_interpolation
-        float_interpolation = self.mdf._float_interpolation
+        integer_interpolation = self.mdf._mdf._integer_interpolation
+        float_interpolation = self.mdf._mdf._float_interpolation
 
         if needs_filter:
             icon = QtGui.QIcon()
@@ -2822,16 +2732,11 @@ MultiRasterSeparator;&
             progress.signals.setLabelText.emit(f'Filtering selected channels from "{self.file_name}"')
 
             # filtering self.mdf
-            result = self.mdf.filter(
+            mdf = self.mdf.filter(
                 channels=channels,
                 version=opts.mdf_version if output_format == "MDF" else "4.10",
                 progress=progress,
             )
-
-            if result is TERMINATED:
-                return
-            else:
-                mdf = result
 
             mdf.configure(
                 read_fragment_size=split_size,
@@ -2858,14 +2763,11 @@ MultiRasterSeparator;&
                 progress=progress,
             )
 
-            if result is TERMINATED:
-                return
+            if mdf is None:
+                mdf = result
             else:
-                if mdf is None:
-                    mdf = result
-                else:
-                    mdf.close()
-                    mdf = result
+                mdf.close()
+                mdf = result
 
             mdf.configure(
                 read_fragment_size=split_size,
@@ -2898,14 +2800,11 @@ MultiRasterSeparator;&
                 progress=progress,
             )
 
-            if result is TERMINATED:
-                return
+            if mdf is None:
+                mdf = result
             else:
-                if mdf is None:
-                    mdf = result
-                else:
-                    mdf.close()
-                    mdf = result
+                mdf.close()
+                mdf = result
 
             mdf.configure(
                 read_fragment_size=split_size,
@@ -2925,15 +2824,10 @@ MultiRasterSeparator;&
                 )
 
                 # convert self.mdf
-                result = self.mdf.convert(
+                mdf = self.mdf.convert(
                     version=version,
                     progress=progress,
                 )
-
-                if result is TERMINATED:
-                    return
-                else:
-                    mdf = result
 
             mdf.configure(
                 read_fragment_size=split_size,
@@ -2954,7 +2848,7 @@ MultiRasterSeparator;&
             if handle_overwrite:
                 dspf = self.to_config()
 
-                _password = self.mdf._password
+                _password = self.mdf._mdf._password
                 self.mdf.close()
 
                 windows = list(self.mdi_area.subWindowList())
@@ -2966,15 +2860,12 @@ MultiRasterSeparator;&
                     widget.deleteLater()
                     window.close()
 
-            result = mdf.save(
+            mdf.save(
                 dst=file_name,
                 compression=opts.mdf_compression,
                 overwrite=True,
                 progress=progress,
             )
-
-            if result is TERMINATED:
-                return
 
             if handle_overwrite:
                 original_name = file_name
@@ -3104,7 +2995,7 @@ MultiRasterSeparator;&
                 "The display file can only be embedded in .mf4 or .mf4z files" f"\n{original_file_name}",
             )
 
-        _password = self.mdf._password
+        _password = self.mdf._mdf._password
 
         uuid = self.mdf.uuid
 
@@ -3296,74 +3187,7 @@ MultiRasterSeparator;&
         current_display["display_file_name"] = self.loaded_display_file[0]
         self.load_channel_list(file_name=current_display)
 
-        if self.mdf.attachments:
-            for i, attachment in enumerate(self.mdf.attachments, 1):
-                att = Attachment(i - 1, self.mdf)
-                att.number.setText(f"{i}.")
-
-                fields = []
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "ATBLOCK address")
-                field.setText(1, f"0x{attachment.address:X}")
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "File name")
-                field.setText(1, str(attachment.file_name))
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "MIME type")
-                field.setText(1, attachment.mime)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Comment")
-                field.setText(1, attachment.comment)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Flags")
-                if attachment.flags:
-                    flags = []
-                    for flag, string in FLAG_AT_TO_STRING.items():
-                        if attachment.flags & flag:
-                            flags.append(string)
-                    text = f'{attachment.flags} [0x{attachment.flags:X}= {", ".join(flags)}]'
-                else:
-                    text = "0"
-                field.setText(1, text)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "MD5 sum")
-                field.setText(1, attachment.md5_sum.hex().upper())
-                fields.append(field)
-
-                size = attachment.original_size
-                if size <= 1 << 10:
-                    text = f"{size} B"
-                elif size <= 1 << 20:
-                    text = f"{size / 1024:.1f} KB"
-                elif size <= 1 << 30:
-                    text = f"{size / 1024 / 1024:.1f} MB"
-                else:
-                    text = f"{size / 1024 / 1024 / 1024:.1f} GB"
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Size")
-                field.setText(1, text)
-                fields.append(field)
-
-                att.fields.addTopLevelItems(fields)
-
-                item = QtWidgets.QListWidgetItem()
-                item.setSizeHint(att.sizeHint())
-                self.attachments.addItem(item)
-                self.attachments.setItemWidget(item, att)
-
-            self.aspects.setTabVisible(4, True)
+        self.update_attachments()
 
     def load_embedded_display_file(self, event=None):
         if not self.load_embedded_channel_list_btn.isVisible() or not self.load_embedded_channel_list_btn.isEnabled():
@@ -3521,3 +3345,83 @@ MultiRasterSeparator;&
         self._settings.setValue("export/MAT/export_compression_mat", self.export_compression_mat.currentText())
         self._settings.setValue("export/MAT/mat_format", self.mat_format.currentText())
         self._settings.setValue("export/MAT/oned_as", self.oned_as.currentText())
+
+    def update_attachments(self):
+        self.attachments.clear()
+
+        hide_embedded_btn = True
+
+        if self.mdf.version >= "4.00" and self.mdf.attachments:
+            for i, attachment in enumerate(self.mdf.attachments, 1):
+                if attachment.file_name == "user_embedded_display.dspf" and attachment.mime == r"application/x-dspf":
+                    hide_embedded_btn = False
+
+                att = Attachment(i - 1, self)
+                att.number.setText(f"{i}.")
+
+                fields = []
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "ATBLOCK address")
+                field.setText(1, f"0x{attachment.address:X}")
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "File name")
+                field.setText(1, str(attachment.file_name))
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "MIME type")
+                field.setText(1, attachment.mime)
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "Comment")
+                field.setText(1, attachment.comment)
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "Flags")
+                if attachment.flags:
+                    flags = []
+                    for flag, string in FLAG_AT_TO_STRING.items():
+                        if attachment.flags & flag:
+                            flags.append(string)
+                    text = f'{attachment.flags} [0x{attachment.flags:X}= {", ".join(flags)}]'
+                else:
+                    text = "0"
+                field.setText(1, text)
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "MD5 sum")
+                field.setText(1, attachment.md5_sum.hex().upper())
+                fields.append(field)
+
+                size = attachment.original_size
+                if size <= 1 << 10:
+                    text = f"{size} B"
+                elif size <= 1 << 20:
+                    text = f"{size / 1024:.1f} KB"
+                elif size <= 1 << 30:
+                    text = f"{size / 1024 / 1024:.1f} MB"
+                else:
+                    text = f"{size / 1024 / 1024 / 1024:.1f} GB"
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "Size")
+                field.setText(1, text)
+                fields.append(field)
+
+                att.fields.addTopLevelItems(fields)
+
+                item = QtWidgets.QListWidgetItem()
+                item.setSizeHint(att.sizeHint())
+                self.attachments.addItem(item)
+                self.attachments.setItemWidget(item, att)
+        else:
+            self.aspects.setTabVisible(4, False)
+
+        if hide_embedded_btn:
+            self.load_embedded_channel_list_btn.setDisabled(True)

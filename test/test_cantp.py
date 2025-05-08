@@ -18,7 +18,7 @@ class TestCANTP(unittest.TestCase):
     )
     ts = np.array([0.112, 0.113, 0.116, 0.201])
 
-    def test_merge_cantp(self):
+    def test_merge_cantp(self) -> None:
 
         merged, t = blu.merge_cantp(TestCANTP.payload, TestCANTP.ts)
 
