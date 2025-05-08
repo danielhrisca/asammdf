@@ -930,9 +930,13 @@ class PlotSignal(Signal):
             if mode == "raw":
                 self.plot_samples = self.raw_samples
                 self.plot_timestamps = self.timestamps
+                style = QtCore.Qt.PenStyle.DashLine
             else:
                 self.plot_samples = self.phys_samples
                 self.plot_timestamps = self.timestamps
+                style = QtCore.Qt.PenStyle.SolidLine
+
+            self.pen = fn.mkPen(color=self.color, style=style)
 
             if self.plot_samples.dtype.kind in "SUV":
                 self.is_string = True
@@ -951,7 +955,12 @@ class PlotSignal(Signal):
 
     def set_color(self, color):
         self.color = color
-        self.pen = fn.mkPen(color=color, style=QtCore.Qt.PenStyle.SolidLine)
+        if self.mode == "raw":
+            style = QtCore.Qt.PenStyle.DashLine
+        else:
+            style = QtCore.Qt.PenStyle.SolidLine
+
+        self.pen = fn.mkPen(color=color, style=style)
 
     def set_home(self, y_range=None):
         self.home = y_range or self.y_range
@@ -3076,6 +3085,13 @@ class Plot(QtWidgets.QWidget):
             event.accept()
         else:
             event.ignore()
+
+    def line_style_same_origin_signals(self, origin_uuid="", style=QtCore.Qt.PenStyle.SolidLine):
+        for signal in self.plot.signals:
+            if signal.origin_uuid == origin_uuid:
+                signal.pen = fn.mkPen(color=signal.color, style=style)
+
+        self.plot.update()
 
     def mousePressEvent(self, event):
         self.clicked.emit()
