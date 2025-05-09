@@ -976,6 +976,12 @@ class MDF4(MDF_Common[Group]):
                         parsed_strings=(name, display_names, comment),
                     )
 
+                    si_path = getattr(channel.source, "path", "")
+                    if si_path and not self._remove_source_from_channel_names:
+                        path_name = f"{si_path}.{channel.name}"
+                        if path_name not in channel.display_names:
+                            channel.display_names[path_name] = "source_path"
+
                 elif not component_addr:
                     ch_addr = next_ch_addr
                     continue
@@ -1028,6 +1034,12 @@ class MDF4(MDF_Common[Group]):
                     channel.data_block_addr,
                     None,
                 )
+
+            si_path = getattr(channel.source, "path", "")
+            if si_path:
+                path_name = f"{si_path}.{channel.name}"
+                if path_name not in channel.display_names:
+                    channel.display_names[path_name] = "source_path"
 
             if self._remove_source_from_channel_names:
                 channel.name = channel.name.split(path_separator, 1)[0]
