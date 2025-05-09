@@ -1170,7 +1170,7 @@ class Channel:
             else:
                 if any(_name not in comment for _name in display_names):
                     try:
-                        CNcomment = ET.fromstring(comment)
+                        CNcomment = ET.fromstring(comment.replace(' xmlns="http://www.asam.net/mdf/v4"', ""))
                         elem = CNcomment.find("TX")
                         if elem is None:
                             raise RuntimeError("cannot find 'TX' element")
