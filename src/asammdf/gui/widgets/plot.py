@@ -1794,64 +1794,7 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.itemExpanded.connect(self.update_current_values)
         self.channel_selection.verticalScrollBar().valueChanged.connect(self.update_current_values)
 
-        self.keyboard_events = {
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_M,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_C,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ControlModifier,
-                QtCore.Qt.Key.Key_C,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ControlModifier,
-                QtCore.Qt.Key.Key_B,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ControlModifier,
-                QtCore.Qt.Key.Key_H,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ControlModifier,
-                QtCore.Qt.Key.Key_P,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ControlModifier,
-                QtCore.Qt.Key.Key_T,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ControlModifier,
-                QtCore.Qt.Key.Key_G,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_2,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_BracketLeft,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_BracketRight,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_Backspace,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.Key.Key_Backspace,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.Key.Key_W,
-            ).toCombined(),
-        } | self.plot.keyboard_events
+        self.disabled_keyboard_events = set()
 
         self.splitter.splitterMoved.connect(self.set_splitter)
 
@@ -2745,6 +2688,10 @@ class Plot(QtWidgets.QWidget):
         key = event.key()
         modifiers = event.modifiers()
 
+        if event.keyCombination().toCombined() in self.disabled_keyboard_events:
+            event.ignore()
+            return
+
         if key == QtCore.Qt.Key.Key_M and modifiers == QtCore.Qt.KeyboardModifier.NoModifier:
             event.accept()
             ch_size, plt_size, info_size = self.splitter.sizes()
@@ -3044,12 +2991,6 @@ class Plot(QtWidgets.QWidget):
         elif key == QtCore.Qt.Key.Key_BracketRight and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
             self.increase_font()
 
-        elif event.keyCombination().toCombined() in self.plot.keyboard_events:
-            try:
-                self.plot.keyPressEvent(event)
-            except:
-                print(format_exc())
-
         elif key == QtCore.Qt.Key.Key_Backspace:
             if modifiers == QtCore.Qt.KeyboardModifier.ShiftModifier:
                 self.redo_zoom()
@@ -3083,8 +3024,12 @@ class Plot(QtWidgets.QWidget):
                 self.plot.block_zoom_signal = False
 
             event.accept()
+
         else:
-            event.ignore()
+            try:
+                self.plot.keyPressEvent(event)
+            except:
+                print(format_exc())
 
     def line_style_same_origin_signals(self, origin_uuid="", style=QtCore.Qt.PenStyle.SolidLine):
         for signal in self.plot.signals:
@@ -3754,8 +3699,6 @@ class PlotGraphics(pg.PlotWidget):
         self.axes = []
         self._axes_layout_pos = 2
 
-        self.disabled_keys = set()
-
         self._timebase_db = {}
         self._timestamps_indexes = {}
         self.all_timebase = self.timebase = np.array([])
@@ -3944,144 +3887,7 @@ class PlotGraphics(pg.PlotWidget):
 
         self.viewbox.sigXRangeChanged.connect(self.xrange_changed.emit)
 
-        self.keyboard_events = {
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_F,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.Key.Key_F,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_G,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.Key.Key_G,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_I,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_O,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.Key.Key_I,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.Key.Key_O,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_X,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_R,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ControlModifier,
-                QtCore.Qt.Key.Key_S,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_S,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.Key.Key_S,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_Y,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.Key.Key_Y,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_Left,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_Right,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.Key.Key_Left,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.Key.Key_Right,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ControlModifier,
-                QtCore.Qt.Key.Key_Left,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ControlModifier,
-                QtCore.Qt.Key.Key_Right,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.Key.Key_Up,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.Key.Key_Down,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.Key.Key_PageUp,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.Key.Key_PageDown,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_H,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_W,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.Key.Key_Insert,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ControlModifier,
-                QtCore.Qt.Key.Key_PageUp,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.Key.Key_PageUp,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ControlModifier,
-                QtCore.Qt.Key.Key_PageDown,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.Key.Key_PageDown,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.AltModifier,
-                QtCore.Qt.Key.Key_Left,
-            ).toCombined(),
-            QtCore.QKeyCombination(
-                QtCore.Qt.KeyboardModifier.AltModifier,
-                QtCore.Qt.Key.Key_Right,
-            ).toCombined(),
-        }
+        self.disabled_keyboard_events = set()
 
         events = events or []
 
@@ -4266,7 +4072,7 @@ class PlotGraphics(pg.PlotWidget):
         else:
             if (
                 QtCore.QKeyCombination(QtCore.Qt.Key.Key_C, QtCore.Qt.KeyboardModifier.ControlModifier).toCombined()
-                not in self.disabled_keys
+                not in self.disabled_keyboard_events
             ):
                 if self.region is not None:
                     start, stop = self.region.getRegion()
@@ -4652,819 +4458,810 @@ class PlotGraphics(pg.PlotWidget):
             self.add_channels_request.emit([computed_channel])
 
     def keyPressEvent(self, event):
+        if event.keyCombination().toCombined() in self.disabled_keyboard_events:
+            event.ignore()
+            return
+
         key = event.key()
         modifier = event.modifiers()
 
-        if event.keyCombination().toCombined() in self.disabled_keys:
-            super().keyPressEvent(event)
-        else:
-            handled = True
-            if key == QtCore.Qt.Key.Key_Y and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
-                if self.region is None:
-                    event_ = QtGui.QKeyEvent(
-                        QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_R, QtCore.Qt.KeyboardModifier.NoModifier
-                    )
-                    self.keyPressEvent(event_)
+        handled = True
+        if key == QtCore.Qt.Key.Key_Y and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
+            if self.region is None:
+                event_ = QtGui.QKeyEvent(
+                    QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_R, QtCore.Qt.KeyboardModifier.NoModifier
+                )
+                self.keyPressEvent(event_)
 
-                if self.region_lock is not None:
-                    self.region_lock = None
-                    for i in range(2):
-                        self.region.lines[i].setMovable(True)
-                        self.region.lines[i].locked = False
-                    self.region.movable = True
-                    self.region.moving_cursor = self.region.lines[0]
-                else:
-                    self.region_lock = self.region.getRegion()[0]
-                    self.region.lines[0].setMovable(False)
-                    self.region.lines[0].locked = True
-                    self.region.lines[1].setMovable(True)
-                    self.region.lines[1].locked = False
-                    self.region.moving_cursor = self.region.lines[1]
-                    self.region.movable = False
+            if self.region_lock is not None:
+                self.region_lock = None
+                for i in range(2):
+                    self.region.lines[i].setMovable(True)
+                    self.region.lines[i].locked = False
+                self.region.movable = True
+                self.region.moving_cursor = self.region.lines[0]
+            else:
+                self.region_lock = self.region.getRegion()[0]
+                self.region.lines[0].setMovable(False)
+                self.region.lines[0].locked = True
+                self.region.lines[1].setMovable(True)
+                self.region.lines[1].locked = False
+                self.region.moving_cursor = self.region.lines[1]
+                self.region.movable = False
 
-                self.update()
+            self.update()
 
-            elif key == QtCore.Qt.Key.Key_Y and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier:
-                if self.region is None:
-                    event_ = QtGui.QKeyEvent(
-                        QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_R, QtCore.Qt.KeyboardModifier.NoModifier
-                    )
-                    self.keyPressEvent(event_)
+        elif key == QtCore.Qt.Key.Key_Y and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier:
+            if self.region is None:
+                event_ = QtGui.QKeyEvent(
+                    QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_R, QtCore.Qt.KeyboardModifier.NoModifier
+                )
+                self.keyPressEvent(event_)
 
-                    self.region.lines[0].setMovable(False)
-                    self.region.lines[0].locked = True
-                    self.region.lines[1].setMovable(True)
-                    self.region.lines[1].locked = False
-                    self.region.movable = False
-                    self.region.moving_cursor = self.region.lines[1]
+                self.region.lines[0].setMovable(False)
+                self.region.lines[0].locked = True
+                self.region.lines[1].setMovable(True)
+                self.region.lines[1].locked = False
+                self.region.movable = False
+                self.region.moving_cursor = self.region.lines[1]
+                self.region_lock = self.region.lines[0].value()
+
+            else:
+                if self.region.lines[0].isMovable():
                     self.region_lock = self.region.lines[0].value()
-
+                    self.region.lines[0].setMovable(False)
+                    self.region.lines[0].locked = True
+                    self.region.lines[1].setMovable(True)
+                    self.region.lines[1].locked = False
+                    self.region.moving_cursor = self.region.lines[1]
                 else:
-                    if self.region.lines[0].isMovable():
-                        self.region_lock = self.region.lines[0].value()
-                        self.region.lines[0].setMovable(False)
-                        self.region.lines[0].locked = True
-                        self.region.lines[1].setMovable(True)
-                        self.region.lines[1].locked = False
-                        self.region.moving_cursor = self.region.lines[1]
-                    else:
-                        self.region_lock = self.region.lines[1].value()
-                        self.region.lines[0].setMovable(True)
-                        self.region.lines[0].locked = False
-                        self.region.lines[1].setMovable(False)
-                        self.region.lines[1].locked = True
-                        self.region.moving_cursor = self.region.lines[0]
+                    self.region_lock = self.region.lines[1].value()
+                    self.region.lines[0].setMovable(True)
+                    self.region.lines[0].locked = False
+                    self.region.lines[1].setMovable(False)
+                    self.region.lines[1].locked = True
+                    self.region.moving_cursor = self.region.lines[0]
 
-                self.update()
+            self.update()
 
-            elif key == QtCore.Qt.Key.Key_X and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
-                if self.region is not None:
-                    self.viewbox.setXRange(*self.region.getRegion(), padding=0)
-                    event_ = QtGui.QKeyEvent(
-                        QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_R, QtCore.Qt.KeyboardModifier.NoModifier
+        elif key == QtCore.Qt.Key.Key_X and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
+            if self.region is not None:
+                self.viewbox.setXRange(*self.region.getRegion(), padding=0)
+                event_ = QtGui.QKeyEvent(
+                    QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_R, QtCore.Qt.KeyboardModifier.NoModifier
+                )
+                self.keyPressEvent(event_)
+
+        elif key == QtCore.Qt.Key.Key_F and modifier == QtCore.Qt.KeyboardModifier.NoModifier and not self.locked:
+            self.block_zoom_signal = True
+            if self.common_axis_items:
+                if any(
+                    len(self.signal_by_uuid(uuid)[0].plot_samples)
+                    for uuid in self.common_axis_items
+                    if self.signal_by_uuid(uuid)[0].enable
+                ):
+                    common_min = np.nanmin(
+                        [
+                            self.signal_by_uuid(uuid)[0].min
+                            for uuid in self.common_axis_items
+                            if len(self.signal_by_uuid(uuid)[0].plot_samples)
+                        ]
                     )
-                    self.keyPressEvent(event_)
+                    common_max = np.nanmax(
+                        [
+                            self.signal_by_uuid(uuid)[0].max
+                            for uuid in self.common_axis_items
+                            if len(self.signal_by_uuid(uuid)[0].plot_samples)
+                        ]
+                    )
+                else:
+                    common_min, common_max = 0, 1
 
-            elif key == QtCore.Qt.Key.Key_F and modifier == QtCore.Qt.KeyboardModifier.NoModifier and not self.locked:
-                self.block_zoom_signal = True
-                if self.common_axis_items:
-                    if any(
-                        len(self.signal_by_uuid(uuid)[0].plot_samples)
-                        for uuid in self.common_axis_items
-                        if self.signal_by_uuid(uuid)[0].enable
-                    ):
-                        common_min = np.nanmin(
-                            [
-                                self.signal_by_uuid(uuid)[0].min
-                                for uuid in self.common_axis_items
-                                if len(self.signal_by_uuid(uuid)[0].plot_samples)
-                            ]
-                        )
-                        common_max = np.nanmax(
-                            [
-                                self.signal_by_uuid(uuid)[0].max
-                                for uuid in self.common_axis_items
-                                if len(self.signal_by_uuid(uuid)[0].plot_samples)
-                            ]
-                        )
+            for i, signal in enumerate(self.signals):
+                if len(signal.plot_samples):
+                    if signal.uuid in self.common_axis_items:
+                        min_ = common_min
+                        max_ = common_max
                     else:
-                        common_min, common_max = 0, 1
-
-                for i, signal in enumerate(self.signals):
-                    if len(signal.plot_samples):
-                        if signal.uuid in self.common_axis_items:
-                            min_ = common_min
-                            max_ = common_max
-                        else:
-                            samples = signal.plot_samples
-                            if len(samples):
-                                min_, max_ = signal.min, signal.max
-                            else:
-                                min_, max_ = 0, 1
-
-                        if min_ != min_:  # noqa: PLR0124
-                            # min_ is NaN
-                            min_ = 0
-                        if max_ != max_:  # noqa: PLR0124
-                            # max_ is NaN
-                            max_ = 1
-
-                        delta = 0.01 * (max_ - min_)
-                        min_, max_ = min_ - delta, max_ + delta
-
-                        signal.y_range = min_, max_
-
-                        if signal.uuid == self.current_uuid:
-                            self.viewbox.setYRange(min_, max_, padding=0)
-
-                self.block_zoom_signal = False
-                self.zoom_changed.emit(False)
-                self.update()
-
-            elif (
-                key == QtCore.Qt.Key.Key_F and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier and not self.locked
-            ):
-                self.block_zoom_signal = True
-                parent = self.plot_parent
-                uuids = [
-                    item.uuid
-                    for item in parent.channel_selection.selectedItems()
-                    if item.type() == ChannelsTreeItem.Channel
-                ]
-                uuids = set(uuids)
-
-                if not uuids:
-                    return
-
-                for i, signal in enumerate(self.signals):
-                    if signal.uuid not in uuids:
-                        continue
-
-                    if len(signal.plot_samples):
                         samples = signal.plot_samples
                         if len(samples):
                             min_, max_ = signal.min, signal.max
                         else:
                             min_, max_ = 0, 1
 
-                        if min_ != min_:  # noqa: PLR0124
-                            # min_ is NaN
-                            min_ = 0
-                        if max_ != max_:  # noqa: PLR0124
-                            # max is NaN
-                            max_ = 1
+                    if min_ != min_:  # noqa: PLR0124
+                        # min_ is NaN
+                        min_ = 0
+                    if max_ != max_:  # noqa: PLR0124
+                        # max_ is NaN
+                        max_ = 1
 
-                        delta = 0.01 * (max_ - min_)
-                        min_, max_ = min_ - delta, max_ + delta
+                    delta = 0.01 * (max_ - min_)
+                    min_, max_ = min_ - delta, max_ + delta
 
-                        signal.y_range = min_, max_
-                        if signal.uuid == self.current_uuid:
-                            self.viewbox.setYRange(min_, max_, padding=0)
+                    signal.y_range = min_, max_
 
-                self.block_zoom_signal = False
-                self.zoom_changed.emit(False)
-                self.update()
+                    if signal.uuid == self.current_uuid:
+                        self.viewbox.setYRange(min_, max_, padding=0)
 
-            elif key == QtCore.Qt.Key.Key_G:
-                if modifier == QtCore.Qt.KeyboardModifier.NoModifier:
-                    next_grid = {
-                        (False, False): (True, False),
-                        (True, False): (True, True),
-                        (True, True): (False, True),
-                        (False, True): (False, False),
-                    }
+            self.block_zoom_signal = False
+            self.zoom_changed.emit(False)
+            self.update()
 
-                    self.x_axis.grid, self.y_axis.grid = next_grid[(self.x_axis.grid, self.y_axis.grid)]
+        elif key == QtCore.Qt.Key.Key_F and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier and not self.locked:
+            self.block_zoom_signal = True
+            parent = self.plot_parent
+            uuids = [
+                item.uuid
+                for item in parent.channel_selection.selectedItems()
+                if item.type() == ChannelsTreeItem.Channel
+            ]
+            uuids = set(uuids)
 
-                    self.x_axis.picture = None
-                    self.y_axis.picture = None
+            if not uuids:
+                return
 
-                    self.update()
+            for i, signal in enumerate(self.signals):
+                if signal.uuid not in uuids:
+                    continue
 
-                elif modifier == QtCore.Qt.KeyboardModifier.ShiftModifier:
-                    if self.cursor1 is not None:
-                        value, ok = QtWidgets.QInputDialog.getDouble(
-                            self,
-                            "Go to time stamp",
-                            "Time stamp",
-                            value=self.cursor1.value(),
-                            decimals=9,
-                        )
-
-                        if ok:
-                            self.cursor1.setPos(value)
-                            self.cursor_move_finished.emit(self.cursor1)
-
-            elif (
-                key in (QtCore.Qt.Key.Key_I, QtCore.Qt.Key.Key_O) and modifier == QtCore.Qt.KeyboardModifier.NoModifier
-            ):
-                x_range, _ = self.viewbox.viewRange()
-                delta = x_range[1] - x_range[0]
-                if key == QtCore.Qt.Key.Key_I:
-                    step = -delta * 0.25
-                else:
-                    step = delta * 0.5
-                if (
-                    self.cursor1
-                    and self.cursor1.isVisible()
-                    and self._settings.value("zoom_x_center_on_cursor", True, type=bool)
-                ):
-                    pos = self.cursor1.value()
-                    x_range = pos - delta / 2, pos + delta / 2
-
-                self.viewbox.setXRange(x_range[0] - step, x_range[1] + step, padding=0)
-
-            elif (
-                key in (QtCore.Qt.Key.Key_I, QtCore.Qt.Key.Key_O)
-                and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
-                and not self.locked
-            ):
-                self.block_zoom_signal = True
-
-                self.viewbox.vertical_zoom(zoom_in=key == QtCore.Qt.Key.Key_I)
-
-                self.block_zoom_signal = False
-                self.zoom_changed.emit(False)
-
-            elif key == QtCore.Qt.Key.Key_R and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
-                if self.region is None:
-                    color = self.cursor1.pen.color().name()
-
-                    self.region = Region(
-                        (0, 0),
-                        pen=color,
-                        hoverPen=color,
-                        show_circle=self.cursor1.show_circle,
-                        show_horizontal_line=self.cursor1.show_horizontal_line,
-                        line_width=self.cursor1.line_width,
-                    )
-                    self.region.setZValue(-10)
-                    self.viewbox.addItem(self.region)
-                    self.region.sigRegionChanged.connect(self.range_modified.emit)
-                    self.region.sigRegionChanged.connect(self.range_modified_handler)
-                    self.region.sigRegionChangeFinished.connect(self.range_modified_finished_handler)
-                    start, stop = self.viewbox.viewRange()[0]
-                    view_range = abs(stop - start)
-                    start, stop = (
-                        start + 0.1 * (stop - start),
-                        stop - 0.1 * (stop - start),
-                    )
-
-                    if self.cursor1 is not None and abs(self.cursor1.value() - stop) >= 0.1 * view_range:
-                        self.cursor1.hide()
-                        self.region.setRegion(tuple(sorted((self.cursor1.value(), stop))))
+                if len(signal.plot_samples):
+                    samples = signal.plot_samples
+                    if len(samples):
+                        min_, max_ = signal.min, signal.max
                     else:
-                        self.region.setRegion((start, stop))
+                        min_, max_ = 0, 1
 
-                else:
-                    self.region_lock = None
-                    self.region.setParent(None)
-                    self.region.hide()
-                    self.region.deleteLater()
-                    self.region = None
-                    self.range_removed.emit()
+                    if min_ != min_:  # noqa: PLR0124
+                        # min_ is NaN
+                        min_ = 0
+                    if max_ != max_:  # noqa: PLR0124
+                        # max is NaN
+                        max_ = 1
 
-                    if self.cursor1 is not None:
-                        self.cursor1.show()
+                    delta = 0.01 * (max_ - min_)
+                    min_, max_ = min_ - delta, max_ + delta
+
+                    signal.y_range = min_, max_
+                    if signal.uuid == self.current_uuid:
+                        self.viewbox.setYRange(min_, max_, padding=0)
+
+            self.block_zoom_signal = False
+            self.zoom_changed.emit(False)
+            self.update()
+
+        elif key == QtCore.Qt.Key.Key_G:
+            if modifier == QtCore.Qt.KeyboardModifier.NoModifier:
+                next_grid = {
+                    (False, False): (True, False),
+                    (True, False): (True, True),
+                    (True, True): (False, True),
+                    (False, True): (False, False),
+                }
+
+                self.x_axis.grid, self.y_axis.grid = next_grid[(self.x_axis.grid, self.y_axis.grid)]
+
+                self.x_axis.picture = None
+                self.y_axis.picture = None
 
                 self.update()
 
-            elif key == QtCore.Qt.Key.Key_S and modifier == QtCore.Qt.KeyboardModifier.ControlModifier:
-                file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-                    self,
-                    "Save as measurement file",
-                    "",
-                    "MDF version 4 files (*.mf4 *.mf4z)",
+            elif modifier == QtCore.Qt.KeyboardModifier.ShiftModifier:
+                if self.cursor1 is not None:
+                    value, ok = QtWidgets.QInputDialog.getDouble(
+                        self,
+                        "Go to time stamp",
+                        "Time stamp",
+                        value=self.cursor1.value(),
+                        decimals=9,
+                    )
+
+                    if ok:
+                        self.cursor1.setPos(value)
+                        self.cursor_move_finished.emit(self.cursor1)
+
+        elif key in (QtCore.Qt.Key.Key_I, QtCore.Qt.Key.Key_O) and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
+            x_range, _ = self.viewbox.viewRange()
+            delta = x_range[1] - x_range[0]
+            if key == QtCore.Qt.Key.Key_I:
+                step = -delta * 0.25
+            else:
+                step = delta * 0.5
+            if (
+                self.cursor1
+                and self.cursor1.isVisible()
+                and self._settings.value("zoom_x_center_on_cursor", True, type=bool)
+            ):
+                pos = self.cursor1.value()
+                x_range = pos - delta / 2, pos + delta / 2
+
+            self.viewbox.setXRange(x_range[0] - step, x_range[1] + step, padding=0)
+
+        elif (
+            key in (QtCore.Qt.Key.Key_I, QtCore.Qt.Key.Key_O)
+            and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
+            and not self.locked
+        ):
+            self.block_zoom_signal = True
+
+            self.viewbox.vertical_zoom(zoom_in=key == QtCore.Qt.Key.Key_I)
+
+            self.block_zoom_signal = False
+            self.zoom_changed.emit(False)
+
+        elif key == QtCore.Qt.Key.Key_R and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
+            if self.region is None:
+                color = self.cursor1.pen.color().name()
+
+                self.region = Region(
+                    (0, 0),
+                    pen=color,
+                    hoverPen=color,
+                    show_circle=self.cursor1.show_circle,
+                    show_horizontal_line=self.cursor1.show_horizontal_line,
+                    line_width=self.cursor1.line_width,
                 )
-
-                if file_name:
-                    signals = [signal for signal in self.signals if signal.enable]
-                    if signals:
-                        with mdf_module.MDF() as mdf:
-                            groups = {}
-                            for sig in signals:
-                                id_ = id(sig.timestamps)
-                                group_ = groups.setdefault(id_, [])
-                                group_.append(sig)
-
-                            for signals in groups.values():
-                                sigs = []
-                                for signal in signals:
-                                    if ":" in signal.name:
-                                        sig = signal.copy()
-                                        sig.name = sig.name.split(":")[-1].strip()
-                                        sigs.append(sig)
-                                    else:
-                                        sigs.append(signal)
-                                mdf.append(sigs, common_timebase=True)
-
-                            file_name = Path(file_name)
-
-                            if file_name.suffix.lower() in (".zip", ".mf4z"):
-                                tmpf = Path(gettempdir()) / f"{perf_counter()}.mf4"
-                                mdf.save(tmpf, overwrite=True, compression=2)
-
-                                zipped_mf4 = ZipFile(file_name, "w", compression=ZIP_DEFLATED)
-                                zipped_mf4.write(
-                                    str(tmpf),
-                                    file_name.with_suffix(".mf4").name,
-                                    compresslevel=1,
-                                )
-
-                                tmpf.unlink()
-
-                            else:
-                                mdf.save(file_name, overwrite=True, compression=2)
-
-            elif key == QtCore.Qt.Key.Key_S and modifier == QtCore.Qt.KeyboardModifier.NoModifier and not self.locked:
-                self.block_zoom_signal = True
-                parent = self.plot_parent
-                uuids = []
-
-                iterator = QtWidgets.QTreeWidgetItemIterator(parent.channel_selection)
-                while item := iterator.value():
-                    if item.type() == ChannelsTreeItem.Channel and item.signal.enable:
-                        uuids.append(item.uuid)
-
-                    iterator += 1
-
-                uuids = reversed(uuids)
-
-                count = sum(
-                    1
-                    for sig in self.signals
-                    if sig.min != "n.a." and sig.enable and sig.uuid not in self.common_axis_items
-                )
-
-                if any(sig.min != "n.a." and sig.enable and sig.uuid in self.common_axis_items for sig in self.signals):
-                    count += 1
-
-                    common_min_ = np.nanmin(
-                        [
-                            self.signal_by_uuid(uuid)[0].min
-                            for uuid in self.common_axis_items
-                            if len(self.signal_by_uuid(uuid)[0].plot_samples) and self.signal_by_uuid(uuid)[0].enable
-                        ]
-                    )
-                    common_max_ = np.nanmax(
-                        [
-                            self.signal_by_uuid(uuid)[0].max
-                            for uuid in self.common_axis_items
-                            if len(self.signal_by_uuid(uuid)[0].plot_samples) and self.signal_by_uuid(uuid)[0].enable
-                        ]
-                    )
-
-                if count:
-                    position = 0
-                    common_axis_handled = False
-                    for uuid in uuids:
-                        signal, index = self.signal_by_uuid(uuid)
-
-                        if not signal.empty and signal.enable:
-                            if signal.uuid in self.common_axis_items:
-                                if common_axis_handled:
-                                    continue
-
-                                min_ = common_min_
-                                max_ = common_max_
-
-                            else:
-                                min_ = signal.min
-                                max_ = signal.max
-
-                            if min_ == -float("inf") and max_ == float("inf"):
-                                min_ = 0
-                                max_ = 1
-                            elif min_ == -float("inf"):
-                                min_ = max_ - 1
-                            elif max_ == float("inf"):
-                                max_ = min_ + 1
-
-                            if min_ == max_:
-                                min_, max_ = min_ - 1, max_ + 1
-
-                            dim = (float(max_) - min_) * 1.1
-
-                            max_ = min_ + dim * count - 0.05 * dim
-                            min_ = min_ - 0.05 * dim
-
-                            min_, max_ = (
-                                min_ - dim * position,
-                                max_ - dim * position,
-                            )
-
-                            if signal.uuid in self.common_axis_items:
-                                y_range = min_, max_
-                                self.common_axis_y_range = y_range
-                                for cuuid in self.common_axis_items:
-                                    sig, _ = self.signal_by_uuid(cuuid)
-                                    sig.y_range = y_range
-
-                                common_axis_handled = True
-
-                            else:
-                                signal.y_range = min_, max_
-
-                            if signal.uuid == self.current_uuid:
-                                self.viewbox.setYRange(min_, max_, padding=0)
-
-                            position += 1
-
-                else:
-                    xrange, _ = self.viewbox.viewRange()
-                    self.viewbox.autoRange(padding=0)
-                    self.viewbox.setXRange(*xrange, padding=0)
-                    self.viewbox.disableAutoRange()
-
-                self.block_zoom_signal = False
-                self.zoom_changed.emit(False)
-
-                self.update()
-
-            elif (
-                key == QtCore.Qt.Key.Key_S and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier and not self.locked
-            ):
-                self.block_zoom_signal = True
-                parent = self.plot_parent
-                uuids = [
-                    item.uuid
-                    for item in parent.channel_selection.selectedItems()
-                    if item.type() == ChannelsTreeItem.Channel
-                ]
-                uuids = list(reversed(uuids))
-                uuids_set = set(uuids)
-
-                if not uuids:
-                    return
-
-                count = sum(
-                    1
-                    for i, sig in enumerate(self.signals)
-                    if sig.uuid in uuids_set and sig.min != "n.a." and sig.enable
-                )
-
-                if count:
-                    common_axis_handled = False
-                    position = 0
-                    for uuid in uuids:
-                        signal, index = self.signal_by_uuid(uuid)
-
-                        if not signal.empty and signal.enable:
-                            if uuid in self.common_axis_items:
-                                if common_axis_handled:
-                                    continue
-
-                                min_ = np.nanmin(
-                                    [
-                                        self.signal_by_uuid(uuid)[0].min
-                                        for uuid in self.common_axis_items
-                                        if uuid in uuids_set
-                                        and len(self.signal_by_uuid(uuid)[0].plot_samples)
-                                        and self.signal_by_uuid(uuid)[0].enable
-                                    ]
-                                )
-                                max_ = np.nanmax(
-                                    [
-                                        self.signal_by_uuid(uuid)[0].max
-                                        for uuid in self.common_axis_items
-                                        if uuid in uuids_set
-                                        and len(self.signal_by_uuid(uuid)[0].plot_samples)
-                                        and self.signal_by_uuid(uuid)[0].enable
-                                    ]
-                                )
-
-                            else:
-                                min_ = signal.min
-                                max_ = signal.max
-
-                            if min_ == -float("inf") and max_ == float("inf"):
-                                min_ = 0
-                                max_ = 1
-                            elif min_ == -float("inf"):
-                                min_ = max_ - 1
-                            elif max_ == float("inf"):
-                                max_ = min_ + 1
-
-                            if min_ == max_:
-                                min_, max_ = min_ - 1, max_ + 1
-
-                            dim = (float(max_) - min_) * 1.1
-
-                            max_ = min_ + dim * count - 0.05 * dim
-                            min_ = min_ - 0.05 * dim
-
-                            min_, max_ = (
-                                min_ - dim * position,
-                                max_ - dim * position,
-                            )
-
-                            if signal.uuid in self.common_axis_items:
-                                y_range = min_, max_
-                                self.common_axis_y_range = y_range
-                                for cuuid in self.common_axis_items:
-                                    sig, _ = self.signal_by_uuid(cuuid)
-                                    sig.y_range = y_range
-
-                                common_axis_handled = True
-
-                            else:
-                                signal.y_range = min_, max_
-
-                            if signal.uuid == self.current_uuid:
-                                self.viewbox.setYRange(min_, max_, padding=0)
-
-                            position += 1
-
-                else:
-                    xrange, _ = self.viewbox.viewRange()
-                    self.viewbox.autoRange(padding=0)
-                    self.viewbox.setXRange(*xrange, padding=0)
-                    self.viewbox.disableAutoRange()
-
-                self.block_zoom_signal = False
-                self.zoom_changed.emit(False)
-
-                self.update()
-
-            elif (
-                key in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_Right)
-                and modifier == QtCore.Qt.KeyboardModifier.AltModifier
-            ):
-                if self.region is None:
-
-                    pos = self.cursor1.value()
-                    sig, idx = self.signal_by_uuid(self.current_uuid)
-
-                    timestamp = sig.timestamp_of_next_different_value(
-                        pos, mode="different", previous=key == QtCore.Qt.Key.Key_Left
-                    )
-
-                    self.cursor1.set_value(timestamp)
-
-                    view_range = self.viewbox.viewRange()[0]
-                    x_size = view_range[1] - view_range[0]
-                    self.viewbox.setXRange(timestamp - x_size / 2, timestamp + x_size / 2, padding=0)
-
-                else:
-                    pos = self.region.moving_cursor.value()
-                    sig, idx = self.signal_by_uuid(self.current_uuid)
-
-                    timestamp = sig.timestamp_of_next_different_value(
-                        pos, mode="different", previous=key == QtCore.Qt.Key.Key_Left
-                    )
-
-                    self.region.moving_cursor.set_value(timestamp)
-
-                    view_range = sorted([line.value() for line in self.region.lines])
-                    x_size = view_range[1] - view_range[0]
-                    self.viewbox.setXRange(view_range[0] - x_size * 0.05, view_range[1] + x_size * 0.05, padding=0)
-
-            elif key in (QtCore.Qt.Key.Key_PageUp, QtCore.Qt.Key.Key_PageDown) and modifier in (
-                QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
-                QtCore.Qt.KeyboardModifier.ControlModifier,
-            ):
-                if self.region is None:
-
-                    pos = self.cursor1.value()
-                    sig, idx = self.signal_by_uuid(self.current_uuid)
-
-                    timestamp = sig.timestamp_of_next_different_value(
-                        pos,
-                        mode="higher" if key == QtCore.Qt.Key.Key_PageUp else "lower",
-                        previous=modifier
-                        == QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
-                    )
-
-                    self.cursor1.set_value(timestamp)
-
-                    view_range = self.viewbox.viewRange()
-                    x_size = view_range[1] - view_range[0]
-                    self.viewbox.setXRange(timestamp - x_size / 2, timestamp + x_size / 2, padding=0)
-
-                else:
-                    pos = self.region.moving_cursor.value()
-                    sig, idx = self.signal_by_uuid(self.current_uuid)
-
-                    timestamp = sig.timestamp_of_next_different_value(
-                        pos,
-                        mode="higher" if key == QtCore.Qt.Key.Key_PageUp else "lower",
-                        previous=modifier
-                        == QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
-                    )
-
-                    self.region.moving_cursor.set_value(timestamp)
-
-                    view_range = sorted([line.value() for line in self.region.lines])
-                    x_size = view_range[1] - view_range[0]
-                    self.viewbox.setXRange(view_range[0] - x_size * 0.05, view_range[1] + x_size * 0.05, padding=0)
-
-            elif key in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_Right) and modifier in (
-                QtCore.Qt.KeyboardModifier.NoModifier,
-                QtCore.Qt.KeyboardModifier.ControlModifier,
-            ):
-                if self.region is None:
-                    if modifier == QtCore.Qt.KeyboardModifier.ControlModifier:
-                        increment = 20
-                    else:
-                        increment = 1
-
-                    prev_pos = pos = self.cursor1.value()
-                    x = self.get_current_timebase()
-                    dim = x.size
-                    if dim:
-                        pos = np.searchsorted(x, pos)
-                        if key == QtCore.Qt.Key.Key_Right:
-                            pos += increment
-                        else:
-                            pos -= increment
-                        pos = np.clip(pos, 0, dim - increment)
-                        pos = x[pos]
-                    else:
-                        if key == QtCore.Qt.Key.Key_Right:
-                            pos += increment
-                        else:
-                            pos -= increment
-
-                    (left_side, right_side), _ = self.viewbox.viewRange()
-
-                    if pos >= right_side:
-                        delta = abs(pos - prev_pos)
-                        self.viewbox.setXRange(left_side + delta, right_side + delta, padding=0)
-                    elif pos <= left_side:
-                        delta = abs(pos - prev_pos)
-                        self.viewbox.setXRange(left_side - delta, right_side - delta, padding=0)
-
-                    self.cursor1.set_value(pos)
-
-                else:
-                    increment = 1
-                    start, stop = self.region.getRegion()
-
-                    if self.region_lock is None:
-                        if modifier == QtCore.Qt.KeyboardModifier.ControlModifier:
-                            pos = stop
-                            second_pos = start
-                        else:
-                            pos = start
-                            second_pos = stop
-                    else:
-                        if start != stop:
-                            pos = start if stop == self.region_lock else stop
-                        else:
-                            pos = self.region_lock
-
-                    x = self.get_current_timebase()
-                    dim = x.size
-                    if dim:
-                        pos = np.searchsorted(x, pos)
-                        if key == QtCore.Qt.Key.Key_Right:
-                            pos += increment
-                        else:
-                            pos -= increment
-                        pos = np.clip(pos, 0, dim - increment)
-                        pos = x[pos]
-                    else:
-                        if key == QtCore.Qt.Key.Key_Right:
-                            pos += increment
-                        else:
-                            pos -= increment
-
-                    (left_side, right_side), _ = self.viewbox.viewRange()
-
-                    if pos >= right_side:
-                        self.viewbox.setXRange(left_side, pos, padding=0)
-                    elif pos <= left_side:
-                        self.viewbox.setXRange(pos, right_side, padding=0)
-
-                    if self.region_lock is not None:
-                        self.region.setRegion((self.region_lock, pos))
-                    else:
-                        self.region.setRegion(tuple(sorted((second_pos, pos))))
-
-            elif (
-                key in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_Right)
-                and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
-            ):
-                parent = self.plot_parent
-                uuids = list(
-                    {
-                        item.uuid
-                        for item in parent.channel_selection.selectedItems()
-                        if item.type() == ChannelsTreeItem.Channel
-                    }
-                )
-
-                if not uuids:
-                    return
-
+                self.region.setZValue(-10)
+                self.viewbox.addItem(self.region)
+                self.region.sigRegionChanged.connect(self.range_modified.emit)
+                self.region.sigRegionChanged.connect(self.range_modified_handler)
+                self.region.sigRegionChangeFinished.connect(self.range_modified_finished_handler)
                 start, stop = self.viewbox.viewRange()[0]
-
-                offset = (stop - start) / 100
-
-                if key == QtCore.Qt.Key.Key_Left:
-                    offset = -offset
-
-                self.set_time_offset([False, offset, *uuids])
-
-            elif (
-                key
-                in (
-                    QtCore.Qt.Key.Key_Up,
-                    QtCore.Qt.Key.Key_Down,
-                    QtCore.Qt.Key.Key_PageUp,
-                    QtCore.Qt.Key.Key_PageDown,
-                )
-                and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
-            ):
-                parent = self.plot_parent
-                uuids = list(
-                    {
-                        item.uuid
-                        for item in parent.channel_selection.selectedItems()
-                        if item.type() == ChannelsTreeItem.Channel
-                    }
+                view_range = abs(stop - start)
+                start, stop = (
+                    start + 0.1 * (stop - start),
+                    stop - 0.1 * (stop - start),
                 )
 
-                if not uuids:
-                    return
+                if self.cursor1 is not None and abs(self.cursor1.value() - stop) >= 0.1 * view_range:
+                    self.cursor1.hide()
+                    self.region.setRegion(tuple(sorted((self.cursor1.value(), stop))))
+                else:
+                    self.region.setRegion((start, stop))
 
-                factor = 10 if key in (QtCore.Qt.Key.Key_PageUp, QtCore.Qt.Key.Key_PageDown) else 100
+            else:
+                self.region_lock = None
+                self.region.setParent(None)
+                self.region.hide()
+                self.region.deleteLater()
+                self.region = None
+                self.range_removed.emit()
 
+                if self.cursor1 is not None:
+                    self.cursor1.show()
+
+            self.update()
+
+        elif key == QtCore.Qt.Key.Key_S and modifier == QtCore.Qt.KeyboardModifier.ControlModifier:
+            file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Save as measurement file",
+                "",
+                "MDF version 4 files (*.mf4 *.mf4z)",
+            )
+
+            if file_name:
+                signals = [signal for signal in self.signals if signal.enable]
+                if signals:
+                    with mdf_module.MDF() as mdf:
+                        groups = {}
+                        for sig in signals:
+                            id_ = id(sig.timestamps)
+                            group_ = groups.setdefault(id_, [])
+                            group_.append(sig)
+
+                        for signals in groups.values():
+                            sigs = []
+                            for signal in signals:
+                                if ":" in signal.name:
+                                    sig = signal.copy()
+                                    sig.name = sig.name.split(":")[-1].strip()
+                                    sigs.append(sig)
+                                else:
+                                    sigs.append(signal)
+                            mdf.append(sigs, common_timebase=True)
+
+                        file_name = Path(file_name)
+
+                        if file_name.suffix.lower() in (".zip", ".mf4z"):
+                            tmpf = Path(gettempdir()) / f"{perf_counter()}.mf4"
+                            mdf.save(tmpf, overwrite=True, compression=2)
+
+                            zipped_mf4 = ZipFile(file_name, "w", compression=ZIP_DEFLATED)
+                            zipped_mf4.write(
+                                str(tmpf),
+                                file_name.with_suffix(".mf4").name,
+                                compresslevel=1,
+                            )
+
+                            tmpf.unlink()
+
+                        else:
+                            mdf.save(file_name, overwrite=True, compression=2)
+
+        elif key == QtCore.Qt.Key.Key_S and modifier == QtCore.Qt.KeyboardModifier.NoModifier and not self.locked:
+            self.block_zoom_signal = True
+            parent = self.plot_parent
+            uuids = []
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(parent.channel_selection)
+            while item := iterator.value():
+                if item.type() == ChannelsTreeItem.Channel and item.signal.enable:
+                    uuids.append(item.uuid)
+
+                iterator += 1
+
+            uuids = reversed(uuids)
+
+            count = sum(
+                1 for sig in self.signals if sig.min != "n.a." and sig.enable and sig.uuid not in self.common_axis_items
+            )
+
+            if any(sig.min != "n.a." and sig.enable and sig.uuid in self.common_axis_items for sig in self.signals):
+                count += 1
+
+                common_min_ = np.nanmin(
+                    [
+                        self.signal_by_uuid(uuid)[0].min
+                        for uuid in self.common_axis_items
+                        if len(self.signal_by_uuid(uuid)[0].plot_samples) and self.signal_by_uuid(uuid)[0].enable
+                    ]
+                )
+                common_max_ = np.nanmax(
+                    [
+                        self.signal_by_uuid(uuid)[0].max
+                        for uuid in self.common_axis_items
+                        if len(self.signal_by_uuid(uuid)[0].plot_samples) and self.signal_by_uuid(uuid)[0].enable
+                    ]
+                )
+
+            if count:
+                position = 0
+                common_axis_handled = False
                 for uuid in uuids:
                     signal, index = self.signal_by_uuid(uuid)
 
-                    bottom, top = signal.y_range
-                    step = (top - bottom) / factor
+                    if not signal.empty and signal.enable:
+                        if signal.uuid in self.common_axis_items:
+                            if common_axis_handled:
+                                continue
 
-                    if key in (QtCore.Qt.Key.Key_Up, QtCore.Qt.Key.Key_PageUp):
-                        step = -step
+                            min_ = common_min_
+                            max_ = common_max_
 
-                    signal.y_range = bottom + step, top + step
+                        else:
+                            min_ = signal.min
+                            max_ = signal.max
 
-                self.zoom_changed.emit(False)
+                        if min_ == -float("inf") and max_ == float("inf"):
+                            min_ = 0
+                            max_ = 1
+                        elif min_ == -float("inf"):
+                            min_ = max_ - 1
+                        elif max_ == float("inf"):
+                            max_ = min_ + 1
 
-                self.update()
+                        if min_ == max_:
+                            min_, max_ = min_ - 1, max_ + 1
 
-            elif key == QtCore.Qt.Key.Key_H and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
-                start_ts, stop_ts = self.viewbox.viewRange()[0]
+                        dim = (float(max_) - min_) * 1.1
 
-                if len(self.all_timebase):
-                    min_start_ts = np.amin(self.all_timebase)
-                    max_stop_ts = np.amax(self.all_timebase)
+                        max_ = min_ + dim * count - 0.05 * dim
+                        min_ = min_ - 0.05 * dim
+
+                        min_, max_ = (
+                            min_ - dim * position,
+                            max_ - dim * position,
+                        )
+
+                        if signal.uuid in self.common_axis_items:
+                            y_range = min_, max_
+                            self.common_axis_y_range = y_range
+                            for cuuid in self.common_axis_items:
+                                sig, _ = self.signal_by_uuid(cuuid)
+                                sig.y_range = y_range
+
+                            common_axis_handled = True
+
+                        else:
+                            signal.y_range = min_, max_
+
+                        if signal.uuid == self.current_uuid:
+                            self.viewbox.setYRange(min_, max_, padding=0)
+
+                        position += 1
+
+            else:
+                xrange, _ = self.viewbox.viewRange()
+                self.viewbox.autoRange(padding=0)
+                self.viewbox.setXRange(*xrange, padding=0)
+                self.viewbox.disableAutoRange()
+
+            self.block_zoom_signal = False
+            self.zoom_changed.emit(False)
+
+            self.update()
+
+        elif key == QtCore.Qt.Key.Key_S and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier and not self.locked:
+            self.block_zoom_signal = True
+            parent = self.plot_parent
+            uuids = [
+                item.uuid
+                for item in parent.channel_selection.selectedItems()
+                if item.type() == ChannelsTreeItem.Channel
+            ]
+            uuids = list(reversed(uuids))
+            uuids_set = set(uuids)
+
+            if not uuids:
+                return
+
+            count = sum(
+                1 for i, sig in enumerate(self.signals) if sig.uuid in uuids_set and sig.min != "n.a." and sig.enable
+            )
+
+            if count:
+                common_axis_handled = False
+                position = 0
+                for uuid in uuids:
+                    signal, index = self.signal_by_uuid(uuid)
+
+                    if not signal.empty and signal.enable:
+                        if uuid in self.common_axis_items:
+                            if common_axis_handled:
+                                continue
+
+                            min_ = np.nanmin(
+                                [
+                                    self.signal_by_uuid(uuid)[0].min
+                                    for uuid in self.common_axis_items
+                                    if uuid in uuids_set
+                                    and len(self.signal_by_uuid(uuid)[0].plot_samples)
+                                    and self.signal_by_uuid(uuid)[0].enable
+                                ]
+                            )
+                            max_ = np.nanmax(
+                                [
+                                    self.signal_by_uuid(uuid)[0].max
+                                    for uuid in self.common_axis_items
+                                    if uuid in uuids_set
+                                    and len(self.signal_by_uuid(uuid)[0].plot_samples)
+                                    and self.signal_by_uuid(uuid)[0].enable
+                                ]
+                            )
+
+                        else:
+                            min_ = signal.min
+                            max_ = signal.max
+
+                        if min_ == -float("inf") and max_ == float("inf"):
+                            min_ = 0
+                            max_ = 1
+                        elif min_ == -float("inf"):
+                            min_ = max_ - 1
+                        elif max_ == float("inf"):
+                            max_ = min_ + 1
+
+                        if min_ == max_:
+                            min_, max_ = min_ - 1, max_ + 1
+
+                        dim = (float(max_) - min_) * 1.1
+
+                        max_ = min_ + dim * count - 0.05 * dim
+                        min_ = min_ - 0.05 * dim
+
+                        min_, max_ = (
+                            min_ - dim * position,
+                            max_ - dim * position,
+                        )
+
+                        if signal.uuid in self.common_axis_items:
+                            y_range = min_, max_
+                            self.common_axis_y_range = y_range
+                            for cuuid in self.common_axis_items:
+                                sig, _ = self.signal_by_uuid(cuuid)
+                                sig.y_range = y_range
+
+                            common_axis_handled = True
+
+                        else:
+                            signal.y_range = min_, max_
+
+                        if signal.uuid == self.current_uuid:
+                            self.viewbox.setYRange(min_, max_, padding=0)
+
+                        position += 1
+
+            else:
+                xrange, _ = self.viewbox.viewRange()
+                self.viewbox.autoRange(padding=0)
+                self.viewbox.setXRange(*xrange, padding=0)
+                self.viewbox.disableAutoRange()
+
+            self.block_zoom_signal = False
+            self.zoom_changed.emit(False)
+
+            self.update()
+
+        elif (
+            key in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_Right)
+            and modifier == QtCore.Qt.KeyboardModifier.AltModifier
+        ):
+            if self.region is None:
+
+                pos = self.cursor1.value()
+                sig, idx = self.signal_by_uuid(self.current_uuid)
+
+                timestamp = sig.timestamp_of_next_different_value(
+                    pos, mode="different", previous=key == QtCore.Qt.Key.Key_Left
+                )
+
+                self.cursor1.set_value(timestamp)
+
+                view_range = self.viewbox.viewRange()[0]
+                x_size = view_range[1] - view_range[0]
+                self.viewbox.setXRange(timestamp - x_size / 2, timestamp + x_size / 2, padding=0)
+
+            else:
+                pos = self.region.moving_cursor.value()
+                sig, idx = self.signal_by_uuid(self.current_uuid)
+
+                timestamp = sig.timestamp_of_next_different_value(
+                    pos, mode="different", previous=key == QtCore.Qt.Key.Key_Left
+                )
+
+                self.region.moving_cursor.set_value(timestamp)
+
+                view_range = sorted([line.value() for line in self.region.lines])
+                x_size = view_range[1] - view_range[0]
+                self.viewbox.setXRange(view_range[0] - x_size * 0.05, view_range[1] + x_size * 0.05, padding=0)
+
+        elif key in (QtCore.Qt.Key.Key_PageUp, QtCore.Qt.Key.Key_PageDown) and modifier in (
+            QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+            QtCore.Qt.KeyboardModifier.ControlModifier,
+        ):
+            if self.region is None:
+
+                pos = self.cursor1.value()
+                sig, idx = self.signal_by_uuid(self.current_uuid)
+
+                timestamp = sig.timestamp_of_next_different_value(
+                    pos,
+                    mode="higher" if key == QtCore.Qt.Key.Key_PageUp else "lower",
+                    previous=modifier
+                    == QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                )
+
+                self.cursor1.set_value(timestamp)
+
+                view_range = self.viewbox.viewRange()
+                x_size = view_range[1] - view_range[0]
+                self.viewbox.setXRange(timestamp - x_size / 2, timestamp + x_size / 2, padding=0)
+
+            else:
+                pos = self.region.moving_cursor.value()
+                sig, idx = self.signal_by_uuid(self.current_uuid)
+
+                timestamp = sig.timestamp_of_next_different_value(
+                    pos,
+                    mode="higher" if key == QtCore.Qt.Key.Key_PageUp else "lower",
+                    previous=modifier
+                    == QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier,
+                )
+
+                self.region.moving_cursor.set_value(timestamp)
+
+                view_range = sorted([line.value() for line in self.region.lines])
+                x_size = view_range[1] - view_range[0]
+                self.viewbox.setXRange(view_range[0] - x_size * 0.05, view_range[1] + x_size * 0.05, padding=0)
+
+        elif key in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_Right) and modifier in (
+            QtCore.Qt.KeyboardModifier.NoModifier,
+            QtCore.Qt.KeyboardModifier.ControlModifier,
+        ):
+            if self.region is None:
+                if modifier == QtCore.Qt.KeyboardModifier.ControlModifier:
+                    increment = 20
                 else:
-                    min_start_ts = start_ts
-                    max_stop_ts = stop_ts
+                    increment = 1
 
-                rect = self.viewbox.sceneBoundingRect()
-                width = rect.width() - 5
-
-                dpi = QtWidgets.QApplication.primaryScreen().physicalDotsPerInchX()
-                dpc = dpi / 2.54
-
-                physical_viewbox_width = width / dpc  # cm
-                time_width = physical_viewbox_width * HONEYWELL_SECONDS_PER_CM
-
-                if self.cursor1.isVisible():
-                    mid = self.cursor1.value()
+                prev_pos = pos = self.cursor1.value()
+                x = self.get_current_timebase()
+                dim = x.size
+                if dim:
+                    pos = np.searchsorted(x, pos)
+                    if key == QtCore.Qt.Key.Key_Right:
+                        pos += increment
+                    else:
+                        pos -= increment
+                    pos = np.clip(pos, 0, dim - increment)
+                    pos = x[pos]
                 else:
-                    mid = self.region.getRegion()[0]
+                    if key == QtCore.Qt.Key.Key_Right:
+                        pos += increment
+                    else:
+                        pos -= increment
 
-                if mid - time_width / 2 < min_start_ts:
-                    start_ts = min_start_ts
-                    stop_ts = min_start_ts + time_width
-                elif mid + time_width / 2 > max_stop_ts:
-                    start_ts = max_stop_ts - time_width
-                    stop_ts = max_stop_ts
+                (left_side, right_side), _ = self.viewbox.viewRange()
+
+                if pos >= right_side:
+                    delta = abs(pos - prev_pos)
+                    self.viewbox.setXRange(left_side + delta, right_side + delta, padding=0)
+                elif pos <= left_side:
+                    delta = abs(pos - prev_pos)
+                    self.viewbox.setXRange(left_side - delta, right_side - delta, padding=0)
+
+                self.cursor1.set_value(pos)
+
+            else:
+                increment = 1
+                start, stop = self.region.getRegion()
+
+                if self.region_lock is None:
+                    if modifier == QtCore.Qt.KeyboardModifier.ControlModifier:
+                        pos = stop
+                        second_pos = start
+                    else:
+                        pos = start
+                        second_pos = stop
                 else:
-                    start_ts = mid - time_width / 2
-                    stop_ts = mid + time_width / 2
+                    if start != stop:
+                        pos = start if stop == self.region_lock else stop
+                    else:
+                        pos = self.region_lock
 
-                self.viewbox.setXRange(start_ts, stop_ts, padding=0)
+                x = self.get_current_timebase()
+                dim = x.size
+                if dim:
+                    pos = np.searchsorted(x, pos)
+                    if key == QtCore.Qt.Key.Key_Right:
+                        pos += increment
+                    else:
+                        pos -= increment
+                    pos = np.clip(pos, 0, dim - increment)
+                    pos = x[pos]
+                else:
+                    if key == QtCore.Qt.Key.Key_Right:
+                        pos += increment
+                    else:
+                        pos -= increment
+
+                (left_side, right_side), _ = self.viewbox.viewRange()
+
+                if pos >= right_side:
+                    self.viewbox.setXRange(left_side, pos, padding=0)
+                elif pos <= left_side:
+                    self.viewbox.setXRange(pos, right_side, padding=0)
+
+                if self.region_lock is not None:
+                    self.region.setRegion((self.region_lock, pos))
+                else:
+                    self.region.setRegion(tuple(sorted((second_pos, pos))))
+
+        elif (
+            key in (QtCore.Qt.Key.Key_Left, QtCore.Qt.Key.Key_Right)
+            and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
+        ):
+            parent = self.plot_parent
+            uuids = list(
+                {
+                    item.uuid
+                    for item in parent.channel_selection.selectedItems()
+                    if item.type() == ChannelsTreeItem.Channel
+                }
+            )
+
+            if not uuids:
+                return
+
+            start, stop = self.viewbox.viewRange()[0]
+
+            offset = (stop - start) / 100
+
+            if key == QtCore.Qt.Key.Key_Left:
+                offset = -offset
+
+            self.set_time_offset([False, offset, *uuids])
+
+        elif (
+            key
+            in (
+                QtCore.Qt.Key.Key_Up,
+                QtCore.Qt.Key.Key_Down,
+                QtCore.Qt.Key.Key_PageUp,
+                QtCore.Qt.Key.Key_PageDown,
+            )
+            and modifier == QtCore.Qt.KeyboardModifier.ShiftModifier
+        ):
+            parent = self.plot_parent
+            uuids = list(
+                {
+                    item.uuid
+                    for item in parent.channel_selection.selectedItems()
+                    if item.type() == ChannelsTreeItem.Channel
+                }
+            )
+
+            if not uuids:
+                return
+
+            factor = 10 if key in (QtCore.Qt.Key.Key_PageUp, QtCore.Qt.Key.Key_PageDown) else 100
+
+            for uuid in uuids:
+                signal, index = self.signal_by_uuid(uuid)
+
+                bottom, top = signal.y_range
+                step = (top - bottom) / factor
+
+                if key in (QtCore.Qt.Key.Key_Up, QtCore.Qt.Key.Key_PageUp):
+                    step = -step
+
+                signal.y_range = bottom + step, top + step
+
+            self.zoom_changed.emit(False)
+
+            self.update()
+
+        elif key == QtCore.Qt.Key.Key_H and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
+            start_ts, stop_ts = self.viewbox.viewRange()[0]
+
+            if len(self.all_timebase):
+                min_start_ts = np.amin(self.all_timebase)
+                max_stop_ts = np.amax(self.all_timebase)
+            else:
+                min_start_ts = start_ts
+                max_stop_ts = stop_ts
+
+            rect = self.viewbox.sceneBoundingRect()
+            width = rect.width() - 5
+
+            dpi = QtWidgets.QApplication.primaryScreen().physicalDotsPerInchX()
+            dpc = dpi / 2.54
+
+            physical_viewbox_width = width / dpc  # cm
+            time_width = physical_viewbox_width * HONEYWELL_SECONDS_PER_CM
+
+            if self.cursor1.isVisible():
+                mid = self.cursor1.value()
+            else:
+                mid = self.region.getRegion()[0]
+
+            if mid - time_width / 2 < min_start_ts:
+                start_ts = min_start_ts
+                stop_ts = min_start_ts + time_width
+            elif mid + time_width / 2 > max_stop_ts:
+                start_ts = max_stop_ts - time_width
+                stop_ts = max_stop_ts
+            else:
+                start_ts = mid - time_width / 2
+                stop_ts = mid + time_width / 2
+
+            self.viewbox.setXRange(start_ts, stop_ts, padding=0)
+
+            if self.cursor1:
+                self.cursor_moved.emit(self.cursor1)
+
+        elif key == QtCore.Qt.Key.Key_W and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
+            if len(self.all_timebase):
+                start_ts = np.amin(self.all_timebase)
+                stop_ts = np.amax(self.all_timebase)
+
+                self.viewbox.setXRange(start_ts, stop_ts)
 
                 if self.cursor1:
                     self.cursor_moved.emit(self.cursor1)
 
-            elif key == QtCore.Qt.Key.Key_W and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
-                if len(self.all_timebase):
-                    start_ts = np.amin(self.all_timebase)
-                    stop_ts = np.amax(self.all_timebase)
+        elif key == QtCore.Qt.Key.Key_Insert and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
+            self.insert_computation()
 
-                    self.viewbox.setXRange(start_ts, stop_ts)
+        else:
+            handled = False
 
-                    if self.cursor1:
-                        self.cursor_moved.emit(self.cursor1)
-
-            elif key == QtCore.Qt.Key.Key_Insert and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
-                self.insert_computation()
-
-            else:
-                handled = False
-
-            if not handled:
-                event.ignore()
-                self.parent().keyPressEvent(event)
-            else:
-                event.accept()
+        if not handled:
+            event.ignore()
+            self.parent().keyPressEvent(event)
+        else:
+            event.accept()
 
     def open_scale_editor(self, uuid):
         uuid = uuid or self.current_uuid

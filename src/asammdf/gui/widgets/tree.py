@@ -452,6 +452,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         self.setColumnHidden(self.OriginColumn, True)
 
+        self.disabled_keyboard_events = set()
+
         self.set_style()
 
     def autoscroll(self):
@@ -554,6 +556,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     def keyPressEvent(self, event):
         key = event.key()
         modifiers = event.modifiers()
+
+        if event.keyCombination().toCombined() in self.disabled_keyboard_events:
+            event.ignore()
+            return
 
         if key == QtCore.Qt.Key.Key_Delete and self.can_delete_items:
             event.accept()
