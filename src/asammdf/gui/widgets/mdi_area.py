@@ -1601,7 +1601,7 @@ class WithMDIArea:
                                     ]
                                 else:
                                     columns["Direction"] = [
-                                        "TX" if dir else "RX" for dir in data["CAN_DataFrame.Dir"].astype("u1").tolist()
+                                        "Tx" if dir else "Rx" for dir in data["CAN_DataFrame.Dir"].astype("u1").tolist()
                                     ]
 
                             if "CAN_DataFrame.ESI" in names:
@@ -1647,7 +1647,7 @@ class WithMDIArea:
                                     ]
                                 else:
                                     columns["Direction"] = [
-                                        "TX" if dir else "RX"
+                                        "Tx" if dir else "Rx"
                                         for dir in data["CAN_RemoteFrame.Dir"].astype("u1").tolist()
                                     ]
 
@@ -1692,7 +1692,7 @@ class WithMDIArea:
                                     ]
                                 else:
                                     columns["Direction"] = [
-                                        "TX" if dir else "RX"
+                                        "Tx" if dir else "Rx"
                                         for dir in data["CAN_ErrorFrame.Dir"].astype("u1").tolist()
                                     ]
 
@@ -1805,7 +1805,8 @@ class WithMDIArea:
 
             columns = {
                 "timestamps": df_index,
-                "Bus": np.full(count, "Unknown", dtype="O"),
+                "Bus": np.full(count, "", dtype="O"),
+                "Channel": np.full(count, "", dtype="O"),
                 "ID": np.full(count, 0xFFFF, dtype="u2"),
                 "Direction": np.full(count, "", dtype="O"),
                 "Cycle": np.full(count, 0xFF, dtype="u1"),
@@ -1843,9 +1844,15 @@ class WithMDIArea:
                     index = np.searchsorted(df_index, data.timestamps)
 
                     vals = data["FLX_Frame.BusChannel"].astype("u1")
-
                     vals = [f"FlexRay {chn}" for chn in vals.tolist()]
                     columns["Bus"][index] = vals
+
+                    if data["FLX_Frame.FlxChannel"].dtype.kind == "S":
+                        columns["Channel"][index] = [v.decode("utf-8") for v in data["FLX_Frame.FlxChannel"].tolist()]
+                    else:
+                        columns["Channel"][index] = [
+                            "B" if chn else "A" for chn in data["FLX_Frame.FlxChannel"].astype("u1").tolist()
+                        ]
 
                     vals = data["FLX_Frame.ID"].astype("u2")
                     columns["ID"][index] = vals
@@ -1872,7 +1879,7 @@ class WithMDIArea:
                             columns["Direction"][index] = [v.decode("utf-8") for v in data["FLX_Frame.Dir"].tolist()]
                         else:
                             columns["Direction"][index] = [
-                                "TX" if dir else "RX" for dir in data["FLX_Frame.Dir"].astype("u1").tolist()
+                                "Tx" if dir else "Rx" for dir in data["FLX_Frame.Dir"].astype("u1").tolist()
                             ]
 
                     vals = None
@@ -1884,6 +1891,15 @@ class WithMDIArea:
                     vals = data["FLX_NullFrame.BusChannel"].astype("u1")
                     vals = [f"FlexRay {chn}" for chn in vals.tolist()]
                     columns["Bus"][index] = vals
+
+                    if data["FLX_NullFrame.FlxChannel"].dtype.kind == "S":
+                        columns["Channel"][index] = [
+                            v.decode("utf-8") for v in data["FLX_NullFrame.FlxChannel"].tolist()
+                        ]
+                    else:
+                        columns["Channel"][index] = [
+                            "B" if chn else "A" for chn in data["FLX_NullFrame.FlxChannel"].astype("u1").tolist()
+                        ]
 
                     vals = data["FLX_NullFrame.ID"].astype("u2")
                     columns["ID"][index] = vals
@@ -1905,7 +1921,7 @@ class WithMDIArea:
                             ]
                         else:
                             columns["Direction"][index] = [
-                                "TX" if dir else "RX" for dir in data["FLX_NullFrame.Dir"].astype("u1").tolist()
+                                "Tx" if dir else "Rx" for dir in data["FLX_NullFrame.Dir"].astype("u1").tolist()
                             ]
 
                     vals = None
@@ -1939,7 +1955,8 @@ class WithMDIArea:
 
             columns = {
                 "timestamps": df_index,
-                "Bus": np.full(count, "Unknown", dtype="O"),
+                "Bus": np.full(count, "", dtype="O"),
+                "Channel": np.full(count, "", dtype="O"),
                 "ID": np.full(count, 0xFFFF, dtype="u2"),
                 "Direction": np.full(count, "", dtype="O"),
                 "Cycle": np.full(count, 0xFF, dtype="u1"),
@@ -2107,7 +2124,7 @@ class WithMDIArea:
                                     columns["Direction"] = [v.decode("utf-8") for v in data["LIN_Frame.Dir"].tolist()]
                                 else:
                                     columns["Direction"] = [
-                                        "TX" if dir else "RX" for dir in data["LIN_Frame.Dir"].astype("u1").tolist()
+                                        "Tx" if dir else "Rx" for dir in data["LIN_Frame.Dir"].astype("u1").tolist()
                                     ]
 
                             vals = None
@@ -2156,7 +2173,7 @@ class WithMDIArea:
                                 columns["Name"] = [frame_map.get(_id, "") for _id in vals.tolist()]
 
                             columns["Event Type"] = "Transmission Error Frame"
-                            columns["Direction"] = ["TX"] * count
+                            columns["Direction"] = ["Tx"] * count
 
                             vals = None
 
@@ -2184,7 +2201,7 @@ class WithMDIArea:
 
                             columns["Event Type"] = "Receive Error Frame"
 
-                            columns["Direction"] = ["RX"] * count
+                            columns["Direction"] = ["Rx"] * count
 
                             vals = None
 
@@ -2224,7 +2241,7 @@ class WithMDIArea:
 
                             if "LIN_ChecksumError.Dir" in names:
                                 columns["Direction"] = [
-                                    "TX" if dir else "RX" for dir in data["LIN_ChecksumError.Dir"].astype("u1").tolist()
+                                    "Tx" if dir else "Rx" for dir in data["LIN_ChecksumError.Dir"].astype("u1").tolist()
                                 ]
 
                             vals = None
