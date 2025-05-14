@@ -1842,7 +1842,7 @@ class WithMDIArea:
                 if data.name == "FLX_Frame":
                     index = np.searchsorted(df_index, data.timestamps)
 
-                    vals = data["FLX_Frame.FlxChannel"].astype("u1")
+                    vals = data["FLX_Frame.BusChannel"].astype("u1")
 
                     vals = [f"FlexRay {chn}" for chn in vals.tolist()]
                     columns["Bus"][index] = vals
@@ -1881,7 +1881,7 @@ class WithMDIArea:
                 elif data.name == "FLX_NullFrame":
                     index = np.searchsorted(df_index, data.timestamps)
 
-                    vals = data["FLX_NullFrame.FlxChannel"].astype("u1")
+                    vals = data["FLX_NullFrame.BusChannel"].astype("u1")
                     vals = [f"FlexRay {chn}" for chn in vals.tolist()]
                     columns["Bus"][index] = vals
 
