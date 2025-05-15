@@ -1438,7 +1438,7 @@ class Signal:
             virtual_master_conversion=self.virtual_master_conversion,
         )
 
-    def physical(self, copy: bool = True) -> "Signal":
+    def physical(self, copy: bool = True, ignore_value2text_conversions: bool = False) -> "Signal":
         """Get the physical samples values.
 
         Parameters
@@ -1447,6 +1447,11 @@ class Signal:
             copy the samples and timestamps in the returned Signal
 
             .. versionadded:: 7.4.0
+
+        ignore_value2text_conversions : bool
+            make sure that the output signal has numeric samples by ignoring the value to text conversions
+
+            .. versionadded:: 8.3.0
 
         Returns
         -------
@@ -1462,7 +1467,7 @@ class Signal:
                 samples = self.samples
             encoding = None
         else:
-            samples = self.conversion.convert(self.samples)
+            samples = self.conversion.convert(self.samples, ignore_value2text_conversions=ignore_value2text_conversions)
             if samples.dtype.kind == "S":
                 encoding = "utf-8" if self.conversion.id == b"##CC" else "latin-1"
             else:

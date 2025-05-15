@@ -471,7 +471,7 @@ def compute_signal(
 ):
     required_channels = {}
     for key, sig in measured_signals.items():
-        signal = sig.physical(copy=False)
+        signal = sig.physical(copy=False, ignore_value2text_conversions=True)
         if signal.samples.dtype.kind in "fui":
             required_channels[key] = signal
         else:
