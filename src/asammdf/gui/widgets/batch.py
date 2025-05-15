@@ -1841,16 +1841,11 @@ MultiRasterSeparator;&
                 self,
                 "Select channel list file",
                 "",
-                "Config file (*.cfg);;Display files (*.dsp *.dspf);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.dspf *.lab)",
-                "All file types (*.cfg *.dsp *.dspf *.lab)",
+                "Config file (*.cfg);;Display files (*.dsp *.dspf);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.dspf *.lab *.txt)",
+                "All file types (*.cfg *.dsp *.dspf *.lab *.txt)",
             )
 
-            if file_name is None or Path(file_name).suffix.lower() not in (
-                ".cfg",
-                ".dsp",
-                ".dspf",
-                ".lab",
-            ):
+            if file_name is None or Path(file_name).suffix.lower() not in (".cfg", ".dsp", ".dspf", ".lab", ".txt"):
                 return
 
         if not isinstance(file_name, dict):

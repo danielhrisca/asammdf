@@ -1386,8 +1386,8 @@ MultiRasterSeparator;&
                 self,
                 "Select channel list file",
                 self.default_folder,
-                "Config file (*.cfg);;Display files (*.dsp *.dspf);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.dspf *.lab)",
-                "All file types (*.cfg *.dsp *.dspf *.lab)",
+                "Config file (*.cfg);;Display files (*.dsp *.dspf);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.dspf *.lab *.txt)",
+                "All file types (*.cfg *.dsp *.dspf *.lab *.txt)",
             )
 
             if file_name is None or Path(file_name).suffix.lower() not in (
