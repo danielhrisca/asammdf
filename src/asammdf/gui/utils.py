@@ -1351,12 +1351,19 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
             else:
                 trace = "Complete signal: The function did not return an list, tuple or np.ndarray"
 
-        if len(np.array(res).shape) > 1:
+        try:
+            if len(np.array(res).shape) > 1:
+                complete_signal = False
+                if trace:
+                    trace += "\n\nComplete signal: The function returned a multi dimensional array"
+                else:
+                    trace = "Complete signal: The function returned a multi dimensional array"
+        except:
             complete_signal = False
             if trace:
-                trace += "\n\nComplete signal: The function returned a multi dimensional array"
+                trace += f"\n\nComplete signal: {format_exc()}"
             else:
-                trace = "Complete signal: The function returned a multi dimensional array"
+                trace = f"Complete signal: {format_exc()}"
 
     if not sample_by_sample and not complete_signal:
         if not silent:
