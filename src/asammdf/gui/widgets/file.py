@@ -17,6 +17,8 @@ import asammdf.mdf as mdf_module
 
 from ... import tool
 from ...blocks.utils import (
+    COLORS,
+    COLORS_COUNT,
     extract_encryption_information,
     extract_xml_comment,
     load_channel_names_from_file,
@@ -1083,10 +1085,76 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 channels = [name.split(";")[0] for name in info[section]]
 
-            elif extension in (".cfg", ".txt"):
+            elif extension == ".cfg":
                 with open(file_name) as infile:
                     info = json.load(infile)
                 channels = info.get("selected_channels", [])
+
+            elif extension == ".txt":
+                try:
+                    with open(file_name) as infile:
+                        info = json.load(infile)
+                    channels = info.get("selected_channels", [])
+                except:
+                    with open(file_name) as infile:
+                        channels = [line.strip() for line in infile.readlines()]
+                        channels = [name for name in channels if name]
+                    info = {
+                        "selected_channels": [],
+                        "windows": [
+                            {
+                                "title": "Plot 0",
+                                "configuration": {
+                                    "channels": [
+                                        {
+                                            "type": "channel",
+                                            "name": name,
+                                            "unit": "",
+                                            "flags": 0,
+                                            "enabled": True,
+                                            "individual_axis": False,
+                                            "common_axis": False,
+                                            "color": COLORS[i % COLORS_COUNT],
+                                            "computed": False,
+                                            "ranges": [],
+                                            "precision": 3,
+                                            "fmt": "{}",
+                                            "format": "phys",
+                                            "mode": "phys",
+                                            "y_range": [0.0, 10],
+                                            "origin_uuid": "df21b72e1fdd",
+                                        }
+                                        for i, name in enumerate(channels)
+                                    ],
+                                    "pattern": {},
+                                    "splitter": [732, 729, 0],
+                                    "x_range": [-0.947017678447, 30.291065678447],
+                                    "y_axis_width": 48.0,
+                                    "grid": [False, False],
+                                    "cursor_precision": 15,
+                                    "font_size": 9,
+                                    "locked": False,
+                                    "common_axis_y_range": [0.0, 1.0],
+                                    "channels_header": [732, [568, 83, 41, 20, 20, 0]],
+                                    "channels_header_columns_visible": [True, True, True, True, True, False],
+                                    "hide_axes": False,
+                                    "hide_selected_channel_value_panel": False,
+                                    "focused_mode": False,
+                                    "delta_mode": "delta",
+                                    "hide_bookmarks": True,
+                                    "hide_missing_channels": False,
+                                    "hide_disabled_channels": False,
+                                },
+                                "geometry": [0, 0, 1475, 924],
+                                "maximized": True,
+                                "minimized": False,
+                                "type": "Plot",
+                            }
+                        ],
+                        "active_window": "Plot 0",
+                        "functions": {},
+                        "global_variables": "",
+                    }
 
             elif extension == ".dspf":
                 with open(file_name) as infile:
