@@ -9223,6 +9223,8 @@ class MDF4(MDF_Common[Group]):
                 fragment.invalidation_data,
             )
             cycles_nr = len(data_bytes) // record_size if record_size else 0
+            record_offset = fragment.record_offset
+            record_count = fragment.record_count
         else:
             offset = 0
 
