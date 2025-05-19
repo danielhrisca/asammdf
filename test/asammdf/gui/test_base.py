@@ -495,7 +495,7 @@ class OpenFileContextManager:
         self.file.close()
         for exc in (exc_type, exc_val, exc_tb):
             if exc is not None:
-                raise exc
+                print(exc)
 
 
 class OpenMDF(OpenFileContextManager):

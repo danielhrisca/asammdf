@@ -8,7 +8,7 @@ from PySide6.QtGui import QColor, QKeySequence, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QTreeWidgetItemIterator
 
-from test.asammdf.gui.test_base import Pixmap
+from test.asammdf.gui.test_base import OpenMDF, Pixmap
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
@@ -202,12 +202,11 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         # Store all channels names from a group in a list
         group_channels_name = [channel.name for channel in group.get_all_channel_items()]
         # Store all channels with specific pattern in their names in a list
-        ct = self.widget.channels_tree
-        items = [
-            ct.topLevelItem(_).name
-            for _ in range(ct.topLevelItemCount() - 1)
-            if group_name.upper() in ct.topLevelItem(_).name.upper()
-        ]
+        items = []
+        with OpenMDF(self.measurement_file) as mdf:
+            items.extend(
+                list(ch.display_names)[0] for ch in mdf.iter_channels() if group_name.upper() in ch.name.upper()
+            )
         self.assertEqual(len(group_channels_name), len(items))
         for channel_name in group_channels_name:
             self.assertIn(channel_name, items)
