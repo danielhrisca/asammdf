@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1134</width>
+    <width>829</width>
     <height>679</height>
    </rect>
   </property>
@@ -298,6 +298,9 @@
             <iconset resource="resource.qrc">
              <normaloff>:/info.png</normaloff>:/info.png</iconset>
            </property>
+           <property name="autoDefault">
+            <bool>false</bool>
+           </property>
           </widget>
          </item>
         </layout>
@@ -516,6 +519,9 @@
          <property name="icon">
           <iconset resource="resource.qrc">
            <normaloff>:/range.png</normaloff>:/range.png</iconset>
+         </property>
+         <property name="autoDefault">
+          <bool>false</bool>
          </property>
         </widget>
        </item>
