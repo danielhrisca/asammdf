@@ -4362,6 +4362,13 @@ class MDF:
         if validate:
             signals = [sig.validate(copy=False) for sig in signals]
 
+        unique = set()
+        for i, signal in enumerate(signals):
+            obj_id = id(signal)
+            if id(signal) in unique:
+                signals[i] = signal.copy()
+            unique.add(obj_id)
+
         for signal, channel in zip(signals, channels, strict=False):
             if isinstance(channel, str):
                 signal.name = channel
@@ -4369,13 +4376,6 @@ class MDF:
                 name = channel[0]
                 if name is not None:
                     signal.name = name
-
-        unique = set()
-        for i, signal in enumerate(signals):
-            obj_id = id(signal)
-            if id(signal) in unique:
-                signals[i] = signal.copy()
-            unique.add(obj_id)
 
         return signals
 
