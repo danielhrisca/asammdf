@@ -28,7 +28,7 @@ class Ui_SearchDialog(object):
     def setupUi(self, SearchDialog):
         if not SearchDialog.objectName():
             SearchDialog.setObjectName(u"SearchDialog")
-        SearchDialog.resize(1134, 679)
+        SearchDialog.resize(829, 679)
         SearchDialog.setSizeGripEnabled(True)
         self.gridLayout_2 = QGridLayout(SearchDialog)
         self.gridLayout_2.setSpacing(1)
@@ -128,6 +128,7 @@ class Ui_SearchDialog(object):
         icon1 = QIcon()
         icon1.addFile(u":/info.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.show_alias_btn.setIcon(icon1)
+        self.show_alias_btn.setAutoDefault(False)
 
         self.horizontalLayout_2.addWidget(self.show_alias_btn)
 
@@ -255,6 +256,7 @@ class Ui_SearchDialog(object):
         icon6 = QIcon()
         icon6.addFile(u":/range.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.define_ranges_btn.setIcon(icon6)
+        self.define_ranges_btn.setAutoDefault(False)
 
         self.gridLayout_3.addWidget(self.define_ranges_btn, 7, 2, 1, 1)
 
@@ -435,3 +437,4 @@ class Ui_SearchDialog(object):
         self.cancel_pattern_btn.setText(QCoreApplication.translate("SearchDialog", u"Cancel", None))
         self.tabs.setTabText(self.tabs.indexOf(self.tab_2), QCoreApplication.translate("SearchDialog", u"Pattern definition", None))
     # retranslateUi
+

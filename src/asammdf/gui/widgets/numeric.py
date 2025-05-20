@@ -1531,9 +1531,9 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.channels.auto_size_header()
         self.double_clicked_enabled = True
 
-        if self.mode == "offline":
-            self.pattern = {}
+        self.pattern = {}
 
+        if self.mode == "offline":
             self.timestamp.valueChanged.connect(self._timestamp_changed)
             self.timestamp_slider.valueChanged.connect(self._timestamp_slider_changed)
 

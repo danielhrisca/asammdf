@@ -245,16 +245,16 @@ def extract_signals_using_pattern(
         else:
             pattern = re.compile(f"(?i){pattern}")
 
-        matches = {}
+        matches = set()
 
         for name, entries in channels_db.items():
             if pattern.fullmatch(name):
                 for entry in entries:
                     if entry in matches:
                         continue
-                    matches[entry] = name
+                    matches.add((name, *entry))
 
-        matches = natsorted((name, *entry) for entry, name in matches.items())
+        matches = natsorted(matches)
     except:
         print(format_exc())
         signals = []
