@@ -1878,36 +1878,36 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
     def to_config(self):
         channels = []
-        for signal in self.channels.backend.signals:
-            ranges = self.channels.dataView.ranges[signal.entry]
-            ranges = copy_ranges(ranges)
+
+        pattern = self.pattern
+        if pattern:
+            ranges = copy_ranges(pattern["ranges"])
 
             for range_info in ranges:
                 range_info["font_color"] = range_info["font_color"].color().name()
                 range_info["background_color"] = range_info["background_color"].color().name()
 
-            channels.append(
-                {
-                    "origin_uuid": str(signal.entry[0]),
-                    "name": signal.name,
-                    "ranges": ranges,
-                    "format": signal.format,
-                    "color": signal.color.name(),
-                }
-            )
+            pattern["ranges"] = ranges
 
-        if self.mode == "offline":
-            pattern = self.pattern
-            if pattern:
-                ranges = copy_ranges(pattern["ranges"])
+        else:
+
+            for signal in self.channels.backend.signals:
+                ranges = self.channels.dataView.ranges[signal.entry]
+                ranges = copy_ranges(ranges)
 
                 for range_info in ranges:
                     range_info["font_color"] = range_info["font_color"].color().name()
                     range_info["background_color"] = range_info["background_color"].color().name()
 
-                pattern["ranges"] = ranges
-        else:
-            pattern = {}
+                channels.append(
+                    {
+                        "origin_uuid": str(signal.entry[0]),
+                        "name": signal.name,
+                        "ranges": ranges,
+                        "format": signal.format,
+                        "color": signal.color.name(),
+                    }
+                )
 
         config = {
             "format": "Physical",
