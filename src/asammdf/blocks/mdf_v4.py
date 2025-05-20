@@ -3405,10 +3405,11 @@ class MDF4(MDF_Common[Group]):
                         )
                     )
 
-                    vals = signal.samples.tobytes()
-
                     if not signal.samples.flags["C_CONTIGUOUS"]:
-                        vals = np.ascontiguousarray(vals)
+                        vals = np.ascontiguousarray(signal.samples)
+                    else:
+                        vals = signal.samples
+
                     fields.append((vals, 6))
                     byte_size = 6
                     s_type = v4c.DATA_TYPE_CANOPEN_TIME
@@ -3436,9 +3437,8 @@ class MDF4(MDF_Common[Group]):
                     vals = np.rec.fromarrays(arrays)
 
                     if not vals.flags["C_CONTIGUOUS"]:
-                        vals = np.ascontiguousarray(vals.tobytes())
-                    else:
-                        vals = vals.tobytes()
+                        vals = np.ascontiguousarray(vals)
+
                     fields.append((vals, 7))
                     byte_size = 7
                     s_type = v4c.DATA_TYPE_CANOPEN_DATE
