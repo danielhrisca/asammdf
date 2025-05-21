@@ -61,7 +61,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
         with OpenMDF(self.measurement_file) as mdf:
             for ch in mdf.iter_channels():
                 if matrix_pattern.upper() in ch.name.upper():
-                    matrix_items[(ch.group_index, ch.channel_index)] = list(ch.display_names)[0]
+                    matrix_items[(ch.group_index, ch.channel_index)] = ch.name
                 if u_word_pattern.upper() in ch.name.upper():
                     u_word_items[(ch.group_index, ch.channel_index)] = ch.name
 
