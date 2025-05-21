@@ -899,7 +899,7 @@ class MDF4(MDF_Common[Group]):
         if grp.channel_group.path_separator:
             path_separator = chr(grp.channel_group.path_separator)
         else:
-            path_separator = "\\"
+            path_separator = "."
 
         while ch_addr:
             # read channel block and create channel object
@@ -1035,9 +1035,8 @@ class MDF4(MDF_Common[Group]):
                     None,
                 )
 
-            si_path = getattr(channel.source, "path", "")
-            if si_path:
-                path_name = f"{si_path}.{channel.name}"
+            if channel.source and channel.source.bus_type in v4c.BUS_LOGGING_TYPES and channel.source.path:
+                path_name = f"{channel.source.path}.{channel.name}"
                 if path_name not in channel.display_names:
                     channel.display_names[path_name] = "source_path"
 

@@ -319,6 +319,7 @@ def extract_signals_using_pattern(
         output_signals[uuid] = sig
         sig.origin_uuid = origin_uuid
         sig.origin_mdf = origin_mdf
+        sig.enable = True
 
     if as_names:
         return {sig.name for sig in signals}
