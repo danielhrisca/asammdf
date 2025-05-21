@@ -205,7 +205,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         items = []
         with OpenMDF(self.measurement_file) as mdf:
             items.extend(
-                list(ch.display_names)[0] for ch in mdf.iter_channels() if group_name.upper() in ch.name.upper()
+                ch.name for ch in mdf.iter_channels() if group_name.upper() in ch.name.upper()
             )
         self.assertEqual(len(group_channels_name), len(items))
         for channel_name in group_channels_name:
