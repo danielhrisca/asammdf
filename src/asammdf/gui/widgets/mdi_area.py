@@ -65,8 +65,8 @@ def deepcopy_cfg_item(item):
     if item.get("type", "channel") == "group":
         ranges = [
             {
-                "background_color": fn.mkBrush(range_item["background_color"]),
-                "font_color": fn.mkBrush(range_item["font_color"]),
+                "background_color": fn.mkColor(range_item["background_color"]),
+                "font_color": fn.mkColor(range_item["font_color"]),
                 "op1": range_item["op1"],
                 "op2": range_item["op2"],
                 "value1": range_item["value1"],
@@ -90,8 +90,8 @@ def deepcopy_cfg_item(item):
         if pattern := item["pattern"]:
             ranges = [
                 {
-                    "background_color": fn.mkBrush(range_item["background_color"]),
-                    "font_color": fn.mkBrush(range_item["font_color"]),
+                    "background_color": fn.mkColor(range_item["background_color"]),
+                    "font_color": fn.mkColor(range_item["font_color"]),
                     "op1": range_item["op1"],
                     "op2": range_item["op2"],
                     "value1": range_item["value1"],
@@ -115,8 +115,8 @@ def deepcopy_cfg_item(item):
     else:
         ranges = [
             {
-                "background_color": fn.mkBrush(range_item["background_color"]),
-                "font_color": fn.mkBrush(range_item["font_color"]),
+                "background_color": fn.mkColor(range_item["background_color"]),
+                "font_color": fn.mkColor(range_item["font_color"]),
                 "op1": range_item["op1"],
                 "op2": range_item["op2"],
                 "value1": range_item["value1"],
@@ -3389,7 +3389,7 @@ class WithMDIArea:
 
             for sig in signals:
                 sig.computation = None
-                sig.ranges = []
+                sig.ranges = copy_ranges(pattern_info["ranges"])
 
         else:
             if self.comparison:
@@ -3638,6 +3638,8 @@ class WithMDIArea:
                 )
 
             mime_data = None
+            for sig in plot_signals.values():
+                sig.ranges = copy_ranges(pattern_info["ranges"])
             descriptions = {}
 
         else:
@@ -4089,8 +4091,8 @@ class WithMDIArea:
                 uuid=self.uuid,
             ).values()
 
+            ranges = {sig.name: copy_ranges(pattern_info["ranges"]) for sig in signals_}
             signals_ = [(sig.name, sig.group_index, sig.channel_index) for sig in signals_]
-            ranges = []
 
         else:
             required = set(window_info["configuration"]["channels"])

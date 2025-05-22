@@ -1818,6 +1818,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     sig.flags &= ~sig.Flags.computed
                     sig.computation = None
                     exists = getattr(sig, "exists", True)
+                    ranges = sig.ranges
                     sig = PlotSignal(sig, index=index, allow_trim=False, allow_nans=True)
                     if sig.conversion:
                         sig.phys_samples = sig.conversion.convert(sig.raw_samples, as_bytes=True)
@@ -1830,7 +1831,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                         )
                     )
 
-                    self.channels.dataView.ranges[sig.entry] = sig.ranges
+                    self.channels.dataView.ranges[sig.entry] = ranges
 
         self.channels.backend.update(others)
         self.update_timebase()

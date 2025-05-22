@@ -3278,7 +3278,7 @@ MultiRasterSeparator;&
 
                 data, file_path, md5_sum = self.mdf.extract_attachment(index, password=password)
 
-                dsp = json.loads(data.decode("utf-8", errors="replace", cls=ExtendedJsonDecoder))
+                dsp = json.loads(data.decode("utf-8", errors="replace"), cls=ExtendedJsonDecoder)
                 dsp["display_file_name"] = "user_embedded_display.dspf"
 
                 self.load_channel_list(file_name=dsp)

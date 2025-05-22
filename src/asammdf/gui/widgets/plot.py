@@ -1985,7 +1985,10 @@ class Plot(QtWidgets.QWidget):
                 new_items[sig_uuid] = item
             items_map[sig_uuid] = item
 
-            item.set_ranges(copy_ranges(description.get("ranges", [])))
+            ranges = description.get("ranges", [])
+            if not ranges and self.pattern:
+                ranges = self.pattern["ranges"]
+            item.set_ranges(copy_ranges(ranges))
 
             self.info_uuid = sig_uuid
 

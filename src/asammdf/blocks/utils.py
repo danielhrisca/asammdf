@@ -2687,12 +2687,9 @@ class ExtendedJsonDecoder(json.JSONDecoder):
         super().__init__(**kwargs)
 
     def object_hook(self, obj):
-        if "color" in obj:
-            obj["color"] = fn.mkColor(obj["color"])
-        else:
-            for key in ("background_color", "font_color"):
-                if key in obj:
-                    obj[key] = fn.mkBrush(obj[key])
+        for key in ("color", "background_color", "font_color"):
+            if key in obj:
+                obj[key] = fn.mkColor(obj[key])
         return obj
 
 
