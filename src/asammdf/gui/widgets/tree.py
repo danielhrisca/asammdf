@@ -2377,11 +2377,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.setIcon(self.NameColumn, QtGui.QIcon(":/filter.png"))
             self.pattern = dict(pattern)
             self.pattern["ranges"] = copy_ranges(self.pattern["ranges"])
-            for range_info in self.pattern["ranges"]:
-                if isinstance(range_info["font_color"], str):
-                    range_info["font_color"] = fn.mkColor(range_info["font_color"])
-                if isinstance(range_info["background_color"], str):
-                    range_info["background_color"] = fn.mkColor(range_info["background_color"])
         else:
             self.setIcon(self.NameColumn, QtGui.QIcon(":/open.png"))
             self.pattern = None
@@ -2427,13 +2422,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 self.setForeground(self.OriginColumn, brush)
                 self._current_font_color = self.signal.color
 
-        self.ranges = []
-        for range_info in ranges:
-            if isinstance(range_info["font_color"], str):
-                range_info["font_color"] = fn.mkColor(range_info["font_color"])
-            if isinstance(range_info["background_color"], str):
-                range_info["background_color"] = fn.mkColor(range_info["background_color"])
-            self.ranges.append(range_info)
+        self.ranges = copy_ranges(ranges)
 
         self.reset_resolved_ranges()
 

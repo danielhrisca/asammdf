@@ -1807,11 +1807,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                         )
                     )
 
-                    ranges = copy_ranges(sig.ranges)
-                    for range_info in ranges:
-                        range_info["font_color"] = fn.mkBrush(range_info["font_color"])
-                        range_info["background_color"] = fn.mkBrush(range_info["background_color"])
-                    sig.ranges = ranges
+                    sig.ranges = copy_ranges(sig.ranges)
 
                     self.channels.dataView.ranges[entry] = sig.ranges
 
@@ -1821,7 +1817,6 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 if sig is not None:
                     sig.flags &= ~sig.Flags.computed
                     sig.computation = None
-                    ranges = sig.ranges
                     exists = getattr(sig, "exists", True)
                     sig = PlotSignal(sig, index=index, allow_trim=False, allow_nans=True)
                     if sig.conversion:
@@ -1835,12 +1830,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                         )
                     )
 
-                    for range_info in ranges:
-                        range_info["font_color"] = fn.mkBrush(range_info["font_color"])
-                        range_info["background_color"] = fn.mkBrush(range_info["background_color"])
-                    sig.ranges = ranges
-
-                    self.channels.dataView.ranges[sig.entry] = ranges
+                    self.channels.dataView.ranges[sig.entry] = sig.ranges
 
         self.channels.backend.update(others)
         self.update_timebase()

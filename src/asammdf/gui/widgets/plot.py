@@ -1830,9 +1830,6 @@ class Plot(QtWidgets.QWidget):
                 origin_uuid = info.get("origin_uuid", "000000000000")
 
                 ranges = copy_ranges(info["ranges"])
-                for range_info in ranges:
-                    range_info["font_color"] = fn.mkColor(range_info["font_color"])
-                    range_info["background_color"] = fn.mkColor(range_info["background_color"])
 
                 if info.get("type", "channel") == "group":
                     item = ChannelsTreeItem(
@@ -1988,26 +1985,7 @@ class Plot(QtWidgets.QWidget):
                 new_items[sig_uuid] = item
             items_map[sig_uuid] = item
 
-            try:
-                item.set_ranges(
-                    [
-                        {
-                            "font_color": range["color"],
-                            "background_color": range["color"],
-                            "op1": "<=",
-                            "op2": "<=",
-                            "value1": float(range["start"]),
-                            "value2": float(range["stop"]),
-                        }
-                        for range in description["ranges"]
-                    ]
-                )
-            except KeyError:
-                item.set_ranges(copy_ranges(description.get("ranges", [])))
-
-            for range in item.ranges:
-                range["font_color"] = fn.mkColor(range["font_color"])
-                range["background_color"] = fn.mkColor(range["background_color"])
+            item.set_ranges(copy_ranges(description.get("ranges", [])))
 
             self.info_uuid = sig_uuid
 
@@ -5401,7 +5379,7 @@ class PlotGraphics(pg.PlotWidget):
                                 y = sig.plot_samples.astype("f8")
                                 x = sig.plot_timestamps
 
-                            if step_mode == "left":
+                            elif step_mode == "left":
                                 idx_with_edges = np.repeat(get_idx_with_edges(idx), 2)
                                 idx_with_edges = np.insert(idx_with_edges, 0, idx_with_edges[0])
                                 _connect = idx_with_edges[:-1].view("u1")

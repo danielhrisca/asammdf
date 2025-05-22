@@ -2536,12 +2536,7 @@ class WithMDIArea:
                 sig.group_index = NOT_FOUND
                 sig.channel_index = randint(0, NOT_FOUND)
                 sig.exists = False
-
-                ranges = sig_obj["ranges"]
-                for range in ranges:
-                    range["font_color"] = QtGui.QBrush(QtGui.QColor(range["font_color"]))
-                    range["background_color"] = QtGui.QBrush(QtGui.QColor(range["background_color"]))
-                sig.ranges = ranges
+                sig.ranges = copy_ranges(sig_obj["ranges"])
                 sig.format = sig_obj["format"]
 
             signals.extend(not_found)
@@ -3434,11 +3429,7 @@ class WithMDIArea:
                     sig.origin_uuid = origin_uuid
                     sig.origin_mdf = origin_mdf
                     sig.computation = None
-                    ranges = description["ranges"]
-                    for range in ranges:
-                        range["font_color"] = fn.mkBrush(range["font_color"])
-                        range["background_color"] = fn.mkBrush(range["background_color"])
-                    sig.ranges = ranges
+                    sig.ranges = copy_ranges(description["ranges"])
                     sig.format = description["format"]
                     sig.color = fn.mkColor(description.get("color", "#505050"))
                     sig.uuid = os.urandom(6).hex()
@@ -4099,6 +4090,7 @@ class WithMDIArea:
             ).values()
 
             signals_ = [(sig.name, sig.group_index, sig.channel_index) for sig in signals_]
+            ranges = []
 
         else:
             required = set(window_info["configuration"]["channels"])
@@ -4110,10 +4102,6 @@ class WithMDIArea:
             ]
 
             ranges = window_info["configuration"].get("ranges", {})
-            for channel_ranges in ranges.values():
-                for range_info in channel_ranges:
-                    range_info["font_color"] = QtGui.QBrush(QtGui.QColor(range_info["font_color"]))
-                    range_info["background_color"] = QtGui.QBrush(QtGui.QColor(range_info["background_color"]))
 
             if not signals_:
                 return None, False
@@ -4224,10 +4212,6 @@ class WithMDIArea:
             return None, False
 
         ranges = window_info["configuration"].get("ranges", {})
-        for channel_ranges in ranges.values():
-            for range_info in channel_ranges:
-                range_info["font_color"] = QtGui.QBrush(QtGui.QColor(range_info["font_color"]))
-                range_info["background_color"] = QtGui.QBrush(QtGui.QColor(range_info["background_color"]))
 
         widget = self._add_can_bus_trace_window(ranges)
 
@@ -4247,10 +4231,6 @@ class WithMDIArea:
             return None, False
 
         ranges = window_info["configuration"].get("ranges", {})
-        for channel_ranges in ranges.values():
-            for range_info in channel_ranges:
-                range_info["font_color"] = QtGui.QBrush(QtGui.QColor(range_info["font_color"]))
-                range_info["background_color"] = QtGui.QBrush(QtGui.QColor(range_info["background_color"]))
 
         widget = self._add_flexray_bus_trace_window(ranges)
 
@@ -4270,10 +4250,6 @@ class WithMDIArea:
             return None, False
 
         ranges = window_info["configuration"].get("ranges", {})
-        for channel_ranges in ranges.values():
-            for range_info in channel_ranges:
-                range_info["font_color"] = QtGui.QBrush(QtGui.QColor(range_info["font_color"]))
-                range_info["background_color"] = QtGui.QBrush(QtGui.QColor(range_info["background_color"]))
 
         widget = self._add_lin_bus_trace_window(ranges)
 
