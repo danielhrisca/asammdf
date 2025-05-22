@@ -35,7 +35,6 @@ from ...blocks.v4_constants import (
     BUS_TYPE_LIN,
     BUS_TYPE_USB,
     CompressionAlgorithm,
-    FLAG_AT_TO_STRING,
     FLAG_CG_BUS_EVENT,
 )
 from ..dialogs.advanced_search import AdvancedSearch
@@ -3420,69 +3419,11 @@ MultiRasterSeparator;&
         hide_embedded_btn = True
 
         if self.mdf.version >= "4.00" and self.mdf.attachments:
-            for i, attachment in enumerate(self.mdf.attachments, 1):
+            for i, attachment in enumerate(self.mdf.attachments):
                 if attachment.file_name == "user_embedded_display.dspf" and attachment.mime == r"application/x-dspf":
                     hide_embedded_btn = False
 
-                att = Attachment(i - 1, self)
-                att.number.setText(f"{i}.")
-
-                fields = []
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "ATBLOCK address")
-                field.setText(1, f"0x{attachment.address:X}")
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "File name")
-                field.setText(1, str(attachment.file_name))
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "MIME type")
-                field.setText(1, attachment.mime)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Comment")
-                field.setText(1, attachment.comment)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Flags")
-                if attachment.flags:
-                    flags = []
-                    for flag, string in FLAG_AT_TO_STRING.items():
-                        if attachment.flags & flag:
-                            flags.append(string)
-                    text = f'{attachment.flags} [0x{attachment.flags:X}= {", ".join(flags)}]'
-                else:
-                    text = "0"
-                field.setText(1, text)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "MD5 sum")
-                field.setText(1, attachment.md5_sum.hex().upper())
-                fields.append(field)
-
-                size = attachment.original_size
-                if size <= 1 << 10:
-                    text = f"{size} B"
-                elif size <= 1 << 20:
-                    text = f"{size / 1024:.1f} KB"
-                elif size <= 1 << 30:
-                    text = f"{size / 1024 / 1024:.1f} MB"
-                else:
-                    text = f"{size / 1024 / 1024 / 1024:.1f} GB"
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Size")
-                field.setText(1, text)
-                fields.append(field)
-
-                att.fields.addTopLevelItems(fields)
+                att = Attachment(i, attachment, self)
 
                 item = QtWidgets.QListWidgetItem()
                 item.setSizeHint(att.sizeHint())
