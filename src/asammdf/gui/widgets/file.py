@@ -19,6 +19,8 @@ from ... import tool
 from ...blocks.utils import (
     COLORS,
     COLORS_COUNT,
+    ExtendedJsonDecoder,
+    ExtendedJsonEncoder,
     extract_encryption_information,
     extract_xml_comment,
     load_channel_names_from_file,
@@ -1010,7 +1012,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if file_name:
             file_name = Path(file_name).with_suffix(".dspf")
-            file_name.write_text(json.dumps(self.to_config(), indent=2))
+            file_name.write_text(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder))
 
             worker = md5()
             worker.update(file_name.read_bytes())
@@ -1086,13 +1088,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             elif extension == ".cfg":
                 with open(file_name) as infile:
-                    info = json.load(infile)
+                    info = json.load(infile, cls=ExtendedJsonDecoder)
                 channels = info.get("selected_channels", [])
 
             elif extension == ".txt":
                 try:
                     with open(file_name) as infile:
-                        info = json.load(infile)
+                        info = json.load(infile, cls=ExtendedJsonDecoder)
                     channels = info.get("selected_channels", [])
                 except:
                     with open(file_name) as infile:
@@ -1157,7 +1159,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             elif extension == ".dspf":
                 with open(file_name) as infile:
-                    info = json.load(infile)
+                    info = json.load(infile, cls=ExtendedJsonDecoder)
                 channels = info.get("selected_channels", [])
 
                 original_file_name = Path(self.mdf.original_name)
@@ -3068,7 +3070,7 @@ MultiRasterSeparator;&
 
         creator_index = len(self.mdf.file_history)
         current_display = self.to_config()
-        data = json.dumps(current_display, indent=2).encode("utf-8", errors="replace")
+        data = json.dumps(current_display, indent=2, cls=ExtendedJsonEncoder).encode("utf-8", errors="replace")
 
         self.mdf.close()
 
@@ -3276,7 +3278,7 @@ MultiRasterSeparator;&
 
                 data, file_path, md5_sum = self.mdf.extract_attachment(index, password=password)
 
-                dsp = json.loads(data.decode("utf-8", errors="replace"))
+                dsp = json.loads(data.decode("utf-8", errors="replace", cls=ExtendedJsonDecoder))
                 dsp["display_file_name"] = "user_embedded_display.dspf"
 
                 self.load_channel_list(file_name=dsp)

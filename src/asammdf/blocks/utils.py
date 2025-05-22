@@ -2108,7 +2108,7 @@ def extract_mime_names(data: "QtCore.QMimeData", disable_new_channels: bool | No
         data_data = data.data("application/octet-stream-asammdf").data()
         data_bytes = data_data.tobytes() if isinstance(data_data, memoryview) else data_data
         text = data_bytes.decode("utf-8")
-        obj = json.loads(text)
+        obj = json.loads(text, cls=ExtendedJsonDecoder)
         fix_comparison_name(obj, disable_new_channels=disable_new_channels)
         names = obj
 
@@ -2557,7 +2557,7 @@ def load_channel_names_from_file(file_name: str, lab_section: str = "") -> list[
 
         case ".dspf":
             with open(file_path) as infile:
-                info = json.load(infile)
+                info = json.load(infile, cls=ExtendedJsonDecoder)
 
             channels = []
             for window in info["windows"]:
@@ -2580,12 +2580,12 @@ def load_channel_names_from_file(file_name: str, lab_section: str = "") -> list[
 
         case ".cfg":
             with open(file_path) as infile:
-                info = json.load(infile)
+                info = json.load(infile, cls=ExtendedJsonDecoder)
             channels = info.get("selected_channels", [])
         case ".txt":
             try:
                 with open(file_path) as infile:
-                    info = json.load(infile)
+                    info = json.load(infile, cls=ExtendedJsonDecoder)
                 channels = info.get("selected_channels", [])
             except:
                 with open(file_path) as infile:
@@ -2679,3 +2679,37 @@ class Timer:
             )
         else:
             print(f"TIMER {self.name}:\n\t* inactive")
+
+
+class ExtendedJsonDecoder(json.JSONDecoder):
+    def __init__(self, **kwargs):
+        kwargs["object_hook"] = self.object_hook
+        super().__init__(**kwargs)
+
+    def object_hook(self, obj):
+        if "color" in obj:
+            obj["color"] = fn.mkColor(obj["color"])
+        else:
+            for key in ("background_color", "font_color"):
+                if key in obj:
+                    obj[key] = fn.mkBrush(obj[key])
+        return obj
+
+
+try:
+    from PySide6 import QtGui
+
+    class ExtendedJsonEncoder(json.JSONEncoder):
+
+        def default(self, obj):
+            if isinstance(obj, QtGui.QBrush):
+                return obj.color().name()
+            elif isinstance(obj, QtGui.QColor):
+                return obj.name()
+            else:
+                return super().default(obj)
+
+except ImportError:
+
+    class ExtendedJsonEncoder(json.JSONEncoder):
+        pass

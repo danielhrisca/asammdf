@@ -11,7 +11,7 @@ from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...blocks.conversion_utils import from_dict, to_dict
-from ...blocks.utils import extract_mime_names
+from ...blocks.utils import ExtendedJsonDecoder, ExtendedJsonEncoder, extract_mime_names
 from ...signal import Signal
 from .. import utils
 from ..dialogs.advanced_search import AdvancedSearch
@@ -482,7 +482,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         mimeData = QtCore.QMimeData()
 
         data = get_data(self.plot, selected_items, uuids_only=False)
-        data = json.dumps(data).encode("utf-8")
+        data = json.dumps(data, cls=ExtendedJsonEncoder).encode("utf-8")
 
         mimeData.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
 
@@ -707,7 +707,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             selected_items = validate_drag_items(self.invisibleRootItem(), self.selectedItems(), [])
             data = get_data(self.plot, selected_items, uuids_only=False)
             data = substitude_mime_uuids(data, None, force=True)
-            QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data))
+            QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data, cls=ExtendedJsonEncoder))
 
             if self.can_delete_items:
                 deleted = list(set(get_data(self.plot, selected_items, uuids_only=True)))
@@ -729,13 +729,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             selected_items = validate_drag_items(self.invisibleRootItem(), self.selectedItems(), [])
             data = get_data(self.plot, selected_items, uuids_only=False)
             data = substitude_mime_uuids(data, None, force=True)
-            QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data))
+            QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data, cls=ExtendedJsonEncoder))
 
         elif modifiers == QtCore.Qt.KeyboardModifier.ControlModifier and key == QtCore.Qt.Key.Key_V:
             event.accept()
             try:
                 data = QtWidgets.QApplication.instance().clipboard().text()
-                data = json.loads(data)
+                data = json.loads(data, cls=ExtendedJsonDecoder)
                 data = substitude_mime_uuids(data, random_uuid=True)
                 self.add_channels_request.emit(data)
             except:
@@ -820,7 +820,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 return
 
             try:
-                info = json.loads(info)
+                info = json.loads(info, cls=ExtendedJsonDecoder)
             except:
                 return
 
@@ -2148,18 +2148,18 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         if self.type() == ChannelsTreeItem.Group:
             info = {
                 "type": "group",
-                "ranges": copy_ranges(self.ranges),
+                "ranges": self.ranges,
             }
 
         elif self.type() == ChannelsTreeItem.Channel:
             info = {
                 "type": "channel",
-                "color": self.color.name(),
+                "color": self.color,
                 "precision": self.precision,
                 "ylink": self.checkState(self.CommonAxisColumn) == QtCore.Qt.CheckState.Checked,
                 "individual_axis": self.checkState(self.IndividualAxisColumn) == QtCore.Qt.CheckState.Checked,
                 "format": self.format,
-                "ranges": copy_ranges(self.ranges),
+                "ranges": self.ranges,
             }
 
             if self.signal.flags & Signal.Flags.user_defined_conversion:
@@ -2171,11 +2171,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             info["y_range"] = tuple(float(e) for e in sig.y_range)
 
-        for range_info in info["ranges"]:
-            range_info["background_color"] = range_info["background_color"].name()
-            range_info["font_color"] = range_info["font_color"].name()
-
-        return json.dumps(info)
+        return json.dumps(info, cls=ExtendedJsonEncoder)
 
     def get_ranges(self, tree=None):
         if self.resolved_ranges is None:

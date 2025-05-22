@@ -496,6 +496,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             "filter_type": self.filter_type.currentText(),
             "raw": self.raw.isChecked(),
             "integer_format": self.integer_format.currentText(),
+            "ranges": [],
         }
 
         signals = extract_signals_using_pattern(

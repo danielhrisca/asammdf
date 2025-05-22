@@ -24,7 +24,7 @@ from asammdf.gui.utils import (
 from asammdf.gui.widgets.plot import PlotSignal
 import asammdf.mdf as mdf_module
 
-from ...blocks.utils import extract_mime_names
+from ...blocks.utils import ExtendedJsonDecoder, ExtendedJsonEncoder, extract_mime_names
 from ..ui.numeric_offline import Ui_NumericDisplay
 from ..utils import FONT_SIZE
 from .tree import substitude_mime_uuids
@@ -874,9 +874,9 @@ class TableView(QtWidgets.QTableView):
 
                 info = {
                     "format": signal.format,
-                    "ranges": copy_ranges(self.ranges[signal.entry]),
+                    "ranges": self.ranges[signal.entry],
                     "type": "channel",
-                    "color": signal.color.name(),
+                    "color": signal.color,
                     "precision": precision,
                     "ylink": False,
                     "individual_axis": False,
@@ -884,11 +884,7 @@ class TableView(QtWidgets.QTableView):
                     "origin_uuid": signal.origin_uuid,
                 }
 
-                for range_info in info["ranges"]:
-                    range_info["background_color"] = range_info["background_color"].color().name()
-                    range_info["font_color"] = range_info["font_color"].color().name()
-
-                QtWidgets.QApplication.instance().clipboard().setText(json.dumps(info))
+                QtWidgets.QApplication.instance().clipboard().setText(json.dumps(info, cls=ExtendedJsonEncoder))
 
         elif (
             modifiers == (QtCore.Qt.KeyboardModifier.ControlModifier | QtCore.Qt.KeyboardModifier.ShiftModifier)
@@ -903,10 +899,7 @@ class TableView(QtWidgets.QTableView):
                 return
 
             try:
-                info = json.loads(info)
-                for range_info in info["ranges"]:
-                    range_info["background_color"] = QtGui.QBrush(QtGui.QColor(range_info["background_color"]))
-                    range_info["font_color"] = QtGui.QBrush(QtGui.QColor(range_info["font_color"]))
+                info = json.loads(info, cls=ExtendedJsonDecoder)
             except:
                 print(format_exc())
             else:
@@ -976,35 +969,29 @@ class TableView(QtWidgets.QTableView):
 
                 group_index, channel_index = entry
 
-                ranges = copy_ranges(self.ranges[signal.entry])
-
-                for range_info in ranges:
-                    range_info["font_color"] = range_info["font_color"].color().name()
-                    range_info["background_color"] = range_info["background_color"].color().name()
-
                 info = {
                     "name": signal.name,
                     "computation": {},
                     "computed": False,
                     "group_index": group_index,
                     "channel_index": channel_index,
-                    "ranges": ranges,
+                    "ranges": self.ranges[signal.entry],
                     "origin_uuid": str(entry[0]) if numeric_mode == "online" else signal.signal.origin_uuid,
                     "type": "channel",
                     "uuid": os.urandom(6).hex(),
-                    "color": signal.color.name(),
+                    "color": signal.color,
                 }
 
                 data.append(info)
 
             data = substitude_mime_uuids(data, None, force=True)
-            QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data))
+            QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data, cls=ExtendedJsonEncoder))
 
         elif modifiers == QtCore.Qt.KeyboardModifier.ControlModifier and key == QtCore.Qt.Key.Key_V:
             event.accept()
             try:
                 data = QtWidgets.QApplication.instance().clipboard().text()
-                data = json.loads(data)
+                data = json.loads(data, cls=ExtendedJsonDecoder)
                 data = substitude_mime_uuids(data, random_uuid=True)
                 self.add_channels_request.emit(data)
             except:
@@ -1040,28 +1027,22 @@ class TableView(QtWidgets.QTableView):
 
             *_, group_index, channel_index = entry
 
-            ranges = copy_ranges(self.ranges[signal.entry])
-
-            for range_info in ranges:
-                range_info["font_color"] = range_info["font_color"].color().name()
-                range_info["background_color"] = range_info["background_color"].color().name()
-
             info = {
                 "name": signal.name,
                 "computation": {},
                 "computed": False,
                 "group_index": group_index,
                 "channel_index": channel_index,
-                "ranges": ranges,
+                "ranges": self.ranges[signal.entry],
                 "origin_uuid": str(entry[0]),
                 "type": "channel",
                 "uuid": os.urandom(6).hex(),
-                "color": signal.color.name(),
+                "color": signal.color,
             }
 
             data.append(info)
 
-        data = json.dumps(data).encode("utf-8")
+        data = json.dumps(data, cls=ExtendedJsonEncoder).encode("utf-8")
 
         mime_data.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
 
@@ -1880,32 +1861,15 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         channels = []
 
         pattern = self.pattern
-        if pattern:
-            ranges = copy_ranges(pattern["ranges"])
-
-            for range_info in ranges:
-                range_info["font_color"] = range_info["font_color"].color().name()
-                range_info["background_color"] = range_info["background_color"].color().name()
-
-            pattern["ranges"] = ranges
-
-        else:
-
+        if not pattern:
             for signal in self.channels.backend.signals:
-                ranges = self.channels.dataView.ranges[signal.entry]
-                ranges = copy_ranges(ranges)
-
-                for range_info in ranges:
-                    range_info["font_color"] = range_info["font_color"].color().name()
-                    range_info["background_color"] = range_info["background_color"].color().name()
-
                 channels.append(
                     {
                         "origin_uuid": str(signal.entry[0]),
                         "name": signal.name,
-                        "ranges": ranges,
+                        "ranges": self.channels.dataView.ranges[signal.entry],
                         "format": signal.format,
-                        "color": signal.color.name(),
+                        "color": signal.color,
                     }
                 )
 
