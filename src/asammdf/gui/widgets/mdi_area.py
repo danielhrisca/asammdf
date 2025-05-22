@@ -61,6 +61,95 @@ SNAP_PIXELS_DISTANCE = 20
 CASCADE_PIXELS_DISTANCE = SNAP_PIXELS_DISTANCE + 10
 
 
+def deepcopy_cfg_item(item):
+    if item.get("type", "channel") == "group":
+        ranges = [
+            {
+                "background_color": fn.mkBrush(range_item["background_color"]),
+                "font_color": fn.mkBrush(range_item["font_color"]),
+                "op1": range_item["op1"],
+                "op2": range_item["op2"],
+                "value1": range_item["value1"],
+                "value2": range_item["value2"],
+            }
+            for range_item in item["ranges"]
+        ]
+
+        new_item = {
+            "type": "group",
+            "name": item["name"],
+            "enabled": item["enabled"],
+            "pattern": None,
+            "ranges": ranges,
+            "origin_uuid": item["origin_uuid"],
+            "expanded": item["expanded"],
+            "disabled": item["disabled"],
+            "channels": deepcopy_cfg_item(item["channels"]),
+        }
+
+        if pattern := item["pattern"]:
+            ranges = [
+                {
+                    "background_color": fn.mkBrush(range_item["background_color"]),
+                    "font_color": fn.mkBrush(range_item["font_color"]),
+                    "op1": range_item["op1"],
+                    "op2": range_item["op2"],
+                    "value1": range_item["value1"],
+                    "value2": range_item["value2"],
+                }
+                for range_item in pattern["ranges"]
+            ]
+            new_item["pattern"] = {
+                "pattern": pattern["pattern"],
+                "match_type": pattern["match_type"],
+                "case_sensitive": pattern["case_sensitive"],
+                "filter_type": pattern["filter_type"],
+                "filter_value": pattern["filter_value"],
+                "raw": pattern["raw"],
+                "ranges": ranges,
+                "name": pattern["name"],
+                "integer_format": pattern["integer_format"],
+                "y_range": deepcopy(pattern["pattern"]),
+            }
+
+    else:
+        ranges = [
+            {
+                "background_color": fn.mkBrush(range_item["background_color"]),
+                "font_color": fn.mkBrush(range_item["font_color"]),
+                "op1": range_item["op1"],
+                "op2": range_item["op2"],
+                "value1": range_item["value1"],
+                "value2": range_item["value2"],
+            }
+            for range_item in item["ranges"]
+        ]
+        new_item = {
+            "type": "channel",
+            "name": item["name"],
+            "unit": item.get("unit", ""),
+            "flags": item.get("flags", 0),
+            "enabled": item.get("enabled", True),
+            "individual_axis": item.get("individual_axis", False),
+            "common_axis": item.get("common_axis", False),
+            "color": fn.mkColor(item["color"]),
+            "computed": item.get("computed", False),
+            "ranges": ranges,
+            "precision": item.get("precision", 3),
+            "fmt": item.get("fmt", "{}"),
+            "format": item.get("format", "phys"),
+            "mode": item.get("mode", "phys"),
+            "y_range": deepcopy(item.get("y_range", [])),
+            "origin_uuid": item["origin_uuid"],
+        }
+
+        for key in ("computation", "conversion", "user_defined_name", "individual_axis_width", "user_defined_unit"):
+            if key in item:
+                new_item[key] = deepcopy(item[key])
+
+    return new_item
+
+
 def rename_origin_uuid(items):
     for item in items:
         if item.get("type", "channel") == "channel":
@@ -155,7 +244,7 @@ def build_mime_from_config(
                     origin_uuid = mdf.uuid
 
                 uuid = os.urandom(6).hex()
-                item = deepcopy(cfg_item)
+                item = deepcopy_cfg_item(cfg_item)
                 item["uuid"] = uuid
                 item["origin_uuid"] = origin_uuid
 
@@ -232,6 +321,7 @@ def extract_signals_using_pattern(
     filter_type = pattern_info["filter_type"]
     raw = pattern_info["raw"]
     integer_format = pattern_info.get("integer_format", "phys")
+    pattern_ranges = pattern_info["ranges"]
 
     if match_type == "Wildcard":
         wild = f"__{os.urandom(3).hex()}WILDCARD{os.urandom(3).hex()}__"
@@ -315,7 +405,7 @@ def extract_signals_using_pattern(
         uuid = os.urandom(6).hex()
         sig.uuid = uuid
         sig.format = integer_format
-        sig.ranges = []
+        sig.ranges = copy_ranges(pattern_ranges)
         output_signals[uuid] = sig
         sig.origin_uuid = origin_uuid
         sig.origin_mdf = origin_mdf
@@ -1801,6 +1891,8 @@ class WithMDIArea:
                             data = self.mdf.get("FLX_Status", index, raw=True)
                             items.append((data, names))
 
+        if items:
+
             df_index = np.sort(np.concatenate([item.timestamps for (item, names) in items]))
             count = len(df_index)
 
@@ -1949,7 +2041,6 @@ class WithMDIArea:
 
                     vals = None
                     data_length = None
-
         else:
             df_index = []
             count = 0
@@ -2445,12 +2536,7 @@ class WithMDIArea:
                 sig.group_index = NOT_FOUND
                 sig.channel_index = randint(0, NOT_FOUND)
                 sig.exists = False
-
-                ranges = sig_obj["ranges"]
-                for range in ranges:
-                    range["font_color"] = QtGui.QBrush(QtGui.QColor(range["font_color"]))
-                    range["background_color"] = QtGui.QBrush(QtGui.QColor(range["background_color"]))
-                sig.ranges = ranges
+                sig.ranges = copy_ranges(sig_obj["ranges"])
                 sig.format = sig_obj["format"]
 
             signals.extend(not_found)
@@ -3305,27 +3391,6 @@ class WithMDIArea:
                 sig.computation = None
                 sig.ranges = []
 
-            try:
-                ranges = [
-                    {
-                        "font_color": range["color"],
-                        "background_color": range["color"],
-                        "op1": "<=",
-                        "op2": "<=",
-                        "value1": float(range["start"]),
-                        "value2": float(range["stop"]),
-                    }
-                    for range in pattern_info["ranges"]
-                ]
-            except KeyError:
-                ranges = pattern_info["ranges"]
-
-            for range in ranges:
-                range["font_color"] = QtGui.QBrush(QtGui.QColor(range["font_color"]))
-                range["background_color"] = QtGui.QBrush(QtGui.QColor(range["background_color"]))
-
-            pattern_info["ranges"] = ranges
-
         else:
             if self.comparison:
                 mdfs = [file.mdf for file in self.iter_files()]
@@ -3364,11 +3429,7 @@ class WithMDIArea:
                     sig.origin_uuid = origin_uuid
                     sig.origin_mdf = origin_mdf
                     sig.computation = None
-                    ranges = description["ranges"]
-                    for range in ranges:
-                        range["font_color"] = fn.mkBrush(range["font_color"])
-                        range["background_color"] = fn.mkBrush(range["background_color"])
-                    sig.ranges = ranges
+                    sig.ranges = copy_ranges(description["ranges"])
                     sig.format = description["format"]
                     sig.color = fn.mkColor(description.get("color", "#505050"))
                     sig.uuid = os.urandom(6).hex()
@@ -4028,30 +4089,8 @@ class WithMDIArea:
                 uuid=self.uuid,
             ).values()
 
-            try:
-                ranges = [
-                    {
-                        "font_color": range["color"],
-                        "background_color": range["color"],
-                        "op1": "<=",
-                        "op2": "<=",
-                        "value1": float(range["start"]),
-                        "value2": float(range["stop"]),
-                    }
-                    for range in pattern_info["ranges"]
-                ]
-            except KeyError:
-                ranges = pattern_info["ranges"]
-
-            for range_info in ranges:
-                range_info["font_color"] = QtGui.QBrush(QtGui.QColor(range_info["font_color"]))
-                range_info["background_color"] = QtGui.QBrush(QtGui.QColor(range_info["background_color"]))
-
-            ranges = {sig.name: copy_ranges(ranges) for sig in signals_}
-
             signals_ = [(sig.name, sig.group_index, sig.channel_index) for sig in signals_]
-
-            pattern_info["ranges"] = ranges
+            ranges = []
 
         else:
             required = set(window_info["configuration"]["channels"])
@@ -4063,10 +4102,6 @@ class WithMDIArea:
             ]
 
             ranges = window_info["configuration"].get("ranges", {})
-            for channel_ranges in ranges.values():
-                for range_info in channel_ranges:
-                    range_info["font_color"] = QtGui.QBrush(QtGui.QColor(range_info["font_color"]))
-                    range_info["background_color"] = QtGui.QBrush(QtGui.QColor(range_info["background_color"]))
 
             if not signals_:
                 return None, False
@@ -4177,10 +4212,6 @@ class WithMDIArea:
             return None, False
 
         ranges = window_info["configuration"].get("ranges", {})
-        for channel_ranges in ranges.values():
-            for range_info in channel_ranges:
-                range_info["font_color"] = QtGui.QBrush(QtGui.QColor(range_info["font_color"]))
-                range_info["background_color"] = QtGui.QBrush(QtGui.QColor(range_info["background_color"]))
 
         widget = self._add_can_bus_trace_window(ranges)
 
@@ -4200,10 +4231,6 @@ class WithMDIArea:
             return None, False
 
         ranges = window_info["configuration"].get("ranges", {})
-        for channel_ranges in ranges.values():
-            for range_info in channel_ranges:
-                range_info["font_color"] = QtGui.QBrush(QtGui.QColor(range_info["font_color"]))
-                range_info["background_color"] = QtGui.QBrush(QtGui.QColor(range_info["background_color"]))
 
         widget = self._add_flexray_bus_trace_window(ranges)
 
@@ -4223,10 +4250,6 @@ class WithMDIArea:
             return None, False
 
         ranges = window_info["configuration"].get("ranges", {})
-        for channel_ranges in ranges.values():
-            for range_info in channel_ranges:
-                range_info["font_color"] = QtGui.QBrush(QtGui.QColor(range_info["font_color"]))
-                range_info["background_color"] = QtGui.QBrush(QtGui.QColor(range_info["background_color"]))
 
         widget = self._add_lin_bus_trace_window(ranges)
 

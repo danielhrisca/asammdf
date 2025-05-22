@@ -33,7 +33,6 @@ from traceback import format_exc
 
 import numpy as np
 import pandas as pd
-import pyqtgraph.functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 import asammdf.mdf as mdf_module
@@ -1204,13 +1203,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         if not ranges:
             self.ranges = {name: [] for name in df.columns}
         else:
-            self.ranges = {}
-
-            for name, ranges_ in ranges.items():
-                for range_info in ranges_:
-                    range_info["font_color"] = fn.mkBrush(range_info["font_color"])
-                    range_info["background_color"] = fn.mkBrush(range_info["background_color"])
-                self.ranges[name] = ranges_
+            self.ranges = copy_ranges(ranges)
 
         df = DataFrameStorage(df, self)
 
@@ -1466,26 +1459,6 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
     def to_config(self):
         count = self.filters.count()
 
-        pattern = self.pattern
-        if pattern:
-            ranges = copy_ranges(pattern["ranges"])
-
-            for range_info in ranges:
-                range_info["font_color"] = range_info["font_color"].color().name()
-                range_info["background_color"] = range_info["background_color"].color().name()
-
-            pattern["ranges"] = ranges
-
-        ranges = {}
-        for name, channel_ranges in self.ranges.items():
-            channel_ranges = copy_ranges(channel_ranges)
-
-            for range_info in channel_ranges:
-                range_info["font_color"] = range_info["font_color"].color().name()
-                range_info["background_color"] = range_info["background_color"].color().name()
-
-            ranges[name] = channel_ranges
-
         config = {
             "sorted": True,
             "channels": list(self.tree.pgdf.df_unfiltered.columns) if not self.pattern else [],
@@ -1496,9 +1469,9 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                 else []
             ),
             "time_as_date": self.time_as_date.checkState() == QtCore.Qt.CheckState.Checked,
-            "pattern": pattern,
+            "pattern": self.pattern,
             "format": self.format,
-            "ranges": ranges,
+            "ranges": self.ranges,
             "header_sections_width": [
                 self.tree.columnHeader.horizontalHeader().sectionSize(i)
                 for i in range(self.tree.columnHeader.horizontalHeader().count())

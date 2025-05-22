@@ -19,6 +19,8 @@ from ... import tool
 from ...blocks.utils import (
     COLORS,
     COLORS_COUNT,
+    ExtendedJsonDecoder,
+    ExtendedJsonEncoder,
     extract_encryption_information,
     extract_xml_comment,
     load_channel_names_from_file,
@@ -35,7 +37,6 @@ from ...blocks.v4_constants import (
     BUS_TYPE_LIN,
     BUS_TYPE_USB,
     CompressionAlgorithm,
-    FLAG_AT_TO_STRING,
     FLAG_CG_BUS_EVENT,
 )
 from ..dialogs.advanced_search import AdvancedSearch
@@ -1011,7 +1012,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if file_name:
             file_name = Path(file_name).with_suffix(".dspf")
-            file_name.write_text(json.dumps(self.to_config(), indent=2))
+            file_name.write_text(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder))
 
             worker = md5()
             worker.update(file_name.read_bytes())
@@ -1087,13 +1088,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             elif extension == ".cfg":
                 with open(file_name) as infile:
-                    info = json.load(infile)
+                    info = json.load(infile, cls=ExtendedJsonDecoder)
                 channels = info.get("selected_channels", [])
 
             elif extension == ".txt":
                 try:
                     with open(file_name) as infile:
-                        info = json.load(infile)
+                        info = json.load(infile, cls=ExtendedJsonDecoder)
                     channels = info.get("selected_channels", [])
                 except:
                     with open(file_name) as infile:
@@ -1158,7 +1159,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             elif extension == ".dspf":
                 with open(file_name) as infile:
-                    info = json.load(infile)
+                    info = json.load(infile, cls=ExtendedJsonDecoder)
                 channels = info.get("selected_channels", [])
 
                 original_file_name = Path(self.mdf.original_name)
@@ -3069,7 +3070,7 @@ MultiRasterSeparator;&
 
         creator_index = len(self.mdf.file_history)
         current_display = self.to_config()
-        data = json.dumps(current_display, indent=2).encode("utf-8", errors="replace")
+        data = json.dumps(current_display, indent=2, cls=ExtendedJsonEncoder).encode("utf-8", errors="replace")
 
         self.mdf.close()
 
@@ -3277,7 +3278,7 @@ MultiRasterSeparator;&
 
                 data, file_path, md5_sum = self.mdf.extract_attachment(index, password=password)
 
-                dsp = json.loads(data.decode("utf-8", errors="replace"))
+                dsp = json.loads(data.decode("utf-8", errors="replace", cls=ExtendedJsonDecoder))
                 dsp["display_file_name"] = "user_embedded_display.dspf"
 
                 self.load_channel_list(file_name=dsp)
@@ -3420,69 +3421,11 @@ MultiRasterSeparator;&
         hide_embedded_btn = True
 
         if self.mdf.version >= "4.00" and self.mdf.attachments:
-            for i, attachment in enumerate(self.mdf.attachments, 1):
+            for i, attachment in enumerate(self.mdf.attachments):
                 if attachment.file_name == "user_embedded_display.dspf" and attachment.mime == r"application/x-dspf":
                     hide_embedded_btn = False
 
-                att = Attachment(i - 1, self)
-                att.number.setText(f"{i}.")
-
-                fields = []
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "ATBLOCK address")
-                field.setText(1, f"0x{attachment.address:X}")
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "File name")
-                field.setText(1, str(attachment.file_name))
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "MIME type")
-                field.setText(1, attachment.mime)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Comment")
-                field.setText(1, attachment.comment)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Flags")
-                if attachment.flags:
-                    flags = []
-                    for flag, string in FLAG_AT_TO_STRING.items():
-                        if attachment.flags & flag:
-                            flags.append(string)
-                    text = f'{attachment.flags} [0x{attachment.flags:X}= {", ".join(flags)}]'
-                else:
-                    text = "0"
-                field.setText(1, text)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "MD5 sum")
-                field.setText(1, attachment.md5_sum.hex().upper())
-                fields.append(field)
-
-                size = attachment.original_size
-                if size <= 1 << 10:
-                    text = f"{size} B"
-                elif size <= 1 << 20:
-                    text = f"{size / 1024:.1f} KB"
-                elif size <= 1 << 30:
-                    text = f"{size / 1024 / 1024:.1f} MB"
-                else:
-                    text = f"{size / 1024 / 1024 / 1024:.1f} GB"
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Size")
-                field.setText(1, text)
-                fields.append(field)
-
-                att.fields.addTopLevelItems(fields)
+                att = Attachment(i, attachment, self)
 
                 item = QtWidgets.QListWidgetItem()
                 item.setSizeHint(att.sizeHint())

@@ -888,8 +888,9 @@ def copy_ranges(ranges):
                 color = range_info[color_name]
                 if isinstance(color, QtGui.QBrush):
                     range_info[color_name] = QtGui.QBrush(color)
-                elif isinstance(color, QtGui.QColor):
+                elif isinstance(color, (QtGui.QColor, str)):
                     range_info[color_name] = fn.mkColor(color)
+
             new_ranges.append(range_info)
 
         return new_ranges

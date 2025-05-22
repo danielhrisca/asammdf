@@ -71,6 +71,8 @@ def monkey_patch_pyqtgraph():
     def mkColor(*args):
         if isinstance(args[0], QtGui.QColor):
             return QtGui.QColor(args[0])
+        elif isinstance(args[0], QtGui.QBrush):
+            return QtGui.QColor(args[0].color())
         else:
             try:
                 return cached_mkColor_factory(*args)
@@ -1828,9 +1830,6 @@ class Plot(QtWidgets.QWidget):
                 origin_uuid = info.get("origin_uuid", "000000000000")
 
                 ranges = copy_ranges(info["ranges"])
-                for range_info in ranges:
-                    range_info["font_color"] = fn.mkColor(range_info["font_color"])
-                    range_info["background_color"] = fn.mkColor(range_info["background_color"])
 
                 if info.get("type", "channel") == "group":
                     item = ChannelsTreeItem(
@@ -1986,26 +1985,7 @@ class Plot(QtWidgets.QWidget):
                 new_items[sig_uuid] = item
             items_map[sig_uuid] = item
 
-            try:
-                item.set_ranges(
-                    [
-                        {
-                            "font_color": range["color"],
-                            "background_color": range["color"],
-                            "op1": "<=",
-                            "op2": "<=",
-                            "value1": float(range["start"]),
-                            "value2": float(range["stop"]),
-                        }
-                        for range in description["ranges"]
-                    ]
-                )
-            except KeyError:
-                item.set_ranges(copy_ranges(description.get("ranges", [])))
-
-            for range in item.ranges:
-                range["font_color"] = fn.mkColor(range["font_color"])
-                range["background_color"] = fn.mkColor(range["background_color"])
+            item.set_ranges(copy_ranges(description.get("ranges", [])))
 
             self.info_uuid = sig_uuid
 
@@ -2126,28 +2106,13 @@ class Plot(QtWidgets.QWidget):
     def channel_group_item_to_config(self, item):
         widget = item
         pattern = widget.pattern
-        if pattern:
-            pattern = dict(pattern)
-            ranges = copy_ranges(pattern["ranges"])
-
-            for range_info in ranges:
-                range_info["font_color"] = range_info["font_color"].name()
-                range_info["background_color"] = range_info["background_color"].name()
-
-            pattern["ranges"] = ranges
-
-        ranges = copy_ranges(widget.ranges)
-
-        for range_info in ranges:
-            range_info["font_color"] = range_info["font_color"].name()
-            range_info["background_color"] = range_info["background_color"].name()
 
         channel_group = {
             "type": "group",
             "name": widget.name,
             "enabled": item.checkState(item.NameColumn) == QtCore.Qt.CheckState.Checked,
-            "pattern": pattern,
-            "ranges": ranges,
+            "pattern": widget.pattern,
+            "ranges": widget.ranges,
             "origin_uuid": item.origin_uuid,
             "expanded": item.isExpanded(),
             "disabled": item.isDisabled(),
@@ -2179,14 +2144,9 @@ class Plot(QtWidgets.QWidget):
             channel["individual_axis"] = False
 
         channel["common_axis"] = item.checkState(item.CommonAxisColumn) == QtCore.Qt.CheckState.Checked
-        channel["color"] = sig.color.name()
+        channel["color"] = sig.color
         channel["computed"] = bool(sig.flags & Signal.Flags.computed)
-        channel["ranges"] = copy_ranges(widget.ranges)
-
-        for range_info in channel["ranges"]:
-            range_info["background_color"] = range_info["background_color"].name()
-            range_info["font_color"] = range_info["font_color"].name()
-
+        channel["ranges"] = widget.ranges
         channel["precision"] = widget.precision
         channel["fmt"] = widget.fmt
         channel["format"] = widget.format
@@ -2224,7 +2184,6 @@ class Plot(QtWidgets.QWidget):
 
             for item in self.channel_selection.selectedItems():
                 set_focused(item)
-
             self.plot.trim()
             self.plot.update()
         else:
@@ -3348,39 +3307,12 @@ class Plot(QtWidgets.QWidget):
                     channel = self.channel_item_to_config(item)
 
                 elif item.type() == item.Group:
-                    pattern = item.pattern
-                    if pattern:
-                        pattern = dict(pattern)
-                        ranges = copy_ranges(pattern["ranges"])
-
-                        for range_info in ranges:
-                            range_info["font_color"] = range_info["font_color"].name()
-                            range_info["background_color"] = range_info["background_color"].name()
-
-                        pattern["ranges"] = ranges
-
-                    ranges = copy_ranges(item.ranges)
-
-                    for range_info in ranges:
-                        range_info["font_color"] = range_info["font_color"].name()
-                        range_info["background_color"] = range_info["background_color"].name()
-
                     channel = self.channel_group_item_to_config(item)
-                    channel["channels"] = item_to_config(tree, item) if item.pattern is None else []
+                    channel["channels"] = item_to_config(tree, item) if not item.pattern else []
 
                 channels.append(channel)
 
             return channels
-
-        pattern = self.pattern
-        if pattern:
-            ranges = copy_ranges(pattern["ranges"])
-
-            for range_info in ranges:
-                range_info["font_color"] = range_info["font_color"].name()
-                range_info["background_color"] = range_info["background_color"].name()
-
-            pattern["ranges"] = ranges
 
         config = {
             "channels": (
@@ -3388,7 +3320,7 @@ class Plot(QtWidgets.QWidget):
                 if not self.pattern
                 else []
             ),
-            "pattern": pattern,
+            "pattern": self.pattern,
             "splitter": [int(e) for e in self.splitter.sizes()[:2]]
             + [
                 0,
@@ -5447,7 +5379,7 @@ class PlotGraphics(pg.PlotWidget):
                                 y = sig.plot_samples.astype("f8")
                                 x = sig.plot_timestamps
 
-                            if step_mode == "left":
+                            elif step_mode == "left":
                                 idx_with_edges = np.repeat(get_idx_with_edges(idx), 2)
                                 idx_with_edges = np.insert(idx_with_edges, 0, idx_with_edges[0])
                                 _connect = idx_with_edges[:-1].view("u1")
