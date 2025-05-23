@@ -10,7 +10,7 @@ from PySide6.QtGui import QKeySequence, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QTreeWidgetItemIterator
 
-from test.asammdf.gui.test_base import Pixmap
+from test.asammdf.gui.test_base import OpenMDF, Pixmap
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 
@@ -29,8 +29,8 @@ class TestFileWidgetShortcuts(TestFileWidget):
         """
         super().setUp()
         # Open measurement file
-        measurement_file = str(pathlib.Path(TestFileWidget.resource, "ASAP2_Demo_V171.mf4"))
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.measurement_file = str(pathlib.Path(TestFileWidget.resource, "ASAP2_Demo_V171.mf4"))
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
 
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
 
@@ -40,12 +40,12 @@ class TestFileWidgetShortcuts(TestFileWidget):
     def test_search_and_select_channels_shortcut(self):
         """
         Test Scope:
-            Check if advanced search widget is called by shortcut Ctrl+S and founded items are added to plot.
+            Check if advanced search widget is called by shortcut Ctrl+F and founded items are added to plot.
 
         Events:
-            - Press "Ctrl+S" -> search signals -> Add channels -> 'New plot window' -> Ok
-            - Press "Ctrl+S" -> search pattern-based signals -> Apply -> 'New pattern based plot window' -> Ok
-            - Press "Ctrl+S" -> search signals -> Add channels -> 'Existing pattern based window' -> Ok
+            - Press "Ctrl+F" -> search signals -> Add channels -> 'New plot window' -> Ok
+            - Press "Ctrl+F" -> search pattern-based signals -> Apply -> 'New pattern based plot window' -> Ok
+            - Press "Ctrl+F" -> search signals -> Add channels -> 'Existing pattern based window' -> Ok
 
         Evaluate:
             - Evaluate that widget isn't full-screen at start
@@ -54,13 +54,17 @@ class TestFileWidgetShortcuts(TestFileWidget):
         """
         # Setup
         matrix_items = {}
-        pattern = "matrix"
+        u_word_items = {}
+        matrix_pattern = "matrix"
+        u_word_pattern = "uWord"
         # Search signals with specific patter
-        iterator = QTreeWidgetItemIterator(self.widget.channels_tree)
-        while item := iterator.value():
-            if pattern.upper() in item.name.upper():
-                matrix_items[item.entry] = item.name
-            iterator += 1
+        with OpenMDF(self.measurement_file) as mdf:
+            for ch in mdf.iter_channels():
+                if matrix_pattern.upper() in ch.name.upper():
+                    matrix_items[(ch.group_index, ch.channel_index)] = ch.name
+                if u_word_pattern.upper() in ch.name.upper():
+                    u_word_items[(ch.group_index, ch.channel_index)] = ch.name
+
         sw_count = 0  # Sub-windows
         # Mock for Advanced search and windowSelectionDialog objects
         with (
@@ -101,8 +105,8 @@ class TestFileWidgetShortcuts(TestFileWidget):
                     "filter_value": 0.0,
                     "integer_format": "phys",
                     "match_type": "Wildcard",
-                    "name": pattern.upper(),
-                    "pattern": f"*{pattern}*",
+                    "name": matrix_pattern.upper(),
+                    "pattern": f"*{matrix_pattern}*",
                     "ranges": [],
                     "raw": False,
                 }
@@ -118,7 +122,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
                 mo_WindowSelectionDialog.assert_called()
 
                 self.assertEqual(len(self.widget.mdi_area.subWindowList()), sw_count + 1)
-                self.assertEqual(self.widget.mdi_area.subWindowList()[sw_count].windowTitle(), f"*{pattern}*")
+                self.assertEqual(self.widget.mdi_area.subWindowList()[sw_count].windowTitle(), f"*{matrix_pattern}*")
 
                 channel_selection = self.widget.mdi_area.subWindowList()[sw_count].widget().channel_selection
                 # Evaluate plot widget
@@ -130,16 +134,8 @@ class TestFileWidgetShortcuts(TestFileWidget):
 
                 # New setup
                 mo_WindowSelectionDialog.return_value.dialog.return_value = 1  # Ok
-                mo_WindowSelectionDialog.return_value.selected_type.return_value = f"*{pattern}*"
+                mo_WindowSelectionDialog.return_value.selected_type.return_value = f"*{matrix_pattern}*"
                 mo_WindowSelectionDialog.return_value.disable_new_channels.return_value = False
-                pattern = "uWord"
-                u_word_items = {}
-                iterator = QTreeWidgetItemIterator(self.widget.channels_tree)
-                while item := iterator.value():
-                    if pattern.upper() in item.name.upper():
-                        u_word_items[item.entry] = item.name
-                    iterator += 1
-
                 mo_AdvancedSearch.return_value.result = u_word_items
                 mo_AdvancedSearch.return_value.pattern_window = False
 

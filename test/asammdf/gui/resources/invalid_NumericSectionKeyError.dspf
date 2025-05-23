@@ -95,7 +95,7 @@
     {
       "title": "Numeric 0",
       "configuration": {
-        "format": "Physical",
+        "FORMAT": "Physical",
         "mode": "offline",
         "channels": [
           {

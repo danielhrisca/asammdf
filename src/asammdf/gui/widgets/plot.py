@@ -3797,7 +3797,7 @@ class PlotGraphics(pg.PlotWidget):
         self.plot_item.mouseMoveEvent = plot_item_mouseMoveEvent
         self.plot_item.mouseReleaseEvent = plot_item_mouseReleaseEvent
 
-        self.viewbox_geometry = self.viewbox.sceneBoundingRect()
+        self.viewbox_geometry = self.viewbox.sceneBoundingRect().toRect()
 
         self.viewbox.sigResized.connect(partial(self.xrange_changed_handle, force=True))
 
@@ -3889,7 +3889,7 @@ class PlotGraphics(pg.PlotWidget):
 
         (start, stop), _ = self.viewbox.viewRange()
 
-        width = self.viewbox.sceneBoundingRect().width()
+        width = self.viewbox.sceneBoundingRect().toRect().width()
         trim_info = start, stop, width
 
         channels = [
@@ -6010,7 +6010,7 @@ class PlotGraphics(pg.PlotWidget):
         else:
             start, stop = view_range
 
-        width = self.viewbox.sceneBoundingRect().width()
+        width = self.viewbox.sceneBoundingRect().toRect().width()
 
         for sig in signals:
             if sig.enable:
@@ -6034,7 +6034,7 @@ class PlotGraphics(pg.PlotWidget):
             self.viewbox.update()
 
     def update_views(self):
-        geometry = self.viewbox.sceneBoundingRect()
+        geometry = self.viewbox.sceneBoundingRect().toRect()
         if geometry != self.viewbox_geometry:
             self.viewbox_geometry = geometry
 

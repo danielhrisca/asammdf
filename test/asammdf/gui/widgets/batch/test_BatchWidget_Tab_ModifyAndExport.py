@@ -445,7 +445,7 @@ class TestPushButtonApply(TestBatchWidget):
         self.assertTrue(mat_path.exists())
 
         mat_file = scipy.io.loadmat(str(mat_path))
-        to_replace = {" ", ".", "[", "]"}
+        to_replace = {" ", ".", "[", "]", ":"}
 
         with OpenMDF(Path(self.resource, self.default_test_file)) as mdf_file:
             # get common timestamps
@@ -466,9 +466,9 @@ class TestPushButtonApply(TestBatchWidget):
                 if channel + "_0" in mat_file.keys() and "RAT" in mdf_signal.name:
                     channel += "_0"
 
-                self.assertIn(channel, mat_file.keys())
+                self.assertIn(channel[:60], mat_file.keys())  # limit of maximum 60 ch for channel name
                 np.testing.assert_almost_equal(
-                    mdf_signal.samples, mat_file[channel][0], decimal=3, err_msg=mdf_signal.name
+                    mdf_signal.samples, mat_file[channel[:60]][0], decimal=3, err_msg=mdf_signal.name
                 )
 
             common_timestamps -= common_timestamps[0]  # start from 0

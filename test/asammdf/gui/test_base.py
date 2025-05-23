@@ -51,6 +51,9 @@ class TestBase(unittest.TestCase):
     - setUp ErrorDialog for evaluation raised exceptions
     """
 
+    pyqtgraph.setConfigOption("background", "k")
+    pyqtgraph.setConfigOption("foreground", "w")
+
     longMessage = False
 
     resource = os.path.normpath(os.path.join(os.path.dirname(__file__), "resources"))
@@ -492,7 +495,7 @@ class OpenFileContextManager:
         self.file.close()
         for exc in (exc_type, exc_val, exc_tb):
             if exc is not None:
-                raise exc
+                print(exc)
 
 
 class OpenMDF(OpenFileContextManager):
