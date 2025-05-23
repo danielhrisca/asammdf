@@ -6,7 +6,7 @@ from PySide6.QtGui import QColor, QKeySequence
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QMessageBox
 
-from asammdf.gui.utils import COLORS
+from asammdf.blocks.utils import COLORS
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
@@ -643,9 +643,9 @@ class TestPlotShortcuts(TestPlotWidget):
         # Setup
         if not self.plot.focused_mode_btn.isFlat():
             QTest.mouseClick(self.plot.focused_mode_btn, Qt.MouseButton.LeftButton)
-        self.plot.plot.viewbox.menu.set_x_zoom_mode(True)
-        self.plot.plot.viewbox.menu.set_y_zoom_mode(True)
-        self.plot.plot.viewbox.setMouseMode(3)
+        self.plot.plot.viewbox.menu.set_x_zoom_mode()
+        self.plot.plot.viewbox.menu.set_y_zoom_mode()
+        self.plot.plot.viewbox.setMouseMode(self.plot.plot.viewbox.PanMode)
         self.plot.plot.setFocus()
         self.processEvents(0.1)
         # add channel to plot
@@ -658,9 +658,7 @@ class TestPlotShortcuts(TestPlotWidget):
 
         # Events
         self.mouseClick_WidgetItem(self.channels[0])
-        self.processEvents(1)
-        for _ in range(100):
-            self.processEvents(0.01)
+        self.avoid_blinking_issue(self.plot.channel_selection)
         # Click in the center of the plot
         QTest.mouseClick(
             self.plot.plot.viewport(),
@@ -689,7 +687,7 @@ class TestPlotShortcuts(TestPlotWidget):
         new_y_range = self.plot.plot.signals[0].y_range
 
         # Evaluate
-        self.assertNotEqual(new_y_range[0] - new_y_range[1], y_range[0] - y_range[1])
+        self.assertNotEqual(new_y_range, y_range)
 
         # click on Backspace
         QTest.keySequence(self.plot, QKeySequence(self.shortcuts["undo_zoom"]))

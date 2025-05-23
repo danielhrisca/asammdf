@@ -5,9 +5,9 @@ import numpy as np
 from numpy import searchsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ...blocks import utils
 from ..dialogs.messagebox import MessageBox
 from ..ui.bar import Ui_BarDisplay
-from ..utils import COLORS
 from .channel_bar_display import ChannelBarDisplay
 from .list_item import ListItem
 from .plot import PlotSignal
@@ -98,7 +98,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
             sig.uuid = os.urandom(6).hex()
             sig.computed = False
             sig.computation = None
-            sig.color = COLORS[index % 10]
+            sig.color = utils.COLORS[index % utils.COLORS_COUNT]
             sig.size = len(sig)
             sig.kind = sig.samples.dtype.kind
 

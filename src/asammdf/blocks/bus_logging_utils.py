@@ -1,19 +1,18 @@
-from __future__ import annotations
-
 from traceback import format_exc
-from typing import Any
+import typing
+from typing import Final
 
 from canmatrix import Frame, Signal
 import numpy as np
 from numpy.typing import NDArray
-from typing_extensions import TypedDict
+from typing_extensions import Any, TypedDict
 
 from . import v4_blocks as v4b
 from . import v4_constants as v4c
 from .conversion_utils import from_dict
 from .utils import as_non_byte_sized_signed_int, MdfException
 
-MAX_VALID_J1939 = {
+MAX_VALID_J1939: Final = {
     2: 1,
     4: 0xA,
     8: 0xFA,
@@ -28,8 +27,8 @@ MAX_VALID_J1939 = {
 }
 
 
-def defined_j1939_bit_count(signal):
-    size = signal.size
+def defined_j1939_bit_count(signal: Signal) -> int:
+    size = typing.cast(int, signal.size)
     for defined_size in (2, 4, 8, 10, 12, 16, 20, 24, 28, 32, 64):
         if size <= defined_size:
             return defined_size
@@ -251,11 +250,12 @@ class ExtractedSignal(TypedDict):
     comment: str
     unit: str
     samples: NDArray[Any]
+    conversion: v4b.ChannelConversion | None
     t: NDArray[Any]
-    invalidation_bits: NDArray[Any]
+    invalidation_bits: NDArray[np.bool] | None
 
 
-def merge_cantp(payload, ts):
+def merge_cantp(payload: NDArray[Any], ts: NDArray[Any]) -> tuple[NDArray[Any], NDArray[Any]]:
     """Merge sequences of ISO-TP coded CAN payloads, enabling > 8 byte frames."""
     INITIAL = 0x10
     CONSECUTIVE = 0x20
@@ -279,8 +279,8 @@ def merge_cantp(payload, ts):
 def extract_mux(
     payload: NDArray[Any],
     message: Frame,
-    message_id: int,
-    bus: int,
+    message_id: int | None,
+    bus: int | None,
     t: NDArray[Any],
     muxer: str | None = None,
     muxer_values: NDArray[Any] | None = None,
@@ -290,7 +290,7 @@ def extract_mux(
     ignore_value2text_conversion: bool = True,
     is_j1939: bool = False,
     is_extended: bool = False,
-) -> dict[tuple[Any, ...], dict[str, ExtractedSignal]]:
+) -> dict[tuple[int | None, int | None, bool, int | None, str | None, int, int], dict[str, ExtractedSignal]]:
     """Extract multiplexed CAN signals from the raw payload.
 
     Parameters
@@ -337,7 +337,9 @@ def extract_mux(
                         sig.mux_val_min = sig.mux_val_max = int(sig.multiplex)
                         sig.mux_val_grp.insert(0, (int(sig.multiplex), int(sig.multiplex)))
 
-    extracted_signals = {}
+    extracted_signals: dict[
+        tuple[int | None, int | None, bool, int | None, str | None, int, int], dict[str, ExtractedSignal]
+    ] = {}
 
     # (Too?) simple check for ISO-TP CAN data - if it has flow control, we believe its ISO-TP
     is_ISOTP = "CanTpFcFrameId" in message.attributes
@@ -350,25 +352,32 @@ def extract_mux(
         # else:
         #    print(f"    no payload found to merge")
 
-    if payload.shape[0] == 0 or message.size > payload.shape[1] or message.size == 0:
+    if message.size == 0 or payload.shape[1] == 0:
         return extracted_signals
 
-        return extracted_signals
+    elif message.size > payload.shape[1]:
+        extra_bytes = message.size - payload.shape[1]
+        payload = np.column_stack(
+            [
+                payload,
+                np.full(len(payload), 0xFF, dtype=f"({extra_bytes},)u1"),
+            ]
+        )
 
-    pairs = {}
+    pairs: dict[tuple[int, int], list[Signal]] = {}
     for signal in message:
         if signal.muxer_for_signal == muxer:
             try:
-                entry = signal.mux_val_min, signal.mux_val_max
+                pair = signal.mux_val_min, signal.mux_val_max
             except:
-                entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0, 0)
-            pair_signals = pairs.setdefault(entry, [])
+                pair = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0, 0)
+            pair_signals = pairs.setdefault(pair, [])
             pair_signals.append(signal)
 
     for pair, pair_signals in pairs.items():
         entry = bus, message_id, is_extended, original_message_id, muxer, *pair
 
-        extracted_signals[entry] = signals = {}
+        signals = extracted_signals.setdefault(entry, {})
 
         if muxer_values is not None:
             min_, max_ = pair
@@ -442,35 +451,33 @@ def extract_mux(
     return extracted_signals
 
 
-def get_conversion(signal: Signal) -> v4b.ChannelConversion | None:
-    conv = {}
+def get_conversion(signal: Signal) -> v4b.ChannelConversion:
+    conv: v4b.ChannelConversionKwargs = {}
 
     a, b = float(signal.factor), float(signal.offset)
-
-    conv = {}
 
     scale_ranges = getattr(signal, "scale_ranges", None)
     if scale_ranges:
         for i, scale_info in enumerate(scale_ranges):
-            conv[f"upper_{i}"] = scale_info["max"]
-            conv[f"lower_{i}"] = scale_info["min"]
-            conv[f"text_{i}"] = from_dict({"a": scale_info["factor"], "b": scale_info["offset"]})
+            conv[f"upper_{i}"] = scale_info["max"]  # type: ignore[literal-required]
+            conv[f"lower_{i}"] = scale_info["min"]  # type: ignore[literal-required]
+            conv[f"text_{i}"] = from_dict({"a": scale_info["factor"], "b": scale_info["offset"]})  # type: ignore[literal-required]
 
         for i, (val, text) in enumerate(signal.values.items(), len(scale_ranges)):
-            conv[f"upper_{i}"] = val
-            conv[f"lower_{i}"] = val
-            conv[f"text_{i}"] = text
+            conv[f"upper_{i}"] = val  # type: ignore[literal-required]
+            conv[f"lower_{i}"] = val  # type: ignore[literal-required]
+            conv[f"text_{i}"] = text  # type: ignore[literal-required]
 
-        conv["default"] = from_dict({"a": a, "b": b})
+        conv["default_addr"] = from_dict({"a": a, "b": b})
 
     elif signal.values:
 
         for i, (val, text) in enumerate(signal.values.items()):
-            conv[f"upper_{i}"] = val
-            conv[f"lower_{i}"] = val
-            conv[f"text_{i}"] = text
+            conv[f"upper_{i}"] = val  # type: ignore[literal-required]
+            conv[f"lower_{i}"] = val  # type: ignore[literal-required]
+            conv[f"text_{i}"] = text  # type: ignore[literal-required]
 
-        conv["default"] = from_dict({"a": a, "b": b})
+        conv["default_addr"] = from_dict({"a": a, "b": b})
 
     else:
         conv["a"] = a

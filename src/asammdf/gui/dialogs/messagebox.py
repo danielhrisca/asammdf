@@ -2,7 +2,7 @@ import os
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-DEFAULT_TIMEOUT = int(os.environ.get("ASAMMDF_ERROR_DIALOG_TIMEOUT", 60))
+DEFAULT_TIMEOUT = int(os.environ.get("ASAMMDF_ERROR_DIALOG_TIMEOUT", "60"))
 
 
 class MessageBox(QtWidgets.QMessageBox):
@@ -44,12 +44,6 @@ class MessageBox(QtWidgets.QMessageBox):
         if defaultButton is not None:
             self.setDefaultButton(defaultButton)
 
-        if informative_text:
-            self.setInformativeText(informative_text)
-
-        if detailed_text:
-            self.setDetailedText(detailed_text)
-
         if self.defaultButton() is not None:
             if markdown:
                 self.setText(
@@ -88,6 +82,13 @@ This message will be closed in {self.timeout}s
             self.setEscapeButton(escapeButton)
 
         self.show()
+
+        if informative_text:
+            self.setInformativeText(informative_text)
+
+        if detailed_text:
+            self.setDetailedText(detailed_text)
+
         self.scroll.setMinimumWidth(min(800, self.scroll_contents.width()))
         self.scroll.setMinimumHeight(min(800, self.scroll_contents.height()))
 

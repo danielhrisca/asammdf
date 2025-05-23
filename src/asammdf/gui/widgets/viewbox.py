@@ -187,6 +187,11 @@ class ViewBoxWithCursor(pg.ViewBox):
 
         self._settings = QtCore.QSettings()
 
+    def close(self):
+        self.cursor = None
+        self.plot = None
+        super().close()
+
     def __repr__(self):
         return "ASAM ViewBox"
 
@@ -435,60 +440,15 @@ class ViewBoxWithCursor(pg.ViewBox):
         self.sigRangeChangedManually.emit(mask)
 
     def vertical_zoom(self, zoom_in=True):
-        if self.state["mouseMode"] == ViewBoxWithCursor.CursorMode:
+        if not self.state["mouseEnabled"][1]:
             return
-
-        mask = [False, self.state["mouseEnabled"][1]]
-
-        pos = self.geometry().center()
 
         factor = self._settings.value("zoom_wheel_factor", 0.165, type=float)
 
         if zoom_in:
-            s = [(None if m is False else 1 + factor) for m in mask]
+            scale = 1 / (1 + factor)
         else:
-            s = [(None if m is False else 1 / (1 + factor)) for m in mask]
-
-        if any(np.isnan(v) for v in s if v is not None):
-            return
-
-        center = pg.Point(fn.invertQTransform(self.childGroup.transform()).map(pos))
-
-        self._resetTarget()
-
-        if s is not None:
-            x, y = s[0], s[1]
-
-        affect = [x is not None, y is not None]
-        if not any(affect):
-            return
-
-        scale = pg.Point([1.0 if x is None else x, 1.0 if y is None else y])
-
-        if self.state["aspectLocked"] is not False:
-            scale[0] = scale[1]
-
-        vr = self.targetRect()
-        if center is None:
-            center = pg.Point(vr.center())
-        else:
-            center = pg.Point(center)
-
-        tl = center + (vr.topLeft() - center) * scale
-        br = center + (vr.bottomRight() - center) * scale
-
-        x_range = tl.x(), br.x()
-        y_range = br.y(), tl.y()
-
-        if (
-            self._settings.value("zoom_x_center_on_cursor", True, type=bool)
-            and self.cursor is not None
-            and self.cursor.isVisible()
-        ):
-            delta = x_range[1] - x_range[0]
-
-            pos = self.cursor.value()
-            x_range = pos - delta / 2, pos + delta / 2
+            scale = 1 + factor
 
         zoom_y_mode = self._settings.value("zoom_y_mode", "")
 
@@ -498,33 +458,56 @@ class ViewBoxWithCursor(pg.ViewBox):
             else:
                 zoom_y_mode = "center_on_mouse"
 
+        selected_uuids, current_uuid = self.plot.selected_items()
+        viewbox_y_range = None
+
         if zoom_y_mode == "pin_zero_level":
-            y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor()
-            delta_proc = sig_y_top / (sig_y_top - sig_y_bottom)
+            for uuid in selected_uuids:
+                sig, idx = self.plot.signal_by_uuid(uuid)
+                y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor(uuid=uuid)
+                if isinstance(y_pos_val, (int, float)):
+                    delta_proc = sig_y_top / (sig_y_top - sig_y_bottom)
 
-            delta = sig_y_top - sig_y_bottom
+                    delta = (sig_y_top - sig_y_bottom) * scale
 
-            if not zoom_in:
-                delta *= 1 / (1 + factor)
-            else:
-                delta *= 1 + factor
+                    end = delta_proc * delta
+                    start = end - delta
+                    y_range = start, end
 
-            end = delta_proc * delta
-            start = end - delta
-            y_range = start, end
+                    if uuid == current_uuid:
+                        viewbox_y_range = y_range
+                    else:
+                        sig.y_range = y_range
 
         elif zoom_y_mode == "center_on_cursor":
-            y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor()
-            if isinstance(y_pos_val, (int, float)):
-                delta = y_range[1] - y_range[0]
-                y_range = y_pos_val - delta / 2, y_pos_val + delta / 2
+            for uuid in selected_uuids:
+                sig, idx = self.plot.signal_by_uuid(uuid)
+                y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor(uuid=uuid)
+                if isinstance(y_pos_val, (int, float)):
+                    delta = (sig_y_top - sig_y_bottom) * scale
+                    new_y_range = y_pos_val - delta / 2, y_pos_val + delta / 2
 
-        if not mask[0]:
-            x_range = None
+                    if uuid == current_uuid:
+                        viewbox_y_range = new_y_range
+                    else:
+                        sig.y_range = new_y_range
 
-        if not mask[1]:
-            y_range = None
+        else:
+            for uuid in selected_uuids:
+                sig, idx = self.plot.signal_by_uuid(uuid)
+                y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor(uuid=uuid)
 
-        self.setRange(xRange=x_range, yRange=y_range, padding=0)
+                center = (sig_y_top + sig_y_bottom) / 2
+                half_range = (sig_y_top - sig_y_bottom) * scale / 2
 
-        self.sigRangeChangedManually.emit(mask)
+                new_y_range = center - half_range, center + half_range
+
+                if uuid == current_uuid:
+                    viewbox_y_range = new_y_range
+                else:
+                    sig.y_range = new_y_range
+
+        if viewbox_y_range is not None:
+            self.setRange(xRange=None, yRange=viewbox_y_range, padding=0)
+            mask = [False, True]
+            self.sigRangeChangedManually.emit(mask)

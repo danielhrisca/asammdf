@@ -25,13 +25,7 @@ from ...blocks.v4_constants import (
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.messagebox import MessageBox
 from ..ui.batch_widget import Ui_batch_widget
-from ..utils import (
-    COMPRESSION_OPTIONS,
-    GREEN,
-    HelperChannel,
-    setup_progress,
-    TERMINATED,
-)
+from ..utils import COMPRESSION_OPTIONS, GREEN, HelperChannel, setup_progress
 from .database_item import DatabaseItem
 from .tree import add_children
 from .tree_item import MinimalTreeItem, TreeItem
@@ -70,6 +64,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.splitter.setStretchFactor(1, 1)
 
         self.raster_type_channel.toggled.connect(self.set_raster_type)
+        self.set_raster_type()
 
         for widget in (
             self.concatenate_format,
@@ -229,15 +224,17 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.mdf_compression.clear()
             self.mdf_compression.addItems(options)
 
-    def set_raster_type(self, event):
+    def set_raster_type(self, event=None):
         if self.raster_type_channel.isChecked():
             self.raster_channel.setEnabled(True)
+            self.raster_search_btn.setEnabled(True)
             self.raster.setEnabled(False)
             self.raster.setValue(0)
         else:
+            self.raster_search_btn.setEnabled(False)
             self.raster_channel.setEnabled(False)
-            self.raster_channel.setCurrentIndex(0)
             self.raster.setEnabled(True)
+            self.raster_channel.setCurrentIndex(0)
 
     def export_changed(self, name):
         if name == "parquet":
@@ -274,9 +271,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         for i, source_file in enumerate(source_files):
             progress.signals.setLabelText.emit(f"Scrambling file {i+1} of {count}\n{source_file}")
 
-            result = mdf_module.MDF.scramble(name=source_file, progress=progress)
-            if result is TERMINATED:
-                return
+            mdf_module.MDF.scramble(name=source_file, progress=progress)
 
     def scramble_finished(self):
         self._progress = None
@@ -298,7 +293,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         )
 
     def extract_bus_logging_finished(self):
-        if self._progress.error is None and self._progress.result is not TERMINATED:
+        if self._progress.error is None:
             message = self._progress.result
 
             self.output_info_bus.setPlainText("\n".join(message))
@@ -367,22 +362,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             else:
                 mdf = file
 
-            if mdf is TERMINATED:
-                return
-
-            mdf.last_call_info = {}
-
-            result = mdf.extract_bus_logging(
+            mdf_ = mdf.extract_bus_logging(
                 database_files=database_files,
                 version=version,
                 prefix=self.prefix.text().strip(),
                 progress=progress,
             )
-
-            if result is TERMINATED:
-                return
-            else:
-                mdf_ = result
 
             bus_call_info = dict(mdf.last_call_info)
 
@@ -432,22 +417,20 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             # then save it
             progress.signals.setLabelText.emit(f'Saving extracted Bus logging file {i+1} to "{file_name}"')
 
-            result = mdf_.save(
-                dst=file_name,
-                compression=compression,
-                overwrite=True,
-                progress=progress,
-            )
-
-            mdf.close()
-
-            if result is TERMINATED:
-                return
+            try:
+                mdf_.save(
+                    dst=file_name,
+                    compression=compression,
+                    overwrite=True,
+                    progress=progress,
+                )
+            finally:
+                mdf.close()
 
         return message
 
     def extract_bus_csv_logging_finished(self):
-        if self._progress.error is None and self._progress.result is not TERMINATED:
+        if self._progress.error is None:
             message = self._progress.result
 
             self.output_info_bus.setPlainText("\n".join(message))
@@ -564,21 +547,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             else:
                 mdf = file
 
-            if mdf is TERMINATED:
-                return
-
-            mdf.last_call_info = {}
-
-            result = mdf.extract_bus_logging(
+            mdf_ = mdf.extract_bus_logging(
                 database_files=database_files,
                 version=version,
                 prefix=self.prefix.text().strip(),
                 progress=progress,
             )
-            if result is TERMINATED:
-                return
-            else:
-                mdf_ = result
 
             bus_call_info = dict(mdf.last_call_info)
 
@@ -624,29 +598,27 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 float_interpolation=self.float_interpolation,
             )
 
-            result = mdf_.export(
-                fmt="csv",
-                filename=file_name,
-                single_time_base=single_time_base,
-                time_from_zero=time_from_zero,
-                empty_channels=empty_channels,
-                raster=raster or None,
-                time_as_date=time_as_date,
-                ignore_value2text_conversions=self.ignore_value2text_conversions,
-                delimiter=delimiter,
-                doublequote=doublequote,
-                escapechar=escapechar,
-                lineterminator=lineterminator,
-                quotechar=quotechar,
-                quoting=quoting,
-                add_units=add_units,
-                progress=progress,
-            )
-
-            mdf.close()
-
-            if result is TERMINATED:
-                return
+            try:
+                mdf_.export(
+                    fmt="csv",
+                    filename=file_name,
+                    single_time_base=single_time_base,
+                    time_from_zero=time_from_zero,
+                    empty_channels=empty_channels,
+                    raster=raster or None,
+                    time_as_date=time_as_date,
+                    ignore_value2text_conversions=self.ignore_value2text_conversions,
+                    delimiter=delimiter,
+                    doublequote=doublequote,
+                    escapechar=escapechar,
+                    lineterminator=lineterminator,
+                    quotechar=quotechar,
+                    quoting=quoting,
+                    add_units=add_units,
+                    progress=progress,
+                )
+            finally:
+                mdf.close()
 
         return message
 
@@ -773,38 +745,32 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         files = self._prepare_files(source_files, progress)
 
-        result = mdf_module.MDF.concatenate(
-            files=files,
-            version=version,
-            sync=sync,
-            add_samples_origin=add_samples_origin,
-            progress=progress,
-        )
-
-        for file in files:
-            file.close()
-
-        if result is TERMINATED:
-            return
-        else:
-            mdf = result
+        try:
+            mdf = mdf_module.MDF.concatenate(
+                files=files,
+                version=version,
+                sync=sync,
+                add_samples_origin=add_samples_origin,
+                progress=progress,
+            )
+        finally:
+            for file in files:
+                file.close()
 
         mdf.configure(write_fragment_size=split_size)
 
         # save it
         progress.signals.setLabelText.emit(f'Saving output file "{output_file_name}"')
 
-        result = mdf.save(
-            dst=output_file_name,
-            compression=compression,
-            overwrite=True,
-            progress=progress,
-        )
-
-        mdf.close()
-
-        if result is not TERMINATED:
-            return result
+        try:
+            mdf.save(
+                dst=output_file_name,
+                compression=compression,
+                overwrite=True,
+                progress=progress,
+            )
+        finally:
+            mdf.close()
 
     def stack_thread(
         self,
@@ -826,7 +792,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         files = self._prepare_files(source_files, progress)
 
-        result = mdf_module.MDF.stack(
+        mdf = mdf_module.MDF.stack(
             files=files,
             version=version,
             sync=sync,
@@ -834,30 +800,25 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             progress=progress,
         )
 
-        if result is TERMINATED:
-            return
-        else:
-            mdf = result
-
         mdf.configure(write_fragment_size=split_size)
 
         # save it
         progress.signals.setLabelText.emit(f'Saving output file "{output_file_name}"')
 
-        result = mdf.save(
-            dst=output_file_name,
-            compression=compression,
-            overwrite=True,
-            progress=progress,
-        )
+        try:
+            result = mdf.save(
+                dst=output_file_name,
+                compression=compression,
+                overwrite=True,
+                progress=progress,
+            )
+        finally:
+            for file in files:
+                file.close()
 
-        for file in files:
-            file.close()
+            mdf.close()
 
-        mdf.close()
-
-        if result is not TERMINATED:
-            return result
+        return result
 
     def stack_finished(self):
         self._progress = None
@@ -1007,6 +968,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 show_apply=True,
                 parent=self,
                 return_names=True,
+                apply_text="Set raster channel",
             )
             dlg.setModal(True)
             dlg.exec_()
@@ -1134,6 +1096,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
         if not count:
             self.filter_tree.clear()
+            self.raster_channel.clear()
             return
         else:
             uuid = os.urandom(6).hex()
@@ -1145,6 +1108,14 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 file_name = source_files[0]
 
             mdf = self._as_mdf(file_name)
+
+            self.raster_channel.clear()
+            if not self.raster_channel.count():
+                self.raster_channel.setSizeAdjustPolicy(
+                    QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+                )
+            self.raster_channel.addItems(sorted(mdf.channels_db, key=lambda x: x.lower()))
+            self.raster_channel.setMinimumWidth(100)
 
             try:
                 widget = self.filter_tree
@@ -1510,11 +1481,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     progress=progress,
                 )
 
-                if result is TERMINATED:
-                    return
-                else:
-                    mdf.close()
-                    mdf = result
+                mdf.close()
+                mdf = result
 
                 mdf.configure(
                     read_fragment_size=split_size,
@@ -1543,11 +1511,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     progress=progress,
                 )
 
-                if result is TERMINATED:
-                    return
-                else:
-                    mdf.close()
-                    mdf = result
+                mdf.close()
+                mdf = result
 
                 mdf.configure(
                     read_fragment_size=split_size,
@@ -1580,11 +1545,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     progress=progress,
                 )
 
-                if result is TERMINATED:
-                    return
-                else:
-                    mdf.close()
-                    mdf = result
+                mdf.close()
+                mdf = result
 
                 mdf.configure(
                     read_fragment_size=split_size,
@@ -1611,11 +1573,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         progress=progress,
                     )
 
-                    if result is TERMINATED:
-                        return
-                    else:
-                        mdf.close()
-                        mdf = result
+                    mdf.close()
+                    mdf = result
 
                 if version >= "4.00":
                     suffix = ".mf4"
@@ -1650,17 +1609,15 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 progress.signals.setWindowTitle.emit(f"Saving measurement {mdf_index+1} of {count}")
                 progress.signals.setLabelText.emit(f"Saving output file {mdf_index+1} of {count}\n{source_file}")
 
-                result = mdf.save(
-                    dst=file_name,
-                    compression=opts.mdf_compression,
-                    overwrite=True,
-                    progress=progress,
-                )
-
-                mdf.close()
-
-                if result is TERMINATED:
-                    return
+                try:
+                    result = mdf.save(
+                        dst=file_name,
+                        compression=opts.mdf_compression,
+                        overwrite=True,
+                        progress=progress,
+                    )
+                finally:
+                    mdf.close()
 
             else:
                 if output_folder is not None:
@@ -1731,9 +1688,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
     def output_format_changed(self, name):
         if name == "MDF":
-            self.output_options.setCurrentWidget(self.MDF_2)
+            self.output_options.setCurrentWidget(self.MDF)
         elif name == "MAT":
-            self.output_options.setCurrentWidget(self.MAT_2)
+            self.output_options.setCurrentWidget(self.MAT)
 
             self.export_compression_mat.clear()
             self.export_compression_mat.addItems(["enabled", "disabled"])
@@ -1741,9 +1698,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         elif name == "CSV":
             self.output_options.setCurrentWidget(self.CSV)
         elif name == "ASC":
-            self.output_options.setCurrentWidget(self.page)
+            self.output_options.setCurrentWidget(self.ASC)
         else:
-            self.output_options.setCurrentWidget(self.HDF5_2)
+            self.output_options.setCurrentWidget(self.HDF5)
             if name == "Parquet":
                 self.export_compression.setEnabled(True)
                 self.export_compression.clear()
@@ -1873,16 +1830,11 @@ MultiRasterSeparator;&
                 self,
                 "Select channel list file",
                 "",
-                "Config file (*.cfg);;Display files (*.dsp *.dspf);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.dspf *.lab)",
-                "All file types (*.cfg *.dsp *.dspf *.lab)",
+                "Config file (*.cfg);;Display files (*.dsp *.dspf);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.dspf *.lab *.txt)",
+                "All file types (*.cfg *.dsp *.dspf *.lab *.txt)",
             )
 
-            if file_name is None or Path(file_name).suffix.lower() not in (
-                ".cfg",
-                ".dsp",
-                ".dspf",
-                ".lab",
-            ):
+            if file_name is None or Path(file_name).suffix.lower() not in (".cfg", ".dsp", ".dspf", ".lab", ".txt"):
                 return
 
         if not isinstance(file_name, dict):

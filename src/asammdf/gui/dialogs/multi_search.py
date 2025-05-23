@@ -10,7 +10,7 @@ from .messagebox import MessageBox
 
 
 class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
-    def __init__(self, channels_dbs, measurements, *args, **kwargs):
+    def __init__(self, measurements, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.setWindowFlags(
@@ -29,7 +29,6 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
             widget.setAutoDefault(False)
 
         self.result = set()
-        self.channels_dbs = channels_dbs
         self.measurements = measurements
 
         self.matches.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
@@ -65,8 +64,8 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
                     pattern = re.compile(pattern)
                 else:
                     pattern = re.compile(f"(?i){pattern}")
-                for i, channels_db in enumerate(self.channels_dbs, 1):
-                    match_results = [f"{i:> 2}: {name}" for name in channels_db if pattern.fullmatch(name)]
+                for mdf in self.measurements:
+                    match_results = [f"{mdf.uuid}:\t{name}" for name in mdf.channels_db if pattern.fullmatch(name)]
                     results.extend(match_results)
 
             except Exception as err:
@@ -101,10 +100,11 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
         self.result = set()
         for i in range(count):
             text = self.selection.item(i).text()
-            file_index, channel_name = (item.strip() for item in text.split(":"))
-            file_index = int(file_index) - 1
-            for entry in self.channels_dbs[file_index][channel_name]:
-                self.result.add((file_index, entry))
+            uuid, channel_name = text.split(":\t")
+            for mdf in self.measurements:
+                if mdf.uuid == uuid:
+                    for entry in mdf.channels_db[channel_name]:
+                        self.result.add((uuid, entry, channel_name))
         self.close()
 
     def _cancel(self, event):
@@ -113,7 +113,7 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
 
     def show_measurement_list(self, event):
         info = []
-        for i, name in enumerate(self.measurements, 1):
-            info.extend(wrap(f"{i:> 2}: {name}", 120))
+        for mdf in self.measurements:
+            info.extend(wrap(f"{mdf.uuid}:\t{mdf.original_name}", 120))
 
         MessageBox.information(self, "Measurement files used for comparison", "\n".join(info))

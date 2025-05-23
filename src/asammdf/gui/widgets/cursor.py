@@ -456,8 +456,8 @@ class Region(pg.LinearRegionItem):
         }
 
         self.lines = [
-            Cursor(QtCore.QPointF(values[0], 0), angle=90, label="A", name="A", **lineKwds),
-            Cursor(QtCore.QPointF(values[1], 0), angle=90, label="B", name="B", **lineKwds),
+            Cursor(QtCore.QPointF(values[0], 0), angle=90, **lineKwds),
+            Cursor(QtCore.QPointF(values[1], 0), angle=90, **lineKwds),
         ]
 
         for l in self.lines:

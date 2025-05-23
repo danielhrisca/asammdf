@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1034</width>
-    <height>622</height>
+    <height>621</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -466,7 +466,7 @@
             <x>0</x>
             <y>0</y>
             <width>331</width>
-            <height>610</height>
+            <height>609</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -1340,8 +1340,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>999</width>
-            <height>610</height>
+            <width>476</width>
+            <height>459</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_7" columnstretch="0,0,0">

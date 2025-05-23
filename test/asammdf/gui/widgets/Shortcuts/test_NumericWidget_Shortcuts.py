@@ -161,6 +161,7 @@ class TestTableViewShortcuts(TestFileWidget):
             "ylink": channel.signal.y_link,
             "individual_axis": channel.signal.individual_axis,
             "y_range": channel.y_range,
+            "origin_uuid": channel.origin_uuid,
         }
 
         # expected_ch_info = json.dumps(expected_ch_info)

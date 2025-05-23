@@ -1,16 +1,17 @@
-from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterator
+from abc import ABC
+from collections import defaultdict
+from collections.abc import Callable, Iterable, Iterator
 import logging
-from os import PathLike
 from pathlib import Path
-from typing import Any, Generic, TypeVar
+from typing import Generic
 
 import numpy as np
-from numpy.typing import NDArray
-from typing_extensions import Required, TypedDict
+from numpy.typing import DTypeLike, NDArray
+from typing_extensions import Any, Required, TypedDict, TypeVar
 
 from . import v2_v3_blocks as v3b
 from . import v4_blocks as v4b
+from .types import DbcFileType, StrPath
 from .utils import (
     ChannelsDB,
     DataBlockInfo,
@@ -25,7 +26,7 @@ __all__ = ["MDF_Common"]
 
 
 class MdfKwargs(TypedDict, total=False):
-    temporary_folder: str | bytes | PathLike[str] | PathLike[bytes] | None
+    temporary_folder: StrPath | None
     raise_on_multiple_occurrences: bool
     use_display_names: bool
     fill_0_for_missing_computation_channels: bool
@@ -35,7 +36,7 @@ class MdfKwargs(TypedDict, total=False):
     callback: Callable[[int, int], None] | Any
 
 
-class CommonKwargs(MdfKwargs, total=False):
+class MdfCommonKwargs(MdfKwargs, total=False):
     original_name: Required[str | Path | None]
     __internal__: bool
 
@@ -43,9 +44,11 @@ class CommonKwargs(MdfKwargs, total=False):
 _DG = TypeVar("_DG", v3b.DataGroup, v4b.DataGroup)
 _CG = TypeVar("_CG", v3b.ChannelGroup, v4b.ChannelGroup)
 _CN = TypeVar("_CN", v3b.Channel, v4b.Channel)
+_CD = TypeVar("_CD", v3b.ChannelDependency, list[v4b.ChannelArrayBlock] | list[tuple[int, int]])
+_ST = TypeVar("_ST", list[int], list[int] | list[tuple[int, int]] | np.dtype[Any])
 
 
-class Group(Generic[_DG, _CG, _CN]):
+class Group(Generic[_DG, _CG, _CN, _CD, _ST]):
     __slots__ = (
         "channel_dependencies",
         "channel_group",
@@ -72,7 +75,7 @@ class Group(Generic[_DG, _CG, _CN]):
         self.data_group: _DG = data_group
         self.channel_group: _CG
         self.channels: list[_CN] = []
-        self.channel_dependencies: list[v3b.ChannelDependency | None] = []
+        self.channel_dependencies: list[_CD | None] = []
         self.signal_data: list[tuple[list[SignalDataBlockInfo], Iterator[SignalDataBlockInfo]] | None] = []
         self.record: list[tuple[np.dtype[Any], int, int, int] | None] | None = None
         self.record_size: dict[int, int] = {}
@@ -80,20 +83,14 @@ class Group(Generic[_DG, _CG, _CN]):
         self.sorted: bool
         self.string_dtypes: list[np.dtype[np.bytes_]] = []
         self.data_blocks: list[DataBlockInfo] = []
-        self.signal_types: list[int]
-        self.single_channel_dtype = None
+        self.signal_types: _ST
+        self.single_channel_dtype: DTypeLike | None = None
         self.uses_ld = False
         self.read_split_count = 0
         self.data_blocks_info_generator: Iterator[DataBlockInfo] = iter(EMPTY_TUPLE)
         self.uuid = ""
         self.data_location: int
         self.index = 0
-
-    def __getitem__(self, item: str) -> object:
-        return self.__getattribute__(item)
-
-    def __setitem__(self, item: str, value: object) -> None:
-        self.__setattr__(item, value)
 
     def set_blocks_info(self, info: list[DataBlockInfo]) -> None:
         self.data_blocks = info
@@ -138,19 +135,25 @@ class Group(Generic[_DG, _CG, _CN]):
             continue
 
 
-_Group = TypeVar(
-    "_Group", Group[v3b.DataGroup, v3b.ChannelGroup, v3b.Channel], Group[v4b.DataGroup, v4b.ChannelGroup, v4b.Channel]
-)
+GroupV3 = Group[v3b.DataGroup, v3b.ChannelGroup, v3b.Channel, v3b.ChannelDependency, list[int]]
+GroupV4 = Group[
+    v4b.DataGroup,
+    v4b.ChannelGroup,
+    v4b.Channel,
+    list[v4b.ChannelArrayBlock] | list[tuple[int, int]],
+    list[int] | list[tuple[int, int]] | np.dtype[Any],
+]
+
+_Group = TypeVar("_Group", GroupV3, GroupV4)
 
 
 class MDF_Common(ABC, Generic[_Group]):
     """Common methods for MDF objects."""
 
-    @abstractmethod
-    def __init__(self) -> None:
-        self.groups: list[_Group]
-        self.channels_db: ChannelsDB
-        self._raise_on_multiple_occurrences: bool
+    def __init__(self, raise_on_multiple_occurrences: bool) -> None:
+        self.groups: list[_Group] = []
+        self.channels_db = ChannelsDB()
+        self._raise_on_multiple_occurrences = raise_on_multiple_occurrences
 
     def _set_temporary_master(self, master: NDArray[Any] | None) -> None:
         self._master = master
@@ -287,3 +290,28 @@ class MDF_Common(ABC, Generic[_Group]):
                                 raise MdfException(message)
 
         return gp_nr, ch_nr
+
+
+class _BusInfo(TypedDict):
+    dbc_files: Iterable[DbcFileType]
+    unknown_id_count: int
+
+
+class CanInfo(_BusInfo):
+    total_unique_ids: set[tuple[int, bool]]
+    not_found_ids: defaultdict[StrPath, list[tuple[tuple[int, bool] | int, str]]]
+    found_ids: defaultdict[StrPath, set[tuple[tuple[int, int, bool], str]]]
+    unknown_ids: set[int | tuple[int, bool]]
+    max_flags: list[list[list[bool]]]
+
+
+class LinInfo(_BusInfo):
+    total_unique_ids: set[tuple[int, ...]]
+    not_found_ids: defaultdict[StrPath, list[tuple[int, str]]]
+    found_ids: defaultdict[StrPath, set[tuple[tuple[int, bool, bool], str]]]
+    unknown_ids: set[int]
+
+
+class LastCallInfo(TypedDict, total=False):
+    CAN: CanInfo
+    LIN: LinInfo

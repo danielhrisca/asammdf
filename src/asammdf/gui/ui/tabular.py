@@ -45,6 +45,7 @@ class Ui_TabularDisplay(object):
         self.format_selection.addItem("")
         self.format_selection.addItem("")
         self.format_selection.addItem("")
+        self.format_selection.addItem("")
         self.format_selection.setObjectName(u"format_selection")
 
         self.horizontalLayout_2.addWidget(self.format_selection)
@@ -179,6 +180,7 @@ class Ui_TabularDisplay(object):
         self.format_selection.setItemText(0, QCoreApplication.translate("TabularDisplay", u"phys", None))
         self.format_selection.setItemText(1, QCoreApplication.translate("TabularDisplay", u"hex", None))
         self.format_selection.setItemText(2, QCoreApplication.translate("TabularDisplay", u"bin", None))
+        self.format_selection.setItemText(3, QCoreApplication.translate("TabularDisplay", u"ascii", None))
 
         self.time_as_date.setText(QCoreApplication.translate("TabularDisplay", u"Time as date", None))
         self.remove_prefix.setText(QCoreApplication.translate("TabularDisplay", u"Remove prefix", None))
@@ -188,3 +190,4 @@ class Ui_TabularDisplay(object):
         self.apply_filters_btn.setText(QCoreApplication.translate("TabularDisplay", u"Apply filters", None))
         self.groupBox.setTitle(QCoreApplication.translate("TabularDisplay", u"pandas DataFrame query", None))
     # retranslateUi
+

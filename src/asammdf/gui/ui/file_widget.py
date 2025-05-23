@@ -31,7 +31,7 @@ class Ui_file_widget(object):
     def setupUi(self, file_widget):
         if not file_widget.objectName():
             file_widget.setObjectName(u"file_widget")
-        file_widget.resize(1034, 622)
+        file_widget.resize(1034, 621)
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -244,7 +244,7 @@ class Ui_file_widget(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 331, 610))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 331, 609))
         self.verticalLayout_4 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_4.setSpacing(1)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
@@ -761,7 +761,7 @@ class Ui_file_widget(object):
         self.scrollArea_2.setWidgetResizable(True)
         self.scrollAreaWidgetContents_2 = QWidget()
         self.scrollAreaWidgetContents_2.setObjectName(u"scrollAreaWidgetContents_2")
-        self.scrollAreaWidgetContents_2.setGeometry(QRect(0, 0, 999, 610))
+        self.scrollAreaWidgetContents_2.setGeometry(QRect(0, 0, 476, 459))
         self.gridLayout_7 = QGridLayout(self.scrollAreaWidgetContents_2)
         self.gridLayout_7.setSpacing(1)
         self.gridLayout_7.setObjectName(u"gridLayout_7")

@@ -26,7 +26,7 @@ from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..blocks.options import FloatInterpolation, IntegerInterpolation
-from ..blocks.utils import NONE, TERMINATED
+from ..blocks.utils import Terminated
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
 from .dialogs.messagebox import MessageBox
@@ -40,21 +40,6 @@ RANGE_INDICATOR_ICON = None
 NO_ERROR_ICON = None
 
 COMPUTED_FUNCTION_ERROR_VALUE = float("nan")
-
-
-COLORS = [
-    "#1f77b4",
-    "#ff7f0e",
-    "#2ca02c",
-    "#d62728",
-    "#9467bd",
-    "#8c564b",
-    "#e377c2",
-    "#7f7f7f",
-    "#bcbd22",
-    "#17becf",
-]
-COLORS_COUNT = len(COLORS)
 
 SUPPORTED_FILE_EXTENSIONS = {".csv", ".zip", ".erg", ".dat", ".mdf", ".mf4", ".mf4z"}
 SUPPORTED_BUS_DATABASE_EXTENSIONS = {".arxml", ".dbc", ".xml"}
@@ -196,8 +181,6 @@ def excepthook(exc_type, exc_value, tracebackobj):
 
 
 def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progress=None):
-    termination_request = False
-
     thr = WorkerThread(target=target, kwargs=kwargs)
 
     thr.start()
@@ -219,6 +202,8 @@ def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progr
         progress.setValue(factor + offset)
 
     if thr.error:
+        if isinstance(thr.error, Terminated):
+            raise thr.error
         widget.progress = None
         if progress:
             progress.cancel()
@@ -226,10 +211,7 @@ def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progr
 
     widget.progress = None
 
-    if termination_request:
-        return TERMINATED
-    else:
-        return thr.output
+    return thr.output
 
 
 class QWorkerThread(QtCore.QThread):
@@ -282,7 +264,6 @@ class QWorkerThread(QtCore.QThread):
 
         self.kwargs = kwargs
         self.stop = False
-        self.TERMINATED = TERMINATED
 
     def run(self):
         """
@@ -305,14 +286,11 @@ class QWorkerThread(QtCore.QThread):
 
 class ProgressDialog(QtWidgets.QProgressDialog):
 
-    NONE = NONE
-    TERMINATED = TERMINATED
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.thread = None
         self.error = None
-        self.result = self.NONE
+        self.result = None
         self.close_on_finish = True
         self.hide_on_finish = False
 
@@ -324,7 +302,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self, target, args, kwargs, wait_here=False, close_on_finish=True, hide_on_finish=False
     ):
         self.show()
-        self.result = self.NONE
+        self.result = None
         self.error = None
         self.thread_finished = False
 
@@ -443,6 +421,8 @@ class WorkerThread(Thread):
     def run(self):
         try:
             self.output = self._target(*self._args, **self._kwargs)
+        except Terminated as error:
+            self.error = error
         except:
             self.error = traceback.format_exc()
 
@@ -490,7 +470,7 @@ def compute_signal(
 ):
     required_channels = {}
     for key, sig in measured_signals.items():
-        signal = sig.physical(copy=False)
+        signal = sig.physical(copy=False, ignore_value2text_conversions=True)
         if signal.samples.dtype.kind in "fui":
             required_channels[key] = signal
         else:
@@ -907,8 +887,9 @@ def copy_ranges(ranges):
                 color = range_info[color_name]
                 if isinstance(color, QtGui.QBrush):
                     range_info[color_name] = QtGui.QBrush(color)
-                elif isinstance(color, QtGui.QColor):
+                elif isinstance(color, (QtGui.QColor, str)):
                     range_info[color_name] = fn.mkColor(color)
+
             new_ranges.append(range_info)
 
         return new_ranges
@@ -1158,17 +1139,18 @@ def value_as_str(value, format, dtype=None, precision=3):
         kind = "S"
 
     if kind in "ui":
-        if format == "bin":
-            string = value_as_bin(value, dtype)
-        elif format == "hex":
-            string = value_as_hex(value, dtype)
-        elif format == "ascii":
-            if 0 < value < 0x110000:
-                string = chr(value)
-            else:
+        match format:
+            case "bin":
+                string = value_as_bin(value, dtype)
+            case "hex":
+                string = value_as_hex(value, dtype)
+            case "ascii":
+                if 0 < value < 0x110000:
+                    string = chr(value)
+                else:
+                    string = str(value)
+            case _:
                 string = str(value)
-        else:
-            string = str(value)
     elif kind in "SUV":
         string = str(value)
     else:
@@ -1369,12 +1351,19 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
             else:
                 trace = "Complete signal: The function did not return an list, tuple or np.ndarray"
 
-        if len(np.array(res).shape) > 1:
+        try:
+            if len(np.array(res).shape) > 1:
+                complete_signal = False
+                if trace:
+                    trace += "\n\nComplete signal: The function returned a multi dimensional array"
+                else:
+                    trace = "Complete signal: The function returned a multi dimensional array"
+        except:
             complete_signal = False
             if trace:
-                trace += "\n\nComplete signal: The function returned a multi dimensional array"
+                trace += f"\n\nComplete signal: {format_exc()}"
             else:
-                trace = "Complete signal: The function returned a multi dimensional array"
+                trace = f"Complete signal: {format_exc()}"
 
     if not sample_by_sample and not complete_signal:
         if not silent:

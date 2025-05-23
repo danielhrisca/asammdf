@@ -37,21 +37,33 @@ dependencies = [
     "isal; platform_machine == 'x86_64' or platform_machine == 'AMD64'",
     "lxml>=4.9.3",
     "lz4",
-    "numexpr",
+    "numexpr>=2.10.0",
     "numpy>=2.0.0",
-    "pandas",
+    "pandas>=2.2.2",
     "python-dateutil",
     "typing-extensions~=4.10",
 ]
 
 [project.optional-dependencies]
 decode = ["faust-cchardet==2.1.19", "chardet"]
-export = ["pyarrow", "h5py", "hdf5storage>=0.1.19", "python-snappy", "polars"]
-testing = ["h5py", "pyarrow", "python-can", "scipy"]
-export-matlab-v5 = ["scipy"]
-gui = ["natsort", "PySide6", "pyqtgraph", "pyqtlet2[PySide6]", "packaging"]
+export = [
+    "pyarrow>=17.0.0",
+    "h5py>=3.11",
+    "hdf5storage>=0.1.19",
+    "python-snappy",
+    "polars>=1.1.0",
+]
+export-matlab-v5 = ["scipy>=1.13.0"]
+gui = [
+    "natsort",
+    "PySide6>=6.7.0",
+    "pyqtgraph>=0.13.4",
+    "pyqtlet2[PySide6]",
+    "packaging",
+]
 encryption = ["cryptography", "keyring"]
-symbolic-math = ["sympy"]
+plot = ["matplotlib"]
+symbolic-math = ["sympy>=1.13.0"]
 filesystem = ["fsspec"]
 
 [project.scripts]
@@ -65,6 +77,7 @@ Source = "https://github.com/danielhrisca/asammdf"
 [tool.scikit-build]
 metadata.version.provider = "scikit_build_core.metadata.regex"
 metadata.version.input = "src/asammdf/version.py"
+sdist.include = ["ext"]
 wheel.packages = ["src/asammdf"]
 wheel.py-api = "cp310"
 
@@ -96,18 +109,10 @@ skip = ["pp*", "*_ppc64le", "*-musllinux*", "*_s390x"]
 
 [tool.mypy]
 files = "."
-exclude = [
-    "benchmarks/",
-    "build/",
-    "ci/",
-    "dist/",
-    "doc/_build/",
-    "examples/",
-    "ext/",
-    "test/",
-]
+exclude = ["build/", "ci/", "dist/", "doc/_build/", "ext/", "test/asammdf/gui/"]
 python_version = "3.10"
 plugins = ["numpy.typing.mypy_plugin"]
+enable_error_code = ["deprecated"]
 strict = true
 
 [[tool.mypy.overrides]]
@@ -118,8 +123,11 @@ module = [
     "fsspec.*",
     "h5py.*",
     "hdf5storage.*",
+    "isal.*",
+    "lz4.*",
     "mdfreader.*",
     "mfile.*",
+    "mpl_toolkits.*",
     "numexpr.*",
     "pyqtgraph.*",
     "pyqtlet2.*",
@@ -130,16 +138,7 @@ module = [
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = [
-    "asammdf.app.asammdfgui",
-    "asammdf.blocks.bus_logging_utils",
-    "asammdf.blocks.conversion_utils",
-    "asammdf.blocks.mdf_v4",
-    "asammdf.blocks.v4_blocks",
-    "asammdf.gui.*",
-    "asammdf.mdf",
-    "asammdf.signal",
-]
+module = ["asammdf.app.asammdfgui", "asammdf.gui.*"]
 ignore_errors = true
 
 [tool.ruff]
@@ -169,6 +168,7 @@ ignore = [
     "PLW2901", # redefined-loop-name
     "RUF012",  # mutable-class-default
     "RUF015",  # unnecessary-iterable-allocation-for-first-element
+    "UP038",   # non-pep604-isinstance
 ]
 
 [tool.ruff.lint.isort]

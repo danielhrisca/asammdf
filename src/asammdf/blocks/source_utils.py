@@ -1,14 +1,12 @@
 """asammdf utility functions for source information"""
 
-from __future__ import annotations
-
 from functools import lru_cache
 
-from ..types import SourceType
 from . import v2_v3_blocks as v3b
 from . import v2_v3_constants as v3c
 from . import v4_blocks as v4b
 from . import v4_constants as v4c
+from .types import SourceType
 
 
 class Source:
@@ -57,7 +55,7 @@ class Source:
 
     @classmethod
     @lru_cache(128)
-    def from_source(cls, source: SourceType) -> Source:
+    def from_source(cls, source: SourceType) -> "Source":
         if isinstance(source, v3b.ChannelExtension):
             if source.type == v3c.SOURCE_ECU:
                 return cls(

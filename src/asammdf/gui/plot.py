@@ -1,6 +1,7 @@
 import logging
 
 from ..blocks.utils import plausible_timestamps
+from ..signal import Signal
 
 try:
     from PySide6 import QtWidgets
@@ -15,7 +16,7 @@ except ImportError:
 logger = logging.getLogger("asammdf")
 
 
-def plot(signals, title="", validate=True, index_only=False):
+def plot(signals: Signal | list[Signal], title: str = "", validate: bool = True, index_only: bool = False) -> None:
     """Create a stand-alone plot using the input signal or signals.
 
     Arguments

@@ -1,5 +1,5 @@
 # Development dependencies
---editable .[decode,encryption,export,export-matlab-v5,filesystem,gui,symbolic-math]
+--editable .[decode,encryption,export,export-matlab-v5,filesystem,gui,plot,symbolic-math]
 --requirement benchmarks/requirements.txt
 --requirement ci/requirements.txt
 --requirement doc/requirements.txt
@@ -9,5 +9,5 @@ black~=25.1  # Aligned with .pre-commit-config.yaml
 build
 mypy~=1.14
 pre-commit
-ruff~=0.9.0  # Aligned with .pre-commit-config.yaml
+ruff~=0.11.0  # Aligned with .pre-commit-config.yaml
 tox

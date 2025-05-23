@@ -4,7 +4,8 @@ from PySide6 import QtCore, QtTest
 from PySide6.QtWidgets import QPushButton as QBtn
 from PySide6.QtWidgets import QTreeWidgetItemIterator
 
-from asammdf.gui.utils import BLUE, COLORS
+from asammdf.blocks.utils import COLORS
+from asammdf.gui.utils import BLUE
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
@@ -432,9 +433,9 @@ class TestPushButtons(TestPlotWidget):
         """
         Events:
             - Display 2 signal on plot
-            - Press `Lock` button in order to lock y-axis
+            - Press `Lock` button to lock y-axis
             - Move signal using drag-and-drop technique on both axis
-            - Press `Lock` button in order to lock y-axis
+            - Press `Lock` button to unlock y-axis
             - Move signal using drag-and-drop technique on both axis
 
         Evaluate:
@@ -476,7 +477,7 @@ class TestPushButtons(TestPlotWidget):
 
         # move channels on plot graphics
         move_signal(50, 50)
-        self.processEvents(1)
+        self.processEvents(0.5)
 
         # Evaluate
         self.assertTrue(self.plot.locked)
@@ -493,14 +494,15 @@ class TestPushButtons(TestPlotWidget):
 
         # move channels on plot graphics
         move_signal(-50, 50)
-        self.processEvents(1)
+        self.processEvents(0.5)
 
         # Evaluate
         self.assertFalse(self.plot.locked)
         self.assertFalse(self.plot.channel_selection.isColumnHidden(self.plot.channel_selection.CommonAxisColumn))
         self.assertNotEqual(sig_0_y_range, self.plot_graph_channel_0.y_range)
-        for _ in range(len(trim_info)):
-            self.assertGreaterEqual(self.plot_graph_channel_0.trim_info[_], trim_info[_])
+        self.assertGreater(self.plot_graph_channel_0.trim_info[0], trim_info[0])  # start
+        self.assertGreater(self.plot_graph_channel_0.trim_info[1], trim_info[1])  # stop
+        self.assertEqual(self.plot_graph_channel_0.trim_info[2], trim_info[2])  # width
 
     def test_Plot_ChannelSelection_PushButtons_Zoom(self):
         """
