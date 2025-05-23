@@ -252,7 +252,7 @@ class MDF:
 
         .. versionadded:: 7.0.0
 
-    temporary_folder : str | pathlib.Path, optional
+    temporary_folder : str | path-like, optional
         Folder to use for temporary files.
 
         .. versionadded:: 7.0.0
@@ -1642,7 +1642,7 @@ class MDF:
 
                 .. versionadded:: 7.3.3
 
-        filename : str | pathlib.Path, optional
+        filename : str | path-like, optional
             Export file name.
 
         Other Parameters
@@ -3561,22 +3561,19 @@ class MDF:
             )
 
     def master_using_raster(self, raster: RasterType, endpoint: bool = False) -> NDArray[Any]:
-        """get single master based on the raster
+        """Get single master based on the raster.
 
         Parameters
         ----------
-        mdf : asammdf.MDF
-            measurement object
         raster : float
-            new raster
-        endpoint=False : bool
-            include maximum time stamp in the new master
+            New raster.
+        endpoint : bool, default False
+            Include maximum timestamp in the new master.
 
         Returns
         -------
-        master : np.array
-            new master
-
+        master : np.ndarray
+            New master.
         """
         if not raster:
             master = np.array([], dtype="<f8")
@@ -4366,7 +4363,7 @@ class MDF:
 
         Parameters
         ----------
-        name : str | pathlib.Path
+        name : str | path-like
             File name.
         skip_attachments : bool, default False
             Skip scrambling of attachments data if True.
@@ -4674,7 +4671,7 @@ class MDF:
 
         Parameters
         ----------
-        name : str | pathlib.Path
+        name : str | path-like
             File name.
 
         Returns

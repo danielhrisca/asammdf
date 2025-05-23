@@ -61,9 +61,9 @@ class Signal:
 
     Parameters
     ----------
-    samples : np.ndarray | list | tuple
+    samples : array-like
         Signal samples.
-    timestamps : np.ndarray | list | tuple
+    timestamps : array-like
         Signal timestamps.
     unit : str, optional
         Signal unit.
@@ -75,21 +75,21 @@ class Signal:
         Signal comment.
     raw : bool, default True
         Signal samples are raw values, with no physical conversion applied.
-    master_metadata : list, optional
+    master_metadata : tuple, optional
         Master name and sync type.
     display_names : dict, optional
         Display names used by MDF version 3.
-    attachment : (bytes, str), optional
+    attachment : tuple, optional
         Channel attachment and name from MDF version 4.
     source : Source, optional
         Source information named tuple.
     bit_count : int, optional
         Bit count; useful for integer channels.
-    invalidation_bits : np.ndarray, optional
+    invalidation_bits : array-like, optional
         Channel invalidation bits.
     encoding : str, optional
         Encoding for string signals.
-    flags : Signal.Flags, optional
+    flags : int, optional
         Flags for user-defined attributes and stream sync.
     """
 
@@ -945,7 +945,7 @@ class Signal:
 
         Parameters
         ----------
-        new_timestamps : np.ndarray
+        new_timestamps : np.ndarray | list
             Timestamps used for interpolation.
 
         integer_interpolation_mode : int, default 0
@@ -1439,8 +1439,9 @@ class Signal:
 
             .. versionadded:: 7.4.0
 
-        ignore_value2text_conversions : bool
-            make sure that the output signal has numeric samples by ignoring the value to text conversions
+        ignore_value2text_conversions : bool, default False
+            Make sure that the output signal has numeric samples by ignoring
+            the value to text conversions.
 
             .. versionadded:: 8.3.0
 

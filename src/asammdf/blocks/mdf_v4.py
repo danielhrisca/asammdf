@@ -235,7 +235,7 @@ class MDF4(MDF_Common[Group]):
 
     Parameters
     ----------
-    name : str | pathlib.Path | file-like, optional
+    name : str | path-like | file-like, optional
         MDF file name (if provided it must be a real file name) or file-like
         object.
     version : str, default '4.10'
@@ -2717,8 +2717,8 @@ class MDF4(MDF_Common[Group]):
             Group index.
         pos_invalidation_bit : int
             Channel invalidation bit position.
-        fragment : (bytes, int)
-            (fragment bytes, fragment offset).
+        fragment : Fragment
+            Data bytes as a Fragment.
 
         Returns
         -------
@@ -6012,8 +6012,8 @@ class MDF4(MDF_Common[Group]):
         ----------
         index : int
             Group index.
-        signals : list
-            List of (np.ndarray, np.ndarray) objects.
+        signals : sequence
+            Sequence of (np.ndarray, np.ndarray) tuples.
 
         Examples
         --------
@@ -6326,8 +6326,8 @@ class MDF4(MDF_Common[Group]):
         ----------
         index : int
             Group index.
-        signals : list
-            List of (np.ndarray, np.ndarray) objects.
+        signals : sequence
+            Sequence of (np.ndarray, np.ndarray) tuples.
 
         Examples
         --------
@@ -6479,7 +6479,7 @@ class MDF4(MDF_Common[Group]):
         ----------
         data : bytes
             Data to be attached.
-        file_name : str, optional
+        file_name : str | path-like, optional
             File name.
         hash_sum : bytes, optional
             MD5 of the data.
@@ -6695,7 +6695,7 @@ class MDF4(MDF_Common[Group]):
 
         Returns
         -------
-        data : (bytes, pathlib.Path)
+        data : (bytes, pathlib.Path, bytes)
             Tuple of attachment data and path.
         """
         password = password or self._password
@@ -6928,7 +6928,7 @@ class MDF4(MDF_Common[Group]):
         samples_only : bool, default False
             If True, return only the channel samples as np.ndarray; if False,
             return a `Signal` object.
-        data : bytes, optional
+        data : Fragment, optional
             Prevent redundant data read by providing the raw data group samples.
         raw : bool, default False
             Return channel samples without applying the conversion rule.
@@ -9172,8 +9172,8 @@ class MDF4(MDF_Common[Group]):
         ----------
         index : int
             Group index.
-        data : (bytes, int, int, bytes | None), optional
-            (data block raw bytes, fragment offset, count, invalidation bytes).
+        data : Fragment, optional
+            Data bytes as a Fragment.
         record_offset : int, optional
             If `data=None`, use this to select the record offset from which the
             group data should be loaded.
@@ -9383,7 +9383,7 @@ class MDF4(MDF_Common[Group]):
             "CAN" or "LIN".
         name : str
             Signal name.
-        database : str, optional
+        database : str | path-like | CanMatrix, optional
             Path of external CAN/LIN database file (.dbc or .arxml) or
             canmatrix.CanMatrix.
 
@@ -9393,6 +9393,8 @@ class MDF4(MDF_Common[Group]):
 
         ignore_invalidation_bits : bool, default False
             Option to ignore invalidation bits.
+        data : Fragment, optional
+            Data bytes as a Fragment.
         raw : bool, default False
             Return channel samples without applying the conversion rule.
         ignore_value2text_conversion : bool, default True
@@ -9465,7 +9467,7 @@ class MDF4(MDF_Common[Group]):
         ----------
         name : str
             Signal name.
-        database : str, optional
+        database : str | path-like | CanMatrix, optional
             Path of external CAN database file (.dbc or .arxml) or
             canmatrix.CanMatrix.
 
@@ -9475,6 +9477,8 @@ class MDF4(MDF_Common[Group]):
 
         ignore_invalidation_bits : bool, default False
             Option to ignore invalidation bits.
+        data : Fragment, optional
+            Data bytes as a Fragment.
         raw : bool, default False
             Return channel samples without applying the conversion rule.
         ignore_value2text_conversion : bool, default True
@@ -9723,11 +9727,13 @@ class MDF4(MDF_Common[Group]):
         ----------
         name : str
             Signal name.
-        database : str, optional
+        database : str | path-like | CanMatrix, optional
             Path of external LIN database file (.dbc, .arxml or .ldf) or
             canmatrix.CanMatrix.
         ignore_invalidation_bits : bool, default False
             Option to ignore invalidation bits.
+        data : Fragment, optional
+            Data bytes as a Fragment.
         raw : bool, default False
             Return channel samples without applying the conversion rule.
         ignore_value2text_conversion : bool, default True
@@ -10548,7 +10554,7 @@ class MDF4(MDF_Common[Group]):
 
         Parameters
         ----------
-        dst : str | pathlib.Path | file-like
+        dst : str | path-like | file-like
             Destination file name.
         overwrite : bool, default False
             Overwrite flag.

@@ -1479,7 +1479,7 @@ def components(
         Unique names object.
     prefix : str, optional
         Prefix used in case of nested recarrays.
-    master : pd.Index, optional
+    master : np.ndarray | pd.Index, optional
         Optional index for the Series.
     only_basenames : bool, default False
         Use just the field names, without prefix, for structures and channel
@@ -1855,7 +1855,7 @@ def load_can_database(
 
     Parameters
     ----------
-    path : str | pathlib.Path
+    path : str | path-like
         Database path.
     contents : bytes | str, optional
         Optional database content.

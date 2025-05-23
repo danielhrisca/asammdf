@@ -146,7 +146,7 @@ class MDF3(MDF_Common[Group]):
 
     Parameters
     ----------
-    name : str | pathlib.Path | file-like, optional
+    name : str | path-like | file-like, optional
         MDF file name (if provided it must be a real file name) or file-like
         object.
     version : str, default '3.30'
@@ -2410,8 +2410,8 @@ class MDF3(MDF_Common[Group]):
         ----------
         index : int
             Group index.
-        signals : list
-            List of (np.ndarray, None) objects.
+        signals : sequence
+            Sequence of (np.ndarray, None) tuples.
 
         Examples
         --------
@@ -3428,7 +3428,7 @@ class MDF3(MDF_Common[Group]):
 
         Parameters
         ----------
-        dst : str | pathlib.Path
+        dst : str | path-like
             Destination file name.
         overwrite : bool, default False
             Overwrite flag.
