@@ -1203,7 +1203,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         if not ranges:
             self.ranges = {name: [] for name in df.columns}
         else:
-            self.ranges = copy_ranges(ranges)
+            self.ranges = ranges
 
         df = DataFrameStorage(df, self)
 

@@ -10,7 +10,7 @@ import numpy as np
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ...blocks.conversion_utils import from_dict, to_dict
+from ...blocks.conversion_utils import conversion_transfer, from_dict, to_dict
 from ...blocks.utils import ExtendedJsonDecoder, ExtendedJsonEncoder, extract_mime_names
 from ...signal import Signal
 from .. import utils
@@ -1171,6 +1171,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             else:
                 conversion = original_conversion = None
                 channel_name = "selected items"
+
+            conversion = conversion_transfer(conversion, version=4)
+            original_conversion = conversion_transfer(original_conversion, version=4)
 
             dlg = ConversionEditor(channel_name, conversion, original_conversion=original_conversion, parent=self)
             dlg.exec_()
