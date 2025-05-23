@@ -408,7 +408,8 @@ def get_text_v3(address: int, stream: FileLike | mmap.mmap, mapped: bool = False
     mapped : bool, default False
         Flag for mapped stream.
     decode : bool, default True
-        Use auto-detection to detect character encoding.
+        Option to auto-detect character encoding and return decoded str instead
+        of raw bytes.
 
     Returns
     -------
@@ -513,7 +514,8 @@ def get_text_v4(
     mapped : bool, default False
         Flag for mapped stream.
     decode : bool, default True
-        Option to return decoded str instead of raw bytes.
+        Option to auto-detect character encoding and return decoded str instead
+        of raw bytes.
     tx_map : dict, optional
         Map that contains interned strings.
 
