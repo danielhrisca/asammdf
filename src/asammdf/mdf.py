@@ -2769,7 +2769,7 @@ class MDF:
             list of *MDF* file names or *MDF*, zipfile.ZipFile, bz2.BZ2File or gzip.GzipFile
             instances
 
-            ..versionchanged:: 6.2.0
+            .. versionchanged:: 6.2.0
 
                 added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile
 
@@ -2786,7 +2786,7 @@ class MDF:
             the timestamps from the next file will be added right after the last
             timestamp from the previous file; default *False*
 
-            ..versionadded:: 6.0.0
+            .. versionadded:: 6.0.0
 
         kwargs :
 
@@ -3235,7 +3235,7 @@ class MDF:
             list of *MDF* file names or *MDF*, zipfile.ZipFile, bz2.BZ2File or gzip.GzipFile
             instances
 
-            ..versionchanged:: 6.2.0
+            .. versionchanged:: 6.2.0
 
                 added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile
         version : str

@@ -2825,7 +2825,7 @@ class MDF3(MDF_Common[Group]):
             *False*. If *True*, the caller has to make sure that the *group* and *index*
             arguments are provided and are correct.
 
-            ..versionadded:: 7.0.0
+            .. versionadded:: 7.0.0
 
         Returns
         -------
