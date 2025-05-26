@@ -3460,7 +3460,6 @@ class MDF:
         raster: RasterType | None = None,
         time_from_zero: bool = True,
         empty_channels: EmptyChannelsType = "skip",
-        keep_arrays: bool = False,
         use_display_names: bool = False,
         time_as_date: bool = False,
         reduce_memory_usage: bool = False,
@@ -3492,14 +3491,6 @@ class MDF:
 
         empty_channels : {'skip', 'zeros'}, default 'skip'
             Behaviour for channels without samples.
-
-            .. versionadded:: 5.21.0
-
-        keep_arrays : bool, default False
-            Keep arrays and structure channels as well as the component
-            channels. If True, this can be very slow. If False, only the
-            component channels are saved, and their names will be prefixed with
-            the parent channel.
 
             .. versionadded:: 5.21.0
 
@@ -3551,7 +3542,6 @@ class MDF:
                 raster=raster,
                 time_from_zero=time_from_zero,
                 empty_channels=empty_channels,
-                keep_arrays=keep_arrays,
                 use_display_names=use_display_names,
                 time_as_date=time_as_date,
                 reduce_memory_usage=reduce_memory_usage,
@@ -4710,7 +4700,6 @@ class MDF:
         raster: RasterType | None = None,
         time_from_zero: bool = True,
         empty_channels: EmptyChannelsType = "skip",
-        keep_arrays: bool = False,
         use_display_names: bool = False,
         time_as_date: bool = False,
         reduce_memory_usage: bool = False,
@@ -4741,14 +4730,6 @@ class MDF:
 
         empty_channels : {'skip', 'zeros'}, default 'skip'
             Behaviour for channels without samples.
-
-            .. versionadded:: 5.8.0
-
-        keep_arrays : bool, default False
-            Keep arrays and structure channels as well as the component
-            channels. If True, this can be very slow. If False, only the
-            component channels are saved, and their names will be prefixed with
-            the parent channel.
 
             .. versionadded:: 5.8.0
 
@@ -4804,7 +4785,6 @@ class MDF:
             raster=raster,
             time_from_zero=time_from_zero,
             empty_channels=empty_channels,
-            keep_arrays=keep_arrays,
             use_display_names=use_display_names,
             time_as_date=time_as_date,
             reduce_memory_usage=reduce_memory_usage,
@@ -4819,7 +4799,6 @@ class MDF:
         raster: RasterType | None = None,
         time_from_zero: bool = True,
         empty_channels: EmptyChannelsType = "skip",
-        keep_arrays: bool = False,
         use_display_names: bool = False,
         time_as_date: bool = False,
         reduce_memory_usage: bool = False,
@@ -4863,11 +4842,6 @@ class MDF:
             Adjust time channel to start from 0.
         empty_channels : {'skip', 'zeros'}, default 'skip'
             Behaviour for channels without samples.
-        keep_arrays : bool, default False
-            Keep arrays and structure channels as well as the component
-            channels. If True, this can be very slow. If False, only the
-            component channels are saved, and their names will be prefixed with
-            the parent channel.
         use_display_names : bool, default False
             Use display name instead of standard channel name, if available.
         time_as_date : bool, default False
@@ -4932,7 +4906,6 @@ class MDF:
                 raster=raster,
                 time_from_zero=time_from_zero,
                 empty_channels=empty_channels,
-                keep_arrays=keep_arrays,
                 use_display_names=use_display_names,
                 time_as_date=time_as_date,
                 reduce_memory_usage=reduce_memory_usage,
@@ -5235,7 +5208,6 @@ class MDF:
         raster: RasterType | None = ...,
         time_from_zero: bool = ...,
         empty_channels: EmptyChannelsType = ...,
-        keep_arrays: bool = ...,
         use_display_names: bool = ...,
         time_as_date: bool = ...,
         reduce_memory_usage: bool = ...,
@@ -5256,7 +5228,6 @@ class MDF:
         raster: RasterType | None = ...,
         time_from_zero: bool = ...,
         empty_channels: EmptyChannelsType = ...,
-        keep_arrays: bool = ...,
         use_display_names: bool = ...,
         time_as_date: bool = ...,
         reduce_memory_usage: bool = ...,
@@ -5277,7 +5248,6 @@ class MDF:
         raster: RasterType | None = ...,
         time_from_zero: bool = ...,
         empty_channels: EmptyChannelsType = ...,
-        keep_arrays: bool = ...,
         use_display_names: bool = ...,
         time_as_date: bool = ...,
         reduce_memory_usage: bool = ...,
@@ -5297,7 +5267,6 @@ class MDF:
         raster: RasterType | None = None,
         time_from_zero: bool = True,
         empty_channels: EmptyChannelsType = "skip",
-        keep_arrays: bool = False,
         use_display_names: bool = False,
         time_as_date: bool = False,
         reduce_memory_usage: bool = False,
@@ -5338,11 +5307,6 @@ class MDF:
             Adjust time channel to start from 0.
         empty_channels : {'skip', 'zeros'}, default 'skip'
             Behaviour for channels without samples.
-        keep_arrays : bool, default False
-            Keep arrays and structure channels as well as the component
-            channels. If True, this can be very slow. If False, only the
-            component channels are saved, and their names will be prefixed with
-            the parent channel.
         use_display_names : bool, default False
             Use display name instead of standard channel name, if available.
         time_as_date : bool, default False
@@ -5419,7 +5383,6 @@ class MDF:
                 raster=raster,
                 time_from_zero=time_from_zero,
                 empty_channels=empty_channels,
-                keep_arrays=keep_arrays,
                 use_display_names=use_display_names,
                 time_as_date=time_as_date,
                 reduce_memory_usage=reduce_memory_usage,
