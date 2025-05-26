@@ -240,10 +240,6 @@ class MDF:
         can decrease the loading times very much.
     remove_source_from_channel_names : bool, default False
         Remove source from channel names ("Speed\XCP3" -> "Speed").
-    expand_zippedfile : bool, default True
-        Only for bz2.BZ2File and gzip.GzipFile, load the file content into a
-        BytesIO before parsing (avoids the huge performance penalty of doing
-        random reads from the zipped file).
     raise_on_multiple_occurrences : bool, default True
         Raise MdfException when there are multiple channel occurrences in the
         file and the `get` call is ambiguous.
