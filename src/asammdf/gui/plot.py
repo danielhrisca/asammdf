@@ -16,7 +16,7 @@ except ImportError:
 logger = logging.getLogger("asammdf")
 
 
-def plot(signals: Signal | list[Signal], title: str = "", validate: bool = True, index_only: bool = False) -> None:
+def plot(signals: Signal | list[Signal], title: str = "", validate: bool = True) -> None:
     """Create a stand-alone plot using the input signal or signals.
 
     Arguments
