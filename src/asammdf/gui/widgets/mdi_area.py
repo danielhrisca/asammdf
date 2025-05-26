@@ -961,11 +961,11 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
         e.accept()
         super().dragEnterEvent(e)
 
-    def dropEvent(self, e):
-        if e.source() is self:
-            super().dropEvent(e)
+    def dropEvent(self, event):
+        if event.source() is self:
+            super().dropEvent(event)
         else:
-            data = e.mimeData()
+            data = event.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
                 dialog = WindowSelectionDialog(
                     options=("Plot", "Numeric") if self.comparison else ("Plot", "Numeric", "Tabular"), parent=self
@@ -979,10 +979,11 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
                     names = extract_mime_names(data, disable_new_channels=disable_new_channels)
 
                     self.add_window_request.emit([window_type, names])
+                event.accept()
             else:
                 try:
                     files = []
-                    for path in e.mimeData().text().splitlines():
+                    for path in event.mimeData().text().splitlines():
                         path = Path(path.replace(r"file:///", ""))
                         if (
                             path.suffix.lower()
@@ -992,8 +993,12 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
 
                     if files:
                         self.open_files_request.emit(files)
+                        event.accept()
+                    else:
+                        event.ignore()
                 except:
                     print(format_exc())
+                    event.ignore()
 
     def tile_horizontally(self):
         sub_windows = self.subWindowList()
