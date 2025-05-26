@@ -246,8 +246,6 @@ class MDF4(MDF_Common[Group]):
         loading times very much.
     remove_source_from_channel_names : bool, default False
         Remove source from channel names ("Speed\XCP3" -> "Speed").
-    copy_on_get : bool, default True
-        Copy channel values (np.ndarray) to avoid high memory usage.
     compact_vlsd (False) : bool, optional
         Use slower method to save the exact sample size for VLSD channels.
     column_storage : bool, default True
@@ -355,7 +353,6 @@ class MDF4(MDF_Common[Group]):
         self._remove_source_from_channel_names = kwargs.get("remove_source_from_channel_names", False)
         self._password = kwargs.get("password", None)
         self._force_attachment_encryption = kwargs.get("force_attachment_encryption", False)
-        self.copy_on_get = kwargs.get("copy_on_get", True)
         self.compact_vlsd = kwargs.get("compact_vlsd", False)
 
         self.virtual_groups: dict[int, VirtualChannelGroup] = {}  # master group 2 referencing groups

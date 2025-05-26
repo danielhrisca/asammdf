@@ -228,7 +228,6 @@ class MDF3(MDF_Common[Group]):
         self._fill_0_for_missing_computation_channels = kwargs.get(
             "fill_0_for_missing_computation_channels", GLOBAL_OPTIONS["fill_0_for_missing_computation_channels"]
         )
-        self.copy_on_get = False
 
         self._si_map: dict[bytes | int, ChannelExtension] = {}
         self._cc_map: dict[bytes | int, ChannelConversion] = {}
