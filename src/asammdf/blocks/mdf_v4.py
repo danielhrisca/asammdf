@@ -262,8 +262,6 @@ class MDF4(MDF_Common[Group]):
         list of (group index, channel index) tuples.
     events : list
         List event blocks.
-    file_comment : TextBlock
-        File comment TextBlock.
     file_history : list
         List of (FileHistory, TextBlock) pairs.
     groups : list
@@ -306,7 +304,6 @@ class MDF4(MDF_Common[Group]):
         self.masters_db: dict[int, int] = {}
         self.attachments: list[AttachmentBlock] = []
         self._attachments_cache: dict[bytes | str, int] = {}
-        self.file_comment = None
         self.events: list[EventBlock] = []
         self.bus_logging_map: BusLoggingMap = {"CAN": {}, "ETHERNET": {}, "FLEXRAY": {}, "LIN": {}}
 
@@ -6656,7 +6653,6 @@ class MDF4(MDF_Common[Group]):
         self.masters_db.clear()
         self.attachments.clear()
         self._attachments_cache.clear()
-        self.file_comment = None
         self.events.clear()
 
         self._ch_map.clear()
@@ -11396,7 +11392,6 @@ class MDF4(MDF_Common[Group]):
             self.channels_db.clear()
             self.masters_db.clear()
             self.attachments.clear()
-            self.file_comment = None
 
             self._ch_map.clear()
 
