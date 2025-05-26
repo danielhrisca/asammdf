@@ -29,3 +29,8 @@ python:
     - method: pip
       path: .
     - requirements: doc/requirements.txt
+
+# VCS submodules configuration
+submodules:
+  include: all
+  recursive: true
