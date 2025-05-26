@@ -149,17 +149,16 @@ COMPRESSION_OPTIONS = {
 
 
 def excepthook(exc_type, exc_value, tracebackobj):
-    """
-    Global function to catch unhandled exceptions.
+    """Global function to catch unhandled exceptions.
 
     Parameters
     ----------
     exc_type : str
-        exception type
+        Exception type.
     exc_value : int
-        exception value
+        Exception value.
     tracebackobj : traceback
-        traceback object
+        Traceback object.
     """
     separator = "-" * 80
     notice = "The following error was triggered:"

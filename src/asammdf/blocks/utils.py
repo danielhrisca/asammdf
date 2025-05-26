@@ -1,6 +1,4 @@
-"""
-asammdf utility functions and classes
-"""
+"""asammdf utility functions and classes"""
 
 from collections.abc import Callable, Collection, Iterator
 from copy import deepcopy
@@ -288,25 +286,24 @@ ALLOWED_MATLAB_CHARS: Final = set(string.ascii_letters + string.digits + "_")
 
 
 class MdfException(Exception):
-    """MDF Exception class"""
+    """MDF Exception class."""
 
     def __repr__(self) -> str:
         return f"asammdf MdfException: {self.args[0]}"
 
 
 def extract_xml_comment(comment: str) -> str:
-    """extract *TX* tag or otherwise the *common_properties* from a xml comment
+    """Extract *TX* tag or otherwise the *common_properties* from an XML comment.
 
     Parameters
     ----------
     comment : str
-        xml string comment
+        XML string comment.
 
     Returns
     -------
     comment : str
-        extracted string
-
+        Extracted string.
     """
 
     comment = comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
@@ -332,18 +329,17 @@ def extract_xml_comment(comment: str) -> str:
 
 
 def matlab_compatible(name: str) -> str:
-    """make a channel name compatible with Matlab variable naming
+    """Make a channel name compatible with Matlab variable naming.
 
     Parameters
     ----------
     name : str
-        channel name
+        Channel name.
 
     Returns
     -------
     compatible_name : str
-        channel name compatible with Matlab
-
+        Channel name compatible with Matlab.
     """
 
     compatible_names = [ch if ch in ALLOWED_MATLAB_CHARS else "_" for ch in name]
@@ -401,20 +397,24 @@ def get_text_v3(address: int, stream: FileLike | mmap.mmap, mapped: bool = ..., 
 
 
 def get_text_v3(address: int, stream: FileLike | mmap.mmap, mapped: bool = False, decode: bool = True) -> bytes | str:
-    """faster way to extract strings from mdf versions 2 and 3 TextBlock
+    """Faster way to extract strings from MDF versions 2 and 3 TextBlock.
 
     Parameters
     ----------
     address : int
-        TextBlock address
+        TextBlock address.
     stream : handle
-        file IO handle
+        File IO handle.
+    mapped : bool, default False
+        Flag for mapped stream.
+    decode : bool, default True
+        Option to auto-detect character encoding and return decoded str instead
+        of raw bytes.
 
     Returns
     -------
     text : str | bytes
-        unicode string or bytes object depending on the ``decode`` argument
-
+        Unicode string or bytes object depending on the `decode` argument.
     """
 
     if address == 0:
@@ -503,26 +503,26 @@ def get_text_v4(
     *,
     tx_map: TxMap,
 ) -> bytes | str:
-    """faster way to extract strings from mdf version 4 TextBlock
+    """Faster way to extract strings from MDF version 4 TextBlock.
 
     Parameters
     ----------
     address : int
-        TextBlock address
+        TextBlock address.
     stream : handle
-        file IO handle
-    mapped: bool
-        flag for mapped stream
-    decode: bool
-        option to return decoded str instead of raw btyes
-    tx_map : dict | None
-        map that contains interned strings
+        File IO handle.
+    mapped : bool, default False
+        Flag for mapped stream.
+    decode : bool, default True
+        Option to auto-detect character encoding and return decoded str instead
+        of raw bytes.
+    tx_map : dict, optional
+        Map that contains interned strings.
 
     Returns
     -------
     text : str | bytes
-        unicode string or bytes object depending on the ``decode`` argument
-
+        Unicode string or bytes object depending on the `decode` argument.
     """
 
     if mapped_text := tx_map.get(address, None):
@@ -656,20 +656,22 @@ def extract_ev_tool(comment: str) -> str:
 
 @lru_cache(maxsize=1024)
 def get_fmt_v3(data_type: int, size: int, byte_order: int = v3c.BYTE_ORDER_INTEL) -> str:
-    """convert mdf versions 2 and 3 channel data type to numpy dtype format
-    string
+    """Convert MDF versions 2 and 3 channel data type to numpy dtype format
+    string.
 
     Parameters
     ----------
     data_type : int
-        mdf channel data type
+        MDF channel data type.
     size : int
-        data bit size
+        Data bit size.
+    byte_order : int, default 0 (BYTE_ORDER_INTEL)
+        Integer code for byte order (endianness).
+
     Returns
     -------
     fmt : str
-        numpy compatible data type format string
-
+        Numpy compatible data type format string.
     """
     if data_type in (v3c.DATA_TYPE_STRING, v3c.DATA_TYPE_BYTEARRAY):
         size = size // 8
@@ -741,22 +743,21 @@ def get_fmt_v3(data_type: int, size: int, byte_order: int = v3c.BYTE_ORDER_INTEL
 
 @lru_cache(maxsize=1024)
 def get_fmt_v4(data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_VALUE) -> str:
-    """convert mdf version 4 channel data type to numpy dtype format string
+    """Convert MDF version 4 channel data type to numpy dtype format string.
 
     Parameters
     ----------
     data_type : int
-        mdf channel data type
+        MDF channel data type.
     size : int
-        data bit size
-    channel_type: int
-        mdf channel type
+        Data bit size.
+    channel_type : int, default 0 (CHANNEL_TYPE_VALUE)
+        MDF channel type.
 
     Returns
     -------
     fmt : str
-        numpy compatible data type format string
-
+        Numpy compatible data type format string.
     """
     if data_type in v4c.NON_SCALAR_TYPES:
         size = size // 8 or 1
@@ -855,23 +856,22 @@ def get_fmt_v4(data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_V
 
 @lru_cache(maxsize=1024)
 def fmt_to_datatype_v3(fmt: np.dtype[Any], shape: tuple[int, ...], array: bool = False) -> tuple[int, int]:
-    """convert numpy dtype format string to mdf versions 2 and 3
-    channel data type and size
+    """Convert numpy dtype format string to MDF versions 2 and 3
+    channel data type and size.
 
     Parameters
     ----------
     fmt : numpy.dtype
-        numpy data type
+        Numpy data type.
     shape : tuple
-        numpy array shape
-    array : bool
-        disambiguate between bytearray and channel array
+        Numpy array shape.
+    array : bool, default False
+        Disambiguate between bytearray and channel array.
 
     Returns
     -------
     data_type, size : int, int
-        integer data type as defined by ASAM MDF and bit size
-
+        Integer data type as defined by ASAM MDF and bit size.
     """
     byteorder = fmt.byteorder
     if byteorder in "=|":
@@ -921,20 +921,19 @@ def fmt_to_datatype_v3(fmt: np.dtype[Any], shape: tuple[int, ...], array: bool =
 
 @lru_cache(maxsize=1024)
 def info_to_datatype_v4(signed: bool, little_endian: bool) -> int:
-    """map CAN signal to MDF integer types
+    """Map CAN signal to MDF integer types.
 
     Parameters
     ----------
     signed : bool
-        signal is flagged as signed in the CAN database
+        Signal is flagged as signed in the CAN database.
     little_endian : bool
-        signal is flagged as little endian (Intel) in the CAN database
+        Signal is flagged as little-endian (Intel) in the CAN database.
 
     Returns
     -------
     datatype : int
-        integer code for MDF channel data type
-
+        Integer code for MDF channel data type.
     """
 
     if signed:
@@ -953,23 +952,22 @@ def info_to_datatype_v4(signed: bool, little_endian: bool) -> int:
 
 @lru_cache(maxsize=1024)
 def fmt_to_datatype_v4(fmt: np.dtype[Any], shape: tuple[int, ...], array: bool = False) -> tuple[int, int]:
-    """convert numpy dtype format string to mdf version 4 channel data
-    type and size
+    """Convert numpy dtype format string to MDF version 4 channel data
+    type and size.
 
     Parameters
     ----------
     fmt : numpy.dtype
-        numpy data type
+        Numpy data type.
     shape : tuple
-        numpy array shape
-    array : bool
-        disambiguate between bytearray and channel array
+        Numpy array shape.
+    array : bool, default False
+        Disambiguate between bytearray and channel array.
 
     Returns
     -------
     data_type, size : int, int
-        integer data type as defined by ASAM MDF and bit size
-
+        Integer data type as defined by ASAM MDF and bit size.
     """
     byteorder = fmt.byteorder
     if byteorder in "=|":
@@ -1018,8 +1016,7 @@ def fmt_to_datatype_v4(fmt: np.dtype[Any], shape: tuple[int, ...], array: bool =
 
 
 def as_non_byte_sized_signed_int(integer_array: NDArray[Any], bit_length: int) -> NDArray[Any]:
-    """
-    The MDF spec allows values to be encoded as integers that aren't
+    """The MDF spec allows values to be encoded as integers that aren't
     byte-sized. Numpy only knows how to do two's complement on byte-sized
     integers (i.e. int16, int32, int64, etc.), so we have to calculate two's
     complement ourselves in order to handle signed integers with unconventional
@@ -1027,16 +1024,15 @@ def as_non_byte_sized_signed_int(integer_array: NDArray[Any], bit_length: int) -
 
     Parameters
     ----------
-    integer_array : np.array
-        Array of integers to apply two's complement to
+    integer_array : np.ndarray
+        Array of integers to apply two's complement to.
     bit_length : int
-        Number of bits to sample from the array
+        Number of bits to sample from the array.
 
     Returns
     -------
-    integer_array : np.array
-        signed integer array with non-byte-sized two's complement applied
-
+    integer_array : np.ndarray
+        Signed integer array with non-byte-sized two's complement applied.
     """
 
     if integer_array.flags.writeable:
@@ -1054,21 +1050,22 @@ def as_non_byte_sized_signed_int(integer_array: NDArray[Any], bit_length: int) -
 def count_channel_groups(
     stream: FileLike | mmap.mmap, include_channels: bool = False, mapped: bool = False
 ) -> tuple[int, int]:
-    """count all channel groups as fast as possible. This is used to provide
-    reliable progress information when loading a file using the GUI
+    """Count all channel groups as fast as possible. This is used to provide
+    reliable progress information when loading a file using the GUI.
 
     Parameters
     ----------
     stream : file handle
-        opened file handle
-    include_channels : bool
-        also count channels
+        Opened file handle.
+    include_channels : bool, default False
+        Also count channels.
+    mapped : bool, default False
+        Flag for mapped stream.
 
     Returns
     -------
     count : int
-        channel group count
-
+        Channel group count.
     """
 
     count = 0
@@ -1189,21 +1186,20 @@ def validate_version_argument(version: str, hint: int = ...) -> v3c.Version2 | v
 
 
 def validate_version_argument(version: str, hint: int = 4) -> v3c.Version2 | v3c.Version | v4c.Version:
-    """validate the version argument against the supported MDF versions. The
-    default version used depends on the hint MDF major revision
+    """Validate the version argument against the supported MDF versions. The
+    default version used depends on the hint MDF major revision.
 
     Parameters
     ----------
     version : str
-        requested MDF version
-    hint : int
-        MDF revision hint
+        Requested MDF version.
+    hint : int, default 4
+        MDF revision hint.
 
     Returns
     -------
     valid_version : str
-        valid version
-
+        Valid version.
     """
     valid_version: v3c.Version2 | v3c.Version | v4c.Version
     if version not in SUPPORTED_VERSIONS:
@@ -1213,7 +1209,7 @@ def validate_version_argument(version: str, hint: int = 4) -> v3c.Version2 | v3c
             valid_version = "3.30"
         else:
             valid_version = "4.10"
-        message = 'Unknown mdf version "{}".' " The available versions are {};" ' automatically using version "{}"'
+        message = 'Unknown MDF version "{}".' " The available versions are {};" ' automatically using version "{}"'
         message = message.format(version, SUPPORTED_VERSIONS, valid_version)
         logger.warning(message)
     else:
@@ -1226,16 +1222,15 @@ class ChannelsDB(dict[str, tuple[tuple[int, int], ...]]):
         super().__init__()
 
     def add(self, channel_name: str, entry: tuple[int, int]) -> None:
-        """add name to channels database and check if it contains a source
-        path
+        """Add name to channels database and check if it contains a source
+        path.
 
         Parameters
         ----------
         channel_name : str
-            name that needs to be added to the database
+            Name that needs to be added to the database.
         entry : tuple
-            (group index, channel index) pair
-
+            (group index, channel index) pair.
         """
         if channel_name:
             if channel_name not in self:
@@ -1253,25 +1248,23 @@ class ChannelsDB(dict[str, tuple[tuple[int, int], ...]]):
 
 
 def randomized_string(size: int) -> bytes:
-    """get a \0 terminated string of size length
+    """Get a null-terminated string of length `size`.
 
     Parameters
     ----------
     size : int
-        target string length
+        Target string length.
 
     Returns
     -------
     string : bytes
-        randomized string
-
+        Randomized string.
     """
     return bytes(randint(65, 90) for _ in range(size - 1)) + b"\0"
 
 
 def is_file_like(obj: object) -> TypeIs[FileLike]:
-    """
-    Check if the object is a file-like object.
+    """Check if the object is a file-like object.
 
     For objects to be considered file-like, they must
     be an iterator AND have a 'read' and 'seek' method
@@ -1282,7 +1275,8 @@ def is_file_like(obj: object) -> TypeIs[FileLike]:
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : object
+        The object to check.
 
     Returns
     -------
@@ -1305,18 +1299,17 @@ class UniqueDB:
         self._db: dict[str, int] = {}
 
     def get_unique_name(self, name: str) -> str:
-        """returns an available unique name
+        """Return an available unique name.
 
         Parameters
         ----------
         name : str
-            name to be made unique
+            Name to be made unique.
 
         Returns
         -------
         unique_name : str
-            new unique name
-
+            New unique name.
         """
 
         if name not in self._db:
@@ -1329,22 +1322,21 @@ class UniqueDB:
 
 
 def cut_video_stream(stream: bytes, start: float, end: float, fmt: str) -> bytes:
-    """cut video stream from `start` to `end` time
+    """Cut video stream from `start` to `end` time.
 
     Parameters
     ----------
     stream : bytes
-        video file content
+        Video file content.
     start : float
-        start time
+        Start time.
     end : float
-        end time
+        End time.
 
     Returns
     -------
     result : bytes
-        content of cut video
-
+        Content of cut video.
     """
     with TemporaryDirectory() as tmp:
         in_file = Path(tmp) / f"in{fmt}"
@@ -1407,10 +1399,11 @@ def get_video_stream_duration(stream: bytes) -> float | None:
 
 
 class VirtualChannelGroup:
-    """starting with MDF v4.20 it is possible to use remote masters and column
+    """Starting with MDF v4.20 it is possible to use remote masters and column
     oriented storage. This means we now have virtual channel groups that can
     span over multiple regular channel groups. This class facilitates the
-    handling of this virtual groups"""
+    handling of these virtual groups.
+    """
 
     __slots__ = (
         "cycles_nr",
@@ -1476,35 +1469,35 @@ def components(
     only_basenames: bool = False,
     use_polars: bool = False,
 ) -> Iterator[tuple[str, Union["pd.Series[Any]", list[object]]]]:
-    """yield pandas Series and unique name based on the ndarray object
+    """Yield pandas Series and unique name based on the ndarray object.
 
     Parameters
     ----------
-    channel : numpy.ndarray
-        channel to be used for Series
+    channel : np.ndarray
+        Channel to be used for Series.
     channel_name : str
-        channel name
+        Channel name.
     unique_names : UniqueDB
-        unique names object
-    prefix : str
-        prefix used in case of nested recarrays
-    master : pd.Index
-        optional index for the Series
-    only_basenames (False) : bool
-        use just the field names, without prefix, for structures and channel
-        arrays
+        Unique names object.
+    prefix : str, optional
+        Prefix used in case of nested recarrays.
+    master : np.ndarray | pd.Index, optional
+        Optional index for the Series.
+    only_basenames : bool, default False
+        Use just the field names, without prefix, for structures and channel
+        arrays.
 
         .. versionadded:: 5.13.0
 
-    use_polars (False) : bool
-        use polars
+    use_polars : bool, default False
+        Use polars.
 
         .. versionadded:: 8.1.0
 
-    Returns
-    -------
+    Yields
+    ------
     name, series : (str, values)
-        tuple of unique name and values
+        Tuple of unique name and values.
     """
     names = channel.dtype.names
 
@@ -1792,10 +1785,9 @@ def downcast(array: NDArray[Any]) -> NDArray[Any]:
 
 
 def _csv_int2bin(val: int) -> str:
-    """format CAN id as bin
+    """Format CAN id as bin.
 
     100 -> 1100100
-
     """
 
     return f"{val:b}"
@@ -1805,10 +1797,9 @@ csv_int2bin = np.vectorize(_csv_int2bin, otypes=[str])
 
 
 def _csv_int2hex(val: "pd.Series[int]") -> str:
-    """format CAN id as hex
+    """Format CAN id as hex.
 
     100 -> 64
-
     """
 
     return f"{val:X}"
@@ -1818,10 +1809,9 @@ csv_int2hex = np.vectorize(_csv_int2hex, otypes=[str])
 
 
 def _csv_bytearray2hex(val: NDArray[Any], size: int | None = None) -> str:
-    """format CAN payload as hex strings
+    """Format CAN payload as hex strings.
 
     b'\xa2\xc3\x08' -> A2 C3 08
-
     """
     if size is not None:
         hex_val = typing.cast(bytes, val.tobytes())[:size].hex(" ", 1).upper()  # type: ignore[redundant-cast, unused-ignore]
@@ -1838,7 +1828,7 @@ csv_bytearray2hex = np.vectorize(_csv_bytearray2hex, otypes=[str])
 
 
 def pandas_query_compatible(name: str) -> str:
-    """adjust column name for usage in dataframe query string"""
+    """Adjust column name for usage in DataFrame query string."""
 
     for c in ".$[]: ":
         name = name.replace(c, "_")
@@ -1865,30 +1855,24 @@ def load_can_database(
 ) -> CanMatrix | None:
     """
 
-
     Parameters
     ----------
-    path : StrPathType
-        database path
-    contents: bytes | str | None = None
-        optional database content
-    kwargs : dict
-
-        fd : bool = False
-            if supplied, only buses with the same FD kind will be loaded
-
-        load_flat : bool = False
-            if supplied all the CAN messages found in multiple buses will be contained
-            in the CAN database object. By default the first bus will be returned
-
-        cluster_name : str
-            if supplied load just the clusters with this name
+    path : str | path-like
+        Database path.
+    contents : bytes | str, optional
+        Optional database content.
+    fd : bool, optional
+        If supplied, only buses with the same FD kind will be loaded.
+    load_flat : bool, optional
+        If True, all the CAN messages found in multiple buses will be contained
+        in the CAN database object. By default the first bus will be returned.
+    cluster_name : str, optional
+        If supplied, load just the clusters with this name.
 
     Returns
     -------
     db : canmatrix.CanMatrix | None
-        CAN database object or None
-
+        CAN database object or None.
     """
     path = Path(path)
     import_type = path.suffix.lstrip(".").lower()
@@ -1988,26 +1972,26 @@ def plausible_timestamps(
     exp_min: int = -15,
     exp_max: int = 15,
 ) -> tuple[bool, NDArray[bool_]]:
-    """check if the time stamps are plausible
+    """Check if the timestamps are plausible.
 
     Parameters
     ----------
-    t : np.array
-        time stamps array
+    t : np.ndarray
+        Timestamps array.
     minimum : float
-        minimum plausible time stamp
+        Minimum plausible timestamp.
     maximum : float
-        maximum plausible time stamp
-    exp_min (-15) : int
-        minimum plausible exponent used for the time stamps float values
-    exp_max (15) : int
-        maximum plausible exponent used for the time stamps float values
+        Maximum plausible timestamp.
+    exp_min : int, default -15
+        Minimum plausible exponent used for the timestamps float values.
+    exp_max : int, default 15
+        Maximum plausible exponent used for the timestamps float values.
 
     Returns
     -------
-    all_ok, idx : (bool, np.array)
-        the *all_ok* flag to indicate if all the time stamps are ok; this can be checked
-        before applying the indexing array.
+    all_ok, idx : (bool, np.ndarray)
+        The `all_ok` flag to indicate if all the timestamps are ok; this can
+        be checked before applying the indexing array.
     """
 
     exps = np.log10(t)

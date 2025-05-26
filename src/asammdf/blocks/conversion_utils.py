@@ -1,6 +1,4 @@
-"""
-asammdf utility functions for channel conversions
-"""
+"""asammdf utility functions for channel conversions"""
 
 from copy import deepcopy
 import typing
@@ -40,22 +38,22 @@ def conversion_transfer(
 def conversion_transfer(
     conversion: ChannelConversionType | None, version: Literal[2, 3, 4] = 3, copy: bool = False
 ) -> ChannelConversionType | None:
-    """convert between mdf4 and mdf3 channel conversions
+    """Convert between MDF4 and MDF3 channel conversions.
 
     Parameters
     ----------
     conversion : block
-        channel conversion
-    version : int
-        target mdf version
-    copy : bool
-        return a copy if the input conversion version is the same as the required version
+        Channel conversion.
+    version : int, default 3
+        Target MDF version.
+    copy : bool, default False
+        Return a copy if the input conversion version is the same as the
+        required version.
 
     Returns
     -------
     conversion : block
-        channel conversion for specified version
-
+        Channel conversion for specified version.
     """
 
     if version <= 3:

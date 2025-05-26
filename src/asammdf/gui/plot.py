@@ -17,18 +17,16 @@ logger = logging.getLogger("asammdf")
 
 
 def plot(signals: Signal | list[Signal], title: str = "", validate: bool = True, index_only: bool = False) -> None:
-    """create a stand-alone plot using the input signal or signals
+    """Create a stand-alone plot using the input signal or signals.
 
     Arguments
     ---------
     signals : iterable | Signal
-
-    title (""): str
-        window title
-
-    validate (True): bool
-        consider the invalidation bits
-
+        Signals to plot.
+    title : str, default ''
+        Window title.
+    validate : bool, default True
+        Consider the invalidation bits.
     """
 
     if QT:

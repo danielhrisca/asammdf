@@ -137,8 +137,8 @@ class TabularTreeItem(QtWidgets.QTreeWidgetItem):
 
 
 class DataFrameStorage:
-    """
-    All methods that modify the data should modify self.df_unfiltered, then self.df gets computed from that
+    """All methods that modify the data should modify self.df_unfiltered, then
+    self.df gets computed from that.
     """
 
     def __init__(self, df, tabular):
@@ -275,9 +275,7 @@ class DataFrameStorage:
 
 
 class DataTableModel(QtCore.QAbstractTableModel):
-    """
-    Model for DataTableView to connect for DataFrame data
-    """
+    """Model for DataTableView to connect for DataFrame data."""
 
     def __init__(self, parent, background_color, font_color):
         super().__init__(parent)
@@ -407,9 +405,9 @@ class DataTableView(QtWidgets.QTableView):
         self.setDropIndicatorShown(False)
 
     def on_selectionChanged(self):
-        """
-        Runs when cells are selected in the main table. This logic highlights the correct cells in the vertical and
-        horizontal headers when a data cell is selected
+        """Runs when cells are selected in the main table. This logic highlights
+        the correct cells in the vertical and horizontal headers when a data
+        cell is selected.
         """
         columnHeader = self.dataframe_viewer.columnHeader
         indexHeader = self.dataframe_viewer.indexHeader
@@ -570,9 +568,7 @@ class HeaderModel(QtCore.QAbstractTableModel):
 
 
 class HeaderView(QtWidgets.QTableView):
-    """
-    Displays the DataFrame index or columns depending on orientation
-    """
+    """Displays the DataFrame index or columns depending on orientation."""
 
     def __init__(self, parent, orientation):
         super().__init__(parent)
@@ -658,9 +654,8 @@ class HeaderView(QtWidgets.QTableView):
 
     # Header
     def on_selectionChanged(self, force=False):
-        """
-        Runs when cells are selected in the Header. This selects columns in the data table when the header is clicked,
-        and then calls selectAbove()
+        """Runs when cells are selected in the Header. This selects columns in
+        the data table when the header is clicked, and then calls selectAbove().
         """
         # Check focus so we don't get recursive loop, since headers trigger selection of data cells and vice versa
         if self.hasFocus() or force:
@@ -1896,9 +1891,7 @@ class DataFrameViewer(QtWidgets.QWidget):
             self.dataView.horizontalScrollBar().hide()
 
     def auto_size_column(self, column_index, extra_padding=0):
-        """
-        Set the size of column at column_index to fit its contents
-        """
+        """Set the size of column at column_index to fit its contents."""
 
         width = 0
 
@@ -1936,9 +1929,7 @@ class DataFrameViewer(QtWidgets.QWidget):
         return width
 
     def auto_size_row(self, row_index):
-        """
-        Set the size of row at row_index to fix its contents
-        """
+        """Set the size of row at row_index to fix its contents."""
         height = 24
 
         self.indexHeader.setRowHeight(row_index, height)
@@ -1974,9 +1965,7 @@ class DataFrameViewer(QtWidgets.QWidget):
 
     @timeit
     def copy(self, header=False):
-        """
-        Copy the selected cells to clipboard in an Excel-pasteable format
-        """
+        """Copy the selected cells to clipboard in an Excel-pasteable format."""
         # Get the bounds using the top left and bottom right selected cells
 
         fmt = self.dataView.model().format

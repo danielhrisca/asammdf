@@ -15,10 +15,11 @@
 .. role:: magenta
 .. role:: orange
 .. role:: brown
+.. default-role:: py:obj
 
 .. _v2blocks:
 
-The following classes implement different MDF version3 blocks.
+The following classes implement different MDF version 3 blocks.
 
 Channel Class
 ^^^^^^^^^^^^^

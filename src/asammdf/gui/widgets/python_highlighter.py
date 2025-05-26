@@ -160,10 +160,10 @@ class PythonHighlighter(QtGui.QSyntaxHighlighter):
 
     def match_multiline(self, text, delimiter, in_state, style):
         """Do highlighting of multi-line strings. ``delimiter`` should be a
-        ``QRegularExpression`` for triple-single-quotes or triple-double-quotes, and
-        ``in_state`` should be a unique integer to represent the corresponding
-        state changes when inside those strings. Returns True if we're still
-        inside a multi-line string when this function is finished.
+        ``QRegularExpression`` for triple-single-quotes or triple-double-quotes,
+        and ``in_state`` should be a unique integer to represent the
+        corresponding state changes when inside those strings. Returns True if
+        we're still inside a multi-line string when this function is finished.
         """
         # If inside triple-single quotes, start at 0
         if self.previousBlockState() == in_state:
