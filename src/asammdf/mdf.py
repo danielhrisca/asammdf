@@ -5743,8 +5743,6 @@ class MDF:
         self,
         database_files: dict[BusType, Iterable[DbcFileType]],
         version: str | v4c.Version | None = None,
-        ignore_invalid_signals: bool | None = None,
-        consolidated_j1939: bool | None = None,
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
         progress: Callable[[int, int], None] | Any | None = None,
@@ -5769,22 +5767,6 @@ class MDF:
 
         version : str, optional
             Output file version.
-        ignore_invalid_signals : bool, optional
-            Ignore signals that have all samples equal to their maximum value.
-
-            .. versionadded:: 5.7.0
-
-            .. deprecated:: 7.0.2
-                This argument is no longer used and will be removed in the future.
-
-        consolidated_j1939 : bool, optional
-            Handle PGNs from all the messages as a single instance.
-
-            .. versionadded:: 5.7.0
-
-            .. deprecated:: 7.2.0
-                This argument is no longer used and will be removed in the future.
-                The PGNs are saved separately according to the source address.
 
         ignore_value2text_conversion : bool, default True
             Ignore value to text conversions.
@@ -5824,18 +5806,6 @@ class MDF:
         """
         if not isinstance(self._mdf, mdf_v4.MDF4):
             raise MdfException("extract_bus_logging is only supported in MDF4 files")
-
-        if ignore_invalid_signals is not None:
-            warn(
-                "The argument `ignore_invalid_signals` from the method `extract_bus_logging` is no longer used and will be removed in the future",
-                stacklevel=1,
-            )
-
-        if consolidated_j1939 is not None:
-            warn(
-                "The argument `consolidated_j1939` from the method `extract_bus_logging` is no longer used and will be removed in the future",
-                stacklevel=1,
-            )
 
         if version is None:
             version = self.version
