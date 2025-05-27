@@ -32,13 +32,14 @@ def data_length_name(match):
 class Tabular(TabularBase):
     add_channels_request = QtCore.Signal(list)
 
-    def __init__(self, signals=None, start=None, format="phys", ranges=None, *args, **kwargs):
+    def __init__(self, signals=None, start=None, format="phys", ranges=None, owner=None, *args, **kwargs):
         # super().__init__(*args, **kwargs)
 
         self.signals_descr = {}
         self.start = start.astimezone(LOCAL_TIMEZONE)
         self.pattern = {}
         self.format = format
+        self.owner = owner
 
         if signals is None:
             signals = pd.DataFrame()
@@ -147,3 +148,7 @@ class Tabular(TabularBase):
         self.tree.dataView.setDragDropMode(QtWidgets.QAbstractItemView.DragDropMode.InternalMove)
         self.tree.dataView.setDropIndicatorShown(True)
         self.tree.dataView.setDefaultDropAction(QtCore.Qt.DropAction.MoveAction)
+
+    def close(self):
+        self.owner = None
+        super().close()

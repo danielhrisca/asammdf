@@ -3170,7 +3170,7 @@ class WithMDIArea:
             ):
                 signals[name] = signals[name].astype("<u4") & 0x1FFFFFFF
 
-        tabular = Tabular(signals, start=start, parent=self, ranges=ranges)
+        tabular = Tabular(signals, start=start, parent=self, ranges=ranges, owner=self)
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(tabular)
@@ -4179,6 +4179,7 @@ class WithMDIArea:
             ranges=ranges,
             start=self.mdf.header.start_time,
             parent=self,
+            owner=self,
         )
         tabular.pattern = pattern_info
 
