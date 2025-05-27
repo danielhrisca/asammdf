@@ -312,7 +312,8 @@ def extract_signals_using_pattern(
         channels_db = mdf.channels_db
 
     origin_uuid = getattr(mdf, "uuid", os.urandom(6).hex())
-    origin_mdf = mdf.original_name.name
+    if mdf is not None:
+        origin_mdf = mdf.original_name.name
 
     pattern = pattern_info["pattern"]
     match_type = pattern_info["match_type"]
@@ -408,7 +409,8 @@ def extract_signals_using_pattern(
         sig.ranges = copy_ranges(pattern_ranges)
         output_signals[uuid] = sig
         sig.origin_uuid = origin_uuid
-        sig.origin_mdf = origin_mdf
+        if mdf is not None:
+            sig.origin_mdf = origin_mdf
         sig.enable = True
 
     if as_names:
@@ -4966,7 +4968,8 @@ class WithMDIArea:
                 del wid
                 window.close()
 
-        self.load_window(window_config)
+                self.load_window(window_config)
+                break
 
     def set_cursor_options(self, cursor_circle, cursor_horizontal_line, cursor_line_width, cursor_color):
         cursor_color = QtGui.QColor(cursor_color)
