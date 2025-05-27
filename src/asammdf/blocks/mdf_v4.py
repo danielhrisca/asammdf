@@ -10259,7 +10259,7 @@ class MDF4(MDF_Common[Group]):
         }
 
         if not out.groups:
-            logger.warning(f'No CAN signals could be extracted from "{self.name}". Theoutput file will be empty.')
+            logger.warning(f'No CAN signals could be extracted from "{self.name}". The output file will be empty.')
 
         return out
 
@@ -10510,7 +10510,7 @@ class MDF4(MDF_Common[Group]):
         }
 
         if not out.groups:
-            logger.warning(f'No LIN signals could be extracted from "{self.name}". Theoutput file will be empty.')
+            logger.warning(f'No LIN signals could be extracted from "{self.name}". The output file will be empty.')
 
         return out
 
