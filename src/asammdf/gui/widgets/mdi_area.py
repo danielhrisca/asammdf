@@ -855,6 +855,7 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
     titleModified = QtCore.Signal()
     resized = QtCore.Signal(object, object, object)
     moved = QtCore.Signal(object, object, object)
+    pattern_modified = QtCore.Signal(object, object)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -870,10 +871,14 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
         self.previous_position = QtCore.QPoint(0, 0)
 
         menu = self.systemMenu()
+        before = menu.actions()[0]
 
         action = QtGui.QAction("Set title", menu)
         action.triggered.connect(self.set_title)
-        before = menu.actions()[0]
+        menu.insertAction(before, action)
+
+        action = QtGui.QAction("Edit window pattern", menu)
+        action.triggered.connect(self.edit_window_pattern)
         menu.insertAction(before, action)
 
     def closeEvent(self, event):
@@ -881,6 +886,39 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
             self.widget().close()
         super().closeEvent(event)
         self.sigClosed.emit(self)
+
+    def edit_window_pattern(self):
+        widget = self.widget()
+        if not (pattern := getattr(widget, "pattern", None)):
+            MessageBox.information(
+                self,
+                "Cannot edit window pattern",
+                f"{self.windowTitle()} is not a pattern based window",
+            )
+        else:
+            if hasattr(widget.owner, "mdf"):
+                mdf = widget.owner.mdf
+                channels_db = None
+            else:
+                mdf = None
+                channels_db = widget.owner.channels_db
+
+            dlg = AdvancedSearch(
+                mdf=mdf,
+                show_add_window=False,
+                show_apply=True,
+                show_search=False,
+                window_title="Show pattern based group",
+                parent=self,
+                pattern=pattern,
+                channels_db=channels_db,
+            )
+            dlg.setModal(True)
+            dlg.exec_()
+
+            if new_pattern := dlg.result:
+                del dlg
+                self.pattern_modified.emit(new_pattern, id(self))
 
     def moveEvent(self, event):
         old_position = event.oldPos()
@@ -2548,7 +2586,7 @@ class WithMDIArea:
 
             signals = natsorted(signals, key=lambda x: x.name)
 
-        numeric = Numeric([], parent=self, mode="offline")
+        numeric = Numeric([], parent=self, mode="offline", owner=self)
 
         numeric.show()
         numeric.hide()
@@ -2559,6 +2597,7 @@ class WithMDIArea:
         sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
+        sub.pattern_modified.connect(self.window_pattern_modified)
 
         if not self.subplots:
             for mdi in self.mdi_area.subWindowList():
@@ -2952,6 +2991,7 @@ class WithMDIArea:
         sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
+        sub.pattern_modified.connect(self.window_pattern_modified)
 
         if not self.subplots:
             self.mdi_area.clear_windows()
@@ -3136,6 +3176,7 @@ class WithMDIArea:
         sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
+        sub.pattern_modified.connect(self.window_pattern_modified)
 
         if not self.subplots:
             for mdi in self.mdi_area.subWindowList():
@@ -3467,6 +3508,7 @@ class WithMDIArea:
             float_precision=window_info["configuration"].get("float_precision", 3),
             parent=self,
             mode="offline",
+            owner=self,
         )
         numeric.pattern = pattern_info
 
@@ -3476,6 +3518,7 @@ class WithMDIArea:
         sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
+        sub.pattern_modified.connect(self.window_pattern_modified)
 
         if not self.subplots:
             for mdi in self.mdi_area.subWindowList():
@@ -3940,6 +3983,7 @@ class WithMDIArea:
         sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
+        sub.pattern_modified.connect(self.window_pattern_modified)
 
         if not self.subplots:
             for mdi in self.mdi_area.subWindowList():
@@ -4142,6 +4186,7 @@ class WithMDIArea:
         sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
+        sub.pattern_modified.connect(self.window_pattern_modified)
 
         if not self.subplots:
             for mdi in self.mdi_area.subWindowList():
@@ -4891,6 +4936,37 @@ class WithMDIArea:
 
     def window_closed_handler(self, obj=None):
         self.windows_modified.emit()
+
+    def window_pattern_modified(self, pattern, window_id):
+        for window in self.mdi_area.subWindowList():
+            if id(window) == window_id:
+                wid = window.widget()
+                wid.pattern = pattern
+                geometry = window.geometry()
+                window_config = {
+                    "title": window.windowTitle(),
+                    "configuration": wid.to_config(),
+                    "geometry": [
+                        geometry.x(),
+                        geometry.y(),
+                        geometry.width(),
+                        geometry.height(),
+                    ],
+                    "maximized": window.isMaximized(),
+                    "minimized": window.isMinimized(),
+                }
+
+                if isinstance(wid, Numeric):
+                    window_config["type"] = "Numeric"
+                elif isinstance(wid, Plot):
+                    window_config["type"] = "Plot"
+                elif isinstance(wid, Tabular):
+                    window_config["type"] = "Tabular"
+
+                del wid
+                window.close()
+
+        self.load_window(window_config)
 
     def set_cursor_options(self, cursor_circle, cursor_horizontal_line, cursor_line_width, cursor_color):
         cursor_color = QtGui.QColor(cursor_color)

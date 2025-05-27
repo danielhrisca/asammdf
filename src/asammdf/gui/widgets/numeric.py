@@ -1461,6 +1461,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         format=None,
         mode="offline",
         float_precision=None,
+        owner=None,
         *args,
         **kwargs,
     ):
@@ -1468,6 +1469,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.setupUi(self)
 
         self.mode = mode
+        self.owner = owner
 
         self.lock = Lock()
         self.visible_entries_modified = True
@@ -2234,6 +2236,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             self.channels.dataView.keyPressEvent(event)
 
     def close(self):
+        self.owner = None
         super().close()
 
     def decrease_font(self):
