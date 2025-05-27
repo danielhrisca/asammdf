@@ -26,7 +26,7 @@ class Attachment(Ui_Attachment, QtWidgets.QWidget):
         self.file = file
         self.index = index
 
-        self.number.setText(f"{index+1}.")
+        self.number.setText(f"{index + 1}.")
 
         fields = []
 
@@ -57,7 +57,7 @@ class Attachment(Ui_Attachment, QtWidgets.QWidget):
             for flag, string in FLAG_AT_TO_STRING.items():
                 if attachment_block.flags & flag:
                     flags.append(string)
-            text = f'{attachment_block.flags} [0x{attachment_block.flags:X}= {", ".join(flags)}]'
+            text = f"{attachment_block.flags} [0x{attachment_block.flags:X}= {', '.join(flags)}]"
         else:
             text = "0"
         field.setText(1, text)

@@ -361,9 +361,9 @@ class MDF4(MDF_Common[Group]):
         self.virtual_groups: dict[int, VirtualChannelGroup] = {}  # master group 2 referencing groups
         self.virtual_groups_map: dict[int, int] = {}  # group index 2 master group
 
-        self.vlsd_max_length: dict[tuple[int, str], int] = (
-            {}
-        )  # hint about the maximum vlsd length for group_index, name pairs
+        self.vlsd_max_length: dict[
+            tuple[int, str], int
+        ] = {}  # hint about the maximum vlsd length for group_index, name pairs
 
         self._master = None
 
@@ -447,7 +447,7 @@ class MDF4(MDF_Common[Group]):
         flags = self.identification.unfinalized_standard_flags
 
         if flags & 1:
-            message = f"Unfinalised file {self.name}:" " Update of cycle counters for CG/CA blocks required"
+            message = f"Unfinalised file {self.name}: Update of cycle counters for CG/CA blocks required"
 
             logger.info(message)
         if flags & 1 << 1:
@@ -464,17 +464,13 @@ class MDF4(MDF_Common[Group]):
             logger.info(message)
         if flags & 1 << 4:
             message = (
-                f"Unfinalised file {self.name}:"
-                " Update of last DL block in each chained list"
-                " of DL blocks required"
+                f"Unfinalised file {self.name}: Update of last DL block in each chained list of DL blocks required"
             )
 
             logger.info(message)
         if flags & 1 << 5:
             message = (
-                f"Unfinalised file {self.name}:"
-                " Update of cg_data_bytes and cg_inval_bytes"
-                " in VLSD CG block required"
+                f"Unfinalised file {self.name}: Update of cg_data_bytes and cg_inval_bytes in VLSD CG block required"
             )
 
             logger.info(message)
@@ -1805,7 +1801,7 @@ class MDF4(MDF_Common[Group]):
                         break
 
                 if 0 and (vv := (perf_counter() - tt)) > 10:
-                    print(f"{ss / 1024/1024 / vv:.6f} MB/s {cc=} {vv=}")
+                    print(f"{ss / 1024 / 1024 / vv:.6f} MB/s {cc=} {vv=}")
                     cc = 0
                     ss = 0
                     tt = perf_counter()
@@ -6075,7 +6071,6 @@ class MDF4(MDF_Common[Group]):
             # first add the signals in the simple signal list
             match sig_type:
                 case v4c.SIGNAL_TYPE_SCALAR:
-
                     if not signal.flags["C_CONTIGUOUS"]:
                         signal = np.ascontiguousarray(signal)
 
@@ -6099,7 +6094,6 @@ class MDF4(MDF_Common[Group]):
                         fields.append((vals, sig_size))
 
                 case v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
-
                     if not signal.flags["C_CONTIGUOUS"]:
                         signal = np.ascontiguousarray(signal)
 
@@ -8061,7 +8055,6 @@ class MDF4(MDF_Common[Group]):
         master_is_required: bool,
         skip_vlsd: bool = False,
     ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[np.bool] | None, str | None]:
-
         grp = group
         # get group data
         if data is None:
@@ -9079,7 +9072,6 @@ class MDF4(MDF_Common[Group]):
 
                             signals.append((samples, invalidation_bits))
                 else:
-
                     if idx == 0:
                         sigs = typing.cast(list[Signal], signals)
                         for channel_index in channels:
@@ -9241,7 +9233,6 @@ class MDF4(MDF_Common[Group]):
             metadata = (time_name, time_ch.sync_type)
 
             if time_ch.channel_type == v4c.CHANNEL_TYPE_VIRTUAL_MASTER:
-
                 if record_count is None:
                     t = arange(record_offset, cycles_nr, 1, dtype=float64)
                 else:
@@ -10268,7 +10259,7 @@ class MDF4(MDF_Common[Group]):
         }
 
         if not out.groups:
-            logger.warning(f'No CAN signals could be extracted from "{self.name}". The' "output file will be empty.")
+            logger.warning(f'No CAN signals could be extracted from "{self.name}". Theoutput file will be empty.')
 
         return out
 
@@ -10519,7 +10510,7 @@ class MDF4(MDF_Common[Group]):
         }
 
         if not out.groups:
-            logger.warning(f'No LIN signals could be extracted from "{self.name}". The' "output file will be empty.")
+            logger.warning(f'No LIN signals could be extracted from "{self.name}". Theoutput file will be empty.')
 
         return out
 
@@ -10603,8 +10594,7 @@ class MDF4(MDF_Common[Group]):
                         else:
                             cntr += 1
                     message = (
-                        f'Destination file "{dst}" already exists '
-                        f'and "overwrite" is False. Saving MDF file as "{name}"'
+                        f'Destination file "{dst}" already exists and "overwrite" is False. Saving MDF file as "{name}"'
                     )
                     logger.warning(message)
                     dst = name
@@ -12072,9 +12062,7 @@ class MDF4(MDF_Common[Group]):
                     group=group_index,
                     data=fragment,
                     samples_only=True,
-                )[
-                    0
-                ].astype("<u1")
+                )[0].astype("<u1")
 
                 msg_ids = (
                     self.get(
@@ -12082,9 +12070,7 @@ class MDF4(MDF_Common[Group]):
                         group=group_index,
                         data=fragment,
                         samples_only=True,
-                    )[
-                        0
-                    ].astype("<u4")
+                    )[0].astype("<u4")
                     & 0x1FFFFFFF
                 )
 
@@ -12112,9 +12098,7 @@ class MDF4(MDF_Common[Group]):
                     group=group_index,
                     data=fragment,
                     samples_only=True,
-                )[
-                    0
-                ].astype("<u1")
+                )[0].astype("<u1")
 
                 msg_ids = (
                     self.get(
@@ -12122,9 +12106,7 @@ class MDF4(MDF_Common[Group]):
                         group=group_index,
                         data=fragment,
                         samples_only=True,
-                    )[
-                        0
-                    ].astype("<u4")
+                    )[0].astype("<u4")
                     & 0x1FFFFFFF
                 )
 
@@ -12175,9 +12157,7 @@ class MDF4(MDF_Common[Group]):
                     group=group_index,
                     data=fragment,
                     samples_only=True,
-                )[
-                    0
-                ].astype("<u1")
+                )[0].astype("<u1")
 
                 msg_id_signal = (
                     self.get("CAN_DataFrame.ID", group=group_index, data=fragment).astype("<u4") & 0x1FFFFFFF
@@ -12331,9 +12311,7 @@ class MDF4(MDF_Common[Group]):
                         group=group_index,
                         data=fragment,
                         samples_only=True,
-                    )[
-                        0
-                    ].astype("<u4")
+                    )[0].astype("<u4")
                     & 0x1FFFFFFF
                 )
 

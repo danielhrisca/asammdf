@@ -322,7 +322,6 @@ def inverse_conversion(
                 conv = v4b.ChannelConversion(**kwargs)
 
         elif a == 0 and d == 0:
-
             if e == 0 and b == 0:
                 conv = None
             else:

@@ -628,7 +628,6 @@ class TableModel(QtCore.QAbstractTableModel):
                 return new_background_color if new_background_color != self.background_color else None
 
             case QtCore.Qt.ItemDataRole.ForegroundRole:
-
                 channel_ranges = self.view.ranges[signal.entry]
                 raw_cell = self.backend.get_signal_value(signal, 1)
                 scaled_cell = self.backend.get_signal_value(signal, 2)
@@ -726,7 +725,7 @@ class TableModel(QtCore.QAbstractTableModel):
 
             case QtCore.Qt.ItemDataRole.ToolTipRole:
                 if signal:
-                    return f'Origin = {signal.origin_uuid or "unknown"}\nMDF = {signal.origin_mdf or "unknown"}'
+                    return f"Origin = {signal.origin_uuid or 'unknown'}\nMDF = {signal.origin_mdf or 'unknown'}"
 
     def flags(self, index):
         return (
@@ -737,12 +736,10 @@ class TableModel(QtCore.QAbstractTableModel):
         )
 
     def dropMimeData(self, data, action, row, column, parent):
-
         def moved_rows(data):
             rows = set()
             ds = QtCore.QDataStream(data.data("application/x-qabstractitemmodeldatalist"))
             while not ds.atEnd():
-
                 row = ds.readInt32()
                 ds.readInt32()
                 map_items = ds.readInt32()
@@ -1001,7 +998,6 @@ class TableView(QtWidgets.QTableView):
             super().keyPressEvent(event)
 
     def startDrag(self, supportedActions):
-
         indexes = self.selectedIndexes()
         if not self.backend.sorting_enabled:
             mime_data = self.model().mimeData(indexes)
@@ -1539,7 +1535,6 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.customContextMenuRequested.connect(self.show_menu)
 
     def show_menu(self, position):
-
         count = len(self.channels.backend)
 
         header = self.channels.columnHeader
@@ -2129,7 +2124,6 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.backend.shift_same_origin_signals(origin_uuid=origin_uuid, delta=delta)
 
     def update_missing_signals(self, uuids=()):
-
         self.channels.backend.signals = [
             signal for signal in self.channels.backend.signals if signal.origin_uuid in uuids
         ]
@@ -2168,7 +2162,6 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             and modifiers == QtCore.Qt.KeyboardModifier.NoModifier
             and self.mode == "offline"
         ):
-
             self.timestamp_slider.keyPressEvent(event)
 
         elif (

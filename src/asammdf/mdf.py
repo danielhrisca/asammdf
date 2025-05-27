@@ -411,7 +411,7 @@ class MDF:
                 self._mdf = mdf_v4.MDF4(version=version, **common_kwargs)
             else:
                 message = (
-                    f'"{version}" is not a supported MDF file version; ' f"Supported versions are {SUPPORTED_VERSIONS}"
+                    f'"{version}" is not a supported MDF file version; Supported versions are {SUPPORTED_VERSIONS}'
                 )
                 raise MdfException(message)
 
@@ -2192,7 +2192,7 @@ class MDF:
                     if progress is not None and progress.stop:
                         raise Terminated
 
-                    message = f"Exporting group {i+1} of {gp_count}"
+                    message = f"Exporting group {i + 1} of {gp_count}"
                     logger.info(message)
 
                     if len(virtual_group.groups) == 1:
@@ -2499,7 +2499,7 @@ class MDF:
                 write_parquet(table, filename)
 
         else:
-            message = 'Unsupported export type "{}". ' 'Please select "csv", "excel", "hdf5", "mat" or "pandas"'
+            message = 'Unsupported export type "{}". Please select "csv", "excel", "hdf5", "mat" or "pandas"'
             message.format(fmt)
             logger.warning(message)
 
@@ -3324,7 +3324,7 @@ class MDF:
                 mdf = MDF(mdf, use_display_names=use_display_names)
 
             if progress is not None:
-                progress.signals.setLabelText.emit(f"Stacking file {mdf_index+1} of {files_nr}\n" f"{mdf.name.name}")
+                progress.signals.setLabelText.emit(f"Stacking file {mdf_index + 1} of {files_nr}\n{mdf.name.name}")
 
             if mdf_index == 0:
                 version = validate_version_argument(version)
@@ -3381,9 +3381,9 @@ class MDF:
 
                 if dg_cntr is not None:
                     for index in range(dg_cntr, len(stacked.groups)):
-                        stacked.groups[index].channel_group.comment = (
-                            f'stacked from channel group {i} of "{mdf.name.parent}"'
-                        )
+                        stacked.groups[
+                            index
+                        ].channel_group.comment = f'stacked from channel group {i} of "{mdf.name.parent}"'
 
             if progress is not None:
                 if callable(progress):
@@ -3584,7 +3584,6 @@ class MDF:
                 group = self.groups[group_index]
                 cycles_nr = group.channel_group.cycles_nr
                 if cycles_nr:
-
                     master_min = self.get_master(group_index, record_offset=0, record_count=1)
                     if len(master_min):
                         t_min_list.append(master_min[0])
@@ -6509,15 +6508,15 @@ class MDF:
 
                 elif row["type"] == "FLEXRAY":
                     if row["Event Type"] == "FlexRay Frame":
-                        frame_flags = f'{row["FrameFlags"]:x}'
-                        controller_flags = f'{row["ControllerFlags"]:x}'
+                        frame_flags = f"{row['FrameFlags']:x}"
+                        controller_flags = f"{row['ControllerFlags']:x}"
                         data = row["Data Bytes"]
-                        header_crc = f'{row["Header CRC"]:x}'
-                        data_length = f'{row["Data Length"]:x}'
-                        payload_length = f'{row["Payload Length"]:x}'
-                        bus = f'{row["Bus"] + 1:x}'
-                        slot = f'{row["ID"]:x}'
-                        cycle = f'{row["Cycle"]:x}'
+                        header_crc = f"{row['Header CRC']:x}"
+                        data_length = f"{row['Data Length']:x}"
+                        payload_length = f"{row['Payload Length']:x}"
+                        bus = f"{row['Bus'] + 1:x}"
+                        slot = f"{row['ID']:x}"
+                        cycle = f"{row['Cycle']:x}"
                         dir = row["Direction"]
                         t = row["timestamps"]
 
@@ -6526,13 +6525,13 @@ class MDF:
                         )
 
                     elif row["Event Type"] == "FlexRay NullFrame":
-                        frame_flags = f'{row["FrameFlags"]:x}'
-                        controller_flags = f'{row["ControllerFlags"]:x}'
-                        header_crc = f'{row["Header CRC"]:x}'
-                        payload_length = f'{row["Payload Length"]:x}'
-                        bus = f'{row["Bus"] + 1:x}'
-                        slot = f'{row["ID"]:x}'
-                        cycle = f'{row["Cycle"]:x}'
+                        frame_flags = f"{row['FrameFlags']:x}"
+                        controller_flags = f"{row['ControllerFlags']:x}"
+                        header_crc = f"{row['Header CRC']:x}"
+                        payload_length = f"{row['Payload Length']:x}"
+                        bus = f"{row['Bus'] + 1:x}"
+                        slot = f"{row['ID']:x}"
+                        cycle = f"{row['Cycle']:x}"
                         dir = row["Direction"]
                         t = row["timestamps"]
 

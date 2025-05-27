@@ -189,7 +189,6 @@ def build_mime_from_config(
     top=True,
     has_flags=None,
 ):
-
     if mdfs is None:
         mdfs = [None]
     elif not isinstance(mdfs, (tuple, list)):
@@ -206,7 +205,6 @@ def build_mime_from_config(
     computed = {}
     mime = []
     for cfg_item in items:
-
         if cfg_item.get("type", "channel") == "group":
             uuid = os.urandom(6).hex()
             cfg_item["uuid"] = uuid
@@ -597,7 +595,6 @@ def parse_matrix_component(name):
 
 
 class MdiAreaMixin:
-
     def addSubWindow(self, window):
         geometry = window.geometry()
         geometry.setSize(QtCore.QSize(400, 400))
@@ -616,7 +613,6 @@ class MdiAreaMixin:
             widget.close()
 
     def window_moved(self, window, new_position, old_position):
-
         snap = False
 
         window_geometry = window.geometry()
@@ -724,7 +720,6 @@ class MdiAreaMixin:
                 break
 
         else:
-
             # left edge of other windows growing and snapping
             snap_candidates = []
 
@@ -753,7 +748,6 @@ class MdiAreaMixin:
                 snap = True
                 break
         else:
-
             # top edge of other windows snapping
             snap_candidates = []
 
@@ -827,7 +821,6 @@ class MdiAreaMixin:
                 y_delta = -y_delta
 
         if previous_x is not None:
-
             for sub in sub_windows:
                 geometry = sub.geometry()
                 if abs(geometry.x() - previous_x) <= SNAP_PIXELS_DISTANCE:
@@ -838,7 +831,6 @@ class MdiAreaMixin:
                     sub.setGeometry(geometry)
 
         if previous_y is not None:
-
             for sub in sub_windows:
                 geometry = sub.geometry()
                 if abs(geometry.y() - previous_y) <= SNAP_PIXELS_DISTANCE:
@@ -1189,7 +1181,6 @@ class WithMDIArea:
             current_count = len(widget.plot.signals)
             count = len(names)
         elif isinstance(widget, XY):
-
             if names:
                 name = names[0]
             else:
@@ -1347,7 +1338,7 @@ class WithMDIArea:
 
                         if self.comparison:
                             sig.tooltip = f"{sig.name}\n@ {file.mdf.orignial_name}"
-                            sig.name = f"{file_index+1}: {sig.name}"
+                            sig.name = f"{file_index + 1}: {sig.name}"
 
                     signals.extend(selected_signals)
 
@@ -1419,9 +1410,8 @@ class WithMDIArea:
                         sig.uuid = sig_["uuid"]
 
                         if self.comparison:
-
                             sig.tooltip = f"{sig.name}\n@ {file.mdf.original_name}"
-                            sig.name = f"{file_index+1}: {sig.name}"
+                            sig.name = f"{file_index + 1}: {sig.name}"
 
                         if sig.samples.dtype.kind not in "SU" and (
                             sig.samples.dtype.names or len(sig.samples.shape) > 1
@@ -1651,7 +1641,6 @@ class WithMDIArea:
         dfs = []
 
         if self.mdf.version >= "4.00":
-
             groups_count = len(self.mdf.groups)
 
             for index in range(groups_count):
@@ -1909,7 +1898,6 @@ class WithMDIArea:
     def _add_flexray_bus_trace_window(self, ranges=None):
         items = []
         if self.mdf.version >= "4.00":
-
             groups_count = len(self.mdf.groups)
 
             for index in range(groups_count):
@@ -1937,7 +1925,6 @@ class WithMDIArea:
                             items.append((data, names))
 
         if items:
-
             df_index = np.sort(np.concatenate([item.timestamps for (item, names) in items]))
             count = len(df_index)
 
@@ -2185,7 +2172,6 @@ class WithMDIArea:
     def _add_lin_bus_trace_window(self, ranges=None):
         dfs = []
         if self.mdf.version >= "4.00":
-
             groups_count = len(self.mdf.groups)
 
             for index in range(groups_count):
@@ -2453,7 +2439,6 @@ class WithMDIArea:
         return trace
 
     def _add_numeric_window(self, names):
-
         if names and isinstance(names[0], str):
             signals_ = [
                 (
@@ -3051,7 +3036,6 @@ class WithMDIArea:
         return w, plot
 
     def _add_tabular_window(self, names):
-
         if names and isinstance(names[0], str):
             signals_ = [
                 (
@@ -3113,7 +3097,7 @@ class WithMDIArea:
 
                     name = unique_names.get_unique_name(entry["name"])
 
-                    ranges[f"{file_index+1}: {name}"] = entry["ranges"]
+                    ranges[f"{file_index + 1}: {name}"] = entry["ranges"]
             else:
                 for entry in signals_:
                     if entry["origin_uuid"] != uuid:
@@ -3148,7 +3132,7 @@ class WithMDIArea:
             )
 
             if self.comparison:
-                columns = {name: f"{file_index+1}: {name}" for name in df.columns}
+                columns = {name: f"{file_index + 1}: {name}" for name in df.columns}
                 df.rename(columns=columns, inplace=True)
 
             dfs.append(df)
@@ -3460,7 +3444,6 @@ class WithMDIArea:
                 signals_ = [(elem["name"], *mdf.whereis(elem["name"])[0]) for elem in found]
 
                 if signals_:
-
                     mdf_signals = mdf.select(
                         signals_,
                         ignore_value2text_conversions=self.ignore_value2text_conversions,
@@ -3728,7 +3711,6 @@ class WithMDIArea:
                     ),
                     strict=False,
                 ):
-
                     signal.flags &= ~signal.Flags.computed
                     signal.computation = {}
                     signal.color = sig_item["color"]
@@ -3862,7 +3844,6 @@ class WithMDIArea:
 
                 for uuid, description in mdf_not_found.items():
                     if uuid not in plot_signals:
-
                         sig = Signal([], [], name=description["name"])
                         sig.uuid = uuid
 
@@ -4451,7 +4432,6 @@ class WithMDIArea:
                         pass
 
     def set_cursor(self, widget, pos):
-
         if self._busy:
             return
         else:
@@ -4810,7 +4790,7 @@ class WithMDIArea:
         result = MessageBox.question(
             self,
             "Save measurement bookmarks?",
-            "You have modified bookmarks.\n\n" "Do you want to save the changes in the measurement file?\n" "",
+            "You have modified bookmarks.\n\nDo you want to save the changes in the measurement file?\n",
         )
 
         if result == MessageBox.StandardButton.No:
