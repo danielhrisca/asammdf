@@ -6143,7 +6143,7 @@ class CursorInfo(QtWidgets.QLabel):
 
         if action.text() == "Set precision":
             precision, ok = QtWidgets.QInputDialog.getInt(
-                self, "Set new precision (float decimals)", "Precision:", 6, -1, 15, 1
+                self, "Set new precision (float decimals)", "Precision:", self.precision, -1, 15, 1
             )
 
             if ok:

@@ -5,7 +5,7 @@ import sys
 import unittest
 from unittest import mock
 
-from PySide6.QtCore import QPoint, QRect, Qt
+from PySide6.QtCore import QPoint, QRect, QSettings, Qt
 from PySide6.QtGui import QGuiApplication, QKeySequence
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QTreeWidgetItemIterator
@@ -31,6 +31,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             - Evaluate that plot is black
         """
         super().setUp()
+        settings = QSettings()
+        settings.setValue("zoom_x_center_on_cursor", True)
+        settings.setValue("plot_cursor_precision", 6)
         # Open measurement file
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Switch ComboBox to "Natural sort"
@@ -1135,7 +1138,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertTrue(extremes_of_channel_35)
         # Press "I"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["x_zoom_in"]))
-        self.processEvents()
+        self.processEvents(0.5)
 
         # save left and right pixel column
         x_left_column = self.pg.grab(QRect(extremes_of_channel_35[0], 0, 1, self.pg.height()))

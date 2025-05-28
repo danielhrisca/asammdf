@@ -1015,8 +1015,8 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
             else:
                 try:
                     files = []
-                    for path in event.mimeData().text().splitlines():
-                        path = Path(path.replace(r"file:///", ""))
+                    for url in event.mimeData().urls():
+                        path = Path(url.fileName())
                         if (
                             path.suffix.lower()
                             in utils.SUPPORTED_FILE_EXTENSIONS | utils.SUPPORTED_BUS_DATABASE_EXTENSIONS
