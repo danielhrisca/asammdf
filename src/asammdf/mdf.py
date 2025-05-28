@@ -992,7 +992,7 @@ class MDF:
         return self._mdf.get_channel_metadata(name=name, group=group, index=index)
 
     def get_channel_unit(self, name: str | None = None, group: int | None = None, index: int | None = None) -> str:
-        return self.get_channel_unit(name=name, group=group, index=index)
+        return self._mdf.get_channel_unit(name=name, group=group, index=index)
 
     def get_channel_comment(self, name: str | None = None, group: int | None = None, index: int | None = None) -> str:
         return self._mdf.get_channel_comment(name=name, group=group, index=index)
