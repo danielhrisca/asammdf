@@ -13,7 +13,6 @@ from numpy import searchsorted
 import pyqtgraph.functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from asammdf.gui import utils
 from asammdf.gui.dialogs.range_editor import RangeEditor
 from asammdf.gui.utils import (
     copy_ranges,
@@ -24,6 +23,7 @@ from asammdf.gui.utils import (
 from asammdf.gui.widgets.plot import PlotSignal
 import asammdf.mdf as mdf_module
 
+from asammdf.blocks import utils
 from ...blocks.utils import ExtendedJsonDecoder, ExtendedJsonEncoder, extract_mime_names
 from ..ui.numeric_offline import Ui_NumericDisplay
 from ..utils import FONT_SIZE
