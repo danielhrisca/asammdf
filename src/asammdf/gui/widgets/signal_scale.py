@@ -169,7 +169,7 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
             elif i == 10:
                 painter.drawText(5, x - 5, f"{100 - 10 * i}%")
             else:
-                painter.drawText(5, x + 6, f"{100-10*i}%")
+                painter.drawText(5, x + 6, f"{100 - 10 * i}%")
 
         painter.drawText(PLOT_HEIGTH + TEXT_WIDTH, 15, f"{y_top:.3f}")
         painter.drawText(

@@ -22,7 +22,7 @@ DATA_BYTES = re.compile(r"(?P<data>.*?Data ?)Bytes(?P<cntr>_\d+)?")
 
 
 def data_length_name(match):
-    result = f'{match.group("data")}Length'
+    result = f"{match.group('data')}Length"
     if cntr := match.group("cntr"):
         result += cntr
 
@@ -100,7 +100,6 @@ class Tabular(TabularBase):
                 signals[name] = s
 
             if dropped:
-
                 signals = signals[columns]
 
             names = list(signals.columns)

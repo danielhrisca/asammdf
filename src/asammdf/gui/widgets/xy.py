@@ -103,14 +103,12 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
         self.update_plot()
 
     def clicked(self, event):
-
         scene_pos = event.scenePos()
         pos = self.plot.plotItem.vb.mapSceneToView(scene_pos)
         x = pos.x()
         y = pos.y()
 
         if self._x is not None and self._y is not None:
-
             delta = (self._x_interp.samples - x) ** 2 + (self._y_interp.samples - y) ** 2
             idx = np.argmin(delta).flatten()[0]
 
@@ -180,7 +178,6 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
         self.add_channels_request.emit(channels)
 
     def set_timestamp(self, stamp, emit=True, spinbox=False):
-
         if stamp is None or self._timebase is None or not len(self._timebase):
             self.marker.setData(x=[], y=[])
 
@@ -253,7 +250,6 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
             self.set_timestamp(self._timebase[idx])
 
     def to_config(self):
-
         config = {
             "channels": [self._x.name if self._x else "", self._y.name if self._y else ""],
             "color": self._pen,
@@ -295,7 +291,6 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
                 }
             ]
             for angle, xpos, ypos in zip(angles.tolist(), x.samples[1:].tolist(), y.samples[1:].tolist(), strict=False):
-
                 transform.reset()
                 angle_rot = transform.rotate(angle)
                 my_rotated_symbol = angle_rot.map(ARROW)
@@ -322,7 +317,6 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
             self.set_timestamp(self._timestamp)
 
     def update_timebase(self):
-
         if self._timebase is not None and len(self._timebase):
             count = len(self._timebase)
             min_, max_ = self._timebase[0], self._timebase[-1]

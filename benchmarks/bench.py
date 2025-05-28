@@ -830,8 +830,8 @@ def main(text_output: bool, fmt: Literal["rst", "md"]) -> None:
     output.append(f"* numpy {np.__version__}")
     output.append(f"* {installed_ram}GB installed RAM\n")
     output.append("Notations used in the results\n")
-    output.append("* compress = mdfreader mdf object created with " "compression=blosc")
-    output.append("* nodata = mdfreader mdf object read with " "no_data_loading=True")
+    output.append("* compress = mdfreader mdf object created with compression=blosc")
+    output.append("* nodata = mdfreader mdf object read with no_data_loading=True")
     output.append("\nFiles used for benchmark:\n")
     output.append(f"* mdf version {v3_version}")
     output.append(f"    * {v3_size} MB file size")
@@ -1019,7 +1019,7 @@ def _cmd_line_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--path",
-        help=("path to test files, " "if not provided the script folder is used"),
+        help=("path to test files, if not provided the script folder is used"),
     )
     parser.add_argument(
         "--text_output",

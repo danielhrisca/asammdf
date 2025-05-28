@@ -69,7 +69,6 @@ MONOSPACE_FONT = None
 
 
 class TabularTreeItem(QtWidgets.QTreeWidgetItem):
-
     DEFAULT_FLAGS = QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsSelectable
 
     def __init__(self, column_types, int_format, ranges=None, *args, **kwargs):
@@ -1343,7 +1342,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             try:
                 new_df = df.query(" ".join(filters))
             except:
-                logger.exception(f'Failed to apply filter for tabular window: {" ".join(filters)}')
+                logger.exception(f"Failed to apply filter for tabular window: {' '.join(filters)}")
                 self.query.setText(format_exc())
             else:
                 to_drop = [name for name in df.columns if name.endswith("__as__bytes")]
