@@ -55,6 +55,10 @@ class TestBase(unittest.TestCase):
     pyqtgraph.setConfigOption("background", "k")
     pyqtgraph.setConfigOption("foreground", "w")
 
+    settings = QtCore.QSettings()
+    settings.setValue("zoom_x_center_on_cursor", True)
+    settings.setValue("plot_cursor_precision", 6)
+
     longMessage = False
 
     resource = os.path.normpath(os.path.join(os.path.dirname(__file__), "resources"))
@@ -83,13 +87,13 @@ class TestBase(unittest.TestCase):
         else:
             duration = abs(duration)
 
-        w.showNormal()
+        w.showMaximized()
 
         loop = QtCore.QEventLoop()
         QtCore.QTimer.singleShot(int(duration * 1000), loop.quit)
         loop.exec_()
 
-        w.showNormal()
+        w.showMaximized()
 
     @staticmethod
     def processEvents(timeout=0.001):
