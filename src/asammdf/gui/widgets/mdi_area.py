@@ -1016,7 +1016,11 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
                 try:
                     files = []
                     for url in event.mimeData().urls():
-                        path = Path(url.fileName())
+                        if sys.platform  == "win32":
+                            path = Path(url.path().strip('/'))
+                        else:
+                            path = Path(url.path())
+                            
                         if (
                             path.suffix.lower()
                             in utils.SUPPORTED_FILE_EXTENSIONS | utils.SUPPORTED_BUS_DATABASE_EXTENSIONS
