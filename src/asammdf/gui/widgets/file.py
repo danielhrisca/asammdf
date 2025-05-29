@@ -1633,10 +1633,11 @@ MultiRasterSeparator;&
                 iterator += 1
 
     def close(self):
-        mdf_name = self.mdf.name
-        self.mdf.close()
-        if mdf_name != self.mdf.original_name and mdf_name.is_file():
-            mdf_name.unlink()
+        if self.mdf is not None:
+            mdf_name = self.mdf.name
+            self.mdf.close()
+            if mdf_name != self.mdf.original_name and mdf_name.is_file():
+                mdf_name.unlink()
         self.channels_tree.clear()
         self.filter_tree.clear()
 

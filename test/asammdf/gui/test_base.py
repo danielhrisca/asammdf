@@ -411,16 +411,16 @@ class Pixmap:
         if ax in ("x", "X"):
             for x in range(image.width()):
                 for y in range(image.height()):
-                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                    if image.pixelColor(x, y).name() == signal_color:
                         from_to.append(x)
                         break
                 if from_to:
                     break
             if not from_to:
                 return
-            for x in range(image.width(), from_to[0], -1):
+            for x in range(image.width() - 1, from_to[0], -1):
                 for y in range(image.height()):
-                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                    if image.pixelColor(x, y).name() == signal_color:
                         from_to.append(x)
                         break
                 if len(from_to) == 2:
@@ -430,7 +430,7 @@ class Pixmap:
         elif ax in ("y", "Y"):
             for y in range(image.height()):
                 for x in range(image.width()):
-                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                    if image.pixelColor(x, y).name() == signal_color:
                         from_to.append(y)
                         break
                 if from_to:
@@ -438,9 +438,9 @@ class Pixmap:
             if not from_to:
                 return
 
-            for y in range(image.height(), from_to[0], -1):
+            for y in range(image.height() - 1, from_to[0], -1):
                 for x in range(image.width()):
-                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                    if image.pixelColor(x, y).name() == signal_color:
                         from_to.append(y)
                         break
                 if len(from_to) == 2:
