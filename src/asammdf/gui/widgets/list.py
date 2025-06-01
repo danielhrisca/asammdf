@@ -4,7 +4,7 @@ from struct import pack
 from natsort import natsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ...blocks.utils import extract_mime_names
+from ..serde import extract_mime_names
 
 
 class ListWidget(QtWidgets.QListWidget):

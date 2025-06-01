@@ -16,18 +16,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 import asammdf.mdf as mdf_module
 
 from ... import tool
-from ...blocks.utils import (
-    COLORS,
-    COLORS_COUNT,
-    ExtendedJsonDecoder,
-    ExtendedJsonEncoder,
-    extract_encryption_information,
-    extract_xml_comment,
-    load_channel_names_from_file,
-    load_dsp,
-    load_lab,
-    Terminated,
-)
+from ...blocks.utils import extract_encryption_information, extract_xml_comment, Terminated
 from ...blocks.v4_blocks import AttachmentBlock, FileHistory, HeaderBlock
 from ...blocks.v4_blocks import TextBlock as TextV4
 from ...blocks.v4_constants import (
@@ -46,6 +35,15 @@ from ..dialogs.error_dialog import ErrorDialog
 from ..dialogs.gps_dialog import GPSDialog
 from ..dialogs.messagebox import MessageBox
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
+from ..serde import (
+    COLORS,
+    COLORS_COUNT,
+    ExtendedJsonDecoder,
+    ExtendedJsonEncoder,
+    load_channel_names_from_file,
+    load_dsp,
+    load_lab,
+)
 from ..ui.file_widget import Ui_file_widget
 from ..utils import (
     COMPRESSION_OPTIONS,

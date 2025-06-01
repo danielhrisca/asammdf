@@ -13,7 +13,6 @@ from numpy import searchsorted
 import pyqtgraph.functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from asammdf.blocks import utils as blocks_utils
 from asammdf.gui import utils
 from asammdf.gui.dialogs.range_editor import RangeEditor
 from asammdf.gui.utils import (
@@ -25,7 +24,8 @@ from asammdf.gui.utils import (
 from asammdf.gui.widgets.plot import PlotSignal
 import asammdf.mdf as mdf_module
 
-from ...blocks.utils import ExtendedJsonDecoder, ExtendedJsonEncoder, extract_mime_names
+from .. import serde
+from ..serde import ExtendedJsonDecoder, ExtendedJsonEncoder, extract_mime_names
 from ..ui.numeric_offline import Ui_NumericDisplay
 from ..utils import FONT_SIZE
 from .tree import substitude_mime_uuids
@@ -1794,9 +1794,9 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     entry = (sig.origin_uuid, sig.name)
 
                     if getattr(sig, "color", None):
-                        color = sig.color or blocks_utils.COLORS[index % blocks_utils.COLORS_COUNT]
+                        color = sig.color or serde.COLORS[index % serde.COLORS_COUNT]
                     else:
-                        color = blocks_utils.COLORS[index % blocks_utils.COLORS_COUNT]
+                        color = serde.COLORS[index % serde.COLORS_COUNT]
 
                     others.append(
                         SignalOnline(

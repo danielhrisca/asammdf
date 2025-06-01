@@ -37,13 +37,9 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 import asammdf.mdf as mdf_module
 
-from ...blocks.utils import (
-    csv_bytearray2hex,
-    extract_mime_names,
-    pandas_query_compatible,
-    timeit,
-)
+from ...blocks.utils import csv_bytearray2hex, pandas_query_compatible, timeit
 from ..dialogs.range_editor import RangeEditor
+from ..serde import extract_mime_names
 from ..ui.tabular import Ui_TabularDisplay
 from ..utils import (
     copy_ranges,
