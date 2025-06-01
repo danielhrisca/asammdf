@@ -1510,10 +1510,10 @@ class DataBlockInfo:
 class Fragment:
     def __init__(
         self,
-        data: bytes,
+        data: bytes | bytearray,
         record_offset: int = -1,
         record_count: int = -1,
-        invalidation_data: bytes | None = None,
+        invalidation_data: bytes | bytearray | None = None,
         is_record: bool = True,
     ) -> None:
         self.data = data
