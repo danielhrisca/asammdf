@@ -4722,7 +4722,7 @@ class DataZippedBlock:
 
     def __setattr__(self, item: str, value: object) -> None:
         if item == "data" and not self._prevent_data_setitem:
-            data: bytes | memoryview[int] = typing.cast(bytes, value)
+            data = typing.cast(bytes | bytearray, value)
             original_size = len(data)
             self.original_size = original_size
 
@@ -4745,10 +4745,13 @@ class DataZippedBlock:
                     lines = original_size // cols
 
                     if lines * cols < original_size:
-                        data = memoryview(data)
+                        data_view = memoryview(data)
                         data = (
-                            np.frombuffer(data[: lines * cols], dtype="B").reshape((lines, cols)).T.ravel().tobytes()
-                        ) + data[lines * cols :]
+                            np.frombuffer(data_view[: lines * cols], dtype="B")
+                            .reshape((lines, cols))
+                            .T.ravel()
+                            .tobytes()
+                        ) + data_view[lines * cols :]
 
                     else:
                         data = np.frombuffer(data, dtype=np.uint8).reshape((lines, cols)).T.ravel().tobytes()
