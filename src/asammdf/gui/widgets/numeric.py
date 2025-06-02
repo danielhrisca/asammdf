@@ -361,7 +361,7 @@ class OnlineBackEnd:
             else:
                 self.data_changed()
 
-    def shift_same_origin_signals(self, origin_uuid="", delta=0.0):
+    def shift_same_origin_signals(self, origin_uuid="", delta=0.0, absolute=False):
         pass
 
     def update_missing_signals(self, uuids=()):
@@ -528,10 +528,14 @@ class OfflineBackEnd:
         else:
             self.data_changed()
 
-    def shift_same_origin_signals(self, origin_uuid="", delta=0.0):
+    def shift_same_origin_signals(self, origin_uuid="", delta=0.0, absolute=False):
         for signal in self.signals:
             if signal.origin_uuid == origin_uuid:
-                signal.signal.timestamps = signal.signal.timestamps + delta
+                if not absolute:
+                    signal.signal.timestamps = signal.signal.timestamps + delta
+                else:
+                    if len(signal.signal.timestamps):
+                        signal.signal.timestamps = signal.signal.timestamps - signal.signal.timestamps[0] + delta
 
         self.data_changed()
 
