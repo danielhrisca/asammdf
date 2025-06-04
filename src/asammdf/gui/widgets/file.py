@@ -28,6 +28,7 @@ from ...blocks.v4_constants import (
     CompressionAlgorithm,
     FLAG_CG_BUS_EVENT,
 )
+from .. import serde
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
@@ -36,8 +37,6 @@ from ..dialogs.gps_dialog import GPSDialog
 from ..dialogs.messagebox import MessageBox
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..serde import (
-    COLORS,
-    COLORS_COUNT,
     ExtendedJsonDecoder,
     ExtendedJsonEncoder,
     load_channel_names_from_file,
@@ -1108,7 +1107,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                             "enabled": True,
                                             "individual_axis": False,
                                             "common_axis": False,
-                                            "color": COLORS[i % COLORS_COUNT],
+                                            "color": serde.COLORS[i % serde.COLORS_COUNT],
                                             "computed": False,
                                             "ranges": [],
                                             "precision": 3,
