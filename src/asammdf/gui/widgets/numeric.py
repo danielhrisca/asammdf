@@ -1590,7 +1590,6 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         submenu = QtWidgets.QMenu("Copy names")
         submenu.setIcon(QtGui.QIcon(":/copy.png"))
-        submenu.addAction("Copy names [Ctrl+N]")
         action = QtGui.QAction("Copy names", submenu)
         action.setShortcut(QtGui.QKeySequence("Ctrl+N"))
         submenu.addAction(action)
