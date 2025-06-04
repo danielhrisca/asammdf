@@ -1591,15 +1591,26 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         submenu = QtWidgets.QMenu("Copy names")
         submenu.setIcon(QtGui.QIcon(":/copy.png"))
         submenu.addAction("Copy names [Ctrl+N]")
+        action = QtGui.QAction("Copy names", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+N"))
+        submenu.addAction(action)
         submenu.addAction("Copy names and values")
         menu.addMenu(submenu)
 
         submenu = QtWidgets.QMenu("Display structure")
         submenu.setIcon(QtGui.QIcon(":/structure.png"))
-        submenu.addAction("Copy display properties [Ctrl+Shift+C]")
-        submenu.addAction("Paste display properties [Ctrl+Shift+V]")
-        submenu.addAction("Copy channel structure [Ctrl+C]")
-        submenu.addAction("Paste channel structure [Ctrl+V]")
+        action = QtGui.QAction("Copy display properties", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+C"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Paste display properties", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+V"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Copy channel structure", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+C"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Paste channel structure", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+V"))
+        submenu.addAction(action)
         menu.addMenu(submenu)
 
         menu.addSeparator()
@@ -1607,22 +1618,36 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         submenu = QtWidgets.QMenu("Edit")
         submenu.setIcon(QtGui.QIcon(":/edit.png"))
 
-        submenu.addAction("Set color [C]")
+        action = QtGui.QAction("Set color", submenu)
+        action.setShortcut(QtGui.QKeySequence("C"))
+        submenu.addAction(action)
         submenu.addAction("Set random color")
-        submenu.addAction("Set color ranges [Ctrl+R]")
+        action = QtGui.QAction("Set color ranges", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+R"))
+        submenu.addAction(action)
         menu.addMenu(submenu)
 
         menu.addSeparator()
 
         submenu = QtWidgets.QMenu("Display mode")
-        submenu.addAction("Ascii\t[Ctrl+T]")
-        submenu.addAction("Bin\t[Ctrl+B]")
-        submenu.addAction("Hex\t[Ctrl+H]")
-        submenu.addAction("Physical\t[Ctrl+P]")
+        action = QtGui.QAction("Ascii", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+T"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Bin", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+B"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Hex", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+H"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Physical", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+P"))
+        submenu.addAction(action)
         menu.addMenu(submenu)
 
         menu.addSeparator()
-        menu.addAction(QtGui.QIcon(":/erase.png"), "Delete [Del]")
+        action = QtGui.QAction("Delete", menu)
+        action.setShortcut(QtGui.QKeySequence("Delete"))
+        menu.addAction(action)
 
         action = menu.exec_(self.mapToGlobal(position))
 
@@ -1631,7 +1656,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         action_text = action.text()
 
-        if action_text == "Copy names [Ctrl+N]":
+        if action_text == "Copy names":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_N, QtCore.Qt.KeyboardModifier.ControlModifier
             )
@@ -1674,7 +1699,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
             QtWidgets.QApplication.instance().clipboard().setText("\n".join(texts))
 
-        elif action_text == "Copy channel structure [Ctrl+C]":
+        elif action_text == "Copy channel structure":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_C,
@@ -1682,7 +1707,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Paste channel structure [Ctrl+V]":
+        elif action_text == "Paste channel structure":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_V,
@@ -1690,7 +1715,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Copy display properties [Ctrl+Shift+C]":
+        elif action_text == "Copy display properties":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_C,
@@ -1698,7 +1723,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Paste display properties [Ctrl+Shift+V]":
+        elif action_text == "Paste display properties":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_V,
@@ -1706,7 +1731,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Copy display properties [Ctrl+Shift+C]":
+        elif action_text == "Copy display properties":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_C,
@@ -1714,7 +1739,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Paste display properties [Ctrl+Shift+V]":
+        elif action_text == "Paste display properties":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_V,
@@ -1732,7 +1757,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 header.show()
                 self.controls.show()
 
-        elif action_text == "Set color [C]":
+        elif action_text == "Set color":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_C,
@@ -1740,7 +1765,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Set color ranges [Ctrl+R]":
+        elif action_text == "Set color ranges":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_R,
@@ -1759,28 +1784,28 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
                 self.backend.signals[row].color = fn.mkColor(f"#{rgb.hex()}")
 
-        elif action_text == "Ascii\t[Ctrl+T]":
+        elif action_text == "Ascii":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_T, QtCore.Qt.KeyboardModifier.ControlModifier
             )
             self.keyPressEvent(event)
-        elif action_text == "Bin\t[Ctrl+B]":
+        elif action_text == "Bin":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_B, QtCore.Qt.KeyboardModifier.ControlModifier
             )
             self.keyPressEvent(event)
-        elif action_text == "Hex\t[Ctrl+H]":
+        elif action_text == "Hex":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_H, QtCore.Qt.KeyboardModifier.ControlModifier
             )
             self.keyPressEvent(event)
-        elif action_text == "Physical\t[Ctrl+P]":
+        elif action_text == "Physical":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_P, QtCore.Qt.KeyboardModifier.ControlModifier
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Delete [Del]":
+        elif action_text == "Delete":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Delete, QtCore.Qt.KeyboardModifier.NoModifier
             )
