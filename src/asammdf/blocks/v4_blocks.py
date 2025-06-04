@@ -4520,7 +4520,7 @@ formula: {self.formula}
 
 
 class DataBlockKwargs(BlockKwargs, total=False):
-    data: bytes
+    data: bytes | bytearray
     type: Literal["DT", "SD", "RD", "DV", "DI"]
 
 
@@ -4556,6 +4556,8 @@ class DataBlock:
     __slots__ = ("address", "block_len", "data", "id", "links_nr", "reserved0")
 
     def __init__(self, **kwargs: Unpack[DataBlockKwargs]) -> None:
+        self.data: bytes | bytearray
+
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
@@ -4605,7 +4607,7 @@ class DataBlock:
 
 
 class DataZippedBlockKwargs(BlockKwargs, total=False):
-    data: bytes
+    data: bytes | bytearray
     original_type: bytes
     zip_type: int
     param: int
@@ -4664,6 +4666,7 @@ class DataZippedBlock:
     )
 
     def __init__(self, **kwargs: Unpack[DataZippedBlockKwargs]) -> None:
+        self.data: bytes | bytearray
         self._prevent_data_setitem = True
         self._transposed = False
         try:
@@ -4719,7 +4722,7 @@ class DataZippedBlock:
 
     def __setattr__(self, item: str, value: object) -> None:
         if item == "data" and not self._prevent_data_setitem:
-            data = typing.cast(bytes, value)
+            data = typing.cast(bytes | bytearray, value)
             original_size = len(data)
             self.original_size = original_size
 
@@ -4742,10 +4745,13 @@ class DataZippedBlock:
                     lines = original_size // cols
 
                     if lines * cols < original_size:
-                        data = memoryview(data)
+                        data_view = memoryview(data)
                         data = (
-                            np.frombuffer(data[: lines * cols], dtype="B").reshape((lines, cols)).T.ravel().tobytes()
-                        ) + data[lines * cols :]
+                            np.frombuffer(data_view[: lines * cols], dtype="B")
+                            .reshape((lines, cols))
+                            .T.ravel()
+                            .tobytes()
+                        ) + data_view[lines * cols :]
 
                     else:
                         data = np.frombuffer(data, dtype=np.uint8).reshape((lines, cols)).T.ravel().tobytes()

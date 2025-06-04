@@ -116,10 +116,10 @@ def monkey_patch_pyqtgraph():
 
 import asammdf.mdf as mdf_module
 
-from ...blocks import utils
-from ...blocks.utils import extract_mime_names
 from ...signal import Signal
+from .. import serde
 from ..dialogs.define_channel import DefineChannel
+from ..serde import extract_mime_names
 from ..utils import copy_ranges
 from .channel_stats import ChannelStats
 from .cursor import Bookmark, Cursor, Region
@@ -277,9 +277,9 @@ class PlotSignal(Signal):
         }
 
         if getattr(signal, "color", None):
-            color = signal.color or utils.COLORS[index % utils.COLORS_COUNT]
+            color = signal.color or serde.COLORS[index % serde.COLORS_COUNT]
         else:
-            color = utils.COLORS[index % utils.COLORS_COUNT]
+            color = serde.COLORS[index % serde.COLORS_COUNT]
         self.color = fn.mkColor(color)
         self.color_name = self.color.name()
         self.pen = fn.mkPen(color=color, style=QtCore.Qt.PenStyle.SolidLine)
@@ -3826,7 +3826,7 @@ class PlotGraphics(pg.PlotWidget):
         events = events or []
 
         for i, event_info in enumerate(events):
-            color = utils.COLORS[utils.COLORS_COUNT - (i % utils.COLORS_COUNT) - 1]
+            color = serde.COLORS[serde.COLORS_COUNT - (i % serde.COLORS_COUNT) - 1]
             if isinstance(event_info, (list, tuple)):
                 to_display = event_info
                 labels = [" - Start", " - End"]

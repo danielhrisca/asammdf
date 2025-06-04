@@ -1361,7 +1361,7 @@ class MDF4(MDF_Common[Group]):
                 else:
                     start_offset, end_offset = offsets
 
-                    data = bytearray()
+                    data_array = bytearray()
 
                     start_offset = int(start_offset)
                     end_offset = int(end_offset)
@@ -1420,21 +1420,21 @@ class MDF4(MDF_Common[Group]):
                                 new_data = lz_decompress(new_data)
 
                         if start_offset > current_offset:
-                            data.extend(new_data[start_offset - current_offset :])
+                            data_array.extend(new_data[start_offset - current_offset :])
                         else:
-                            data.extend(new_data)
+                            data_array.extend(new_data)
 
                         current_offset += original_size
 
-                        if (current_data_size := len(data)) >= last_sample_start + 4:
-                            (last_sample_size,) = UINT32_uf(data, last_sample_start)
+                        if (current_data_size := len(data_array)) >= last_sample_start + 4:
+                            (last_sample_size,) = UINT32_uf(data_array, last_sample_start)
                             required_size = last_sample_start + 4 + last_sample_size
                             if required_size <= current_data_size:
-                                data = bytes(data[:required_size])
+                                data = bytes(data_array[:required_size])
                                 break
 
                     else:
-                        data = bytes(data)
+                        data = bytes(data_array)
 
             else:
                 data = b""
@@ -1612,7 +1612,7 @@ class MDF4(MDF_Common[Group]):
                     continue
 
                 seek(address)
-                new_data = read(typing.cast(int, compressed_size))
+                new_data: bytes | memoryview[int] = read(typing.cast(int, compressed_size))
 
                 cc += 1
                 ss += original_size
@@ -4842,7 +4842,7 @@ class MDF4(MDF_Common[Group]):
 
         t: NDArray[Any] = df.index.values
         index_name = df.index.name
-        time_name = index_name or "time"
+        time_name = index_name if isinstance(index_name, str) and index_name else "time"
         sync_type = v4c.SYNC_TYPE_TIME
         time_unit = "s"
 
@@ -8605,7 +8605,7 @@ class MDF4(MDF_Common[Group]):
 
         return vals, timestamps, invalidation_bits, encoding
 
-    def _get_not_byte_aligned_data(self, data: bytes, group: Group, ch_nr: int) -> NDArray[Any]:
+    def _get_not_byte_aligned_data(self, data: bytes | bytearray, group: Group, ch_nr: int) -> NDArray[Any]:
         big_endian_types = (
             v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
             v4c.DATA_TYPE_REAL_MOTOROLA,
@@ -8896,8 +8896,7 @@ class MDF4(MDF_Common[Group]):
 
                 if master not in result:
                     result[master] = {}
-                    # TODO(JulienGrv)
-                    result[master][master] = [self.masters_db.get(master, None)]  # type: ignore[arg-type]
+                    result[master][master] = [self.masters_db.get(master, None)]  # type: ignore[list-item]
 
                 result[master][gp_index] = sorted(gps_idx)
 

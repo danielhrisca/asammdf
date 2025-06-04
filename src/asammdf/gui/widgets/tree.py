@@ -11,13 +11,13 @@ from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...blocks.conversion_utils import conversion_transfer, from_dict, to_dict
-from ...blocks.utils import ExtendedJsonDecoder, ExtendedJsonEncoder, extract_mime_names
 from ...signal import Signal
 from .. import utils
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.conversion_editor import ConversionEditor
 from ..dialogs.messagebox import MessageBox
 from ..dialogs.range_editor import RangeEditor
+from ..serde import ExtendedJsonDecoder, ExtendedJsonEncoder, extract_mime_names
 from ..utils import (
     copy_ranges,
     get_color_using_ranges,

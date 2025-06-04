@@ -22,14 +22,7 @@ import asammdf.mdf as mdf_module
 
 from ...blocks import v4_constants as v4c
 from ...blocks.conversion_utils import from_dict
-from ...blocks.utils import (
-    csv_bytearray2hex,
-    extract_mime_names,
-    extract_xml_comment,
-    load_can_database,
-    MdfException,
-    UniqueDB,
-)
+from ...blocks.utils import csv_bytearray2hex, extract_xml_comment, load_can_database, MdfException, UniqueDB
 from ...blocks.v4_blocks import EventBlock, HeaderBlock
 from ...signal import Signal
 from .. import utils
@@ -37,6 +30,7 @@ from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.messagebox import MessageBox
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
+from ..serde import extract_mime_names
 from ..utils import (
     computation_to_python_function,
     compute_signal,

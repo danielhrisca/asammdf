@@ -8,11 +8,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 import asammdf.mdf as mdf_module
 
-from ...blocks.utils import (
-    extract_xml_comment,
-    load_channel_names_from_file,
-    load_lab,
-)
+from ...blocks.utils import extract_xml_comment
 from ...blocks.v2_v3_blocks import HeaderBlock as HeaderBlockV3
 from ...blocks.v4_blocks import HeaderBlock as HeaderBlockV4
 from ...blocks.v4_constants import (
@@ -24,6 +20,7 @@ from ...blocks.v4_constants import (
 )
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.messagebox import MessageBox
+from ..serde import load_channel_names_from_file, load_lab
 from ..ui.batch_widget import Ui_batch_widget
 from ..utils import COMPRESSION_OPTIONS, GREEN, HelperChannel, setup_progress
 from .database_item import DatabaseItem

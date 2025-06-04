@@ -18,7 +18,6 @@ if not hasattr(np, "unicode_"):
 
 from .blocks.options import get_global_option, set_global_option
 from .blocks.source_utils import Source
-from .blocks.utils import load_channel_names_from_file
 from .gui import plot
 from .mdf import MDF, SUPPORTED_VERSIONS
 from .signal import InvalidationArray, Signal
@@ -40,7 +39,6 @@ __all__ = [
     "__cextension__",
     "__version__",
     "get_global_option",
-    "load_channel_names_from_file",
     "plot",
     "set_global_option",
 ]
