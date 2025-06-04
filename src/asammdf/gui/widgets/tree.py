@@ -952,6 +952,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addAction("Add pattern based channel group [Ctrl+Insert]")
         menu.addSeparator()
 
+        menu.addAction("Insert computation [Insert]")
+        menu.addSeparator()
+
         submenu = QtWidgets.QMenu("Copy names")
         submenu.setIcon(QtGui.QIcon(":/copy.png"))
         submenu.addAction("Copy names [Ctrl+N]")
@@ -1679,6 +1682,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         elif action_text == "Physical\t[Ctrl+P]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_P, QtCore.Qt.KeyboardModifier.ControlModifier
+            )
+            self.plot.keyPressEvent(event)
+        elif action_text == "Insert computation [Insert]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Insert, QtCore.Qt.KeyboardModifier.NoModifier
             )
             self.plot.keyPressEvent(event)
 

@@ -298,6 +298,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.mdi_area = MdiAreaWidget()
 
             self.mdi_area.add_window_request.connect(self.add_window)
+            self.mdi_area.create_window_request.connect(self._create_window)
+            self.mdi_area.search_request.connect(self.search)
             self.mdi_area.open_files_request.connect(self.open_new_files.emit)
             self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
             self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
