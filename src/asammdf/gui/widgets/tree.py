@@ -948,25 +948,41 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addAction(QtGui.QIcon(":/down.png"), f"Find next {item.name}")
         menu.addSeparator()
 
-        menu.addAction("Add channel group [Shift+Insert]")
-        menu.addAction("Add pattern based channel group [Ctrl+Insert]")
+        action = QtGui.QAction("Add channel group", menu)
+        action.setShortcut(QtGui.QKeySequence("Shift+Insert"))
+        menu.addAction(action)
+        action = QtGui.QAction("Add pattern based channel group", menu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Insert"))
+        menu.addAction(action)
         menu.addSeparator()
 
-        menu.addAction("Insert computation [Insert]")
+        action = QtGui.QAction("Insert computation", menu)
+        action.setShortcut(QtGui.QKeySequence("Insert"))
+        menu.addAction(action)
         menu.addSeparator()
 
         submenu = QtWidgets.QMenu("Copy names")
         submenu.setIcon(QtGui.QIcon(":/copy.png"))
-        submenu.addAction("Copy names [Ctrl+N]")
+        action = QtGui.QAction("Copy names", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+N"))
+        submenu.addAction(action)
         submenu.addAction("Copy names and values")
         menu.addMenu(submenu)
 
         submenu = QtWidgets.QMenu("Display structure")
         submenu.setIcon(QtGui.QIcon(":/structure.png"))
-        submenu.addAction("Copy display properties [Ctrl+Shift+C]")
-        submenu.addAction("Paste display properties [Ctrl+Shift+V]")
-        submenu.addAction("Copy channel structure [Ctrl+C]")
-        submenu.addAction("Paste channel structure [Ctrl+V]")
+        action = QtGui.QAction("Copy display properties", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+C"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Paste display properties", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+V"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Copy channel structure", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+C"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Paste channel structure", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+V"))
+        submenu.addAction(action)
         menu.addMenu(submenu)
 
         submenu = QtWidgets.QMenu("Enable/disable")
@@ -1000,7 +1016,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addSeparator()
 
         submenu = QtWidgets.QMenu("Axis")
-        submenu.addAction("Edit Y axis scaling [Ctrl+G]")
+        action = QtGui.QAction("Edit Y axis scaling", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+G"))
+        submenu.addAction(action)
         if item and item.type() == ChannelsTreeItem.Channel:
             submenu.addAction("Add to common Y axis")
             submenu.addAction("Remove from common Y axis")
@@ -1010,10 +1028,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         submenu = QtWidgets.QMenu("Edit")
         submenu.setIcon(QtGui.QIcon(":/edit.png"))
 
-        submenu.addAction("Set color [C]")
+        action = QtGui.QAction("Set color", submenu)
+        action.setShortcut(QtGui.QKeySequence("C"))
+        submenu.addAction(action)
         submenu.addAction("Set random color")
         submenu.addAction("Set precision")
-        submenu.addAction("Set color ranges [Ctrl+R]")
+        action = QtGui.QAction("Set color ranges", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+R"))
+        submenu.addAction(action)
         submenu.addAction("Set channel conversion")
         submenu.addAction("Set channel comment")
         submenu.addAction("Set unit")
@@ -1029,13 +1051,25 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         submenu = QtWidgets.QMenu("Display mode")
         # submenu.setIcon(QtGui.QIcon(":/edit.png"))
-        submenu.addAction("Ascii\t[Ctrl+T]")
-        submenu.addAction("Bin\t[Ctrl+B]")
-        submenu.addAction("Hex\t[Ctrl+H]")
-        submenu.addAction("Physical\t[Ctrl+P]")
+        action = QtGui.QAction("Ascii", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+T"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Bin", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+B"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Hex", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+H"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Physical", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+P"))
+        submenu.addAction(action)
         submenu.addSeparator()
-        submenu.addAction("Raw samples\t[Alt+R]")
-        submenu.addAction("Scaled samples\t[Alt+S]")
+        action = QtGui.QAction("Raw samples", submenu)
+        action.setShortcut(QtGui.QKeySequence("Alt+R"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Scaled samples", submenu)
+        action.setShortcut(QtGui.QKeySequence("Alt+S"))
+        submenu.addAction(action)
         menu.addMenu(submenu)
         menu.addSeparator()
 
@@ -1055,7 +1089,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addMenu(submenu)
             menu.addSeparator()
         if item:
-            menu.addAction(QtGui.QIcon(":/erase.png"), "Delete [Del]")
+            action = QtGui.QAction("Delete", menu)
+            action.setShortcut(QtGui.QKeySequence("Delete"))
+            menu.addAction(action)
             menu.addSeparator()
 
         menu.addAction("Toggle details")
@@ -1073,7 +1109,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         action_text = action.text()
 
-        if action_text == "Copy names [Ctrl+N]":
+        if action_text == "Copy names":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_N, QtCore.Qt.KeyboardModifier.ControlModifier
             )
@@ -1119,7 +1155,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             self.group_activation_changed.emit()
 
-        elif action_text == "Set color [C]":
+        elif action_text == "Set color":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_C,
@@ -1137,7 +1173,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                     item.color = f"#{rgb.hex()}"
 
-        elif action_text == "Set color ranges [Ctrl+R]":
+        elif action_text == "Set color ranges":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_R,
@@ -1210,7 +1246,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 for item in selected_items:
                     item.comment = new_comment
 
-        elif action_text == "Copy channel structure [Ctrl+C]":
+        elif action_text == "Copy channel structure":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_C,
@@ -1218,7 +1254,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Paste channel structure [Ctrl+V]":
+        elif action_text == "Paste channel structure":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_V,
@@ -1226,7 +1262,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Copy display properties [Ctrl+Shift+C]":
+        elif action_text == "Copy display properties":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_C,
@@ -1234,7 +1270,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Paste display properties [Ctrl+Shift+V]":
+        elif action_text == "Paste display properties":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_V,
@@ -1315,7 +1351,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     if item.type() == ChannelsTreeItem.Channel:
                         item.setCheckState(self.CommonAxisColumn, QtCore.Qt.CheckState.Checked)
 
-        elif action_text == "Edit Y axis scaling [Ctrl+G]":
+        elif action_text == "Edit Y axis scaling":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_G,
@@ -1410,7 +1446,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                     self.set_time_offset.emit([absolute, offset, *uuids])
 
-        elif action_text == "Delete [Del]":
+        elif action_text == "Delete":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Delete, QtCore.Qt.KeyboardModifier.NoModifier
             )
@@ -1474,13 +1510,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 if item.type() == ChannelsTreeItem.Channel:
                     self.compute_fft_request.emit(item.uuid)
 
-        elif action_text == "Add channel group [Shift+Insert]":
+        elif action_text == "Add channel group":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Insert, QtCore.Qt.KeyboardModifier.ShiftModifier
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Add pattern based channel group [Ctrl+Insert]":
+        elif action_text == "Add pattern based channel group":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Insert, QtCore.Qt.KeyboardModifier.ControlModifier
             )
@@ -1654,37 +1690,37 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.setColumnHidden(self.IndividualAxisColumn, not self.isColumnHidden(self.IndividualAxisColumn))
         elif action_text == "Origin Column":
             self.setColumnHidden(self.OriginColumn, not self.isColumnHidden(self.OriginColumn))
-        elif action_text == "Raw samples\t[Alt+R]":
+        elif action_text == "Raw samples":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_R, QtCore.Qt.KeyboardModifier.AltModifier
             )
             self.plot.keyPressEvent(event)
-        elif action_text == "Scaled samples\t[Alt+S]":
+        elif action_text == "Scaled samples":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_S, QtCore.Qt.KeyboardModifier.AltModifier
             )
             self.plot.keyPressEvent(event)
-        elif action_text == "Ascii\t[Ctrl+T]":
+        elif action_text == "Ascii":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_T, QtCore.Qt.KeyboardModifier.ControlModifier
             )
             self.plot.keyPressEvent(event)
-        elif action_text == "Bin\t[Ctrl+B]":
+        elif action_text == "Bin":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_B, QtCore.Qt.KeyboardModifier.ControlModifier
             )
             self.plot.keyPressEvent(event)
-        elif action_text == "Hex\t[Ctrl+H]":
+        elif action_text == "Hex":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_H, QtCore.Qt.KeyboardModifier.ControlModifier
             )
             self.plot.keyPressEvent(event)
-        elif action_text == "Physical\t[Ctrl+P]":
+        elif action_text == "Physical":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_P, QtCore.Qt.KeyboardModifier.ControlModifier
             )
             self.plot.keyPressEvent(event)
-        elif action_text == "Insert computation [Insert]":
+        elif action_text == "Insert computation":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Insert, QtCore.Qt.KeyboardModifier.NoModifier
             )

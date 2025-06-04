@@ -1034,24 +1034,55 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
                     event.ignore()
 
     def open_menu(self, position=None):
+        viewport = self.viewport()
+        if not self.childAt(position) is viewport:
+            return
+
         self.context_menu = menu = QtWidgets.QMenu()
         menu.addAction(f"{len(self.subWindowList())} existing windows")
         menu.addSeparator()
-        menu.addAction(QtGui.QIcon(":/search.png"), "Search [Ctrl+F]")
+        action = QtGui.QAction(QtGui.QIcon(":/search.png"), "Search", menu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+F"))
+        menu.addAction(action)
         menu.addSeparator()
         menu.addAction(QtGui.QIcon(":/plus.png"), "Add new window")
 
-        action = menu.exec(self.viewport().mapToGlobal(position))
+        menu.addSeparator()
+        action = QtGui.QAction("Cascade sub-windows", menu)
+        action.setShortcut(QtGui.QKeySequence("Shift+C"))
+        menu.addAction(action)
+
+        action = QtGui.QAction("Tile sub-windows in a grid", menu)
+        action.setShortcut(QtGui.QKeySequence("Shift+T"))
+        menu.addAction(action)
+
+        action = QtGui.QAction("Tile sub-windows vertically", menu)
+        action.setShortcut(QtGui.QKeySequence("Shift+V"))
+        menu.addAction(action)
+
+        action = QtGui.QAction("Tile sub-windows horizontally", menu)
+        action.setShortcut(QtGui.QKeySequence("Shift+H"))
+        menu.addAction(action)
+
+        action = menu.exec(viewport.mapToGlobal(position))
 
         if action is None:
             return
 
         action_text = action.text()
         match action_text:
-            case "Search [Ctrl+F]":
+            case "Search":
                 self.search_request.emit()
             case "Add new window":
                 self.create_window_request.emit()
+            case "Cascade sub-windows":
+                self.cascadeSubWindows()
+            case "Tile sub-windows in a grid":
+                self.tileSubWindows()
+            case "Tile sub-windows vertically":
+                self.tile_vertically()
+            case "Tile sub-windows horizontally":
+                self.tile_horizontally()
             case _:
                 pass
 
