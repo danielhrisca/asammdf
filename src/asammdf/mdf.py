@@ -21,7 +21,6 @@ from traceback import format_exc
 from types import TracebackType
 import typing
 from typing import Literal, Optional, Union
-from warnings import warn
 import xml.etree.ElementTree as ET
 import zipfile
 
