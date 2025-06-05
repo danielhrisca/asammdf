@@ -12,6 +12,7 @@ class DragAndDrop
     - responsible to perform Drag and Drop operations
      from source widget - specific point, to destination widget - specific point
 """
+
 from collections.abc import Iterable
 import os
 import pathlib
@@ -54,6 +55,10 @@ class TestBase(unittest.TestCase):
     pyqtgraph.setConfigOption("background", "k")
     pyqtgraph.setConfigOption("foreground", "w")
 
+    settings = QtCore.QSettings()
+    settings.setValue("zoom_x_center_on_cursor", True)
+    settings.setValue("plot_cursor_precision", 6)
+
     longMessage = False
 
     resource = os.path.normpath(os.path.join(os.path.dirname(__file__), "resources"))
@@ -82,13 +87,13 @@ class TestBase(unittest.TestCase):
         else:
             duration = abs(duration)
 
-        w.showNormal()
+        w.showMaximized()
 
         loop = QtCore.QEventLoop()
         QtCore.QTimer.singleShot(int(duration * 1000), loop.quit)
         loop.exec_()
 
-        w.showNormal()
+        w.showMaximized()
 
     @staticmethod
     def processEvents(timeout=0.001):
@@ -406,16 +411,16 @@ class Pixmap:
         if ax in ("x", "X"):
             for x in range(image.width()):
                 for y in range(image.height()):
-                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                    if image.pixelColor(x, y).name() == signal_color:
                         from_to.append(x)
                         break
                 if from_to:
                     break
             if not from_to:
                 return
-            for x in range(image.width(), from_to[0], -1):
+            for x in range(image.width() - 1, from_to[0], -1):
                 for y in range(image.height()):
-                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                    if image.pixelColor(x, y).name() == signal_color:
                         from_to.append(x)
                         break
                 if len(from_to) == 2:
@@ -425,7 +430,7 @@ class Pixmap:
         elif ax in ("y", "Y"):
             for y in range(image.height()):
                 for x in range(image.width()):
-                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                    if image.pixelColor(x, y).name() == signal_color:
                         from_to.append(y)
                         break
                 if from_to:
@@ -433,9 +438,9 @@ class Pixmap:
             if not from_to:
                 return
 
-            for y in range(image.height(), from_to[0], -1):
+            for y in range(image.height() - 1, from_to[0], -1):
                 for x in range(image.width()):
-                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                    if image.pixelColor(x, y).name() == signal_color:
                         from_to.append(y)
                         break
                 if len(from_to) == 2:

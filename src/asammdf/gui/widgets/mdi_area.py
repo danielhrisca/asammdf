@@ -22,14 +22,7 @@ import asammdf.mdf as mdf_module
 
 from ...blocks import v4_constants as v4c
 from ...blocks.conversion_utils import from_dict
-from ...blocks.utils import (
-    csv_bytearray2hex,
-    extract_mime_names,
-    extract_xml_comment,
-    load_can_database,
-    MdfException,
-    UniqueDB,
-)
+from ...blocks.utils import csv_bytearray2hex, extract_xml_comment, load_can_database, MdfException, UniqueDB
 from ...blocks.v4_blocks import EventBlock, HeaderBlock
 from ...signal import Signal
 from .. import utils
@@ -37,6 +30,7 @@ from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.messagebox import MessageBox
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
+from ..serde import extract_mime_names
 from ..utils import (
     computation_to_python_function,
     compute_signal,
@@ -189,7 +183,6 @@ def build_mime_from_config(
     top=True,
     has_flags=None,
 ):
-
     if mdfs is None:
         mdfs = [None]
     elif not isinstance(mdfs, (tuple, list)):
@@ -206,7 +199,6 @@ def build_mime_from_config(
     computed = {}
     mime = []
     for cfg_item in items:
-
         if cfg_item.get("type", "channel") == "group":
             uuid = os.urandom(6).hex()
             cfg_item["uuid"] = uuid
@@ -312,7 +304,8 @@ def extract_signals_using_pattern(
         channels_db = mdf.channels_db
 
     origin_uuid = getattr(mdf, "uuid", os.urandom(6).hex())
-    origin_mdf = mdf.original_name.name
+    if mdf is not None:
+        origin_mdf = mdf.original_name.name
 
     pattern = pattern_info["pattern"]
     match_type = pattern_info["match_type"]
@@ -408,7 +401,8 @@ def extract_signals_using_pattern(
         sig.ranges = copy_ranges(pattern_ranges)
         output_signals[uuid] = sig
         sig.origin_uuid = origin_uuid
-        sig.origin_mdf = origin_mdf
+        if mdf is not None:
+            sig.origin_mdf = origin_mdf
         sig.enable = True
 
     if as_names:
@@ -595,7 +589,6 @@ def parse_matrix_component(name):
 
 
 class MdiAreaMixin:
-
     def addSubWindow(self, window):
         geometry = window.geometry()
         geometry.setSize(QtCore.QSize(400, 400))
@@ -614,7 +607,6 @@ class MdiAreaMixin:
             widget.close()
 
     def window_moved(self, window, new_position, old_position):
-
         snap = False
 
         window_geometry = window.geometry()
@@ -722,7 +714,6 @@ class MdiAreaMixin:
                 break
 
         else:
-
             # left edge of other windows growing and snapping
             snap_candidates = []
 
@@ -751,7 +742,6 @@ class MdiAreaMixin:
                 snap = True
                 break
         else:
-
             # top edge of other windows snapping
             snap_candidates = []
 
@@ -825,7 +815,6 @@ class MdiAreaMixin:
                 y_delta = -y_delta
 
         if previous_x is not None:
-
             for sub in sub_windows:
                 geometry = sub.geometry()
                 if abs(geometry.x() - previous_x) <= SNAP_PIXELS_DISTANCE:
@@ -836,7 +825,6 @@ class MdiAreaMixin:
                     sub.setGeometry(geometry)
 
         if previous_y is not None:
-
             for sub in sub_windows:
                 geometry = sub.geometry()
                 if abs(geometry.y() - previous_y) <= SNAP_PIXELS_DISTANCE:
@@ -855,6 +843,7 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
     titleModified = QtCore.Signal()
     resized = QtCore.Signal(object, object, object)
     moved = QtCore.Signal(object, object, object)
+    pattern_modified = QtCore.Signal(object, object)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -870,10 +859,14 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
         self.previous_position = QtCore.QPoint(0, 0)
 
         menu = self.systemMenu()
+        before = menu.actions()[0]
 
         action = QtGui.QAction("Set title", menu)
         action.triggered.connect(self.set_title)
-        before = menu.actions()[0]
+        menu.insertAction(before, action)
+
+        action = QtGui.QAction("Edit window pattern", menu)
+        action.triggered.connect(self.edit_window_pattern)
         menu.insertAction(before, action)
 
     def closeEvent(self, event):
@@ -881,6 +874,39 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
             self.widget().close()
         super().closeEvent(event)
         self.sigClosed.emit(self)
+
+    def edit_window_pattern(self):
+        widget = self.widget()
+        if not (pattern := getattr(widget, "pattern", None)):
+            MessageBox.information(
+                self,
+                "Cannot edit window pattern",
+                f"{self.windowTitle()} is not a pattern based window",
+            )
+        else:
+            if hasattr(widget.owner, "mdf"):
+                mdf = widget.owner.mdf
+                channels_db = None
+            else:
+                mdf = None
+                channels_db = widget.owner.channels_db
+
+            dlg = AdvancedSearch(
+                mdf=mdf,
+                show_add_window=False,
+                show_apply=True,
+                show_search=False,
+                window_title="Show pattern based group",
+                parent=self,
+                pattern=pattern,
+                channels_db=channels_db,
+            )
+            dlg.setModal(True)
+            dlg.exec_()
+
+            if new_pattern := dlg.result:
+                del dlg
+                self.pattern_modified.emit(new_pattern, id(self))
 
     def moveEvent(self, event):
         old_position = event.oldPos()
@@ -916,16 +942,19 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
 
 class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
     add_window_request = QtCore.Signal(list)
+    create_window_request = QtCore.Signal()
     open_files_request = QtCore.Signal(object)
+    search_request = QtCore.Signal()
 
     def __init__(self, comparison=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.setAcceptDrops(True)
-        self.placeholder_text = (
-            "Drag and drop channels, or select channels and press the <Create window> button, to create new windows"
-        )
         self.comparison = comparison
+
+        self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.open_menu)
+
         self.show()
 
     def cascadeSubWindows(self):
@@ -961,11 +990,11 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
         e.accept()
         super().dragEnterEvent(e)
 
-    def dropEvent(self, e):
-        if e.source() is self:
-            super().dropEvent(e)
+    def dropEvent(self, event):
+        if event.source() is self:
+            super().dropEvent(event)
         else:
-            data = e.mimeData()
+            data = event.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
                 dialog = WindowSelectionDialog(
                     options=("Plot", "Numeric") if self.comparison else ("Plot", "Numeric", "Tabular"), parent=self
@@ -979,11 +1008,16 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
                     names = extract_mime_names(data, disable_new_channels=disable_new_channels)
 
                     self.add_window_request.emit([window_type, names])
+                event.accept()
             else:
                 try:
                     files = []
-                    for path in e.mimeData().text().splitlines():
-                        path = Path(path.replace(r"file:///", ""))
+                    for url in event.mimeData().urls():
+                        if sys.platform == "win32":
+                            path = Path(url.path().strip("/"))
+                        else:
+                            path = Path(url.path())
+
                         if (
                             path.suffix.lower()
                             in utils.SUPPORTED_FILE_EXTENSIONS | utils.SUPPORTED_BUS_DATABASE_EXTENSIONS
@@ -992,8 +1026,65 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
 
                     if files:
                         self.open_files_request.emit(files)
+                        event.accept()
+                    else:
+                        event.ignore()
                 except:
                     print(format_exc())
+                    event.ignore()
+
+    def open_menu(self, position=None):
+        viewport = self.viewport()
+        if not self.childAt(position) is viewport:
+            return
+
+        self.context_menu = menu = QtWidgets.QMenu()
+        menu.addAction(f"{len(self.subWindowList())} existing windows")
+        menu.addSeparator()
+        action = QtGui.QAction(QtGui.QIcon(":/search.png"), "Search", menu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+F"))
+        menu.addAction(action)
+        menu.addSeparator()
+        menu.addAction(QtGui.QIcon(":/plus.png"), "Add new window")
+
+        menu.addSeparator()
+        action = QtGui.QAction("Cascade sub-windows", menu)
+        action.setShortcut(QtGui.QKeySequence("Shift+C"))
+        menu.addAction(action)
+
+        action = QtGui.QAction("Tile sub-windows in a grid", menu)
+        action.setShortcut(QtGui.QKeySequence("Shift+T"))
+        menu.addAction(action)
+
+        action = QtGui.QAction("Tile sub-windows vertically", menu)
+        action.setShortcut(QtGui.QKeySequence("Shift+V"))
+        menu.addAction(action)
+
+        action = QtGui.QAction("Tile sub-windows horizontally", menu)
+        action.setShortcut(QtGui.QKeySequence("Shift+H"))
+        menu.addAction(action)
+
+        action = menu.exec(viewport.mapToGlobal(position))
+
+        if action is None:
+            return
+
+        action_text = action.text()
+        match action_text:
+            case "Search":
+                self.search_request.emit()
+            case "Add new window":
+                self.create_window_request.emit()
+            case "Cascade sub-windows":
+                self.cascadeSubWindows()
+            case "Tile sub-windows in a grid":
+                self.tileSubWindows()
+            case "Tile sub-windows vertically":
+                self.tile_vertically()
+            case "Tile sub-windows horizontally":
+                self.tile_horizontally()
+            case _:
+                pass
 
     def tile_horizontally(self):
         sub_windows = self.subWindowList()
@@ -1077,21 +1168,6 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
                 wid._inhibit_x_range_changed_signal = False
             window.blockSignals(False)
 
-    def paintEvent(self, event):
-        super().paintEvent(event)
-        sub_windows = self.subWindowList()
-        if not sub_windows and self.placeholder_text:
-            painter = QtGui.QPainter(self.viewport())
-            painter.save()
-            col = self.palette().placeholderText().color()
-            painter.setPen(col)
-            fm = self.fontMetrics()
-            elided_text = fm.elidedText(
-                self.placeholder_text, QtCore.Qt.TextElideMode.ElideRight, self.viewport().width()
-            )
-            painter.drawText(self.viewport().rect(), QtCore.Qt.AlignmentFlag.AlignCenter, elided_text)
-            painter.restore()
-
 
 class WithMDIArea:
     windows_modified = QtCore.Signal()
@@ -1144,7 +1220,6 @@ class WithMDIArea:
             current_count = len(widget.plot.signals)
             count = len(names)
         elif isinstance(widget, XY):
-
             if names:
                 name = names[0]
             else:
@@ -1302,7 +1377,7 @@ class WithMDIArea:
 
                         if self.comparison:
                             sig.tooltip = f"{sig.name}\n@ {file.mdf.orignial_name}"
-                            sig.name = f"{file_index+1}: {sig.name}"
+                            sig.name = f"{file_index + 1}: {sig.name}"
 
                     signals.extend(selected_signals)
 
@@ -1374,9 +1449,8 @@ class WithMDIArea:
                         sig.uuid = sig_["uuid"]
 
                         if self.comparison:
-
                             sig.tooltip = f"{sig.name}\n@ {file.mdf.original_name}"
-                            sig.name = f"{file_index+1}: {sig.name}"
+                            sig.name = f"{file_index + 1}: {sig.name}"
 
                         if sig.samples.dtype.kind not in "SU" and (
                             sig.samples.dtype.names or len(sig.samples.shape) > 1
@@ -1606,7 +1680,6 @@ class WithMDIArea:
         dfs = []
 
         if self.mdf.version >= "4.00":
-
             groups_count = len(self.mdf.groups)
 
             for index in range(groups_count):
@@ -1864,7 +1937,6 @@ class WithMDIArea:
     def _add_flexray_bus_trace_window(self, ranges=None):
         items = []
         if self.mdf.version >= "4.00":
-
             groups_count = len(self.mdf.groups)
 
             for index in range(groups_count):
@@ -1892,7 +1964,6 @@ class WithMDIArea:
                             items.append((data, names))
 
         if items:
-
             df_index = np.sort(np.concatenate([item.timestamps for (item, names) in items]))
             count = len(df_index)
 
@@ -2140,7 +2211,6 @@ class WithMDIArea:
     def _add_lin_bus_trace_window(self, ranges=None):
         dfs = []
         if self.mdf.version >= "4.00":
-
             groups_count = len(self.mdf.groups)
 
             for index in range(groups_count):
@@ -2408,7 +2478,6 @@ class WithMDIArea:
         return trace
 
     def _add_numeric_window(self, names):
-
         if names and isinstance(names[0], str):
             signals_ = [
                 (
@@ -2543,7 +2612,7 @@ class WithMDIArea:
 
             signals = natsorted(signals, key=lambda x: x.name)
 
-        numeric = Numeric([], parent=self, mode="offline")
+        numeric = Numeric([], parent=self, mode="offline", owner=self)
 
         numeric.show()
         numeric.hide()
@@ -2554,6 +2623,7 @@ class WithMDIArea:
         sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
+        sub.pattern_modified.connect(self.window_pattern_modified)
 
         if not self.subplots:
             for mdi in self.mdi_area.subWindowList():
@@ -2947,6 +3017,7 @@ class WithMDIArea:
         sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
+        sub.pattern_modified.connect(self.window_pattern_modified)
 
         if not self.subplots:
             self.mdi_area.clear_windows()
@@ -3004,7 +3075,6 @@ class WithMDIArea:
         return w, plot
 
     def _add_tabular_window(self, names):
-
         if names and isinstance(names[0], str):
             signals_ = [
                 (
@@ -3066,7 +3136,7 @@ class WithMDIArea:
 
                     name = unique_names.get_unique_name(entry["name"])
 
-                    ranges[f"{file_index+1}: {name}"] = entry["ranges"]
+                    ranges[f"{file_index + 1}: {name}"] = entry["ranges"]
             else:
                 for entry in signals_:
                     if entry["origin_uuid"] != uuid:
@@ -3101,7 +3171,7 @@ class WithMDIArea:
             )
 
             if self.comparison:
-                columns = {name: f"{file_index+1}: {name}" for name in df.columns}
+                columns = {name: f"{file_index + 1}: {name}" for name in df.columns}
                 df.rename(columns=columns, inplace=True)
 
             dfs.append(df)
@@ -3123,7 +3193,7 @@ class WithMDIArea:
             ):
                 signals[name] = signals[name].astype("<u4") & 0x1FFFFFFF
 
-        tabular = Tabular(signals, start=start, parent=self, ranges=ranges)
+        tabular = Tabular(signals, start=start, parent=self, ranges=ranges, owner=self)
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(tabular)
@@ -3131,6 +3201,7 @@ class WithMDIArea:
         sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
+        sub.pattern_modified.connect(self.window_pattern_modified)
 
         if not self.subplots:
             for mdi in self.mdi_area.subWindowList():
@@ -3412,7 +3483,6 @@ class WithMDIArea:
                 signals_ = [(elem["name"], *mdf.whereis(elem["name"])[0]) for elem in found]
 
                 if signals_:
-
                     mdf_signals = mdf.select(
                         signals_,
                         ignore_value2text_conversions=self.ignore_value2text_conversions,
@@ -3462,6 +3532,7 @@ class WithMDIArea:
             float_precision=window_info["configuration"].get("float_precision", 3),
             parent=self,
             mode="offline",
+            owner=self,
         )
         numeric.pattern = pattern_info
 
@@ -3471,6 +3542,7 @@ class WithMDIArea:
         sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
+        sub.pattern_modified.connect(self.window_pattern_modified)
 
         if not self.subplots:
             for mdi in self.mdi_area.subWindowList():
@@ -3678,7 +3750,6 @@ class WithMDIArea:
                     ),
                     strict=False,
                 ):
-
                     signal.flags &= ~signal.Flags.computed
                     signal.computation = {}
                     signal.color = sig_item["color"]
@@ -3812,7 +3883,6 @@ class WithMDIArea:
 
                 for uuid, description in mdf_not_found.items():
                     if uuid not in plot_signals:
-
                         sig = Signal([], [], name=description["name"])
                         sig.uuid = uuid
 
@@ -3935,6 +4005,7 @@ class WithMDIArea:
         sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
+        sub.pattern_modified.connect(self.window_pattern_modified)
 
         if not self.subplots:
             for mdi in self.mdi_area.subWindowList():
@@ -4128,6 +4199,7 @@ class WithMDIArea:
             ranges=ranges,
             start=self.mdf.header.start_time,
             parent=self,
+            owner=self,
         )
         tabular.pattern = pattern_info
 
@@ -4137,6 +4209,7 @@ class WithMDIArea:
         sub.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
+        sub.pattern_modified.connect(self.window_pattern_modified)
 
         if not self.subplots:
             for mdi in self.mdi_area.subWindowList():
@@ -4398,7 +4471,6 @@ class WithMDIArea:
                         pass
 
     def set_cursor(self, widget, pos):
-
         if self._busy:
             return
         else:
@@ -4757,7 +4829,7 @@ class WithMDIArea:
         result = MessageBox.question(
             self,
             "Save measurement bookmarks?",
-            "You have modified bookmarks.\n\n" "Do you want to save the changes in the measurement file?\n" "",
+            "You have modified bookmarks.\n\nDo you want to save the changes in the measurement file?\n",
         )
 
         if result == MessageBox.StandardButton.No:
@@ -4886,6 +4958,38 @@ class WithMDIArea:
 
     def window_closed_handler(self, obj=None):
         self.windows_modified.emit()
+
+    def window_pattern_modified(self, pattern, window_id):
+        for window in self.mdi_area.subWindowList():
+            if id(window) == window_id:
+                wid = window.widget()
+                wid.pattern = pattern
+                geometry = window.geometry()
+                window_config = {
+                    "title": window.windowTitle(),
+                    "configuration": wid.to_config(),
+                    "geometry": [
+                        geometry.x(),
+                        geometry.y(),
+                        geometry.width(),
+                        geometry.height(),
+                    ],
+                    "maximized": window.isMaximized(),
+                    "minimized": window.isMinimized(),
+                }
+
+                if isinstance(wid, Numeric):
+                    window_config["type"] = "Numeric"
+                elif isinstance(wid, Plot):
+                    window_config["type"] = "Plot"
+                elif isinstance(wid, Tabular):
+                    window_config["type"] = "Tabular"
+
+                del wid
+                window.close()
+
+                self.load_window(window_config)
+                break
 
     def set_cursor_options(self, cursor_circle, cursor_horizontal_line, cursor_line_width, cursor_color):
         cursor_color = QtGui.QColor(cursor_color)

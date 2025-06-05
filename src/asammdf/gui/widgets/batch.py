@@ -8,11 +8,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 import asammdf.mdf as mdf_module
 
-from ...blocks.utils import (
-    extract_xml_comment,
-    load_channel_names_from_file,
-    load_lab,
-)
+from ...blocks.utils import extract_xml_comment
 from ...blocks.v2_v3_blocks import HeaderBlock as HeaderBlockV3
 from ...blocks.v4_blocks import HeaderBlock as HeaderBlockV4
 from ...blocks.v4_constants import (
@@ -24,6 +20,7 @@ from ...blocks.v4_constants import (
 )
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.messagebox import MessageBox
+from ..serde import load_channel_names_from_file, load_lab
 from ..ui.batch_widget import Ui_batch_widget
 from ..utils import COMPRESSION_OPTIONS, GREEN, HelperChannel, setup_progress
 from .database_item import DatabaseItem
@@ -269,7 +266,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         # scrambling self.mdf
         for i, source_file in enumerate(source_files):
-            progress.signals.setLabelText.emit(f"Scrambling file {i+1} of {count}\n{source_file}")
+            progress.signals.setLabelText.emit(f"Scrambling file {i + 1} of {count}\n{source_file}")
 
             mdf_module.MDF.scramble(name=source_file, progress=progress)
 
@@ -355,7 +352,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         progress.signals.setMaximum.emit(count)
 
         for i, (file, source_file) in enumerate(zip(files, source_files, strict=False)):
-            progress.signals.setLabelText.emit(f"Extracting Bus logging from file {i+1} of {count}\n{source_file}")
+            progress.signals.setLabelText.emit(f"Extracting Bus logging from file {i + 1} of {count}\n{source_file}")
 
             if not isinstance(file, mdf_module.MDF):
                 mdf = mdf_module.MDF(file)
@@ -377,10 +374,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 message += [
                     "",
                     f'Summary of "{mdf.name}":',
-                    f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+                    f"- {found_id_count} of {len(call_info['total_unique_ids'])} IDs in the MDF4 file were matched in the DBC and converted",
                 ]
                 if call_info["unknown_id_count"]:
-                    message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
+                    message.append(f"- {call_info['unknown_id_count']} unknown IDs in the MDF4 file")
                 else:
                     message.append("- no unknown IDs in the MDF4 file")
 
@@ -415,7 +412,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             file_name = source_file.with_suffix(".bus_logging.mdf" if version < "4.00" else ".bus_logging.mf4")
 
             # then save it
-            progress.signals.setLabelText.emit(f'Saving extracted Bus logging file {i+1} to "{file_name}"')
+            progress.signals.setLabelText.emit(f'Saving extracted Bus logging file {i + 1} to "{file_name}"')
 
             try:
                 mdf_.save(
@@ -540,7 +537,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         message = []
 
         for i, (file, source_file) in enumerate(zip(files, source_files, strict=False)):
-            progress.signals.setLabelText.emit(f"Extracting Bus logging from file {i+1} of {count}")
+            progress.signals.setLabelText.emit(f"Extracting Bus logging from file {i + 1} of {count}")
 
             if not isinstance(file, mdf_module.MDF):
                 mdf = mdf_module.MDF(file)
@@ -562,10 +559,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 message += [
                     "",
                     f'Summary of "{mdf.name}":',
-                    f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+                    f"- {found_id_count} of {len(call_info['total_unique_ids'])} IDs in the MDF4 file were matched in the DBC and converted",
                 ]
                 if call_info["unknown_id_count"]:
-                    message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
+                    message.append(f"- {call_info['unknown_id_count']} unknown IDs in the MDF4 file")
                 else:
                     message.append("- no unknown IDs in the MDF4 file")
 
@@ -591,7 +588,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             file_name = source_file.with_suffix(".bus_logging.csv")
 
             # then save it
-            progress.signals.setLabelText.emit(f'Saving extracted Bus logging file {i+1} to "{file_name}"')
+            progress.signals.setLabelText.emit(f'Saving extracted Bus logging file {i + 1} to "{file_name}"')
 
             mdf_.configure(
                 integer_interpolation=self.integer_interpolation,
@@ -926,7 +923,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             if progress.stop:
                 return []
 
-            progress.signals.setLabelText.emit(f"Preparing the file {i+1} of {count}\n{file_name.name}")
+            progress.signals.setLabelText.emit(f"Preparing the file {i + 1} of {count}\n{file_name.name}")
             try:
                 mdf = self._as_mdf(file_name)
             except:
@@ -1046,7 +1043,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                     signals = set()
                     while item := iterator.value():
-
                         if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             signals.add(item.entry)
 
@@ -1133,7 +1129,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         iterator += 1
                 else:
                     while item := iterator.value():
-
                         if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             signals.add(item.entry)
 
@@ -1495,7 +1490,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 icon = QtGui.QIcon()
                 icon.addPixmap(QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
                 progress.signals.setWindowIcon.emit(icon)
-                progress.signals.setWindowTitle.emit(f"Cutting measurement {mdf_index+1} of {count}")
+                progress.signals.setWindowTitle.emit(f"Cutting measurement {mdf_index + 1} of {count}")
                 progress.signals.setLabelText.emit(
                     f"Cutting from {opts.cut_start}s to {opts.cut_stop}s from \n{source_file}"
                 )
@@ -1532,7 +1527,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 icon = QtGui.QIcon()
                 icon.addPixmap(QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
                 progress.signals.setWindowIcon.emit(icon)
-                progress.signals.setWindowTitle.emit(f"Resampling measurement {mdf_index+1} of {count}")
+                progress.signals.setWindowTitle.emit(f"Resampling measurement {mdf_index + 1} of {count}")
                 progress.signals.setLabelText.emit(message)
 
                 # resample self.mdf
@@ -1564,7 +1559,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         QtGui.QIcon.State.Off,
                     )
                     progress.signals.setWindowIcon.emit(icon)
-                    progress.signals.setWindowTitle.emit(f"Converting measurement {mdf_index+1} of {count}")
+                    progress.signals.setWindowTitle.emit(f"Converting measurement {mdf_index + 1} of {count}")
                     progress.signals.setLabelText.emit(f'Converting "{source_file}" from {mdf.version} to {version}')
 
                     # convert self.mdf
@@ -1606,8 +1601,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 icon = QtGui.QIcon()
                 icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
                 progress.signals.setWindowIcon.emit(icon)
-                progress.signals.setWindowTitle.emit(f"Saving measurement {mdf_index+1} of {count}")
-                progress.signals.setLabelText.emit(f"Saving output file {mdf_index+1} of {count}\n{source_file}")
+                progress.signals.setWindowTitle.emit(f"Saving measurement {mdf_index + 1} of {count}")
+                progress.signals.setLabelText.emit(f"Saving output file {mdf_index + 1} of {count}\n{source_file}")
 
                 try:
                     result = mdf.save(
@@ -1636,9 +1631,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 icon = QtGui.QIcon()
                 icon.addPixmap(QtGui.QPixmap(":/export.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
                 progress.signals.setWindowIcon.emit(icon)
-                progress.signals.setWindowTitle.emit(f"export_batch measurement {mdf_index+1} of {count}")
+                progress.signals.setWindowTitle.emit(f"export_batch measurement {mdf_index + 1} of {count}")
                 progress.signals.setLabelText.emit(
-                    f"export_batching measurement {mdf_index+1} of {count} to {output_format} (be patient this might take a while)\n{source_file}"
+                    f"export_batching measurement {mdf_index + 1} of {count} to {output_format} (be patient this might take a while)\n{source_file}"
                 )
 
                 delimiter = self.delimiter.text() or ","
@@ -1889,7 +1884,6 @@ MultiRasterSeparator;&
 
             elif self.filter_view.currentText() == "Natural sort":
                 while item := iterator.value():
-
                     channel_name = item.text(0)
                     if channel_name in channels:
                         item.setCheckState(0, QtCore.Qt.CheckState.Checked)

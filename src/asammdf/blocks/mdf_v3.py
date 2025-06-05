@@ -38,7 +38,7 @@ from numpy import (
 )
 from numpy.typing import ArrayLike, DTypeLike, NDArray
 from pandas import DataFrame
-from typing_extensions import Any, overload, SupportsBytes, TypedDict, Unpack
+from typing_extensions import Any, Buffer, overload, SupportsBytes, TypedDict, Unpack
 
 from .. import tool
 from ..signal import Signal
@@ -1607,6 +1607,8 @@ class MDF3(MDF_Common[Group]):
                 # data block
                 new_gp.sorted = True
 
+                block: Buffer
+
                 try:
                     samples = np.rec.fromarrays(new_fields, dtype=np.dtype(new_types))
                     block = samples.tobytes()
@@ -2110,8 +2112,7 @@ class MDF3(MDF_Common[Group]):
         units = units or {}
 
         t = df.index.values
-        index_name = df.index.name
-        time_name = index_name or "time"
+        time_name = df.index.name if isinstance(df.index.name, str) and df.index.name else "time"
 
         version = self.version
 
@@ -3437,7 +3438,7 @@ class MDF3(MDF_Common[Group]):
                     else:
                         cntr += 1
                 message = (
-                    f'Destination file "{dst}" already exists ' f'and "overwrite" is False. Saving MDF file as "{name}"'
+                    f'Destination file "{dst}" already exists and "overwrite" is False. Saving MDF file as "{name}"'
                 )
                 logger.warning(message)
                 dst = name

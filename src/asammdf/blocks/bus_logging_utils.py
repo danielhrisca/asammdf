@@ -36,7 +36,6 @@ def defined_j1939_bit_count(signal: Signal) -> int:
 
 
 def apply_conversion(vals: NDArray[Any], signal: Signal, ignore_value2text_conversion: bool) -> NDArray[Any]:
-
     conv = get_conversion(signal)
     if conv and not (ignore_value2text_conversion and conv.conversion_type in v4c.CONVERSIONS_WITH_TEXTS):
         vals = conv.convert(vals)
@@ -471,7 +470,6 @@ def get_conversion(signal: Signal) -> v4b.ChannelConversion:
         conv["default_addr"] = from_dict({"a": a, "b": b})
 
     elif signal.values:
-
         for i, (val, text) in enumerate(signal.values.items()):
             conv[f"upper_{i}"] = val  # type: ignore[literal-required]
             conv[f"lower_{i}"] = val  # type: ignore[literal-required]

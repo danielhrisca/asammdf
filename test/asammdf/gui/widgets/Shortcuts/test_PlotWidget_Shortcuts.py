@@ -6,7 +6,7 @@ from PySide6.QtGui import QColor, QKeySequence
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QMessageBox
 
-from asammdf.blocks.utils import COLORS
+from asammdf.gui.serde import COLORS
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 

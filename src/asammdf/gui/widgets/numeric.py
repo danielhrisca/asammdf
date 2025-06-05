@@ -24,7 +24,8 @@ from asammdf.gui.utils import (
 from asammdf.gui.widgets.plot import PlotSignal
 import asammdf.mdf as mdf_module
 
-from ...blocks.utils import ExtendedJsonDecoder, ExtendedJsonEncoder, extract_mime_names
+from .. import serde
+from ..serde import ExtendedJsonDecoder, ExtendedJsonEncoder, extract_mime_names
 from ..ui.numeric_offline import Ui_NumericDisplay
 from ..utils import FONT_SIZE
 from .tree import substitude_mime_uuids
@@ -360,7 +361,7 @@ class OnlineBackEnd:
             else:
                 self.data_changed()
 
-    def shift_same_origin_signals(self, origin_uuid="", delta=0.0):
+    def shift_same_origin_signals(self, origin_uuid="", delta=0.0, absolute=False):
         pass
 
     def update_missing_signals(self, uuids=()):
@@ -527,10 +528,14 @@ class OfflineBackEnd:
         else:
             self.data_changed()
 
-    def shift_same_origin_signals(self, origin_uuid="", delta=0.0):
+    def shift_same_origin_signals(self, origin_uuid="", delta=0.0, absolute=False):
         for signal in self.signals:
             if signal.origin_uuid == origin_uuid:
-                signal.signal.timestamps = signal.signal.timestamps + delta
+                if not absolute:
+                    signal.signal.timestamps = signal.signal.timestamps + delta
+                else:
+                    if len(signal.signal.timestamps):
+                        signal.signal.timestamps = signal.signal.timestamps - signal.signal.timestamps[0] + delta
 
         self.data_changed()
 
@@ -628,7 +633,6 @@ class TableModel(QtCore.QAbstractTableModel):
                 return new_background_color if new_background_color != self.background_color else None
 
             case QtCore.Qt.ItemDataRole.ForegroundRole:
-
                 channel_ranges = self.view.ranges[signal.entry]
                 raw_cell = self.backend.get_signal_value(signal, 1)
                 scaled_cell = self.backend.get_signal_value(signal, 2)
@@ -726,7 +730,7 @@ class TableModel(QtCore.QAbstractTableModel):
 
             case QtCore.Qt.ItemDataRole.ToolTipRole:
                 if signal:
-                    return f'Origin = {signal.origin_uuid or "unknown"}\nMDF = {signal.origin_mdf or "unknown"}'
+                    return f"Origin = {signal.origin_uuid or 'unknown'}\nMDF = {signal.origin_mdf or 'unknown'}"
 
     def flags(self, index):
         return (
@@ -737,12 +741,10 @@ class TableModel(QtCore.QAbstractTableModel):
         )
 
     def dropMimeData(self, data, action, row, column, parent):
-
         def moved_rows(data):
             rows = set()
             ds = QtCore.QDataStream(data.data("application/x-qabstractitemmodeldatalist"))
             while not ds.atEnd():
-
                 row = ds.readInt32()
                 ds.readInt32()
                 map_items = ds.readInt32()
@@ -1001,7 +1003,6 @@ class TableView(QtWidgets.QTableView):
             super().keyPressEvent(event)
 
     def startDrag(self, supportedActions):
-
         indexes = self.selectedIndexes()
         if not self.backend.sorting_enabled:
             mime_data = self.model().mimeData(indexes)
@@ -1461,6 +1462,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         format=None,
         mode="offline",
         float_precision=None,
+        owner=None,
         *args,
         **kwargs,
     ):
@@ -1468,6 +1470,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.setupUi(self)
 
         self.mode = mode
+        self.owner = owner
 
         self.lock = Lock()
         self.visible_entries_modified = True
@@ -1537,7 +1540,6 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.customContextMenuRequested.connect(self.show_menu)
 
     def show_menu(self, position):
-
         count = len(self.channels.backend)
 
         header = self.channels.columnHeader
@@ -1588,16 +1590,26 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         submenu = QtWidgets.QMenu("Copy names")
         submenu.setIcon(QtGui.QIcon(":/copy.png"))
-        submenu.addAction("Copy names [Ctrl+N]")
+        action = QtGui.QAction("Copy names", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+N"))
+        submenu.addAction(action)
         submenu.addAction("Copy names and values")
         menu.addMenu(submenu)
 
         submenu = QtWidgets.QMenu("Display structure")
         submenu.setIcon(QtGui.QIcon(":/structure.png"))
-        submenu.addAction("Copy display properties [Ctrl+Shift+C]")
-        submenu.addAction("Paste display properties [Ctrl+Shift+V]")
-        submenu.addAction("Copy channel structure [Ctrl+C]")
-        submenu.addAction("Paste channel structure [Ctrl+V]")
+        action = QtGui.QAction("Copy display properties", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+C"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Paste display properties", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+V"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Copy channel structure", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+C"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Paste channel structure", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+V"))
+        submenu.addAction(action)
         menu.addMenu(submenu)
 
         menu.addSeparator()
@@ -1605,22 +1617,36 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         submenu = QtWidgets.QMenu("Edit")
         submenu.setIcon(QtGui.QIcon(":/edit.png"))
 
-        submenu.addAction("Set color [C]")
+        action = QtGui.QAction("Set color", submenu)
+        action.setShortcut(QtGui.QKeySequence("C"))
+        submenu.addAction(action)
         submenu.addAction("Set random color")
-        submenu.addAction("Set color ranges [Ctrl+R]")
+        action = QtGui.QAction("Set color ranges", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+R"))
+        submenu.addAction(action)
         menu.addMenu(submenu)
 
         menu.addSeparator()
 
         submenu = QtWidgets.QMenu("Display mode")
-        submenu.addAction("Ascii\t[Ctrl+T]")
-        submenu.addAction("Bin\t[Ctrl+B]")
-        submenu.addAction("Hex\t[Ctrl+H]")
-        submenu.addAction("Physical\t[Ctrl+P]")
+        action = QtGui.QAction("Ascii", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+T"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Bin", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+B"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Hex", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+H"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Physical", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+P"))
+        submenu.addAction(action)
         menu.addMenu(submenu)
 
         menu.addSeparator()
-        menu.addAction(QtGui.QIcon(":/erase.png"), "Delete [Del]")
+        action = QtGui.QAction("Delete", menu)
+        action.setShortcut(QtGui.QKeySequence("Delete"))
+        menu.addAction(action)
 
         action = menu.exec_(self.mapToGlobal(position))
 
@@ -1629,7 +1655,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         action_text = action.text()
 
-        if action_text == "Copy names [Ctrl+N]":
+        if action_text == "Copy names":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_N, QtCore.Qt.KeyboardModifier.ControlModifier
             )
@@ -1672,7 +1698,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
             QtWidgets.QApplication.instance().clipboard().setText("\n".join(texts))
 
-        elif action_text == "Copy channel structure [Ctrl+C]":
+        elif action_text == "Copy channel structure":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_C,
@@ -1680,7 +1706,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Paste channel structure [Ctrl+V]":
+        elif action_text == "Paste channel structure":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_V,
@@ -1688,7 +1714,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Copy display properties [Ctrl+Shift+C]":
+        elif action_text == "Copy display properties":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_C,
@@ -1696,7 +1722,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Paste display properties [Ctrl+Shift+V]":
+        elif action_text == "Paste display properties":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_V,
@@ -1704,7 +1730,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Copy display properties [Ctrl+Shift+C]":
+        elif action_text == "Copy display properties":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_C,
@@ -1712,7 +1738,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Paste display properties [Ctrl+Shift+V]":
+        elif action_text == "Paste display properties":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_V,
@@ -1730,7 +1756,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 header.show()
                 self.controls.show()
 
-        elif action_text == "Set color [C]":
+        elif action_text == "Set color":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_C,
@@ -1738,7 +1764,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Set color ranges [Ctrl+R]":
+        elif action_text == "Set color ranges":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_R,
@@ -1757,28 +1783,28 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
                 self.backend.signals[row].color = fn.mkColor(f"#{rgb.hex()}")
 
-        elif action_text == "Ascii\t[Ctrl+T]":
+        elif action_text == "Ascii":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_T, QtCore.Qt.KeyboardModifier.ControlModifier
             )
             self.keyPressEvent(event)
-        elif action_text == "Bin\t[Ctrl+B]":
+        elif action_text == "Bin":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_B, QtCore.Qt.KeyboardModifier.ControlModifier
             )
             self.keyPressEvent(event)
-        elif action_text == "Hex\t[Ctrl+H]":
+        elif action_text == "Hex":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_H, QtCore.Qt.KeyboardModifier.ControlModifier
             )
             self.keyPressEvent(event)
-        elif action_text == "Physical\t[Ctrl+P]":
+        elif action_text == "Physical":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_P, QtCore.Qt.KeyboardModifier.ControlModifier
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Delete [Del]":
+        elif action_text == "Delete":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Delete, QtCore.Qt.KeyboardModifier.NoModifier
             )
@@ -1792,9 +1818,9 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     entry = (sig.origin_uuid, sig.name)
 
                     if getattr(sig, "color", None):
-                        color = sig.color or utils.COLORS[index % utils.COLORS_COUNT]
+                        color = sig.color or serde.COLORS[index % serde.COLORS_COUNT]
                     else:
-                        color = utils.COLORS[index % utils.COLORS_COUNT]
+                        color = serde.COLORS[index % serde.COLORS_COUNT]
 
                     others.append(
                         SignalOnline(
@@ -2127,7 +2153,6 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.backend.shift_same_origin_signals(origin_uuid=origin_uuid, delta=delta)
 
     def update_missing_signals(self, uuids=()):
-
         self.channels.backend.signals = [
             signal for signal in self.channels.backend.signals if signal.origin_uuid in uuids
         ]
@@ -2166,7 +2191,6 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             and modifiers == QtCore.Qt.KeyboardModifier.NoModifier
             and self.mode == "offline"
         ):
-
             self.timestamp_slider.keyPressEvent(event)
 
         elif (
@@ -2234,6 +2258,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             self.channels.dataView.keyPressEvent(event)
 
     def close(self):
+        self.owner = None
         super().close()
 
     def decrease_font(self):

@@ -933,7 +933,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                             }
 
         if new_functions or info.get("global_variables", "") != self.global_variables:
-            self.update_functions({}, new_functions, f'{self.global_variables}\n{info.get("global_variables", "")}')
+            self.update_functions({}, new_functions, f"{self.global_variables}\n{info.get('global_variables', '')}")
 
         windows = info.get("windows", [])
         for i, window in enumerate(windows, 1):
@@ -1531,7 +1531,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     dialog.exec_()
 
                     if dialog.result():
-
                         window_type = dialog.selected_type()
                         disable_new_channels = dialog.disable_new_channels()
 

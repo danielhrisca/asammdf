@@ -27,6 +27,11 @@ class TestFileWidget(TestBase):
 
         self.measurement_file = shutil.copy(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"), self.test_workspace)
 
+    def tearDown(self):
+        if self.widget is not None:
+            self.widget.close()
+        super().tearDown()
+
     def setUpFileWidget(self, *args, measurement_file, default):
         """
         Created because for a lot of testcases,
@@ -41,14 +46,14 @@ class TestFileWidget(TestBase):
                 False,  # ignore_value2text_conversions
                 False,  # display_cg_name
                 "line",  # line_interconnect
-                1,  # password
-                None,  # hide_missing_channels
-                None,  # hide_disabled_channels
+                "",  # password
+                False,  # hide_missing_channels
+                False,  # hide_disabled_channels
             )
         else:
             self.widget = FileWidget(measurement_file, *args)
         self.processEvents()
-        self.widget.showNormal()
+        self.widget.showMaximized()
 
     def create_window(self, window_type, channels_names=(), channels_indexes=()):
         channel_tree = self.widget.channels_tree

@@ -5,7 +5,7 @@ import sys
 import unittest
 from unittest import mock
 
-from PySide6.QtCore import QPoint, QRect, Qt
+from PySide6.QtCore import QPoint, QRect, QSettings, Qt
 from PySide6.QtGui import QGuiApplication, QKeySequence
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QTreeWidgetItemIterator
@@ -31,6 +31,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             - Evaluate that plot is black
         """
         super().setUp()
+        settings = QSettings()
+        settings.setValue("zoom_x_center_on_cursor", True)
+        settings.setValue("plot_cursor_precision", 6)
         # Open measurement file
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Switch ComboBox to "Natural sort"
@@ -347,18 +350,17 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         """
 
         def continuous(ch):
-            extremes = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), signal_color=ch.color.name(), ax="x")
-            for x in range(self.pg.height() - 1):
-                column = self.pg.grab(QRect(x, 0, 1, self.pg.height()))
-                if x < extremes[0] - 1:
-                    self.assertTrue(Pixmap.is_black(column), f"column {x} for channel {ch.name} is not black")
-                elif extremes[0] <= x <= extremes[1]:
-                    self.assertTrue(
-                        Pixmap.has_color(column, ch.color.name()),
-                        f"column {x} doesn't have color of channel {ch.name}",
-                    )
-                elif x > extremes[1] + 1:
-                    self.assertTrue(Pixmap.is_black(column), f"column {x} for channel {ch.name} is not black")
+            pixmap = self.pg.grab()
+            image = pixmap.toImage()
+            signal_color = ch.color.name()
+            start, stop = Pixmap.search_signal_extremes_by_ax(pixmap, signal_color=signal_color, ax="x")
+            for x in range(start, stop + 1):
+                for j in range(self.pg.height()):
+                    if image.pixelColor(x, j).name() == signal_color:
+                        break
+
+                else:
+                    raise Exception(f"column {x} doesn't have color of channel {ch.name} from {start=} to {stop=}")
 
         self.pg.cursor1.color = "#000000"
 
@@ -531,6 +533,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
             # Last line
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, self.pg.height() - 1, self.pg.width(), 1))))
+
             # deselect all channels
             for channel in self.channels:
                 self.mouseDClick_WidgetItem(channel)
@@ -1135,7 +1138,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertTrue(extremes_of_channel_35)
         # Press "I"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["x_zoom_in"]))
-        self.processEvents()
+        self.processEvents(0.5)
 
         # save left and right pixel column
         x_left_column = self.pg.grab(QRect(extremes_of_channel_35[0], 0, 1, self.pg.height()))

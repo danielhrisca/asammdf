@@ -204,9 +204,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         # Store all channels with specific pattern in their names in a list
         items = []
         with OpenMDF(self.measurement_file) as mdf:
-            items.extend(
-                ch.name for ch in mdf.iter_channels() if group_name.upper() in ch.name.upper()
-            )
+            items.extend(ch.name for ch in mdf.iter_channels() if group_name.upper() in ch.name.upper())
         self.assertEqual(len(group_channels_name), len(items))
         for channel_name in group_channels_name:
             self.assertIn(channel_name, items)
@@ -462,6 +460,8 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
             QTest.mouseClick(plot.bookmark_btn, Qt.MouseButton.LeftButton)
         self.mouseClick_WidgetItem(self.channels[0])
 
+        plot.plot.set_dots(False)
+
         # Evaluate
         self.assertTrue(Pixmap.has_color(plot.selected_channel_value.grab(), self.channels[0].color.name()))
         y_range = plot.plot.y_axis.range[1] - plot.plot.y_axis.range[0]
@@ -548,14 +548,14 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         # Set X and Y ranges for viewbox
         plot.plot.viewbox.setXRange(x, w, padding=0)
         plot.plot.viewbox.setYRange(y, h, padding=0)
-        self.processEvents(None)
+        self.processEvents(0.1)
 
         # Click in the middle of the plot
         QTest.mouseClick(
             plot.plot.viewport(),
             Qt.MouseButton.LeftButton,
             Qt.KeyboardModifier.NoModifier,
-            QPoint(int(plot.plot.width() / 2), int(plot.plot.height() / 2)),
+            QPoint(plot.plot.width() // 2, plot.plot.height() // 2),
         )
         self.processEvents(1)
         selected_channel_value = plot.selected_channel_value.grab()

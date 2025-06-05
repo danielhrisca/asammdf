@@ -37,13 +37,9 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 import asammdf.mdf as mdf_module
 
-from ...blocks.utils import (
-    csv_bytearray2hex,
-    extract_mime_names,
-    pandas_query_compatible,
-    timeit,
-)
+from ...blocks.utils import csv_bytearray2hex, pandas_query_compatible, timeit
 from ..dialogs.range_editor import RangeEditor
+from ..serde import extract_mime_names
 from ..ui.tabular import Ui_TabularDisplay
 from ..utils import (
     copy_ranges,
@@ -69,7 +65,6 @@ MONOSPACE_FONT = None
 
 
 class TabularTreeItem(QtWidgets.QTreeWidgetItem):
-
     DEFAULT_FLAGS = QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsSelectable
 
     def __init__(self, column_types, int_format, ranges=None, *args, **kwargs):
@@ -1343,7 +1338,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             try:
                 new_df = df.query(" ".join(filters))
             except:
-                logger.exception(f'Failed to apply filter for tabular window: {" ".join(filters)}')
+                logger.exception(f"Failed to apply filter for tabular window: {' '.join(filters)}")
                 self.query.setText(format_exc())
             else:
                 to_drop = [name for name in df.columns if name.endswith("__as__bytes")]

@@ -214,14 +214,14 @@
              <item>
               <widget class="QPushButton" name="create_window_btn">
                <property name="toolTip">
-                <string>Create window</string>
+                <string>Add new window</string>
                </property>
                <property name="text">
                 <string/>
                </property>
                <property name="icon">
                 <iconset resource="resource.qrc">
-                 <normaloff>:/graph.png</normaloff>:/graph.png</iconset>
+                 <normaloff>:/plus.png</normaloff>:/plus.png</iconset>
                </property>
               </widget>
              </item>
@@ -1340,8 +1340,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>476</width>
-            <height>459</height>
+            <width>999</width>
+            <height>609</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_7" columnstretch="0,0,0">

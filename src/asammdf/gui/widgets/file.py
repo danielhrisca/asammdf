@@ -16,18 +16,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 import asammdf.mdf as mdf_module
 
 from ... import tool
-from ...blocks.utils import (
-    COLORS,
-    COLORS_COUNT,
-    ExtendedJsonDecoder,
-    ExtendedJsonEncoder,
-    extract_encryption_information,
-    extract_xml_comment,
-    load_channel_names_from_file,
-    load_dsp,
-    load_lab,
-    Terminated,
-)
+from ...blocks.utils import extract_encryption_information, extract_xml_comment, Terminated
 from ...blocks.v4_blocks import AttachmentBlock, FileHistory, HeaderBlock
 from ...blocks.v4_blocks import TextBlock as TextV4
 from ...blocks.v4_constants import (
@@ -39,6 +28,7 @@ from ...blocks.v4_constants import (
     CompressionAlgorithm,
     FLAG_CG_BUS_EVENT,
 )
+from .. import serde
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
@@ -46,6 +36,13 @@ from ..dialogs.error_dialog import ErrorDialog
 from ..dialogs.gps_dialog import GPSDialog
 from ..dialogs.messagebox import MessageBox
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
+from ..serde import (
+    ExtendedJsonDecoder,
+    ExtendedJsonEncoder,
+    load_channel_names_from_file,
+    load_dsp,
+    load_lab,
+)
 from ..ui.file_widget import Ui_file_widget
 from ..utils import (
     COMPRESSION_OPTIONS,
@@ -301,6 +298,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.mdi_area = MdiAreaWidget()
 
             self.mdi_area.add_window_request.connect(self.add_window)
+            self.mdi_area.create_window_request.connect(self._create_window)
+            self.mdi_area.search_request.connect(self.search)
             self.mdi_area.open_files_request.connect(self.open_new_files.emit)
             self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
             self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -547,7 +546,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if widget.mode == "Internal file structure":
             while item := iterator.value():
-
                 if item.entry[1] != 0xFFFFFFFFFFFFFFFF:
                     if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                         signals.add(item.entry)
@@ -555,7 +553,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 iterator += 1
         else:
             while item := iterator.value():
-
                 if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     signals.add(item.entry)
 
@@ -820,7 +817,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                     signals = set()
                     while item := iterator.value():
-
                         if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             signals.add((item.text(0), *item.entry))
 
@@ -852,7 +848,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 else:
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
                     while item := iterator.value():
-
                         if item.entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             names.add((result[item.entry], *item.entry))
@@ -940,7 +935,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 iterator += 1
         else:
             while item := iterator.value():
-
                 if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     signals.append(item.text(0))
 
@@ -1115,7 +1109,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                             "enabled": True,
                                             "individual_axis": False,
                                             "common_axis": False,
-                                            "color": COLORS[i % COLORS_COUNT],
+                                            "color": serde.COLORS[i % serde.COLORS_COUNT],
                                             "computed": False,
                                             "ranges": [],
                                             "precision": 3,
@@ -1274,7 +1268,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.loaded_display_file = Path(info.get("display_file_name", "")), b""
 
             self.functions.update(info.get("functions", {}))
-            self.global_variables = f'{self.global_variables}\n{info.get("global_variables", "")}'
+            self.global_variables = f"{self.global_variables}\n{info.get('global_variables', '')}"
             self.global_variables = "\n".join([line for line in self.global_variables.splitlines() if line])
 
         if channels:
@@ -1296,7 +1290,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     iterator += 1
             else:
                 while item := iterator.value():
-
                     channel_name = item.text(0)
                     if channel_name in channels:
                         item.setCheckState(0, QtCore.Qt.CheckState.Checked)
@@ -1340,7 +1333,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                 }
 
             if new_functions or info.get("global_variables", "") != self.global_variables:
-                self.update_functions({}, new_functions, f'{self.global_variables}\n{info.get("global_variables", "")}')
+                self.update_functions({}, new_functions, f"{self.global_variables}\n{info.get('global_variables', '')}")
 
         self.clear_windows()
 
@@ -1350,7 +1343,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             count = len(windows)
 
             if show_progress:
-
                 progress = setup_progress(
                     parent=self,
                     title="Loading display windows",
@@ -1640,10 +1632,11 @@ MultiRasterSeparator;&
                 iterator += 1
 
     def close(self):
-        mdf_name = self.mdf.name
-        self.mdf.close()
-        if mdf_name != self.mdf.original_name and mdf_name.is_file():
-            mdf_name.unlink()
+        if self.mdf is not None:
+            mdf_name = self.mdf.name
+            self.mdf.close()
+            if mdf_name != self.mdf.original_name and mdf_name.is_file():
+                mdf_name.unlink()
         self.channels_tree.clear()
         self.filter_tree.clear()
 
@@ -1770,7 +1763,6 @@ MultiRasterSeparator;&
                         iterator += 1
                 else:
                     while item := iterator.value():
-
                         if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             group, index = item.entry
                             ch = self.mdf.groups[group].channels[index]
@@ -1932,10 +1924,10 @@ MultiRasterSeparator;&
 
             message += [
                 f"{bus} bus summary:",
-                f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+                f"- {found_id_count} of {len(call_info['total_unique_ids'])} IDs in the MDF4 file were matched in the DBC and converted",
             ]
             if call_info["unknown_id_count"]:
-                message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
+                message.append(f"- {call_info['unknown_id_count']} unknown IDs in the MDF4 file")
             else:
                 message.append("- no unknown IDs in the MDF4 file")
 
@@ -2126,10 +2118,10 @@ MultiRasterSeparator;&
 
             message += [
                 f"{bus} bus summary:",
-                f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+                f"- {found_id_count} of {len(call_info['total_unique_ids'])} IDs in the MDF4 file were matched in the DBC and converted",
             ]
             if call_info["unknown_id_count"]:
-                message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
+                message.append(f"- {call_info['unknown_id_count']} unknown IDs in the MDF4 file")
             else:
                 message.append("- no unknown IDs in the MDF4 file")
 
@@ -3061,7 +3053,7 @@ MultiRasterSeparator;&
             return MessageBox.warning(
                 self,
                 "Wrong file type",
-                "The display file can only be embedded in .mf4 or .mf4z files" f"\n{original_file_name}",
+                f"The display file can only be embedded in .mf4 or .mf4z files\n{original_file_name}",
             )
 
         _password = self.mdf._mdf._password

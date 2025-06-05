@@ -124,7 +124,7 @@ class Ui_file_widget(object):
         self.create_window_btn = QPushButton(self.verticalLayoutWidget)
         self.create_window_btn.setObjectName(u"create_window_btn")
         icon5 = QIcon()
-        icon5.addFile(u":/graph.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        icon5.addFile(u":/plus.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.create_window_btn.setIcon(icon5)
 
         self.buttons_layout.addWidget(self.create_window_btn)
@@ -160,7 +160,9 @@ class Ui_file_widget(object):
 
         self.verticalLayout_5.addWidget(self.splitter)
 
-        self.aspects.addTab(self.channels_tab, icon5, "")
+        icon8 = QIcon()
+        icon8.addFile(u":/graph.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.aspects.addTab(self.channels_tab, icon8, "")
         self.modify = QWidget()
         self.modify.setObjectName(u"modify")
         self.horizontalLayout = QHBoxLayout(self.modify)
@@ -409,9 +411,9 @@ class Ui_file_widget(object):
         self.gridLayout_20.setContentsMargins(1, 1, 1, 1)
         self.scramble_btn = QPushButton(self.groupBox_9)
         self.scramble_btn.setObjectName(u"scramble_btn")
-        icon8 = QIcon()
-        icon8.addFile(u":/scramble.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.scramble_btn.setIcon(icon8)
+        icon9 = QIcon()
+        icon9.addFile(u":/scramble.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.scramble_btn.setIcon(icon9)
 
         self.gridLayout_20.addWidget(self.scramble_btn, 1, 0, 1, 1)
 
@@ -747,9 +749,9 @@ class Ui_file_widget(object):
 
         self.horizontalLayout.addWidget(self.scrollArea)
 
-        icon9 = QIcon()
-        icon9.addFile(u":/convert.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.aspects.addTab(self.modify, icon9, "")
+        icon10 = QIcon()
+        icon10.addFile(u":/convert.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.aspects.addTab(self.modify, icon10, "")
         self.extract_bus_tab = QWidget()
         self.extract_bus_tab.setObjectName(u"extract_bus_tab")
         self.verticalLayout_8 = QVBoxLayout(self.extract_bus_tab)
@@ -761,7 +763,7 @@ class Ui_file_widget(object):
         self.scrollArea_2.setWidgetResizable(True)
         self.scrollAreaWidgetContents_2 = QWidget()
         self.scrollAreaWidgetContents_2.setObjectName(u"scrollAreaWidgetContents_2")
-        self.scrollAreaWidgetContents_2.setGeometry(QRect(0, 0, 476, 459))
+        self.scrollAreaWidgetContents_2.setGeometry(QRect(0, 0, 999, 609))
         self.gridLayout_7 = QGridLayout(self.scrollAreaWidgetContents_2)
         self.gridLayout_7.setSpacing(1)
         self.gridLayout_7.setObjectName(u"gridLayout_7")
@@ -881,9 +883,9 @@ class Ui_file_widget(object):
 
         self.extract_bus_csv_btn = QPushButton(self.groupBox_3)
         self.extract_bus_csv_btn.setObjectName(u"extract_bus_csv_btn")
-        icon10 = QIcon()
-        icon10.addFile(u":/csv.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.extract_bus_csv_btn.setIcon(icon10)
+        icon11 = QIcon()
+        icon11.addFile(u":/csv.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.extract_bus_csv_btn.setIcon(icon11)
 
         self.gridLayout_6.addWidget(self.extract_bus_csv_btn, 14, 2, 1, 1)
 
@@ -920,9 +922,9 @@ class Ui_file_widget(object):
 
         self.extract_bus_btn = QPushButton(self.groupBox_2)
         self.extract_bus_btn.setObjectName(u"extract_bus_btn")
-        icon11 = QIcon()
-        icon11.addFile(u":/down.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.extract_bus_btn.setIcon(icon11)
+        icon12 = QIcon()
+        icon12.addFile(u":/down.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.extract_bus_btn.setIcon(icon12)
 
         self.gridLayout_5.addWidget(self.extract_bus_btn, 5, 1, 1, 2)
 
@@ -1032,7 +1034,7 @@ class Ui_file_widget(object):
 
         self.verticalLayout_8.addWidget(self.scrollArea_2)
 
-        self.aspects.addTab(self.extract_bus_tab, icon11, "")
+        self.aspects.addTab(self.extract_bus_tab, icon12, "")
         self.info_tab = QWidget()
         self.info_tab.setObjectName(u"info_tab")
         self.gridLayout_9 = QGridLayout(self.info_tab)
@@ -1045,9 +1047,9 @@ class Ui_file_widget(object):
 
         self.gridLayout_9.addWidget(self.info, 0, 0, 1, 1)
 
-        icon12 = QIcon()
-        icon12.addFile(u":/info.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
-        self.aspects.addTab(self.info_tab, icon12, "")
+        icon13 = QIcon()
+        icon13.addFile(u":/info.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.aspects.addTab(self.info_tab, icon13, "")
         self.attachments_tab = QWidget()
         self.attachments_tab.setObjectName(u"attachments_tab")
         self.verticalLayout_10 = QVBoxLayout(self.attachments_tab)
@@ -1111,7 +1113,7 @@ class Ui_file_widget(object):
 #endif // QT_CONFIG(tooltip)
         self.advanced_search_btn.setText("")
 #if QT_CONFIG(tooltip)
-        self.create_window_btn.setToolTip(QCoreApplication.translate("file_widget", u"Create window", None))
+        self.create_window_btn.setToolTip(QCoreApplication.translate("file_widget", u"Add new window", None))
 #endif // QT_CONFIG(tooltip)
         self.create_window_btn.setText("")
 #if QT_CONFIG(tooltip)

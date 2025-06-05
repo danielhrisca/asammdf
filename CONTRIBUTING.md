@@ -42,6 +42,6 @@ Otherwise, you can just push and the tests will be run by GitHub Actions.
 
 ## Style guide
 
-Just run [_black_](https://black.readthedocs.io) on modified files before sending the PR. There is no need to reinvent the wheel here!
+Just run [`ruff format`](https://docs.astral.sh/ruff/formatter/) on modified files before sending the PR. There is no need to reinvent the wheel here!
 
 **Tip**: install Git hooks using pre-commit `pre-commit install --install-hooks`

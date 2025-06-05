@@ -116,10 +116,10 @@ def monkey_patch_pyqtgraph():
 
 import asammdf.mdf as mdf_module
 
-from ...blocks import utils
-from ...blocks.utils import extract_mime_names
 from ...signal import Signal
+from .. import serde
 from ..dialogs.define_channel import DefineChannel
+from ..serde import extract_mime_names
 from ..utils import copy_ranges
 from .channel_stats import ChannelStats
 from .cursor import Bookmark, Cursor, Region
@@ -277,9 +277,9 @@ class PlotSignal(Signal):
         }
 
         if getattr(signal, "color", None):
-            color = signal.color or utils.COLORS[index % utils.COLORS_COUNT]
+            color = signal.color or serde.COLORS[index % serde.COLORS_COUNT]
         else:
-            color = utils.COLORS[index % utils.COLORS_COUNT]
+            color = serde.COLORS[index % serde.COLORS_COUNT]
         self.color = fn.mkColor(color)
         self.color_name = self.color.name()
         self.pen = fn.mkPen(color=color, style=QtCore.Qt.PenStyle.SolidLine)
@@ -3252,7 +3252,6 @@ class Plot(QtWidgets.QWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
         while item := iterator.value():
             if item.type() == item.Channel and item.signal.origin_uuid == origin_uuid:
-
                 uuids.append(item.signal.uuid)
 
             iterator += 1
@@ -3827,7 +3826,7 @@ class PlotGraphics(pg.PlotWidget):
         events = events or []
 
         for i, event_info in enumerate(events):
-            color = utils.COLORS[utils.COLORS_COUNT - (i % utils.COLORS_COUNT) - 1]
+            color = serde.COLORS[serde.COLORS_COUNT - (i % serde.COLORS_COUNT) - 1]
             if isinstance(event_info, (list, tuple)):
                 to_display = event_info
                 labels = [" - Start", " - End"]
@@ -3838,7 +3837,7 @@ class PlotGraphics(pg.PlotWidget):
                 bookmark = Bookmark(
                     pos=event["value"],
                     message=event["description"],
-                    title=f'{event["type"]}{label}',
+                    title=f"{event['type']}{label}",
                     color=color,
                     tool=event.get("tool", ""),
                 )
@@ -4923,7 +4922,6 @@ class PlotGraphics(pg.PlotWidget):
             and modifier == QtCore.Qt.KeyboardModifier.AltModifier
         ):
             if self.region is None:
-
                 pos = self.cursor1.value()
                 sig, idx = self.signal_by_uuid(self.current_uuid)
 
@@ -4956,7 +4954,6 @@ class PlotGraphics(pg.PlotWidget):
             QtCore.Qt.KeyboardModifier.ControlModifier,
         ):
             if self.region is None:
-
                 pos = self.cursor1.value()
                 sig, idx = self.signal_by_uuid(self.current_uuid)
 
@@ -6020,7 +6017,6 @@ class PlotGraphics(pg.PlotWidget):
         self._pixmap = pixmap
 
         for idx, sig in enumerate(self.signals):
-
             if sig.individual_axis:
                 axis = self.get_axis(idx)
                 if tuple(axis.range) != tuple(sig.y_range):
@@ -6039,7 +6035,6 @@ class PlotGraphics(pg.PlotWidget):
             self.viewbox_geometry = geometry
 
     def value_at_cursor(self, uuid=None):
-
         uuid = uuid or self.current_uuid
 
         if not uuid:
@@ -6070,7 +6065,6 @@ class PlotGraphics(pg.PlotWidget):
         return y, sig_y_bottom, sig_y_top
 
     def xrange_changed_handle(self, *args, force=False):
-
         if self._can_paint:
             self.trim(force=force)
             self.update()
@@ -6078,7 +6072,6 @@ class PlotGraphics(pg.PlotWidget):
         self.zoom_changed.emit(False)
 
     def y_changed(self, *args):
-
         if len(args) == 1:
             # range manually changed by the user with the wheel or drag
             mask = args[0]
@@ -6150,7 +6143,7 @@ class CursorInfo(QtWidgets.QLabel):
 
         if action.text() == "Set precision":
             precision, ok = QtWidgets.QInputDialog.getInt(
-                self, "Set new precision (float decimals)", "Precision:", 6, -1, 15, 1
+                self, "Set new precision (float decimals)", "Precision:", self.precision, -1, 15, 1
             )
 
             if ok:
