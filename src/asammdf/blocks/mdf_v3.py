@@ -228,7 +228,6 @@ class MDF3(MDF_Common[Group]):
         self._fill_0_for_missing_computation_channels = kwargs.get(
             "fill_0_for_missing_computation_channels", GLOBAL_OPTIONS["fill_0_for_missing_computation_channels"]
         )
-        self.copy_on_get = False
 
         self._si_map: dict[bytes | int, ChannelExtension] = {}
         self._cc_map: dict[bytes | int, ChannelConversion] = {}
@@ -3167,7 +3166,6 @@ class MDF3(MDF_Common[Group]):
         self,
         index: int,
         data: tuple[bytes, int, int | None] | None = None,
-        raster: RasterType | None = None,
         record_offset: int = 0,
         record_count: int | None = None,
         one_piece: bool = False,
@@ -3180,11 +3178,6 @@ class MDF3(MDF_Common[Group]):
             Group index.
         data : (bytes, int), optional
             (data block raw bytes, fragment offset).
-        raster : float, optional
-            Raster to be used for interpolation.
-
-            .. deprecated:: 5.13.0
-
         record_offset : int, optional
             If `data=None`, use this to select the record offset from which the
             group data should be loaded.
@@ -3199,11 +3192,6 @@ class MDF3(MDF_Common[Group]):
         """
         if self._master is not None:
             return self._master
-
-        if raster is not None:
-            raise PendingDeprecationWarning(
-                "the argument raster is deprecated since version 5.13.0 and will be removed in a future release"
-            )
 
         fragment = data
         if fragment:
@@ -3325,14 +3313,6 @@ class MDF3(MDF_Common[Group]):
             timestamps = t
 
         self._master_channel_metadata[index] = metadata
-
-        if raster:
-            if len(timestamps) > 1:
-                num = float(float32((timestamps[-1] - timestamps[0]) / raster))
-                if int(num) == num:
-                    timestamps = linspace(timestamps[0], timestamps[-1], int(num))
-                else:
-                    timestamps = arange(timestamps[0], timestamps[-1], raster)
 
         return timestamps
 

@@ -25,7 +25,6 @@ class _GlobalOptions(TypedDict):
     single_bit_uint_as_bool: bool
     integer_interpolation: IntegerInterpolation
     float_interpolation: FloatInterpolation
-    copy_on_get: bool
     temporary_folder: StrPath | None
     raise_on_multiple_occurrences: bool
     fill_0_for_missing_computation_channels: bool
@@ -38,7 +37,6 @@ GLOBAL_OPTIONS: Final[_GlobalOptions] = {
     "single_bit_uint_as_bool": False,
     "integer_interpolation": IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
     "float_interpolation": FloatInterpolation.LINEAR_INTERPOLATION,
-    "copy_on_get": True,
     "temporary_folder": None,
     "raise_on_multiple_occurrences": True,
     "fill_0_for_missing_computation_channels": False,
@@ -51,7 +49,6 @@ _Opt = Literal[
     "single_bit_uint_as_bool",
     "integer_interpolation",
     "float_interpolation",
-    "copy_on_get",
     "temporary_folder",
     "raise_on_multiple_occurrences",
     "fill_0_for_missing_computation_channels",
@@ -69,7 +66,6 @@ def set_global_option(opt: _Opt, value: Any) -> None:
     elif opt in (
         "use_display_names",
         "single_bit_uint_as_bool",
-        "copy_on_get",
         "raise_on_multiple_occurrences",
         "fill_0_for_missing_computation_channels",
     ):

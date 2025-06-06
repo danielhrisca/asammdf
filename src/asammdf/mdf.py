@@ -21,7 +21,6 @@ from traceback import format_exc
 from types import TracebackType
 import typing
 from typing import Literal, Optional, Union
-from warnings import warn
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -240,12 +239,6 @@ class MDF:
         can decrease the loading times very much.
     remove_source_from_channel_names : bool, default False
         Remove source from channel names ("Speed\XCP3" -> "Speed").
-    copy_on_get : bool, default True
-        Copy arrays in the `get` method.
-    expand_zippedfile : bool, default True
-        Only for bz2.BZ2File and gzip.GzipFile, load the file content into a
-        BytesIO before parsing (avoids the huge performance penalty of doing
-        random reads from the zipped file).
     raise_on_multiple_occurrences : bool, default True
         Raise MdfException when there are multiple channel occurrences in the
         file and the `get` call is ambiguous.
@@ -680,7 +673,6 @@ class MDF:
         use_display_names: bool | None = None,
         single_bit_uint_as_bool: bool | None = None,
         integer_interpolation: IntInterpolationModeType | IntegerInterpolation | None = None,
-        copy_on_get: bool | None = None,
         float_interpolation: FloatInterpolationModeType | FloatInterpolation | None = None,
         raise_on_multiple_occurrences: bool | None = None,
         temporary_folder: str | None = None,
@@ -695,7 +687,6 @@ class MDF:
         * use_display_names = True
         * single_bit_uint_as_bool = False
         * integer_interpolation = 0 (repeat previous sample)
-        * copy_on_get = True
         * float_interpolation = 1 (linear interpolation)
         * raise_on_multiple_occurrences = True
         * temporary_folder = ""
@@ -733,9 +724,6 @@ class MDF:
             .. versionchanged:: 6.2.0
                 Added hybrid interpolation mode.
 
-        copy_on_get : bool, optional
-            Copy arrays in the get method.
-
         float_interpolation : int, optional
             Interpolation mode for float channels.
 
@@ -769,7 +757,6 @@ class MDF:
             self._mdf._use_display_names = from_other._mdf._use_display_names
             self._mdf._single_bit_uint_as_bool = from_other._mdf._single_bit_uint_as_bool
             self._mdf._integer_interpolation = from_other._mdf._integer_interpolation
-            self._mdf.copy_on_get = from_other._mdf.copy_on_get
             self._mdf._float_interpolation = from_other._mdf._float_interpolation
             self._mdf._raise_on_multiple_occurrences = from_other._mdf._raise_on_multiple_occurrences
 
@@ -787,9 +774,6 @@ class MDF:
 
         if integer_interpolation is not None:
             self._mdf._integer_interpolation = IntegerInterpolation(integer_interpolation)
-
-        if copy_on_get is not None:
-            self._mdf.copy_on_get = copy_on_get
 
         if float_interpolation is not None:
             self._mdf._float_interpolation = FloatInterpolation(float_interpolation)
@@ -1065,8 +1049,6 @@ class MDF:
                 if progress.stop:
                     raise Terminated
 
-        self.configure(copy_on_get=False)
-
         # walk through all groups and get all channels
         for i, virtual_group in enumerate(self.virtual_groups):
             for idx, sigs in enumerate(self._mdf._yield_selected_signals(virtual_group, version=version)):
@@ -1100,7 +1082,6 @@ class MDF:
                         raise Terminated
 
         out._transfer_metadata(self, message=f"Converted from {self.name}")
-        self.configure(copy_on_get=True)
 
         return out
 
@@ -1161,8 +1142,6 @@ class MDF:
         integer_interpolation_mode = self._mdf._integer_interpolation
         float_interpolation_mode = self._mdf._float_interpolation
         out.configure(from_other=self)
-
-        self.configure(copy_on_get=False)
 
         if whence == 1:
             timestamps: list[float] = []
@@ -1364,8 +1343,6 @@ class MDF:
                     if progress.stop:
                         print("return terminated")
                         raise Terminated
-
-        self.configure(copy_on_get=True)
 
         out._transfer_metadata(self, message=f"Cut from {start_} to {stop_}")
 
@@ -2607,8 +2584,6 @@ class MDF:
         mdf.configure(from_other=self)
         mdf.header.start_time = self.header.start_time
 
-        self.configure(copy_on_get=False)
-
         groups_nr = len(gps)
 
         if progress is not None:
@@ -2660,8 +2635,6 @@ class MDF:
 
                     if progress.stop:
                         raise Terminated
-
-        self.configure(copy_on_get=True)
 
         mdf._transfer_metadata(self, message=f"Filtered from {self.name}")
 
@@ -2927,8 +2900,6 @@ class MDF:
 
                 merged.header.start_time = oldest
 
-            mdf.configure(copy_on_get=False)
-
             reorder_channel_groups = False
             cg_translations: dict[int, int | None] = {}
 
@@ -3192,8 +3163,6 @@ class MDF:
 
                 last_timestamps[i] = last_timestamp
 
-            mdf.configure(copy_on_get=True)
-
             if mdf_index == 0:
                 merged._transfer_metadata(mdf)
 
@@ -3343,8 +3312,6 @@ class MDF:
                 else:
                     stacked.header.start_time = mdf.header.start_time
 
-            mdf.configure(copy_on_get=False)
-
             for i, group in enumerate(mdf.virtual_groups):
                 included_channels = mdf.included_channels(group)[group]
                 if not included_channels:
@@ -3393,8 +3360,6 @@ class MDF:
 
                     if progress.stop:
                         raise Terminated
-
-            mdf.configure(copy_on_get=True)
 
             if mdf_index == 0:
                 stacked._transfer_metadata(mdf)
@@ -3460,7 +3425,6 @@ class MDF:
         raster: RasterType | None = None,
         time_from_zero: bool = True,
         empty_channels: EmptyChannelsType = "skip",
-        keep_arrays: bool = False,
         use_display_names: bool = False,
         time_as_date: bool = False,
         reduce_memory_usage: bool = False,
@@ -3492,14 +3456,6 @@ class MDF:
 
         empty_channels : {'skip', 'zeros'}, default 'skip'
             Behaviour for channels without samples.
-
-            .. versionadded:: 5.21.0
-
-        keep_arrays : bool, default False
-            Keep arrays and structure channels as well as the component
-            channels. If True, this can be very slow. If False, only the
-            component channels are saved, and their names will be prefixed with
-            the parent channel.
 
             .. versionadded:: 5.21.0
 
@@ -3551,7 +3507,6 @@ class MDF:
                 raster=raster,
                 time_from_zero=time_from_zero,
                 empty_channels=empty_channels,
-                keep_arrays=keep_arrays,
                 use_display_names=use_display_names,
                 time_as_date=time_as_date,
                 reduce_memory_usage=reduce_memory_usage,
@@ -4709,7 +4664,6 @@ class MDF:
         raster: RasterType | None = None,
         time_from_zero: bool = True,
         empty_channels: EmptyChannelsType = "skip",
-        keep_arrays: bool = False,
         use_display_names: bool = False,
         time_as_date: bool = False,
         reduce_memory_usage: bool = False,
@@ -4740,14 +4694,6 @@ class MDF:
 
         empty_channels : {'skip', 'zeros'}, default 'skip'
             Behaviour for channels without samples.
-
-            .. versionadded:: 5.8.0
-
-        keep_arrays : bool, default False
-            Keep arrays and structure channels as well as the component
-            channels. If True, this can be very slow. If False, only the
-            component channels are saved, and their names will be prefixed with
-            the parent channel.
 
             .. versionadded:: 5.8.0
 
@@ -4803,7 +4749,6 @@ class MDF:
             raster=raster,
             time_from_zero=time_from_zero,
             empty_channels=empty_channels,
-            keep_arrays=keep_arrays,
             use_display_names=use_display_names,
             time_as_date=time_as_date,
             reduce_memory_usage=reduce_memory_usage,
@@ -4818,7 +4763,6 @@ class MDF:
         raster: RasterType | None = None,
         time_from_zero: bool = True,
         empty_channels: EmptyChannelsType = "skip",
-        keep_arrays: bool = False,
         use_display_names: bool = False,
         time_as_date: bool = False,
         reduce_memory_usage: bool = False,
@@ -4862,11 +4806,6 @@ class MDF:
             Adjust time channel to start from 0.
         empty_channels : {'skip', 'zeros'}, default 'skip'
             Behaviour for channels without samples.
-        keep_arrays : bool, default False
-            Keep arrays and structure channels as well as the component
-            channels. If True, this can be very slow. If False, only the
-            component channels are saved, and their names will be prefixed with
-            the parent channel.
         use_display_names : bool, default False
             Use display name instead of standard channel name, if available.
         time_as_date : bool, default False
@@ -4931,7 +4870,6 @@ class MDF:
                 raster=raster,
                 time_from_zero=time_from_zero,
                 empty_channels=empty_channels,
-                keep_arrays=keep_arrays,
                 use_display_names=use_display_names,
                 time_as_date=time_as_date,
                 reduce_memory_usage=reduce_memory_usage,
@@ -5234,7 +5172,6 @@ class MDF:
         raster: RasterType | None = ...,
         time_from_zero: bool = ...,
         empty_channels: EmptyChannelsType = ...,
-        keep_arrays: bool = ...,
         use_display_names: bool = ...,
         time_as_date: bool = ...,
         reduce_memory_usage: bool = ...,
@@ -5255,7 +5192,6 @@ class MDF:
         raster: RasterType | None = ...,
         time_from_zero: bool = ...,
         empty_channels: EmptyChannelsType = ...,
-        keep_arrays: bool = ...,
         use_display_names: bool = ...,
         time_as_date: bool = ...,
         reduce_memory_usage: bool = ...,
@@ -5276,7 +5212,6 @@ class MDF:
         raster: RasterType | None = ...,
         time_from_zero: bool = ...,
         empty_channels: EmptyChannelsType = ...,
-        keep_arrays: bool = ...,
         use_display_names: bool = ...,
         time_as_date: bool = ...,
         reduce_memory_usage: bool = ...,
@@ -5296,7 +5231,6 @@ class MDF:
         raster: RasterType | None = None,
         time_from_zero: bool = True,
         empty_channels: EmptyChannelsType = "skip",
-        keep_arrays: bool = False,
         use_display_names: bool = False,
         time_as_date: bool = False,
         reduce_memory_usage: bool = False,
@@ -5337,11 +5271,6 @@ class MDF:
             Adjust time channel to start from 0.
         empty_channels : {'skip', 'zeros'}, default 'skip'
             Behaviour for channels without samples.
-        keep_arrays : bool, default False
-            Keep arrays and structure channels as well as the component
-            channels. If True, this can be very slow. If False, only the
-            component channels are saved, and their names will be prefixed with
-            the parent channel.
         use_display_names : bool, default False
             Use display name instead of standard channel name, if available.
         time_as_date : bool, default False
@@ -5418,7 +5347,6 @@ class MDF:
                 raster=raster,
                 time_from_zero=time_from_zero,
                 empty_channels=empty_channels,
-                keep_arrays=keep_arrays,
                 use_display_names=use_display_names,
                 time_as_date=time_as_date,
                 reduce_memory_usage=reduce_memory_usage,
@@ -5742,8 +5670,6 @@ class MDF:
         self,
         database_files: dict[BusType, Iterable[DbcFileType]],
         version: str | v4c.Version | None = None,
-        ignore_invalid_signals: bool | None = None,
-        consolidated_j1939: bool | None = None,
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
         progress: Callable[[int, int], None] | Any | None = None,
@@ -5768,22 +5694,6 @@ class MDF:
 
         version : str, optional
             Output file version.
-        ignore_invalid_signals : bool, optional
-            Ignore signals that have all samples equal to their maximum value.
-
-            .. versionadded:: 5.7.0
-
-            .. deprecated:: 7.0.2
-                This argument is no longer used and will be removed in the future.
-
-        consolidated_j1939 : bool, optional
-            Handle PGNs from all the messages as a single instance.
-
-            .. versionadded:: 5.7.0
-
-            .. deprecated:: 7.2.0
-                This argument is no longer used and will be removed in the future.
-                The PGNs are saved separately according to the source address.
 
         ignore_value2text_conversion : bool, default True
             Ignore value to text conversions.
@@ -5823,18 +5733,6 @@ class MDF:
         """
         if not isinstance(self._mdf, mdf_v4.MDF4):
             raise MdfException("extract_bus_logging is only supported in MDF4 files")
-
-        if ignore_invalid_signals is not None:
-            warn(
-                "The argument `ignore_invalid_signals` from the method `extract_bus_logging` is no longer used and will be removed in the future",
-                stacklevel=1,
-            )
-
-        if consolidated_j1939 is not None:
-            warn(
-                "The argument `consolidated_j1939` from the method `extract_bus_logging` is no longer used and will be removed in the future",
-                stacklevel=1,
-            )
 
         if version is None:
             version = self.version
@@ -5985,8 +5883,6 @@ class MDF:
                 if progress.stop:
                     raise Terminated
 
-        self.configure(copy_on_get=False)
-
         # walk through all groups and get all channels
         for i, virtual_group in enumerate(self.virtual_groups):
             for idx, sigs in enumerate(self._mdf._yield_selected_signals(virtual_group, version=version)):
@@ -6041,7 +5937,6 @@ class MDF:
                         raise Terminated
 
         out._transfer_metadata(self)
-        self.configure(copy_on_get=True)
 
         return out
 

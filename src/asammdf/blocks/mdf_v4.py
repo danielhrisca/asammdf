@@ -246,8 +246,6 @@ class MDF4(MDF_Common[Group]):
         loading times very much.
     remove_source_from_channel_names : bool, default False
         Remove source from channel names ("Speed\XCP3" -> "Speed").
-    copy_on_get : bool, default True
-        Copy channel values (np.ndarray) to avoid high memory usage.
     compact_vlsd (False) : bool, optional
         Use slower method to save the exact sample size for VLSD channels.
     column_storage : bool, default True
@@ -264,8 +262,6 @@ class MDF4(MDF_Common[Group]):
         list of (group index, channel index) tuples.
     events : list
         List event blocks.
-    file_comment : TextBlock
-        File comment TextBlock.
     file_history : list
         List of (FileHistory, TextBlock) pairs.
     groups : list
@@ -308,7 +304,6 @@ class MDF4(MDF_Common[Group]):
         self.masters_db: dict[int, int] = {}
         self.attachments: list[AttachmentBlock] = []
         self._attachments_cache: dict[bytes | str, int] = {}
-        self.file_comment = None
         self.events: list[EventBlock] = []
         self.bus_logging_map: BusLoggingMap = {"CAN": {}, "ETHERNET": {}, "FLEXRAY": {}, "LIN": {}}
 
@@ -355,7 +350,6 @@ class MDF4(MDF_Common[Group]):
         self._remove_source_from_channel_names = kwargs.get("remove_source_from_channel_names", False)
         self._password = kwargs.get("password", None)
         self._force_attachment_encryption = kwargs.get("force_attachment_encryption", False)
-        self.copy_on_get = kwargs.get("copy_on_get", True)
         self.compact_vlsd = kwargs.get("compact_vlsd", False)
 
         self.virtual_groups: dict[int, VirtualChannelGroup] = {}  # master group 2 referencing groups
@@ -6653,7 +6647,6 @@ class MDF4(MDF_Common[Group]):
         self.masters_db.clear()
         self.attachments.clear()
         self._attachments_cache.clear()
-        self.file_comment = None
         self.events.clear()
 
         self._ch_map.clear()
@@ -11388,7 +11381,6 @@ class MDF4(MDF_Common[Group]):
             self.channels_db.clear()
             self.masters_db.clear()
             self.attachments.clear()
-            self.file_comment = None
 
             self._ch_map.clear()
 
