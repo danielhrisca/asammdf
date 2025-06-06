@@ -3142,6 +3142,13 @@ class ChannelConversion(_ChannelConversionBase):
         # the inverse conversion is not used (see issue #1017)
         self.inv_conv_addr = 0
 
+        # use the first unit found in a refereced block (see issue #1205)
+        if not self.unit:
+            for block in self.referenced_blocks.values():
+                if isinstance(block, ChannelConversion) and block.unit:
+                    self.unit = block.unit
+                    break
+
     def to_blocks(
         self,
         address: int,
