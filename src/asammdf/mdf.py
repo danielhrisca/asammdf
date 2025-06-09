@@ -413,6 +413,34 @@ class MDF:
         # MDF(filename).convert('4.10')
         self._mdf._parent = self
 
+        # Copy docstrings for the _mdf methods that are "forwarded" in the MDF class
+        forwarded_methods = [
+            "add_trigger",
+            "append",
+            "attach",
+            "close",
+            "extend",
+            "extract_attachment",
+            "get",
+            "get_bus_signal",
+            "get_can_signal",
+            "get_channel_comment",
+            "get_channel_metadata",
+            "get_channel_name",
+            "get_channel_unit",
+            "get_invalidation_bits",
+            "get_lin_signal",
+            "get_master",
+            "included_channels",
+            "info",
+            "iter_get_triggers",
+            "reload_header",
+            "save",
+        ]
+        for method_name in forwarded_methods:
+            _mdf_method = getattr(self._mdf, method_name, None)
+            getattr(self, method_name).__func__.__doc__ = _mdf_method.__doc__ if _mdf_method else None
+
     def __enter__(self) -> "MDF":
         return self
 
