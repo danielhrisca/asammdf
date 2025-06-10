@@ -5689,7 +5689,8 @@ class PlotGraphics(pg.PlotWidget):
             self.y_axis.set_pen(sig.pen)
             self.y_axis.setTextPen(sig.pen)
 
-        self._update_timer.start()
+        if not self._update_timer.isActive():
+            self._update_timer.start()
 
     def set_common_axis(self, uuid, state):
         signal, idx = self.signal_by_uuid(uuid)
@@ -5706,7 +5707,9 @@ class PlotGraphics(pg.PlotWidget):
         self.common_axis_label = ", ".join(self.signal_by_uuid(uuid)[0].name for uuid in self.common_axis_items)
 
         self.set_current_uuid(self.current_uuid, True)
-        self._update_timer.start()
+
+        if not self._update_timer.isActive():
+            self._update_timer.start()
 
     def set_conversion(self, uuid, conversion):
         sig, index = self.signal_by_uuid(uuid)
@@ -5800,7 +5803,8 @@ class PlotGraphics(pg.PlotWidget):
             self.get_axis(index).hide()
             sig.individual_axis = False
 
-        self._update_timer.start()
+        if not self._update_timer.isActive():
+            self._update_timer.start()
 
     def set_line_interconnect(self, line_interconnect):
         self.line_interconnect = line_interconnect
@@ -5978,7 +5982,8 @@ class PlotGraphics(pg.PlotWidget):
         if emit:
             self.zoom_changed.emit(False)
         if update:
-            self._update_timer.start()
+            if not self._update_timer.isActive():
+                self._update_timer.start()
 
     def signal_by_name(self, name):
         for i, sig in enumerate(self.signals):
