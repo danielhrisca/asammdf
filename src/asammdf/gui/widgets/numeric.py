@@ -1900,7 +1900,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             "font_size": self.font().pointSize(),
             "columns_visibility": self.channels.columnHeader.columns_visibility(),
             "sorting": self.channels.columnHeader.sorting(),
-            "header_and_controls_visible": self.controls.isVisible(),
+            "header_and_controls_visible": not self.controls.isHidden(),
         }
 
         return config
