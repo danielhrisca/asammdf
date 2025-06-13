@@ -4080,7 +4080,7 @@ class ChannelConversion(_ChannelConversionBase):
 
                     bytes_values.append(b"|".join(new_val))
 
-                new_values = np.array(bytes_values)
+                new_values = np.array(bytes_values, dtype=bytes)
                 new_values[non_int] = b""
 
         if scalar:
