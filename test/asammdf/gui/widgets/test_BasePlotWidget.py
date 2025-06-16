@@ -26,10 +26,12 @@ class QMenuWrap(QtWidgets.QMenu):
 class TestPlotWidget(TestFileWidget):
     class Column:
         NAME = 0
-        VALUE = 1
-        UNIT = 2
-        COMMON_AXIS = 3
-        INDIVIDUAL_AXIS = 4
+        RAWVALUE = 1
+        VALUE = 2
+        UNIT = 3
+        COMMON_AXIS = 4
+        INDIVIDUAL_AXIS = 5
+        ORIGIN = 6
 
     def add_channel_to_plot(self, plot=None, channel_name=None, channel_index=None):
         if not plot and self.plot:
