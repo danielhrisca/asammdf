@@ -31,6 +31,7 @@ class TestFileWidget(TestBase):
         _outcome = getattr(self, "_outcome", None)
         if _outcome:
             failures = getattr(_outcome.result, "failures", None)
+            print(_outcome, type(_outcome), failures, sep="\n")
             if failures is not None:
                 # save last state graphical view of widget if failure
                 path = self.screenshots

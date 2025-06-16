@@ -465,6 +465,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 1))))
             # Top
             pixmap = self.pg.grab(QRect(0, 0, self.pg.width(), int(self.pg.height() / 3)))
+            self.pg.grab().save(os.path.join(self.screenshots, f"{self.id()}.png")) # debug
             self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
             self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
             self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
@@ -1040,6 +1041,8 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.processEvents(0.01)
 
         # Find new extremes
+        self.pg.grab().save(os.path.join(self.screenshots, f"{self.id()}.png")) # debug
+
         new_from_to_y_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "y")
         new_from_to_y_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "y")
         new_from_to_x_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "x")
@@ -1050,7 +1053,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertLess(old_from_to_y_channel_36[1], new_from_to_y_channel_36[1])
         self.assertGreater(old_from_to_x_channel_36[0], new_from_to_x_channel_36[0])
         self.assertGreater(old_from_to_x_channel_36[1], new_from_to_x_channel_36[1])
-
+        
         self.assertGreater(old_from_to_y_channel_37[0], new_from_to_y_channel_37[0])
         self.assertGreater(old_from_to_y_channel_37[1], new_from_to_y_channel_37[1])
         self.assertLess(old_from_to_x_channel_37[0], new_from_to_x_channel_37[0])
