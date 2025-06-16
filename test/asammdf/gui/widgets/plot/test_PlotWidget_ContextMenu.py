@@ -128,7 +128,7 @@ class TestContextMenu(TestPlotWidget):
 
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
             mo_getText.return_value = "FirstGroup", None
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
 
         self.assertEqual(channels_nr, self.plot.channel_selection.topLevelItemCount())
 
@@ -147,7 +147,7 @@ class TestContextMenu(TestPlotWidget):
 
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
             mo_getText.return_value = "FirstGroup", True
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
 
         self.assertEqual(channels_nr + 1, self.plot.channel_selection.topLevelItemCount())
 
@@ -168,7 +168,7 @@ class TestContextMenu(TestPlotWidget):
 
         with self.subTest("1Channel"):
             position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
-            self.context_menu(action_text="Copy names [Ctrl+N]", position=position)
+            self.context_menu(action_text="Copy names", position=position)
 
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             self.assertEqual(self.plot_channel_a.text(self.Column.NAME), clipboard)
@@ -177,7 +177,7 @@ class TestContextMenu(TestPlotWidget):
             self.plot_channel_a.setSelected(True)
             self.plot_channel_b.setSelected(True)
             position_1 = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
-            self.context_menu(action_text="Copy names [Ctrl+N]", position=position_1)
+            self.context_menu(action_text="Copy names", position=position_1)
 
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             channels = (self.plot_channel_a.text(self.Column.NAME), self.plot_channel_b.text(self.Column.NAME))
@@ -234,7 +234,7 @@ class TestContextMenu(TestPlotWidget):
             - Evaluate that channel display properties are stored in clipboard in json format.
         """
         position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
-        self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
+        self.context_menu(action_text="Copy display properties", position=position)
 
         clipboard = QtWidgets.QApplication.instance().clipboard().text()
         try:
@@ -261,8 +261,8 @@ class TestContextMenu(TestPlotWidget):
         Evaluate:
             - Evaluate that display properties are transferred from one channel to another
         """
-        action_copy = "Copy display properties [Ctrl+Shift+C]"
-        action_paste = "Paste display properties [Ctrl+Shift+V]"
+        action_copy = "Copy display properties"
+        action_paste = "Paste display properties"
 
         position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
         self.context_menu(action_text=action_copy, position=position_src)
@@ -293,7 +293,7 @@ class TestContextMenu(TestPlotWidget):
             - Evaluate that channel structure is stored in clipboard in json format.
         """
         position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
-        self.context_menu(action_text="Copy channel structure [Ctrl+C]", position=position)
+        self.context_menu(action_text="Copy channel structure", position=position)
 
         clipboard = QtWidgets.QApplication.instance().clipboard().text()
         try:
@@ -322,9 +322,9 @@ class TestContextMenu(TestPlotWidget):
         Evaluate:
             - Evaluate that channel is duplicated and structure is kept.
         """
-        action_copy_dsp_properties = "Copy display properties [Ctrl+Shift+C]"
-        action_copy = "Copy channel structure [Ctrl+C]"
-        action_paste = "Paste channel structure [Ctrl+V]"
+        action_copy_dsp_properties = "Copy display properties"
+        action_copy = "Copy channel structure"
+        action_paste = "Paste channel structure"
 
         position_src = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
         # Copy Channel Structure
@@ -383,7 +383,7 @@ class TestContextMenu(TestPlotWidget):
         """
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
             mo_getText.return_value = "A", True
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
 
         positions_src = self.plot.channel_selection.visualItemRect(self.plot_channel_b).center()
         self.context_menu(action_text="Disable all but this", position=positions_src)
@@ -610,7 +610,7 @@ class TestContextMenu(TestPlotWidget):
         # Setup
         position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
         with mock.patch.object(self.plot, "keyPressEvent") as mo_keyPressEvent:
-            self.context_menu(action_text="Edit Y axis scaling [Ctrl+G]", position=position)
+            self.context_menu(action_text="Edit Y axis scaling", position=position)
             mo_keyPressEvent.assert_called()
             event = mo_keyPressEvent.call_args.args[0]
             self.assertEqual(QtCore.QEvent.Type.KeyPress, event.type())
@@ -742,12 +742,12 @@ class TestContextMenu(TestPlotWidget):
             - Select 'Set color [C]'
             - Select 2 Channels
             - Open Context Menu
-            - Select 'Set color [C]'
+            - Select 'Set color'
         Evaluate:
             - Evaluate that color dialog is not open if channel is not selected.
             - Evaluate that channel color is changed.
         """
-        action_text = "Set color [C]"
+        action_text = "Set color"
 
         # Event
         with self.subTest("NoChannelSelected"):
@@ -866,11 +866,11 @@ class TestContextMenu(TestPlotWidget):
         """
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
             mo_getText.return_value = "A", True
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
             mo_getText.return_value = "B", True
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
             mo_getText.return_value = "C", True
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
 
         group_channel_a = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
         group_channel_b = self.plot.channel_selection.findItems("B", QtCore.Qt.MatchFlags())[0]
@@ -879,7 +879,7 @@ class TestContextMenu(TestPlotWidget):
         QtWidgets.QApplication.instance().clipboard().clear()
         with self.subTest("EmptyGroup_0"):
             position = self.plot.channel_selection.visualItemRect(group_channel_a).center()
-            self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
+            self.context_menu(action_text="Copy display properties", position=position)
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             try:
                 content = json.loads(clipboard)
@@ -894,7 +894,7 @@ class TestContextMenu(TestPlotWidget):
             self.move_item_inside_channels_tree_widget(src=self.plot_channel_a, dst=group_channel_a)
 
             position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
-            self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
+            self.context_menu(action_text="Copy display properties", position=position)
 
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             try:
@@ -908,7 +908,7 @@ class TestContextMenu(TestPlotWidget):
         with self.subTest("EmptyGroup_1"):
             group_channel_a.removeChild(self.plot_channel_a)
             position = self.plot.channel_selection.visualItemRect(group_channel_a).center()
-            self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
+            self.context_menu(action_text="Copy display properties", position=position)
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             try:
                 content = json.loads(clipboard)
@@ -929,7 +929,7 @@ class TestContextMenu(TestPlotWidget):
             group_channel_b.setExpanded(True)
             group_channel_c.setExpanded(True)
             position = self.plot.channel_selection.visualItemRect(group_channel_a).center()
-            self.context_menu(action_text="Copy display properties [Ctrl+Shift+C]", position=position)
+            self.context_menu(action_text="Copy display properties", position=position)
             clipboard = QtWidgets.QApplication.instance().clipboard().text()
             try:
                 content = json.loads(clipboard)
@@ -959,17 +959,17 @@ class TestContextMenu(TestPlotWidget):
         Evaluate:
             - Evaluate that display properties are transferred from one channel to another
         """
-        action_copy = "Copy display properties [Ctrl+Shift+C]"
-        action_paste = "Paste display properties [Ctrl+Shift+V]"
+        action_copy = "Copy display properties"
+        action_paste = "Paste display properties"
 
         # Insert Group
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
             mo_getText.return_value = "A", True
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
             mo_getText.return_value = "B", True
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
             mo_getText.return_value = "C", True
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
 
         # Add Channels to Group
         group_channel_a = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
@@ -1061,14 +1061,14 @@ class TestContextMenu(TestPlotWidget):
         """
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
             mo_getText.return_value = "FirstGroup", True
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
 
         # Add Channels to Group
         group_channel = self.plot.channel_selection.findItems("FirstGroup", QtCore.Qt.MatchFlags())[0]
         self.move_item_inside_channels_tree_widget(src=self.plot_channel_a, dst=group_channel)
 
         position = self.plot.channel_selection.visualItemRect(self.plot_channel_a).center()
-        self.context_menu(action_text="Copy channel structure [Ctrl+C]", position=position)
+        self.context_menu(action_text="Copy channel structure", position=position)
 
         clipboard = QtWidgets.QApplication.instance().clipboard().text()
         try:
@@ -1093,12 +1093,12 @@ class TestContextMenu(TestPlotWidget):
         Evaluate:
             - Evaluate that group channel is duplicated and structure is kept.
         """
-        action_copy = "Copy channel structure [Ctrl+C]"
-        action_paste = "Paste channel structure [Ctrl+V]"
+        action_copy = "Copy channel structure"
+        action_paste = "Paste channel structure"
 
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
             mo_getText.return_value = "FirstGroup", True
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
 
         # Add Channels to Group
         group_channel = self.plot.channel_selection.findItems("FirstGroup", QtCore.Qt.MatchFlags())[0]
@@ -1139,7 +1139,7 @@ class TestContextMenu(TestPlotWidget):
         """
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
             mo_getText.return_value = "A", True
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
 
         # Add Channels to Group
         group_channel = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
@@ -1186,9 +1186,9 @@ class TestContextMenu(TestPlotWidget):
         """
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
             mo_getText.return_value = "Group_A", True
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
             mo_getText.return_value = "Group_B", True
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
 
         # Add Channels to Group
         group_a_channel = self.plot.channel_selection.findItems("Group_A", QtCore.Qt.MatchFlags())[0]
@@ -1248,7 +1248,7 @@ class TestContextMenu(TestPlotWidget):
         """
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
             mo_getText.return_value = "A", True
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
 
         # Add Channels to Group
         group_channel = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
@@ -1299,7 +1299,7 @@ class TestContextMenu(TestPlotWidget):
         """
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
             mo_getText.return_value = "A", True
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
 
         # Add Channels to Group
         group_channel = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
@@ -1351,7 +1351,7 @@ class TestContextMenu(TestPlotWidget):
         """
         with mock.patch("asammdf.gui.widgets.tree.QtWidgets.QInputDialog.getText") as mo_getText:
             mo_getText.return_value = "A", True
-            self.context_menu(action_text="Add channel group [Shift+Insert]")
+            self.context_menu(action_text="Add channel group")
 
         # Add Channels to Group
         group_channel = self.plot.channel_selection.findItems("A", QtCore.Qt.MatchFlags())[0]
