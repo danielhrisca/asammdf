@@ -29,15 +29,17 @@ class TestFileWidget(TestBase):
 
     def tearDown(self):
         _outcome = getattr(self, "_outcome", None)
-        if _outcome.result.failures:
-            # save last state graphical view of widget if failure
-            path = self.screenshots
-            for name in self.id().split(".")[:-1]:
-                _path = os.path.join(path, name)
-                if not os.path.exists(_path):
-                    os.makedirs(_path)
-                path = _path
-            self.widget.grab().save(os.path.join(path, f"{self.id().split('.')[-1]}.png"))
+        if _outcome:
+            failures = getattr(_outcome.result, "failures", None)
+            if failures is not None:
+                # save last state graphical view of widget if failure
+                path = self.screenshots
+                for name in self.id().split(".")[:-1]:
+                    _path = os.path.join(path, name)
+                    if not os.path.exists(_path):
+                        os.makedirs(_path)
+                    path = _path
+                self.widget.grab().save(os.path.join(path, f"{self.id().split('.')[-1]}.png"))
 
         if self.widget is not None:
             self.widget.close()
