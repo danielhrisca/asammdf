@@ -2746,7 +2746,7 @@ class Plot(QtWidgets.QWidget):
                 elif item_type == item.Channel:
                     signal, idx = self.plot.signal_by_uuid(item.uuid)
 
-                    if signal.plot_samples.dtype.kind in "ui":
+                    if signal.plot_samples.dtype.kind in "uif":
                         signal.format = fmt
 
                         raw_value, raw_kind, value, kind, fmt = signal.value_at_timestamp(0)
