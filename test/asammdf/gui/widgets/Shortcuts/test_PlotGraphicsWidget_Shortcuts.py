@@ -1,8 +1,6 @@
 #!/usr/bin/env python\
 
 import os
-import sys
-import unittest
 from unittest import mock
 
 from PySide6.QtCore import QPoint, QRect, QSettings, Qt
@@ -322,7 +320,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertAlmostEqual(self.pg.x_range[0], x_range[0], delta=0.001)
         self.assertAlmostEqual(self.pg.x_range[1], x_range[1], delta=0.001)
 
-    @unittest.skip("FIXME: test keeps failing in CI")
+    # @unittest.skip("FIXME: test keeps failing in CI")
     def test_fit__stack_shortcuts(self):
         """
         Test Scope:
@@ -984,8 +982,8 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertEqual(f"{ci.name} = {round(ch.signal.timestamps[pos], ci.precision)}{ci.unit}", ci.text())
         self.assertEqual(ch.signal.timestamps[pos], self.pg.cursor1.getXPos())
 
-    @unittest.skip("FIXME: test keeps failing in CI")
-    @unittest.skipIf(sys.platform != "win32", "RuntimeError. C++ object <<ViewBoxWithCursor>> already deleted.")
+    # @unittest.skip("FIXME: test keeps failing in CI")
+    # @unittest.skipIf(sys.platform != "win32", "RuntimeError. C++ object <<ViewBoxWithCursor>> already deleted.")
     def test_shift_channels_shortcut(self):
         """
         Test Scope:
@@ -1039,7 +1037,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
         self.avoid_blinking_issue(self.plot.channel_selection)
-        self.processEvents()
+        self.processEvents(0.01)
 
         # Find new extremes
         new_from_to_y_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "y")
@@ -1110,7 +1108,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertNotEqual(delta_full_screen_x_range, delta_normal_screen_x_range)
         self.assertAlmostEqual(delta_full_screen_x_range, expected_full_screen_honey_range, delta=0.0001)
 
-    @unittest.skip("FIXME: test keeps failing in CI")
+    # @unittest.skip("FIXME: test keeps failing in CI")
     def test_home_shortcuts(self):
         """
         Check if the signal is fitted properly after pressing key "W".

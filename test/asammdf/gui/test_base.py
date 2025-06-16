@@ -63,7 +63,7 @@ class TestBase(unittest.TestCase):
 
     resource = os.path.normpath(os.path.join(os.path.dirname(__file__), "resources"))
     test_workspace = os.path.join(os.path.dirname(__file__), "test_workspace")
-    screenshots = os.path.join(os.path.dirname(__file__).split("test")[0], "screenshots")
+    screenshots = os.path.join(os.path.dirname(__file__), "screenshots")
 
     patchers = []
     # MockClass ErrorDialog
@@ -114,7 +114,11 @@ class TestBase(unittest.TestCase):
         if not os.path.exists(self.screenshots):
             os.makedirs(self.screenshots)
 
-        os.makedirs(self.test_workspace)
+        try:
+            os.makedirs(self.test_workspace)
+        except FileExistsError as e:
+            pass
+
         self.mc_ErrorDialog.reset_mock()
         self.processEvents()
 
@@ -133,13 +137,8 @@ class TestBase(unittest.TestCase):
 
     def tearDown(self):
         self.processEvents()
-        path_ = os.path.join(self.screenshots, self.id().split("gui.")[-1].rsplit(".", 1)[0])
-        if not os.path.exists(path_):
-            os.makedirs(path_)
-
         w = getattr(self, "widget", None)
         if w:
-            w.grab().save(os.path.join(path_, f"{self.id().split('.')[-1]}.png"))
             self.destroy(w)
 
         self.mc_ErrorDialog.reset_mock()
