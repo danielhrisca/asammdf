@@ -537,7 +537,7 @@ class PlotSignal(Signal):
                     position = cursor
                     stats["cursor_t"] = position
 
-                    value, kind, _ = self.value_at_timestamp(position)
+                    raw_value, raw_kind, value, kind, _ = self.value_at_timestamp(position)
 
                     stats["cursor_value"] = value_as_str(value, format, self.plot_samples.dtype, precision)
 
@@ -551,11 +551,11 @@ class PlotSignal(Signal):
                     stats["selected_stop"] = value_as_str(stop, format, np.dtype("f8"), precision)
                     stats["selected_delta_t"] = value_as_str(stop - start, format, np.dtype("f8"), precision)
 
-                    value, kind, _ = self.value_at_timestamp(start)
+                    rraw_value, raw_kind, value, kind, _ = self.value_at_timestamp(start)
 
                     stats["selected_left"] = value_as_str(value, format, self.plot_samples.dtype, precision)
 
-                    value, kind, _ = self.value_at_timestamp(stop)
+                    raw_value, raw_kind, value, kind, _ = self.value_at_timestamp(stop)
 
                     stats["selected_right"] = value_as_str(value, format, self.plot_samples.dtype, precision)
 
@@ -619,7 +619,7 @@ class PlotSignal(Signal):
                     position = cursor
                     stats["cursor_t"] = value_as_str(position, format, np.dtype("f8"), precision)
 
-                    value, kind, _ = self.value_at_timestamp(position)
+                    raw_value, raw_kind, value, kind, _ = self.value_at_timestamp(position)
 
                     stats["cursor_value"] = value_as_str(value, format, self.plot_samples.dtype, precision)
 
@@ -1262,10 +1262,12 @@ class PlotSignal(Signal):
         else:
             kind = self.phys_samples.dtype.kind
 
+        raw_kind = self.raw_samples.dtype.kind
+
         size = len(self)
 
         if index is None or size == 0:
-            value = "n.a."
+            value = raw_value = "n.a."
         else:
             if index >= size:
                 index = size - 1
@@ -1274,20 +1276,35 @@ class PlotSignal(Signal):
                 value = self.raw_samples[index]
             else:
                 value = self.phys_samples[index]
+            raw_value = self.raw_samples[index]
 
-            if kind == "S":
-                try:
-                    value = value.decode("utf-8").strip(" \r\n\t\v\0")
-                except:
-                    value = value.decode("latin-1").strip(" \r\n\t\v\0")
+            match kind:
+                case "S":
+                    try:
+                        value = value.decode("utf-8").strip(" \r\n\t\v\0")
+                    except:
+                        value = value.decode("latin-1").strip(" \r\n\t\v\0")
 
-                value = value or "<empty string>"
-            elif kind == "f":
-                value = float(value)
-            else:
-                value = int(value)
+                    value = value or "<empty string>"
+                case "f":
+                    value = float(value)
+                case _:
+                    value = int(value)
 
-        return value, kind, self.format
+            match raw_kind:
+                case "S":
+                    try:
+                        raw_value = raw_value.decode("utf-8").strip(" \r\n\t\v\0")
+                    except:
+                        raw_value = raw_value.decode("latin-1").strip(" \r\n\t\v\0")
+
+                    raw_value = raw_value or "<empty string>"
+                case "f":
+                    raw_value = float(raw_value)
+                case _:
+                    raw_value = int(raw_value)
+
+        return raw_value, raw_kind, value, kind, self.format
 
     def value_at_timestamp(self, timestamp, numeric=False, strict_timebase=True):
         if self.mode == "raw":
@@ -1297,12 +1314,15 @@ class PlotSignal(Signal):
             kind = self.phys_samples.dtype.kind
             samples = self.phys_samples
 
+        raw_kind = self.raw_samples.dtype.kind
+
         if numeric and kind not in "uif":
             samples = self.raw_samples
             kind = self.raw_samples.dtype.kind
 
         if self.samples.size == 0 or (strict_timebase and not (self.timestamps[0] <= timestamp <= self.timestamps[-1])):
             value = "n.a."
+            raw_value = "n.a."
         else:
             if timestamp > self.timestamps[-1]:
                 index = -1
@@ -1312,20 +1332,35 @@ class PlotSignal(Signal):
                 index = np.searchsorted(self.timestamps, timestamp, side="left")
 
             value = samples[index]
+            raw_value = self.raw_samples[index]
 
-            if kind == "S":
-                try:
-                    value = value.decode("utf-8", errors="replace").strip(" \r\n\t\v\0")
-                except:
-                    value = value.decode("latin-1", errors="replace").strip(" \r\n\t\v\0")
+            match kind:
+                case "S":
+                    try:
+                        value = value.decode("utf-8", errors="replace").strip(" \r\n\t\v\0")
+                    except:
+                        value = value.decode("latin-1", errors="replace").strip(" \r\n\t\v\0")
 
-                value = value or "<empty string>"
-            elif kind == "f":
-                value = float(value)
-            else:
-                value = int(value)
+                    value = value or "<empty string>"
+                case "f":
+                    value = float(value)
+                case _:
+                    value = int(value)
 
-        return value, kind, self.format
+            match raw_kind:
+                case "S":
+                    try:
+                        raw_value = raw_value.decode("utf-8", errors="replace").strip(" \r\n\t\v\0")
+                    except:
+                        raw_value = raw_value.decode("latin-1", errors="replace").strip(" \r\n\t\v\0")
+
+                    raw_value = raw_value or "<empty string>"
+                case "f":
+                    raw_value = float(raw_value)
+                case _:
+                    raw_value = int(raw_value)
+
+        return raw_value, raw_kind, value, kind, self.format
 
     def timestamp_of_next_different_value(self, timestamp, mode="higher", previous=False):
         if self.mode == "raw":
@@ -1974,10 +2009,10 @@ class Plot(QtWidgets.QWidget):
             )
 
             if len(sig):
-                value, kind, fmt = sig.value_at_timestamp(sig.timestamps[0])
+                raw_value, raw_kind, value, kind, fmt = sig.value_at_timestamp(sig.timestamps[0])
                 item.kind = kind
                 item._value = "n.a."
-                item.set_value(value, force=True, update=True)
+                item.set_value(raw_value, value, force=True, update=True)
 
             if mime_data is None:
                 children.append(item)
@@ -2477,13 +2512,13 @@ class Plot(QtWidgets.QWidget):
                     signal, idx = self.plot.signal_by_uuid(item.uuid)
                     index = self.plot.get_timestamp_index(position, signal.timestamps)
 
-                    value, kind, fmt = signal.value_at_index(index)
+                    raw_value, raw_kind, value, kind, fmt = signal.value_at_index(index)
 
                     item.set_prefix()
                     item.kind = kind
                     item.set_fmt(fmt)
 
-                    item.set_value(value, update=True)
+                    item.set_value(raw_value, value, update=True)
 
                     if item.uuid == self.info_uuid:
                         value = item.text(item.ValueColumn)
@@ -2528,7 +2563,7 @@ class Plot(QtWidgets.QWidget):
             if item.type() == item.Channel and not self.plot.region:
                 self.cursor_info.update_value()
                 item.set_prefix()
-                item.set_value("")
+                item.set_value("", "")
 
             iterator += 1
 
@@ -2714,7 +2749,7 @@ class Plot(QtWidgets.QWidget):
                     if signal.plot_samples.dtype.kind in "ui":
                         signal.format = fmt
 
-                        value, kind, fmt = signal.value_at_timestamp(0)
+                        raw_value, raw_kind, value, kind, fmt = signal.value_at_timestamp(0)
 
                         widget = self.item_by_uuid(signal.uuid)
                         widget.kind = kind
@@ -2921,7 +2956,7 @@ class Plot(QtWidgets.QWidget):
             while item := iterator.value():
                 if item.type() == item.Channel:
                     item.set_prefix()
-                    item.set_value("")
+                    item.set_value("", "")
 
                 iterator += 1
 
@@ -3020,10 +3055,10 @@ class Plot(QtWidgets.QWidget):
                 signal, i = self.plot.signal_by_uuid(item.uuid)
 
                 index = self.plot.get_timestamp_index(start, signal.timestamps)
-                start_v, kind, fmt = signal.value_at_index(index)
+                start_raw_v, raw_kind, start_v, kind, fmt = signal.value_at_index(index)
 
                 index = self.plot.get_timestamp_index(stop, signal.timestamps)
-                stop_v, kind, fmt = signal.value_at_index(index)
+                stop_raw_v, raw_kind, stop_v, kind, fmt = signal.value_at_index(index)
 
                 if self.region_values_display_mode == "delta":
                     item.set_prefix("Δ = ")
@@ -3032,34 +3067,41 @@ class Plot(QtWidgets.QWidget):
                     if "n.a." not in (start_v, stop_v):
                         if kind in "ui":
                             delta = np.int64(stop_v) - np.int64(start_v)
+                            delta_raw = np.int64(stop_raw_v) - np.int64(start_raw_v)
                             item.kind = kind
-                            item.set_value(delta)
+                            item.set_value(delta_raw, delta)
                             item.set_fmt(fmt)
                         elif kind == "f":
                             delta = stop_v - start_v
+                            delta_raw = stop_raw_v - start_raw_v
                             item.kind = kind
-                            item.set_value(delta)
+                            item.set_value(delta_raw, delta)
                             item.set_fmt(fmt)
                         else:
-                            item.set_value("n.a.")
+                            item.set_value("n.a.", "n.a.")
                     else:
-                        item.set_value("n.a.")
+                        item.set_value("n.a.", "n.a.")
 
                 else:
                     if self.plot.region_lock is not None:
                         if start == self.plot.region_lock:
                             value = stop_v
+                            raw_value = stop_raw_v
                         else:
                             value = start_v
+                            raw_value = start_raw_v
 
                     else:
                         if self._prev_region is None:
                             value = start_v
+                            raw_value = start_raw_v
                         else:
                             if stop == self._prev_region[1]:
                                 value = start_v
+                                raw_value = start_raw_v
                             else:
                                 value = stop_v
+                                raw_value = stop_raw_v
 
                     item.set_prefix()
                     item.set_fmt(signal.format)
@@ -3067,12 +3109,12 @@ class Plot(QtWidgets.QWidget):
                     if value != "n.a.":
                         if kind in "uif":
                             item.kind = kind
-                            item.set_value(value)
+                            item.set_value(raw_value, value)
                             item.set_fmt(fmt)
                         else:
-                            item.set_value("n.a.")
+                            item.set_value("n.a.", "n.a.")
                     else:
-                        item.set_value("n.a.")
+                        item.set_value("n.a.", "n.a.")
 
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
@@ -3145,7 +3187,7 @@ class Plot(QtWidgets.QWidget):
         while item := iterator.value():
             if item.type() == item.Channel:
                 item.set_prefix()
-                item.set_value("")
+                item.set_value("", "")
 
             iterator += 1
 
@@ -3341,9 +3383,13 @@ class Plot(QtWidgets.QWidget):
                 self.splitter.sizes()[0],
                 [self.channel_selection.columnWidth(i) for i in range(self.channel_selection.columnCount())],
             ],
+            "channels_header_sizes": [self.splitter.sizes()[0], self.channel_selection.header_sizes()],
             "channels_header_columns_visible": [
-                not self.channel_selection.isColumnHidden(i) for i in range(self.channel_selection.columnCount())
+                not self.channel_selection.isColumnHidden(i)
+                for i in range(self.channel_selection.columnCount())
+                if i != self.channel_selection.RawColumn
             ],
+            "channels_header_columns_visiblity": self.channel_selection.header_columns_visibility(),
             "hide_axes": self.hide_axes_btn.isFlat(),
             "hide_selected_channel_value_panel": self.selected_channel_value_btn.isFlat(),
             "focused_mode": not self.focused_mode_btn.isFlat(),
@@ -5651,7 +5697,7 @@ class PlotGraphics(pg.PlotWidget):
             if not sig.enable:
                 continue
 
-            val, _1, _2 = sig.value_at_timestamp(x, numeric=True)
+            raw_value, raw_kind, val, _1, _2 = sig.value_at_timestamp(x, numeric=True)
 
             if val == "n.a.":
                 continue
@@ -6053,7 +6099,7 @@ class PlotGraphics(pg.PlotWidget):
             timestamp = cursor.value()
             sig, idx = self.signal_by_uuid(uuid)
             sig_y_bottom, sig_y_top = sig.y_range
-            y, *_ = sig.value_at_timestamp(timestamp, numeric=True, strict_timebase=False)
+            raw_value, raw_kind, y, *_ = sig.value_at_timestamp(timestamp, numeric=True, strict_timebase=False)
 
         else:
             sig, idx = self.signal_by_uuid(uuid)

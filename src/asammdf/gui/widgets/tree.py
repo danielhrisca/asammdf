@@ -387,11 +387,12 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     double_click = QtCore.Signal(object, object)
 
     NameColumn = 0
-    ValueColumn = 1
-    UnitColumn = 2
-    CommonAxisColumn = 3
-    IndividualAxisColumn = 4
-    OriginColumn = 5
+    RawColumn = 1
+    ValueColumn = 2
+    UnitColumn = 3
+    CommonAxisColumn = 4
+    IndividualAxisColumn = 5
+    OriginColumn = 6
 
     def __init__(
         self,
@@ -415,8 +416,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.can_delete_items = True
 
         self.setHeaderHidden(False)
-        self.setColumnCount(6)
-        self.setHeaderLabels(["Name", "Value", "Unit", "\u290a", "\u21a8", "Origin"])
+        self.setColumnCount(7)
+        self.setHeaderLabels(["Name", "Raw", "Value", "Unit", "\u290a", "\u21a8", "Origin"])
         self.setDragEnabled(True)
         self.setExpandsOnDoubleClick(False)
 
@@ -451,6 +452,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.setItemDelegate(self.idel)
 
         self.setColumnHidden(self.OriginColumn, True)
+        self.setColumnHidden(self.RawColumn, True)
 
         self.disabled_keyboard_events = set()
 
@@ -533,6 +535,36 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         self.refresh()
         self.update_channel_groups_count()
+
+    def header_columns_visibility(self):
+        visibility = {}
+        for name in (
+            "NameColumn",
+            "RawColumn",
+            "ValueColumn",
+            "UnitColumn",
+            "CommonAxisColumn",
+            "IndividualAxisColumn",
+            "OriginColumn",
+        ):
+            col = getattr(self, name)
+            visibility[name] = not self.isColumnHidden(col)
+        return visibility
+
+    def header_sizes(self):
+        sizes = {}
+        for name in (
+            "NameColumn",
+            "RawColumn",
+            "ValueColumn",
+            "UnitColumn",
+            "CommonAxisColumn",
+            "IndividualAxisColumn",
+            "OriginColumn",
+        ):
+            col = getattr(self, name)
+            sizes[name] = self.columnWidth(col)
+        return sizes
 
     def is_item_visible(self, item):
         return item._is_visible
@@ -773,7 +805,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     dlg.exec_()
                     if dlg.pressed_button == "apply":
                         item.set_ranges(dlg.result)
-                        item.set_value(item._value, update=True)
+                        item.set_value(item._raw_value, item._value, update=True)
 
             else:
                 ranges = []
@@ -785,7 +817,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     for item in selected_items:
                         if item.type() == item.Channel:
                             item.set_ranges(copy_ranges(dlg.result))
-                            item.set_value(item._value, update=True)
+                            item.set_value(item._raw_value, item._value, update=True)
 
                         elif item.type() == item.Group:
                             item.set_ranges(copy_ranges(dlg.result))
@@ -924,6 +956,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addSeparator()
 
         submenu = QtWidgets.QMenu("Columns")
+        action = QtGui.QAction("Raw Column", submenu)
+        action.setCheckable(True)
+        action.setChecked(not self.isColumnHidden(self.RawColumn))
+        submenu.addAction(action)
         action = QtGui.QAction("Unit Column", submenu)
         action.setCheckable(True)
         action.setChecked(not self.isColumnHidden(self.UnitColumn))
@@ -1682,6 +1718,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                 iterator += 1
 
+        elif action_text == "Raw Column":
+            self.setColumnHidden(self.RawColumn, not self.isColumnHidden(self.RawColumn))
         elif action_text == "Unit Column":
             self.setColumnHidden(self.UnitColumn, not self.isColumnHidden(self.UnitColumn))
         elif action_text == "Common Axis Column":
@@ -1762,6 +1800,22 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 .name()
             )
             self.setStyleSheet(SCROLLBAR_STYLE.format(font_size=size, color=color))
+
+    def set_header_columns_visibility(self, visibility):
+        for name, is_visible in visibility.items():
+            col = getattr(self, name, -1)
+            if col == -1:
+                continue
+
+            self.setColumnHidden(col, not is_visible)
+
+    def set_header_sizes(self, sizes):
+        for name, size in sizes.items():
+            col = getattr(self, name, -1)
+            if col == -1:
+                continue
+
+            self.setColumnWidth(col, size)
 
     def set_style(self):
         dark = (
@@ -1848,11 +1902,12 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     Info = 2002
 
     NameColumn = 0
-    ValueColumn = 1
-    UnitColumn = 2
-    CommonAxisColumn = 3
-    IndividualAxisColumn = 4
-    OriginColumn = 5
+    RawColumn = 1
+    ValueColumn = 2
+    UnitColumn = 3
+    CommonAxisColumn = 4
+    IndividualAxisColumn = 5
+    OriginColumn = 6
 
     def __init__(
         self,
@@ -1915,6 +1970,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             self._value_prefix = ""
             self._value = "n.a."
+            self._raw_value = "n.a."
             self.uuid = signal.uuid
             self.origin_uuid = signal.origin_uuid
             self.set_ranges(ranges or [])
@@ -1936,6 +1992,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.details_text = details or "\tSource not available"
             self.setToolTip(self.NameColumn, tooltip)
             self.setToolTip(self.ValueColumn, "")
+            self.setToolTip(self.RawColumn, "")
             self.setToolTip(self.UnitColumn, "unit")
             self.setToolTip(self.CommonAxisColumn, "common axis")
             self.setToolTip(self.IndividualAxisColumn, "individual axis")
@@ -1951,6 +2008,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             self.setText(self.NameColumn, self.name)
             self.setForeground(self.NameColumn, signal.color)
+            self.setForeground(self.RawColumn, signal.color)
             self.setForeground(self.ValueColumn, signal.color)
             self.setForeground(self.CommonAxisColumn, signal.color)
             self.setForeground(self.IndividualAxisColumn, signal.color)
@@ -1977,7 +2035,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             if signal.flags & Signal.Flags.computed:
                 font = self.font(0)
                 font.setItalic(True)
-                for column in (self.NameColumn, self.ValueColumn, self.UnitColumn):
+                for column in (self.NameColumn, self.RawColumn, self.ValueColumn, self.UnitColumn):
                     self.setFont(column, font)
 
             if signal.group_index == NOT_FOUND:
@@ -1993,6 +2051,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.uuid = uuid
             self.origin_uuid = origin_uuid
 
+        self.setTextAlignment(self.RawColumn, QtCore.Qt.AlignmentFlag.AlignRight)
         self.setTextAlignment(self.ValueColumn, QtCore.Qt.AlignmentFlag.AlignRight)
         self.setText(self.OriginColumn, self.origin_uuid)
 
@@ -2027,6 +2086,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.signal.pen = fn.mkPen(color_name)
             self.signal.color_name = color_name
             self.setForeground(self.NameColumn, value)
+            self.setForeground(self.RawColumn, value)
             self.setForeground(self.ValueColumn, value)
             self.setForeground(self.CommonAxisColumn, value)
             self.setForeground(self.IndividualAxisColumn, value)
@@ -2049,6 +2109,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             value = fn.mkColor(value)
 
             self.setForeground(self.NameColumn, value)
+            self.setForeground(self.RawColumn, value)
             self.setForeground(self.ValueColumn, value)
             self.setForeground(self.CommonAxisColumn, value)
             self.setForeground(self.IndividualAxisColumn, value)
@@ -2375,6 +2436,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                     color = self.signal.color
 
                     self.setForeground(self.NameColumn, color)
+                    self.setForeground(self.RawColumn, color)
                     self.setForeground(self.ValueColumn, color)
                     self.setForeground(self.CommonAxisColumn, color)
                     self.setForeground(self.IndividualAxisColumn, color)
@@ -2452,6 +2514,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             if self.type() == self.Channel:
                 brush = self._background_color
                 self.setBackground(self.NameColumn, brush)
+                self.setBackground(self.RawColumn, brush)
                 self.setBackground(self.ValueColumn, brush)
                 self.setBackground(self.UnitColumn, brush)
                 self.setBackground(self.CommonAxisColumn, brush)
@@ -2462,6 +2525,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 brush = fn.mkBrush(self.signal.color_name)
                 self.setForeground(self.NameColumn, brush)
                 self.setForeground(self.UnitColumn, brush)
+                self.setForeground(self.RawColumn, brush)
                 self.setForeground(self.ValueColumn, brush)
                 self.setForeground(self.CommonAxisColumn, brush)
                 self.setForeground(self.IndividualAxisColumn, brush)
@@ -2472,7 +2536,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         self.reset_resolved_ranges()
 
-    def set_value(self, value=None, update=False, force=False):
+    def set_value(self, raw_value=None, value=None, update=False, force=False):
         if self.type() == self.Info:
             return
 
@@ -2484,6 +2548,14 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 self._value = value
         else:
             value = self._value
+
+        if raw_value is not None:
+            if self._raw_value == raw_value and update is False:
+                return
+            else:
+                self._raw_value = raw_value
+        else:
+            raw_value = self._raw_value
 
         default_background_color = None
         default_font_color = None
@@ -2502,6 +2574,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 if self._background_color != self._current_background_color:
                     brush = self._background_color
                     self.setBackground(self.NameColumn, brush)
+                    self.setBackground(self.RawColumn, brush)
                     self.setBackground(self.ValueColumn, brush)
                     self.setBackground(self.UnitColumn, brush)
                     self.setBackground(self.CommonAxisColumn, brush)
@@ -2512,6 +2585,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 if new_background_color != self._current_background_color:
                     brush = fn.mkBrush(new_background_color.name())
                     self.setBackground(self.NameColumn, brush)
+                    self.setBackground(self.RawColumn, brush)
                     self.setBackground(self.ValueColumn, brush)
                     self.setBackground(self.UnitColumn, brush)
                     self.setBackground(self.CommonAxisColumn, brush)
@@ -2524,6 +2598,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                     brush = fn.mkBrush(self.signal.color_name)
                     self.setForeground(self.NameColumn, brush)
                     self.setForeground(self.UnitColumn, brush)
+                    self.setForeground(self.RawColumn, brush)
                     self.setForeground(self.ValueColumn, brush)
                     self.setForeground(self.CommonAxisColumn, brush)
                     self.setForeground(self.IndividualAxisColumn, brush)
@@ -2533,6 +2608,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 if new_font_color != self.foreground(0).color():
                     brush = fn.mkBrush(new_font_color.name())
                     self.setForeground(self.NameColumn, brush)
+                    self.setForeground(self.RawColumn, brush)
                     self.setForeground(self.ValueColumn, brush)
                     self.setForeground(self.UnitColumn, brush)
                     self.setForeground(self.CommonAxisColumn, brush)
@@ -2570,6 +2646,24 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                     self.setText(self.ValueColumn, text)
                 except (ValueError, TypeError):
                     self.setText(self.ValueColumn, f"{self._value_prefix}{value}")
+
+            if raw_value in ("", "n.a."):
+                text = f"{self._value_prefix}{raw_value}"
+                self.setText(self.RawColumn, text)
+            else:
+                string = value_as_str(
+                    raw_value,
+                    self.format,
+                    self.signal.raw_samples.dtype,
+                    self.precision,
+                )
+
+                text = f"{self._value_prefix}{string}"
+
+                try:
+                    self.setText(self.RawColumn, text)
+                except (ValueError, TypeError):
+                    self.setText(self.RawColumn, f"{self._value_prefix}{raw_value}")
 
     def show_info(self):
         if self.type() == self.Group:

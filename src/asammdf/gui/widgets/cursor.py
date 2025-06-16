@@ -324,7 +324,7 @@ class Cursor(pg.InfiniteLine):
                 signal, idx = plot.signal_by_uuid(uuid)
                 if signal.enable:
                     index = plot.get_timestamp_index(position, signal.timestamps)
-                    y_value, kind, fmt = signal.value_at_index(index)
+                    raw_value, raw_kind, y_value, kind, fmt = signal.value_at_index(index)
                     if y_value != "n.a.":
                         x, y = plot.scale_curve_to_pixmap(
                             position,

@@ -4098,14 +4098,27 @@ class WithMDIArea:
         if "common_axis_y_range" in window_info["configuration"]:
             plot.plot.common_axis_y_range = tuple(window_info["configuration"]["common_axis_y_range"])
 
-        if "channels_header" in window_info["configuration"]:
+        # keep compatibility with older asammdf versions
+        if "channels_header_sizes" in window_info["configuration"]:
+            width, sizes = window_info["configuration"]["channels_header_sizes"]
+            current_width = sum(plot.splitter.sizes())
+            plot.splitter.setSizes([width, max(current_width - width, 50)])
+            plot.channel_selection.set_header_sizes(sizes)
+
+        elif "channels_header" in window_info["configuration"]:
             width, sizes = window_info["configuration"]["channels_header"]
             current_width = sum(plot.splitter.sizes())
             plot.splitter.setSizes([width, max(current_width - width, 50)])
             for i, size in enumerate(sizes):
                 plot.channel_selection.setColumnWidth(i, size)
 
-        if "channels_header_columns_visible" in window_info["configuration"]:
+        # keep compatibility with older asammdf versions
+        if "channels_header_columns_visiblity" in window_info["configuration"]:
+            plot.channel_selection.set_header_columns_visibility(
+                window_info["configuration"]["channels_header_columns_visiblity"]
+            )
+
+        elif "channels_header_columns_visible" in window_info["configuration"]:
             for i, visible in enumerate(window_info["configuration"]["channels_header_columns_visible"]):
                 plot.channel_selection.setColumnHidden(i, not visible)
 
