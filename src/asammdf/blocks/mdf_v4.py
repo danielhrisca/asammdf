@@ -12109,9 +12109,9 @@ class MDF4(MDF_Common[Group]):
 
                 for bus in buses:
                     bus_msg_ids = msg_ids[bus_ids == bus]
-                    unique_ids = unique(bus_msg_ids)
-                    unique_ids.sort()
-                    unique_ids = unique_ids.tolist()
+                    unique_id_array = unique(bus_msg_ids)
+                    unique_id_array.sort()
+                    unique_ids = typing.cast(list[int], unique_id_array.tolist())
 
                     bus_map = self.bus_logging_map["CAN"].setdefault(bus, {})
 
