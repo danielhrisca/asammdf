@@ -459,6 +459,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         # Press "Shift+F"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["stack_selected"]))
         self.avoid_blinking_issue(self.plot.channel_selection)
+        self.processEvents(0.01)
         # Evaluate
         with self.subTest("test_stack_selected_shortcut"):
             # First line
@@ -1038,6 +1039,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
         self.avoid_blinking_issue(self.plot.channel_selection)
+        self.processEvents(0.1)
         self.processEvents(0.01)
 
         # Find new extremes

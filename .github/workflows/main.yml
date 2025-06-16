@@ -55,7 +55,7 @@ jobs:
         run: tox
 
       - uses: actions/upload-artifact@v4
-        if: failure() && matrix.os == 'windows-latest' # 'ubuntu-22.04' or 'windows-latest'
+        if: failure() # && matrix.os == 'windows-latest' # 'ubuntu-22.04' or 'windows-latest'
         with:
           path: "**/screenshots/**"
           name: screenshots-${{ matrix.os }}-${{ matrix.python-version }}
