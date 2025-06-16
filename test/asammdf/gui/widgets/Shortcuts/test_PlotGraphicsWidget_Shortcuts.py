@@ -363,6 +363,8 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     raise Exception(f"column {x} doesn't have color of channel {ch.name} from {start=} to {stop=}")
 
         self.pg.cursor1.color = "#000000"
+        settings = QSettings()
+        settings.setValue("zoom_x_center_on_cursor", True)
 
         self.add_channels([35, 36, 37])
 
@@ -1121,6 +1123,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                 > signal is zoomed => is extended to left side => last column contain signal color
             - Evaluate that after pressing key "W", signal is displayed from first to last column
         """
+        settings = QSettings()
+        settings.setValue("zoom_x_center_on_cursor", True)
+
         self.assertIsNotNone(self.add_channels([35]))
         channel_35 = self.channels[0]
 
