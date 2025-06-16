@@ -9231,7 +9231,7 @@ class MDF4(MDF_Common[Group]):
                     t = arange(record_offset, record_offset + record_count, 1, dtype=float64)
 
                 if time_conv is not None:
-                    t = typing.cast(ChannelConversion, time_conv).convert(t)
+                    t = time_conv.convert(t)
 
             else:
                 # check if the channel group contains just the master channel
