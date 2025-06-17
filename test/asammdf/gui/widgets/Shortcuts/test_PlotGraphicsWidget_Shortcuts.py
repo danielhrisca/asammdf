@@ -461,13 +461,14 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.avoid_blinking_issue(self.plot.channel_selection)
         for _ in range(10):
             self.processEvents(0.01)
+        self.processEvents(0.1)  # only py310 continue failing because of unprocessed graphics
         # Evaluate
         with self.subTest("test_stack_selected_shortcut"):
             # First line
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 1))))
             # Top
             pixmap = self.pg.grab(QRect(0, 0, self.pg.width(), int(self.pg.height() / 3)))
-            self.pg.grab().save(os.path.join(self.screenshots, f"{self.id()}.png")) # debug
+            self.pg.grab().save(os.path.join(self.screenshots, f"{self.id()}.png"))  # debug
             self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
             self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
             self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
@@ -1054,7 +1055,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertLess(old_from_to_y_channel_36[1], new_from_to_y_channel_36[1])
         self.assertGreater(old_from_to_x_channel_36[0], new_from_to_x_channel_36[0])
         self.assertGreater(old_from_to_x_channel_36[1], new_from_to_x_channel_36[1])
-        
+
         self.assertGreater(old_from_to_y_channel_37[0], new_from_to_y_channel_37[0])
         self.assertGreater(old_from_to_y_channel_37[1], new_from_to_y_channel_37[1])
         self.assertLess(old_from_to_x_channel_37[0], new_from_to_x_channel_37[0])

@@ -111,13 +111,9 @@ class TestBase(unittest.TestCase):
                 shutil.rmtree(self.test_workspace)
             except PermissionError as e:
                 print(e)
-        if not os.path.exists(self.screenshots):
-            os.makedirs(self.screenshots)
 
-        try:
-            os.makedirs(self.test_workspace)
-        except FileExistsError as e:
-            pass
+        os.makedirs(self.screenshots, exist_ok=True)
+        os.makedirs(self.test_workspace, exist_ok=True)
 
         self.mc_ErrorDialog.reset_mock()
         self.processEvents()

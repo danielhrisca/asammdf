@@ -25,17 +25,18 @@ class TestFileWidget(TestBase):
         self.mc_widget_ed = patcher.start()
         self.addCleanup(patcher.stop)
 
-        self.measurement_file = shutil.copy(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"), self.test_workspace)
+        try:  # is preferable to work with a copy of the file
+            self.measurement_file = shutil.copy(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"), self.test_workspace)
+        except:  # but if old processes isn't finished or something keeps the file in use, do not fail the test
+            self.measurement_file = os.path.join(self.resource, "ASAP2_Demo_V171.mf4")
 
     def tearDown(self):
         _outcome = getattr(self, "_outcome", None)
         if _outcome:
             failures = getattr(_outcome.result, "failures", None)
-            _list = []
             for method in _outcome.result.__dir__():
                 if not method.startswith("__"):
-                    _list.append(method)
-            print(type(_outcome.result), _list, sep="\n")
+                    print(method, getattr(_outcome.result, method))
             if failures is not None:
                 # save last state graphical view of widget if failure
                 path = self.screenshots
