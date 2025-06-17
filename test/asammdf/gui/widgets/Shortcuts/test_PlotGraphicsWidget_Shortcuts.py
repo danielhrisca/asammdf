@@ -459,7 +459,8 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         # Press "Shift+F"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["stack_selected"]))
         self.avoid_blinking_issue(self.plot.channel_selection)
-        self.processEvents(0.01)
+        for _ in range(10):
+            self.processEvents(0.01)
         # Evaluate
         with self.subTest("test_stack_selected_shortcut"):
             # First line
@@ -1039,12 +1040,10 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
         self.avoid_blinking_issue(self.plot.channel_selection)
-        self.processEvents(0.1)
-        self.processEvents(0.01)
+        for _ in range(10):
+            self.processEvents(0.01)
 
         # Find new extremes
-        self.pg.grab().save(os.path.join(self.screenshots, f"{self.id()}.png")) # debug
-
         new_from_to_y_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "y")
         new_from_to_y_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "y")
         new_from_to_x_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "x")
