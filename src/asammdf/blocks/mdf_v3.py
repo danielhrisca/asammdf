@@ -2,7 +2,6 @@
 
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator, Sequence
-from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
 from itertools import product
@@ -2604,7 +2603,6 @@ class MDF3(MDF_Common[Group]):
         grp = self.groups[gp_nr]
 
         channel = grp.channels[ch_nr]
-        channel = deepcopy(channel)
 
         return channel
 
