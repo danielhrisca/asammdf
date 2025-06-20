@@ -320,7 +320,6 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertAlmostEqual(self.pg.x_range[0], x_range[0], delta=0.001)
         self.assertAlmostEqual(self.pg.x_range[1], x_range[1], delta=0.001)
 
-    # @unittest.skip("FIXME: test keeps failing in CI")
     def test_fit__stack_shortcuts(self):
         """
         Test Scope:
@@ -369,6 +368,10 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         channel_35 = self.channels[0]
         channel_36 = self.channels[1]
         channel_37 = self.channels[2]
+        color_35 = channel_35.color.name()
+        color_36 = channel_36.color.name()
+        color_37 = channel_37.color.name()
+
         # Press "S"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["stack_all"]))
         self.processEvents()
@@ -378,9 +381,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 1))))
             # Top
             pixmap = self.pg.grab(QRect(0, 0, self.pg.width(), int(self.pg.height() / 3)))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertFalse(Pixmap.has_color(pixmap, color_36))
+            self.assertFalse(Pixmap.has_color(pixmap, color_37))
             # Midd
             pixmap = self.pg.grab(
                 QRect(
@@ -390,9 +393,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     int(self.pg.height() / 3),
                 )
             )
-            self.assertFalse(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertFalse(Pixmap.has_color(pixmap, color_35))
+            self.assertTrue(Pixmap.has_color(pixmap, color_36))
+            self.assertFalse(Pixmap.has_color(pixmap, color_37))
             # Bottom
             pixmap = self.pg.grab(
                 QRect(
@@ -402,31 +405,29 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     int(self.pg.height() / 3),
                 )
             )
-            self.assertFalse(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertFalse(Pixmap.has_color(pixmap, color_35))
+            self.assertFalse(Pixmap.has_color(pixmap, color_36))
+            self.assertTrue(Pixmap.has_color(pixmap, color_37))
             # Last 2 lines
 
             pixmap = self.pg.grab(QRect(0, self.pg.height() - 3, self.pg.width(), 2))
-            cn = Pixmap.color_names_exclude_defaults(pixmap)
-            self.assertEqual(len(cn), 0)
+            self.assertTrue(Pixmap.is_black(pixmap))
 
         # select the first channel
         self.mouseClick_WidgetItem(channel_35)
         # Press "Shift+F"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["fit_selected"]))
-        self.avoid_blinking_issue(self.plot.channel_selection)
-        for _ in range(50):
-            self.processEvents()
+        self.is_not_blinking(self.pg, {color_35, color_36, color_37})
+
         # Evaluate
         with self.subTest("test_fit_selected_shortcut"):
             # First line
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 1))))
             # Top
             pixmap = self.pg.grab(QRect(0, 0, self.pg.width(), int(self.pg.height() / 3)))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertFalse(Pixmap.has_color(pixmap, color_36))
+            self.assertFalse(Pixmap.has_color(pixmap, color_37))
             # Midd
             pixmap = self.pg.grab(
                 QRect(
@@ -436,9 +437,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     int(self.pg.height() / 3),
                 )
             )
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertTrue(Pixmap.has_color(pixmap, color_36))
+            self.assertFalse(Pixmap.has_color(pixmap, color_37))
             # Bottom
             pixmap = self.pg.grab(
                 QRect(
@@ -448,9 +449,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     int(self.pg.height() / 3),
                 )
             )
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertFalse(Pixmap.has_color(pixmap, color_36))
+            self.assertTrue(Pixmap.has_color(pixmap, color_37))
             # Last line
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, self.pg.height() - 2, self.pg.width(), 1))))
 
@@ -458,20 +459,16 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.mouseClick_WidgetItem(channel_36)
         # Press "Shift+F"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["stack_selected"]))
-        self.avoid_blinking_issue(self.plot.channel_selection)
-        for _ in range(10):
-            self.processEvents(0.01)
-        self.processEvents(0.1)  # only py310 continue failing because of unprocessed graphics
+        self.is_not_blinking(self.pg, {color_35, color_36, color_37})
         # Evaluate
         with self.subTest("test_stack_selected_shortcut"):
             # First line
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 1))))
             # Top
             pixmap = self.pg.grab(QRect(0, 0, self.pg.width(), int(self.pg.height() / 3)))
-            self.pg.grab().save(os.path.join(self.screenshots, f"{self.id()}.png"))  # debug
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertTrue(Pixmap.has_color(pixmap, color_36))
+            self.assertFalse(Pixmap.has_color(pixmap, color_37))
             # Midd
             pixmap = self.pg.grab(
                 QRect(
@@ -481,9 +478,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     int(self.pg.height() / 3),
                 )
             )
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertTrue(Pixmap.has_color(pixmap, color_36))
+            self.assertFalse(Pixmap.has_color(pixmap, color_37))
             # Bottom
             pixmap = self.pg.grab(
                 QRect(
@@ -493,24 +490,24 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     int(self.pg.height() / 3),
                 )
             )
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertTrue(Pixmap.has_color(pixmap, color_36))
+            self.assertTrue(Pixmap.has_color(pixmap, color_37))
             # Last line
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, self.pg.height() - 1, self.pg.width(), 1))))
 
             # Press "F"
             QTest.keySequence(self.pg, QKeySequence(self.shortcuts["fit_all"]))
-            self.avoid_blinking_issue(self.plot.channel_selection)
+            self.is_not_blinking(self.pg, {color_35, color_36, color_37})
             # Evaluate
         with self.subTest("test_fit_all_shortcut"):
             # First line
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 1))))
             # Top
             pixmap = self.pg.grab(QRect(0, 0, self.pg.width(), int(self.pg.height() / 3)))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertTrue(Pixmap.has_color(pixmap, color_36))
+            self.assertTrue(Pixmap.has_color(pixmap, color_37))
             # Midd
             pixmap = self.pg.grab(
                 QRect(
@@ -520,9 +517,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     int(self.pg.height() / 3),
                 )
             )
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertTrue(Pixmap.has_color(pixmap, color_36))
+            self.assertTrue(Pixmap.has_color(pixmap, color_37))
             # Bottom
             pixmap = self.pg.grab(
                 QRect(
@@ -532,9 +529,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     int(self.pg.height() / 3),
                 )
             )
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertTrue(Pixmap.has_color(pixmap, color_36))
+            self.assertTrue(Pixmap.has_color(pixmap, color_37))
             # Last line
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, self.pg.height() - 1, self.pg.width(), 1))))
 
@@ -986,8 +983,6 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertEqual(f"{ci.name} = {round(ch.signal.timestamps[pos], ci.precision)}{ci.unit}", ci.text())
         self.assertEqual(ch.signal.timestamps[pos], self.pg.cursor1.getXPos())
 
-    # @unittest.skip("FIXME: test keeps failing in CI")
-    # @unittest.skipIf(sys.platform != "win32", "RuntimeError. C++ object <<ViewBoxWithCursor>> already deleted.")
     def test_shift_channels_shortcut(self):
         """
         Test Scope:
@@ -1031,8 +1026,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_down_1x"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_left"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_left"]))
-        self.avoid_blinking_issue(self.plot.channel_selection)
-        self.processEvents()
+        self.is_not_blinking(self.pg, {channel_36.color.name(), channel_37.color.name()})
 
         # Select second channel and move signal using commands Shift + PgUp/Up/Right
         self.mouseClick_WidgetItem(channel_37)
@@ -1040,9 +1034,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_up_1x"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
-        self.avoid_blinking_issue(self.plot.channel_selection)
-        for _ in range(10):
-            self.processEvents(0.01)
+        self.is_not_blinking(self.pg, {channel_36.color.name(), channel_37.color.name()})
 
         # Find new extremes
         new_from_to_y_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "y")
@@ -1092,7 +1084,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         expected_normal_screen_honey_range = find_honey_range(self.pg)
         # Press "H"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["honeywell"]))
-        self.avoid_blinking_issue(self.plot.channel_selection)
+        self.processEvents(0.01)
         delta_normal_screen_x_range = self.pg.x_range[1] - self.pg.x_range[0]
         # Evaluate
         self.assertAlmostEqual(delta_normal_screen_x_range, expected_normal_screen_honey_range, delta=0.0001)
@@ -1106,14 +1098,13 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         expected_full_screen_honey_range = find_honey_range(self.pg)
         # Press "H"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["honeywell"]))
-        self.avoid_blinking_issue(self.plot.channel_selection)
+        self.processEvents(0.01)
         delta_full_screen_x_range = self.pg.x_range[1] - self.pg.x_range[0]
 
         # Evaluate
         self.assertNotEqual(delta_full_screen_x_range, delta_normal_screen_x_range)
         self.assertAlmostEqual(delta_full_screen_x_range, expected_full_screen_honey_range, delta=0.0001)
 
-    # @unittest.skip("FIXME: test keeps failing in CI")
     def test_home_shortcuts(self):
         """
         Check if the signal is fitted properly after pressing key "W".

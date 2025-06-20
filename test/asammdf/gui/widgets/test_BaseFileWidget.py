@@ -31,21 +31,14 @@ class TestFileWidget(TestBase):
             self.measurement_file = os.path.join(self.resource, "ASAP2_Demo_V171.mf4")
 
     def tearDown(self):
-        _outcome = getattr(self, "_outcome", None)
-        if _outcome:
-            failures = getattr(_outcome.result, "failures", None)
-            for method in _outcome.result.__dir__():
-                if not method.startswith("__"):
-                    print(method, getattr(_outcome.result, method))
-            if failures is not None:
-                # save last state graphical view of widget if failure
-                path = self.screenshots
-                for name in self.id().split(".")[:-1]:
-                    _path = os.path.join(path, name)
-                    if not os.path.exists(_path):
-                        os.makedirs(_path)
-                    path = _path
-                self.widget.grab().save(os.path.join(path, f"{self.id().split('.')[-1]}.png"))
+        # save last state graphical view of widget if failure
+        path = self.screenshots
+        for name in self.id().split(".")[:-1]:
+            _path = os.path.join(path, name)
+            if not os.path.exists(_path):
+                os.makedirs(_path)
+            path = _path
+        self.widget.grab().save(os.path.join(path, f"{self.id().split('.')[-1]}.png"))
 
         if self.widget is not None:
             self.widget.close()

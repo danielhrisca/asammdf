@@ -195,12 +195,28 @@ class TestBase(unittest.TestCase):
         )
         self.processEvents(0.5)
 
-    def avoid_blinking_issue(self, w):
-        self.processEvents(0.01)
-        # To avoid blinking issue, click on a center of widget
-        QtTest.QTest.mouseClick(
-            w, QtCore.Qt.MouseButton.LeftButton, QtCore.Qt.KeyboardModifier.NoModifier, w.rect().center()
-        )
+    def is_not_blinking(self, to_grab, colors: set[str], timeout=5):
+        """
+        Parameters
+        ----------
+        - to_grab: widget ex: self.plot
+        - colors: a set of colors names ex: {"#123456", "#ffffff"}
+        Returns
+        -------
+        - True: if not timeout and all colors exist on pixmap
+        - False: if timeout and no colors exist on pixmap
+        """
+        if not hasattr(to_grab, "grab"):
+            raise Warning(f"object {to_grab} has no attribute grab")
+
+        now = time.perf_counter()
+        all_colors = Pixmap.color_names_exclude_defaults(to_grab.grab())
+        while not colors.issubset(all_colors):
+            self.processEvents(0.01)
+            all_colors = Pixmap.color_names_exclude_defaults(to_grab.grab())
+            if time.perf_counter() - now > timeout:
+                return False
+        return True
 
 
 class DragAndDrop:
@@ -323,7 +339,6 @@ class Pixmap:
     @staticmethod
     def color_names_exclude_defaults(pixmap):
         """
-
         Parameters
         ----------
         pixmap: QPixmap object of PlotGraphics object
