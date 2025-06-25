@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import datetime
 from math import ceil
+import os
 from pathlib import Path
 from random import randint
 import unittest
@@ -189,6 +190,7 @@ class TestPushButtonApply(TestBatchWidget):
             for channel in self.selected_channels:
                 self.assertIn(channel, mdf_file.channels_db)
 
+    @unittest.skipIf(os.getenv("NO_NET_ACCESS"), "Test requires Internet access")
     def test_output_format_ASC(self):
         """
         When QThreads are running, event-loops needs to be processed.
@@ -579,6 +581,7 @@ class TestPushButtonApply(TestBatchWidget):
                 self.assertIn(channel, hdf5_channels)
                 np.testing.assert_almost_equal(mdf_channel.samples, hdf5_channel, decimal=3)
 
+    @unittest.skipIf(os.getenv("NO_NET_ACCESS"), "Test requires Internet access")
     def test_output_format_Parquet_0(self):
         """
         When QThreads are running, event-loops needs to be processed.
@@ -621,6 +624,7 @@ class TestPushButtonApply(TestBatchWidget):
                 if np.issubdtype(channel.samples.dtype, np.number):  # problematic conversion
                     np.testing.assert_almost_equal(channel.samples, pandas_tab[name].values, decimal=9)
 
+    @unittest.skipIf(os.getenv("NO_NET_ACCESS"), "Test requires Internet access")
     def test_output_format_Parquet_1(self):
         """
         When QThreads are running, event-loops needs to be processed.
