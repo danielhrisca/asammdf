@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from io import BytesIO
+import os
 from pathlib import Path
 import random
 import tempfile
@@ -25,6 +26,7 @@ SUPPORTED_VERSIONS = tuple(version for version in SUPPORTED_VERSIONS if "4.20" >
 CHANNEL_LEN = 100000
 
 
+@unittest.skipIf(os.getenv("NO_NET_ACCESS"), "Test requires Internet access")
 class TestMDF(unittest.TestCase):
     tempdir_demo: tempfile.TemporaryDirectory[str]
     tempdir_array: tempfile.TemporaryDirectory[str]

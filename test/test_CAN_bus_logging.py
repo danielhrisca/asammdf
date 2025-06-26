@@ -12,6 +12,7 @@ import numpy as np
 from asammdf import MDF
 
 
+@unittest.skipIf(os.getenv("NO_NET_ACCESS"), "Test requires Internet access")
 class TestCANBusLogging(unittest.TestCase):
     tempdir_obd: tempfile.TemporaryDirectory[str]
     tempdir_j1939: tempfile.TemporaryDirectory[str]
