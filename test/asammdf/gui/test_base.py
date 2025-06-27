@@ -63,7 +63,7 @@ class TestBase(unittest.TestCase):
 
     resource = os.path.normpath(os.path.join(os.path.dirname(__file__), "resources"))
     test_workspace = os.path.join(os.path.dirname(__file__), "test_workspace")
-    screenshots = os.path.join(os.path.dirname(__file__).split("test")[0], "screenshots")
+    screenshots = os.path.join(os.path.dirname(__file__), "screenshots")
 
     patchers = []
     # MockClass ErrorDialog
@@ -111,10 +111,10 @@ class TestBase(unittest.TestCase):
                 shutil.rmtree(self.test_workspace)
             except PermissionError as e:
                 print(e)
-        if not os.path.exists(self.screenshots):
-            os.makedirs(self.screenshots)
 
-        os.makedirs(self.test_workspace)
+        os.makedirs(self.screenshots, exist_ok=True)
+        os.makedirs(self.test_workspace, exist_ok=True)
+
         self.mc_ErrorDialog.reset_mock()
         self.processEvents()
 
@@ -133,13 +133,8 @@ class TestBase(unittest.TestCase):
 
     def tearDown(self):
         self.processEvents()
-        path_ = os.path.join(self.screenshots, self.id().split("gui.")[-1].rsplit(".", 1)[0])
-        if not os.path.exists(path_):
-            os.makedirs(path_)
-
         w = getattr(self, "widget", None)
         if w:
-            w.grab().save(os.path.join(path_, f"{self.id().split('.')[-1]}.png"))
             self.destroy(w)
 
         self.mc_ErrorDialog.reset_mock()
@@ -200,12 +195,28 @@ class TestBase(unittest.TestCase):
         )
         self.processEvents(0.5)
 
-    def avoid_blinking_issue(self, w):
-        self.processEvents(0.01)
-        # To avoid blinking issue, click on a center of widget
-        QtTest.QTest.mouseClick(
-            w, QtCore.Qt.MouseButton.LeftButton, QtCore.Qt.KeyboardModifier.NoModifier, w.rect().center()
-        )
+    def is_not_blinking(self, to_grab, colors: set[str], timeout=5):
+        """
+        Parameters
+        ----------
+        - to_grab: widget ex: self.plot
+        - colors: a set of colors names ex: {"#123456", "#ffffff"}
+        Returns
+        -------
+        - True: if not timeout and all colors exist on pixmap
+        - False: if timeout and no colors exist on pixmap
+        """
+        if not hasattr(to_grab, "grab"):
+            raise Warning(f"object {to_grab} has no attribute grab")
+
+        now = time.perf_counter()
+        all_colors = Pixmap.color_names_exclude_defaults(to_grab.grab())
+        while not colors.issubset(all_colors):
+            self.processEvents(0.01)
+            all_colors = Pixmap.color_names_exclude_defaults(to_grab.grab())
+            if time.perf_counter() - now > timeout:
+                return False
+        return True
 
 
 class DragAndDrop:
@@ -328,7 +339,6 @@ class Pixmap:
     @staticmethod
     def color_names_exclude_defaults(pixmap):
         """
-
         Parameters
         ----------
         pixmap: QPixmap object of PlotGraphics object
