@@ -455,8 +455,8 @@ class FormatedAxis(pg.AxisItem):
                 delta = sig_y_top - sig_y_bottom
 
                 if event.delta() > 0:
-                    end = sig_y_top - 1 / factor * delta
-                    start = sig_y_bottom + 1 / factor * delta
+                    end = sig_y_top - factor * delta
+                    start = sig_y_bottom + factor * delta
                 else:
                     end = sig_y_top + factor * delta
                     start = sig_y_bottom - factor * delta
@@ -473,7 +473,7 @@ class FormatedAxis(pg.AxisItem):
                 delta = self.range[-1] - self.range[0]
 
                 if event.delta() > 0:
-                    delta = 1 / (1 + factor) * delta
+                    delta = (1 - factor) * delta
                 else:
                     delta = (1 + factor) * delta
 
