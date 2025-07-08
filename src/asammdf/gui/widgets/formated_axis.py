@@ -732,6 +732,11 @@ class FormatedAxis(pg.AxisItem):
                     values.append(val)
                     strings.append(strn)
 
+        if self._settings.value("grid_major_ticks_only", False, type=bool):
+            tickLevels = tickLevels[:1]
+            if tickStrings is not None:
+                tickStrings = tickStrings[:1]
+
         ## determine mapping between tick values and local coordinates
         dif = self.range[1] - self.range[0]
         if dif == 0:
