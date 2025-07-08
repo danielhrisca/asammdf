@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 import codecs
+import os
 from pathlib import Path
 import sys
+import unittest
 from unittest import mock
 import urllib
 import urllib.request
@@ -18,6 +20,7 @@ from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 # to avoid initializing widgets multiple times and consume time.
 
 
+@unittest.skipIf(os.getenv("NO_NET_ACCESS"), "Test requires Internet access")
 class TestPushButtons(TestBatchWidget):
     def setUp(self):
         super().setUp()

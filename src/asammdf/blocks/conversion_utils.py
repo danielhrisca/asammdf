@@ -292,6 +292,8 @@ def inverse_conversion(
     conversion_dict: v3b.ChannelConversionKwargs | v4b.ChannelConversionKwargs | dict[str, object]
     if not isinstance(conversion, dict):
         conversion_dict = to_dict(conversion)
+        if conversion_dict is None:
+            return None
     else:
         conversion_dict = conversion
 
