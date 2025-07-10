@@ -33,18 +33,13 @@ from traceback import format_exc
 
 import numpy as np
 import pandas as pd
-import pyqtgraph.functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 import asammdf.mdf as mdf_module
 
-from ...blocks.utils import (
-    csv_bytearray2hex,
-    extract_mime_names,
-    pandas_query_compatible,
-    timeit,
-)
+from ...blocks.utils import csv_bytearray2hex, pandas_query_compatible, timeit
 from ..dialogs.range_editor import RangeEditor
+from ..serde import extract_mime_names
 from ..ui.tabular import Ui_TabularDisplay
 from ..utils import (
     copy_ranges,
@@ -70,7 +65,6 @@ MONOSPACE_FONT = None
 
 
 class TabularTreeItem(QtWidgets.QTreeWidgetItem):
-
     DEFAULT_FLAGS = QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsSelectable
 
     def __init__(self, column_types, int_format, ranges=None, *args, **kwargs):
@@ -138,8 +132,8 @@ class TabularTreeItem(QtWidgets.QTreeWidgetItem):
 
 
 class DataFrameStorage:
-    """
-    All methods that modify the data should modify self.df_unfiltered, then self.df gets computed from that
+    """All methods that modify the data should modify self.df_unfiltered, then
+    self.df gets computed from that.
     """
 
     def __init__(self, df, tabular):
@@ -276,9 +270,7 @@ class DataFrameStorage:
 
 
 class DataTableModel(QtCore.QAbstractTableModel):
-    """
-    Model for DataTableView to connect for DataFrame data
-    """
+    """Model for DataTableView to connect for DataFrame data."""
 
     def __init__(self, parent, background_color, font_color):
         super().__init__(parent)
@@ -314,7 +306,7 @@ class DataTableModel(QtCore.QAbstractTableModel):
 
             if type(cell_is_na) == bool and cell_is_na:
                 return "●"
-            elif isinstance(cell, bytes | np.bytes_):
+            elif isinstance(cell, (bytes, np.bytes_)):
                 return cell.decode("utf-8", "replace")
             else:
                 return value_as_str(cell, self.format, None, self.float_precision)
@@ -359,7 +351,7 @@ class DataTableModel(QtCore.QAbstractTableModel):
             elif isinstance(cell, pd.Timestamp):
                 return int(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
             else:
-                if self.float_precision == -1 and isinstance(cell, float | np.floating):
+                if self.float_precision == -1 and isinstance(cell, (float, np.floating)):
                     return int(QtCore.Qt.AlignmentFlag.AlignLeft | QtCore.Qt.AlignmentFlag.AlignVCenter)
                 else:
                     return int(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
@@ -408,9 +400,9 @@ class DataTableView(QtWidgets.QTableView):
         self.setDropIndicatorShown(False)
 
     def on_selectionChanged(self):
-        """
-        Runs when cells are selected in the main table. This logic highlights the correct cells in the vertical and
-        horizontal headers when a data cell is selected
+        """Runs when cells are selected in the main table. This logic highlights
+        the correct cells in the vertical and horizontal headers when a data
+        cell is selected.
         """
         columnHeader = self.dataframe_viewer.columnHeader
         indexHeader = self.dataframe_viewer.indexHeader
@@ -571,9 +563,7 @@ class HeaderModel(QtCore.QAbstractTableModel):
 
 
 class HeaderView(QtWidgets.QTableView):
-    """
-    Displays the DataFrame index or columns depending on orientation
-    """
+    """Displays the DataFrame index or columns depending on orientation."""
 
     def __init__(self, parent, orientation):
         super().__init__(parent)
@@ -659,9 +649,8 @@ class HeaderView(QtWidgets.QTableView):
 
     # Header
     def on_selectionChanged(self, force=False):
-        """
-        Runs when cells are selected in the Header. This selects columns in the data table when the header is clicked,
-        and then calls selectAbove()
+        """Runs when cells are selected in the Header. This selects columns in
+        the data table when the header is clicked, and then calls selectAbove().
         """
         # Check focus so we don't get recursive loop, since headers trigger selection of data cells and vice versa
         if self.hasFocus() or force:
@@ -1204,13 +1193,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         if not ranges:
             self.ranges = {name: [] for name in df.columns}
         else:
-            self.ranges = {}
-
-            for name, ranges_ in ranges.items():
-                for range_info in ranges_:
-                    range_info["font_color"] = fn.mkBrush(range_info["font_color"])
-                    range_info["background_color"] = fn.mkBrush(range_info["background_color"])
-                self.ranges[name] = ranges_
+            self.ranges = ranges
 
         df = DataFrameStorage(df, self)
 
@@ -1355,7 +1338,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             try:
                 new_df = df.query(" ".join(filters))
             except:
-                logger.exception(f'Failed to apply filter for tabular window: {" ".join(filters)}')
+                logger.exception(f"Failed to apply filter for tabular window: {' '.join(filters)}")
                 self.query.setText(format_exc())
             else:
                 to_drop = [name for name in df.columns if name.endswith("__as__bytes")]
@@ -1466,26 +1449,6 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
     def to_config(self):
         count = self.filters.count()
 
-        pattern = self.pattern
-        if pattern:
-            ranges = copy_ranges(pattern["ranges"])
-
-            for range_info in ranges:
-                range_info["font_color"] = range_info["font_color"].color().name()
-                range_info["background_color"] = range_info["background_color"].color().name()
-
-            pattern["ranges"] = ranges
-
-        ranges = {}
-        for name, channel_ranges in self.ranges.items():
-            channel_ranges = copy_ranges(channel_ranges)
-
-            for range_info in channel_ranges:
-                range_info["font_color"] = range_info["font_color"].color().name()
-                range_info["background_color"] = range_info["background_color"].color().name()
-
-            ranges[name] = channel_ranges
-
         config = {
             "sorted": True,
             "channels": list(self.tree.pgdf.df_unfiltered.columns) if not self.pattern else [],
@@ -1496,9 +1459,9 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                 else []
             ),
             "time_as_date": self.time_as_date.checkState() == QtCore.Qt.CheckState.Checked,
-            "pattern": pattern,
+            "pattern": self.pattern,
             "format": self.format,
-            "ranges": ranges,
+            "ranges": self.ranges,
             "header_sections_width": [
                 self.tree.columnHeader.horizontalHeader().sectionSize(i)
                 for i in range(self.tree.columnHeader.horizontalHeader().count())
@@ -1923,9 +1886,7 @@ class DataFrameViewer(QtWidgets.QWidget):
             self.dataView.horizontalScrollBar().hide()
 
     def auto_size_column(self, column_index, extra_padding=0):
-        """
-        Set the size of column at column_index to fit its contents
-        """
+        """Set the size of column at column_index to fit its contents."""
 
         width = 0
 
@@ -1963,9 +1924,7 @@ class DataFrameViewer(QtWidgets.QWidget):
         return width
 
     def auto_size_row(self, row_index):
-        """
-        Set the size of row at row_index to fix its contents
-        """
+        """Set the size of row at row_index to fix its contents."""
         height = 24
 
         self.indexHeader.setRowHeight(row_index, height)
@@ -2001,9 +1960,7 @@ class DataFrameViewer(QtWidgets.QWidget):
 
     @timeit
     def copy(self, header=False):
-        """
-        Copy the selected cells to clipboard in an Excel-pasteable format
-        """
+        """Copy the selected cells to clipboard in an Excel-pasteable format."""
         # Get the bounds using the top left and bottom right selected cells
 
         fmt = self.dataView.model().format
@@ -2047,7 +2004,7 @@ class DataFrameViewer(QtWidgets.QWidget):
 
         for name in df.columns:
             col = df[name]
-            if isinstance(col.values[0], bytes | np.bytes_):
+            if isinstance(col.values[0], (bytes, np.bytes_)):
                 df[name] = pd.Series(col, dtype=pd.StringDtype())
 
         if self.dataView.model().float_precision != -1:

@@ -93,9 +93,9 @@ class FormatedAxis(pg.AxisItem):
 
                 if isinstance(nv, bytes):
                     try:
-                        strns.append(f'{val}={nv.decode("utf-8", errors="replace")}')
+                        strns.append(f"{val}={nv.decode('utf-8', errors='replace')}")
                     except:
-                        strns.append(f'{val}={nv.decode("latin-1", errors="replace")}')
+                        strns.append(f"{val}={nv.decode('latin-1', errors='replace')}")
                 else:
                     strns.append(val)
         else:
@@ -150,7 +150,7 @@ class FormatedAxis(pg.AxisItem):
         return [val[:80] for val in strns]
 
     def setLabel(self, text=None, units=None, unitPrefix=None, **args):
-        """overwrites pyqtgraph setLabel"""
+        """Override pyqtgraph.AxisItem.setLabel."""
         show_label = False
         if text is not None:
             self.labelText = text
@@ -455,8 +455,8 @@ class FormatedAxis(pg.AxisItem):
                 delta = sig_y_top - sig_y_bottom
 
                 if event.delta() > 0:
-                    end = sig_y_top - 1 / factor * delta
-                    start = sig_y_bottom + 1 / factor * delta
+                    end = sig_y_top - factor * delta
+                    start = sig_y_bottom + factor * delta
                 else:
                     end = sig_y_top + factor * delta
                     start = sig_y_bottom - factor * delta
@@ -473,7 +473,7 @@ class FormatedAxis(pg.AxisItem):
                 delta = self.range[-1] - self.range[0]
 
                 if event.delta() > 0:
-                    delta = 1 / (1 + factor) * delta
+                    delta = (1 - factor) * delta
                 else:
                     delta = (1 + factor) * delta
 
@@ -528,7 +528,7 @@ class FormatedAxis(pg.AxisItem):
 
                         y_pos_val, sig_y_bottom, sig_y_top = plot.value_at_cursor()
 
-                        if isinstance(y_pos_val, int | float):
+                        if isinstance(y_pos_val, (int, float)):
                             delta_proc = (y_pos_val - (sig_y_top + sig_y_bottom) / 2) / (sig_y_top - sig_y_bottom)
                             shift = delta_proc * (sig_y_top - sig_y_bottom)
                             sig_y_top, sig_y_bottom = sig_y_top + shift, sig_y_bottom + shift
@@ -672,10 +672,9 @@ class FormatedAxis(pg.AxisItem):
             self.picture = picture
 
     def generateDrawSpecs(self, p, ratio):
-        """
-        Calls tickValues() and tickStrings() to determine where and how ticks should
-        be drawn, then generates from this a set of drawing commands to be
-        interpreted by drawPicture().
+        """Call tickValues() and tickStrings() to determine where and how ticks
+        should be drawn, then generates from this a set of drawing commands to
+        be interpreted by drawPicture().
         """
         bounds = self.mapRectFromParent(self.geometry())
 
@@ -732,6 +731,11 @@ class FormatedAxis(pg.AxisItem):
                 for val, strn in level:
                     values.append(val)
                     strings.append(strn)
+
+        if self._settings.value("grid_major_ticks_only", False, type=bool):
+            tickLevels = tickLevels[:1]
+            if tickStrings is not None:
+                tickStrings = tickStrings[:1]
 
         ## determine mapping between tick values and local coordinates
         dif = self.range[1] - self.range[0]
@@ -949,3 +953,29 @@ class FormatedAxis(pg.AxisItem):
             )
 
         return (axisSpec, tickSpecs, textSpecs)
+    
+    def boundingRect(self):
+        m = 0
+        hide_overlapping_labels = self.style['hideOverlappingLabels']
+        if hide_overlapping_labels is True:
+            pass # skip further checks
+        elif hide_overlapping_labels is False:
+            m = 15
+        else:
+            try:
+                m = int( self.style['hideOverlappingLabels'] )
+            except ValueError: pass # ignore any non-numeric value
+
+        rect = self.mapRectFromParent(self.geometry())
+        ## extend rect if ticks go in negative direction
+        ## also extend to account for text that flows past the edges
+        tl = self.style['tickLength']
+        if self.orientation == 'left':
+            rect = rect.adjusted(0, -m, -min(0,tl), m)
+        elif self.orientation == 'right':
+            rect = rect.adjusted(min(0,tl), -m, 0, m)
+        elif self.orientation == 'top':
+            rect = rect.adjusted(-m, 0, m, -min(0,tl))
+        elif self.orientation == 'bottom':
+            rect = rect.adjusted(-m, min(0,tl), m, 0)
+        return rect

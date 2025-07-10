@@ -169,7 +169,7 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
             elif i == 10:
                 painter.drawText(5, x - 5, f"{100 - 10 * i}%")
             else:
-                painter.drawText(5, x + 6, f"{100-10*i}%")
+                painter.drawText(5, x + 6, f"{100 - 10 * i}%")
 
         painter.drawText(PLOT_HEIGTH + TEXT_WIDTH, 15, f"{y_top:.3f}")
         painter.drawText(
@@ -233,6 +233,23 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
         ):
             event.accept()
             self.fit()
+
+        if (
+            key
+            in (
+                QtCore.Qt.Key.Key_Up,
+                QtCore.Qt.Key.Key_Down,
+                QtCore.Qt.Key.Key_PageUp,
+                QtCore.Qt.Key.Key_PageDown,
+            )
+            and modifiers == QtCore.Qt.KeyboardModifier.ShiftModifier
+        ):
+            offset = self.offset.value()
+            delta = 10 if key in (QtCore.Qt.Key.Key_PageUp, QtCore.Qt.Key.Key_PageDown) else 1
+            if key in (QtCore.Qt.Key.Key_PageDown, QtCore.Qt.Key.Key_Down):
+                delta = -delta
+
+            self.offset.setValue(offset + delta)
 
         else:
             super().keyPressEvent(event)

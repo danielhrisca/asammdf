@@ -7,7 +7,6 @@ DEFAULT_TIMEOUT = int(os.environ.get("ASAMMDF_ERROR_DIALOG_TIMEOUT", "60"))
 
 class MessageBox(QtWidgets.QMessageBox):
     def __init__(self, *args, **kwargs):
-
         self.timeout = kwargs.pop("timeout", DEFAULT_TIMEOUT)
         informative_text = kwargs.pop("informative_text", "")
         detailed_text = kwargs.pop("detailed_text", "")
@@ -44,12 +43,6 @@ class MessageBox(QtWidgets.QMessageBox):
         if defaultButton is not None:
             self.setDefaultButton(defaultButton)
 
-        if informative_text:
-            self.setInformativeText(informative_text)
-
-        if detailed_text:
-            self.setDetailedText(detailed_text)
-
         if self.defaultButton() is not None:
             if markdown:
                 self.setText(
@@ -58,13 +51,13 @@ class MessageBox(QtWidgets.QMessageBox):
 * * *
 
 This message will be closed in {self.timeout}s
-* Default button - [{self.defaultButton().text().strip('&')}]
+* Default button - [{self.defaultButton().text().strip("&")}]
 * Abort the countdown - [F1]"""
                 )
             else:
                 self.setText(
                     f"{self.original_text}\n\nThis message will be closed in {self.timeout}s\n"
-                    f'Default button - [{self.defaultButton().text().strip("&")}]\n'
+                    f"Default button - [{self.defaultButton().text().strip('&')}]\n"
                     "Abort the countdown - [F1]"
                 )
         else:
@@ -88,6 +81,13 @@ This message will be closed in {self.timeout}s
             self.setEscapeButton(escapeButton)
 
         self.show()
+
+        if informative_text:
+            self.setInformativeText(informative_text)
+
+        if detailed_text:
+            self.setDetailedText(detailed_text)
+
         self.scroll.setMinimumWidth(min(800, self.scroll_contents.width()))
         self.scroll.setMinimumHeight(min(800, self.scroll_contents.height()))
 
@@ -137,13 +137,13 @@ This message will be closed in {self.timeout}s
 * * *
 
 This message will be closed in {self.timeout}s
-* Default button - [{self.defaultButton().text().strip('&')}]
+* Default button - [{self.defaultButton().text().strip("&")}]
 * Abort the countdown - [F1]"""
                     )
                 else:
                     self.setText(
                         f"{self.original_text}\n\nThis message will be closed in {self.timeout}s\n"
-                        f'Default button - [{self.defaultButton().text().strip("&")}]\n'
+                        f"Default button - [{self.defaultButton().text().strip('&')}]\n"
                         "Abort the countdown - [F1]"
                     )
             else:

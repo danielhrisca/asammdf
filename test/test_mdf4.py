@@ -12,16 +12,16 @@ CHANNEL_LEN = 100000
 
 
 class TestMDF4(unittest.TestCase):
-    tempdir = None
+    tempdir: tempfile.TemporaryDirectory[str]
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.tempdir = tempfile.TemporaryDirectory()
 
-    def test_measurement(self):
+    def test_measurement(self) -> None:
         self.assertTrue(MDF4)
 
-    def test_read_mdf4_00(self):
+    def test_read_mdf4_00(self) -> None:
         seed = np.random.randint(0, 2**31)
 
         np.random.seed(seed)
@@ -52,7 +52,7 @@ class TestMDF4(unittest.TestCase):
         self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
         self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
 
-    def test_read_mdf4_10(self):
+    def test_read_mdf4_10(self) -> None:
         seed = np.random.randint(0, 2**31)
 
         np.random.seed(seed)
@@ -83,13 +83,13 @@ class TestMDF4(unittest.TestCase):
         self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
         self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
 
-    def test_attachment_blocks_wo_filename(self):
+    def test_attachment_blocks_wo_filename(self) -> None:
         original_data = b"Testing attachemnt block\nTest line 1"
         mdf = MDF()
         mdf.attach(
             original_data,
             file_name=None,
-            comment=None,
+            comment="",
             compression=True,
             mime=r"text/plain",
             embedded=True,
@@ -103,7 +103,7 @@ class TestMDF4(unittest.TestCase):
 
         mdf.close()
 
-    def test_attachment_blocks_w_filename(self):
+    def test_attachment_blocks_w_filename(self) -> None:
         original_data = b"Testing attachemnt block\nTest line 1"
         original_file_name = "file.txt"
 
@@ -111,7 +111,7 @@ class TestMDF4(unittest.TestCase):
         mdf.attach(
             original_data,
             file_name=original_file_name,
-            comment=None,
+            comment="",
             compression=True,
             mime=r"text/plain",
             embedded=True,
@@ -125,7 +125,7 @@ class TestMDF4(unittest.TestCase):
 
         mdf.close()
 
-    def test_channel_with_boolean_array(self):
+    def test_channel_with_boolean_array(self) -> None:
         timestamps = np.array([0.1, 0.2, 0.3, 0.4, 0.5], dtype=np.float32)
 
         samples = [np.ones((5, 2), dtype=np.uint8)]

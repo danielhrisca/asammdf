@@ -1,9 +1,10 @@
 from enum import IntEnum
 import os
-from os import PathLike
-from typing import Any, Literal
+from typing import Final, Literal
 
-from typing_extensions import TypedDict
+from typing_extensions import Any, TypedDict
+
+from .types import StrPath
 
 
 class IntegerInterpolation(IntEnum):
@@ -24,20 +25,18 @@ class _GlobalOptions(TypedDict):
     single_bit_uint_as_bool: bool
     integer_interpolation: IntegerInterpolation
     float_interpolation: FloatInterpolation
-    copy_on_get: bool
-    temporary_folder: str | bytes | PathLike[str] | PathLike[bytes] | None
+    temporary_folder: StrPath | None
     raise_on_multiple_occurrences: bool
     fill_0_for_missing_computation_channels: bool
 
 
-GLOBAL_OPTIONS: _GlobalOptions = {
+GLOBAL_OPTIONS: Final[_GlobalOptions] = {
     "read_fragment_size": 256 * 1024 * 1024,
     "write_fragment_size": 4 * 1024 * 1024,
     "use_display_names": True,
     "single_bit_uint_as_bool": False,
     "integer_interpolation": IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
     "float_interpolation": FloatInterpolation.LINEAR_INTERPOLATION,
-    "copy_on_get": True,
     "temporary_folder": None,
     "raise_on_multiple_occurrences": True,
     "fill_0_for_missing_computation_channels": False,
@@ -50,7 +49,6 @@ _Opt = Literal[
     "single_bit_uint_as_bool",
     "integer_interpolation",
     "float_interpolation",
-    "copy_on_get",
     "temporary_folder",
     "raise_on_multiple_occurrences",
     "fill_0_for_missing_computation_channels",
@@ -68,7 +66,6 @@ def set_global_option(opt: _Opt, value: Any) -> None:
     elif opt in (
         "use_display_names",
         "single_bit_uint_as_bool",
-        "copy_on_get",
         "raise_on_multiple_occurrences",
         "fill_0_for_missing_computation_channels",
     ):

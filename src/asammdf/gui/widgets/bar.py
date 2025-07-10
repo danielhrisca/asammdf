@@ -5,7 +5,7 @@ import numpy as np
 from numpy import searchsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ...blocks import utils
+from .. import serde
 from ..dialogs.messagebox import MessageBox
 from ..ui.bar import Ui_BarDisplay
 from .channel_bar_display import ChannelBarDisplay
@@ -98,7 +98,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
             sig.uuid = os.urandom(6).hex()
             sig.computed = False
             sig.computation = None
-            sig.color = utils.COLORS[index % utils.COLORS_COUNT]
+            sig.color = serde.COLORS[index % serde.COLORS_COUNT]
             sig.size = len(sig)
             sig.kind = sig.samples.dtype.kind
 

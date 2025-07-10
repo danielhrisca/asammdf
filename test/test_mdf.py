@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from io import BytesIO
+import os
 from pathlib import Path
 import random
 import tempfile
@@ -10,7 +11,9 @@ from zipfile import ZipFile
 
 import numexpr
 import numpy as np
+import numpy.typing as npt
 from pandas import DataFrame
+from typing_extensions import Any
 
 from asammdf import MDF, Signal, SUPPORTED_VERSIONS
 from asammdf.blocks.utils import MdfException
@@ -18,22 +21,23 @@ from asammdf.mdf import SearchMode
 
 from .utils import cycles, generate_arrays_test_file, generate_test_file
 
-SUPPORTED_VERSIONS = [version for version in SUPPORTED_VERSIONS if "4.20" > version >= "3.20"]
+SUPPORTED_VERSIONS = tuple(version for version in SUPPORTED_VERSIONS if "4.20" > version >= "3.20")  # type: ignore[misc]
 
 CHANNEL_LEN = 100000
 
 
+@unittest.skipIf(os.getenv("NO_NET_ACCESS"), "Test requires Internet access")
 class TestMDF(unittest.TestCase):
-    tempdir_demo = None
-    tempdir_array = None
-    tempdir_general = None
-    tempdir = None
+    tempdir_demo: tempfile.TemporaryDirectory[str]
+    tempdir_array: tempfile.TemporaryDirectory[str]
+    tempdir_general: tempfile.TemporaryDirectory[str]
+    tempdir: tempfile.TemporaryDirectory[str]
 
-    def test_measurement(self):
+    def test_measurement(self) -> None:
         self.assertTrue(MDF)
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         url = "https://github.com/danielhrisca/asammdf/files/4078993/test.demo.zip"
         urllib.request.urlretrieve(url, "test.zip")
 
@@ -49,14 +53,14 @@ class TestMDF(unittest.TestCase):
 
         generate_arrays_test_file(cls.tempdir_array.name)
 
-    def test_mdf_header(self):
+    def test_mdf_header(self) -> None:
         mdf = BytesIO(b"M" * 100)
         with self.assertRaises(MdfException):
             MDF(mdf)
 
         mdf.close()
 
-    def test_wrong_header_version(self):
+    def test_wrong_header_version(self) -> None:
         mdf = BytesIO(
             b"MDF     AAAA    amdf500d\x00\x00\x00\x00\x9f\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
         )
@@ -65,7 +69,7 @@ class TestMDF(unittest.TestCase):
 
         mdf.close()
 
-    def test_read(self):
+    def test_read(self) -> None:
         print("MDF read big files")
         for input_file in Path(TestMDF.tempdir_general.name).iterdir():
             print(input_file)
@@ -75,6 +79,7 @@ class TestMDF(unittest.TestCase):
             for inp in (input_file, BytesIO(input_file.read_bytes())):
                 with MDF(inp) as mdf:
                     for i, group in enumerate(mdf.groups):
+                        v: npt.NDArray[Any]
                         if i == 0:
                             v = np.ones(cycles, dtype=np.uint64)
                             for j in range(1, 20):
@@ -135,7 +140,7 @@ class TestMDF(unittest.TestCase):
                     inp.close()
             self.assertTrue(equal)
 
-    def test_read_arrays(self):
+    def test_read_arrays(self) -> None:
         print("MDF read big array files")
         for input_file in Path(TestMDF.tempdir_array.name).iterdir():
             print(input_file)
@@ -148,23 +153,23 @@ class TestMDF(unittest.TestCase):
 
                     for i, group in enumerate(mdf.groups):
                         if i == 0:
-                            samples = [
+                            samples_list = [
                                 np.ones((cycles, 2, 3), dtype=np.uint64),
                                 np.ones((cycles, 2), dtype=np.uint64),
                                 np.ones((cycles, 3), dtype=np.uint64),
                             ]
 
                             for j in range(1, 20):
-                                types = [
+                                types: list[npt.DTypeLike] = [
                                     (f"Channel_{j}", "(2, 3)<u8"),
                                     (f"channel_{j}_axis_1", "(2, )<u8"),
                                     (f"channel_{j}_axis_2", "(3, )<u8"),
                                 ]
-                                types = np.dtype(types)
+                                dtype = np.dtype(types)
 
                                 vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
-                                target = [arr * j for arr in samples]
-                                target = np.rec.fromarrays(target, dtype=types)
+                                arrays = [arr * j for arr in samples_list]
+                                target = np.rec.fromarrays(arrays, dtype=dtype)
                                 if not np.array_equal(vals, target):
                                     equal = False
                                     raise Exception
@@ -176,17 +181,17 @@ class TestMDF(unittest.TestCase):
 
                             for j in range(1, 20):
                                 types = [(f"Channel_{j}", "(2, 3)<u8")]
-                                types = np.dtype(types)
+                                dtype = np.dtype(types)
 
                                 vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
-                                target = [samples * j]
-                                target = np.rec.fromarrays(target, dtype=types)
+                                arrays = [samples * j]
+                                target = np.rec.fromarrays(arrays, dtype=dtype)
                                 if not np.array_equal(vals, target):
                                     equal = False
                                     raise Exception
 
                         elif i == 2:
-                            samples = [
+                            samples_list = [
                                 np.ones(cycles, dtype=np.uint8),
                                 np.ones(cycles, dtype=np.uint16),
                                 np.ones(cycles, dtype=np.uint32),
@@ -208,11 +213,11 @@ class TestMDF(unittest.TestCase):
                                     (f"struct_{j}_channel_6", np.int32),
                                     (f"struct_{j}_channel_7", np.int64),
                                 ]
-                                types = np.dtype(types)
+                                dtype = np.dtype(types)
 
                                 vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
-                                target = [arr * j for arr in samples]
-                                target = np.rec.fromarrays(target, dtype=types)
+                                arrays = [arr * j for arr in samples_list]
+                                target = np.rec.fromarrays(arrays, dtype=dtype)
                                 if not np.array_equal(vals, target):
                                     equal = False
                                     print(target)
@@ -224,7 +229,7 @@ class TestMDF(unittest.TestCase):
 
             self.assertTrue(equal)
 
-    def test_read_demo(self):
+    def test_read_demo(self) -> None:
         print("MDF read tests")
 
         mdf_files = [file for file in Path(TestMDF.tempdir_demo.name).iterdir() if file.suffix in (".mdf", ".mf4")]
@@ -246,12 +251,12 @@ class TestMDF(unittest.TestCase):
                 if isinstance(inp, BytesIO):
                     inp.close()
 
-    def test_convert(self):
+    def test_convert(self) -> None:
         print("MDF convert big files tests")
 
         for out in SUPPORTED_VERSIONS:
             for input_file in Path(TestMDF.tempdir_general.name).iterdir():
-                for compression in range(3):
+                for compression in (0, 1, 2):
                     print(input_file, out, compression)
 
                     with MDF(input_file) as mdf:
@@ -270,6 +275,7 @@ class TestMDF(unittest.TestCase):
                         mdf.configure(read_fragment_size=8000)
 
                         for i, group in enumerate(mdf.groups):
+                            v: npt.NDArray[Any]
                             if i == 0:
                                 v = np.ones(cycles, dtype=np.uint64)
                                 for j in range(1, 20):
@@ -343,7 +349,7 @@ class TestMDF(unittest.TestCase):
 
                     self.assertTrue(equal)
 
-    def test_convert_demo(self):
+    def test_convert_demo(self) -> None:
         print("MDF convert demo tests")
 
         mdf_files = [file for file in Path(TestMDF.tempdir_demo.name).iterdir() if file.suffix in (".mdf", ".mf4")]
@@ -371,12 +377,12 @@ class TestMDF(unittest.TestCase):
                 if isinstance(inp, BytesIO):
                     inp.close()
 
-    def test_cut(self):
+    def test_cut(self) -> None:
         print("MDF cut big files tests")
 
         for input_file in Path(TestMDF.tempdir_general.name).iterdir():
             for whence in (0, 1):
-                for compression in range(3):
+                for compression in (0, 1, 2):
                     mdf = MDF(input_file)
 
                     mdf.configure(read_fragment_size=8000)
@@ -407,7 +413,7 @@ class TestMDF(unittest.TestCase):
                     concatenated = MDF.concatenate(
                         [outfile0, outfile1, outfile2, outfile3, outfile4],
                         version=mdf.version,
-                        sync=whence,
+                        sync=bool(whence),
                     )
 
                     outfile = concatenated.save(
@@ -421,6 +427,7 @@ class TestMDF(unittest.TestCase):
 
                     with MDF(outfile) as mdf:
                         for i, group in enumerate(mdf.groups):
+                            v: npt.NDArray[Any]
                             if i == 0:
                                 v = np.ones(cycles, dtype=np.uint64)
                                 for j in range(1, 20):
@@ -489,7 +496,7 @@ class TestMDF(unittest.TestCase):
                                         print(i, j, vals, target, len(vals), len(target))
                                     self.assertTrue(cond)
 
-    def test_cut_arrays(self):
+    def test_cut_arrays(self) -> None:
         print("MDF cut big array files")
         for input_file in Path(TestMDF.tempdir_array.name).iterdir():
             for whence in (0, 1):
@@ -523,23 +530,23 @@ class TestMDF(unittest.TestCase):
 
                     for i, group in enumerate(mdf.groups):
                         if i == 0:
-                            samples = [
+                            samples_list = [
                                 np.ones((cycles, 2, 3), dtype=np.uint64),
                                 np.ones((cycles, 2), dtype=np.uint64),
                                 np.ones((cycles, 3), dtype=np.uint64),
                             ]
 
                             for j in range(1, 20):
-                                types = [
+                                types: list[npt.DTypeLike] = [
                                     (f"Channel_{j}", "(2, 3)<u8"),
                                     (f"channel_{j}_axis_1", "(2, )<u8"),
                                     (f"channel_{j}_axis_2", "(3, )<u8"),
                                 ]
-                                types = np.dtype(types)
+                                dtype = np.dtype(types)
 
                                 vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
-                                target = [arr * j for arr in samples]
-                                target = np.rec.fromarrays(target, dtype=types)
+                                arrays = [arr * j for arr in samples_list]
+                                target = np.rec.fromarrays(arrays, dtype=dtype)
                                 if not np.array_equal(vals, target):
                                     equal = False
                                     print(
@@ -560,17 +567,17 @@ class TestMDF(unittest.TestCase):
 
                             for j in range(1, 20):
                                 types = [(f"Channel_{j}", "(2, 3)<u8")]
-                                types = np.dtype(types)
+                                dtype = np.dtype(types)
 
                                 vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
-                                target = [samples * j]
-                                target = np.rec.fromarrays(target, dtype=types)
+                                arrays = [samples * j]
+                                target = np.rec.fromarrays(arrays, dtype=dtype)
                                 if not np.array_equal(vals, target):
                                     equal = False
                                     raise Exception
 
                         elif i == 2:
-                            samples = [
+                            samples_list = [
                                 np.ones(cycles, dtype=np.uint8),
                                 np.ones(cycles, dtype=np.uint16),
                                 np.ones(cycles, dtype=np.uint32),
@@ -592,18 +599,18 @@ class TestMDF(unittest.TestCase):
                                     (f"struct_{j}_channel_6", np.int32),
                                     (f"struct_{j}_channel_7", np.int64),
                                 ]
-                                types = np.dtype(types)
+                                dtype = np.dtype(types)
 
                                 vals = mdf.get(f"Channel_{j}", group=i, samples_only=True)[0]
-                                target = [arr * j for arr in samples]
-                                target = np.rec.fromarrays(target, dtype=types)
+                                arrays = [arr * j for arr in samples_list]
+                                target = np.rec.fromarrays(arrays, dtype=dtype)
                                 if not np.array_equal(vals, target):
                                     equal = False
                                     raise Exception
 
             self.assertTrue(equal)
 
-    def test_cut_demo(self):
+    def test_cut_demo(self) -> None:
         print("MDF cut demo tests")
 
         mdf_files = [file for file in Path(TestMDF.tempdir_demo.name).iterdir() if file.suffix in (".mdf", ".mf4")]
@@ -653,7 +660,7 @@ class TestMDF(unittest.TestCase):
                 if isinstance(inp, BytesIO):
                     inp.close()
 
-    def test_filter(self):
+    def test_filter(self) -> None:
         print("MDF read tests")
 
         mdf_files = [file for file in Path(TestMDF.tempdir_demo.name).iterdir() if file.suffix in (".mdf", ".mf4")]
@@ -687,7 +694,7 @@ class TestMDF(unittest.TestCase):
                 if isinstance(inp, BytesIO):
                     inp.close()
 
-    def test_select(self):
+    def test_select(self) -> None:
         print("MDF select tests")
 
         mdf_files = [file for file in Path(TestMDF.tempdir_demo.name).iterdir() if file.suffix in (".mdf", ".mf4")]
@@ -719,7 +726,7 @@ class TestMDF(unittest.TestCase):
                 if isinstance(inp, BytesIO):
                     inp.close()
 
-    def test_scramble(self):
+    def test_scramble(self) -> None:
         print("MDF scramble tests")
 
         for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
@@ -728,7 +735,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(scrambled)
                 Path(scrambled).unlink()
 
-    def test_iter_groups(self):
+    def test_iter_groups(self) -> None:
         dfs = [
             DataFrame(
                 {
@@ -748,7 +755,7 @@ class TestMDF(unittest.TestCase):
 
         mdf.close()
 
-    def test_resample_raster_0(self):
+    def test_resample_raster_0(self) -> None:
         sigs = [
             Signal(
                 samples=np.ones(1000) * i,
@@ -766,7 +773,7 @@ class TestMDF(unittest.TestCase):
 
         mdf.close()
 
-    def test_resample(self):
+    def test_resample(self) -> None:
         raster = 1.33
         sigs = [
             Signal(
@@ -797,7 +804,7 @@ class TestMDF(unittest.TestCase):
 
         resampled.close()
 
-    def test_to_dataframe(self):
+    def test_to_dataframe(self) -> None:
         dfs = [
             DataFrame(
                 {
@@ -812,17 +819,17 @@ class TestMDF(unittest.TestCase):
         for df in dfs:
             mdf.append(df)
 
-        target = {}
+        target: dict[str, npt.NDArray[Any]] = {}
         for i in range(5):
             target[f"df_{i}_column_0"] = np.ones(5) * i
             target[f"df_{i}_column_1"] = np.arange(5) * i
 
-        target = DataFrame(target)
+        df = DataFrame(target)
 
-        self.assertTrue(target.equals(mdf.to_dataframe()))
+        self.assertTrue(df.equals(mdf.to_dataframe()))
         mdf.close()
 
-    def test_search(self):
+    def test_search(self) -> None:
         sigs = [
             Signal(
                 samples=np.ones(1),

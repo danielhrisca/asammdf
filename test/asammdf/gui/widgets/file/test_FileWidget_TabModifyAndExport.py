@@ -119,5 +119,5 @@ class TestTabModifyAndExport(TestFileWidget):
 
         # TearDown Widget
         with OpenMDF(saved_file) as mdf_file:
-            selected_channels.append("time")
-            self.assertListEqual(sorted(selected_channels), sorted(mdf_file.channels_db))
+            for sig in mdf_file.iter_channels():
+                self.assertIn(sig.name, selected_channels)

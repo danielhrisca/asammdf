@@ -10,14 +10,14 @@ import numpy as np
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ...blocks.conversion_utils import from_dict, to_dict
-from ...blocks.utils import extract_mime_names
+from ...blocks.conversion_utils import conversion_transfer, from_dict, to_dict
 from ...signal import Signal
 from .. import utils
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.conversion_editor import ConversionEditor
 from ..dialogs.messagebox import MessageBox
 from ..dialogs.range_editor import RangeEditor
+from ..serde import ExtendedJsonDecoder, ExtendedJsonEncoder, extract_mime_names
 from ..utils import (
     copy_ranges,
     get_color_using_ranges,
@@ -387,10 +387,12 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     double_click = QtCore.Signal(object, object)
 
     NameColumn = 0
-    ValueColumn = 1
-    UnitColumn = 2
-    CommonAxisColumn = 3
-    IndividualAxisColumn = 4
+    RawColumn = 1
+    ValueColumn = 2
+    UnitColumn = 3
+    CommonAxisColumn = 4
+    IndividualAxisColumn = 5
+    OriginColumn = 6
 
     def __init__(
         self,
@@ -414,8 +416,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.can_delete_items = True
 
         self.setHeaderHidden(False)
-        self.setColumnCount(5)
-        self.setHeaderLabels(["Name", "Value", "Unit", "\u290a", "\u21a8"])
+        self.setColumnCount(7)
+        self.setHeaderLabels(["Name", "Raw", "Value", "Unit", "\u290a", "\u21a8", "Origin"])
         self.setDragEnabled(True)
         self.setExpandsOnDoubleClick(False)
 
@@ -449,6 +451,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.idel = Delegate(self)
         self.setItemDelegate(self.idel)
 
+        self.setColumnHidden(self.OriginColumn, True)
+        self.setColumnHidden(self.RawColumn, True)
+
+        self.disabled_keyboard_events = set()
+
         self.set_style()
 
     def autoscroll(self):
@@ -477,7 +484,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         mimeData = QtCore.QMimeData()
 
         data = get_data(self.plot, selected_items, uuids_only=False)
-        data = json.dumps(data).encode("utf-8")
+        data = json.dumps(data, cls=ExtendedJsonEncoder).encode("utf-8")
 
         mimeData.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
 
@@ -529,6 +536,36 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.refresh()
         self.update_channel_groups_count()
 
+    def header_columns_visibility(self):
+        visibility = {}
+        for name in (
+            "NameColumn",
+            "RawColumn",
+            "ValueColumn",
+            "UnitColumn",
+            "CommonAxisColumn",
+            "IndividualAxisColumn",
+            "OriginColumn",
+        ):
+            col = getattr(self, name)
+            visibility[name] = not self.isColumnHidden(col)
+        return visibility
+
+    def header_sizes(self):
+        sizes = {}
+        for name in (
+            "NameColumn",
+            "RawColumn",
+            "ValueColumn",
+            "UnitColumn",
+            "CommonAxisColumn",
+            "IndividualAxisColumn",
+            "OriginColumn",
+        ):
+            col = getattr(self, name)
+            sizes[name] = self.columnWidth(col)
+        return sizes
+
     def is_item_visible(self, item):
         return item._is_visible
 
@@ -551,6 +588,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     def keyPressEvent(self, event):
         key = event.key()
         modifiers = event.modifiers()
+
+        if event.keyCombination().toCombined() in self.disabled_keyboard_events:
+            event.ignore()
+            return
 
         if key == QtCore.Qt.Key.Key_Delete and self.can_delete_items:
             event.accept()
@@ -698,7 +739,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             selected_items = validate_drag_items(self.invisibleRootItem(), self.selectedItems(), [])
             data = get_data(self.plot, selected_items, uuids_only=False)
             data = substitude_mime_uuids(data, None, force=True)
-            QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data))
+            QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data, cls=ExtendedJsonEncoder))
 
             if self.can_delete_items:
                 deleted = list(set(get_data(self.plot, selected_items, uuids_only=True)))
@@ -720,13 +761,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             selected_items = validate_drag_items(self.invisibleRootItem(), self.selectedItems(), [])
             data = get_data(self.plot, selected_items, uuids_only=False)
             data = substitude_mime_uuids(data, None, force=True)
-            QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data))
+            QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data, cls=ExtendedJsonEncoder))
 
         elif modifiers == QtCore.Qt.KeyboardModifier.ControlModifier and key == QtCore.Qt.Key.Key_V:
             event.accept()
             try:
                 data = QtWidgets.QApplication.instance().clipboard().text()
-                data = json.loads(data)
+                data = json.loads(data, cls=ExtendedJsonDecoder)
                 data = substitude_mime_uuids(data, random_uuid=True)
                 self.add_channels_request.emit(data)
             except:
@@ -764,7 +805,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     dlg.exec_()
                     if dlg.pressed_button == "apply":
                         item.set_ranges(dlg.result)
-                        item.set_value(item._value, update=True)
+                        item.set_value(item._raw_value, item._value, update=True)
 
             else:
                 ranges = []
@@ -776,7 +817,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     for item in selected_items:
                         if item.type() == item.Channel:
                             item.set_ranges(copy_ranges(dlg.result))
-                            item.set_value(item._value, update=True)
+                            item.set_value(item._raw_value, item._value, update=True)
 
                         elif item.type() == item.Group:
                             item.set_ranges(copy_ranges(dlg.result))
@@ -811,7 +852,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 return
 
             try:
-                info = json.loads(info)
+                info = json.loads(info, cls=ExtendedJsonDecoder)
             except:
                 return
 
@@ -915,6 +956,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addSeparator()
 
         submenu = QtWidgets.QMenu("Columns")
+        action = QtGui.QAction("Raw Column", submenu)
+        action.setCheckable(True)
+        action.setChecked(not self.isColumnHidden(self.RawColumn))
+        submenu.addAction(action)
         action = QtGui.QAction("Unit Column", submenu)
         action.setCheckable(True)
         action.setChecked(not self.isColumnHidden(self.UnitColumn))
@@ -927,6 +972,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         action.setCheckable(True)
         action.setChecked(not self.isColumnHidden(self.IndividualAxisColumn))
         submenu.addAction(action)
+        action = QtGui.QAction("Origin Column", submenu)
+        action.setCheckable(True)
+        action.setChecked(not self.isColumnHidden(self.OriginColumn))
+        submenu.addAction(action)
         menu.addMenu(submenu)
         menu.addSeparator()
 
@@ -935,22 +984,41 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addAction(QtGui.QIcon(":/down.png"), f"Find next {item.name}")
         menu.addSeparator()
 
-        menu.addAction("Add channel group [Shift+Insert]")
-        menu.addAction("Add pattern based channel group [Ctrl+Insert]")
+        action = QtGui.QAction("Add channel group", menu)
+        action.setShortcut(QtGui.QKeySequence("Shift+Insert"))
+        menu.addAction(action)
+        action = QtGui.QAction("Add pattern based channel group", menu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Insert"))
+        menu.addAction(action)
+        menu.addSeparator()
+
+        action = QtGui.QAction("Insert computation", menu)
+        action.setShortcut(QtGui.QKeySequence("Insert"))
+        menu.addAction(action)
         menu.addSeparator()
 
         submenu = QtWidgets.QMenu("Copy names")
         submenu.setIcon(QtGui.QIcon(":/copy.png"))
-        submenu.addAction("Copy names [Ctrl+N]")
+        action = QtGui.QAction("Copy names", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+N"))
+        submenu.addAction(action)
         submenu.addAction("Copy names and values")
         menu.addMenu(submenu)
 
         submenu = QtWidgets.QMenu("Display structure")
         submenu.setIcon(QtGui.QIcon(":/structure.png"))
-        submenu.addAction("Copy display properties [Ctrl+Shift+C]")
-        submenu.addAction("Paste display properties [Ctrl+Shift+V]")
-        submenu.addAction("Copy channel structure [Ctrl+C]")
-        submenu.addAction("Paste channel structure [Ctrl+V]")
+        action = QtGui.QAction("Copy display properties", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+C"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Paste display properties", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+V"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Copy channel structure", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+C"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Paste channel structure", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+V"))
+        submenu.addAction(action)
         menu.addMenu(submenu)
 
         submenu = QtWidgets.QMenu("Enable/disable")
@@ -984,7 +1052,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addSeparator()
 
         submenu = QtWidgets.QMenu("Axis")
-        submenu.addAction("Edit Y axis scaling [Ctrl+G]")
+        action = QtGui.QAction("Edit Y axis scaling", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+G"))
+        submenu.addAction(action)
         if item and item.type() == ChannelsTreeItem.Channel:
             submenu.addAction("Add to common Y axis")
             submenu.addAction("Remove from common Y axis")
@@ -994,10 +1064,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         submenu = QtWidgets.QMenu("Edit")
         submenu.setIcon(QtGui.QIcon(":/edit.png"))
 
-        submenu.addAction("Set color [C]")
+        action = QtGui.QAction("Set color", submenu)
+        action.setShortcut(QtGui.QKeySequence("C"))
+        submenu.addAction(action)
         submenu.addAction("Set random color")
         submenu.addAction("Set precision")
-        submenu.addAction("Set color ranges [Ctrl+R]")
+        action = QtGui.QAction("Set color ranges", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+R"))
+        submenu.addAction(action)
         submenu.addAction("Set channel conversion")
         submenu.addAction("Set channel comment")
         submenu.addAction("Set unit")
@@ -1013,13 +1087,25 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         submenu = QtWidgets.QMenu("Display mode")
         # submenu.setIcon(QtGui.QIcon(":/edit.png"))
-        submenu.addAction("Ascii\t[Ctrl+T]")
-        submenu.addAction("Bin\t[Ctrl+B]")
-        submenu.addAction("Hex\t[Ctrl+H]")
-        submenu.addAction("Physical\t[Ctrl+P]")
+        action = QtGui.QAction("Ascii", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+T"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Bin", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+B"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Hex", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+H"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Physical", submenu)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+P"))
+        submenu.addAction(action)
         submenu.addSeparator()
-        submenu.addAction("Raw samples\t[Alt+R]")
-        submenu.addAction("Scaled samples\t[Alt+S]")
+        action = QtGui.QAction("Raw samples", submenu)
+        action.setShortcut(QtGui.QKeySequence("Alt+R"))
+        submenu.addAction(action)
+        action = QtGui.QAction("Scaled samples", submenu)
+        action.setShortcut(QtGui.QKeySequence("Alt+S"))
+        submenu.addAction(action)
         menu.addMenu(submenu)
         menu.addSeparator()
 
@@ -1039,7 +1125,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addMenu(submenu)
             menu.addSeparator()
         if item:
-            menu.addAction(QtGui.QIcon(":/erase.png"), "Delete [Del]")
+            action = QtGui.QAction("Delete", menu)
+            action.setShortcut(QtGui.QKeySequence("Delete"))
+            menu.addAction(action)
             menu.addSeparator()
 
         menu.addAction("Toggle details")
@@ -1057,7 +1145,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         action_text = action.text()
 
-        if action_text == "Copy names [Ctrl+N]":
+        if action_text == "Copy names":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_N, QtCore.Qt.KeyboardModifier.ControlModifier
             )
@@ -1103,7 +1191,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             self.group_activation_changed.emit()
 
-        elif action_text == "Set color [C]":
+        elif action_text == "Set color":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_C,
@@ -1121,7 +1209,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                     item.color = f"#{rgb.hex()}"
 
-        elif action_text == "Set color ranges [Ctrl+R]":
+        elif action_text == "Set color ranges":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_R,
@@ -1159,6 +1247,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 conversion = original_conversion = None
                 channel_name = "selected items"
 
+            conversion = conversion_transfer(conversion, version=4)
+            original_conversion = conversion_transfer(original_conversion, version=4)
+
             dlg = ConversionEditor(channel_name, conversion, original_conversion=original_conversion, parent=self)
             dlg.exec_()
             if dlg.pressed_button == "apply":
@@ -1191,7 +1282,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 for item in selected_items:
                     item.comment = new_comment
 
-        elif action_text == "Copy channel structure [Ctrl+C]":
+        elif action_text == "Copy channel structure":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_C,
@@ -1199,7 +1290,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Paste channel structure [Ctrl+V]":
+        elif action_text == "Paste channel structure":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_V,
@@ -1207,7 +1298,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Copy display properties [Ctrl+Shift+C]":
+        elif action_text == "Copy display properties":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_C,
@@ -1215,7 +1306,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Paste display properties [Ctrl+Shift+V]":
+        elif action_text == "Paste display properties":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_V,
@@ -1296,7 +1387,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     if item.type() == ChannelsTreeItem.Channel:
                         item.setCheckState(self.CommonAxisColumn, QtCore.Qt.CheckState.Checked)
 
-        elif action_text == "Edit Y axis scaling [Ctrl+G]":
+        elif action_text == "Edit Y axis scaling":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress,
                 QtCore.Qt.Key.Key_G,
@@ -1391,7 +1482,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                     self.set_time_offset.emit([absolute, offset, *uuids])
 
-        elif action_text == "Delete [Del]":
+        elif action_text == "Delete":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Delete, QtCore.Qt.KeyboardModifier.NoModifier
             )
@@ -1408,6 +1499,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                             type=ChannelsTreeItem.Info,
                             name=item.details_text,
                             signal=item.signal,
+                            origin_uuid=item.signal.origin_uuid,
+                            uuid=item.signal.uuid,
                         )
 
                         item.addChild(item.details)
@@ -1453,13 +1546,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 if item.type() == ChannelsTreeItem.Channel:
                     self.compute_fft_request.emit(item.uuid)
 
-        elif action_text == "Add channel group [Shift+Insert]":
+        elif action_text == "Add channel group":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Insert, QtCore.Qt.KeyboardModifier.ShiftModifier
             )
             self.keyPressEvent(event)
 
-        elif action_text == "Add pattern based channel group [Ctrl+Insert]":
+        elif action_text == "Add pattern based channel group":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Insert, QtCore.Qt.KeyboardModifier.ControlModifier
             )
@@ -1625,40 +1718,49 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                 iterator += 1
 
+        elif action_text == "Raw Column":
+            self.setColumnHidden(self.RawColumn, not self.isColumnHidden(self.RawColumn))
         elif action_text == "Unit Column":
             self.setColumnHidden(self.UnitColumn, not self.isColumnHidden(self.UnitColumn))
         elif action_text == "Common Axis Column":
             self.setColumnHidden(self.CommonAxisColumn, not self.isColumnHidden(self.CommonAxisColumn))
         elif action_text == "Individual Axis Column":
             self.setColumnHidden(self.IndividualAxisColumn, not self.isColumnHidden(self.IndividualAxisColumn))
-        elif action_text == "Raw samples\t[Alt+R]":
+        elif action_text == "Origin Column":
+            self.setColumnHidden(self.OriginColumn, not self.isColumnHidden(self.OriginColumn))
+        elif action_text == "Raw samples":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_R, QtCore.Qt.KeyboardModifier.AltModifier
             )
             self.plot.keyPressEvent(event)
-        elif action_text == "Scaled samples\t[Alt+S]":
+        elif action_text == "Scaled samples":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_S, QtCore.Qt.KeyboardModifier.AltModifier
             )
             self.plot.keyPressEvent(event)
-        elif action_text == "Ascii\t[Ctrl+T]":
+        elif action_text == "Ascii":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_T, QtCore.Qt.KeyboardModifier.ControlModifier
             )
             self.plot.keyPressEvent(event)
-        elif action_text == "Bin\t[Ctrl+B]":
+        elif action_text == "Bin":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_B, QtCore.Qt.KeyboardModifier.ControlModifier
             )
             self.plot.keyPressEvent(event)
-        elif action_text == "Hex\t[Ctrl+H]":
+        elif action_text == "Hex":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_H, QtCore.Qt.KeyboardModifier.ControlModifier
             )
             self.plot.keyPressEvent(event)
-        elif action_text == "Physical\t[Ctrl+P]":
+        elif action_text == "Physical":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_P, QtCore.Qt.KeyboardModifier.ControlModifier
+            )
+            self.plot.keyPressEvent(event)
+        elif action_text == "Insert computation":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_Insert, QtCore.Qt.KeyboardModifier.NoModifier
             )
             self.plot.keyPressEvent(event)
 
@@ -1699,8 +1801,23 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             self.setStyleSheet(SCROLLBAR_STYLE.format(font_size=size, color=color))
 
-    def set_style(self):
+    def set_header_columns_visibility(self, visibility):
+        for name, is_visible in visibility.items():
+            col = getattr(self, name, -1)
+            if col == -1:
+                continue
 
+            self.setColumnHidden(col, not is_visible)
+
+    def set_header_sizes(self, sizes):
+        for name, size in sizes.items():
+            col = getattr(self, name, -1)
+            if col == -1:
+                continue
+
+            self.setColumnWidth(col, size)
+
+    def set_style(self):
         dark = (
             QtWidgets.QApplication.instance().palette().window().color().value()
             < QtWidgets.QApplication.instance().palette().windowText().color().value()
@@ -1785,10 +1902,12 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     Info = 2002
 
     NameColumn = 0
-    ValueColumn = 1
-    UnitColumn = 2
-    CommonAxisColumn = 3
-    IndividualAxisColumn = 4
+    RawColumn = 1
+    ValueColumn = 2
+    UnitColumn = 3
+    CommonAxisColumn = 4
+    IndividualAxisColumn = 5
+    OriginColumn = 6
 
     def __init__(
         self,
@@ -1851,6 +1970,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             self._value_prefix = ""
             self._value = "n.a."
+            self._raw_value = "n.a."
             self.uuid = signal.uuid
             self.origin_uuid = signal.origin_uuid
             self.set_ranges(ranges or [])
@@ -1872,6 +1992,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.details_text = details or "\tSource not available"
             self.setToolTip(self.NameColumn, tooltip)
             self.setToolTip(self.ValueColumn, "")
+            self.setToolTip(self.RawColumn, "")
             self.setToolTip(self.UnitColumn, "unit")
             self.setToolTip(self.CommonAxisColumn, "common axis")
             self.setToolTip(self.IndividualAxisColumn, "individual axis")
@@ -1887,10 +2008,12 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             self.setText(self.NameColumn, self.name)
             self.setForeground(self.NameColumn, signal.color)
+            self.setForeground(self.RawColumn, signal.color)
             self.setForeground(self.ValueColumn, signal.color)
             self.setForeground(self.CommonAxisColumn, signal.color)
             self.setForeground(self.IndividualAxisColumn, signal.color)
             self.setForeground(self.UnitColumn, signal.color)
+            self.setForeground(self.OriginColumn, signal.color)
 
             self._is_visible = True
 
@@ -1912,30 +2035,36 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             if signal.flags & Signal.Flags.computed:
                 font = self.font(0)
                 font.setItalic(True)
-                for column in (self.NameColumn, self.ValueColumn, self.UnitColumn):
+                for column in (self.NameColumn, self.RawColumn, self.ValueColumn, self.UnitColumn):
                     self.setFont(column, font)
 
             if signal.group_index == NOT_FOUND:
                 self.does_not_exist()
 
         elif type == self.Info:
+            tooltip = getattr(signal, "tooltip", "")
+            if tooltip:
+                self.setText(self.ValueColumn, tooltip.split("@")[-1].strip())
+
             self.name = name
             self.color = signal.color
             self.uuid = uuid
             self.origin_uuid = origin_uuid
 
+        self.setTextAlignment(self.RawColumn, QtCore.Qt.AlignmentFlag.AlignRight)
         self.setTextAlignment(self.ValueColumn, QtCore.Qt.AlignmentFlag.AlignRight)
+        self.setText(self.OriginColumn, self.origin_uuid)
 
     def __repr__(self):
-        t = self.type()
-        if t == 2000:
-            type = "Group"
-        elif t == 2001:
-            type = "Channel"
-        elif type == 2002:
-            type = "Info"
-        else:
-            type = t
+        match self.type():
+            case 2000:
+                type = "Group"
+            case 2001:
+                type = "Channel"
+            case 2002:
+                type = "Info"
+            case _:
+                type = self.type()
 
         return f"ChannelTreeItem(type={type}, name={self.name}, uuid={self.uuid}, origin_uuid={self.origin_uuid})"
 
@@ -1957,10 +2086,12 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.signal.pen = fn.mkPen(color_name)
             self.signal.color_name = color_name
             self.setForeground(self.NameColumn, value)
+            self.setForeground(self.RawColumn, value)
             self.setForeground(self.ValueColumn, value)
             self.setForeground(self.CommonAxisColumn, value)
             self.setForeground(self.IndividualAxisColumn, value)
             self.setForeground(self.UnitColumn, value)
+            self.setForeground(self.OriginColumn, value)
 
             if self.details is not None:
                 self.details.color = value
@@ -1968,6 +2099,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             tree = self.treeWidget()
             if tree:
                 tree.color_changed.emit(self.uuid, value)
+
         elif self.type() == self.Group:
             count = self.childCount()
             for row in range(count):
@@ -1977,10 +2109,12 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             value = fn.mkColor(value)
 
             self.setForeground(self.NameColumn, value)
+            self.setForeground(self.RawColumn, value)
             self.setForeground(self.ValueColumn, value)
             self.setForeground(self.CommonAxisColumn, value)
             self.setForeground(self.IndividualAxisColumn, value)
             self.setForeground(self.UnitColumn, value)
+            self.setForeground(self.OriginColumn, value)
 
     @property
     def comment(self):
@@ -2121,18 +2255,18 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         if self.type() == ChannelsTreeItem.Group:
             info = {
                 "type": "group",
-                "ranges": copy_ranges(self.ranges),
+                "ranges": self.ranges,
             }
 
         elif self.type() == ChannelsTreeItem.Channel:
             info = {
                 "type": "channel",
-                "color": self.color.name(),
+                "color": self.color,
                 "precision": self.precision,
                 "ylink": self.checkState(self.CommonAxisColumn) == QtCore.Qt.CheckState.Checked,
                 "individual_axis": self.checkState(self.IndividualAxisColumn) == QtCore.Qt.CheckState.Checked,
                 "format": self.format,
-                "ranges": copy_ranges(self.ranges),
+                "ranges": self.ranges,
             }
 
             if self.signal.flags & Signal.Flags.user_defined_conversion:
@@ -2144,11 +2278,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             info["y_range"] = tuple(float(e) for e in sig.y_range)
 
-        for range_info in info["ranges"]:
-            range_info["background_color"] = range_info["background_color"].name()
-            range_info["font_color"] = range_info["font_color"].name()
-
-        return json.dumps(info)
+        return json.dumps(info, cls=ExtendedJsonEncoder)
 
     def get_ranges(self, tree=None):
         if self.resolved_ranges is None:
@@ -2306,10 +2436,12 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                     color = self.signal.color
 
                     self.setForeground(self.NameColumn, color)
+                    self.setForeground(self.RawColumn, color)
                     self.setForeground(self.ValueColumn, color)
                     self.setForeground(self.CommonAxisColumn, color)
                     self.setForeground(self.IndividualAxisColumn, color)
                     self.setForeground(self.UnitColumn, color)
+                    self.setForeground(self.OriginColumn, color)
 
         elif self.type() == self.Group:
             # If the group is subgroup (has a parent)
@@ -2353,11 +2485,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.setIcon(self.NameColumn, QtGui.QIcon(":/filter.png"))
             self.pattern = dict(pattern)
             self.pattern["ranges"] = copy_ranges(self.pattern["ranges"])
-            for range_info in self.pattern["ranges"]:
-                if isinstance(range_info["font_color"], str):
-                    range_info["font_color"] = fn.mkColor(range_info["font_color"])
-                if isinstance(range_info["background_color"], str):
-                    range_info["background_color"] = fn.mkColor(range_info["background_color"])
         else:
             self.setIcon(self.NameColumn, QtGui.QIcon(":/open.png"))
             self.pattern = None
@@ -2387,31 +2514,32 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             if self.type() == self.Channel:
                 brush = self._background_color
                 self.setBackground(self.NameColumn, brush)
+                self.setBackground(self.RawColumn, brush)
                 self.setBackground(self.ValueColumn, brush)
                 self.setBackground(self.UnitColumn, brush)
                 self.setBackground(self.CommonAxisColumn, brush)
                 self.setBackground(self.IndividualAxisColumn, brush)
+                self.setBackground(self.OriginColumn, brush)
                 self._current_background_color = self._background_color
 
                 brush = fn.mkBrush(self.signal.color_name)
                 self.setForeground(self.NameColumn, brush)
                 self.setForeground(self.UnitColumn, brush)
+                self.setForeground(self.RawColumn, brush)
                 self.setForeground(self.ValueColumn, brush)
                 self.setForeground(self.CommonAxisColumn, brush)
                 self.setForeground(self.IndividualAxisColumn, brush)
+                self.setForeground(self.OriginColumn, brush)
                 self._current_font_color = self.signal.color
 
-        self.ranges = []
-        for range_info in ranges:
-            if isinstance(range_info["font_color"], str):
-                range_info["font_color"] = fn.mkColor(range_info["font_color"])
-            if isinstance(range_info["background_color"], str):
-                range_info["background_color"] = fn.mkColor(range_info["background_color"])
-            self.ranges.append(range_info)
+        self.ranges = copy_ranges(ranges)
 
         self.reset_resolved_ranges()
 
-    def set_value(self, value=None, update=False, force=False):
+    def set_value(self, raw_value=None, value=None, update=False, force=False):
+        if self.type() == self.Info:
+            return
+
         update_text = (value != self._value) or force
         if value is not None:
             if self._value == value and update is False:
@@ -2420,6 +2548,14 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 self._value = value
         else:
             value = self._value
+
+        if raw_value is not None:
+            if self._raw_value == raw_value and update is False:
+                return
+            else:
+                self._raw_value = raw_value
+        else:
+            raw_value = self._raw_value
 
         default_background_color = None
         default_font_color = None
@@ -2438,19 +2574,23 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 if self._background_color != self._current_background_color:
                     brush = self._background_color
                     self.setBackground(self.NameColumn, brush)
+                    self.setBackground(self.RawColumn, brush)
                     self.setBackground(self.ValueColumn, brush)
                     self.setBackground(self.UnitColumn, brush)
                     self.setBackground(self.CommonAxisColumn, brush)
                     self.setBackground(self.IndividualAxisColumn, brush)
+                    self.setBackground(self.OriginColumn, brush)
                     self._current_background_color = self._background_color
             else:
                 if new_background_color != self._current_background_color:
                     brush = fn.mkBrush(new_background_color.name())
                     self.setBackground(self.NameColumn, brush)
+                    self.setBackground(self.RawColumn, brush)
                     self.setBackground(self.ValueColumn, brush)
                     self.setBackground(self.UnitColumn, brush)
                     self.setBackground(self.CommonAxisColumn, brush)
                     self.setBackground(self.IndividualAxisColumn, brush)
+                    self.setBackground(self.OriginColumn, brush)
                     self._current_background_color = brush
 
             if new_font_color is None:
@@ -2458,18 +2598,22 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                     brush = fn.mkBrush(self.signal.color_name)
                     self.setForeground(self.NameColumn, brush)
                     self.setForeground(self.UnitColumn, brush)
+                    self.setForeground(self.RawColumn, brush)
                     self.setForeground(self.ValueColumn, brush)
                     self.setForeground(self.CommonAxisColumn, brush)
                     self.setForeground(self.IndividualAxisColumn, brush)
+                    self.setForeground(self.OriginColumn, brush)
                     self._current_font_color = self.signal.color
             else:
                 if new_font_color != self.foreground(0).color():
                     brush = fn.mkBrush(new_font_color.name())
                     self.setForeground(self.NameColumn, brush)
+                    self.setForeground(self.RawColumn, brush)
                     self.setForeground(self.ValueColumn, brush)
                     self.setForeground(self.UnitColumn, brush)
                     self.setForeground(self.CommonAxisColumn, brush)
                     self.setForeground(self.IndividualAxisColumn, brush)
+                    self.setForeground(self.OriginColumn, brush)
                     self._current_font_color = new_font_color
 
         if update_text:
@@ -2503,17 +2647,37 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 except (ValueError, TypeError):
                     self.setText(self.ValueColumn, f"{self._value_prefix}{value}")
 
+            if raw_value in ("", "n.a."):
+                text = f"{self._value_prefix}{raw_value}"
+                self.setText(self.RawColumn, text)
+            else:
+                string = value_as_str(
+                    raw_value,
+                    self.format,
+                    self.signal.raw_samples.dtype,
+                    self.precision,
+                )
+
+                text = f"{self._value_prefix}{string}"
+
+                try:
+                    self.setText(self.RawColumn, text)
+                except (ValueError, TypeError):
+                    self.setText(self.RawColumn, f"{self._value_prefix}{raw_value}")
+
     def show_info(self):
         if self.type() == self.Group:
             ChannnelGroupDialog(self.name, self.pattern, self.get_ranges(), self.treeWidget()).show()
 
     @property
     def unit(self):
-        type = self.type()
-        if type == self.Channel:
-            return self.signal.unit if self.signal.mode != "raw" else ""
-        else:
-            return ""
+        match self.type():
+            case self.Channel:
+                return self.signal.unit if self.signal.mode != "raw" else ""
+            case self.Info:
+                return self.origin_uuid
+            case _:
+                return ""
 
     @unit.setter
     def unit(self, text):

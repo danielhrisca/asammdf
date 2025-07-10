@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 import platform
 import sys
-from textwrap import wrap
 import webbrowser
 
 from natsort import natsorted
@@ -19,11 +18,12 @@ from ..dialogs.dependencies_dlg import DependenciesDlg
 from ..dialogs.functions_manager import FunctionsManagerDialog
 from ..dialogs.messagebox import MessageBox
 from ..dialogs.multi_search import MultiSearch
+from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..ui.main_window import Ui_PyMDFMainWindow
 from ..utils import draw_color_icon
 from .batch import BatchWidget
 from .file import FileWidget
-from .mdi_area import MdiAreaWidget, WithMDIArea
+from .mdi_area import get_functions, MdiAreaWidget, WithMDIArea
 from .plot import Plot
 
 
@@ -67,12 +67,19 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         multi_info.setIcon(icon)
         multi_info.clicked.connect(self.comparison_info)
 
+        multi_info2 = QtWidgets.QPushButton("Load dsp")
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        multi_info2.setIcon(icon)
+        multi_info2.clicked.connect(self.comparison_dsp)
+
         hbox = QtWidgets.QHBoxLayout()
         hbox.addWidget(multi_search)
         hbox.addWidget(multi_info)
+        hbox.addWidget(multi_info2)
         hbox.addStretch()
 
-        self.mdi_area = MdiAreaWidget(self)
+        self.mdi_area = MdiAreaWidget(parent=self, comparison=True)
         self.mdi_area.add_window_request.connect(self.add_window)
         self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -865,6 +872,76 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.show()
         self.fullscreen = None
 
+    def comparison_dsp(self, event=None):
+        windows = list(self.mdi_area.subWindowList())
+        for window in windows:
+            widget = window.widget()
+
+            self.mdi_area.removeSubWindow(window)
+            widget.setParent(None)
+            widget.close()
+            widget.deleteLater()
+            window.close()
+
+        import json
+        from traceback import format_exc
+
+        file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self,
+            "Select display file",
+            "",
+            "Display files (*.dspf)",
+            "Display files (*.dspf)",
+        )
+
+        if not file_name or Path(file_name).suffix.lower() != ".dspf":
+            return
+
+        with open(file_name) as infile:
+            info = json.load(infile)
+
+        new_functions = {}
+
+        if "functions" in info:
+            for name, definition in info["functions"].items():
+                if name in self.functions:
+                    if self.functions[name] != definition:
+                        new_functions[os.urandom(6).hex()] = {
+                            "name": name,
+                            "definition": definition,
+                        }
+                else:
+                    new_functions[os.urandom(6).hex()] = {
+                        "name": name,
+                        "definition": definition,
+                    }
+
+        else:
+            for window in info["windows"]:
+                if window["type"] == "Plot":
+                    for name, definition in get_functions(window["configuration"]["channels"]).items():
+                        if name in self.functions:
+                            if self.functions[name] != definition:
+                                new_functions[os.urandom(6).hex()] = {
+                                    "name": name,
+                                    "definition": definition,
+                                }
+                        else:
+                            new_functions[os.urandom(6).hex()] = {
+                                "name": name,
+                                "definition": definition,
+                            }
+
+        if new_functions or info.get("global_variables", "") != self.global_variables:
+            self.update_functions({}, new_functions, f"{self.global_variables}\n{info.get('global_variables', '')}")
+
+        windows = info.get("windows", [])
+        for i, window in enumerate(windows, 1):
+            try:
+                self.load_window(window)
+            except:
+                print(format_exc())
+
     def sizeHint(self):
         return QtCore.QSize(1, 1)
 
@@ -1272,7 +1349,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self.open_batch_files(event)
 
     def _open_file(self, file_name):
-        if isinstance(file_name, tuple | list):
+        if isinstance(file_name, (tuple, list)):
             file_names = file_name
         else:
             file_names = [file_name]
@@ -1432,33 +1509,37 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 self.files.currentWidget().keyPressEvent(event)
             elif self.files.count() and self.stackedWidget.currentIndex() == 2:
                 event.accept()
-                count = self.files.count()
-                channels_dbs = [self.files.widget(i).mdf.channels_db for i in range(count)]
-                measurements = [str(self.files.widget(i).mdf.name) for i in range(count)]
+                measurements = [file.mdf for file in self.iter_files()]
 
-                dlg = MultiSearch(channels_dbs, measurements, parent=self)
+                dlg = MultiSearch(measurements, parent=self)
                 dlg.setModal(True)
                 dlg.exec_()
                 result = dlg.result
                 if result:
-                    ret, ok = QtWidgets.QInputDialog.getItem(
-                        None,
-                        "Select window type",
-                        "Type:",
-                        ["Plot", "Numeric", "Tabular"],
-                        0,
-                        False,
-                    )
-                    if ok:
+                    options = [
+                        "New plot window",
+                        "New numeric window",
+                    ] + [mdi.windowTitle() for mdi in self.mdi_area.subWindowList()]
+
+                    if active_window := self.mdi_area.activeSubWindow():
+                        default = active_window.windowTitle()
+                    else:
+                        default = None
+
+                    dialog = WindowSelectionDialog(options=options, default=default, parent=self)
+                    dialog.setModal(True)
+                    dialog.exec_()
+
+                    if dialog.result():
+                        window_type = dialog.selected_type()
+                        disable_new_channels = dialog.disable_new_channels()
+
                         names = []
-                        for file_index, entry in result:
-                            group, ch_index = entry
-                            mdf = self.files.widget(file_index).mdf
-                            uuid = self.files.widget(file_index).uuid
-                            name = mdf.groups[group].channels[ch_index].name
+
+                        for uuid, (group, ch_index), channel_name in sorted(result):
                             names.append(
                                 {
-                                    "name": name,
+                                    "name": channel_name,
                                     "origin_uuid": uuid,
                                     "type": "channel",
                                     "ranges": [],
@@ -1470,9 +1551,20 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                                     "precision": 3,
                                     "common_axis": False,
                                     "individual_axis": False,
+                                    "enabled": not disable_new_channels,
                                 }
                             )
-                        self.add_window((ret, names))
+                        if window_type == "New plot window":
+                            self.add_window(["Plot", names])
+                        elif window_type == "New numeric window":
+                            self.add_window(["Numeric", names])
+                        elif window_type == "New tabular window":
+                            self.add_window(["Tabular", names])
+                        else:
+                            for mdi in self.mdi_area.subWindowList():
+                                if mdi.windowTitle() == window_type:
+                                    self.add_new_channels(names, mdi.widget())
+                                    break
 
         elif key == QtCore.Qt.Key.Key_F11:
             self.toggle_fullscreen()
@@ -1500,13 +1592,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
     def comparison_info(self, event):
         count = self.files.count()
-        measurements = [str(self.files.widget(i).mdf.name) for i in range(count)]
+        measurements = [f"{self.files.widget(i).uuid}:\t{self.files.widget(i).mdf.name}" for i in range(count)]
 
-        info = []
-        for i, name in enumerate(measurements, 1):
-            info.extend(wrap(f"{i:> 2}: {name}", 120))
-
-        MessageBox.information(self, "Measurement files used for comparison", "\n".join(info))
+        MessageBox.information(self, "Measurement files used for comparison", "\n".join(measurements))
 
     def toggle_fullscreen(self):
         if self.files.count() > 0 or self.fullscreen is not None:

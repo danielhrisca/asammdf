@@ -46,10 +46,23 @@ dependencies = [
 
 [project.optional-dependencies]
 decode = ["faust-cchardet==2.1.19", "chardet"]
-export = ["pyarrow>=17.0.0", "h5py>=3.11", "hdf5storage>=0.1.19", "python-snappy", "polars>=1.1.0"]
+export = [
+    "pyarrow>=17.0.0",
+    "h5py>=3.11",
+    "hdf5storage>=0.1.19",
+    "python-snappy",
+    "polars>=1.1.0",
+]
 export-matlab-v5 = ["scipy>=1.13.0"]
-gui = ["natsort", "PySide6>=6.7.0", "pyqtgraph>=0.13.4", "pyqtlet2[PySide6]", "packaging"]
+gui = [
+    "natsort",
+    "PySide6>=6.7.0",
+    "pyqtgraph>=0.13.4",
+    "pyqtlet2[PySide6]",
+    "packaging",
+]
 encryption = ["cryptography", "keyring"]
+plot = ["matplotlib"]
 symbolic-math = ["sympy>=1.13.0"]
 filesystem = ["fsspec"]
 
@@ -64,19 +77,9 @@ Source = "https://github.com/danielhrisca/asammdf"
 [tool.scikit-build]
 metadata.version.provider = "scikit_build_core.metadata.regex"
 metadata.version.input = "src/asammdf/version.py"
+sdist.include = ["ext"]
 wheel.packages = ["src/asammdf"]
 wheel.py-api = "cp310"
-
-[tool.black]
-line-length = 120
-required-version = "25"
-target-version = ['py310']
-force-exclude = '''
-(
-    ^/ext |
-    ^/src/asammdf/gui/ui |
-)
-'''
 
 [tool.coverage]
 run.relative_files = true
@@ -95,18 +98,9 @@ skip = ["pp*", "*_ppc64le", "*-musllinux*", "*_s390x"]
 
 [tool.mypy]
 files = "."
-exclude = [
-    "benchmarks/",
-    "build/",
-    "ci/",
-    "dist/",
-    "doc/_build/",
-    "examples/",
-    "ext/",
-    "test/",
-]
+exclude = ["build/", "ci/", "dist/", "doc/_build/", "ext/", "test/asammdf/gui/"]
 python_version = "3.10"
-plugins = ["numpy.typing.mypy_plugin"]
+enable_error_code = ["deprecated"]
 strict = true
 
 [[tool.mypy.overrides]]
@@ -117,8 +111,11 @@ module = [
     "fsspec.*",
     "h5py.*",
     "hdf5storage.*",
+    "isal.*",
+    "lz4.*",
     "mdfreader.*",
     "mfile.*",
+    "mpl_toolkits.*",
     "numexpr.*",
     "pyqtgraph.*",
     "pyqtlet2.*",
@@ -129,19 +126,11 @@ module = [
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = [
-    "asammdf.app.asammdfgui",
-    "asammdf.blocks.bus_logging_utils",
-    "asammdf.blocks.conversion_utils",
-    "asammdf.blocks.mdf_v4",
-    "asammdf.blocks.v4_blocks",
-    "asammdf.gui.*",
-    "asammdf.mdf",
-    "asammdf.signal",
-]
+module = ["asammdf.app.asammdfgui", "asammdf.gui.*"]
 ignore_errors = true
 
 [tool.ruff]
+line-length = 120
 target-version = "py310"
 extend-exclude = ["./src/asammdf/gui/ui", "./ext"]
 force-exclude = true

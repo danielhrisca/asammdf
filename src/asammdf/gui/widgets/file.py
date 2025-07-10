@@ -16,14 +16,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 import asammdf.mdf as mdf_module
 
 from ... import tool
-from ...blocks.utils import (
-    extract_encryption_information,
-    extract_xml_comment,
-    load_channel_names_from_file,
-    load_dsp,
-    load_lab,
-    TERMINATED,
-)
+from ...blocks.utils import extract_encryption_information, extract_xml_comment, Terminated
 from ...blocks.v4_blocks import AttachmentBlock, FileHistory, HeaderBlock
 from ...blocks.v4_blocks import TextBlock as TextV4
 from ...blocks.v4_constants import (
@@ -33,9 +26,9 @@ from ...blocks.v4_constants import (
     BUS_TYPE_LIN,
     BUS_TYPE_USB,
     CompressionAlgorithm,
-    FLAG_AT_TO_STRING,
     FLAG_CG_BUS_EVENT,
 )
+from .. import serde
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
@@ -43,6 +36,13 @@ from ..dialogs.error_dialog import ErrorDialog
 from ..dialogs.gps_dialog import GPSDialog
 from ..dialogs.messagebox import MessageBox
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
+from ..serde import (
+    ExtendedJsonDecoder,
+    ExtendedJsonEncoder,
+    load_channel_names_from_file,
+    load_dsp,
+    load_lab,
+)
 from ..ui.file_widget import Ui_file_widget
 from ..utils import (
     COMPRESSION_OPTIONS,
@@ -265,16 +265,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         "process_bus_logging": process_bus_logging,
                     }
 
-                    self.mdf = run_thread_with_progress(
-                        self,
-                        target=target,
-                        kwargs=kwargs,
-                        factor=33,
-                        offset=0,
-                        progress=progress,
-                    )
-
-                    if self.mdf is TERMINATED:
+                    try:
+                        self.mdf = run_thread_with_progress(
+                            self,
+                            target=target,
+                            kwargs=kwargs,
+                            factor=33,
+                            offset=0,
+                            progress=progress,
+                        )
+                    except Terminated:
                         return
 
                     self.mdf.original_name = original_name
@@ -298,6 +298,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.mdi_area = MdiAreaWidget()
 
             self.mdi_area.add_window_request.connect(self.add_window)
+            self.mdi_area.create_window_request.connect(self._create_window)
+            self.mdi_area.search_request.connect(self.search)
             self.mdi_area.open_files_request.connect(self.open_new_files.emit)
             self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
             self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -439,82 +441,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.apply_btn.clicked.connect(self.apply_processing)
 
-        hide_embedded_btn = True
+        self.update_attachments()
 
-        if self.mdf.version >= "4.00" and self.mdf.attachments:
-            for i, attachment in enumerate(self.mdf.attachments, 1):
-                if attachment.file_name == "user_embedded_display.dspf" and attachment.mime == r"application/x-dspf":
-                    hide_embedded_btn = False
-
-                att = Attachment(i - 1, self)
-                att.number.setText(f"{i}.")
-
-                fields = []
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "ATBLOCK address")
-                field.setText(1, f"0x{attachment.address:X}")
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "File name")
-                field.setText(1, str(attachment.file_name))
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "MIME type")
-                field.setText(1, attachment.mime)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Comment")
-                field.setText(1, attachment.comment)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Flags")
-                if attachment.flags:
-                    flags = []
-                    for flag, string in FLAG_AT_TO_STRING.items():
-                        if attachment.flags & flag:
-                            flags.append(string)
-                    text = f'{attachment.flags} [0x{attachment.flags:X}= {", ".join(flags)}]'
-                else:
-                    text = "0"
-                field.setText(1, text)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "MD5 sum")
-                field.setText(1, attachment.md5_sum.hex().upper())
-                fields.append(field)
-
-                size = attachment.original_size
-                if size <= 1 << 10:
-                    text = f"{size} B"
-                elif size <= 1 << 20:
-                    text = f"{size/1024:.1f} KB"
-                elif size <= 1 << 30:
-                    text = f"{size/1024/1024:.1f} MB"
-                else:
-                    text = f"{size/1024/1024/1024:.1f} GB"
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Size")
-                field.setText(1, text)
-                fields.append(field)
-
-                att.fields.addTopLevelItems(fields)
-
-                item = QtWidgets.QListWidgetItem()
-                item.setSizeHint(att.sizeHint())
-                self.attachments.addItem(item)
-                self.attachments.setItemWidget(item, att)
-        else:
-            self.aspects.setTabVisible(4, False)
-
-        if hide_embedded_btn:
-            self.load_embedded_channel_list_btn.setDisabled(True)
         self.load_embedded_channel_list_btn.clicked.connect(self.load_embedded_display_file)
         self.save_embedded_channel_list_btn.clicked.connect(self.embed_display_file)
 
@@ -618,7 +546,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if widget.mode == "Internal file structure":
             while item := iterator.value():
-
                 if item.entry[1] != 0xFFFFFFFFFFFFFFFF:
                     if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                         signals.add(item.entry)
@@ -626,7 +553,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 iterator += 1
         else:
             while item := iterator.value():
-
                 if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     signals.add(item.entry)
 
@@ -891,7 +817,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                     signals = set()
                     while item := iterator.value():
-
                         if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             signals.add((item.text(0), *item.entry))
 
@@ -923,7 +848,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 else:
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
                     while item := iterator.value():
-
                         if item.entry in result:
                             item.setCheckState(0, QtCore.Qt.CheckState.Checked)
                             names.add((result[item.entry], *item.entry))
@@ -940,7 +864,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         for mdi in self.mdi_area.subWindowList()
                         if not isinstance(
                             mdi.widget(),
-                            CANBusTrace | LINBusTrace | FlexRayBusTrace | GPSDialog | XY,
+                            (CANBusTrace, LINBusTrace, FlexRayBusTrace, GPS, XY),
                         )
                     ]
 
@@ -1011,7 +935,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 iterator += 1
         else:
             while item := iterator.value():
-
                 if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                     signals.append(item.text(0))
 
@@ -1083,7 +1006,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if file_name:
             file_name = Path(file_name).with_suffix(".dspf")
-            file_name.write_text(json.dumps(self.to_config(), indent=2))
+            file_name.write_text(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder))
 
             worker = md5()
             worker.update(file_name.read_bytes())
@@ -1157,14 +1080,80 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 channels = [name.split(";")[0] for name in info[section]]
 
-            elif extension in (".cfg", ".txt"):
+            elif extension == ".cfg":
                 with open(file_name) as infile:
-                    info = json.load(infile)
+                    info = json.load(infile, cls=ExtendedJsonDecoder)
                 channels = info.get("selected_channels", [])
+
+            elif extension == ".txt":
+                try:
+                    with open(file_name) as infile:
+                        info = json.load(infile, cls=ExtendedJsonDecoder)
+                    channels = info.get("selected_channels", [])
+                except:
+                    with open(file_name) as infile:
+                        channels = [line.strip() for line in infile.readlines()]
+                        channels = [name for name in channels if name]
+                    info = {
+                        "selected_channels": [],
+                        "windows": [
+                            {
+                                "title": "Plot 0",
+                                "configuration": {
+                                    "channels": [
+                                        {
+                                            "type": "channel",
+                                            "name": name,
+                                            "unit": "",
+                                            "flags": 0,
+                                            "enabled": True,
+                                            "individual_axis": False,
+                                            "common_axis": False,
+                                            "color": serde.COLORS[i % serde.COLORS_COUNT],
+                                            "computed": False,
+                                            "ranges": [],
+                                            "precision": 3,
+                                            "fmt": "{}",
+                                            "format": "phys",
+                                            "mode": "phys",
+                                            "y_range": [0.0, 10],
+                                            "origin_uuid": "df21b72e1fdd",
+                                        }
+                                        for i, name in enumerate(channels)
+                                    ],
+                                    "pattern": {},
+                                    "splitter": [732, 729, 0],
+                                    "x_range": [-0.947017678447, 30.291065678447],
+                                    "y_axis_width": 48.0,
+                                    "grid": [False, False],
+                                    "cursor_precision": 15,
+                                    "font_size": 9,
+                                    "locked": False,
+                                    "common_axis_y_range": [0.0, 1.0],
+                                    "channels_header": [732, [568, 83, 41, 20, 20, 0]],
+                                    "channels_header_columns_visible": [True, True, True, True, True, False],
+                                    "hide_axes": False,
+                                    "hide_selected_channel_value_panel": False,
+                                    "focused_mode": False,
+                                    "delta_mode": "delta",
+                                    "hide_bookmarks": True,
+                                    "hide_missing_channels": False,
+                                    "hide_disabled_channels": False,
+                                },
+                                "geometry": [0, 0, 1475, 924],
+                                "maximized": True,
+                                "minimized": False,
+                                "type": "Plot",
+                            }
+                        ],
+                        "active_window": "Plot 0",
+                        "functions": {},
+                        "global_variables": "",
+                    }
 
             elif extension == ".dspf":
                 with open(file_name) as infile:
-                    info = json.load(infile)
+                    info = json.load(infile, cls=ExtendedJsonDecoder)
                 channels = info.get("selected_channels", [])
 
                 original_file_name = Path(self.mdf.original_name)
@@ -1187,7 +1176,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     if result == MessageBox.Yes:
                         display_file_name = str(Path(file_name).resolve())
 
-                        _password = self.mdf._password
+                        _password = self.mdf._mdf._password
 
                         uuid = self.mdf.uuid
 
@@ -1279,7 +1268,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.loaded_display_file = Path(info.get("display_file_name", "")), b""
 
             self.functions.update(info.get("functions", {}))
-            self.global_variables = f'{self.global_variables}\n{info.get("global_variables", "")}'
+            self.global_variables = f"{self.global_variables}\n{info.get('global_variables', '')}"
             self.global_variables = "\n".join([line for line in self.global_variables.splitlines() if line])
 
         if channels:
@@ -1301,7 +1290,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     iterator += 1
             else:
                 while item := iterator.value():
-
                     channel_name = item.text(0)
                     if channel_name in channels:
                         item.setCheckState(0, QtCore.Qt.CheckState.Checked)
@@ -1345,7 +1333,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                 }
 
             if new_functions or info.get("global_variables", "") != self.global_variables:
-                self.update_functions({}, new_functions, f'{self.global_variables}\n{info.get("global_variables", "")}')
+                self.update_functions({}, new_functions, f"{self.global_variables}\n{info.get('global_variables', '')}")
 
         self.clear_windows()
 
@@ -1355,7 +1343,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             count = len(windows)
 
             if show_progress:
-
                 progress = setup_progress(
                     parent=self,
                     title="Loading display windows",
@@ -1460,8 +1447,8 @@ MultiRasterSeparator;&
                 self,
                 "Select channel list file",
                 self.default_folder,
-                "Config file (*.cfg);;Display files (*.dsp *.dspf);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.dspf *.lab)",
-                "All file types (*.cfg *.dsp *.dspf *.lab)",
+                "Config file (*.cfg);;Display files (*.dsp *.dspf);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.dspf *.lab *.txt)",
+                "All file types (*.cfg *.dsp *.dspf *.lab *.txt)",
             )
 
             if file_name is None or Path(file_name).suffix.lower() not in (
@@ -1564,11 +1551,11 @@ MultiRasterSeparator;&
                 master_min = self.mdf.get_master(i, record_offset=0, record_count=1)
                 if len(master_min):
                     t_min.append(master_min[0])
-                self.mdf._master_channel_cache.clear()
+                self.mdf._mdf._master_channel_cache.clear()
                 master_max = self.mdf.get_master(i, record_offset=cycles_nr - 1, record_count=1)
                 if len(master_max):
                     t_max.append(master_max[0])
-                self.mdf._master_channel_cache.clear()
+                self.mdf._mdf._master_channel_cache.clear()
 
         if t_min:
             time_range = t_min, t_max
@@ -1645,10 +1632,11 @@ MultiRasterSeparator;&
                 iterator += 1
 
     def close(self):
-        mdf_name = self.mdf.name
-        self.mdf.close()
-        if mdf_name != self.mdf.original_name and mdf_name.is_file():
-            mdf_name.unlink()
+        if self.mdf is not None:
+            mdf_name = self.mdf.name
+            self.mdf.close()
+            if mdf_name != self.mdf.original_name and mdf_name.is_file():
+                mdf_name.unlink()
         self.channels_tree.clear()
         self.filter_tree.clear()
 
@@ -1775,7 +1763,6 @@ MultiRasterSeparator;&
                         iterator += 1
                 else:
                     while item := iterator.value():
-
                         if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                             group, index = item.entry
                             ch = self.mdf.groups[group].channels[index]
@@ -1808,7 +1795,7 @@ MultiRasterSeparator;&
         mdf_module.MDF.scramble(name=self.file_name, progress=progress)
 
     def scramble_finished(self):
-        if self._progress.error is None and self._progress.result is not TERMINATED:
+        if self._progress.error is None:
             path = Path(self.file_name)
             self.open_new_files.emit([str(path.with_suffix(f".scrambled{path.suffix}"))])
 
@@ -1838,7 +1825,7 @@ MultiRasterSeparator;&
             self.mdf_compression.addItems(options)
 
     def extract_bus_logging_finished(self):
-        if self._progress.error is None and self._progress.result is not TERMINATED:
+        if self._progress.error is None:
             file_name, message = self._progress.result
 
             self.output_info_bus.setPlainText("\n".join(message))
@@ -1911,30 +1898,22 @@ MultiRasterSeparator;&
         progress.signals.setLabelText.emit(f'Extracting Bus signals from "{self.file_name}"')
 
         # convert self.mdf
-        result = self.mdf.extract_bus_logging(
+        mdf = self.mdf.extract_bus_logging(
             database_files=database_files,
             version=version,
             prefix=self.prefix.text().strip(),
             progress=progress,
         )
 
-        if result is TERMINATED:
-            return
-        else:
-            mdf = result
-
         # then save it
         progress.signals.setLabelText.emit(f'Saving file to "{file_name}"')
 
-        result = mdf.save(
+        mdf.save(
             dst=file_name,
             compression=compression,
             overwrite=True,
             progress=progress,
         )
-
-        if result is TERMINATED:
-            return
 
         bus_call_info = dict(self.mdf.last_call_info)
 
@@ -1945,12 +1924,12 @@ MultiRasterSeparator;&
 
             message += [
                 f"{bus} bus summary:",
-                f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+                f"- {found_id_count} of {len(call_info['total_unique_ids'])} IDs in the MDF4 file were matched in the DBC and converted",
             ]
             if call_info["unknown_id_count"]:
-                message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
+                message.append(f"- {call_info['unknown_id_count']} unknown IDs in the MDF4 file")
             else:
-                message.append("- no unknown IDs inf the MDF4 file")
+                message.append("- no unknown IDs in the MDF4 file")
 
             message += [
                 "",
@@ -1985,7 +1964,7 @@ MultiRasterSeparator;&
         return file_name, message
 
     def extract_bus_csv_logging_finished(self):
-        if self._progress.error is None and self._progress.result is not TERMINATED:
+        if self._progress.error is None:
             message = self._progress.result
 
             self.output_info_bus.setPlainText("\n".join(message))
@@ -2096,27 +2075,22 @@ MultiRasterSeparator;&
         progress.signals.setLabelText.emit(f'Extracting Bus signals from "{self.file_name}"')
 
         # convert self.mdf
-        result = self.mdf.extract_bus_logging(
+        mdf = self.mdf.extract_bus_logging(
             database_files=database_files,
             version=version,
             prefix=self.prefix.text().strip(),
             progress=progress,
         )
 
-        if result is TERMINATED:
-            return
-        else:
-            mdf = result
-
         # then save it
         progress.signals.setLabelText.emit(f'Saving file to "{file_name}"')
 
         mdf.configure(
-            integer_interpolation=self.mdf._integer_interpolation,
-            float_interpolation=self.mdf._float_interpolation,
+            integer_interpolation=self.mdf._mdf._integer_interpolation,
+            float_interpolation=self.mdf._mdf._float_interpolation,
         )
 
-        result = mdf.export(
+        mdf.export(
             fmt="csv",
             filename=file_name,
             single_time_base=single_time_base,
@@ -2135,9 +2109,6 @@ MultiRasterSeparator;&
             progress=progress,
         )
 
-        if result is TERMINATED:
-            return
-
         bus_call_info = dict(self.mdf.last_call_info)
 
         message = []
@@ -2147,12 +2118,12 @@ MultiRasterSeparator;&
 
             message += [
                 f"{bus} bus summary:",
-                f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+                f"- {found_id_count} of {len(call_info['total_unique_ids'])} IDs in the MDF4 file were matched in the DBC and converted",
             ]
             if call_info["unknown_id_count"]:
-                message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
+                message.append(f"- {call_info['unknown_id_count']} unknown IDs in the MDF4 file")
             else:
-                message.append("- no unknown IDs inf the MDF4 file")
+                message.append("- no unknown IDs in the MDF4 file")
 
             message += [
                 "",
@@ -2811,8 +2782,8 @@ MultiRasterSeparator;&
         self.mdf.configure(read_fragment_size=split_size)
 
         mdf = None
-        integer_interpolation = self.mdf._integer_interpolation
-        float_interpolation = self.mdf._float_interpolation
+        integer_interpolation = self.mdf._mdf._integer_interpolation
+        float_interpolation = self.mdf._mdf._float_interpolation
 
         if needs_filter:
             icon = QtGui.QIcon()
@@ -2822,16 +2793,11 @@ MultiRasterSeparator;&
             progress.signals.setLabelText.emit(f'Filtering selected channels from "{self.file_name}"')
 
             # filtering self.mdf
-            result = self.mdf.filter(
+            mdf = self.mdf.filter(
                 channels=channels,
                 version=opts.mdf_version if output_format == "MDF" else "4.10",
                 progress=progress,
             )
-
-            if result is TERMINATED:
-                return
-            else:
-                mdf = result
 
             mdf.configure(
                 read_fragment_size=split_size,
@@ -2858,14 +2824,11 @@ MultiRasterSeparator;&
                 progress=progress,
             )
 
-            if result is TERMINATED:
-                return
+            if mdf is None:
+                mdf = result
             else:
-                if mdf is None:
-                    mdf = result
-                else:
-                    mdf.close()
-                    mdf = result
+                mdf.close()
+                mdf = result
 
             mdf.configure(
                 read_fragment_size=split_size,
@@ -2898,14 +2861,11 @@ MultiRasterSeparator;&
                 progress=progress,
             )
 
-            if result is TERMINATED:
-                return
+            if mdf is None:
+                mdf = result
             else:
-                if mdf is None:
-                    mdf = result
-                else:
-                    mdf.close()
-                    mdf = result
+                mdf.close()
+                mdf = result
 
             mdf.configure(
                 read_fragment_size=split_size,
@@ -2925,15 +2885,10 @@ MultiRasterSeparator;&
                 )
 
                 # convert self.mdf
-                result = self.mdf.convert(
+                mdf = self.mdf.convert(
                     version=version,
                     progress=progress,
                 )
-
-                if result is TERMINATED:
-                    return
-                else:
-                    mdf = result
 
             mdf.configure(
                 read_fragment_size=split_size,
@@ -2954,7 +2909,7 @@ MultiRasterSeparator;&
             if handle_overwrite:
                 dspf = self.to_config()
 
-                _password = self.mdf._password
+                _password = self.mdf._mdf._password
                 self.mdf.close()
 
                 windows = list(self.mdi_area.subWindowList())
@@ -2966,15 +2921,12 @@ MultiRasterSeparator;&
                     widget.deleteLater()
                     window.close()
 
-            result = mdf.save(
+            mdf.save(
                 dst=file_name,
                 compression=opts.mdf_compression,
                 overwrite=True,
                 progress=progress,
             )
-
-            if result is TERMINATED:
-                return
 
             if handle_overwrite:
                 original_name = file_name
@@ -3101,16 +3053,16 @@ MultiRasterSeparator;&
             return MessageBox.warning(
                 self,
                 "Wrong file type",
-                "The display file can only be embedded in .mf4 or .mf4z files" f"\n{original_file_name}",
+                f"The display file can only be embedded in .mf4 or .mf4z files\n{original_file_name}",
             )
 
-        _password = self.mdf._password
+        _password = self.mdf._mdf._password
 
         uuid = self.mdf.uuid
 
         creator_index = len(self.mdf.file_history)
         current_display = self.to_config()
-        data = json.dumps(current_display, indent=2).encode("utf-8", errors="replace")
+        data = json.dumps(current_display, indent=2, cls=ExtendedJsonEncoder).encode("utf-8", errors="replace")
 
         self.mdf.close()
 
@@ -3296,74 +3248,7 @@ MultiRasterSeparator;&
         current_display["display_file_name"] = self.loaded_display_file[0]
         self.load_channel_list(file_name=current_display)
 
-        if self.mdf.attachments:
-            for i, attachment in enumerate(self.mdf.attachments, 1):
-                att = Attachment(i - 1, self.mdf)
-                att.number.setText(f"{i}.")
-
-                fields = []
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "ATBLOCK address")
-                field.setText(1, f"0x{attachment.address:X}")
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "File name")
-                field.setText(1, str(attachment.file_name))
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "MIME type")
-                field.setText(1, attachment.mime)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Comment")
-                field.setText(1, attachment.comment)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Flags")
-                if attachment.flags:
-                    flags = []
-                    for flag, string in FLAG_AT_TO_STRING.items():
-                        if attachment.flags & flag:
-                            flags.append(string)
-                    text = f'{attachment.flags} [0x{attachment.flags:X}= {", ".join(flags)}]'
-                else:
-                    text = "0"
-                field.setText(1, text)
-                fields.append(field)
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "MD5 sum")
-                field.setText(1, attachment.md5_sum.hex().upper())
-                fields.append(field)
-
-                size = attachment.original_size
-                if size <= 1 << 10:
-                    text = f"{size} B"
-                elif size <= 1 << 20:
-                    text = f"{size / 1024:.1f} KB"
-                elif size <= 1 << 30:
-                    text = f"{size / 1024 / 1024:.1f} MB"
-                else:
-                    text = f"{size / 1024 / 1024 / 1024:.1f} GB"
-
-                field = QtWidgets.QTreeWidgetItem()
-                field.setText(0, "Size")
-                field.setText(1, text)
-                fields.append(field)
-
-                att.fields.addTopLevelItems(fields)
-
-                item = QtWidgets.QListWidgetItem()
-                item.setSizeHint(att.sizeHint())
-                self.attachments.addItem(item)
-                self.attachments.setItemWidget(item, att)
-
-            self.aspects.setTabVisible(4, True)
+        self.update_attachments()
 
     def load_embedded_display_file(self, event=None):
         if not self.load_embedded_channel_list_btn.isVisible() or not self.load_embedded_channel_list_btn.isEnabled():
@@ -3385,7 +3270,7 @@ MultiRasterSeparator;&
 
                 data, file_path, md5_sum = self.mdf.extract_attachment(index, password=password)
 
-                dsp = json.loads(data.decode("utf-8", errors="replace"))
+                dsp = json.loads(data.decode("utf-8", errors="replace"), cls=ExtendedJsonDecoder)
                 dsp["display_file_name"] = "user_embedded_display.dspf"
 
                 self.load_channel_list(file_name=dsp)
@@ -3521,3 +3406,25 @@ MultiRasterSeparator;&
         self._settings.setValue("export/MAT/export_compression_mat", self.export_compression_mat.currentText())
         self._settings.setValue("export/MAT/mat_format", self.mat_format.currentText())
         self._settings.setValue("export/MAT/oned_as", self.oned_as.currentText())
+
+    def update_attachments(self):
+        self.attachments.clear()
+
+        hide_embedded_btn = True
+
+        if self.mdf.version >= "4.00" and self.mdf.attachments:
+            for i, attachment in enumerate(self.mdf.attachments):
+                if attachment.file_name == "user_embedded_display.dspf" and attachment.mime == r"application/x-dspf":
+                    hide_embedded_btn = False
+
+                att = Attachment(i, attachment, self)
+
+                item = QtWidgets.QListWidgetItem()
+                item.setSizeHint(att.sizeHint())
+                self.attachments.addItem(item)
+                self.attachments.setItemWidget(item, att)
+        else:
+            self.aspects.setTabVisible(4, False)
+
+        if hide_embedded_btn:
+            self.load_embedded_channel_list_btn.setDisabled(True)

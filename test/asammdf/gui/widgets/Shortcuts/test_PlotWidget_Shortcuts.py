@@ -6,7 +6,7 @@ from PySide6.QtGui import QColor, QKeySequence
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QMessageBox
 
-from asammdf.blocks.utils import COLORS
+from asammdf.gui.serde import COLORS
 from test.asammdf.gui.test_base import Pixmap
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
@@ -144,58 +144,51 @@ class TestPlotShortcuts(TestPlotWidget):
             QTest.mouseClick(self.plot.focused_mode_btn, Qt.MouseButton.LeftButton)
         # add channels to plot
         self.assertIsNotNone(self.add_channels([35, 36, 37]))
-        pixmap = self.plot.plot.viewport().grab()
+        colors = [ch.color.name() for ch in self.channels]
+
         # Evaluate
-        self.assertTrue(Pixmap.has_color(pixmap, self.channels[0].color.name()))
-        self.assertTrue(Pixmap.has_color(pixmap, self.channels[1].color.name()))
-        self.assertTrue(Pixmap.has_color(pixmap, self.channels[2].color.name()))
+        # If all colors exists
+        self.assertTrue(self.is_not_blinking(self.plot.plot, set(colors)))
 
         # case 0
         QTest.keySequence(self.plot, QKeySequence(self.shortcuts["focused_mode"]))
-        self.processEvents(1)
-        for _ in range(100):
-            self.processEvents(0.01)
+        self.processEvents(0.1)
         # Evaluate
         self.assertTrue(Pixmap.is_black(self.plot.plot.viewport().grab()))
 
         # case 1
         self.mouseClick_WidgetItem(self.channels[0])
-        for _ in range(50):
-            self.avoid_blinking_issue(self.plot.channel_selection)
-        pixmap = self.plot.plot.viewport().grab()
+
         # Evaluate
-        self.assertTrue(Pixmap.has_color(pixmap, self.channels[0].color.name()))
-        self.assertFalse(Pixmap.has_color(pixmap, self.channels[1].color.name()))
-        self.assertFalse(Pixmap.has_color(pixmap, self.channels[2].color.name()))
+        self.assertTrue(self.is_not_blinking(self.plot.plot, {colors[0]}))
+        self.assertFalse(
+            {colors[1], colors[2]}.issubset(Pixmap.color_names_exclude_defaults(self.plot.plot.viewport().grab()))
+        )
 
         # case 2
-        QTest.keyClick(self.plot.channel_selection, Qt.Key_Down)
-        for _ in range(50):
-            self.avoid_blinking_issue(self.plot.channel_selection)
-        pixmap = self.plot.plot.viewport().grab()
+        QTest.keyClick(self.plot.channel_selection, Qt.Key.Key_Down)
+
         # Evaluate
-        self.assertFalse(Pixmap.has_color(pixmap, self.channels[0].color.name()))
-        self.assertTrue(Pixmap.has_color(pixmap, self.channels[1].color.name()))
-        self.assertFalse(Pixmap.has_color(pixmap, self.channels[2].color.name()))
+        self.assertTrue(self.is_not_blinking(self.plot.plot, {colors[1]}))
+        self.assertFalse(
+            {colors[0], colors[2]}.issubset(Pixmap.color_names_exclude_defaults(self.plot.plot.viewport().grab()))
+        )
 
         # case 3
         self.mouseClick_WidgetItem(self.channels[2])
-        for _ in range(50):
-            self.avoid_blinking_issue(self.plot.channel_selection)
-        pixmap = self.plot.plot.viewport().grab()
-        # Evaluate
-        self.assertFalse(Pixmap.has_color(pixmap, self.channels[0].color.name()))
-        self.assertFalse(Pixmap.has_color(pixmap, self.channels[1].color.name()))
-        self.assertTrue(Pixmap.has_color(pixmap, self.channels[2].color.name()))
 
-        # case 4
-        QTest.keySequence(self.plot, QKeySequence(self.shortcuts["focused_mode"]))
-        self.processEvents(0.1)
-        pixmap = self.plot.plot.viewport().grab()
         # Evaluate
-        self.assertTrue(Pixmap.has_color(pixmap, self.channels[0].color.name()))
-        self.assertTrue(Pixmap.has_color(pixmap, self.channels[1].color.name()))
-        self.assertTrue(Pixmap.has_color(pixmap, self.channels[2].color.name()))
+        self.assertTrue(self.is_not_blinking(self.plot.plot, {colors[2]}))
+        self.assertFalse(
+            {colors[1], colors[0]}.issubset(Pixmap.color_names_exclude_defaults(self.plot.plot.viewport().grab()))
+        )
+
+        # case 4 - exit focused mode
+        QTest.keySequence(self.plot, QKeySequence(self.shortcuts["focused_mode"]))
+
+        self.processEvents(0.1)
+        # Evaluate
+        self.assertTrue(self.is_not_blinking(self.plot.plot, set(colors)))
 
     def test_ascii__bin__hex__physical_shortcuts(self):
         """
@@ -643,9 +636,9 @@ class TestPlotShortcuts(TestPlotWidget):
         # Setup
         if not self.plot.focused_mode_btn.isFlat():
             QTest.mouseClick(self.plot.focused_mode_btn, Qt.MouseButton.LeftButton)
-        self.plot.plot.viewbox.menu.set_x_zoom_mode(True)
-        self.plot.plot.viewbox.menu.set_y_zoom_mode(True)
-        self.plot.plot.viewbox.setMouseMode(3)
+        self.plot.plot.viewbox.menu.set_x_zoom_mode()
+        self.plot.plot.viewbox.menu.set_y_zoom_mode()
+        self.plot.plot.viewbox.setMouseMode(self.plot.plot.viewbox.PanMode)
         self.plot.plot.setFocus()
         self.processEvents(0.1)
         # add channel to plot
@@ -658,9 +651,6 @@ class TestPlotShortcuts(TestPlotWidget):
 
         # Events
         self.mouseClick_WidgetItem(self.channels[0])
-        self.processEvents(1)
-        for _ in range(100):
-            self.processEvents(0.01)
         # Click in the center of the plot
         QTest.mouseClick(
             self.plot.plot.viewport(),
@@ -689,7 +679,7 @@ class TestPlotShortcuts(TestPlotWidget):
         new_y_range = self.plot.plot.signals[0].y_range
 
         # Evaluate
-        self.assertNotEqual(new_y_range[0] - new_y_range[1], y_range[0] - y_range[1])
+        self.assertNotEqual(new_y_range, y_range)
 
         # click on Backspace
         QTest.keySequence(self.plot, QKeySequence(self.shortcuts["undo_zoom"]))

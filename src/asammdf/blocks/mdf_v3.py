@@ -10,14 +10,13 @@ import logging
 from math import ceil
 import mmap
 import os
-from os import PathLike
 from pathlib import Path
 import sys
 from tempfile import NamedTemporaryFile
 import time
 from traceback import format_exc
 import typing
-from typing import Any, BinaryIO, IO, Literal, overload, SupportsBytes
+from typing import BinaryIO, IO, Literal, TYPE_CHECKING
 import xml.etree.ElementTree as ET
 
 import numpy as np
@@ -39,22 +38,21 @@ from numpy import (
 )
 from numpy.typing import ArrayLike, DTypeLike, NDArray
 from pandas import DataFrame
-from typing_extensions import TypedDict, Unpack
+from typing_extensions import Any, Buffer, overload, SupportsBytes, TypedDict, Unpack
 
 from .. import tool
 from ..signal import Signal
-from ..types import ChannelsType, CompressionType, RasterType, StrPathType
 from . import mdf_common, utils
 from . import v2_v3_constants as v23c
 from .conversion_utils import conversion_transfer
 from .cutils import data_block_from_arrays, get_channel_raw_bytes
-from .mdf_common import CommonKwargs, MDF_Common
+from .mdf_common import MDF_Common, MdfCommonKwargs
 from .options import GLOBAL_OPTIONS
 from .source_utils import Source
+from .types import ChannelsType, CompressionType, RasterType, StrPath
 from .utils import (
     as_non_byte_sized_signed_int,
     CHANNEL_COUNT,
-    ChannelsDB,
     CONVERT,
     count_channel_groups,
     DataBlockInfo,
@@ -64,7 +62,7 @@ from .utils import (
     get_text_v3,
     is_file_like,
     MdfException,
-    TERMINATED,
+    Terminated,
     UniqueDB,
     validate_version_argument,
     VirtualChannelGroup,
@@ -87,7 +85,11 @@ from .v2_v3_blocks import (
     TextBlock,
     TriggerBlock,
 )
-from .v2_v3_constants import Version
+from .v2_v3_constants import Version, Version2
+
+if TYPE_CHECKING:
+    from ..mdf import MDF
+
 
 try:
     decode = np.strings.decode
@@ -101,10 +103,10 @@ logger = logging.getLogger("asammdf")
 __all__ = ["MDF3"]
 
 
-Group = mdf_common.Group[DataGroup, ChannelGroup, Channel]
+Group = mdf_common.GroupV3
 
 
-class Kwargs(CommonKwargs, total=False):
+class Kwargs(MdfCommonKwargs, total=False):
     skip_sorting: bool
 
 
@@ -118,18 +120,20 @@ class TriggerInfoDict(TypedDict):
 
 
 class MDF3(MDF_Common[Group]):
-    """The *header* attibute is a *HeaderBlock*.
+    """The `header` attribute is a `HeaderBlock`.
 
-    The *groups* attribute is a list of dicts, each one with the following keys
+    The `groups` attribute is a list of `Group` objects, each one with the
+    following attributes:
 
-    * ``data_group`` - DataGroup object
-    * ``channel_group`` - ChannelGroup object
-    * ``channels`` - list of Channel objects with the same order as found in
-      the mdf file
-    * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel
-      arrays; list of Channel objects in case of structure channel
+    * ``data_group`` - `DataGroup` object
+    * ``channel_group`` - `ChannelGroup` object
+    * ``channels`` - list of `Channel` objects with the same order as found in
+      the MDF file
+    * ``channel_dependencies`` - list of `ChannelArrayBlock` objects in case of
+      channel arrays; list of `Channel` objects in case of structure channel
       composition
-    * ``data_block`` - address of data block
+    * ``data_blocks`` - list of `DataBlockInfo` objects, each one containing
+      address, type, size and other information about the block
     * ``data_location``- integer code for data location (original file,
       temporary file or memory)
     * ``data_block_addr`` - list of raw samples starting addresses
@@ -138,57 +142,49 @@ class MDF3(MDF_Common[Group]):
     * ``sorted`` - sorted indicator flag
     * ``record_size`` - dict that maps record IDs to record sizes in bytes
     * ``size`` - total size of data block for the current group
-    * ``trigger`` - *Trigger* object for current group
+    * ``trigger`` - `Trigger` object for current group
 
     Parameters
     ----------
-    name : string | pathlib.Path
-        mdf file name (if provided it must be a real file name) or
-        file-like object
-
-    version : string
-        mdf file version ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20' or
-        '3.30'); default '3.30'
-    callback : function
-        keyword only argument: function to call to update the progress; the
-        function must accept two arguments (the current progress and maximum
-        progress value)
-
+    name : str | path-like | file-like, optional
+        MDF file name (if provided it must be a real file name) or file-like
+        object.
+    version : str, default '3.30'
+        MDF file version ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20' or
+        '3.30').
+    callback : function, optional
+        Function to call to update the progress; the function must accept two
+        arguments (the current progress and maximum progress value).
 
     Attributes
     ----------
-    attachments : list
-        list of file attachments
     channels_db : dict
-        used for fast channel access by name; for each name key the value is a
-        list of (group index, channel index) tuples
+        Used for fast channel access by name; for each name key the value is a
+        list of (group index, channel index) tuples.
     groups : list
-        list of data group dicts
+        List of data group dicts.
     header : HeaderBlock
-        mdf file header
+        MDF file header.
     identification : FileIdentificationBlock
-        mdf file start block
+        MDF file start block.
     last_call_info : dict | None
-        a dict to hold information about the last called method.
+        A dict to hold information about the last called method.
 
         .. versionadded:: 5.12.0
 
     masters_db : dict
-        used for fast master channel access; for each group index key the value
-        is the master channel index
-    memory : str
-        memory optimization option
-    name : string
-        mdf file name
+        Used for fast master channel access; for each group index key the value
+        is the master channel index.
+    name : pathlib.Path
+        MDF file name.
     version : str
-        mdf version
-
+        MDF version.
     """
 
     def __init__(
         self,
-        name: str | PathLike[str] | FileLike | None = None,
-        version: Version = "3.30",
+        name: StrPath | FileLike | None = None,
+        version: Version2 | Version = "3.30",
         channels: list[str] | None = None,
         **kwargs: Unpack[Kwargs],
     ) -> None:
@@ -210,8 +206,6 @@ class MDF3(MDF_Common[Group]):
 
         self.temporary_folder = kwargs.get("temporary_folder", GLOBAL_OPTIONS["temporary_folder"])
 
-        self.groups: list[Group] = []
-        self.channels_db = ChannelsDB()
         self.masters_db: dict[int, int] = {}
         self.version: str = version
 
@@ -230,29 +224,26 @@ class MDF3(MDF_Common[Group]):
         self._single_bit_uint_as_bool = GLOBAL_OPTIONS["single_bit_uint_as_bool"]
         self._integer_interpolation = GLOBAL_OPTIONS["integer_interpolation"]
         self._float_interpolation = GLOBAL_OPTIONS["float_interpolation"]
-        self._raise_on_multiple_occurrences = kwargs.get(
-            "raise_on_multiple_occurrences", GLOBAL_OPTIONS["raise_on_multiple_occurrences"]
-        )
         self._use_display_names = kwargs.get("use_display_names", GLOBAL_OPTIONS["use_display_names"])
         self._fill_0_for_missing_computation_channels = kwargs.get(
             "fill_0_for_missing_computation_channels", GLOBAL_OPTIONS["fill_0_for_missing_computation_channels"]
         )
-        self.copy_on_get = False
 
         self._si_map: dict[bytes | int, ChannelExtension] = {}
         self._cc_map: dict[bytes | int, ChannelConversion] = {}
 
-        self.last_call_info: dict[str, object] = {}
-        self._master: NDArray[np.float64] | None = None
+        self._master: NDArray[Any] | None = None
 
         self.virtual_groups_map: dict[int, int] = {}
         self.virtual_groups: dict[int, VirtualChannelGroup] = {}
 
-        self.vlsd_max_length: dict[tuple[str, int], int] = {}
+        self.vlsd_max_length: dict[tuple[int, str], int] = {}
 
         self._delete_on_close = False
 
         progress = kwargs.get("progress", None)
+
+        super().__init__(kwargs.get("raise_on_multiple_occurrences", GLOBAL_OPTIONS["raise_on_multiple_occurrences"]))
 
         if name:
             if is_file_like(name):
@@ -301,7 +292,7 @@ class MDF3(MDF_Common[Group]):
             virtual_channel_group.record_size = grp.channel_group.samples_byte_nr
             virtual_channel_group.cycles_nr = grp.channel_group.cycles_nr
 
-        self._parent: object | None = None
+        self._parent: MDF | None = None
 
     def __del__(self) -> None:
         self.close()
@@ -313,7 +304,7 @@ class MDF3(MDF_Common[Group]):
         record_count: int | None = None,
         optimize_read: bool = True,
     ) -> Iterator[tuple[bytes, int, int | None]]:
-        """get group's data block bytes"""
+        """Get group's data block bytes."""
         has_yielded = False
         offset = 0
         _count = record_count
@@ -350,8 +341,8 @@ class MDF3(MDF_Common[Group]):
 
                     y_axis = CONVERT
 
-                    idx = searchsorted(CHANNEL_COUNT, channels_nr, side="right") - 1
-                    idx = max(idx, 0)  # type: ignore[arg-type]
+                    idx = int(searchsorted(CHANNEL_COUNT, channels_nr, side="right") - 1)
+                    idx = max(idx, 0)
                     split_size = y_axis[idx]
 
                     split_size = split_size // samples_size
@@ -370,7 +361,7 @@ class MDF3(MDF_Common[Group]):
                 while True:
                     try:
                         info = next(blocks)
-                        address, size = info.address, info.original_size
+                        address, size = info.address, typing.cast(int, info.original_size)
                         current_address = address
                     except StopIteration:
                         break
@@ -484,7 +475,7 @@ class MDF3(MDF_Common[Group]):
             blocks = iter(group.data_blocks)
 
             for info in blocks:
-                address, size = info.address, info.original_size
+                address, size = info.address, typing.cast(int, info.original_size)
                 stream.seek(address)
                 data = stream.read(size)
 
@@ -522,27 +513,23 @@ class MDF3(MDF_Common[Group]):
             yield b"", 0, _count
 
     def _prepare_record(self, group: Group) -> list[tuple[np.dtype[Any], int, int, int] | None]:
-        """compute record list
+        """Compute record list.
 
         Parameters
         ----------
         group : dict
-            MDF group dict
+            MDF group dict.
 
         Returns
         -------
         record : list
-            mapping of channels to records fields, records fields dtype
-
+            Mapping of channels to records fields, records fields dtype.
         """
-
-        record = group.record
-
-        if record is None:
+        if group.record is None:
             byte_order = self.identification.byte_order
             channels = group.channels
 
-            record = []
+            record: list[tuple[np.dtype[Any], int, int, int] | None] = []
 
             for new_ch in channels:
                 start_offset = new_ch.start_offset
@@ -592,7 +579,7 @@ class MDF3(MDF_Common[Group]):
 
             group.record = record
 
-        return record
+        return group.record
 
     def _get_not_byte_aligned_data(self, data: bytes, group: Group, ch_nr: int) -> NDArray[Any]:
         big_endian_types = (
@@ -616,9 +603,9 @@ class MDF3(MDF_Common[Group]):
             byte_size //= 8
 
         types = [
-            ("", f"a{byte_offset}"),
+            ("", f"S{byte_offset}"),
             ("vals", f"({byte_size},)u1"),
-            ("", f"a{record_size - byte_size - byte_offset}"),
+            ("", f"S{record_size - byte_size - byte_offset}"),
         ]
 
         vals: NDArray[Any] = np.rec.fromstring(data, dtype=np.dtype(types))
@@ -691,7 +678,7 @@ class MDF3(MDF_Common[Group]):
         stream: FileLike | mmap.mmap,
         mapped: bool = False,
         progress: Callable[[int, int], None] | Any | None = None,
-    ) -> object | None:
+    ) -> None:
         filter_channels = self.use_load_filter
 
         cg_count, _ = count_channel_groups(stream)
@@ -901,7 +888,7 @@ class MDF3(MDF_Common[Group]):
                     else:
                         if progress.stop:
                             self.close()
-                            return TERMINATED
+                            raise Terminated
 
             # store channel groups record sizes dict and data block size in
             # each new group data belong to the initial unsorted group, and
@@ -951,32 +938,28 @@ class MDF3(MDF_Common[Group]):
                         channel = ch_map[ref_channel_addr]
                         dep.referenced_channels.append(channel)
 
-        return None
-
     def _filter_occurrences(
         self,
-        occurrences: Sequence[tuple[int, int]],
+        occurrences: Iterator[tuple[int, int]],
         source_name: str | None = None,
         source_path: str | None = None,
         acq_name: str | None = None,
     ) -> Iterator[tuple[int, int]]:
-        occurrences_iter = iter(occurrences)
-
         if source_name is not None:
-            occurrences_iter = (
+            occurrences = (
                 (gp_idx, cn_idx)
-                for gp_idx, cn_idx in occurrences_iter
+                for gp_idx, cn_idx in occurrences
                 if (source := self.groups[gp_idx].channels[cn_idx].source) is not None and source.name == source_name
             )
 
         if source_path is not None:
-            occurrences_iter = (
+            occurrences = (
                 (gp_idx, cn_idx)
-                for gp_idx, cn_idx in occurrences_iter
+                for gp_idx, cn_idx in occurrences
                 if (source := self.groups[gp_idx].channels[cn_idx].source) is not None and source.path == source_path
             )
 
-        return occurrences_iter
+        return occurrences
 
     def add_trigger(
         self,
@@ -991,16 +974,15 @@ class MDF3(MDF_Common[Group]):
         Parameters
         ----------
         group : int
-            group index
+            Group index.
         timestamp : float
-            trigger time
-        pre_time : float
-            trigger pre time; default 0
-        post_time : float
-            trigger post time; default 0
-        comment : str
-            trigger comment
-
+            Trigger time.
+        pre_time : float, default 0
+            Trigger pre time.
+        post_time : float, default 0
+            Trigger post time.
+        comment : str, optional
+            Trigger comment.
         """
         comment_template = """<EVcomment>
     <TX>{}</TX>
@@ -1085,6 +1067,17 @@ class MDF3(MDF_Common[Group]):
         units: dict[str, str] | None = ...,
     ) -> None: ...
 
+    @overload
+    def append(
+        self,
+        signals: list[Signal] | Signal | DataFrame,
+        acq_name: str | None = ...,
+        acq_source: Source | None = ...,
+        comment: str = ...,
+        common_timebase: bool = ...,
+        units: dict[str, str] | None = ...,
+    ) -> int | None: ...
+
     def append(
         self,
         signals: list[Signal] | Signal | DataFrame,
@@ -1094,37 +1087,39 @@ class MDF3(MDF_Common[Group]):
         common_timebase: bool = False,
         units: dict[str, str] | None = None,
     ) -> int | None:
-        """Appends a new data group.
+        """Append a new data group.
 
-        For channel dependencies type Signals, the *samples* attribute must be
-        a numpy.recarray
+        For channel dependencies type Signals, the `samples` attribute must be
+        a np.recarray.
 
         Parameters
         ----------
         signals : list | Signal | pandas.DataFrame
-            list of *Signal* objects, or a single *Signal* object, or a pandas
-            *DataFrame* object. All bytes columns in the pandas *DataFrame*
-            must be *latin-1* encoded
-        acq_name : str
-            channel group acquisition name
-        acq_source : Source
-            channel group acquisition source
-        comment : str
-            channel group comment; default 'Python'
-        common_timebase : bool
-            flag to hint that the signals have the same timebase. Only set this
-            if you know for sure that all appended channels share the same
-            time base
-        units : dict
-            will contain the signal units mapped to the signal names when
-            appending a pandas DataFrame
+            List of `Signal` objects, or a single `Signal` object, or a pandas
+            DataFrame object. All bytes columns in the DataFrame must be
+            *latin-1* encoded.
+        acq_name : str, optional
+            Channel group acquisition name.
+        acq_source : Source, optional
+            Channel group acquisition source.
+        comment : str, default 'Python'
+            Channel group comment.
+        common_timebase : bool, default False
+            Flag to hint that the signals have the same timebase. Only set this
+            if you know for sure that all appended channels share the same time
+            base.
+        units : dict, optional
+            Will contain the signal units mapped to the signal names when
+            appending a pandas DataFrame.
 
         Examples
         --------
         >>> from asammdf import MDF, Signal
         >>> import numpy as np
+        >>> import pandas as pd
 
-        >>> # case 1 conversion type None
+        Case 1: Conversion type None.
+
         >>> s1 = np.array([1, 2, 3, 4, 5])
         >>> s2 = np.array([-1, -2, -3, -4, -5])
         >>> s3 = np.array([0.1, 0.04, 0.09, 0.16, 0.25])
@@ -1135,7 +1130,8 @@ class MDF3(MDF_Common[Group]):
         >>> mdf = MDF(version='3.30')
         >>> mdf.append([s1, s2, s3], comment='created by asammdf')
 
-        >>> # case 2: VTAB conversions from channels inside another file
+        Case 2: VTAB conversions from channels inside another file.
+
         >>> mdf1 = MDF('in.mdf')
         >>> ch1 = mdf1.get("Channel1_VTAB")
         >>> ch2 = mdf1.get("Channel2_VTABR")
@@ -1214,15 +1210,11 @@ class MDF3(MDF_Common[Group]):
         dg_cntr = len(self.groups)
 
         gp = Group(DataGroup())
-        gp_channels: list[Channel] = []
-        gp.channels = gp_channels
-        gp_dep: list[ChannelDependency | None] = []
-        gp.channel_dependencies = gp_dep
-        gp_sig_types: list[int] = []
-        gp.signal_types = gp_sig_types
+        gp_channels = gp.channels = []
+        gp_dep = gp.channel_dependencies = []
+        gp_sig_types = gp.signal_types = []
         gp.string_dtypes = []
-        record: list[tuple[np.dtype[Any], int, int, int] | None] = []
-        gp.record = record
+        record = gp.record = []
 
         self.groups.append(gp)
 
@@ -1430,14 +1422,10 @@ class MDF3(MDF_Common[Group]):
             ):
                 new_dg_cntr = len(self.groups)
                 new_gp = Group(DataGroup())
-                new_gp_channels: list[Channel] = []
-                new_gp.channels = new_gp_channels
-                new_gp_dep: list[ChannelDependency | None] = []
-                new_gp.channel_dependencies = new_gp_dep
-                new_gp_sig_types: list[int] = []
-                new_gp.signal_types = new_gp_sig_types
-                new_record: list[tuple[np.dtype[Any], int, int, int] | None] = []
-                new_gp.record = new_record
+                new_gp_channels = new_gp.channels = []
+                new_gp_dep = new_gp.channel_dependencies = []
+                new_gp_sig_types = new_gp.signal_types = []
+                new_record = new_gp.record = []
                 self.groups.append(new_gp)
 
                 new_fields: list[NDArray[Any]] = []
@@ -1619,11 +1607,13 @@ class MDF3(MDF_Common[Group]):
                 # data block
                 new_gp.sorted = True
 
+                block: Buffer
+
                 try:
                     samples = np.rec.fromarrays(new_fields, dtype=np.dtype(new_types))
                     block = samples.tobytes()
                 except:
-                    struct_fields = []
+                    struct_fields: list[tuple[bytes | NDArray[Any], int]] = []
                     for samples in new_fields:
                         size = samples.dtype.itemsize
 
@@ -1664,10 +1654,10 @@ class MDF3(MDF_Common[Group]):
             else:
                 new_dg_cntr = len(self.groups)
                 new_gp = Group(DataGroup())
-                new_gp.channels = new_gp_channels = []
-                new_gp.channel_dependencies = new_gp_dep = []
-                new_gp.signal_types = new_gp_sig_types = []
-                new_gp.record = new_record = []
+                new_gp_channels = new_gp.channels = []
+                new_gp_dep = new_gp.channel_dependencies = []
+                new_gp_sig_types = new_gp.signal_types = []
+                new_record = new_gp.record = []
                 self.groups.append(new_gp)
 
                 new_fields = []
@@ -2118,12 +2108,11 @@ class MDF3(MDF_Common[Group]):
         comment: str = "",
         units: dict[str, str] | None = None,
     ) -> None:
-        """Appends a new data group from a Pandas DataFrame."""
+        """Append a new data group from a pandas DataFrame."""
         units = units or {}
 
         t = df.index.values
-        index_name = df.index.name
-        time_name = index_name or "time"
+        time_name = df.index.name if isinstance(df.index.name, str) and df.index.name else "time"
 
         version = self.version
 
@@ -2150,12 +2139,11 @@ class MDF3(MDF_Common[Group]):
         dg_cntr = len(self.groups)
 
         gp = Group(DataGroup())
-        gp.channels = gp_channels = []
-        gp_dep: list[ChannelDependency | None] = []
-        gp.channel_dependencies = gp_dep
-        gp.signal_types = gp_sig_types = []
+        gp_channels = gp.channels = []
+        gp_dep = gp.channel_dependencies = []
+        gp_sig_types = gp.signal_types = []
         gp.string_dtypes = []
-        gp.record = record = []
+        record = gp.record = []
 
         self.groups.append(gp)
 
@@ -2362,10 +2350,8 @@ class MDF3(MDF_Common[Group]):
         gp.trigger = None
 
     def close(self) -> None:
-        """If the MDF was created with memory='minimum' and new
-        channels have been appended, then this must be called just before the
-        object is not used anymore to clean-up the temporary file.
-
+        """Call this just before the object is not used anymore to clean up the
+        temporary file and close the file object.
         """
         try:
             if self._closed:
@@ -2410,19 +2396,22 @@ class MDF3(MDF_Common[Group]):
         except:
             print(format_exc())
 
-    def extend(self, index: int, signals: list[tuple[NDArray[Any], NDArray[Any] | None]]) -> None:
-        """Extend a group with new samples. *signals* contains (values, invalidation_bits)
-        pairs for each extended signal. Since MDF3 does not support invalidation
-        bits, the second item of each pair must be None. The first pair is the master channel's pair, and the
-        next pairs must respect the same order in which the signals were appended. The samples must have raw
-        or physical values according to the *Signals* used for the initial append.
+    def extend(self, index: int, signals: Sequence[tuple[NDArray[Any], NDArray[np.bool] | None]]) -> None:
+        """Extend a group with new samples.
+
+        `signals` contains (values, invalidation_bits) pairs for each extended
+        signal. Since MDF3 does not support invalidation bits, the second item
+        of each pair must be None. The first pair is the master channel's pair,
+        and the next pairs must respect the same order in which the signals
+        were appended. The samples must have raw or physical values according
+        to the signals used for the initial append.
 
         Parameters
         ----------
         index : int
-            group index
-        signals : list
-            list of (numpy.ndarray, None) objects
+            Group index.
+        signals : sequence
+            Sequence of (np.ndarray, None) tuples.
 
         Examples
         --------
@@ -2583,20 +2572,19 @@ class MDF3(MDF_Common[Group]):
         virtual_channel_group.cycles_nr += cycles_nr
 
     def get_channel_name(self, group: int, index: int) -> str:
-        """Gets channel name.
+        """Get channel name.
 
         Parameters
         ----------
         group : int
-            0-based group index
+            0-based group index.
         index : int
-            0-based channel index
+            0-based channel index.
 
         Returns
         -------
         name : str
-            found channel name
-
+            Found channel name.
         """
         gp_nr, ch_nr = self._validate_channel_selection(None, group, index)
 
@@ -2626,40 +2614,34 @@ class MDF3(MDF_Common[Group]):
         group: int | None = None,
         index: int | None = None,
     ) -> str:
-        """Gets channel unit.
+        """Get channel unit.
 
-        Channel can be specified in two ways:
+        The channel can be specified in two ways:
 
-        * using the first positional argument *name*
+        * Using the first positional argument `name`.
 
-            * if there are multiple occurrences for this channel then the
-              *group* and *index* arguments can be used to select a specific
-              group.
-            * if there are multiple occurrences for this channel and either the
-              *group* or *index* arguments is None then a warning is issued
+          * If there are multiple occurrences for this channel, then the `group`
+            and `index` arguments can be used to select a specific group.
+          * If there are multiple occurrences for this channel and either the
+            `group` or `index` arguments is None, then a warning is issued.
 
-        * using the group number (keyword argument *group*) and the channel
-          number (keyword argument *index*). Use *info* method for group and
-          channel numbers
-
-
-        If the *raster* keyword argument is not *None* the output is
-        interpolated accordingly.
+        * Using the group number (keyword argument `group`) and the channel
+          number (keyword argument `index`). Use `info` method for group and
+          channel numbers.
 
         Parameters
         ----------
-        name : string
-            name of channel
-        group : int
-            0-based group index
-        index : int
-            0-based channel index
+        name : str, optional
+            Name of channel.
+        group : int, optional
+            0-based group index.
+        index : int, optional
+            0-based channel index.
 
         Returns
         -------
         unit : str
-            found channel unit
-
+            Found channel unit.
         """
         gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
@@ -2679,40 +2661,34 @@ class MDF3(MDF_Common[Group]):
         group: int | None = None,
         index: int | None = None,
     ) -> str:
-        """Gets channel comment.
+        """Get channel comment.
 
-        Channel can be specified in two ways:
+        The channel can be specified in two ways:
 
-        * using the first positional argument *name*
+        * Using the first positional argument `name`.
 
-            * if there are multiple occurrences for this channel then the
-              *group* and *index* arguments can be used to select a specific
-              group.
-            * if there are multiple occurrences for this channel and either the
-              *group* or *index* arguments is None then a warning is issued
+          * If there are multiple occurrences for this channel, then the `group`
+            and `index` arguments can be used to select a specific group.
+          * If there are multiple occurrences for this channel and either the
+            `group` or `index` arguments is None, then a warning is issued.
 
-        * using the group number (keyword argument *group*) and the channel
-          number (keyword argument *index*). Use *info* method for group and
-          channel numbers
-
-
-        If the *raster* keyword argument is not *None* the output is
-        interpolated accordingly.
+        * Using the group number (keyword argument `group`) and the channel
+          number (keyword argument `index`). Use `info` method for group and
+          channel numbers.
 
         Parameters
         ----------
-        name : string
-            name of channel
-        group : int
-            0-based group index
-        index : int
-            0-based channel index
+        name : str, optional
+            Name of channel.
+        group : int, optional
+            0-based group index.
+        index : int, optional
+            0-based channel index.
 
         Returns
         -------
         comment : str
-            found channel comment
-
+            Found channel comment.
         """
         gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
@@ -2754,6 +2730,22 @@ class MDF3(MDF_Common[Group]):
         skip_channel_validation: bool = ...,
     ) -> tuple[NDArray[Any], None]: ...
 
+    @overload
+    def get(
+        self,
+        name: str | None = ...,
+        group: int | None = ...,
+        index: int | None = ...,
+        raster: RasterType | None = ...,
+        samples_only: bool = ...,
+        data: tuple[bytes, int, int | None] | None = ...,
+        raw: bool = ...,
+        ignore_invalidation_bits: bool = ...,
+        record_offset: int = ...,
+        record_count: int | None = ...,
+        skip_channel_validation: bool = ...,
+    ) -> Signal | tuple[NDArray[Any], None]: ...
+
     def get(
         self,
         name: str | None = None,
@@ -2768,79 +2760,79 @@ class MDF3(MDF_Common[Group]):
         record_count: int | None = None,
         skip_channel_validation: bool = False,
     ) -> Signal | tuple[NDArray[Any], None]:
-        """Gets channel samples.
+        """Get channel samples.
 
-        Channel can be specified in two ways:
+        The channel can be specified in two ways:
 
-        * using the first positional argument *name*
+        * Using the first positional argument `name`.
 
-            * if there are multiple occurrences for this channel then the
-              *group* and *index* arguments can be used to select a specific
-              group.
-            * if there are multiple occurrences for this channel and either the
-              *group* or *index* arguments is None then a warning is issued
+          * If there are multiple occurrences for this channel, then the `group`
+            and `index` arguments can be used to select a specific group.
+          * If there are multiple occurrences for this channel and either the
+            `group` or `index` arguments is None, then a warning is issued.
 
-        * using the group number (keyword argument *group*) and the channel
-          number (keyword argument *index*). Use *info* method for group and
-          channel numbers
+        * Using the group number (keyword argument `group`) and the channel
+          number (keyword argument `index`). Use `info` method for group and
+          channel numbers.
 
-
-        If the *raster* keyword argument is not *None* the output is
-        interpolated accordingly.
+        If the `raster` keyword argument is not None, the output is interpolated
+        accordingly.
 
         Parameters
         ----------
-        name : string
-            name of channel
-        group : int
-            0-based group index
-        index : int
-            0-based channel index
-        raster : float
-            time raster in seconds
-        samples_only : bool
-            if *True* return only the channel samples as numpy array; if
-            *False* return a *Signal* object
-        data : bytes
-            prevent redundant data read by providing the raw data group samples
-        raw : bool
-            return channel samples without applying the conversion rule; default
-            `False`
-        ignore_invalidation_bits : bool
-            only defined to have the same API with the MDF v4
-        record_offset : int
-            if *data=None* use this to select the record offset from which the
-            group data should be loaded
-        skip_channel_validation (False) : bool
-            skip validation of channel name, group index and channel index; default
-            *False*. If *True*, the caller has to make sure that the *group* and *index*
+        name : str, optional
+            Name of channel.
+        group : int, optional
+            0-based group index.
+        index : int, optional
+            0-based channel index.
+        raster : float, optional
+            Time raster in seconds.
+        samples_only : bool, default False
+            If True, return only the channel samples as np.ndarray; if False,
+            return a `Signal` object.
+        data : bytes, optional
+            Prevent redundant data read by providing the raw data group samples.
+        raw : bool, default False
+            Return channel samples without applying the conversion rule.
+        ignore_invalidation_bits : bool, default False
+            Only defined to have the same API with the MDF v4.
+        record_offset : int, optional
+            If `data=None`, use this to select the record offset from which the
+            group data should be loaded.
+        record_count : int, optional
+            Number of records to read; default is None and in this case all
+            available records are used.
+        skip_channel_validation : bool, default False
+            Skip validation of channel name, group index and channel index. If
+            True, the caller has to make sure that the `group` and `index`
             arguments are provided and are correct.
 
-            ..versionadded:: 7.0.0
+            .. versionadded:: 7.0.0
 
         Returns
         -------
-        res : (numpy.array, None) | Signal
-            returns *Signal* if *samples_only*=*False* (default option),
-            otherwise returns a (numpy.array, None) tuple (for compatibility
-            with MDF v4 class.
+        res : (np.ndarray, None) | Signal
+            Returns `Signal` if `samples_only=False` (default option),
+            otherwise returns a (np.ndarray, None) tuple (for compatibility
+            with MDF v4 class).
 
-            The *Signal* samples are
+            The `Signal` samples are:
 
-                * numpy recarray for channels that have CDBLOCK or BYTEARRAY
-                  type channels
-                * numpy array for all the rest
+            * np.recarray for channels that have CDBLOCK or BYTEARRAY
+              type channels
+            * np.ndarray for all the rest
 
         Raises
         ------
-        MdfException :
-
-        * if the channel name is not found
-        * if the group index is out of range
-        * if the channel index is out of range
-        * if there are multiple channel occurrences in the file and the arguments
-          *name*, *group*, *index* are ambiguous. This behaviour can be turned off
-          by setting raise_on_multiple_occurrences to *False*.
+        MdfException
+            * if the channel name is not found
+            * if the group index is out of range
+            * if the channel index is out of range
+            * if there are multiple channel occurrences in the file and the
+              arguments `name`, `group`, `index` are ambiguous. This behaviour
+              can be turned off by setting `raise_on_multiple_occurrences` to
+              False.
 
         Examples
         --------
@@ -2850,42 +2842,49 @@ class MDF3(MDF_Common[Group]):
         >>> s = np.ones(5)
         >>> mdf = MDF(version='3.30')
         >>> for i in range(4):
-        ...     sigs = [Signal(s*(i*10+j), t, name='Sig') for j in range(1, 4)]
+        ...     sigs = [Signal(s * (i * 10 + j), t, name='Sig') for j in range(1, 4)]
         ...     mdf.append(sigs)
-        ...
+
+        Specifying only the channel name is not enough when there are multiple
+        channels with that name.
+
         >>> mdf.get('Sig')
         MdfException: Multiple occurrences for channel "Sig": ((0, 1), (0, 2),
         (0, 3), (1, 1), (1, 2), (1, 3), (2, 1), (2, 2), (2, 3), (3, 1), (3, 2),
         (3, 3)). Provide both "group" and "index" arguments to select another
         data group
-        >>>
+
+        In this case, adding the group number is also not enough since there
+        are multiple channels with that name in that group.
+
         >>> mdf.get('Sig', 1)
         MdfException: Multiple occurrences for channel "Sig": ((1, 1), (1, 2),
         (1, 3)). Provide both "group" and "index" arguments to select another
         data group
-        >>>
-        >>> # channel named Sig from group 1, channel index 2
+
+        Get the channel named "Sig" from group 1, channel index 2.
+
         >>> mdf.get('Sig', 1, 2)
         <Signal Sig:
                 samples=[ 12.  12.  12.  12.  12.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
                 comment="">
-        >>>
-        >>> # group 2, channel index 1
+
+        Get the channel from group 2 and channel index 1.
+
         >>> mdf.get(None, 2, 1)
         <Signal Sig:
                 samples=[ 21.  21.  21.  21.  21.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
                 comment="">
         >>> mdf.get(group=2, index=1)
         <Signal Sig:
                 samples=[ 21.  21.  21.  21.  21.]
-                timestamps=[0 1 2 3 4]
+                timestamps=[ 0.  1.  2.  3.  4.]
                 unit=""
                 comment="">
-
         """
 
         if skip_channel_validation:
@@ -2920,8 +2919,8 @@ class MDF3(MDF_Common[Group]):
             data_ = (data,)
 
         # check if this is a channel array
+        vals: NDArray[Any]
         if dep:
-            vals: NDArray[Any]
             if dep.dependency_type == v23c.DEPENDENCY_TYPE_VECTOR:
                 arrays: list[NDArray[Any]] = []
                 types: list[DTypeLike] = []
@@ -2975,6 +2974,9 @@ class MDF3(MDF_Common[Group]):
 
                 vals = np.rec.fromarrays(arrays, dtype=np.dtype([(channel.name, vals.dtype, record_shape)]))
 
+            else:
+                raise ValueError(f"unexpected dependency_type '{dep.dependency_type}'")
+
             if not samples_only or raster:
                 timestamps = self.get_master(
                     gp_nr,
@@ -3004,7 +3006,7 @@ class MDF3(MDF_Common[Group]):
         else:
             # get channel values
             channel_values: list[NDArray[Any]] = []
-            times: list[NDArray[np.float64]] = []
+            times: list[NDArray[Any]] = []
             count = 0
             records = self._prepare_record(grp)
             for fragment in data_:
@@ -3115,7 +3117,7 @@ class MDF3(MDF_Common[Group]):
 
         if vals.dtype.kind == "S":
             encoding = "latin-1"
-            vals = array([e.rsplit(b"\0")[0] for e in vals.tolist()], dtype=vals.dtype)
+            vals = array([e.rsplit(b"\0")[0] for e in typing.cast(list[bytes], vals.tolist())], dtype=vals.dtype)
 
         res: tuple[NDArray[Any], None] | Signal
         if samples_only:
@@ -3164,42 +3166,32 @@ class MDF3(MDF_Common[Group]):
         self,
         index: int,
         data: tuple[bytes, int, int | None] | None = None,
-        raster: RasterType | None = None,
         record_offset: int = 0,
         record_count: int | None = None,
         one_piece: bool = False,
-    ) -> NDArray[np.float64]:
-        """Returns master channel samples for given group.
+    ) -> NDArray[Any]:
+        """Get master channel samples for the given group.
 
         Parameters
         ----------
         index : int
-            group index
-        data : (bytes, int)
-            (data block raw bytes, fragment offset); default *None*
-        raster : float
-            raster to be used for interpolation; default *None*
-
-            .. deprecated:: 5.13.0
-
-        record_offset : int
-            if *data=None* use this to select the record offset from which the
-            group data should be loaded
-
+            Group index.
+        data : (bytes, int), optional
+            (data block raw bytes, fragment offset).
+        record_offset : int, optional
+            If `data=None`, use this to select the record offset from which the
+            group data should be loaded.
+        record_count : int, optional
+            Number of records to read; default is None and in this case all
+            available records are used.
 
         Returns
         -------
-        t : numpy.array
-            master channel samples
-
+        t : np.ndarray
+            Master channel samples.
         """
         if self._master is not None:
             return self._master
-
-        if raster is not None:
-            raise PendingDeprecationWarning(
-                "the argument raster is deprecated since version 5.13.0 " "and will be removed in a future release"
-            )
 
         fragment = data
         if fragment:
@@ -3322,14 +3314,6 @@ class MDF3(MDF_Common[Group]):
 
         self._master_channel_metadata[index] = metadata
 
-        if raster:
-            if len(timestamps) > 1:
-                num = float(float32((timestamps[-1] - timestamps[0]) / raster))
-                if int(num) == num:
-                    timestamps = linspace(timestamps[0], timestamps[-1], int(num))
-                else:
-                    timestamps = arange(timestamps[0], timestamps[-1], raster)
-
         return timestamps
 
     def iter_get_triggers(self) -> Iterator[TriggerInfoDict]:
@@ -3338,14 +3322,14 @@ class MDF3(MDF_Common[Group]):
         Yields
         ------
         trigger_info : dict
-            trigger information with the following keys:
+            Trigger information with the following keys:
 
-                * comment : trigger comment
-                * time : trigger time
-                * pre_time : trigger pre time
-                * post_time : trigger post time
-                * index : trigger index
-                * group : data group index of trigger
+            * comment : trigger comment
+            * time : trigger time
+            * pre_time : trigger pre time
+            * post_time : trigger post time
+            * index : trigger index
+            * group : data group index of trigger
         """
         for i, gp in enumerate(self.groups):
             trigger = gp.trigger
@@ -3369,10 +3353,12 @@ class MDF3(MDF_Common[Group]):
         >>> mdf = MDF('test.mdf')
         >>> mdf.info()
         """
-        info: dict[str, object] = {}
-        for key in ("author", "department", "project", "subject"):
-            value = self.header[key]
-            info[key] = value
+        info: dict[str, object] = {
+            "author": self.header.author,
+            "department": self.header.department,
+            "project": self.header.project,
+            "subject": self.header.subject,
+        }
         info["version"] = self.version
         info["groups"] = len(self.groups)
         for i, gp in enumerate(self.groups):
@@ -3399,8 +3385,7 @@ class MDF3(MDF_Common[Group]):
         Returns
         -------
         timestamp : datetime.datetime
-            start timestamp
-
+            Start timestamp.
         """
 
         return self.header.start_time
@@ -3411,32 +3396,31 @@ class MDF3(MDF_Common[Group]):
 
     def save(
         self,
-        dst: StrPathType,
+        dst: StrPath,
         overwrite: bool = False,
         compression: CompressionType = 0,
         progress: Any | None = None,
         add_history_block: bool = True,
-    ) -> Path | object:
-        """Save MDF to *dst*. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appended with '.<cntr>',
-        were '<cntr>' is the first counter that produces a new file name (that
-        does not already exist in the filesystem).
+    ) -> Path:
+        """Save `MDF` to `dst`. If `overwrite` is True, then the destination
+        file is overwritten, otherwise the file name is appended with '.<cntr>',
+        where '<cntr>' is the first counter that produces a new file name that
+        does not already exist in the filesystem.
 
         Parameters
         ----------
-        dst : str | pathlib.Path
-            destination file name
-        overwrite : bool
-            overwrite flag, default *False*
-        compression : int
-            does nothing for mdf version3; introduced here to share the same
-            API as mdf version 4 files
+        dst : str | path-like
+            Destination file name.
+        overwrite : bool, default False
+            Overwrite flag.
+        compression : int, optional
+            Does nothing for MDF version 3; introduced here to share the same
+            API as MDF version 4 files.
 
         Returns
         -------
-        output_file : str
-            output file name
-
+        output_file : pathlib.Path
+            Path to saved file.
         """
 
         dst = Path(dst).with_suffix(".mdf")
@@ -3454,7 +3438,7 @@ class MDF3(MDF_Common[Group]):
                     else:
                         cntr += 1
                 message = (
-                    f'Destination file "{dst}" already exists ' f'and "overwrite" is False. Saving MDF file as "{name}"'
+                    f'Destination file "{dst}" already exists and "overwrite" is False. Saving MDF file as "{name}"'
                 )
                 logger.warning(message)
                 dst = name
@@ -3597,7 +3581,7 @@ class MDF3(MDF_Common[Group]):
                         dst_.close()
                         self.close()
 
-                        return TERMINATED
+                        raise Terminated
 
             # update referenced channels addresses in the channel dependencies
             for gp in self.groups:
@@ -3629,7 +3613,7 @@ class MDF3(MDF_Common[Group]):
             if progress is not None and progress.stop:
                 dst_.close()
                 self.close()
-                return TERMINATED
+                raise Terminated
 
             if progress is not None:
                 blocks_nr = len(blocks)
@@ -3778,7 +3762,7 @@ class MDF3(MDF_Common[Group]):
         else:
             group_sets: dict[int, set[int]] = {}
             for item in channels:
-                if isinstance(item, list | tuple):
+                if isinstance(item, (list, tuple)):
                     if len(item) not in (2, 3):
                         raise MdfException(
                             "The items used for filtering must be strings, "

@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 import codecs
+import os
 from pathlib import Path
 import sys
+import unittest
 from unittest import mock
 import urllib
 import urllib.request
@@ -18,6 +20,7 @@ from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 # to avoid initializing widgets multiple times and consume time.
 
 
+@unittest.skipIf(os.getenv("NO_NET_ACCESS"), "Test requires Internet access")
 class TestPushButtons(TestBatchWidget):
     def setUp(self):
         super().setUp()
@@ -136,7 +139,8 @@ class TestPushButtons(TestBatchWidget):
         self.assertEqual(self.widget.output_info_bus.toPlainText(), "")  # bus output info tab is clean
 
         # Set Prefix
-        self.widget.prefix.setText(self.id().split(".")[-1])
+        prefix = self.id().split(".")[-1]
+        self.widget.prefix.setText(prefix)
 
         # Event
         self.mouse_click_on_btn_with_progress(self.widget.extract_bus_btn)
@@ -157,7 +161,7 @@ class TestPushButtons(TestBatchWidget):
 
             self.assertNotEqual(len(mdf_file.groups), len(bus_file.groups))
             for channel in bus_file.channels_db:
-                self.assertNotIn(channel.replace(self.id().split(".")[-1], ""), mdf_file.channels_db)
+                self.assertNotIn(channel.replace(prefix, ""), mdf_file.channels_db)
 
             # Evaluate Source:
             for name, group_index in mdf_file.channels_db.items():
@@ -176,8 +180,8 @@ class TestPushButtons(TestBatchWidget):
             timestamps_max = set()
             for name, group_index in bus_file.channels_db.items():
                 group, index = group_index[0]
-                if name != "time":
-                    self.assertIn(self.id().split(".")[-1], name)
+                if not name.endswith("time"):
+                    self.assertIn(prefix, name)
 
                     channel = bus_file.get(name, group, index, raw=True)
                     signal = DBC.SG(name.replace(self.id().split(".")[-1], "").split(".")[-1], dbc_lines)

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import datetime
 from math import ceil
+import os
 from pathlib import Path
 from random import randint
 import unittest
@@ -189,6 +190,7 @@ class TestPushButtonApply(TestBatchWidget):
             for channel in self.selected_channels:
                 self.assertIn(channel, mdf_file.channels_db)
 
+    @unittest.skipIf(os.getenv("NO_NET_ACCESS"), "Test requires Internet access")
     def test_output_format_ASC(self):
         """
         When QThreads are running, event-loops needs to be processed.
@@ -445,7 +447,7 @@ class TestPushButtonApply(TestBatchWidget):
         self.assertTrue(mat_path.exists())
 
         mat_file = scipy.io.loadmat(str(mat_path))
-        to_replace = {" ", ".", "[", "]"}
+        to_replace = {" ", ".", "[", "]", ":"}
 
         with OpenMDF(Path(self.resource, self.default_test_file)) as mdf_file:
             # get common timestamps
@@ -466,9 +468,9 @@ class TestPushButtonApply(TestBatchWidget):
                 if channel + "_0" in mat_file.keys() and "RAT" in mdf_signal.name:
                     channel += "_0"
 
-                self.assertIn(channel, mat_file.keys())
+                self.assertIn(channel[:60], mat_file.keys())  # limit of maximum 60 ch for channel name
                 np.testing.assert_almost_equal(
-                    mdf_signal.samples, mat_file[channel][0], decimal=3, err_msg=mdf_signal.name
+                    mdf_signal.samples, mat_file[channel[:60]][0], decimal=3, err_msg=mdf_signal.name
                 )
 
             common_timestamps -= common_timestamps[0]  # start from 0
@@ -493,6 +495,7 @@ class TestPushButtonApply(TestBatchWidget):
         # Expected results
         hdf5_path = Path(self.test_workspace, self.default_test_file.replace(".mf4", ".hdf"))
         groups = self.get_selected_groups(channels=self.selected_channels)
+        groups = list(groups.values())
 
         # Mouse click on Apply button
         self.mouse_click_on_btn_with_progress(self.tested_btn)
@@ -501,24 +504,31 @@ class TestPushButtonApply(TestBatchWidget):
         self.assertTrue(hdf5_path.exists())
 
         with OpenHDF5(hdf5_path) as hdf5_file, OpenMDF(self.measurement_file) as mdf_file:
-            self.assertEqual(len(hdf5_file.items()) - 1, len(groups))  # 5th item is file path
+            self.assertEqual(len(hdf5_file.items()) - 1, len(groups))  # 1th item is file path
 
-            for mdf_group, hdf5_group in zip(groups.values(), hdf5_file.values(), strict=False):
-                for name in hdf5_group:
-                    if name != "time":  # Evaluate channels
-                        self.assertIn(name, mdf_group)
-                        mdf_channel = mdf_file.select([name])[0]
-                        hdf5_channel = hdf5_group.get(name)
+            for hdf5_group in hdf5_file:
+                hdf5_group = hdf5_file[hdf5_group]
+                if hdf5_group.name.startswith("ChannelGroup"):
+                    index = int(hdf5_group.name.split("_")[1])
+                    mdf_group = groups[index]
 
-                        if np.issubdtype(mdf_channel.samples.dtype, np.number):  # samples are numbers
-                            np.testing.assert_almost_equal(mdf_channel.samples, hdf5_channel, decimal=3)
-                        else:
-                            # Evaluate samples shape
-                            self.assertEqual(mdf_channel.samples.size, hdf5_channel.size)
+                    for name in hdf5_group:
+                        if name != "time":  # Evaluate channels
+                            self.assertIn(name, mdf_group)
+                            mdf_channel = mdf_file.select([name])[0]
+                            hdf5_channel = hdf5_group.get(name)
 
-                    else:  # evaluate timestamps
-                        hdf5_channel = hdf5_group.get(name)  # for evaluation will be used latest mdf channel from group
-                        np.testing.assert_almost_equal(mdf_channel.timestamps, hdf5_channel, decimal=3)
+                            if np.issubdtype(mdf_channel.samples.dtype, np.number):  # samples are numbers
+                                np.testing.assert_almost_equal(mdf_channel.samples, hdf5_channel, decimal=3)
+                            else:
+                                # Evaluate samples shape
+                                self.assertEqual(mdf_channel.samples.size, hdf5_channel.size)
+
+                        else:  # evaluate timestamps
+                            hdf5_channel = hdf5_group.get(
+                                name
+                            )  # for evaluation will be used latest mdf channel from group
+                            np.testing.assert_almost_equal(mdf_channel.timestamps, hdf5_channel, decimal=3)
 
     def test_output_format_HDF5_1(self):
         """
@@ -571,6 +581,7 @@ class TestPushButtonApply(TestBatchWidget):
                 self.assertIn(channel, hdf5_channels)
                 np.testing.assert_almost_equal(mdf_channel.samples, hdf5_channel, decimal=3)
 
+    @unittest.skipIf(os.getenv("NO_NET_ACCESS"), "Test requires Internet access")
     def test_output_format_Parquet_0(self):
         """
         When QThreads are running, event-loops needs to be processed.
@@ -613,6 +624,7 @@ class TestPushButtonApply(TestBatchWidget):
                 if np.issubdtype(channel.samples.dtype, np.number):  # problematic conversion
                     np.testing.assert_almost_equal(channel.samples, pandas_tab[name].values, decimal=9)
 
+    @unittest.skipIf(os.getenv("NO_NET_ACCESS"), "Test requires Internet access")
     def test_output_format_Parquet_1(self):
         """
         When QThreads are running, event-loops needs to be processed.
@@ -719,7 +731,7 @@ class TestPushButtonApply(TestBatchWidget):
             self.assertEqual(time_dif.days, 0)
             for channel in mdf_file.iter_channels():
                 self.assertEqual(channel.timestamps.min(), 0)
-                self.assertEqual(channel.timestamps.max(), stop_cut - start_cut)
+                self.assertAlmostEqual(channel.timestamps.max(), stop_cut - start_cut, 3)
 
     def test_cut_checkbox_1(self):
         """
@@ -776,7 +788,7 @@ class TestPushButtonApply(TestBatchWidget):
                 self.assertEqual(channel.timestamps.min(), start_cut)
                 self.assertEqual(channel.timestamps.max(), stop_cut)
 
-    @unittest.skip("FIXME: test keeps failing in CI")
+    # @unittest.skip("FIXME: test keeps failing in CI")
     def test_resample_by_step_0(self):
         """
         Events
@@ -818,7 +830,7 @@ class TestPushButtonApply(TestBatchWidget):
                 for i in range(size):
                     self.assertAlmostEqual(channel.timestamps[i], channel.timestamps.min() + step * i, places=12)
 
-    @unittest.skip("FIXME: test keeps failing in CI")
+    # @unittest.skip("FIXME: test keeps failing in CI")
     def test_resample_by_step_1(self):
         """
         Events

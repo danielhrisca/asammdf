@@ -3,6 +3,7 @@
 """
 Main test function to execute all tests found in the current directory
 """
+
 from pathlib import Path
 import sys
 import unittest
@@ -10,7 +11,7 @@ import unittest
 import xmlrunner
 
 
-def main():
+def main() -> bool:
     tests = unittest.TestLoader().discover(".", "test_*.py")
     testResult = xmlrunner.XMLTestRunner(output=str(Path(".").resolve() / "test-reports")).run(tests)
 

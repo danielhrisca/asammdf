@@ -1,6 +1,7 @@
 import logging
 
 from ..blocks.utils import plausible_timestamps
+from ..signal import Signal
 
 try:
     from PySide6 import QtWidgets
@@ -15,19 +16,17 @@ except ImportError:
 logger = logging.getLogger("asammdf")
 
 
-def plot(signals, title="", validate=True, index_only=False):
-    """create a stand-alone plot using the input signal or signals
+def plot(signals: Signal | list[Signal], title: str = "", validate: bool = True) -> None:
+    """Create a stand-alone plot using the input signal or signals.
 
     Arguments
     ---------
     signals : iterable | Signal
-
-    title (""): str
-        window title
-
-    validate (True): bool
-        consider the invalidation bits
-
+        Signals to plot.
+    title : str, default ''
+        Window title.
+    validate : bool, default True
+        Consider the invalidation bits.
     """
 
     if QT:
@@ -37,7 +36,7 @@ def plot(signals, title="", validate=True, index_only=False):
         app.setApplicationName("py-asammdf")
 
         if validate:
-            if isinstance(signals, tuple | list):
+            if isinstance(signals, (tuple, list)):
                 signals = [signal.validate() for signal in signals]
             else:
                 signals = [signals.validate()]
@@ -52,7 +51,7 @@ def plot(signals, title="", validate=True, index_only=False):
         if title.strip():
             main.setWindowTitle(title.strip())
         else:
-            if isinstance(signals, tuple | list):
+            if isinstance(signals, (tuple, list)):
                 main.setWindowTitle(", ".join(sig.name for sig in signals))
             else:
                 main.setWindowTitle(signals.name)

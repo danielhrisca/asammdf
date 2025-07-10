@@ -12,6 +12,7 @@ class DragAndDrop
     - responsible to perform Drag and Drop operations
      from source widget - specific point, to destination widget - specific point
 """
+
 from collections.abc import Iterable
 import os
 import pathlib
@@ -51,11 +52,18 @@ class TestBase(unittest.TestCase):
     - setUp ErrorDialog for evaluation raised exceptions
     """
 
+    pyqtgraph.setConfigOption("background", "k")
+    pyqtgraph.setConfigOption("foreground", "w")
+
+    settings = QtCore.QSettings()
+    settings.setValue("zoom_x_center_on_cursor", True)
+    settings.setValue("plot_cursor_precision", 6)
+
     longMessage = False
 
     resource = os.path.normpath(os.path.join(os.path.dirname(__file__), "resources"))
     test_workspace = os.path.join(os.path.dirname(__file__), "test_workspace")
-    screenshots = os.path.join(os.path.dirname(__file__).split("test")[0], "screenshots")
+    screenshots = os.path.join(os.path.dirname(__file__), "screenshots")
 
     patchers = []
     # MockClass ErrorDialog
@@ -79,13 +87,13 @@ class TestBase(unittest.TestCase):
         else:
             duration = abs(duration)
 
-        w.showNormal()
+        w.showMaximized()
 
         loop = QtCore.QEventLoop()
         QtCore.QTimer.singleShot(int(duration * 1000), loop.quit)
         loop.exec_()
 
-        w.showNormal()
+        w.showMaximized()
 
     @staticmethod
     def processEvents(timeout=0.001):
@@ -103,10 +111,10 @@ class TestBase(unittest.TestCase):
                 shutil.rmtree(self.test_workspace)
             except PermissionError as e:
                 print(e)
-        if not os.path.exists(self.screenshots):
-            os.makedirs(self.screenshots)
 
-        os.makedirs(self.test_workspace)
+        os.makedirs(self.screenshots, exist_ok=True)
+        os.makedirs(self.test_workspace, exist_ok=True)
+
         self.mc_ErrorDialog.reset_mock()
         self.processEvents()
 
@@ -125,13 +133,8 @@ class TestBase(unittest.TestCase):
 
     def tearDown(self):
         self.processEvents()
-        path_ = os.path.join(self.screenshots, self.id().split("gui.")[-1].rsplit(".", 1)[0])
-        if not os.path.exists(path_):
-            os.makedirs(path_)
-
         w = getattr(self, "widget", None)
         if w:
-            w.grab().save(os.path.join(path_, f"{self.id().split('.')[-1]}.png"))
             self.destroy(w)
 
         self.mc_ErrorDialog.reset_mock()
@@ -192,12 +195,28 @@ class TestBase(unittest.TestCase):
         )
         self.processEvents(0.5)
 
-    def avoid_blinking_issue(self, w):
-        self.processEvents(0.01)
-        # To avoid blinking issue, click on a center of widget
-        QtTest.QTest.mouseClick(
-            w, QtCore.Qt.MouseButton.LeftButton, QtCore.Qt.KeyboardModifier.NoModifier, w.rect().center()
-        )
+    def is_not_blinking(self, to_grab, colors: set[str], timeout=5):
+        """
+        Parameters
+        ----------
+        - to_grab: widget ex: self.plot
+        - colors: a set of colors names ex: {"#123456", "#ffffff"}
+        Returns
+        -------
+        - True: if not timeout and all colors exist on pixmap
+        - False: if timeout and no colors exist on pixmap
+        """
+        if not hasattr(to_grab, "grab"):
+            raise Warning(f"object {to_grab} has no attribute grab")
+
+        now = time.perf_counter()
+        all_colors = Pixmap.color_names_exclude_defaults(to_grab.grab())
+        while not colors.issubset(all_colors):
+            self.processEvents(0.01)
+            all_colors = Pixmap.color_names_exclude_defaults(to_grab.grab())
+            if time.perf_counter() - now > timeout:
+                return False
+        return True
 
 
 class DragAndDrop:
@@ -320,7 +339,6 @@ class Pixmap:
     @staticmethod
     def color_names_exclude_defaults(pixmap):
         """
-
         Parameters
         ----------
         pixmap: QPixmap object of PlotGraphics object
@@ -403,16 +421,16 @@ class Pixmap:
         if ax in ("x", "X"):
             for x in range(image.width()):
                 for y in range(image.height()):
-                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                    if image.pixelColor(x, y).name() == signal_color:
                         from_to.append(x)
                         break
                 if from_to:
                     break
             if not from_to:
                 return
-            for x in range(image.width(), from_to[0], -1):
+            for x in range(image.width() - 1, from_to[0], -1):
                 for y in range(image.height()):
-                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                    if image.pixelColor(x, y).name() == signal_color:
                         from_to.append(x)
                         break
                 if len(from_to) == 2:
@@ -422,7 +440,7 @@ class Pixmap:
         elif ax in ("y", "Y"):
             for y in range(image.height()):
                 for x in range(image.width()):
-                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                    if image.pixelColor(x, y).name() == signal_color:
                         from_to.append(y)
                         break
                 if from_to:
@@ -430,9 +448,9 @@ class Pixmap:
             if not from_to:
                 return
 
-            for y in range(image.height(), from_to[0], -1):
+            for y in range(image.height() - 1, from_to[0], -1):
                 for x in range(image.width()):
-                    if QtGui.QColor(image.pixel(x, y)).name() == signal_color:
+                    if image.pixelColor(x, y).name() == signal_color:
                         from_to.append(y)
                         break
                 if len(from_to) == 2:
@@ -492,7 +510,7 @@ class OpenFileContextManager:
         self.file.close()
         for exc in (exc_type, exc_val, exc_tb):
             if exc is not None:
-                raise exc
+                print(exc)
 
 
 class OpenMDF(OpenFileContextManager):

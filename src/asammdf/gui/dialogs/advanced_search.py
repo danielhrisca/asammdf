@@ -38,7 +38,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         *args,
         **kwargs,
     ):
-        channels_db = kwargs.pop("channels_db", None)
+        channels_db = kwargs.pop("channels_db", {})
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -360,7 +360,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                 self.result[entry] = name
                 iterator += 1
 
-        self.close()
+        self.accept()
 
     def _apply_pattern(self, event):
         self.result = {
@@ -385,7 +385,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             return
 
         self.pattern_window = True
-        self.close()
+        self.accept()
 
     def _add_window(self, event=None):
         self.add_window_request = True
@@ -393,11 +393,11 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
     def _cancel(self, event):
         self.result = {}
-        self.close()
+        self.reject()
 
     def _cancel_pattern(self, event):
         self.result = {}
-        self.close()
+        self.reject()
 
     def _define_ranges(self, event=None):
         name = self.pattern.text().strip()
@@ -412,7 +412,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
         while item := iterator.value():
-
             data = tuple(item.text(i) for i in range(self.columns))
             selection.add(data)
 
@@ -496,6 +495,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             "filter_type": self.filter_type.currentText(),
             "raw": self.raw.isChecked(),
             "integer_format": self.integer_format.currentText(),
+            "ranges": [],
         }
 
         signals = extract_signals_using_pattern(

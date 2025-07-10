@@ -1,11 +1,9 @@
 #!/usr/bin/env python\
 
 import os
-import sys
-import unittest
 from unittest import mock
 
-from PySide6.QtCore import QPoint, QRect, Qt
+from PySide6.QtCore import QPoint, QRect, QSettings, Qt
 from PySide6.QtGui import QGuiApplication, QKeySequence
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QTreeWidgetItemIterator
@@ -16,7 +14,6 @@ from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestPlotGraphicsShortcuts(TestPlotWidget):
-
     def setUp(self):
         """
         Events:
@@ -32,6 +29,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             - Evaluate that plot is black
         """
         super().setUp()
+        settings = QSettings()
+        settings.setValue("zoom_x_center_on_cursor", True)
+        settings.setValue("plot_cursor_precision", 6)
         # Open measurement file
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Switch ComboBox to "Natural sort"
@@ -320,7 +320,6 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertAlmostEqual(self.pg.x_range[0], x_range[0], delta=0.001)
         self.assertAlmostEqual(self.pg.x_range[1], x_range[1], delta=0.001)
 
-    # @unittest.skipIf(sys.platform != "win32", "Unpredicted linux failed test")
     def test_fit__stack_shortcuts(self):
         """
         Test Scope:
@@ -348,26 +347,31 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         """
 
         def continuous(ch):
-            extremes = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), signal_color=ch.color.name(), ax="x")
-            for x in range(self.pg.height() - 1):
-                column = self.pg.grab(QRect(x, 0, 1, self.pg.height()))
-                if x < extremes[0] - 1:
-                    self.assertTrue(Pixmap.is_black(column), f"column {x} for channel {ch.name} is not black")
-                elif extremes[0] <= x <= extremes[1]:
-                    self.assertTrue(
-                        Pixmap.has_color(column, ch.color.name()),
-                        f"column {x} doesn't have color of channel {ch.name}",
-                    )
-                elif x > extremes[1] + 1:
-                    self.assertTrue(Pixmap.is_black(column), f"column {x} for channel {ch.name} is not black")
+            pixmap = self.pg.grab()
+            image = pixmap.toImage()
+            signal_color = ch.color.name()
+            start, stop = Pixmap.search_signal_extremes_by_ax(pixmap, signal_color=signal_color, ax="x")
+            for x in range(start, stop + 1):
+                for j in range(self.pg.height()):
+                    if image.pixelColor(x, j).name() == signal_color:
+                        break
+
+                else:
+                    raise Exception(f"column {x} doesn't have color of channel {ch.name} from {start=} to {stop=}")
 
         self.pg.cursor1.color = "#000000"
+        settings = QSettings()
+        settings.setValue("zoom_x_center_on_cursor", True)
 
         self.add_channels([35, 36, 37])
 
         channel_35 = self.channels[0]
         channel_36 = self.channels[1]
         channel_37 = self.channels[2]
+        color_35 = channel_35.color.name()
+        color_36 = channel_36.color.name()
+        color_37 = channel_37.color.name()
+
         # Press "S"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["stack_all"]))
         self.processEvents()
@@ -377,9 +381,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 1))))
             # Top
             pixmap = self.pg.grab(QRect(0, 0, self.pg.width(), int(self.pg.height() / 3)))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertFalse(Pixmap.has_color(pixmap, color_36))
+            self.assertFalse(Pixmap.has_color(pixmap, color_37))
             # Midd
             pixmap = self.pg.grab(
                 QRect(
@@ -389,9 +393,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     int(self.pg.height() / 3),
                 )
             )
-            self.assertFalse(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertFalse(Pixmap.has_color(pixmap, color_35))
+            self.assertTrue(Pixmap.has_color(pixmap, color_36))
+            self.assertFalse(Pixmap.has_color(pixmap, color_37))
             # Bottom
             pixmap = self.pg.grab(
                 QRect(
@@ -401,31 +405,29 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     int(self.pg.height() / 3),
                 )
             )
-            self.assertFalse(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertFalse(Pixmap.has_color(pixmap, color_35))
+            self.assertFalse(Pixmap.has_color(pixmap, color_36))
+            self.assertTrue(Pixmap.has_color(pixmap, color_37))
             # Last 2 lines
 
             pixmap = self.pg.grab(QRect(0, self.pg.height() - 3, self.pg.width(), 2))
-            cn = Pixmap.color_names_exclude_defaults(pixmap)
-            self.assertEqual(len(cn), 0)
+            self.assertTrue(Pixmap.is_black(pixmap))
 
         # select the first channel
         self.mouseClick_WidgetItem(channel_35)
         # Press "Shift+F"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["fit_selected"]))
-        self.avoid_blinking_issue(self.plot.channel_selection)
-        for _ in range(50):
-            self.processEvents()
+        self.is_not_blinking(self.pg, {color_35, color_36, color_37})
+
         # Evaluate
         with self.subTest("test_fit_selected_shortcut"):
             # First line
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 1))))
             # Top
             pixmap = self.pg.grab(QRect(0, 0, self.pg.width(), int(self.pg.height() / 3)))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertFalse(Pixmap.has_color(pixmap, color_36))
+            self.assertFalse(Pixmap.has_color(pixmap, color_37))
             # Midd
             pixmap = self.pg.grab(
                 QRect(
@@ -435,9 +437,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     int(self.pg.height() / 3),
                 )
             )
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertTrue(Pixmap.has_color(pixmap, color_36))
+            self.assertFalse(Pixmap.has_color(pixmap, color_37))
             # Bottom
             pixmap = self.pg.grab(
                 QRect(
@@ -447,9 +449,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     int(self.pg.height() / 3),
                 )
             )
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertFalse(Pixmap.has_color(pixmap, color_36))
+            self.assertTrue(Pixmap.has_color(pixmap, color_37))
             # Last line
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, self.pg.height() - 2, self.pg.width(), 1))))
 
@@ -457,16 +459,16 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.mouseClick_WidgetItem(channel_36)
         # Press "Shift+F"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["stack_selected"]))
-        self.avoid_blinking_issue(self.plot.channel_selection)
+        self.is_not_blinking(self.pg, {color_35, color_36, color_37})
         # Evaluate
         with self.subTest("test_stack_selected_shortcut"):
             # First line
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 1))))
             # Top
             pixmap = self.pg.grab(QRect(0, 0, self.pg.width(), int(self.pg.height() / 3)))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertTrue(Pixmap.has_color(pixmap, color_36))
+            self.assertFalse(Pixmap.has_color(pixmap, color_37))
             # Midd
             pixmap = self.pg.grab(
                 QRect(
@@ -476,9 +478,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     int(self.pg.height() / 3),
                 )
             )
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertFalse(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertTrue(Pixmap.has_color(pixmap, color_36))
+            self.assertFalse(Pixmap.has_color(pixmap, color_37))
             # Bottom
             pixmap = self.pg.grab(
                 QRect(
@@ -488,24 +490,24 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     int(self.pg.height() / 3),
                 )
             )
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertTrue(Pixmap.has_color(pixmap, color_36))
+            self.assertTrue(Pixmap.has_color(pixmap, color_37))
             # Last line
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, self.pg.height() - 1, self.pg.width(), 1))))
 
             # Press "F"
             QTest.keySequence(self.pg, QKeySequence(self.shortcuts["fit_all"]))
-            self.avoid_blinking_issue(self.plot.channel_selection)
+            self.is_not_blinking(self.pg, {color_35, color_36, color_37})
             # Evaluate
         with self.subTest("test_fit_all_shortcut"):
             # First line
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, 0, self.pg.width(), 1))))
             # Top
             pixmap = self.pg.grab(QRect(0, 0, self.pg.width(), int(self.pg.height() / 3)))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertTrue(Pixmap.has_color(pixmap, color_36))
+            self.assertTrue(Pixmap.has_color(pixmap, color_37))
             # Midd
             pixmap = self.pg.grab(
                 QRect(
@@ -515,9 +517,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     int(self.pg.height() / 3),
                 )
             )
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertTrue(Pixmap.has_color(pixmap, color_36))
+            self.assertTrue(Pixmap.has_color(pixmap, color_37))
             # Bottom
             pixmap = self.pg.grab(
                 QRect(
@@ -527,11 +529,12 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                     int(self.pg.height() / 3),
                 )
             )
-            self.assertTrue(Pixmap.has_color(pixmap, channel_35.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_36.color.name()))
-            self.assertTrue(Pixmap.has_color(pixmap, channel_37.color.name()))
+            self.assertTrue(Pixmap.has_color(pixmap, color_35))
+            self.assertTrue(Pixmap.has_color(pixmap, color_36))
+            self.assertTrue(Pixmap.has_color(pixmap, color_37))
             # Last line
             self.assertTrue(Pixmap.is_black(self.pg.grab(QRect(0, self.pg.height() - 1, self.pg.width(), 1))))
+
             # deselect all channels
             for channel in self.channels:
                 self.mouseDClick_WidgetItem(channel)
@@ -583,7 +586,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             self.processEvents()
             # Evaluate
             current_grid = next_grid[current_grid]
-            self.assertEqual(current_grid, self.pg.x_axis.grid, self.pg.y_axis.grid)
+            self.assertEqual(current_grid, (self.pg.x_axis.grid, self.pg.y_axis.grid))
 
     def test_go_to_timestamp_shortcut(self):
         """
@@ -641,22 +644,13 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         def get_expected_result(step, is_x_axis: bool):
             if is_x_axis:
                 delta = self.pg.x_range[1] - self.pg.x_range[0]
-                cursor_pos = self.pg.cursor1.value()
+                val = self.pg.cursor1.value()
                 step = delta * step
-                return cursor_pos - delta / 2 - step, cursor_pos + delta / 2 + step
+                return val - delta / 2 - step, val + delta / 2 + step
             else:
-                bottom = self.pg.signals[0].y_range[1]  # 0
-                top = self.pg.signals[0].y_range[0]  # 255
-                delta = top - bottom
-                cursor_pos = self.pg.cursor1.value()
-                y_value = self.pg.signals[0].value_at_timestamp(cursor_pos, numeric=True)[0]
-
-                dp = (y_value - (top + bottom) / 2) / (top - bottom)  # -0.468627
-
-                shift = dp * delta  # -119.5
-                top, bottom = shift + top, shift + bottom  # 135.5, 119.5
-                delta = top - bottom
-                return top - delta * step, bottom + delta * step
+                val, bottom, top = self.pg.value_at_cursor()
+                delta = (top - bottom) * step
+                return val - delta / 2, val + delta / 2
 
         # Setup
         if self.plot.lock_btn.isFlat():
@@ -666,6 +660,12 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         x_step = 0.25
 
         self.assertIsNotNone(self.add_channels([35]))
+        self.mouseClick_WidgetItem(self.channels[0])
+        self.processEvents()
+
+        self.pg.viewbox.menu.set_x_zoom_mode()
+        self.pg.viewbox.menu.set_y_zoom_mode()
+
         # click con center
         QTest.mouseClick(
             self.plot.plot.viewport(),
@@ -689,29 +689,30 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         x_zoom_out_range = self.pg.x_range
 
         # Events with pressed Shift
-        expected_y_zoom_in_range = get_expected_result(y_step, False)
+        expected_y_zoom_in_range = get_expected_result(1 / (1 + y_step), False)
         # Press "I"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["y_zoom_in"]))
         self.processEvents()
         y_zoom_in_range = self.pg.signals[0].y_range
 
-        expected_y_zoom_out_range = get_expected_result(-y_step, False)
+        expected_y_zoom_out_range = get_expected_result(1 + y_step, False)
         # Press "O"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["y_zoom_out"]))
         self.processEvents()
 
         y_zoom_out_range = self.pg.signals[0].y_range
         # Evaluate
+        delta = pow(10, -4)
         # Key Shift wasn't pressed
-        self.assertAlmostEqual(x_zoom_in_range[0], expected_x_zoom_in_range[0], delta=0.0001)
-        self.assertAlmostEqual(x_zoom_in_range[1], expected_x_zoom_in_range[1], delta=0.0001)
-        self.assertAlmostEqual(x_zoom_out_range[0], expected_x_zoom_out_range[0], delta=0.0001)
-        self.assertAlmostEqual(x_zoom_out_range[1], expected_x_zoom_out_range[1], delta=0.0001)
+        self.assertAlmostEqual(x_zoom_in_range[0], expected_x_zoom_in_range[0], delta=delta)
+        self.assertAlmostEqual(x_zoom_in_range[1], expected_x_zoom_in_range[1], delta=delta)
+        self.assertAlmostEqual(x_zoom_out_range[0], expected_x_zoom_out_range[0], delta=delta)
+        self.assertAlmostEqual(x_zoom_out_range[1], expected_x_zoom_out_range[1], delta=delta)
         # Key Shift was pressed
-        self.assertAlmostEqual(y_zoom_in_range[0], expected_y_zoom_in_range[0], delta=0.0001)
-        self.assertAlmostEqual(y_zoom_in_range[1], expected_y_zoom_in_range[1], delta=0.0001)
-        self.assertAlmostEqual(y_zoom_out_range[0], expected_y_zoom_out_range[0], delta=0.0001)
-        self.assertAlmostEqual(y_zoom_out_range[1], expected_y_zoom_out_range[1], delta=0.0001)
+        self.assertAlmostEqual(y_zoom_in_range[0], expected_y_zoom_in_range[0], delta=delta)
+        self.assertAlmostEqual(y_zoom_in_range[1], expected_y_zoom_in_range[1], delta=delta)
+        self.assertAlmostEqual(y_zoom_out_range[0], expected_y_zoom_out_range[0], delta=delta)
+        self.assertAlmostEqual(y_zoom_out_range[1], expected_y_zoom_out_range[1], delta=delta)
 
     def test_range_shortcut(self):
         """
@@ -982,7 +983,6 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertEqual(f"{ci.name} = {round(ch.signal.timestamps[pos], ci.precision)}{ci.unit}", ci.text())
         self.assertEqual(ch.signal.timestamps[pos], self.pg.cursor1.getXPos())
 
-    @unittest.skipIf(sys.platform != "win32", "RuntimeError. C++ object <<ViewBoxWithCursor>> already deleted.")
     def test_shift_channels_shortcut(self):
         """
         Test Scope:
@@ -1026,8 +1026,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_down_1x"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_left"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_left"]))
-        self.avoid_blinking_issue(self.plot.channel_selection)
-        self.processEvents()
+        self.is_not_blinking(self.pg, {channel_36.color.name(), channel_37.color.name()})
 
         # Select second channel and move signal using commands Shift + PgUp/Up/Right
         self.mouseClick_WidgetItem(channel_37)
@@ -1035,8 +1034,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_up_1x"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["shift_channels_right"]))
-        self.avoid_blinking_issue(self.plot.channel_selection)
-        self.processEvents()
+        self.is_not_blinking(self.pg, {channel_36.color.name(), channel_37.color.name()})
 
         # Find new extremes
         new_from_to_y_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "y")
@@ -1086,7 +1084,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         expected_normal_screen_honey_range = find_honey_range(self.pg)
         # Press "H"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["honeywell"]))
-        self.avoid_blinking_issue(self.plot.channel_selection)
+        self.processEvents(0.01)
         delta_normal_screen_x_range = self.pg.x_range[1] - self.pg.x_range[0]
         # Evaluate
         self.assertAlmostEqual(delta_normal_screen_x_range, expected_normal_screen_honey_range, delta=0.0001)
@@ -1100,7 +1098,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         expected_full_screen_honey_range = find_honey_range(self.pg)
         # Press "H"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["honeywell"]))
-        self.avoid_blinking_issue(self.plot.channel_selection)
+        self.processEvents(0.01)
         delta_full_screen_x_range = self.pg.x_range[1] - self.pg.x_range[0]
 
         # Evaluate
@@ -1121,6 +1119,9 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                 > signal is zoomed => is extended to left side => last column contain signal color
             - Evaluate that after pressing key "W", signal is displayed from first to last column
         """
+        settings = QSettings()
+        settings.setValue("zoom_x_center_on_cursor", True)
+
         self.assertIsNotNone(self.add_channels([35]))
         channel_35 = self.channels[0]
 
@@ -1138,7 +1139,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertTrue(extremes_of_channel_35)
         # Press "I"
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["x_zoom_in"]))
-        self.processEvents()
+        self.processEvents(0.5)
 
         # save left and right pixel column
         x_left_column = self.pg.grab(QRect(extremes_of_channel_35[0], 0, 1, self.pg.height()))

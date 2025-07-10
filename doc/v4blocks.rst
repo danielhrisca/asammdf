@@ -15,10 +15,11 @@
 .. role:: magenta
 .. role:: orange
 .. role:: brown
+.. default-role:: py:obj
 
 .. _v4blocks:
 
-The following classes implement different MDF version4 blocks.
+The following classes implement different MDF version 4 blocks.
 
 AttachmentBlock Class
 =====================

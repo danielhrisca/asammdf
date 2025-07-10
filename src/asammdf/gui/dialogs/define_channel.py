@@ -38,7 +38,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         global_variables = global_variables or ""
         _in_globals = generate_python_function_globals()
         ret = generate_python_variables(global_variables, in_globals=_in_globals)
-        self.global_variables = {name: val for name, val in _in_globals.items() if isinstance(val, int | float)}
+        self.global_variables = {name: val for name, val in _in_globals.items() if isinstance(val, (int, float))}
 
         self.setWindowFlags(QtCore.Qt.WindowType.WindowMinMaxButtonsHint | self.windowFlags())
 
@@ -90,6 +90,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             self.unit.setText(computation.get("channel_unit", ""))
             self.comment.setPlainText(computation.get("channel_comment", ""))
 
+            use_raw_values = computation.get("use_raw_values", {})
+
             if computation["triggering"] == "triggering_on_all":
                 self.triggering_on_all.setChecked(True)
 
@@ -107,6 +109,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 for i, arg_name in enumerate(list(self.signature.parameters)[:-1]):
                     names = computation["args"][arg_name]
                     self.arg_widgets[i][1].insertPlainText("\n".join(names))
+                    self.arg_widgets[i][3].setChecked(use_raw_values.get(arg_name, False))
 
             if computation.get("computation_mode", "sample_by_sample") == "sample_by_sample":
                 self.sample_by_sample.setChecked(True)
@@ -144,10 +147,12 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             triggering_value = self.trigger_channel.text().strip()
 
         fargs = {}
-        for i, (label, text_edit, button) in enumerate(self.arg_widgets[:-1]):
+        raw_info = {}
+        for i, (label, text_edit, button, check, *_) in enumerate(self.arg_widgets[:-1]):
             names = text_edit.toPlainText().splitlines()
             names = [line.strip() for line in names if line.strip()]
             fargs[label.text()] = names
+            raw_info[label.text()] = check.isChecked()
 
         self.result = {
             "type": "channel",
@@ -170,6 +175,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             "name": name,
             "computation": {
                 "args": fargs,
+                "use_raw_values": raw_info,
                 "type": "python_function",
                 "definition": "",
                 "channel_name": name,
@@ -217,17 +223,29 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.signature = inspect.signature(func)
 
         parameters = list(self.signature.parameters)[:-1]
-        for i, arg_name in enumerate(parameters, 2):
+        for i, arg_name in enumerate(parameters):
+            row = i * 3 + 2  # function name and arguments label raws
+
             label = QtWidgets.QLabel(arg_name)
-            self.arg_layout.addWidget(label, i, 0)
+            self.arg_layout.addWidget(label, row, 0)
             text_edit = QtWidgets.QPlainTextEdit()
-            self.arg_layout.addWidget(text_edit, i, 1)
+            self.arg_layout.addWidget(text_edit, row, 1)
             button = QtWidgets.QPushButton("")
             button.setIcon(icon)
-            button.clicked.connect(partial(self.search_argument, index=i - 2))
-            self.arg_layout.addWidget(button, i, 2)
+            button.clicked.connect(partial(self.search_argument, index=i))
+            self.arg_layout.addWidget(button, row, 2)
+            check = QtWidgets.QCheckBox("use raw values")
+            self.arg_layout.addWidget(check, row+1, 1)
+            self.arg_widgets.append((label, text_edit, button, check))
 
-            self.arg_widgets.append((label, text_edit, button))
+            if i < len(parameters) - 1:
+                line = QtWidgets.QFrame()
+                line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+                line.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
+                self.arg_layout.addWidget(line, row + 2, 0, 1, 3)
+                self.arg_widgets.append([label, text_edit, button, check, line])
+            else:
+                self.arg_widgets.append((label, text_edit, button, check))
 
         spacer = QtWidgets.QSpacerItem(
             20, 20, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding

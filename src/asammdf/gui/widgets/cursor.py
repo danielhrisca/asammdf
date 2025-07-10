@@ -11,9 +11,9 @@ class Bookmark(pg.InfiniteLine):
         self.title = title or "Bookmark"
 
         if message:
-            text = f"{self.title}\nt = {kwargs['pos']}s\n\n{message}\n "
+            text = f"{self.title}\nt = {round(kwargs['pos'], 9)}s\n\n{message}\n "
         else:
-            text = f"{self.title}\nt = {kwargs['pos']}s\n "
+            text = f"{self.title}\nt = {round(kwargs['pos'], 9)}s\n "
 
         text = "\n".join([f"  {line}  " for line in text.splitlines()])
 
@@ -116,9 +116,9 @@ class Bookmark(pg.InfiniteLine):
     def message(self, value):
         self._message = value
         if value:
-            text = f"{self.title}\nt = {self.value()}s\n\n{value}\n "
+            text = f"{self.title}\nt = {round(self.value(), 9)}s\n\n{value}\n "
         else:
-            text = f"{self.title}\nt = {self.value()}s\n "
+            text = f"{self.title}\nt = {round(self.value(), 9)}s\n "
         text = "\n".join([f"  {line}  " for line in text.splitlines()])
 
         self.label.setPlainText(text)
@@ -324,7 +324,7 @@ class Cursor(pg.InfiniteLine):
                 signal, idx = plot.signal_by_uuid(uuid)
                 if signal.enable:
                     index = plot.get_timestamp_index(position, signal.timestamps)
-                    y_value, kind, fmt = signal.value_at_index(index)
+                    raw_value, raw_kind, y_value, kind, fmt = signal.value_at_index(index)
                     if y_value != "n.a.":
                         x, y = plot.scale_curve_to_pixmap(
                             position,

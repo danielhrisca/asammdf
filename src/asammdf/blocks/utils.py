@@ -1,16 +1,10 @@
-"""
-asammdf utility functions and classes
-"""
+"""asammdf utility functions and classes"""
 
-from collections import namedtuple
-from collections.abc import Callable, Collection, Iterator
-from copy import deepcopy
+from collections.abc import Callable, Iterator
 from functools import lru_cache
-import json
 import logging
 import mmap
 import multiprocessing
-from os import PathLike
 from pathlib import Path
 from random import randint
 import re
@@ -20,59 +14,37 @@ import subprocess
 import sys
 from tempfile import TemporaryDirectory
 from time import perf_counter
-from traceback import format_exc
 from types import TracebackType
 import typing
-from typing import (
-    Any,
-    Literal,
-    Optional,
-    overload,
-    Protocol,
-    TYPE_CHECKING,
-    TypeVar,
-    Union,
-)
+from typing import Final, Literal, Optional, Union
 import xml.etree.ElementTree as ET
 
 from canmatrix.canmatrix import CanMatrix, matrix_class
 import canmatrix.formats
-import lxml.etree
 import numpy as np
-from numpy import arange, bool_, dtype, interp, where
+from numpy import arange, bool_, interp, where
 from numpy.typing import NDArray
 import pandas as pd
 from pandas import Series
 from typing_extensions import (
+    Any,
     Buffer,
-    NotRequired,
+    LiteralString,
+    NamedTuple,
+    overload,
     ParamSpec,
+    Protocol,
     runtime_checkable,
     TypedDict,
     TypeIs,
+    TypeVar,
     Unpack,
 )
 
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
-
-try:
-    from pyqtgraph import functions as fn
-except ImportError:
-
-    class fn:  # type: ignore[no-redef]
-        @classmethod
-        def mkColor(cls, color: str) -> str:
-            return color
-
-        @classmethod
-        def mkPen(cls, color: str) -> str:
-            return color
-
-        @classmethod
-        def mkBrush(cls, color: str) -> str:
-            return color
-
+from .blocks_common import UnpackFrom
+from .types import StrPath
 
 try:
     from cchardet import detect
@@ -97,151 +69,32 @@ except:
             return {"encoding": encoding}
 
 
-if TYPE_CHECKING:
-    from PySide6 import QtCore
+class Terminated(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__("terminated by user", *args)
 
-THREAD_COUNT = max(multiprocessing.cpu_count() - 1, 1)
-TERMINATED = object()
-NONE = object()
-COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
-C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
-target_byte_order = "<=" if sys.byteorder == "little" else ">="
 
-COLOR_MAPS = {
-    "Accent": ["#7fc97f", "#beaed4", "#fdc086", "#ffff99", "#386cb0", "#f0027f", "#bf5b16", "#666666"],
-    "Dark2": ["#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e", "#e6ab02", "#a6761d", "#666666"],
-    "Paired": [
-        "#a6cee3",
-        "#1f78b4",
-        "#b2df8a",
-        "#33a02c",
-        "#fb9a99",
-        "#e31a1c",
-        "#fdbf6f",
-        "#ff7f00",
-        "#cab2d6",
-        "#6a3d9a",
-        "#ffff99",
-        "#b15928",
-    ],
-    "Pastel1": ["#fbb4ae", "#b3cde3", "#ccebc5", "#decbe4", "#fed9a6", "#ffffcc", "#e5d8bd", "#fddaec", "#f2f2f2"],
-    "Pastel2": ["#b3e2cd", "#fdcdac", "#cbd5e8", "#f4cae4", "#e6f5c9", "#fff2ae", "#f1e2cc", "#cccccc"],
-    "Set1": ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00", "#ffff33", "#a65628", "#f781bf", "#999999"],
-    "Set2": ["#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", "#ffd92f", "#e5c494", "#b3b3b3"],
-    "Set3": [
-        "#8dd3c7",
-        "#ffffb3",
-        "#bebada",
-        "#fb8072",
-        "#80b1d3",
-        "#fdb462",
-        "#b3de69",
-        "#fccde5",
-        "#d9d9d9",
-        "#bc80bd",
-        "#ccebc5",
-        "#ffed6f",
-    ],
-    "tab10": [
-        "#1f77b4",
-        "#ff7f0e",
-        "#2ca02c",
-        "#d62728",
-        "#9467bd",
-        "#8c564b",
-        "#e377c2",
-        "#7f7f7f",
-        "#bcbd22",
-        "#17becf",
-    ],
-    "tab20": [
-        "#1f77b4",
-        "#aec7e8",
-        "#ff7f0e",
-        "#ffbb78",
-        "#2ca02c",
-        "#98df8a",
-        "#d62728",
-        "#ff9896",
-        "#9467bd",
-        "#c5b0d5",
-        "#8c564b",
-        "#c49c94",
-        "#e377c2",
-        "#f7b6d2",
-        "#7f7f7f",
-        "#c7c7c7",
-        "#bcbd22",
-        "#dbdb8d",
-        "#17becf",
-        "#9edae5",
-    ],
-    "tab20b": [
-        "#393b79",
-        "#5254a3",
-        "#6b6ecf",
-        "#9c9ede",
-        "#637939",
-        "#8ca252",
-        "#b5cf6b",
-        "#cedb9c",
-        "#8c6d31",
-        "#bd9e39",
-        "#e7ba52",
-        "#e7cb94",
-        "#843c39",
-        "#ad494a",
-        "#d6616b",
-        "#e7969c",
-        "#7b4173",
-        "#a55194",
-        "#ce6dbd",
-        "#de9ed6",
-    ],
-    "tab20c": [
-        "#3182bd",
-        "#6baed6",
-        "#9ecae1",
-        "#c6dbef",
-        "#e6550d",
-        "#fd8d3c",
-        "#fdae6b",
-        "#fdd0a2",
-        "#31a354",
-        "#74c476",
-        "#a1d99b",
-        "#c7e9c0",
-        "#756bb1",
-        "#9e9ac8",
-        "#bcbddc",
-        "#dadaeb",
-        "#636363",
-        "#969696",
-        "#bdbdbd",
-        "#d9d9d9",
-    ],
-}
+THREAD_COUNT: Final = max(multiprocessing.cpu_count() - 1, 1)
+target_byte_order: Final = "<=" if sys.byteorder == "little" else ">="
 
-COLORS = COLOR_MAPS["tab10"]
-COLORS_COUNT = len(COLORS)
 
 UINT8_u: Callable[[Buffer], tuple[int]] = Struct("<B").unpack
 UINT16_u: Callable[[Buffer], tuple[int]] = Struct("<H").unpack
 UINT32_p = Struct("<I").pack
 UINT32_u: Callable[[Buffer], tuple[int]] = Struct("<I").unpack
 UINT64_u: Callable[[Buffer], tuple[int]] = Struct("<Q").unpack
-UINT8_uf: Callable[[Buffer, int], tuple[int]] = Struct("<B").unpack_from
-UINT16_uf: Callable[[Buffer, int], tuple[int]] = Struct("<H").unpack_from
-UINT32_uf: Callable[[Buffer, int], tuple[int]] = Struct("<I").unpack_from
-UINT64_uf: Callable[[Buffer, int], tuple[int]] = Struct("<Q").unpack_from
+UINT8_uf: UnpackFrom[tuple[int]] = Struct("<B").unpack_from
+UINT16_uf: UnpackFrom[tuple[int]] = Struct("<H").unpack_from
+UINT32_uf: UnpackFrom[tuple[int]] = Struct("<I").unpack_from
+UINT64_uf: UnpackFrom[tuple[int]] = Struct("<Q").unpack_from
 FLOAT64_u: Callable[[Buffer], tuple[float]] = Struct("<d").unpack
-FLOAT64_uf: Callable[[Buffer, int], tuple[float]] = Struct("<d").unpack_from
+FLOAT64_uf: UnpackFrom[tuple[float]] = Struct("<d").unpack_from
 TWO_UINT64_u: Callable[[Buffer], tuple[int, int]] = Struct("<2Q").unpack
-TWO_UINT64_uf: Callable[[Buffer, int], tuple[int, int]] = Struct("<2Q").unpack_from
-BLK_COMMON_uf: Callable[[Buffer, int], tuple[bytes, int]] = Struct("<4s4xQ").unpack_from
+TWO_UINT64_uf: UnpackFrom[tuple[int, int]] = Struct("<2Q").unpack_from
+BLK_COMMON_uf: UnpackFrom[tuple[bytes, int]] = Struct("<4s4xQ").unpack_from
 BLK_COMMON_u: Callable[[Buffer], tuple[bytes, int]] = Struct("<4s4xQ8x").unpack
 
-EMPTY_TUPLE = ()
+EMPTY_TUPLE: Final = ()
 
 _xmlns_pattern = re.compile(' xmlns="[^"]*"')
 
@@ -269,43 +122,42 @@ __all__ = [
 ]
 
 _channel_count = (1000, 2000, 10000, 20000)
-CHANNEL_COUNT = arange(0, 20000, 1000, dtype="<u4")
+CHANNEL_COUNT: Final = arange(0, 20000, 1000, dtype=np.dtype("<u4"))
 
 _convert = (10 * 2**20, 20 * 2**20, 30 * 2**20, 40 * 2**20)
-CONVERT = interp(CHANNEL_COUNT, _channel_count, _convert).astype("<u4")
+CONVERT: Final = interp(CHANNEL_COUNT, _channel_count, _convert).astype("<u4")
 
 _merge = (10 * 2**20, 20 * 2**20, 35 * 2**20, 60 * 2**20)
-MERGE = interp(CHANNEL_COUNT, _channel_count, _merge).astype("<u4")
+MERGE: Final = interp(CHANNEL_COUNT, _channel_count, _merge).astype("<u4")
 
-MDF2_VERSIONS = ("2.00", "2.10", "2.14")
-MDF3_VERSIONS = ("3.00", "3.10", "3.20", "3.30")
-MDF4_VERSIONS = ("4.00", "4.10", "4.11", "4.20")
-SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
+MDF2_VERSIONS: Final[tuple[LiteralString, ...]] = ("2.00", "2.10", "2.14")
+MDF3_VERSIONS: Final[tuple[LiteralString, ...]] = ("3.00", "3.10", "3.20", "3.30")
+MDF4_VERSIONS: Final[tuple[LiteralString, ...]] = ("4.00", "4.10", "4.11", "4.20")
+SUPPORTED_VERSIONS: Final = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 
 
-ALLOWED_MATLAB_CHARS = set(string.ascii_letters + string.digits + "_")
+ALLOWED_MATLAB_CHARS: Final = set(string.ascii_letters + string.digits + "_")
 
 
 class MdfException(Exception):
-    """MDF Exception class"""
+    """MDF Exception class."""
 
     def __repr__(self) -> str:
         return f"asammdf MdfException: {self.args[0]}"
 
 
 def extract_xml_comment(comment: str) -> str:
-    """extract *TX* tag or otherwise the *common_properties* from a xml comment
+    """Extract *TX* tag or otherwise the *common_properties* from an XML comment.
 
     Parameters
     ----------
     comment : str
-        xml string comment
+        XML string comment.
 
     Returns
     -------
     comment : str
-        extracted string
-
+        Extracted string.
     """
 
     comment = comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
@@ -317,7 +169,7 @@ def extract_xml_comment(comment: str) -> str:
             if common_properties is not None:
                 comments: list[str] = []
                 for e in common_properties:
-                    field = f'{e.get("name")}: {e.text}'
+                    field = f"{e.get('name')}: {e.text}"
                     comments.append(field)
                 comment = "\n".join(field)
             else:
@@ -331,18 +183,17 @@ def extract_xml_comment(comment: str) -> str:
 
 
 def matlab_compatible(name: str) -> str:
-    """make a channel name compatible with Matlab variable naming
+    """Make a channel name compatible with Matlab variable naming.
 
     Parameters
     ----------
     name : str
-        channel name
+        Channel name.
 
     Returns
     -------
     compatible_name : str
-        channel name compatible with Matlab
-
+        Channel name compatible with Matlab.
     """
 
     compatible_names = [ch if ch in ALLOWED_MATLAB_CHARS else "_" for ch in name]
@@ -390,25 +241,34 @@ def get_text_v3(
     address: int,
     stream: FileLike | mmap.mmap,
     mapped: bool = ...,
-    decode: Literal[False] = ...,
+    *,
+    decode: Literal[False],
 ) -> bytes: ...
 
 
+@overload
+def get_text_v3(address: int, stream: FileLike | mmap.mmap, mapped: bool = ..., decode: bool = ...) -> bytes | str: ...
+
+
 def get_text_v3(address: int, stream: FileLike | mmap.mmap, mapped: bool = False, decode: bool = True) -> bytes | str:
-    """faster way to extract strings from mdf versions 2 and 3 TextBlock
+    """Faster way to extract strings from MDF versions 2 and 3 TextBlock.
 
     Parameters
     ----------
     address : int
-        TextBlock address
+        TextBlock address.
     stream : handle
-        file IO handle
+        File IO handle.
+    mapped : bool, default False
+        Flag for mapped stream.
+    decode : bool, default True
+        Option to auto-detect character encoding and return decoded str instead
+        of raw bytes.
 
     Returns
     -------
     text : str | bytes
-        unicode string or bytes object depending on the ``decode`` argument
-
+        Unicode string or bytes object depending on the `decode` argument.
     """
 
     if address == 0:
@@ -448,7 +308,12 @@ def get_text_v3(address: int, stream: FileLike | mmap.mmap, mapped: bool = False
     return text
 
 
-MappedText = namedtuple("MappedText", ["raw", "decoded"])
+class MappedText(NamedTuple):
+    raw: bytes
+    decoded: str
+
+
+TxMap = dict[int, MappedText]
 
 
 @overload
@@ -457,7 +322,8 @@ def get_text_v4(
     stream: FileLike | mmap.mmap,
     mapped: bool = ...,
     decode: Literal[True] = ...,
-    tx_map: dict | None = ...,
+    *,
+    tx_map: TxMap,
 ) -> str: ...
 
 
@@ -468,8 +334,19 @@ def get_text_v4(
     mapped: bool = ...,
     *,
     decode: Literal[False],
-    tx_map: dict | None,
+    tx_map: TxMap,
 ) -> bytes: ...
+
+
+@overload
+def get_text_v4(
+    address: int,
+    stream: FileLike | mmap.mmap,
+    mapped: bool = ...,
+    decode: bool = ...,
+    *,
+    tx_map: TxMap,
+) -> bytes | str: ...
 
 
 def get_text_v4(
@@ -477,28 +354,29 @@ def get_text_v4(
     stream: FileLike | mmap.mmap,
     mapped: bool = False,
     decode: bool = True,
-    tx_map: dict | None = None,
+    *,
+    tx_map: TxMap,
 ) -> bytes | str:
-    """faster way to extract strings from mdf version 4 TextBlock
+    """Faster way to extract strings from MDF version 4 TextBlock.
 
     Parameters
     ----------
     address : int
-        TextBlock address
+        TextBlock address.
     stream : handle
-        file IO handle
-    mapped: bool
-        flag for mapped stream
-    decode: bool
-        option to return decoded str instead of raw btyes
-    tx_map : dict | None
-        map that contains interned strings
+        File IO handle.
+    mapped : bool, default False
+        Flag for mapped stream.
+    decode : bool, default True
+        Option to auto-detect character encoding and return decoded str instead
+        of raw bytes.
+    tx_map : dict, optional
+        Map that contains interned strings.
 
     Returns
     -------
     text : str | bytes
-        unicode string or bytes object depending on the ``decode`` argument
-
+        Unicode string or bytes object depending on the `decode` argument.
     """
 
     if mapped_text := tx_map.get(address, None):
@@ -632,20 +510,22 @@ def extract_ev_tool(comment: str) -> str:
 
 @lru_cache(maxsize=1024)
 def get_fmt_v3(data_type: int, size: int, byte_order: int = v3c.BYTE_ORDER_INTEL) -> str:
-    """convert mdf versions 2 and 3 channel data type to numpy dtype format
-    string
+    """Convert MDF versions 2 and 3 channel data type to numpy dtype format
+    string.
 
     Parameters
     ----------
     data_type : int
-        mdf channel data type
+        MDF channel data type.
     size : int
-        data bit size
+        Data bit size.
+    byte_order : int, default 0 (BYTE_ORDER_INTEL)
+        Integer code for byte order (endianness).
+
     Returns
     -------
     fmt : str
-        numpy compatible data type format string
-
+        Numpy compatible data type format string.
     """
     if data_type in (v3c.DATA_TYPE_STRING, v3c.DATA_TYPE_BYTEARRAY):
         size = size // 8
@@ -717,22 +597,21 @@ def get_fmt_v3(data_type: int, size: int, byte_order: int = v3c.BYTE_ORDER_INTEL
 
 @lru_cache(maxsize=1024)
 def get_fmt_v4(data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_VALUE) -> str:
-    """convert mdf version 4 channel data type to numpy dtype format string
+    """Convert MDF version 4 channel data type to numpy dtype format string.
 
     Parameters
     ----------
     data_type : int
-        mdf channel data type
+        MDF channel data type.
     size : int
-        data bit size
-    channel_type: int
-        mdf channel type
+        Data bit size.
+    channel_type : int, default 0 (CHANNEL_TYPE_VALUE)
+        MDF channel type.
 
     Returns
     -------
     fmt : str
-        numpy compatible data type format string
-
+        Numpy compatible data type format string.
     """
     if data_type in v4c.NON_SCALAR_TYPES:
         size = size // 8 or 1
@@ -830,24 +709,23 @@ def get_fmt_v4(data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_V
 
 
 @lru_cache(maxsize=1024)
-def fmt_to_datatype_v3(fmt: dtype[Any], shape: tuple[int, ...], array: bool = False) -> tuple[int, int]:
-    """convert numpy dtype format string to mdf versions 2 and 3
-    channel data type and size
+def fmt_to_datatype_v3(fmt: np.dtype[Any], shape: tuple[int, ...], array: bool = False) -> tuple[int, int]:
+    """Convert numpy dtype format string to MDF versions 2 and 3
+    channel data type and size.
 
     Parameters
     ----------
     fmt : numpy.dtype
-        numpy data type
+        Numpy data type.
     shape : tuple
-        numpy array shape
-    array : bool
-        disambiguate between bytearray and channel array
+        Numpy array shape.
+    array : bool, default False
+        Disambiguate between bytearray and channel array.
 
     Returns
     -------
     data_type, size : int, int
-        integer data type as defined by ASAM MDF and bit size
-
+        Integer data type as defined by ASAM MDF and bit size.
     """
     byteorder = fmt.byteorder
     if byteorder in "=|":
@@ -897,20 +775,19 @@ def fmt_to_datatype_v3(fmt: dtype[Any], shape: tuple[int, ...], array: bool = Fa
 
 @lru_cache(maxsize=1024)
 def info_to_datatype_v4(signed: bool, little_endian: bool) -> int:
-    """map CAN signal to MDF integer types
+    """Map CAN signal to MDF integer types.
 
     Parameters
     ----------
     signed : bool
-        signal is flagged as signed in the CAN database
+        Signal is flagged as signed in the CAN database.
     little_endian : bool
-        signal is flagged as little endian (Intel) in the CAN database
+        Signal is flagged as little-endian (Intel) in the CAN database.
 
     Returns
     -------
     datatype : int
-        integer code for MDF channel data type
-
+        Integer code for MDF channel data type.
     """
 
     if signed:
@@ -928,24 +805,23 @@ def info_to_datatype_v4(signed: bool, little_endian: bool) -> int:
 
 
 @lru_cache(maxsize=1024)
-def fmt_to_datatype_v4(fmt: dtype[Any], shape: tuple[int, ...], array: bool = False) -> tuple[int, int]:
-    """convert numpy dtype format string to mdf version 4 channel data
-    type and size
+def fmt_to_datatype_v4(fmt: np.dtype[Any], shape: tuple[int, ...], array: bool = False) -> tuple[int, int]:
+    """Convert numpy dtype format string to MDF version 4 channel data
+    type and size.
 
     Parameters
     ----------
     fmt : numpy.dtype
-        numpy data type
+        Numpy data type.
     shape : tuple
-        numpy array shape
-    array : bool
-        disambiguate between bytearray and channel array
+        Numpy array shape.
+    array : bool, default False
+        Disambiguate between bytearray and channel array.
 
     Returns
     -------
     data_type, size : int, int
-        integer data type as defined by ASAM MDF and bit size
-
+        Integer data type as defined by ASAM MDF and bit size.
     """
     byteorder = fmt.byteorder
     if byteorder in "=|":
@@ -994,8 +870,7 @@ def fmt_to_datatype_v4(fmt: dtype[Any], shape: tuple[int, ...], array: bool = Fa
 
 
 def as_non_byte_sized_signed_int(integer_array: NDArray[Any], bit_length: int) -> NDArray[Any]:
-    """
-    The MDF spec allows values to be encoded as integers that aren't
+    """The MDF spec allows values to be encoded as integers that aren't
     byte-sized. Numpy only knows how to do two's complement on byte-sized
     integers (i.e. int16, int32, int64, etc.), so we have to calculate two's
     complement ourselves in order to handle signed integers with unconventional
@@ -1003,16 +878,15 @@ def as_non_byte_sized_signed_int(integer_array: NDArray[Any], bit_length: int) -
 
     Parameters
     ----------
-    integer_array : np.array
-        Array of integers to apply two's complement to
+    integer_array : np.ndarray
+        Array of integers to apply two's complement to.
     bit_length : int
-        Number of bits to sample from the array
+        Number of bits to sample from the array.
 
     Returns
     -------
-    integer_array : np.array
-        signed integer array with non-byte-sized two's complement applied
-
+    integer_array : np.ndarray
+        Signed integer array with non-byte-sized two's complement applied.
     """
 
     if integer_array.flags.writeable:
@@ -1030,21 +904,22 @@ def as_non_byte_sized_signed_int(integer_array: NDArray[Any], bit_length: int) -
 def count_channel_groups(
     stream: FileLike | mmap.mmap, include_channels: bool = False, mapped: bool = False
 ) -> tuple[int, int]:
-    """count all channel groups as fast as possible. This is used to provide
-    reliable progress information when loading a file using the GUI
+    """Count all channel groups as fast as possible. This is used to provide
+    reliable progress information when loading a file using the GUI.
 
     Parameters
     ----------
     stream : file handle
-        opened file handle
-    include_channels : bool
-        also count channels
+        Opened file handle.
+    include_channels : bool, default False
+        Also count channels.
+    mapped : bool, default False
+        Flag for mapped stream.
 
     Returns
     -------
     count : int
-        channel group count
-
+        Channel group count.
     """
 
     count = 0
@@ -1149,30 +1024,38 @@ def count_channel_groups(
 
 
 @overload
-def validate_version_argument(version: v3c.Version2, hint: Literal[2] = ...) -> v3c.Version2: ...
+def validate_version_argument(version: v3c.Version2, hint: Literal[2]) -> v3c.Version2: ...
 
 
 @overload
-def validate_version_argument(version: v3c.Version, hint: Literal[3] = ...) -> v3c.Version: ...
+def validate_version_argument(version: v3c.Version2 | v3c.Version, hint: Literal[3]) -> v3c.Version2 | v3c.Version: ...
 
 
-def validate_version_argument(version: str, hint: int = 4) -> str:
-    """validate the version argument against the supported MDF versions. The
-    default version used depends on the hint MDF major revision
+@overload
+def validate_version_argument(version: v4c.Version, hint: Literal[4] = ...) -> v4c.Version: ...
+
+
+@overload
+def validate_version_argument(version: str, hint: int = ...) -> v3c.Version2 | v3c.Version | v4c.Version: ...
+
+
+def validate_version_argument(version: str, hint: int = 4) -> v3c.Version2 | v3c.Version | v4c.Version:
+    """Validate the version argument against the supported MDF versions. The
+    default version used depends on the hint MDF major revision.
 
     Parameters
     ----------
     version : str
-        requested MDF version
-    hint : int
-        MDF revision hint
+        Requested MDF version.
+    hint : int, default 4
+        MDF revision hint.
 
     Returns
     -------
     valid_version : str
-        valid version
-
+        Valid version.
     """
+    valid_version: v3c.Version2 | v3c.Version | v4c.Version
     if version not in SUPPORTED_VERSIONS:
         if hint == 2:
             valid_version = "2.14"
@@ -1180,11 +1063,11 @@ def validate_version_argument(version: str, hint: int = 4) -> str:
             valid_version = "3.30"
         else:
             valid_version = "4.10"
-        message = 'Unknown mdf version "{}".' " The available versions are {};" ' automatically using version "{}"'
+        message = 'Unknown MDF version "{}". The available versions are {}; automatically using version "{}"'
         message = message.format(version, SUPPORTED_VERSIONS, valid_version)
         logger.warning(message)
     else:
-        valid_version = version
+        valid_version = typing.cast(v3c.Version2 | v3c.Version | v4c.Version, version)
     return valid_version
 
 
@@ -1193,16 +1076,15 @@ class ChannelsDB(dict[str, tuple[tuple[int, int], ...]]):
         super().__init__()
 
     def add(self, channel_name: str, entry: tuple[int, int]) -> None:
-        """add name to channels database and check if it contains a source
-        path
+        """Add name to channels database and check if it contains a source
+        path.
 
         Parameters
         ----------
         channel_name : str
-            name that needs to be added to the database
+            Name that needs to be added to the database.
         entry : tuple
-            (group index, channel index) pair
-
+            (group index, channel index) pair.
         """
         if channel_name:
             if channel_name not in self:
@@ -1220,25 +1102,23 @@ class ChannelsDB(dict[str, tuple[tuple[int, int], ...]]):
 
 
 def randomized_string(size: int) -> bytes:
-    """get a \0 terminated string of size length
+    """Get a null-terminated string of length `size`.
 
     Parameters
     ----------
     size : int
-        target string length
+        Target string length.
 
     Returns
     -------
     string : bytes
-        randomized string
-
+        Randomized string.
     """
     return bytes(randint(65, 90) for _ in range(size - 1)) + b"\0"
 
 
 def is_file_like(obj: object) -> TypeIs[FileLike]:
-    """
-    Check if the object is a file-like object.
+    """Check if the object is a file-like object.
 
     For objects to be considered file-like, they must
     be an iterator AND have a 'read' and 'seek' method
@@ -1249,7 +1129,8 @@ def is_file_like(obj: object) -> TypeIs[FileLike]:
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : object
+        The object to check.
 
     Returns
     -------
@@ -1272,18 +1153,17 @@ class UniqueDB:
         self._db: dict[str, int] = {}
 
     def get_unique_name(self, name: str) -> str:
-        """returns an available unique name
+        """Return an available unique name.
 
         Parameters
         ----------
         name : str
-            name to be made unique
+            Name to be made unique.
 
         Returns
         -------
         unique_name : str
-            new unique name
-
+            New unique name.
         """
 
         if name not in self._db:
@@ -1296,22 +1176,21 @@ class UniqueDB:
 
 
 def cut_video_stream(stream: bytes, start: float, end: float, fmt: str) -> bytes:
-    """cut video stream from `start` to `end` time
+    """Cut video stream from `start` to `end` time.
 
     Parameters
     ----------
     stream : bytes
-        video file content
+        Video file content.
     start : float
-        start time
+        Start time.
     end : float
-        end time
+        End time.
 
     Returns
     -------
     result : bytes
-        content of cut video
-
+        Content of cut video.
     """
     with TemporaryDirectory() as tmp:
         in_file = Path(tmp) / f"in{fmt}"
@@ -1374,10 +1253,11 @@ def get_video_stream_duration(stream: bytes) -> float | None:
 
 
 class VirtualChannelGroup:
-    """starting with MDF v4.20 it is possible to use remote masters and column
+    """Starting with MDF v4.20 it is possible to use remote masters and column
     oriented storage. This means we now have virtual channel groups that can
     span over multiple regular channel groups. This class facilitates the
-    handling of this virtual groups"""
+    handling of these virtual groups.
+    """
 
     __slots__ = (
         "cycles_nr",
@@ -1415,7 +1295,7 @@ def components(
     channel_name: str,
     unique_names: UniqueDB,
     prefix: str = ...,
-    master: Optional["pd.Index[float]"] = ...,
+    master: Union[NDArray[Any], "pd.Index[Any]"] | None = ...,
     only_basenames: bool = ...,
     use_polars: Literal[False] = ...,
 ) -> Iterator[tuple[str, "pd.Series[Any]"]]: ...
@@ -1427,11 +1307,11 @@ def components(
     channel_name: str,
     unique_names: UniqueDB,
     prefix: str = ...,
-    master: Optional["pd.Index[float]"] = ...,
+    master: Union[NDArray[Any], "pd.Index[Any]"] | None = ...,
     only_basenames: bool = ...,
     *,
     use_polars: Literal[True],
-) -> Iterator[tuple[str, "list[Any]"]]: ...
+) -> Iterator[tuple[str, "list[object]"]]: ...
 
 
 def components(
@@ -1439,39 +1319,39 @@ def components(
     channel_name: str,
     unique_names: UniqueDB,
     prefix: str = "",
-    master: Optional["pd.Index[float]"] = None,
+    master: Union[NDArray[Any], "pd.Index[Any]"] | None = None,
     only_basenames: bool = False,
     use_polars: bool = False,
-) -> Iterator[tuple[str, Union["pd.Series[Any]", list[Any]]]]:
-    """yield pandas Series and unique name based on the ndarray object
+) -> Iterator[tuple[str, Union["pd.Series[Any]", list[object]]]]:
+    """Yield pandas Series and unique name based on the ndarray object.
 
     Parameters
     ----------
-    channel : numpy.ndarray
-        channel to be used for Series
+    channel : np.ndarray
+        Channel to be used for Series.
     channel_name : str
-        channel name
+        Channel name.
     unique_names : UniqueDB
-        unique names object
-    prefix : str
-        prefix used in case of nested recarrays
-    master : pd.Index
-        optional index for the Series
-    only_basenames (False) : bool
-        use just the field names, without prefix, for structures and channel
-        arrays
+        Unique names object.
+    prefix : str, optional
+        Prefix used in case of nested recarrays.
+    master : np.ndarray | pd.Index, optional
+        Optional index for the Series.
+    only_basenames : bool, default False
+        Use just the field names, without prefix, for structures and channel
+        arrays.
 
         .. versionadded:: 5.13.0
 
-    use_polars (False) : bool
-        use polars
+    use_polars : bool, default False
+        Use polars.
 
         .. versionadded:: 8.1.0
 
-    Returns
-    -------
+    Yields
+    ------
     name, series : (str, values)
-        tuple of unique name and values
+        Tuple of unique name and values.
     """
     names = channel.dtype.names
 
@@ -1595,9 +1475,9 @@ class DataBlockInfo:
         self,
         address: int,
         block_type: int,
-        original_size: int,
-        compressed_size: int,
-        param: int,
+        original_size: int | None,
+        compressed_size: int | None,
+        param: int | None,
         invalidation_block: Optional["InvalidationBlockInfo"] = None,
         block_limit: int | None = None,
         first_timestamp: bytes | None = None,
@@ -1630,10 +1510,10 @@ class DataBlockInfo:
 class Fragment:
     def __init__(
         self,
-        data: bytes,
+        data: bytes | bytearray,
         record_offset: int = -1,
         record_count: int = -1,
-        invalidation_data: bytes | None = None,
+        invalidation_data: bytes | bytearray | None = None,
         is_record: bool = True,
     ) -> None:
         self.data = data
@@ -1658,9 +1538,9 @@ class InvalidationBlockInfo(DataBlockInfo):
         self,
         address: int,
         block_type: int,
-        original_size: int,
-        compressed_size: int,
-        param: int,
+        original_size: int | None,
+        compressed_size: int | None,
+        param: int | None,
         all_valid: bool = False,
         block_limit: int | None = None,
     ) -> None:
@@ -1758,54 +1638,51 @@ def downcast(array: NDArray[Any]) -> NDArray[Any]:
     return array
 
 
-def csv_int2bin(val: int) -> str:
-    """format CAN id as bin
+def _csv_int2bin(val: int) -> str:
+    """Format CAN id as bin.
 
     100 -> 1100100
-
     """
 
     return f"{val:b}"
 
 
-csv_int2bin = np.vectorize(csv_int2bin, otypes=[str])
+csv_int2bin = np.vectorize(_csv_int2bin, otypes=[str])
 
 
-def csv_int2hex(val: "pd.Series[bool]") -> str:
-    """format CAN id as hex
+def _csv_int2hex(val: "pd.Series[int]") -> str:
+    """Format CAN id as hex.
 
     100 -> 64
-
     """
 
     return f"{val:X}"
 
 
-csv_int2hex = np.vectorize(csv_int2hex, otypes=[str])
+csv_int2hex = np.vectorize(_csv_int2hex, otypes=[str])
 
 
-def csv_bytearray2hex(val: NDArray[Any], size: int | None = None) -> str:
-    """format CAN payload as hex strings
+def _csv_bytearray2hex(val: NDArray[Any], size: int | None = None) -> str:
+    """Format CAN payload as hex strings.
 
     b'\xa2\xc3\x08' -> A2 C3 08
-
     """
     if size is not None:
-        hex_val = typing.cast(bytes, val.tobytes())[:size].hex(" ", 1).upper()  # type: ignore[redundant-cast,unused-ignore]
+        hex_val = typing.cast(bytes, val.tobytes())[:size].hex(" ", 1).upper()  # type: ignore[redundant-cast, unused-ignore]
     else:
         try:
-            hex_val = typing.cast(bytes, val.tobytes()).hex(" ", 1).upper()  # type: ignore[redundant-cast,unused-ignore]
+            hex_val = typing.cast(bytes, val.tobytes()).hex(" ", 1).upper()  # type: ignore[redundant-cast, unused-ignore]
         except:
             hex_val = "●"
 
     return hex_val
 
 
-csv_bytearray2hex = np.vectorize(csv_bytearray2hex, otypes=[str])
+csv_bytearray2hex = np.vectorize(_csv_bytearray2hex, otypes=[str])
 
 
 def pandas_query_compatible(name: str) -> str:
-    """adjust column name for usage in dataframe query string"""
+    """Adjust column name for usage in DataFrame query string."""
 
     for c in ".$[]: ":
         name = name.replace(c, "_")
@@ -1828,34 +1705,28 @@ class _Kwargs(TypedDict, total=False):
 
 
 def load_can_database(
-    path: str | PathLike[str], contents: bytes | str | None = None, **kwargs: Unpack[_Kwargs]
+    path: StrPath, contents: bytes | str | None = None, **kwargs: Unpack[_Kwargs]
 ) -> CanMatrix | None:
     """
 
-
     Parameters
     ----------
-    path : StrPathType
-        database path
-    contents: bytes | str | None = None
-        optional database content
-    kwargs : dict
-
-        fd : bool = False
-            if supplied, only buses with the same FD kind will be loaded
-
-        load_flat : bool = False
-            if supplied all the CAN messages found in multiple buses will be contained
-            in the CAN database object. By default the first bus will be returned
-
-        cluster_name : str
-            if supplied load just the clusters with this name
+    path : str | path-like
+        Database path.
+    contents : bytes | str, optional
+        Optional database content.
+    fd : bool, optional
+        If supplied, only buses with the same FD kind will be loaded.
+    load_flat : bool, optional
+        If True, all the CAN messages found in multiple buses will be contained
+        in the CAN database object. By default the first bus will be returned.
+    cluster_name : str, optional
+        If supplied, load just the clusters with this name.
 
     Returns
     -------
     db : canmatrix.CanMatrix | None
-        CAN database object or None
-
+        CAN database object or None.
     """
     path = Path(path)
     import_type = path.suffix.lstrip(".").lower()
@@ -1923,10 +1794,10 @@ def all_blocks_addresses(obj: FileLike | mmap.mmap) -> tuple[dict[int, bytes], d
         pass
 
     source: Buffer | bytes
-    try:
-        re.search(pattern, obj)  # type: ignore[arg-type]
-        source = typing.cast(Buffer, obj)
-    except TypeError:
+    if isinstance(obj, Buffer):
+        re.search(pattern, obj)
+        source = obj
+    else:
         source = obj.read()
 
     addresses: list[int] = []
@@ -1955,26 +1826,26 @@ def plausible_timestamps(
     exp_min: int = -15,
     exp_max: int = 15,
 ) -> tuple[bool, NDArray[bool_]]:
-    """check if the time stamps are plausible
+    """Check if the timestamps are plausible.
 
     Parameters
     ----------
-    t : np.array
-        time stamps array
+    t : np.ndarray
+        Timestamps array.
     minimum : float
-        minimum plausible time stamp
+        Minimum plausible timestamp.
     maximum : float
-        maximum plausible time stamp
-    exp_min (-15) : int
-        minimum plausible exponent used for the time stamps float values
-    exp_max (15) : int
-        maximum plausible exponent used for the time stamps float values
+        Maximum plausible timestamp.
+    exp_min : int, default -15
+        Minimum plausible exponent used for the timestamps float values.
+    exp_max : int, default 15
+        Maximum plausible exponent used for the timestamps float values.
 
     Returns
     -------
-    all_ok, idx : (bool, np.array)
-        the *all_ok* flag to indicate if all the time stamps are ok; this can be checked
-        before applying the indexing array.
+    all_ok, idx : (bool, np.ndarray)
+        The `all_ok` flag to indicate if all the timestamps are ok; this can
+        be checked before applying the indexing array.
     """
 
     exps = np.log10(t)
@@ -2004,579 +1875,6 @@ def escape_xml_string(string: str) -> str:
     return string.translate(table)
 
 
-def extract_mime_names(data: "QtCore.QMimeData", disable_new_channels: bool | None = None) -> list[str]:
-    def fix_comparison_name(data: Any, disable_new_channels: bool | None = None) -> None:
-        for item in data:
-            if item["type"] == "channel":
-                if disable_new_channels is not None:
-                    item["enabled"] = not disable_new_channels
-
-                if (item["group_index"], item["channel_index"]) != (-1, -1):
-                    match = COMPARISON_NAME.match(item["name"])
-                    if match is None:
-                        raise RuntimeError(f"cannot parse '{item['name']}'")
-                    name = match.group("name").strip()
-                    item["name"] = name
-            else:
-                if disable_new_channels is not None:
-                    item["enabled"] = not disable_new_channels
-                fix_comparison_name(item["channels"], disable_new_channels=disable_new_channels)
-
-    names: list[str] = []
-    if data.hasFormat("application/octet-stream-asammdf"):
-        data_data = data.data("application/octet-stream-asammdf").data()
-        data_bytes = data_data.tobytes() if isinstance(data_data, memoryview) else data_data
-        text = data_bytes.decode("utf-8")
-        obj = json.loads(text)
-        fix_comparison_name(obj, disable_new_channels=disable_new_channels)
-        names = obj
-
-    return names
-
-
-def set_mime_enable(mime: list[Any], enable: bool) -> None:
-    for item in mime:
-        if item["type"] == "channel":
-            item["enabled"] = enable
-        else:
-            set_mime_enable(item["channels"], enable)
-
-
-class _ChannelBaseDict(TypedDict):
-    color: str
-    comment: str | None
-    common_axis: bool
-    enabled: bool
-    flags: int
-    fmt: str
-    individual_axis: bool
-    name: str
-    origin_uuid: str
-    precision: int
-    ranges: list[dict[str, object]]
-    type: Literal["channel"]
-    unit: str
-
-
-class _ChannelNotComputedDict(_ChannelBaseDict):
-    computed: Literal[False]
-    conversion: NotRequired[dict[str, object]]
-    mode: Literal["phys"]
-    y_range: list[float]
-
-
-class _ChannelComputedDict(_ChannelBaseDict):
-    computation: dict[str, object]
-    computed: Literal[True]
-    conversion: object
-    user_defined_name: str | None
-
-
-_ChannelDict = _ChannelComputedDict | _ChannelNotComputedDict
-
-
-class _ChannelGroupDict(TypedDict):
-    channels: list[Union[_ChannelDict, "_ChannelGroupDict"]]
-    enabled: bool
-    name: str | None
-    origin_uuid: str
-    pattern: dict[str, object] | None
-    ranges: list[dict[str, object]]
-    type: Literal["group"]
-
-
-def load_dsp(
-    file: Path, background: str = "#000000", flat: bool = False, colors_as_string: bool = False
-) -> dict[str, object] | list[str]:
-    if not colors_as_string and isinstance(background, str):
-        background = fn.mkColor(background)
-
-    def parse_conversions(display: lxml.etree._Element | None) -> dict[str | None, dict[str, object]]:
-        conversions: dict[str | None, dict[str, object]] = {}
-
-        if display is None:
-            return conversions
-
-        for item in display.findall("COMPU_METHOD"):
-            try:
-                name = item.get("name")
-                conv: dict[str, object] = {
-                    "name": name,
-                    "comment": item.get("description"),
-                    "unit": item.get("unit"),
-                }
-
-                conversion_type = int(item.attrib["cnv_type"])
-                match conversion_type:
-                    case 0:
-                        conv["conversion_type"] = v4c.CONVERSION_TYPE_LIN
-
-                        coeffs = item.find("COEFFS_LINIAR")
-
-                        if coeffs is None:
-                            raise RuntimeError("cannot find 'COEFFS_LINIAR' element")
-
-                        conv["a"] = float(coeffs.attrib["P1"])
-                        conv["b"] = float(coeffs.attrib["P2"])
-
-                    case 9:
-                        conv["conversion_type"] = v4c.CONVERSION_TYPE_RAT
-
-                        coeffs = item.find("COEFFS")
-
-                        if coeffs is None:
-                            raise RuntimeError("cannot find 'COEFFS' element")
-
-                        for i in range(1, 7):
-                            conv[f"P{i}"] = float(coeffs.attrib[f"P{i}"])
-
-                    case 11:
-                        conv["conversion_type"] = v4c.CONVERSION_TYPE_TABX
-                        vtab = item.find("COMPU_VTAB")
-
-                        if vtab is not None:
-                            for i, item in enumerate(vtab.findall("tab")):
-                                conv[f"val_{i}"] = float(item.attrib["min"])
-                                text = item.get("text")
-                                if isinstance(text, bytes):
-                                    text = text.decode("utf-8", errors="replace")
-                                conv[f"text_{i}"] = text
-
-                    case 12:
-                        conv["conversion_type"] = v4c.CONVERSION_TYPE_RTABX
-                        vtab = item.find("COMPU_VTAB_RANGE")
-
-                        if vtab is not None:
-                            text = vtab.get("default")
-                            if isinstance(text, bytes):
-                                text = text.decode("utf-8", errors="replace")
-                            conv["default_addr"] = vtab.get("default")
-                            for i, item in enumerate(vtab.findall("tab_range")):
-                                conv[f"upper_{i}"] = float(item.attrib["max"])
-                                conv[f"lower_{i}"] = float(item.attrib["min"])
-                                text = item.get("text")
-                                if isinstance(text, bytes):
-                                    text = text.decode("utf-8", errors="replace")
-                                conv[f"text_{i}"] = text
-                    case _:
-                        continue
-
-                conversions[name] = conv
-
-            except:
-                print(format_exc())
-                continue
-
-        return conversions
-
-    def parse_channels(
-        display: lxml.etree._Element, conversions: dict[str | None, dict[str, object]]
-    ) -> list[_ChannelGroupDict | _ChannelDict]:
-        channels: list[_ChannelGroupDict | _ChannelDict] = []
-        for elem in display.iterchildren():
-            if elem.tag == "CHANNEL":
-                channel_name = elem.attrib["name"]
-
-                comment_elem = elem.find("COMMENT")
-                if comment_elem is not None:
-                    comment = elem.get("text")
-                else:
-                    comment = ""
-
-                color_ = int(elem.attrib["color"])
-                c = 0
-                for i in range(3):
-                    c = c << 8
-                    c += color_ & 0xFF
-                    color_ = color_ >> 8
-
-                ch_color = c
-
-                gain = abs(float(elem.attrib["gain"]))
-                offset = float(elem.attrib["offset"]) / 100
-
-                multi_color = elem.find("MULTI_COLOR")
-
-                ranges: list[dict[str, object]] = []
-
-                if multi_color is not None:
-                    for color in multi_color.findall("color"):
-                        some_elem = color.find("min")
-                        if some_elem is None:
-                            raise RuntimeError("cannot find element 'min'")
-                        min_ = float(some_elem.attrib["data"])
-                        some_elem = color.find("max")
-                        if some_elem is None:
-                            raise RuntimeError("cannot find element 'max'")
-                        max_ = float(some_elem.attrib["data"])
-                        some_elem = color.find("color")
-                        if some_elem is None:
-                            raise RuntimeError("cannot find element 'color'")
-                        color_ = int(some_elem.attrib["data"])
-                        c = 0
-                        for i in range(3):
-                            c = c << 8
-                            c += color_ & 0xFF
-                            color_ = color_ >> 8
-                        font_color = f"#{c:06X}" if colors_as_string else fn.mkColor(f"#{c:06X}")
-                        ranges.append(
-                            {
-                                "background_color": background,
-                                "font_color": font_color,
-                                "op1": "<=",
-                                "op2": "<=",
-                                "value1": min_,
-                                "value2": max_,
-                            }
-                        )
-
-                chan: _ChannelNotComputedDict = {
-                    "color": f"#{ch_color:06X}",
-                    "common_axis": False,
-                    "computed": False,
-                    "flags": 0,
-                    "comment": comment,
-                    "enabled": elem.get("on") == "1" and elem.get("trc_fmt") != "2",
-                    "fmt": "{}",
-                    "individual_axis": False,
-                    "name": channel_name,
-                    "mode": "phys",
-                    "precision": 3,
-                    "ranges": ranges,
-                    "unit": "",
-                    "type": "channel",
-                    "y_range": sorted(
-                        [
-                            -gain * offset,
-                            -gain * offset + 19 * gain,
-                        ]
-                    ),
-                    "origin_uuid": "000000000000",
-                }
-
-                conv_name = elem.get("cnv_name")
-                if conv_name in conversions:
-                    chan["conversion"] = deepcopy(conversions[conv_name])
-
-                channels.append(chan)
-
-            elif str(elem.tag).startswith("GROUP"):
-                channels.append(
-                    {
-                        "name": elem.get("data"),
-                        "enabled": elem.get("on") == "1",
-                        "type": "group",
-                        "channels": parse_channels(elem, conversions=conversions),
-                        "pattern": None,
-                        "origin_uuid": "000000000000",
-                        "ranges": [],
-                    }
-                )
-
-            elif elem.tag == "CHANNEL_PATTERN":
-                try:
-                    filter_type = elem.get("filter_type")
-                    filter_value: float
-                    if filter_type in ("None", None):
-                        filter_type = "Unspecified"
-                        filter_value = 0
-                        raw = False
-                    else:
-                        filter_value = float(elem.attrib["filter_value"])
-                        raw = bool(int(elem.attrib["filter_use_raw"]))
-
-                    info: dict[str, object] = {
-                        "pattern": elem.get("name_pattern"),
-                        "name": elem.get("name_pattern"),
-                        "match_type": "Wildcard",
-                        "filter_type": filter_type,
-                        "filter_value": filter_value,
-                        "raw": raw,
-                    }
-
-                    multi_color = elem.find("MULTI_COLOR")
-
-                    ranges = []
-
-                    if multi_color is not None:
-                        for color in multi_color.findall("color"):
-                            some_elem = color.find("min")
-                            if some_elem is None:
-                                raise RuntimeError("cannot find element 'min'")
-                            min_ = float(some_elem.attrib["data"])
-                            some_elem = color.find("max")
-                            if some_elem is None:
-                                raise RuntimeError("cannot find element 'max'")
-                            max_ = float(some_elem.attrib["data"])
-                            some_elem = color.find("color")
-                            if some_elem is None:
-                                raise RuntimeError("cannot find element 'color'")
-                            color_ = int(some_elem.attrib["data"])
-                            c = 0
-                            for i in range(3):
-                                c = c << 8
-                                c += color_ & 0xFF
-                                color_ = color_ >> 8
-                            font_color = f"#{c:06X}" if colors_as_string else fn.mkColor(f"#{c:06X}")
-                            ranges.append(
-                                {
-                                    "background_color": background,
-                                    "font_color": font_color,
-                                    "op1": "<=",
-                                    "op2": "<=",
-                                    "value1": min_,
-                                    "value2": max_,
-                                }
-                            )
-
-                    info["ranges"] = ranges
-
-                    channels.append(
-                        {
-                            "channels": [],
-                            "enabled": True,
-                            "name": typing.cast(str, info["pattern"]),
-                            "pattern": info,
-                            "type": "group",
-                            "ranges": [],
-                            "origin_uuid": "000000000000",
-                        }
-                    )
-
-                except:
-                    print(format_exc())
-                    continue
-
-        return channels
-
-    def parse_virtual_channels(display: lxml.etree._Element | None) -> dict[str | None, dict[str, object]]:
-        channels: dict[str | None, dict[str, object]] = {}
-
-        if display is None:
-            return channels
-
-        for item in display.findall("V_CHAN"):
-            try:
-                virtual_channel: dict[str, object] = {}
-
-                parent = item.find("VIR_TIME_CHAN")
-                vtab = item.find("COMPU_VTAB")
-                if parent is None or vtab is None:
-                    continue
-
-                name = item.get("name")
-
-                virtual_channel["name"] = name
-                virtual_channel["parent"] = parent.attrib["data"]
-                elem = item.find("description")
-                if elem is None:
-                    raise RuntimeError("cannot find element 'description'")
-                virtual_channel["comment"] = elem.attrib["data"]
-
-                conv: dict[str, object] = {}
-                for i, item in enumerate(vtab.findall("tab")):
-                    conv[f"val_{i}"] = float(item.attrib["min"])
-                    text = item.get("text")
-                    if isinstance(text, bytes):
-                        text = text.decode("utf-8", errors="replace")
-                    conv[f"text_{i}"] = text
-
-                virtual_channel["vtab"] = conv
-
-                channels[name] = virtual_channel
-            except:
-                continue
-
-        return channels
-
-    def parse_c_functions(display: lxml.etree._Element | None) -> Collection[str]:
-        c_functions: set[str] = set()
-
-        if display is None:
-            return c_functions
-
-        for item in display.findall("CALC_FUNC"):
-            string = item.text
-
-            if string is None:
-                raise RuntimeError("element text is None")
-
-            for match in C_FUNCTION.finditer(string):
-                c_functions.add(match.group("function"))
-
-        return sorted(c_functions)
-
-    dsp = lxml.etree.fromstring(Path(file).read_bytes().replace(b"\0", b""), parser=lxml.etree.XMLParser(recover=True))
-
-    conversions = parse_conversions(dsp.find("COMPU_METHODS"))
-
-    elem = dsp.find("DISPLAY_INFO")
-
-    if elem is None:
-        raise RuntimeError("cannot find element 'DISPLAY_INFO'")
-
-    channels = parse_channels(elem, conversions)
-    c_functions = parse_c_functions(dsp)
-
-    functions: dict[str, object] = {}
-    virtual_channels: list[_ChannelGroupDict | _ChannelDict] = []
-
-    for i, ch in enumerate(parse_virtual_channels(dsp.find("VIRTUAL_CHANNEL")).values()):
-        virtual_channels.append(
-            {
-                "color": COLORS[i % len(COLORS)],
-                "common_axis": False,
-                "computed": True,
-                "computation": {
-                    "args": {"arg1": []},
-                    "type": "python_function",
-                    "channel_comment": ch["comment"],
-                    "channel_name": ch["name"],
-                    "channel_unit": "",
-                    "function": f"f_{ch['name']}",
-                    "triggering": "triggering_on_all",
-                    "triggering_value": "all",
-                },
-                "flags": int(SignalFlags.computed | SignalFlags.user_defined_conversion),
-                "enabled": True,
-                "fmt": "{}",
-                "individual_axis": False,
-                "name": typing.cast(str, ch["parent"]),
-                "precision": 3,
-                "ranges": [],
-                "unit": "",
-                "conversion": ch["vtab"],
-                "user_defined_name": typing.cast(str | None, ch["name"]),
-                "comment": f"Datalyser virtual channel: {ch['comment']}",
-                "origin_uuid": "000000000000",
-                "type": "channel",
-            }
-        )
-
-        functions[f"f_{ch['name']}"] = f"def f_{ch['name']}(arg1=0, t=0):\n    return arg1"
-
-    if virtual_channels:
-        channels.append(
-            {
-                "name": "Datalyser Virtual Channels",
-                "enabled": False,
-                "type": "group",
-                "channels": virtual_channels,
-                "pattern": None,
-                "origin_uuid": "000000000000",
-                "ranges": [],
-            }
-        )
-
-    windows: list[dict[str, object]] = []
-    info: dict[str, object] | list[str] = {
-        "selected_channels": [],
-        "windows": windows,
-        "has_virtual_channels": bool(virtual_channels),
-        "c_functions": c_functions,
-        "functions": functions,
-    }
-
-    if flat:
-        info = flatten_dsp(channels)
-    else:
-        plot: dict[str, object] = {
-            "type": "Plot",
-            "title": "Display channels",
-            "maximized": True,
-            "minimized": False,
-            "configuration": {
-                "channels": channels,
-                "locked": True,
-                "pattern": {},
-            },
-        }
-
-        windows.append(plot)
-
-    return info
-
-
-def flatten_dsp(channels: list[_ChannelGroupDict | _ChannelDict]) -> list[str]:
-    res: list[str] = []
-
-    for item in channels:
-        if item["type"] == "group":
-            res.extend(flatten_dsp(item["channels"]))
-        else:
-            res.append(item["name"])
-
-    return res
-
-
-def load_channel_names_from_file(file_name: str, lab_section: str = "") -> list[str]:
-    file_path = Path(file_name)
-    channels: Collection[str]
-    extension = file_path.suffix.lower()
-    match extension:
-        case ".dsp":
-            channels = load_dsp(file_path, flat=True)
-
-        case ".dspf":
-            with open(file_path) as infile:
-                info = json.load(infile)
-
-            channels = []
-            for window in info["windows"]:
-                if window["type"] == "Plot":
-                    channels.extend(flatten_dsp(window["configuration"]["channels"]))
-                elif window["type"] == "Numeric":
-                    channels.extend([item["name"] for item in window["configuration"]["channels"]])
-                elif window["type"] == "Tabular":
-                    channels.extend(window["configuration"]["channels"])
-
-        case ".lab":
-            info = load_lab(file_path)
-            if info:
-                if len(info) > 1 and lab_section:
-                    channels = info[lab_section]
-                else:
-                    channels = list(info.values())[0]
-
-                channels = [name.split(";")[0] for name in channels]
-
-        case ".cfg":
-            with open(file_path) as infile:
-                info = json.load(infile)
-            channels = info.get("selected_channels", [])
-        case ".txt":
-            try:
-                with open(file_path) as infile:
-                    info = json.load(infile)
-                channels = info.get("selected_channels", [])
-            except:
-                with open(file_path) as infile:
-                    channels = [line.strip() for line in infile.readlines()]
-                    channels = [name for name in channels if name]
-
-    return sorted(set(channels))
-
-
-def load_lab(file: Path) -> dict[str, list[str]]:
-    sections: dict[str, list[str]] = {}
-    with open(file) as lab:
-        for line in lab:
-            line = line.strip()
-            if not line:
-                continue
-
-            if line.startswith("[") and line.endswith("]"):
-                section_name = line.strip("[]")
-                s: list[str] = []
-                sections[section_name] = s
-
-            else:
-                if "s" in locals():
-                    s.append(line)
-
-    return {name: channels for name, channels in sections.items() if channels if name != "SETTINGS"}
-
-
 class SignalFlags:
     no_flags = 0x0
     user_defined_comment = 0x1
@@ -2600,16 +1898,15 @@ def timeit(func: Callable[_Params, _Ret]) -> Callable[_Params, _Ret]:
         t2 = perf_counter()
         delta = t2 - t1
         if delta >= 1e-3:
-            print(f"CALL {func.__qualname__}: {delta*1e3:.3f} ms")
+            print(f"CALL {func.__qualname__}: {delta * 1e3:.3f} ms")
         else:
-            print(f"CALL {func.__qualname__}: {delta*1e6:.3f} us")
+            print(f"CALL {func.__qualname__}: {delta * 1e6:.3f} us")
         return ret
 
     return timed
 
 
 class Timer:
-
     def __init__(self, name: str = "") -> None:
         self.name = name or str(id(self))
         self.count = 0

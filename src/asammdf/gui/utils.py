@@ -26,7 +26,7 @@ from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..blocks.options import FloatInterpolation, IntegerInterpolation
-from ..blocks.utils import NONE, TERMINATED
+from ..blocks.utils import Terminated
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
 from .dialogs.messagebox import MessageBox
@@ -149,17 +149,16 @@ COMPRESSION_OPTIONS = {
 
 
 def excepthook(exc_type, exc_value, tracebackobj):
-    """
-    Global function to catch unhandled exceptions.
+    """Global function to catch unhandled exceptions.
 
     Parameters
     ----------
     exc_type : str
-        exception type
+        Exception type.
     exc_value : int
-        exception value
+        Exception value.
     tracebackobj : traceback
-        traceback object
+        Traceback object.
     """
     separator = "-" * 80
     notice = "The following error was triggered:"
@@ -182,8 +181,6 @@ def excepthook(exc_type, exc_value, tracebackobj):
 
 
 def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progress=None):
-    termination_request = False
-
     thr = WorkerThread(target=target, kwargs=kwargs)
 
     thr.start()
@@ -205,6 +202,8 @@ def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progr
         progress.setValue(factor + offset)
 
     if thr.error:
+        if isinstance(thr.error, Terminated):
+            raise thr.error
         widget.progress = None
         if progress:
             progress.cancel()
@@ -212,10 +211,7 @@ def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progr
 
     widget.progress = None
 
-    if termination_request:
-        return TERMINATED
-    else:
-        return thr.output
+    return thr.output
 
 
 class QWorkerThread(QtCore.QThread):
@@ -268,7 +264,6 @@ class QWorkerThread(QtCore.QThread):
 
         self.kwargs = kwargs
         self.stop = False
-        self.TERMINATED = TERMINATED
 
     def run(self):
         """
@@ -290,15 +285,11 @@ class QWorkerThread(QtCore.QThread):
 
 
 class ProgressDialog(QtWidgets.QProgressDialog):
-
-    NONE = NONE
-    TERMINATED = TERMINATED
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.thread = None
         self.error = None
-        self.result = self.NONE
+        self.result = None
         self.close_on_finish = True
         self.hide_on_finish = False
 
@@ -310,7 +301,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self, target, args, kwargs, wait_here=False, close_on_finish=True, hide_on_finish=False
     ):
         self.show()
-        self.result = self.NONE
+        self.result = None
         self.error = None
         self.thread_finished = False
 
@@ -369,7 +360,6 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             QtCore.QTimer.singleShot(50, self.close)
 
     def close(self, reject=False):
-
         if self.thread and not self.thread.isFinished():
             loop = QtCore.QEventLoop()
             self.thread.finished.connect(loop.quit)
@@ -429,6 +419,8 @@ class WorkerThread(Thread):
     def run(self):
         try:
             self.output = self._target(*self._args, **self._kwargs)
+        except Terminated as error:
+            self.error = error
         except:
             self.error = traceback.format_exc()
 
@@ -474,15 +466,7 @@ def compute_signal(
     functions,
     global_variables="",
 ):
-    required_channels = {}
-    for key, sig in measured_signals.items():
-        signal = sig.physical(copy=False)
-        if signal.samples.dtype.kind in "fui":
-            required_channels[key] = signal
-        else:
-            required_channels[key] = sig
-
-    measured_signals = required_channels
+    use_raw_values = description.get('use_raw_values', {})
 
     type_ = description["type"]
 
@@ -501,7 +485,7 @@ def compute_signal(
                 raise Exception(trace)
 
             numeric_global_variables = {
-                name: float(val) for name, val in _globals.items() if isinstance(val, int | float)
+                name: float(val) for name, val in _globals.items() if isinstance(val, (int, float))
             }
 
             for function_name, definition in functions.items():
@@ -519,7 +503,17 @@ def compute_signal(
             for arg, alternative_names in description["args"].items():
                 for name in alternative_names:
                     if name in measured_signals:
-                        signals.append(measured_signals[name])
+                        sig = measured_signals[name]
+
+                        if use_raw_values.get(arg, "False"):
+                            signals.append(sig)
+                        else:
+                            signal = sig.physical(copy=False, ignore_value2text_conversions=True)
+                            if signal.samples.dtype.kind in "fui":
+                                signals.append(signal)
+                            else:
+                                signals.append(sig)
+
                         found_args.append(arg)
                         break
                     else:
@@ -550,13 +544,13 @@ def compute_signal(
 
             triggering = description.get("triggering", "triggering_on_all")
             if triggering == "triggering_on_all":
-                timestamps = [sig.timestamps for sig in signals if not isinstance(sig, int | float)]
+                timestamps = [sig.timestamps for sig in signals if not isinstance(sig, (int, float))]
 
                 if timestamps:
                     common_timebase = reduce(np.union1d, timestamps)
                 else:
                     common_timebase = all_timebase
-                signals = [sig.interp(common_timebase) if not isinstance(sig, int | float) else sig for sig in signals]
+                signals = [sig.interp(common_timebase) if not isinstance(sig, (int, float)) else sig for sig in signals]
 
             elif triggering == "triggering_on_channel":
                 triggering_channel = description["triggering_value"]
@@ -565,13 +559,13 @@ def compute_signal(
                     common_timebase = measured_signals[triggering_channel].timestamps
                 else:
                     common_timebase = np.array([])
-                signals = [sig.interp(common_timebase) if not isinstance(sig, int | float) else sig for sig in signals]
+                signals = [sig.interp(common_timebase) if not isinstance(sig, (int, float)) else sig for sig in signals]
             else:
                 step = float(description["triggering_value"])
 
                 common_timebase = []
                 for signal in signals:
-                    if isinstance(signal, int | float):
+                    if isinstance(signal, (int, float)):
                         continue
 
                     if len(signal):
@@ -590,13 +584,13 @@ def compute_signal(
                 else:
                     common_timebase = np.array([])
 
-                signals = [sig.interp(common_timebase) if not isinstance(sig, int | float) else sig for sig in signals]
+                signals = [sig.interp(common_timebase) if not isinstance(sig, (int, float)) else sig for sig in signals]
 
             if not isinstance(common_timebase, np.ndarray):
                 common_timebase = np.array(common_timebase)
 
             for i, (signal, arg_name) in enumerate(zip(signals, found_args, strict=False)):
-                if isinstance(signal, int | float):
+                if isinstance(signal, (int, float)):
                     value = signal
                     signals[i] = Signal(
                         name=arg_name, samples=np.full(len(common_timebase), value), timestamps=common_timebase
@@ -786,7 +780,7 @@ def computation_to_python_function(description):
         for match in VARIABLE.finditer(exp):
             name = match.group("var")
             if name not in translation:
-                arg = f"arg{len(translation)+1}"
+                arg = f"arg{len(translation) + 1}"
                 translation[name] = arg
                 args.append(f"{arg}=0")
                 fargs[arg] = [name.strip("}{")]
@@ -893,8 +887,9 @@ def copy_ranges(ranges):
                 color = range_info[color_name]
                 if isinstance(color, QtGui.QBrush):
                     range_info[color_name] = QtGui.QBrush(color)
-                elif isinstance(color, QtGui.QColor):
+                elif isinstance(color, (QtGui.QColor, str)):
                     range_info[color_name] = fn.mkColor(color)
+
             new_ranges.append(range_info)
 
         return new_ranges
@@ -974,7 +969,7 @@ def get_colors_using_ranges(value, ranges, default_background_color, default_fon
         return new_background_color, new_font_color
 
     if ranges:
-        if isinstance(value, float | int | np.number):
+        if isinstance(value, (float, int, np.number)):
             level_class = float
         else:
             level_class = str
@@ -1045,7 +1040,7 @@ def get_color_using_ranges(
         return new_color
 
     if ranges:
-        if isinstance(value, float | int | np.number):
+        if isinstance(value, (float, int, np.number)):
             level_class = float
         else:
             level_class = str
@@ -1113,7 +1108,7 @@ def value_as_bin(value, dtype):
 
     nibles = []
     for byte in byte_string:
-        nibles.extend((f"{byte >> 4:04b}", f"{byte & 0xf:04b}"))
+        nibles.extend((f"{byte >> 4:04b}", f"{byte & 0xF:04b}"))
 
     return ".".join(nibles)
 
@@ -1128,7 +1123,7 @@ def value_as_hex(value, dtype):
 
 def value_as_str(value, format, dtype=None, precision=3):
     float_fmt = f"{{:.0{precision}f}}" if precision >= 0 else "{}"
-    if isinstance(value, float | np.floating):
+    if isinstance(value, (float, np.floating)):
         kind = "f"
 
     elif isinstance(value, int):
@@ -1199,7 +1194,6 @@ def generate_python_variables(definition: str, in_globals: dict | None = None) -
         if contains_imports(definition):
             trace = "Cannot use import statements in the definition"
         else:
-
             _globals = in_globals or generate_python_function_globals()
 
             try:
@@ -1211,7 +1205,6 @@ def generate_python_variables(definition: str, in_globals: dict | None = None) -
 
 
 def generate_python_function_globals() -> dict:
-
     func_globals = {
         "bisect": bisect,
         "collections": collections,
@@ -1327,7 +1320,7 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
         sample_by_sample = False
         trace = f"Sample by sample: {format_exc()}"
     else:
-        if not isinstance(res, int | float):
+        if not isinstance(res, (int, float)):
             sample_by_sample = False
             trace = "Sample by sample: The function did not return a numeric scalar value"
 
@@ -1349,19 +1342,26 @@ def check_generated_function(func, trace, function_source, silent, parent=None):
         else:
             trace = f"Complete signal: {format_exc()}"
     else:
-        if not isinstance(res, tuple | list | np.ndarray):
+        if not isinstance(res, (tuple, list, np.ndarray)):
             complete_signal = False
             if trace:
                 trace += "\n\nComplete signal: The function did not return an list, tuple or np.ndarray"
             else:
                 trace = "Complete signal: The function did not return an list, tuple or np.ndarray"
 
-        if len(np.array(res).shape) > 1:
+        try:
+            if len(np.array(res).shape) > 1:
+                complete_signal = False
+                if trace:
+                    trace += "\n\nComplete signal: The function returned a multi dimensional array"
+                else:
+                    trace = "Complete signal: The function returned a multi dimensional array"
+        except:
             complete_signal = False
             if trace:
-                trace += "\n\nComplete signal: The function returned a multi dimensional array"
+                trace += f"\n\nComplete signal: {format_exc()}"
             else:
-                trace = "Complete signal: The function returned a multi dimensional array"
+                trace = f"Complete signal: {format_exc()}"
 
     if not sample_by_sample and not complete_signal:
         if not silent:

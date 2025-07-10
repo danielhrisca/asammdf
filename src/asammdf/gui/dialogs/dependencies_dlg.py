@@ -122,7 +122,9 @@ class DependenciesDlg(QDialog):
         DependenciesDlg.show_dependencies(package_name, is_root_package=False)
 
     def _on_copy_button_clicked(self) -> None:
-        """Create a list of all dependencies and their versions and write it to clipboard."""
+        """Create a list of all dependencies and their versions and write it to
+        clipboard.
+        """
         lines: list[str] = []
         dependencies = find_all_dependencies(self._package_name)
         max_name_length = max(len(name) for name in dependencies)
@@ -144,16 +146,19 @@ class DependenciesDlg(QDialog):
 
 
 def grouped_dependencies(package_name: str) -> dict[str, list[str]]:
-    """Retrieve a dictionary grouping the dependencies of a given package into mandatory and optional categories.
+    """Retrieve a dictionary grouping the dependencies of a given package into
+    mandatory and optional categories.
 
-    This function fetches the dependencies of the specified package and categorizes them into groups, such as
-    'mandatory' or any optional feature groups specified by `extra` markers.
+    This function fetches the dependencies of the specified package and
+    categorizes them into groups, such as 'mandatory' or any optional feature
+    groups specified by `extra` markers.
 
     :param package_name:
         The name of the package to analyze.
     :return:
-        A dictionary where keys are group names (e.g., 'mandatory', 'extra_feature')
-        and values are lists of package names corresponding to those groups.
+        A dictionary where keys are group names (e.g., 'mandatory',
+        'extra_feature') and values are lists of package names corresponding to
+        those groups.
     """
     dependencies: defaultdict[str, list[str]] = defaultdict(list)
     package_dist = distribution(package_name)
@@ -171,15 +176,18 @@ def grouped_dependencies(package_name: str) -> dict[str, list[str]]:
 
 
 def find_all_dependencies(package_name: str) -> set[str]:
-    """Recursively find all dependencies of a given package, including transitive dependencies.
+    """Recursively find all dependencies of a given package, including
+    transitive dependencies.
 
-    This function determines all dependencies of the specified package, following any transitive dependencies
-    (i.e., dependencies of dependencies) and returning a complete set of package names.
+    This function determines all dependencies of the specified package,
+    following any transitive dependencies (i.e., dependencies of dependencies)
+    and returning a complete set of package names.
 
     :param package_name:
         The name of the package to analyze.
     :return:
-        A set of all dependencies for the package, including transitive dependencies.
+        A set of all dependencies for the package, including transitive
+        dependencies.
     """
 
     def _flatten_groups(grouped_deps: dict[str, list[str]]) -> set[str]:
