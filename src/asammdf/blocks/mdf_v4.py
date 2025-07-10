@@ -1999,6 +1999,10 @@ class MDF4(MDF_Common[Group]):
                         for i in range(dl.data_block_nr):
                             addr = getattr(dl, f"data_block_addr{i}")
 
+                            if addr > self.file_limit:
+                                logger.warning(f"Data block address {addr:X} is outside the file size {self.file_limit}")
+                                break
+
                             id_string, block_len = COMMON_SHORT_uf(stream, addr)
                             # can be a DataBlock
                             if id_string == block_type:
