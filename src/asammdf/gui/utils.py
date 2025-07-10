@@ -466,15 +466,7 @@ def compute_signal(
     functions,
     global_variables="",
 ):
-    required_channels = {}
-    for key, sig in measured_signals.items():
-        signal = sig.physical(copy=False, ignore_value2text_conversions=True)
-        if signal.samples.dtype.kind in "fui":
-            required_channels[key] = signal
-        else:
-            required_channels[key] = sig
-
-    measured_signals = required_channels
+    use_raw_values = description.get('use_raw_values', {})
 
     type_ = description["type"]
 
@@ -511,7 +503,17 @@ def compute_signal(
             for arg, alternative_names in description["args"].items():
                 for name in alternative_names:
                     if name in measured_signals:
-                        signals.append(measured_signals[name])
+                        sig = measured_signals[name]
+
+                        if use_raw_values.get(arg, "False"):
+                            signals.append(sig)
+                        else:
+                            signal = sig.physical(copy=False, ignore_value2text_conversions=True)
+                            if signal.samples.dtype.kind in "fui":
+                                signals.append(signal)
+                            else:
+                                signals.append(sig)
+
                         found_args.append(arg)
                         break
                     else:
