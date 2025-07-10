@@ -1556,6 +1556,7 @@ class WithMDIArea:
                             required_channels,
                             ignore_value2text_conversions=file.ignore_value2text_conversions,
                             copy_master=False,
+                            raw=True,
                         )
                     }
 

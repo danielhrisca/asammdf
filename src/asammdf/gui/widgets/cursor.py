@@ -11,9 +11,9 @@ class Bookmark(pg.InfiniteLine):
         self.title = title or "Bookmark"
 
         if message:
-            text = f"{self.title}\nt = {kwargs['pos']}s\n\n{message}\n "
+            text = f"{self.title}\nt = {round(kwargs['pos'], 9)}s\n\n{message}\n "
         else:
-            text = f"{self.title}\nt = {kwargs['pos']}s\n "
+            text = f"{self.title}\nt = {round(kwargs['pos'], 9)}s\n "
 
         text = "\n".join([f"  {line}  " for line in text.splitlines()])
 
@@ -116,9 +116,9 @@ class Bookmark(pg.InfiniteLine):
     def message(self, value):
         self._message = value
         if value:
-            text = f"{self.title}\nt = {self.value()}s\n\n{value}\n "
+            text = f"{self.title}\nt = {round(self.value(), 9)}s\n\n{value}\n "
         else:
-            text = f"{self.title}\nt = {self.value()}s\n "
+            text = f"{self.title}\nt = {round(self.value(), 9)}s\n "
         text = "\n".join([f"  {line}  " for line in text.splitlines()])
 
         self.label.setPlainText(text)

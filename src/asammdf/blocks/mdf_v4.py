@@ -6587,7 +6587,7 @@ class MDF4(MDF_Common[Group]):
             suffix = file_path.suffix.lower().strip(".")
             if suffix == "a2l":
                 mime = "application/A2L"
-            else:
+            elif not mime:
                 mime = f"application/x-{suffix}"
         else:
             mime = mime_type
