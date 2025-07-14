@@ -5078,8 +5078,15 @@ class DataList(_DataListBase):
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
+            file_limit = kwargs.get("file_limit", float("inf"))
 
             if utils.stream_is_mmap(stream, mapped):
+                if self.address + COMMON_SIZE > file_limit:
+                    logger.warning(f'incomplete block at 0x{self.address:x} exceeds the file size')
+                    self.next_dl_addr = 0
+                    self.data_block_nr = 0
+                    return
+                
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 if self.id != b"##DL":
@@ -5087,6 +5094,12 @@ class DataList(_DataListBase):
 
                     logger.exception(message)
                     raise MdfException(message)
+                
+                if self.address + self.block_len > file_limit:
+                    logger.warning(f'incomplete block at 0x{self.address:x} exceeds the file size')
+                    self.next_dl_addr = 0
+                    self.data_block_nr = 0
+                    return
 
                 address += COMMON_SIZE
 
@@ -5115,9 +5128,21 @@ class DataList(_DataListBase):
                     for i, offset in enumerate(offsets):
                         setattr(self, f"offset_{i}", offset)
             else:
+                if self.address + COMMON_SIZE > file_limit:
+                    logger.warning(f'incomplete block at 0x{self.address:x} exceeds the file size')
+                    self.next_dl_addr = 0
+                    self.data_block_nr = 0
+                    return
+                
                 stream.seek(address)
 
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(stream.read(COMMON_SIZE))
+
+                if self.address + self.block_len > file_limit:
+                    logger.warning(f'incomplete block at 0x{self.address:x} exceeds the file size')
+                    self.next_dl_addr = 0
+                    self.data_block_nr = 0
+                    return
 
                 if self.id != b"##DL":
                     message = f'Expected "##DL" block @{hex(address)} but found "{self.id!r}"'
@@ -6448,8 +6473,15 @@ class ListData(_ListDataBase):
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
+            file_limit = kwargs.get("file_limit", float("inf"))
 
             if utils.stream_is_mmap(stream, mapped):
+                if self.address + COMMON_SIZE > file_limit:
+                    logger.warning(f'incomplete block at 0x{self.address:x} exceeds the file size')
+                    self.next_ld_addr = 0
+                    self.data_block_nr = 0
+                    return
+                
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 if self.id != b"##LD":
@@ -6457,6 +6489,12 @@ class ListData(_ListDataBase):
 
                     logger.exception(message)
                     raise MdfException(message)
+                
+                if self.address + self.block_len > file_limit:
+                    logger.warning(f'incomplete block at 0x{self.address:x} exceeds the file size')
+                    self.next_ld_addr = 0
+                    self.data_block_nr = 0
+                    return
 
                 address += COMMON_SIZE
 
@@ -6502,6 +6540,13 @@ class ListData(_ListDataBase):
                     for i in range(self.data_block_nr):
                         self[f"invalidation_bits_addr_{i}"] = links[self.data_block_nr + 1 + i]
             else:
+
+                if self.address + COMMON_SIZE > file_limit:
+                    logger.warning(f'incomplete block at 0x{self.address:x} exceeds the file size')
+                    self.next_ld_addr = 0
+                    self.data_block_nr = 0
+                    return
+                
                 stream.seek(address)
 
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(stream.read(COMMON_SIZE))
@@ -6511,6 +6556,12 @@ class ListData(_ListDataBase):
 
                     logger.exception(message)
                     raise MdfException(message)
+                
+                if self.address + self.block_len > file_limit:
+                    logger.warning(f'incomplete block at 0x{self.address:x} exceeds the file size')
+                    self.next_ld_addr = 0
+                    self.data_block_nr = 0
+                    return
 
                 links = unpack(f"<{self.links_nr}Q", stream.read(self.links_nr * 8))
 
