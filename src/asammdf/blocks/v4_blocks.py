@@ -5443,7 +5443,7 @@ class EventBlock(_EventBlockBase):
         self.parent: int | None = None
         self.range_start = None
 
-        if "stream" in kwargs:
+        try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
             file_limit = kwargs['file_limit']
@@ -5511,7 +5511,7 @@ class EventBlock(_EventBlockBase):
             self.name = get_text_v4(self.name_addr, stream, tx_map=tx_map, file_limit=file_limit)
             self.comment = get_text_v4(self.comment_addr, stream, tx_map=tx_map, file_limit=file_limit)
 
-        else:
+        except KeyError:
             self.address = 0
 
             scopes = 0
