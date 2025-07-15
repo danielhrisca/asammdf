@@ -44,6 +44,7 @@ from typing_extensions import (
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
 from .blocks_common import UnpackFrom
+from .options import GLOBAL_OPTIONS
 from .types import StrPath
 
 try:
@@ -324,6 +325,7 @@ def get_text_v4(
     decode: Literal[True] = ...,
     *,
     tx_map: TxMap,
+    file_limit: int | float = float('inf'),
 ) -> str: ...
 
 
@@ -335,6 +337,7 @@ def get_text_v4(
     *,
     decode: Literal[False],
     tx_map: TxMap,
+    file_limit: int | float= float('inf'),
 ) -> bytes: ...
 
 
@@ -346,6 +349,7 @@ def get_text_v4(
     decode: bool = ...,
     *,
     tx_map: TxMap,
+    file_limit: int | float= float('inf'),
 ) -> bytes | str: ...
 
 
@@ -356,6 +360,7 @@ def get_text_v4(
     decode: bool = True,
     *,
     tx_map: TxMap,
+    file_limit: int | float= float('inf'),
 ) -> bytes | str:
     """Faster way to extract strings from MDF version 4 TextBlock.
 
@@ -387,17 +392,38 @@ def get_text_v4(
         return "" if decode else b""
 
     if stream_is_mmap(stream, mapped):
+        if address + 16 > file_limit:
+            handle_incomplete_block(address)
+            tx_map[address] = MappedText(b"", "")
+            return "" if decode else b""
+        
         block_id, size = BLK_COMMON_uf(stream, address)
         if block_id not in (b"##TX", b"##MD"):
             tx_map[address] = MappedText(b"", "")
             return "" if decode else b""
+        
+        if address + size > file_limit:
+            handle_incomplete_block(address)
+            tx_map[address] = MappedText(b"", "")
+            return "" if decode else b""
+        
         text_bytes = stream[address + 24 : address + size].split(b"\0", 1)[0].strip(b" \r\t\n")
     else:
+        if address + 24 > file_limit:
+            handle_incomplete_block(address)
+            tx_map[address] = MappedText(b"", "")
+            return "" if decode else b""
         stream.seek(address)
         block_id, size = BLK_COMMON_u(stream.read(24))
         if block_id not in (b"##TX", b"##MD"):
             tx_map[address] = MappedText(b"", "")
             return "" if decode else b""
+        
+        if address + size > file_limit:
+            handle_incomplete_block(address)
+            tx_map[address] = MappedText(b"", "")
+            return "" if decode else b""
+        
         text_bytes = stream.read(size - 24).split(b"\0", 1)[0].strip(b" \r\t\n")
 
     try:
@@ -1938,3 +1964,16 @@ class Timer:
             )
         else:
             print(f"TIMER {self.name}:\n\t* inactive")
+
+
+def handle_incomplete_block(address: int, file: StrPath | None = None) -> None:
+    if file is None:
+        file = 'The file'
+    else:
+        file = Path(file).name
+
+    msg = f'Incomplete block at 0x{address:x} exceeds the file size. {file} might be corrupted or partially written.'
+    logger.warning(msg)
+
+    if GLOBAL_OPTIONS["raise_on_incomplete_blocks"]:
+        raise MdfException(msg)

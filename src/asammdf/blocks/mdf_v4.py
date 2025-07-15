@@ -105,6 +105,7 @@ from .utils import (
     Fragment,
     get_fmt_v4,
     get_text_v4,
+    handle_incomplete_block,
     InvalidationBlockInfo,
     is_file_like,
     load_can_database,
@@ -299,7 +300,7 @@ class MDF4(MDF_Common[Group]):
         self.extract_attachment = lru_cache(maxsize=128)(self._extract_attachment)
 
         self._kwargs = kwargs
-        self.original_name = kwargs["original_name"]
+        self.original_name = Path(kwargs["original_name"])
         self.file_history: list[FileHistory] = []
         self.masters_db: dict[int, int] = {}
         self.attachments: list[AttachmentBlock] = []
@@ -342,6 +343,7 @@ class MDF4(MDF_Common[Group]):
         self._integer_interpolation = GLOBAL_OPTIONS["integer_interpolation"]
         self._float_interpolation = GLOBAL_OPTIONS["float_interpolation"]
         self._use_display_names = kwargs.get("use_display_names", GLOBAL_OPTIONS["use_display_names"])
+        self._raise_on_incomplete_blocks = GLOBAL_OPTIONS["raise_on_incomplete_blocks"]
         self._fill_0_for_missing_computation_channels = kwargs.get(
             "fill_0_for_missing_computation_channels",
             GLOBAL_OPTIONS["fill_0_for_missing_computation_channels"],
@@ -519,15 +521,12 @@ class MDF4(MDF_Common[Group]):
                 self._finalize(stream)
                 self._mapped = mapped = False
 
-        self.header = HeaderBlock(address=0x40, stream=stream, mapped=mapped)
+        self.header = HeaderBlock(address=0x40, stream=stream, mapped=mapped, file_limit=self.file_limit)
 
         # read file history
         fh_addr = self.header.file_history_addr
         while fh_addr:
-            if (fh_addr + v4c.FH_BLOCK_SIZE) > self.file_limit:
-                logger.warning(f"File history address {fh_addr:X} is outside the file size {self.file_limit}")
-                break
-            history_block = FileHistory(address=fh_addr, stream=stream, mapped=mapped)
+            history_block = FileHistory(address=fh_addr, stream=stream, mapped=mapped, file_limit=self.file_limit)
             self.file_history.append(history_block)
             fh_addr = history_block.next_fh_addr
 
@@ -535,10 +534,7 @@ class MDF4(MDF_Common[Group]):
         at_addr = self.header.first_attachment_addr
         index = 0
         while at_addr:
-            if (at_addr + v4c.AT_COMMON_SIZE) > self.file_limit:
-                logger.warning(f"Attachment address {at_addr:X} is outside the file size {self.file_limit}")
-                break
-            at_block = AttachmentBlock(address=at_addr, stream=stream, mapped=mapped)
+            at_block = AttachmentBlock(address=at_addr, stream=stream, mapped=mapped, file_limit=self.file_limit)
             self._attachments_map[at_addr] = index
             self.attachments.append(at_block)
             at_addr = at_block.next_at_addr
@@ -548,11 +544,8 @@ class MDF4(MDF_Common[Group]):
         dg_addr = self.header.first_dg_addr
 
         while dg_addr:
-            if (dg_addr + v4c.DG_BLOCK_SIZE) > self.file_limit:
-                logger.warning(f"Data group address {dg_addr:X} is outside the file size {self.file_limit}")
-                break
             new_groups = []
-            group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
+            group = DataGroup(address=dg_addr, stream=stream, mapped=mapped, file_limit=self.file_limit)
             record_id_nr = group.record_id_len
 
             # go to first channel group of the current data group
@@ -563,9 +556,6 @@ class MDF4(MDF_Common[Group]):
             cg_size: dict[int, int] = {}
 
             while cg_addr:
-                if (cg_addr + v4c.CG_BLOCK_SIZE) > self.file_limit:
-                    logger.warning(f"Channel group address {cg_addr:X} is outside the file size {self.file_limit}")
-                    break
                 cg_nr += 1
 
                 if cg_addr == first_cg_addr:
@@ -580,6 +570,7 @@ class MDF4(MDF_Common[Group]):
                     mapped=mapped,
                     si_map=self._si_map,
                     tx_map=self._interned_strings,
+                    file_limit=self.file_limit
                 )
                 self._cg_map[cg_addr] = dg_cntr
                 channel_group = grp.channel_group = block
@@ -793,10 +784,7 @@ class MDF4(MDF_Common[Group]):
         ev_map: dict[int, int] = {}
         event_index = 0
         while addr:
-            if (addr + v4c.COMMON_SIZE) > self.file_limit:
-                logger.warning(f"Event address {addr:X} is outside the file size {self.file_limit}")
-                break
-            event = EventBlock(address=addr, stream=stream, mapped=mapped)
+            event = EventBlock(address=addr, stream=stream, mapped=mapped, file_limit=self.file_limit)
             event.update_references(self._ch_map, self._cg_map)
             self.events.append(event)
             ev_map[addr] = event_index
@@ -1010,6 +998,7 @@ class MDF4(MDF_Common[Group]):
                     mapped=mapped,
                     tx_map=self._interned_strings,
                     parsed_strings=None,
+                    file_limit=self.file_limit
                 )
 
             if channel.data_type not in VALID_DATA_TYPES:
@@ -1916,13 +1905,17 @@ class MDF4(MDF_Common[Group]):
 
         if utils.stream_is_mmap(stream, mapped):
             if address:
+                if address + COMMON_SHORT_SIZE > self.file_limit:
+                    handle_incomplete_block(address, self.original_name)
+                    return False
+                
                 id_string, block_len = COMMON_SHORT_uf(stream, address)
 
                 if id_string == b"##LD":
                     uses_ld = True
                 # or a header list
                 elif id_string == b"##HL":
-                    hl = HeaderList(address=address, stream=stream, mapped=mapped)
+                    hl = HeaderList(address=address, stream=stream, mapped=mapped, file_limit=self.file_limit)
                     address = hl.first_dl_addr
 
                     uses_ld = self._uses_ld(
@@ -1933,6 +1926,10 @@ class MDF4(MDF_Common[Group]):
                     )
         else:
             if address:
+                if address + COMMON_SHORT_SIZE > self.file_limit:
+                    handle_incomplete_block(address, self.original_name)
+                    return False
+                
                 stream.seek(address)
                 id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
@@ -1942,7 +1939,7 @@ class MDF4(MDF_Common[Group]):
 
                 # or a header list
                 elif id_string == b"##HL":
-                    hl = HeaderList(address=address, stream=stream)
+                    hl = HeaderList(address=address, stream=stream, file_limit=self.file_limit)
                     address = hl.first_dl_addr
 
                     uses_ld = self._uses_ld(
@@ -1978,14 +1975,12 @@ class MDF4(MDF_Common[Group]):
         if utils.stream_is_mmap(stream, mapped):
             if original_address := address:
                 if address + COMMON_SHORT_SIZE > self.file_limit:
-                    logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                    return
+                    return handle_incomplete_block(original_address, self.original_name)
 
                 id_string, block_len = COMMON_SHORT_uf(stream, address)
 
                 if address + block_len > self.file_limit:
-                    logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                    return
+                    return handle_incomplete_block(original_address, self.original_name)
 
                 # can be a DataBlock
                 if id_string == block_type:
@@ -2064,14 +2059,12 @@ class MDF4(MDF_Common[Group]):
                             original_address = addr = getattr(dl, f"data_block_addr{i}")
 
                             if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                                return
+                                return handle_incomplete_block(original_address, self.original_name)
 
                             id_string, block_len = COMMON_SHORT_uf(stream, addr)
 
                             if original_address + block_len > self.file_limit:
-                                logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                                return
+                                return handle_incomplete_block(original_address, self.original_name)
                 
                             # can be a DataBlock
                             if id_string == block_type:
@@ -2154,14 +2147,12 @@ class MDF4(MDF_Common[Group]):
                             original_address = addr = getattr(ld, f"data_block_addr_{i}")
 
                             if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                                return
+                                return handle_incomplete_block(original_address, self.original_name)
 
                             id_string, block_len = COMMON_SHORT_uf(stream, addr)
 
                             if original_address + block_len > self.file_limit:
-                                logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                                return
+                                return handle_incomplete_block(original_address, self.original_name)
                             
                             # can be a DataBlock
                             if id_string == b"##DV":
@@ -2214,14 +2205,12 @@ class MDF4(MDF_Common[Group]):
                                 inval_addr = typing.cast(int, ld[f"invalidation_bits_addr_{i}"])
                                 if original_address := inval_addr:
                                     if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                        logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                                        return
+                                        return handle_incomplete_block(original_address, self.original_name)
                                     
                                     id_string, block_len = COMMON_SHORT_uf(stream, inval_addr)
 
                                     if original_address + block_len > self.file_limit:
-                                        logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                                        return
+                                        return handle_incomplete_block(original_address, self.original_name)
                                     
                                     if id_string == b"##DI":
                                         size = block_len - 24
@@ -2301,15 +2290,13 @@ class MDF4(MDF_Common[Group]):
             if original_address := address:
 
                 if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                    logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                    return
+                    return handle_incomplete_block(original_address, self.original_name)
                 
                 stream.seek(address)
                 id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                 if original_address + block_len > self.file_limit:
-                    logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                    return
+                    return handle_incomplete_block(original_address, self.original_name)
 
                 # can be a DataBlock
                 if id_string == block_type:
@@ -2387,15 +2374,13 @@ class MDF4(MDF_Common[Group]):
                             original_address = addr = getattr(dl, f"data_block_addr{i}")
 
                             if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                                return
+                                return handle_incomplete_block(original_address, self.original_name)
 
                             stream.seek(addr)
                             id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                             if original_address + block_len > self.file_limit:
-                                logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                                return
+                                return handle_incomplete_block(original_address, self.original_name)
 
                             # can be a DataBlock
                             if id_string == block_type:
@@ -2478,15 +2463,13 @@ class MDF4(MDF_Common[Group]):
                             original_address = addr = getattr(ld, f"data_block_addr{i}")
 
                             if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                                return
+                                return handle_incomplete_block(original_address, self.original_name)
 
                             stream.seek(addr)
                             id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                             if original_address + block_len > self.file_limit:
-                                logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                                return
+                                return handle_incomplete_block(original_address, self.original_name)
                             
                             # can be a DataBlock
                             if id_string == b"##DV":
@@ -2540,15 +2523,13 @@ class MDF4(MDF_Common[Group]):
                                 inval_addr = typing.cast(int, ld[f"invalidation_bits_addr_{i}"])
                                 if original_address := inval_addr:
                                     if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                        logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                                        return
+                                        return handle_incomplete_block(original_address, self.original_name)
                                     
                                     stream.seek(inval_addr)
                                     id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                                     if original_address + block_len > self.file_limit:
-                                        logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                                        return
+                                        return handle_incomplete_block(original_address, self.original_name)
                             
                                     if id_string == b"##DI":
                                         size = block_len - 24
@@ -2631,15 +2612,13 @@ class MDF4(MDF_Common[Group]):
             raise MdfException(f"Expected non-zero SDBLOCK address but got 0x{address:X}")
 
         if original_address + COMMON_SHORT_SIZE > self.file_limit:
-            logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-            return
+            return handle_incomplete_block(original_address, self.original_name)
 
         stream.seek(address)
         id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
         if original_address + block_len > self.file_limit:
-            logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-            return
+            return handle_incomplete_block(original_address, self.original_name)
 
         # can be a DataBlock
         if id_string == b"##SD":
@@ -2685,15 +2664,13 @@ class MDF4(MDF_Common[Group]):
                     original_address = addr = typing.cast(int, dl[f"data_block_addr{i}"])
 
                     if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                        logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                        return
+                        return handle_incomplete_block(original_address, self.original_name)
 
                     stream.seek(addr)
                     id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                     if original_address + block_len > self.file_limit:
-                        logger.warning(f'incomplete block at 0x{original_address:x} exceeds the file size')
-                        return
+                        return handle_incomplete_block(original_address, self.original_name)
 
                     # can be a DataBlock
                     if id_string == b"##SD":

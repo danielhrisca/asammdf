@@ -26,9 +26,10 @@ class _GlobalOptions(TypedDict):
     integer_interpolation: IntegerInterpolation
     float_interpolation: FloatInterpolation
     temporary_folder: StrPath | None
-    raise_on_multiple_occurrences: bool
+    raise_on_incomplete_blocks: bool
+    raise_on_multiple_occurrences: bool 
     fill_0_for_missing_computation_channels: bool
-
+    
 
 GLOBAL_OPTIONS: Final[_GlobalOptions] = {
     "read_fragment_size": 256 * 1024 * 1024,
@@ -38,6 +39,7 @@ GLOBAL_OPTIONS: Final[_GlobalOptions] = {
     "integer_interpolation": IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
     "float_interpolation": FloatInterpolation.LINEAR_INTERPOLATION,
     "temporary_folder": None,
+    "raise_on_incomplete_blocks": True,
     "raise_on_multiple_occurrences": True,
     "fill_0_for_missing_computation_channels": False,
 }
@@ -50,6 +52,7 @@ _Opt = Literal[
     "integer_interpolation",
     "float_interpolation",
     "temporary_folder",
+    "raise_on_incomplete_blocks",
     "raise_on_multiple_occurrences",
     "fill_0_for_missing_computation_channels",
 ]
@@ -66,6 +69,7 @@ def set_global_option(opt: _Opt, value: Any) -> None:
     elif opt in (
         "use_display_names",
         "single_bit_uint_as_bool",
+        "raise_on_incomplete_blocks",
         "raise_on_multiple_occurrences",
         "fill_0_for_missing_computation_channels",
     ):
