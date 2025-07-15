@@ -2061,6 +2061,10 @@ class MDF4(MDF_Common[Group]):
                             if original_address + COMMON_SHORT_SIZE > self.file_limit:
                                 return handle_incomplete_block(original_address, self.original_name)
 
+                            if addr > self.file_limit:
+                                logger.warning(f"Data block address {addr:X} is outside the file size {self.file_limit}")
+                                break
+
                             id_string, block_len = COMMON_SHORT_uf(stream, addr)
 
                             if original_address + block_len > self.file_limit:
