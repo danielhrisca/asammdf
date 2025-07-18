@@ -893,9 +893,9 @@ class MDF4(MDF_Common[Group]):
                         comment_addr,
                     ) = v4c.CHANNEL_FILTER_uf(stream, ch_addr)
                     channel_type = stream[ch_addr + v4c.COMMON_SIZE + links_nr * 8]
-                    name = get_text_v4(name_addr, stream, mapped=mapped, tx_map=self._interned_strings)
+                    name = get_text_v4(name_addr, stream, mapped=mapped, tx_map=self._interned_strings, file_limit=self.file_limit)
                     if use_display_names:
-                        comment = get_text_v4(comment_addr, stream, mapped=mapped, tx_map=self._interned_strings)
+                        comment = get_text_v4(comment_addr, stream, mapped=mapped, tx_map=self._interned_strings, file_limit=self.file_limit)
                         display_names = extract_display_names(comment)
                     else:
                         display_names = {}
@@ -916,7 +916,7 @@ class MDF4(MDF_Common[Group]):
                     name = get_text_v4(name_addr, stream, mapped=mapped, tx_map=self._interned_strings, file_limit=self.file_limit)
 
                     if use_display_names:
-                        comment = get_text_v4(comment_addr, stream, mapped=mapped, tx_map=self._interned_strings)
+                        comment = get_text_v4(comment_addr, stream, mapped=mapped, tx_map=self._interned_strings, file_limit=self.file_limit)
                         display_names = extract_display_names(comment)
                     else:
                         display_names = {}
@@ -937,7 +937,7 @@ class MDF4(MDF_Common[Group]):
                     or (use_display_names and any(dsp_name in self.load_filter for dsp_name in display_names))
                 ):
                     if comment is None:
-                        comment = get_text_v4(comment_addr, stream, mapped=mapped, tx_map=self._interned_strings)
+                        comment = get_text_v4(comment_addr, stream, mapped=mapped, tx_map=self._interned_strings, file_limit=self.file_limit)
                     channel = Channel(
                         address=ch_addr,
                         stream=stream,
