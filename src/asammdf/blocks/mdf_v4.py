@@ -300,7 +300,7 @@ class MDF4(MDF_Common[Group]):
         self.extract_attachment = lru_cache(maxsize=128)(self._extract_attachment)
 
         self._kwargs = kwargs
-        self.original_name = Path(kwargs["original_name"])
+        self.original_name = Path(kwargs["original_name"] or "")
         self.file_history: list[FileHistory] = []
         self.masters_db: dict[int, int] = {}
         self.attachments: list[AttachmentBlock] = []
@@ -314,9 +314,7 @@ class MDF4(MDF_Common[Group]):
         self._invalidation_cache: dict[tuple[int, int, int, int], InvalidationArray] = {}
         self._external_dbc_cache: dict[bytes, CanMatrix] = {}
         self._si_map: dict[bytes | int | Source, SourceInformation] = {}
-        self._file_si_map: dict[object, object] = {}
         self._cc_map: dict[bytes | int, ChannelConversion] = {}
-        self._file_cc_map: dict[object, object] = {}
         self._cg_map: dict[int, int] = {}
         self._cn_data_map: dict[int, tuple[int, int]] = {}
         self._dbc_cache: dict[int, CanMatrix] = {}
@@ -6718,9 +6716,7 @@ class MDF4(MDF_Common[Group]):
         self._invalidation_cache.clear()
         self._external_dbc_cache.clear()
         self._si_map.clear()
-        self._file_si_map.clear()
         self._cc_map.clear()
-        self._file_cc_map.clear()
         self._cg_map.clear()
         self._cn_data_map.clear()
         self._dbc_cache.clear()

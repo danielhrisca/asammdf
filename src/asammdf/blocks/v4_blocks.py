@@ -221,11 +221,11 @@ class AttachmentBlock:
                     self.embedded_size,
                 ) = v4c.AT_COMMON_uf(stream, address)
 
-                address += v4c.AT_COMMON_SIZE
-
                 if address + self.block_len > file_limit:
                     handle_incomplete_block(address)
                     raise KeyError
+                
+                address += v4c.AT_COMMON_SIZE
 
                 self.embedded_data = stream[address : address + self.embedded_size]
             else:
