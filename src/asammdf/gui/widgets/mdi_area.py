@@ -4918,12 +4918,15 @@ class WithMDIArea:
 
                 for block in blocks:
                     mdf.write(bytes(block))
+                    
+                mdf.seek(0, 2)
+                file_limit = mdf.tell()
 
                 header = HeaderBlock(stream=mdf, address=0x40)
                 if last_bookmark_index >= 0:
                     address = header.first_event_addr
                     for i in range(last_bookmark_index + 1):
-                        event = EventBlock(stream=mdf, address=address)
+                        event = EventBlock(stream=mdf, address=address, file_limit=file_limit)
                         address = event.next_ev_addr
 
                     if events:

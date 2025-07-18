@@ -3094,6 +3094,10 @@ MultiRasterSeparator;&
 
         with open(file_name, "r+b") as mdf:
             try:
+                mdf.seek(0, 2)
+                file_limit = mdf.tell()
+                mdf.seek(0)
+                
                 embedded_file_name = "user_embedded_display.dspf"
                 mime = r"application/x-dspf"
 
@@ -3102,7 +3106,7 @@ MultiRasterSeparator;&
                 at_addr = header.first_attachment_addr
                 parent = header
                 while at_addr:
-                    at_block = AttachmentBlock(stream=mdf, address=at_addr)
+                    at_block = AttachmentBlock(stream=mdf, address=at_addr, file_limit=file_limit)
 
                     if at_block.file_name == embedded_file_name and at_block.mime == mime:
                         new_at_block = AttachmentBlock(
@@ -3191,7 +3195,7 @@ MultiRasterSeparator;&
                     if header.first_attachment_addr:
                         at_addr = header.first_attachment_addr
                         while at_addr:
-                            last_at = AttachmentBlock(stream=mdf, address=at_addr)
+                            last_at = AttachmentBlock(stream=mdf, address=at_addr, file_limit=file_limit)
                             at_addr = last_at.next_at_addr
 
                         last_at.next_at_addr = at_block.address
@@ -3203,7 +3207,7 @@ MultiRasterSeparator;&
                     if header.file_history_addr:
                         fh_addr = header.file_history_addr
                         while fh_addr:
-                            last_fh = FileHistory(stream=mdf, address=fh_addr)
+                            last_fh = FileHistory(stream=mdf, address=fh_addr, file_limit=file_limit)
                             fh_addr = last_fh.next_fh_addr
 
                         last_fh.next_fh_addr = fh_block.address

@@ -743,6 +743,7 @@ class MDF4(MDF_Common[Group]):
                                         address=cc_addr,
                                         mapped=mapped,
                                         tx_map={},
+                                        file_limit=self.file_limit,
                                     )
                                     dep.axis_conversions.append(conv)
                                 else:
@@ -912,7 +913,7 @@ class MDF4(MDF_Common[Group]):
                     ) = v4c.CHANNEL_FILTER_u(stream.read(v4c.CHANNEL_FILTER_SIZE))
                     stream.seek(ch_addr + v4c.COMMON_SIZE + links_nr * 8)
                     channel_type = stream.read(1)[0]
-                    name = get_text_v4(name_addr, stream, mapped=mapped, tx_map=self._interned_strings)
+                    name = get_text_v4(name_addr, stream, mapped=mapped, tx_map=self._interned_strings, file_limit=self.file_limit)
 
                     if use_display_names:
                         comment = get_text_v4(comment_addr, stream, mapped=mapped, tx_map=self._interned_strings)
@@ -947,6 +948,7 @@ class MDF4(MDF_Common[Group]):
                         mapped=mapped,
                         tx_map=self._interned_strings,
                         parsed_strings=(name, display_names, comment),
+                        file_limit=self.file_limit,
                     )
 
                     si_path = getattr(channel.source, "path", "")
@@ -2272,7 +2274,7 @@ class MDF4(MDF_Common[Group]):
 
                 # or a header list
                 elif id_string == b"##HL":
-                    hl = HeaderList(address=address, stream=stream, mapped=mapped)
+                    hl = HeaderList(address=address, stream=stream, mapped=mapped, file_limit=self.file_limit)
                     address = hl.first_dl_addr
 
                     yield from self._get_data_blocks_info(
@@ -2588,7 +2590,7 @@ class MDF4(MDF_Common[Group]):
 
                 # or a header list
                 elif id_string == b"##HL":
-                    hl = HeaderList(address=address, stream=stream)
+                    hl = HeaderList(address=address, stream=stream, file_limit=self.file_limit)
                     address = hl.first_dl_addr
 
                     yield from self._get_data_blocks_info(
@@ -2709,7 +2711,7 @@ class MDF4(MDF_Common[Group]):
 
         # or a header list
         elif id_string == b"##HL":
-            hl = HeaderList(address=address, stream=stream)
+            hl = HeaderList(address=address, stream=stream, file_limit=self.file_limit)
             address = hl.first_dl_addr
 
             yield from self._get_signal_data_blocks_info(
@@ -11590,7 +11592,7 @@ class MDF4(MDF_Common[Group]):
 
         if flags & v4c.FLAG_UNFIN_UPDATE_LAST_DL:
             for dg_addr in block_groups[b"##DG"]:
-                group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
+                group = DataGroup(address=dg_addr, stream=stream, mapped=mapped, file_limit=self.file_limit)
                 data_addr = group.data_block_addr
                 if not data_addr:
                     continue
@@ -11601,7 +11603,7 @@ class MDF4(MDF_Common[Group]):
                     continue
                 elif blk_id in (b"##DL", b"##HL"):
                     if blk_id == b"##HL":
-                        hl = HeaderList(address=data_addr, stream=stream, mapped=mapped)
+                        hl = HeaderList(address=data_addr, stream=stream, mapped=mapped, file_limit=self.file_limit)
                         data_addr = hl.first_dl_addr
 
                     while True:
@@ -11680,7 +11682,7 @@ class MDF4(MDF_Common[Group]):
         if flags & v4c.FLAG_UNFIN_UPDATE_LAST_DT_LENGTH:
             try:
                 for dg_addr in block_groups[b"##DG"]:
-                    group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
+                    group = DataGroup(address=dg_addr, stream=stream, mapped=mapped, file_limit=self.file_limit)
                     data_addr = group.data_block_addr
                     if not data_addr:
                         continue
@@ -11688,7 +11690,7 @@ class MDF4(MDF_Common[Group]):
                     stream.seek(data_addr)
                     blk_id = stream.read(4)
                     if blk_id == b"##DT":
-                        blk = DataBlock(address=data_addr, stream=stream, mapped=mapped)
+                        blk = DataBlock(address=data_addr, stream=stream, mapped=mapped, file_limit=self.file_limit)
                     elif blk_id == b"##DL":
                         while True:
                             dl = DataList(address=data_addr, stream=stream, mapped=mapped, file_limit=self.file_limit)
@@ -11696,19 +11698,19 @@ class MDF4(MDF_Common[Group]):
                                 break
 
                         data_addr = typing.cast(int, dl[f"data_block_addr{dl.links_nr - 2}"])
-                        blk = DataBlock(address=data_addr, stream=stream, mapped=mapped)
+                        blk = DataBlock(address=data_addr, stream=stream, mapped=mapped, file_limit=self.file_limit)
 
                     elif blk_id == b"##HL":
-                        hl = HeaderList(address=data_addr, stream=stream, mapped=mapped)
+                        hl = HeaderList(address=data_addr, stream=stream, mapped=mapped, file_limit=self.file_limit)
 
                         data_addr = hl.first_dl_addr
                         while True:
-                            dl = DataList(address=data_addr, stream=stream, mapped=mapped)
+                            dl = DataList(address=data_addr, stream=stream, mapped=mapped, file_limit=self.file_limit)
                             if not dl.next_dl_addr:
                                 break
 
                         data_addr = typing.cast(int, dl[f"data_block_addr{dl.links_nr - 2}"])
-                        blk = DataBlock(address=data_addr, stream=stream, mapped=mapped)
+                        blk = DataBlock(address=data_addr, stream=stream, mapped=mapped, file_limit=self.file_limit)
 
                     next_block = bisect.bisect_right(addresses, data_addr)
                     if next_block == len(addresses):

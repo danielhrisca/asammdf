@@ -4646,6 +4646,7 @@ formula: {self.formula}
 class DataBlockKwargs(BlockKwargs, total=False):
     data: bytes | bytearray
     type: Literal["DT", "SD", "RD", "DV", "DI"]
+    file_limit: int | float
 
 
 class DataBlock:
@@ -4687,8 +4688,18 @@ class DataBlock:
             stream = kwargs["stream"]
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
+            file_limit = kwargs['file_limit']
+
+            if address + COMMON_SIZE > file_limit:
+                handle_incomplete_block(address)
+                raise KeyError
+
             if utils.stream_is_mmap(stream, mapped):
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
+
+                if address + self.block_len > file_limit:
+                    handle_incomplete_block(address)
+                    raise KeyError
 
                 if self.id not in (b"##DT", b"##RD", b"##SD", b"##DV", b"##DI"):
                     message = f'Expected "##DT", "##DV", "##DI", "##RD" or "##SD" block @{hex(address)} but found "{self.id!r}"'
@@ -4700,6 +4711,10 @@ class DataBlock:
                 stream.seek(address)
 
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(stream.read(COMMON_SIZE))
+
+                if address + self.block_len > file_limit:
+                    handle_incomplete_block(address)
+                    raise KeyError
 
                 if self.id not in (b"##DT", b"##RD", b"##SD", b"##DV", b"##DI"):
                     message = f'Expected "##DT", "##DV", "##DI", "##RD" or "##SD" block @{hex(address)} but found "{self.id!r}"'
@@ -4716,9 +4731,9 @@ class DataBlock:
 
             self.id = f"##{type}".encode("ascii")
             self.reserved0 = 0
-            self.block_len = len(kwargs["data"]) + COMMON_SIZE
+            self.block_len = len(kwargs.get("data", b"")) + COMMON_SIZE
             self.links_nr = 0
-            self.data = kwargs["data"]
+            self.data = kwargs.get("data", b"")
 
     def __getitem__(self, item: str) -> object:
         return getattr(self, item)
@@ -4736,6 +4751,7 @@ class DataZippedBlockKwargs(BlockKwargs, total=False):
     zip_type: int
     param: int
     transposed: bool
+    file_limit: int | float
 
 
 class DataZippedBlock:
@@ -4796,6 +4812,13 @@ class DataZippedBlock:
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
+
+            file_limit = kwargs['file_limit']
+
+            if address + v4c.DZ_COMMON_SIZE > file_limit:
+                handle_incomplete_block(address)
+                raise KeyError
+
             stream.seek(address)
 
             (
@@ -4817,6 +4840,10 @@ class DataZippedBlock:
                 logger.exception(message)
                 raise MdfException(message)
 
+            if address + self.block_len > file_limit:
+                handle_incomplete_block(address)
+                raise KeyError
+
             self.data = stream.read(self.zip_size)
 
         except KeyError:
@@ -4824,7 +4851,7 @@ class DataZippedBlock:
 
             self.address = 0
 
-            data = kwargs["data"]
+            data = kwargs.get("data", b"")
 
             self.id = b"##DZ"
             self.reserved0 = 0
@@ -6504,6 +6531,13 @@ class HeaderList:
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
+
+            file_limit = kwargs['file_limit']
+
+            if address + v4c.HL_BLOCK_SIZE > file_limit:
+                handle_incomplete_block(address)
+                raise KeyError
+            
             stream.seek(address)
 
             (
