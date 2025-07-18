@@ -42,7 +42,7 @@ class InvalidationArray(np.ndarray[tuple[int], np.dtype[np.bool]]):
 
     def __new__(cls, input_array: ArrayLike, origin: tuple[int, int] = ORIGIN_UNKNOWN) -> "InvalidationArray":
         obj = np.asarray(input_array).view(cls)
-        obj.origin = origin
+        obj.origin = getattr(input_array, "origin", origin)
         return obj
 
     def __array_finalize__(self, obj: NDArray[np.bool] | None) -> None:
