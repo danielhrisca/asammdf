@@ -27,9 +27,9 @@ class _GlobalOptions(TypedDict):
     float_interpolation: FloatInterpolation
     temporary_folder: StrPath | None
     raise_on_incomplete_blocks: bool
-    raise_on_multiple_occurrences: bool 
+    raise_on_multiple_occurrences: bool
     fill_0_for_missing_computation_channels: bool
-    
+
 
 GLOBAL_OPTIONS: Final[_GlobalOptions] = {
     "read_fragment_size": 256 * 1024 * 1024,

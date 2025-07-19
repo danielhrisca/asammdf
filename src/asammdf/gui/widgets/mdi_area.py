@@ -4918,7 +4918,7 @@ class WithMDIArea:
 
                 for block in blocks:
                     mdf.write(bytes(block))
-                    
+
                 mdf.seek(0, 2)
                 file_limit = mdf.tell()
 

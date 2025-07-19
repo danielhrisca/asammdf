@@ -953,29 +953,30 @@ class FormatedAxis(pg.AxisItem):
             )
 
         return (axisSpec, tickSpecs, textSpecs)
-    
+
     def boundingRect(self):
         m = 0
-        hide_overlapping_labels = self.style['hideOverlappingLabels']
+        hide_overlapping_labels = self.style["hideOverlappingLabels"]
         if hide_overlapping_labels is True:
-            pass # skip further checks
+            pass  # skip further checks
         elif hide_overlapping_labels is False:
             m = 15
         else:
             try:
-                m = int( self.style['hideOverlappingLabels'] )
-            except ValueError: pass # ignore any non-numeric value
+                m = int(self.style["hideOverlappingLabels"])
+            except ValueError:
+                pass  # ignore any non-numeric value
 
         rect = self.mapRectFromParent(self.geometry())
         ## extend rect if ticks go in negative direction
         ## also extend to account for text that flows past the edges
-        tl = self.style['tickLength']
-        if self.orientation == 'left':
-            rect = rect.adjusted(0, -m, -min(0,tl), m)
-        elif self.orientation == 'right':
-            rect = rect.adjusted(min(0,tl), -m, 0, m)
-        elif self.orientation == 'top':
-            rect = rect.adjusted(-m, 0, m, -min(0,tl))
-        elif self.orientation == 'bottom':
-            rect = rect.adjusted(-m, min(0,tl), m, 0)
+        tl = self.style["tickLength"]
+        if self.orientation == "left":
+            rect = rect.adjusted(0, -m, -min(0, tl), m)
+        elif self.orientation == "right":
+            rect = rect.adjusted(min(0, tl), -m, 0, m)
+        elif self.orientation == "top":
+            rect = rect.adjusted(-m, 0, m, -min(0, tl))
+        elif self.orientation == "bottom":
+            rect = rect.adjusted(-m, min(0, tl), m, 0)
         return rect

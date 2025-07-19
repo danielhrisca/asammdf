@@ -2845,7 +2845,7 @@ class HeaderBlock:
                 user = getuser()
             except (ModuleNotFoundError, OSError):
                 user = ""
-            self.author_field = f"{user:\0<32}".encode("latin-1")
+            self.author_field = "{:\0<32}".format(user).encode("latin-1")  # noqa: UP032
             self.department_field = "{:\0<32}".format("").encode("latin-1")
             self.project_field = "{:\0<32}".format("").encode("latin-1")
             self.subject_field = "{:\0<32}".format("").encode("latin-1")

@@ -466,7 +466,7 @@ def compute_signal(
     functions,
     global_variables="",
 ):
-    use_raw_values = description.get('use_raw_values', {})
+    use_raw_values = description.get("use_raw_values", {})
 
     type_ = description["type"]
 
