@@ -7480,7 +7480,7 @@ class MDF4(MDF_Common[Group]):
         if fast_path:
             flat_channel_values = typing.cast(list[NDArray[Any]], channel_values)
             total_size = sum(len(_) for _ in flat_channel_values)
-            shape = (total_size,) + flat_channel_values[0].shape[1:]
+            shape = (total_size, *flat_channel_values[0].shape[1:])
 
             if count > 1:
                 out = empty(shape, dtype=flat_channel_values[0].dtype)
@@ -7535,7 +7535,7 @@ class MDF4(MDF_Common[Group]):
                         arrays.append(
                             concatenate(
                                 lst,
-                                out=empty((total_size,) + lst[0].shape[1:], dtype=lst[0].dtype),
+                                out=empty((total_size, *lst[0].shape[1:]), dtype=lst[0].dtype),
                             )
                         )
             else:
@@ -7757,7 +7757,7 @@ class MDF4(MDF_Common[Group]):
 
             if dep.flags & v4c.FLAG_CA_INVERSE_LAYOUT:
                 shape = vals.shape
-                shape = (shape[0],) + shape[1:][::-1]
+                shape = (shape[0], *shape[1:][::-1])
                 vals = vals.reshape(shape)
 
                 axes = (0, *reversed(range(1, len(shape))))
@@ -7941,7 +7941,7 @@ class MDF4(MDF_Common[Group]):
 
         if count > 1:
             total_size = sum(len(_) for _ in channel_values)
-            shape = (total_size,) + channel_values[0].shape[1:]
+            shape = (total_size, *channel_values[0].shape[1:])
 
         if count > 1:
             out = empty(shape, dtype=channel_values[0].dtype)
@@ -8208,7 +8208,7 @@ class MDF4(MDF_Common[Group]):
 
             if count > 1:
                 total_size = sum(len(_) for _ in channel_values)
-                shape = (total_size,) + channel_values[0].shape[1:]
+                shape = (total_size, *channel_values[0].shape[1:])
 
             if count > 1:
                 out = empty(shape, dtype=channel_values[0].dtype)

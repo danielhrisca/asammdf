@@ -4224,7 +4224,7 @@ class MDF:
                     master[current_pos:next_pos] = sigs[0].timestamps
 
                     for sig in sigs:
-                        shape = (cycles,) + sig.samples.shape[1:]
+                        shape = (cycles, *sig.samples.shape[1:])
                         samples = np.empty(shape, dtype=sig.samples.dtype)
                         samples[current_pos:next_pos] = sig.samples
                         sig.samples = samples
