@@ -3097,7 +3097,7 @@ MultiRasterSeparator;&
                 mdf.seek(0, 2)
                 file_limit = mdf.tell()
                 mdf.seek(0)
-                
+
                 embedded_file_name = "user_embedded_display.dspf"
                 mime = r"application/x-dspf"
 

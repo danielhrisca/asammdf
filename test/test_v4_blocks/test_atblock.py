@@ -32,7 +32,7 @@ class TestATBLOCK(unittest.TestCase):
     def test_read_compressed(self) -> None:
         self.compressed.seek(0)
 
-        block = AttachmentBlock(address=97, stream=self.compressed, file_limit=1<<20)
+        block = AttachmentBlock(address=97, stream=self.compressed, file_limit=1 << 20)
 
         self.assertEqual(block.file_name, self.filename)
         self.assertEqual(block.extract(), self.data)
@@ -41,7 +41,7 @@ class TestATBLOCK(unittest.TestCase):
     def test_read_uncompressed(self) -> None:
         self.uncompressed.seek(0)
 
-        block = AttachmentBlock(address=97, stream=self.uncompressed, file_limit=1<<20)
+        block = AttachmentBlock(address=97, stream=self.uncompressed, file_limit=1 << 20)
 
         self.assertEqual(block.file_name, self.filename)
         self.assertEqual(block.extract(), self.data)
@@ -54,7 +54,7 @@ class TestATBLOCK(unittest.TestCase):
         stream.write(b"_NOK")
 
         with self.assertRaises(MdfException):
-            AttachmentBlock(address=97, stream=stream, file_limit=1<<20)
+            AttachmentBlock(address=97, stream=stream, file_limit=1 << 20)
 
     def test_bytes_compressed(self) -> None:
         attachment = AttachmentBlock(file_name=self.filename, data=self.data, embedded=True, compression=True)
@@ -71,7 +71,7 @@ class TestATBLOCK(unittest.TestCase):
 
         address = attachment.address
 
-        block = AttachmentBlock(address=address, stream=stream, file_limit=1<<20)
+        block = AttachmentBlock(address=address, stream=stream, file_limit=1 << 20)
 
         self.assertEqual(block.comment, self.comment)
         self.assertEqual(block.file_name, self.filename)
@@ -92,7 +92,7 @@ class TestATBLOCK(unittest.TestCase):
 
         address = attachment.address
 
-        block = AttachmentBlock(address=address, stream=stream, file_limit=1<<20)
+        block = AttachmentBlock(address=address, stream=stream, file_limit=1 << 20)
 
         self.assertEqual(block.comment, self.comment)
         self.assertEqual(block.file_name, self.filename)

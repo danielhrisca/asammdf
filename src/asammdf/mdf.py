@@ -4439,11 +4439,7 @@ class MDF:
                         conv = v4_ch.conversion_addr
                         if conv:
                             v4_conv = v4b.ChannelConversion(
-                                address=conv,
-                                stream=stream,
-                                mapped=False,
-                                tx_map={},
-                                file_limit=mdf.file_limit
+                                address=conv, stream=stream, mapped=False, tx_map={}, file_limit=mdf.file_limit
                             )
                             for addr in (
                                 v4_conv.name_addr,
