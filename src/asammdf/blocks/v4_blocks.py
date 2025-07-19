@@ -2605,7 +2605,7 @@ class ChannelConversion(_ChannelConversionBase):
 
                 if address + self.block_len > file_limit:
                     handle_incomplete_block(address)
-                    raise KeyError
+                    raise KeyError from None
 
                 if self.id != b"##CC":
                     message = f'Expected "##CC" block @{hex(address)} but found "{self.id!r}"'
