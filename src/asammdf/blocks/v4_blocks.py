@@ -6617,6 +6617,7 @@ class ListDataKwargs(BlockKwargs, total=False):
     data_block_nr: int
     flags: int
     data_block_len: int
+    file_limit: float
 
 
 class ListData(_ListDataBase):
