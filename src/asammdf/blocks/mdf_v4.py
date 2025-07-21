@@ -1118,6 +1118,12 @@ class MDF4(MDF_Common[Group]):
                     first_dep = ca_block = ChannelArrayBlock(address=component_addr, stream=stream, mapped=mapped)
                     ca_dependencies = [first_dep]
 
+                    byte_offset_factors: list[int] = []
+                    bit_pos_inval_factors: list[int] = []
+                    dimensions: list[int] = []
+                    total_elem = 1
+
+                    # recurse into CA structure
                     while ca_block.composition_addr:
                         stream.seek(ca_block.composition_addr)
                         blk_id = stream.read(4)
@@ -1148,104 +1154,8 @@ class MDF4(MDF_Common[Group]):
 
                             channel.dtype_fmt = ret_composition_dtype
 
-                            ca_cnt = len(ca_dependencies)
                             if ret_composition:
                                 ca_dependencies.extend(ret_composition)
-
-                            byte_offset_factors: list[int] = []
-                            bit_pos_inval_factors: list[int] = []
-                            dimensions: list[int] = []
-                            total_elem = 1
-
-                            for ca_blck in ca_dependencies[:ca_cnt]:
-                                # only consider CN templates
-                                if ca_blck.ca_type != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
-                                    logger.warning("Only CN template arrays are supported")
-                                    continue
-
-                                # 1D array with dimensions
-                                for i in range(ca_blck.dims):
-                                    dim_size = typing.cast(int, ca_blck[f"dim_size_{i}"])
-                                    dimensions.append(dim_size)
-                                    total_elem *= dim_size
-
-                                # 1D arrays for byte offset and invalidation bit pos calculations
-                                byte_offset_factors.extend(ca_blck.get_byte_offset_factors())
-                                bit_pos_inval_factors.extend(ca_blck.get_bit_pos_inval_factors())
-
-                            multipliers = [1] * len(dimensions)
-                            for i in range(len(dimensions) - 2, -1, -1):
-                                multipliers[i] = multipliers[i + 1] * dimensions[i + 1]
-
-                            def _get_nd_coords(index: int, factors: list[int]) -> list[int]:
-                                """Convert 1D index to CA's nD coordinates."""
-                                coords = [0] * len(factors)
-                                for i, factor in enumerate(factors):
-                                    coords[i] = index // factor
-                                    index %= factor
-                                return coords
-
-                            def _get_name_with_indices(ch_name: str, ch_parent_name: str, indices: list[int]) -> str:
-                                coords = "[" + "][".join(str(coord) for coord in indices) + "]"
-                                m = re.match(ch_parent_name, ch_name)
-                                n = re.search(r"\[\d+\]", ch_name)
-                                if m:
-                                    name = ch_name[: m.end()] + coords + ch_name[m.end() :]
-                                elif n:
-                                    name = ch_name[: n.start()] + coords + ch_name[n.start() :]
-                                else:
-                                    name = ch_name + coords
-                                return name
-
-                            ch_len = len(channels)
-                            for elem_id in range(1, total_elem):
-                                for cn_id in range(index, ch_len):
-                                    nd_coords = _get_nd_coords(elem_id, multipliers)
-
-                                    # copy composition block
-                                    new_block = deepcopy(channels[cn_id])
-
-                                    # update byte offset & position of invalidation bit
-                                    byte_offset = bit_offset = 0
-                                    for coord, byte_factor, bit_factor in zip(
-                                        nd_coords, byte_offset_factors, bit_pos_inval_factors, strict=False
-                                    ):
-                                        byte_offset += coord * byte_factor
-                                        bit_offset += coord * bit_factor
-                                    new_block.byte_offset += byte_offset
-                                    new_block.pos_invalidation_bit += bit_offset
-
-                                    # update channel name
-                                    new_block.name = _get_name_with_indices(new_block.name, channel.name, nd_coords)
-
-                                    # append to channel list
-                                    channels.append(new_block)
-
-                                    # update channel dependencies
-                                    if (deps := dependencies[cn_id]) is not None:
-                                        cn_deps: list[tuple[int, int]] = []
-                                        for dep in deps:
-                                            if not isinstance(dep, ChannelArrayBlock):
-                                                dep_entry = (dep[0], dep[1] + (ch_len - index) * elem_id)
-                                                cn_deps.append(dep_entry)
-                                        dependencies.append(cn_deps)
-                                    else:
-                                        dependencies.append(None)
-
-                                    # update channels db
-                                    entry = (dg_cntr, ch_cntr)
-                                    self.channels_db.add(new_block.name, entry)
-                                    ch_cntr += 1
-
-                            # modify channels' names found recursively in-place
-                            orig_name = channel.name
-                            for cn_id in range(index, ch_len):
-                                nd_coords = _get_nd_coords(0, multipliers)
-                                name = _get_name_with_indices(channels[cn_id].name, orig_name, nd_coords)
-                                entries = self.channels_db.pop(channels[cn_id].name)
-                                channels[cn_id].name = name
-                                # original channel entry will only contain single source tuple
-                                self.channels_db.add(name, entries[0])
 
                             break
 
@@ -1254,6 +1164,88 @@ class MDF4(MDF_Common[Group]):
                                 "skipping CN block; Nested CA structure should be contained within BYTEARRAY data type"
                             )
                             break
+
+                    ca_cnt = len(ca_dependencies)
+                    for ca_blck in ca_dependencies[:ca_cnt]:
+                        # only consider CN templates
+                        if ca_blck.ca_type != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
+                            logger.warning("Only CN template arrays are supported")
+                            continue
+
+                        # 1D array with dimensions
+                        for i in range(ca_blck.dims):
+                            dim_size = typing.cast(int, ca_blck[f"dim_size_{i}"])
+                            dimensions.append(dim_size)
+                            total_elem *= dim_size
+
+                        # 1D arrays for byte offset and invalidation bit pos calculations
+                        byte_offset_factors.extend(ca_blck.get_byte_offset_factors())
+                        bit_pos_inval_factors.extend(ca_blck.get_bit_pos_inval_factors())
+
+                    multipliers = [1] * len(dimensions)
+                    for i in range(len(dimensions) - 2, -1, -1):
+                        multipliers[i] = multipliers[i + 1] * dimensions[i + 1]
+
+                    def _get_nd_coords(index: int, factors: list[int]) -> list[int]:
+                        """Convert 1D index to CA's nD coordinates."""
+                        coords = [0] * len(factors)
+                        for i, factor in enumerate(factors):
+                            coords[i] = index // factor
+                            index %= factor
+                        return coords
+
+                    def _get_name_with_indices(ch_name: str, ch_parent_name: str, indices: list[int]) -> str:
+                        coords = "[" + "][".join(str(coord) for coord in indices) + "]"
+                        m = re.match(ch_parent_name, ch_name)
+                        n = re.search(r"\[\d+\]", ch_name)
+                        if m:
+                            name = ch_name[: m.end()] + coords + ch_name[m.end() :]
+                        elif n:
+                            name = ch_name[: n.start()] + coords + ch_name[n.start() :]
+                        else:
+                            name = ch_name + coords
+                        return name
+
+                    ch_len = len(channels)
+                    for elem_id in range(total_elem):
+                        for cn_id in range(index, ch_len):
+                            nd_coords = _get_nd_coords(elem_id, multipliers)
+
+                            # copy composition block
+                            new_block = deepcopy(channels[cn_id])
+
+                            # update byte offset & position of invalidation bit
+                            byte_offset = bit_offset = 0
+                            for coord, byte_factor, bit_factor in zip(
+                                nd_coords, byte_offset_factors, bit_pos_inval_factors, strict=False
+                            ):
+                                byte_offset += coord * byte_factor
+                                bit_offset += coord * bit_factor
+                            new_block.byte_offset += byte_offset
+                            new_block.pos_invalidation_bit += bit_offset
+
+                            # update channel name
+                            new_block.name = _get_name_with_indices(new_block.name, channel.name, nd_coords)
+
+                            # append to channel list
+                            channels.append(new_block)
+
+                            # update channel dependencies
+                            if (deps := dependencies[cn_id]) is not None:
+                                cn_deps: list[tuple[int, int]] = []
+                                for dep in deps:
+                                    if not isinstance(dep, ChannelArrayBlock):
+                                        dep_entry = (dep[0], dep[1] + (ch_len - index) * elem_id)
+                                        cn_deps.append(dep_entry)
+                                dependencies.append(cn_deps)
+                            else:
+                                dependencies.append(None)
+
+                            # update channels db
+                            entry = (dg_cntr, ch_cntr)
+                            self.channels_db.add(new_block.name, entry)
+                            ch_cntr += 1
+
                     dependencies[index] = ca_dependencies
 
             else:
