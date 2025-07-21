@@ -568,7 +568,7 @@ class MDF4(MDF_Common[Group]):
                     mapped=mapped,
                     si_map=self._si_map,
                     tx_map=self._interned_strings,
-                    file_limit=self.file_limit
+                    file_limit=self.file_limit,
                 )
                 self._cg_map[cg_addr] = dg_cntr
                 channel_group = grp.channel_group = block
@@ -893,9 +893,17 @@ class MDF4(MDF_Common[Group]):
                         comment_addr,
                     ) = v4c.CHANNEL_FILTER_uf(stream, ch_addr)
                     channel_type = stream[ch_addr + v4c.COMMON_SIZE + links_nr * 8]
-                    name = get_text_v4(name_addr, stream, mapped=mapped, tx_map=self._interned_strings, file_limit=self.file_limit)
+                    name = get_text_v4(
+                        name_addr, stream, mapped=mapped, tx_map=self._interned_strings, file_limit=self.file_limit
+                    )
                     if use_display_names:
-                        comment = get_text_v4(comment_addr, stream, mapped=mapped, tx_map=self._interned_strings, file_limit=self.file_limit)
+                        comment = get_text_v4(
+                            comment_addr,
+                            stream,
+                            mapped=mapped,
+                            tx_map=self._interned_strings,
+                            file_limit=self.file_limit,
+                        )
                         display_names = extract_display_names(comment)
                     else:
                         display_names = {}
@@ -913,10 +921,18 @@ class MDF4(MDF_Common[Group]):
                     ) = v4c.CHANNEL_FILTER_u(stream.read(v4c.CHANNEL_FILTER_SIZE))
                     stream.seek(ch_addr + v4c.COMMON_SIZE + links_nr * 8)
                     channel_type = stream.read(1)[0]
-                    name = get_text_v4(name_addr, stream, mapped=mapped, tx_map=self._interned_strings, file_limit=self.file_limit)
+                    name = get_text_v4(
+                        name_addr, stream, mapped=mapped, tx_map=self._interned_strings, file_limit=self.file_limit
+                    )
 
                     if use_display_names:
-                        comment = get_text_v4(comment_addr, stream, mapped=mapped, tx_map=self._interned_strings, file_limit=self.file_limit)
+                        comment = get_text_v4(
+                            comment_addr,
+                            stream,
+                            mapped=mapped,
+                            tx_map=self._interned_strings,
+                            file_limit=self.file_limit,
+                        )
                         display_names = extract_display_names(comment)
                     else:
                         display_names = {}
@@ -937,7 +953,13 @@ class MDF4(MDF_Common[Group]):
                     or (use_display_names and any(dsp_name in self.load_filter for dsp_name in display_names))
                 ):
                     if comment is None:
-                        comment = get_text_v4(comment_addr, stream, mapped=mapped, tx_map=self._interned_strings, file_limit=self.file_limit)
+                        comment = get_text_v4(
+                            comment_addr,
+                            stream,
+                            mapped=mapped,
+                            tx_map=self._interned_strings,
+                            file_limit=self.file_limit,
+                        )
                     channel = Channel(
                         address=ch_addr,
                         stream=stream,
@@ -998,7 +1020,7 @@ class MDF4(MDF_Common[Group]):
                     mapped=mapped,
                     tx_map=self._interned_strings,
                     parsed_strings=None,
-                    file_limit=self.file_limit
+                    file_limit=self.file_limit,
                 )
 
             if channel.data_type not in VALID_DATA_TYPES:
@@ -1908,7 +1930,7 @@ class MDF4(MDF_Common[Group]):
                 if address + COMMON_SHORT_SIZE > self.file_limit:
                     handle_incomplete_block(address, self.original_name)
                     return False
-                
+
                 id_string, block_len = COMMON_SHORT_uf(stream, address)
 
                 if id_string == b"##LD":
@@ -1929,7 +1951,7 @@ class MDF4(MDF_Common[Group]):
                 if address + COMMON_SHORT_SIZE > self.file_limit:
                     handle_incomplete_block(address, self.original_name)
                     return False
-                
+
                 stream.seek(address)
                 id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
@@ -2041,7 +2063,7 @@ class MDF4(MDF_Common[Group]):
                         else:
                             block_limit = None
                         total_size -= original_size
-                    
+
                         yield DataBlockInfo(
                             address=address + v4c.DZ_COMMON_SIZE,
                             block_type=block_type_,
@@ -2065,7 +2087,7 @@ class MDF4(MDF_Common[Group]):
 
                             if original_address + block_len > self.file_limit:
                                 return handle_incomplete_block(original_address, self.original_name)
-                
+
                             # can be a DataBlock
                             if id_string == block_type:
                                 size = block_len - 24
@@ -2153,7 +2175,7 @@ class MDF4(MDF_Common[Group]):
 
                             if original_address + block_len > self.file_limit:
                                 return handle_incomplete_block(original_address, self.original_name)
-                            
+
                             # can be a DataBlock
                             if id_string == b"##DV":
                                 size = block_len - 24
@@ -2206,12 +2228,12 @@ class MDF4(MDF_Common[Group]):
                                 if original_address := inval_addr:
                                     if original_address + COMMON_SHORT_SIZE > self.file_limit:
                                         return handle_incomplete_block(original_address, self.original_name)
-                                    
+
                                     id_string, block_len = COMMON_SHORT_uf(stream, inval_addr)
 
                                     if original_address + block_len > self.file_limit:
                                         return handle_incomplete_block(original_address, self.original_name)
-                                    
+
                                     if id_string == b"##DI":
                                         size = block_len - 24
                                         if size:
@@ -2288,10 +2310,9 @@ class MDF4(MDF_Common[Group]):
                     )
         else:
             if original_address := address:
-
                 if original_address + COMMON_SHORT_SIZE > self.file_limit:
                     return handle_incomplete_block(original_address, self.original_name)
-                
+
                 stream.seek(address)
                 id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
@@ -2470,7 +2491,7 @@ class MDF4(MDF_Common[Group]):
 
                             if original_address + block_len > self.file_limit:
                                 return handle_incomplete_block(original_address, self.original_name)
-                            
+
                             # can be a DataBlock
                             if id_string == b"##DV":
                                 size = block_len - 24
@@ -2524,13 +2545,13 @@ class MDF4(MDF_Common[Group]):
                                 if original_address := inval_addr:
                                     if original_address + COMMON_SHORT_SIZE > self.file_limit:
                                         return handle_incomplete_block(original_address, self.original_name)
-                                    
+
                                     stream.seek(inval_addr)
                                     id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                                     if original_address + block_len > self.file_limit:
                                         return handle_incomplete_block(original_address, self.original_name)
-                            
+
                                     if id_string == b"##DI":
                                         size = block_len - 24
                                         if size:
@@ -7459,7 +7480,7 @@ class MDF4(MDF_Common[Group]):
         if fast_path:
             flat_channel_values = typing.cast(list[NDArray[Any]], channel_values)
             total_size = sum(len(_) for _ in flat_channel_values)
-            shape = (total_size,) + flat_channel_values[0].shape[1:]
+            shape = (total_size, *flat_channel_values[0].shape[1:])
 
             if count > 1:
                 out = empty(shape, dtype=flat_channel_values[0].dtype)
@@ -7514,7 +7535,7 @@ class MDF4(MDF_Common[Group]):
                         arrays.append(
                             concatenate(
                                 lst,
-                                out=empty((total_size,) + lst[0].shape[1:], dtype=lst[0].dtype),
+                                out=empty((total_size, *lst[0].shape[1:]), dtype=lst[0].dtype),
                             )
                         )
             else:
@@ -7736,7 +7757,7 @@ class MDF4(MDF_Common[Group]):
 
             if dep.flags & v4c.FLAG_CA_INVERSE_LAYOUT:
                 shape = vals.shape
-                shape = (shape[0],) + shape[1:][::-1]
+                shape = (shape[0], *shape[1:][::-1])
                 vals = vals.reshape(shape)
 
                 axes = (0, *reversed(range(1, len(shape))))
@@ -7920,7 +7941,7 @@ class MDF4(MDF_Common[Group]):
 
         if count > 1:
             total_size = sum(len(_) for _ in channel_values)
-            shape = (total_size,) + channel_values[0].shape[1:]
+            shape = (total_size, *channel_values[0].shape[1:])
 
         if count > 1:
             out = empty(shape, dtype=channel_values[0].dtype)
@@ -8187,7 +8208,7 @@ class MDF4(MDF_Common[Group]):
 
             if count > 1:
                 total_size = sum(len(_) for _ in channel_values)
-                shape = (total_size,) + channel_values[0].shape[1:]
+                shape = (total_size, *channel_values[0].shape[1:])
 
             if count > 1:
                 out = empty(shape, dtype=channel_values[0].dtype)
