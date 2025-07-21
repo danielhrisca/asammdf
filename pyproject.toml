@@ -150,6 +150,7 @@ ignore = [
     "B007",    # unused-loop-control-variable
     "F841",    # unused-variable
     "PLC0414", # useless-import-alias
+    "PLC0415", # import-outside-top-level
     "PLR09",   # too-many-this, too-many-that
     "PLR2004", # magic-value-comparison
     "PLR5501", # collapsible-else-if

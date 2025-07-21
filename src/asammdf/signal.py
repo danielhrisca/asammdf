@@ -51,7 +51,7 @@ class InvalidationArray(np.ndarray[tuple[int], np.dtype[np.bool]]):
         self.origin: tuple[int, int] = getattr(obj, "origin", ORIGIN_UNKNOWN)
 
 
-class Signal:
+class Signal:  # noqa: PLW1641
     """The `Signal` represents a channel described by its samples and
     timestamps. It can perform arithmetic operations against other `Signal`
     objects or numeric types. The operations are computed in respect to the
