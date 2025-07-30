@@ -1430,8 +1430,10 @@ class Plot(QtWidgets.QWidget):
     show_properties = QtCore.Signal(object)
     splitter_moved = QtCore.Signal(object, int)
     pattern_group_added = QtCore.Signal(object, object)
-    verify_bookmarks = QtCore.Signal(list, object)
+    verify_bookmarks = QtCore.Signal(object)
     x_range_changed_signal = QtCore.Signal(object, object)
+
+    bookmarks_changed = QtCore.Signal(list, object)
 
     item_double_click_handling = "enable/disable"
     dynamic_columns_width = True
@@ -1458,10 +1460,12 @@ class Plot(QtWidgets.QWidget):
         *args,
         **kwargs,
     ):
-        events = kwargs.pop("events", None)
-
         self.owner = owner
         self.enable_zoom_history = enable_zoom_history
+
+        bookmarks = kwargs.pop("events", ())
+        if not bookmarks:
+            bookmarks = kwargs.pop("bookmarks", ())
 
         super().__init__(*args, **kwargs)
         self.closed = False
@@ -1515,7 +1519,6 @@ class Plot(QtWidgets.QWidget):
             with_dots=with_dots,
             line_interconnect=self.line_interconnect,
             parent=self,
-            events=events,
             origin=origin,
             mdf=self.mdf,
             x_axis=x_axis,
@@ -1523,6 +1526,7 @@ class Plot(QtWidgets.QWidget):
             plot_parent=self,
         )
         self.plot.zoom_changed.connect(self.zoom_changed)
+        self.plot.bookmarks_changed.connect(self.bookmarks_changed)
 
         if self.plot.cursor1 is not None:
             self.plot.cursor1.show_circle = show_cursor_circle
@@ -1849,6 +1853,8 @@ class Plot(QtWidgets.QWidget):
         self.zoom_history_index = -1
         self.update_zoom = False
 
+        self.bookmarks = bookmarks
+
         self.show()
 
     def add_new_channels(self, channels, mime_data=None, destination=None, update=True):
@@ -2141,6 +2147,16 @@ class Plot(QtWidgets.QWidget):
         else:
             self.splitter.setSizes([width, size - width, 0])
 
+    @property
+    def bookmarks(self):
+        return self.plot.bookmarks
+    
+    @bookmarks.setter
+    def bookmarks(self, bkms):
+        self.plot.bookmarks = bkms or []
+
+        self.bookmarks_changed.emit([bookmark.copy() for bookmark in self.plot.bookmarks], self)
+
     def channel_group_item_to_config(self, item):
         widget = item
         pattern = widget.pattern
@@ -2426,10 +2442,7 @@ class Plot(QtWidgets.QWidget):
         self.plot.plot_parent = None
         self.plot.close()
 
-        bookmarks = self.plot.bookmarks
-        self.plot.bookmarks = []
-
-        self.verify_bookmarks.emit(bookmarks, self)
+        self.verify_bookmarks.emit(self)
 
         self.mdf = None
 
@@ -2875,7 +2888,7 @@ class Plot(QtWidgets.QWidget):
                 )
                 if submit:
                     visible = True
-                    for bookmark in self.plot.bookmarks:
+                    for bookmark in self.bookmarks:
                         visible = bookmark.visible
                         break
 
@@ -2888,13 +2901,12 @@ class Plot(QtWidgets.QWidget):
                     bookmark.visible = visible
                     bookmark.edited = True
 
-                    self.plot.bookmarks.append(bookmark)
-                    self.plot.viewbox.addItem(self.plot.bookmarks[-1])
+                    bookmarks = [*self.bookmarks, bookmark]
+
+                    self.bookmarks = bookmarks
 
                     if not visible:
                         self.toggle_bookmarks()
-
-                    self.update()
 
             event.accept()
 
@@ -3236,6 +3248,9 @@ class Plot(QtWidgets.QWidget):
         self.plot.set_conversion(uuid, conversion)
         self.cursor_moved()
 
+    def set_events(self, events=()):
+        self.plot.set_events(events)
+
     def set_font_size(self, size):
         font = self.font()
         font.setPointSize(size)
@@ -3342,6 +3357,9 @@ class Plot(QtWidgets.QWidget):
                     self.show_properties.emit(sig)
 
     def to_config(self):
+        if self.closed:
+            return
+        
         def item_to_config(tree, root):
             channels = []
 
@@ -3412,7 +3430,7 @@ class Plot(QtWidgets.QWidget):
         else:
             self.bookmark_btn.setFlat(True)
 
-        for bookmark in self.plot.bookmarks:
+        for bookmark in self.bookmarks:
             bookmark.visible = self.show_bookmarks
 
         self.plot.update()
@@ -3607,6 +3625,7 @@ class PlotGraphics(pg.PlotWidget):
     signals_enable_changed = QtCore.Signal()
     current_uuid_changed = QtCore.Signal(str)
     edit_channel_request = QtCore.Signal(object, object)
+    bookmarks_changed = QtCore.Signal(list, object)
 
     add_channels_request = QtCore.Signal(list)
     zoom_changed = QtCore.Signal(bool)
@@ -3624,7 +3643,6 @@ class PlotGraphics(pg.PlotWidget):
         *args,
         **kwargs,
     ):
-        events = kwargs.pop("events", [])
         viewBox = ViewBoxWithCursor(plot=self)
         self.initial_x_range = "adjust"
         super().__init__(viewBox=viewBox)
@@ -3632,8 +3650,6 @@ class PlotGraphics(pg.PlotWidget):
         self.plotItem.vb.setLeftButtonAction(Plot.mouse_mode)
 
         self.lock = Lock()
-
-        self.bookmarks = []
 
         self.plot_parent = plot_parent
 
@@ -3867,28 +3883,14 @@ class PlotGraphics(pg.PlotWidget):
 
         self.viewbox.sigXRangeChanged.connect(self.xrange_changed.emit)
 
+        self._bookmarks = []
+        bookmarks = kwargs.pop("events", ())
+        if not bookmarks:
+            bookmarks = kwargs.pop("bookmarks", ())
+        if bookmarks:
+            self.bookmarks = bookmarks
+
         self.disabled_keyboard_events = set()
-
-        events = events or []
-
-        for i, event_info in enumerate(events):
-            color = serde.COLORS[serde.COLORS_COUNT - (i % serde.COLORS_COUNT) - 1]
-            if isinstance(event_info, (list, tuple)):
-                to_display = event_info
-                labels = [" - Start", " - End"]
-            else:
-                to_display = [event_info]
-                labels = [""]
-            for event, label in zip(to_display, labels, strict=False):
-                bookmark = Bookmark(
-                    pos=event["value"],
-                    message=event["description"],
-                    title=f"{event['type']}{label}",
-                    color=color,
-                    tool=event.get("tool", ""),
-                )
-                self.bookmarks.append(bookmark)
-                self.viewbox.addItem(bookmark)
 
         self.viewbox.sigResized.connect(self.update_views)
         if signals:
@@ -3999,6 +4001,44 @@ class PlotGraphics(pg.PlotWidget):
         painter.setClipRect(rect)
         painter.setClipping(True)
         return rect
+    
+    @property
+    def bookmarks(self):
+        return self._bookmarks
+    
+    @bookmarks.setter
+    def bookmarks(self, bkms):
+        for bookmark in self._bookmarks:
+            self.viewbox.removeItem(bookmark)
+
+        bkms = bkms or []
+        self._bookmarks.clear()
+
+        for i, bookmark in enumerate(bkms):
+            if isinstance(bookmark, Bookmark):
+                self._bookmarks.append(bookmark)
+                self.viewbox.addItem(bookmark)
+            else:
+
+                color = serde.COLORS[serde.COLORS_COUNT - (i % serde.COLORS_COUNT) - 1]
+                if isinstance(bookmark, (list, tuple)):
+                    to_display = bookmark
+                    labels = [" - Start", " - End"]
+                else:
+                    to_display = [bookmark]
+                    labels = [""]
+                for event, label in zip(to_display, labels, strict=False):
+                    bookmark = Bookmark(
+                        pos=event["value"],
+                        message=event["description"],
+                        title=f"{event['type']}{label}",
+                        color=color,
+                        tool=event.get("tool", ""),
+                    )
+                    self._bookmarks.append(bookmark)
+                    self.viewbox.addItem(bookmark)
+
+        self.update()
 
     def _clicked(self, event):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
@@ -4013,7 +4053,7 @@ class PlotGraphics(pg.PlotWidget):
         x = pos.x()
         y = event.scenePos().y()
 
-        for bookmark in self.bookmarks:
+        for bookmark in self._bookmarks:
             if not bookmark.visible:
                 continue
 
@@ -4038,6 +4078,10 @@ class PlotGraphics(pg.PlotWidget):
                             bookmark.message = comment
                             bookmark.edited = True
 
+                            self.update()
+
+                            self.bookmarks_changed.emit([bookmark.copy() for bookmark in self._bookmarks], self.plot_parent)
+
                     delete_rect = QtCore.QRectF(
                         rect.x() + rect.width() - 18,
                         rect.y() + 1,
@@ -4046,7 +4090,10 @@ class PlotGraphics(pg.PlotWidget):
                     )
                     if delete_rect.contains(scene_pos):
                         bookmark.deleted = True
-                        bookmark.visible = False
+                        self.viewbox.removeItem(bookmark)
+                        self.update()
+
+                        self.bookmarks_changed.emit([bookmark.copy() for bookmark in self._bookmarks], self.plot_parent)
 
                 break
         else:
@@ -5543,7 +5590,7 @@ class PlotGraphics(pg.PlotWidget):
             if self.region is not None:
                 self.region.paint(paint, plot=self, uuid=self.current_uuid)
 
-            for bookmark in self.bookmarks:
+            for bookmark in self._bookmarks:
                 if bookmark.visible:
                     bookmark.paint(paint, plot=self, uuid=self.current_uuid)
 

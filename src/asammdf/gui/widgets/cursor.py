@@ -7,8 +7,8 @@ from ..utils import BLUE
 
 
 class Bookmark(pg.InfiniteLine):
-    def __init__(self, message="", title="", color="#ffffff", tool="", **kwargs):
-        self.title = title or "Bookmark"
+    def __init__(self, message="", title="", color="#ffffff", tool="", deleted=False, edited=False, **kwargs):
+        self.title = "{}     ".format((title or "Bookmark").strip())
 
         if message:
             text = f"{self.title}\nt = {round(kwargs['pos'], 9)}s\n\n{message}\n "
@@ -30,13 +30,15 @@ class Bookmark(pg.InfiniteLine):
         self._message = ""
         self.message = message
 
+        self.tool = tool
+
         if tool and tool == Tool.__tool__:
             self.editable = True
         else:
             self.editable = False
 
-        self.edited = False
-        self.deleted = False
+        self.edited = edited
+        self.deleted = deleted
 
         self.fill = pg.mkBrush(BLUE)
         self.border = pg.mkPen(
@@ -98,6 +100,17 @@ class Bookmark(pg.InfiniteLine):
         self._lastViewRect = vr
 
         return self._bounds
+    
+    def copy(self):
+        return Bookmark(
+            pos=self.value(),
+            message=self.message,
+            color=self.color,
+            tool=self.tool,
+            title=self.title,
+            deleted=self.deleted,
+            edited=self.edited,
+        )
 
     @property
     def line_width(self):
@@ -121,10 +134,11 @@ class Bookmark(pg.InfiniteLine):
             text = f"{self.title}\nt = {round(self.value(), 9)}s\n "
         text = "\n".join([f"  {line}  " for line in text.splitlines()])
 
-        self.label.setPlainText(text)
+        self.label.setText(text)
+        self._boundingRect = None
 
     def paint(self, paint, *args, plot=None, uuid=None):
-        if plot and self.visible:
+        if plot and self.visible and not self.deleted:
             paint.setRenderHint(paint.RenderHint.Antialiasing, False)
 
             pen = self.pen
@@ -164,10 +178,11 @@ class Bookmark(pg.InfiniteLine):
 
             paint.setPen(black_pen)
 
-            message = f"{self.title}\nt = {self.value()}s\n\n{self.message}"
+            message = self.label.toPlainText()
 
             delta = 5  # pixels
-            paint.drawText(rect.adjusted(delta, delta, -2 * delta, -2 * delta), message)
+            # paint.drawText(rect.adjusted(delta, delta, -2 * delta, -2 * delta), message)
+            paint.drawText(rect, message)
 
             if self.editable:
                 paint.setPen(black_pen)

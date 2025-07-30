@@ -945,10 +945,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         windows = list(self.unknown_windows)
         for window in self.mdi_area.subWindowList():
             wid = window.widget()
+            config = wid.to_config()
+            if not config:
+                continue
+            
             geometry = window.geometry()
             window_config = {
                 "title": window.windowTitle(),
-                "configuration": wid.to_config(),
+                "configuration": config,
                 "geometry": [
                     geometry.x(),
                     geometry.y(),
@@ -1632,6 +1636,8 @@ MultiRasterSeparator;&
                 iterator += 1
 
     def close(self):
+        self.clear_windows(is_closing=True)
+
         if self.mdf is not None:
             mdf_name = self.mdf.name
             self.mdf.close()
@@ -1639,8 +1645,6 @@ MultiRasterSeparator;&
                 mdf_name.unlink()
         self.channels_tree.clear()
         self.filter_tree.clear()
-
-        self.clear_windows()
 
         self.mdf = None
 

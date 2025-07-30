@@ -3010,6 +3010,7 @@ class WithMDIArea:
         )
         plot.pattern_group_added.connect(self.add_pattern_group)
         plot.verify_bookmarks.connect(self.verify_bookmarks)
+        plot.bookmarks_changed.connect(self.bookmarks_changed)
         plot.pattern = {}
 
         sub = MdiSubWindow(parent=self)
@@ -3267,7 +3268,32 @@ class WithMDIArea:
 
         self.windows_modified.emit()
 
-    def clear_windows(self):
+    def bookmarks_changed(self, bookmarks, plot):
+        if self.comparison:
+            return
+        
+        windows = list(self.mdi_area.subWindowList())
+        for window in windows:
+            widget = window.widget()
+            if widget is plot:
+                continue
+
+            else:
+                widget.blockSignals(True)
+                widget.bookmarks = bookmarks
+                widget.blockSignals(False)
+
+    def clear_windows(self, is_closing=False):
+        bookmarks_handled = False
+        for mdi in self.mdi_area.subWindowList():
+            wid = mdi.widget()
+            if isinstance(wid, Plot):
+                if not bookmarks_handled:
+                    self.verify_bookmarks(wid, is_closing=is_closing)
+                    bookmarks_handled = True
+
+            wid.blockSignals(True)
+                    
         self.mdi_area.clear_windows()
 
     def delete_functions(self, deleted_functions):
@@ -3994,6 +4020,7 @@ class WithMDIArea:
 
         plot.pattern_group_added.connect(self.add_pattern_group)
         plot.verify_bookmarks.connect(self.verify_bookmarks)
+        plot.bookmarks_changed.connect(self.bookmarks_changed)
         plot.pattern = pattern_info
 
         plot.plot._can_paint_global = False
@@ -4818,7 +4845,8 @@ class WithMDIArea:
                     f"The channel {sig.name} does not exit in the current measurement file.",
                 )
 
-    def verify_bookmarks(self, bookmarks, plot):
+    def verify_bookmarks(self, plot, is_closing=False):
+
         if self.comparison:
             return
 
@@ -4828,6 +4856,7 @@ class WithMDIArea:
             return
 
         last_bookmark_index = None
+        bookmarks = [book.copy() for book in plot.bookmarks]
 
         for i, bookmark in enumerate(bookmarks):
             if bookmark.editable:
@@ -4852,21 +4881,10 @@ class WithMDIArea:
         _password = self.mdf._mdf._password
 
         uuid = self.mdf.uuid
+
         dspf = self.to_config()
 
         self.mdf.close()
-
-        windows = list(self.mdi_area.subWindowList())
-        for window in windows:
-            widget = window.widget()
-            if widget is plot:
-                continue
-
-            self.mdi_area.removeSubWindow(window)
-            widget.setParent(None)
-            widget.close()
-            widget.deleteLater()
-            window.close()
 
         suffix = original_file_name.suffix.lower()
         if suffix == ".mf4z":
@@ -4960,20 +4978,38 @@ class WithMDIArea:
             zipped_mf4.close()
             file_name.unlink()
 
-        self.mdf = mdf_module.MDF(
-            name=original_file_name,
-            callback=self.update_progress,
-            password=_password,
-            use_display_names=True,
-        )
+        if not is_closing:
 
-        self.mdf.original_name = original_file_name
-        self.mdf.uuid = uuid
+            self.mdf = mdf_module.MDF(
+                name=original_file_name,
+                callback=self.update_progress,
+                password=_password,
+                use_display_names=True,
+            )
 
-        self.aspects.setCurrentIndex(0)
-        self.load_channel_list(file_name=dspf)
+            self.mdf.original_name = original_file_name
+            self.mdf.uuid = uuid
+
+            self.aspects.setCurrentIndex(0)
+
+            windows = list(self.mdi_area.subWindowList())
+            for window in windows:
+                window.blockSignals(True)
+                widget = window.widget()
+                widget.blockSignals(True)   
+
+                self.mdi_area.removeSubWindow(window)
+                widget.setParent(None)
+                widget.close()
+                widget.deleteLater()
+                window.close()
+
+            self.load_channel_list(file_name=dspf)
 
     def window_closed_handler(self, obj=None):
+        if isinstance(obj, Plot):
+            self.verify_bookmarks(obj)
+
         self.windows_modified.emit()
 
     def window_pattern_modified(self, pattern, window_id):
