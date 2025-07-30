@@ -100,7 +100,7 @@ class Bookmark(pg.InfiniteLine):
         self._lastViewRect = vr
 
         return self._bounds
-    
+
     def copy(self):
         return Bookmark(
             pos=self.value(),

@@ -2150,7 +2150,7 @@ class Plot(QtWidgets.QWidget):
     @property
     def bookmarks(self):
         return self.plot.bookmarks
-    
+
     @bookmarks.setter
     def bookmarks(self, bkms):
         self.plot.bookmarks = bkms or []
@@ -3248,9 +3248,6 @@ class Plot(QtWidgets.QWidget):
         self.plot.set_conversion(uuid, conversion)
         self.cursor_moved()
 
-    def set_events(self, events=()):
-        self.plot.set_events(events)
-
     def set_font_size(self, size):
         font = self.font()
         font.setPointSize(size)
@@ -3359,7 +3356,7 @@ class Plot(QtWidgets.QWidget):
     def to_config(self):
         if self.closed:
             return
-        
+
         def item_to_config(tree, root):
             channels = []
 
@@ -4001,11 +3998,11 @@ class PlotGraphics(pg.PlotWidget):
         painter.setClipRect(rect)
         painter.setClipping(True)
         return rect
-    
+
     @property
     def bookmarks(self):
         return self._bookmarks
-    
+
     @bookmarks.setter
     def bookmarks(self, bkms):
         for bookmark in self._bookmarks:
@@ -4019,7 +4016,6 @@ class PlotGraphics(pg.PlotWidget):
                 self._bookmarks.append(bookmark)
                 self.viewbox.addItem(bookmark)
             else:
-
                 color = serde.COLORS[serde.COLORS_COUNT - (i % serde.COLORS_COUNT) - 1]
                 if isinstance(bookmark, (list, tuple)):
                     to_display = bookmark
@@ -4080,7 +4076,9 @@ class PlotGraphics(pg.PlotWidget):
 
                             self.update()
 
-                            self.bookmarks_changed.emit([bookmark.copy() for bookmark in self._bookmarks], self.plot_parent)
+                            self.bookmarks_changed.emit(
+                                [bookmark.copy() for bookmark in self._bookmarks], self.plot_parent
+                            )
 
                     delete_rect = QtCore.QRectF(
                         rect.x() + rect.width() - 18,

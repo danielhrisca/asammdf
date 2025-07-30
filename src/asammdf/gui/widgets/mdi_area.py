@@ -3271,7 +3271,7 @@ class WithMDIArea:
     def bookmarks_changed(self, bookmarks, plot):
         if self.comparison:
             return
-        
+
         windows = list(self.mdi_area.subWindowList())
         for window in windows:
             widget = window.widget()
@@ -3293,7 +3293,7 @@ class WithMDIArea:
                     bookmarks_handled = True
 
             wid.blockSignals(True)
-                    
+
         self.mdi_area.clear_windows()
 
     def delete_functions(self, deleted_functions):
@@ -4846,7 +4846,6 @@ class WithMDIArea:
                 )
 
     def verify_bookmarks(self, plot, is_closing=False):
-
         if self.comparison:
             return
 
@@ -4979,7 +4978,6 @@ class WithMDIArea:
             file_name.unlink()
 
         if not is_closing:
-
             self.mdf = mdf_module.MDF(
                 name=original_file_name,
                 callback=self.update_progress,
@@ -4996,7 +4994,7 @@ class WithMDIArea:
             for window in windows:
                 window.blockSignals(True)
                 widget = window.widget()
-                widget.blockSignals(True)   
+                widget.blockSignals(True)
 
                 self.mdi_area.removeSubWindow(window)
                 widget.setParent(None)

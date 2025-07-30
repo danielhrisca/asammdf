@@ -948,7 +948,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             config = wid.to_config()
             if not config:
                 continue
-            
+
             geometry = window.geometry()
             window_config = {
                 "title": window.windowTitle(),
