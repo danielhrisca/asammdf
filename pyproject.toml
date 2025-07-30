@@ -94,7 +94,7 @@ test-command = "pytest {project}/test"
 build-frontend = "build"
 archs = ["auto64"]                        # only build for 64bit architectures
 # skip pypy and irrelevant architectures
-skip = ["pp*", "*_ppc64le", "*-musllinux*", "*_s390x"]
+skip = ["pp*", "*_ppc64le", "*-musllinux*", "*_s390x", "cp314-*"]
 
 [tool.mypy]
 files = "."
