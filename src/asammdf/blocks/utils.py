@@ -172,7 +172,7 @@ def extract_xml_comment(comment: str) -> str:
                 for e in common_properties:
                     field = f"{e.get('name')}: {e.text}"
                     comments.append(field)
-                comment = "\n".join(field)
+                comment = "\n".join(comments)
             else:
                 comment = ""
         else:
