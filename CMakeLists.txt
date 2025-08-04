@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.26...3.29)
 project(${SKBUILD_PROJECT_NAME} LANGUAGES C VERSION ${SKBUILD_PROJECT_VERSION})
 
+# Ensure that option() calls in subdirectories respect normal variables
+# set in this parent scope (e.g., disabling features in libdeflate).
+# Without this, CMake would ignore values set via set(...) and always use
+# the default provided in option(), which can lead to unexpected behavior.
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+
 option(WITH_SYSTEM_DEFLATE "Use system provided deflate library" OFF)
 
 find_package(
