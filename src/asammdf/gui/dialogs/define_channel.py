@@ -236,7 +236,6 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             self.arg_layout.addWidget(button, row, 2)
             check = QtWidgets.QCheckBox("use raw values")
             self.arg_layout.addWidget(check, row + 1, 1)
-            self.arg_widgets.append((label, text_edit, button, check))
 
             if i < len(parameters) - 1:
                 line = QtWidgets.QFrame()
