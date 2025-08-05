@@ -945,14 +945,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         windows = list(self.unknown_windows)
         for window in self.mdi_area.subWindowList():
             wid = window.widget()
-            config = wid.to_config()
-            if not config:
+            wid_config = wid.to_config()
+            if not wid_config:
                 continue
 
             geometry = window.geometry()
             window_config = {
                 "title": window.windowTitle(),
-                "configuration": config,
+                "configuration": wid_config,
                 "geometry": [
                     geometry.x(),
                     geometry.y(),
