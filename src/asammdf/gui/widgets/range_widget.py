@@ -25,10 +25,10 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
         self._settings = QtCore.QSettings()
 
         if font_color is None:
-            font_color = self._settings.value("range_font_color", "#ff0000")
+            font_color = self._settings.value("plot/curve/ranges/font_color", "#ff0000")
 
         if background_color is None:
-            background_color = self._settings.value("range_background_color", "#00ff00")
+            background_color = self._settings.value("plot/curve/ranges/background", "#00ff00")
 
         self.name.setText(name)
 

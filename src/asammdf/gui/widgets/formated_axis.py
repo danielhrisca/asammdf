@@ -409,7 +409,7 @@ class FormatedAxis(pg.AxisItem):
 
         lv = self.linkedView()
 
-        factor = self._settings.value("zoom_wheel_factor", 0.165, type=float)
+        factor = self._settings.value("plot/zoom/wheel_factor", 0.165, type=float)
 
         if lv is None:
             # this is one of the individual axis

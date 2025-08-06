@@ -1325,7 +1325,7 @@ class WithMDIArea:
                         channels=uuids_signals,
                         ignore_value2text_conversions=self.ignore_value2text_conversions,
                         time_from_zero=False,
-                        use_interpolation=QtCore.QSettings().value("tabular/interpolation",True, type=bool),
+                        use_interpolation=QtCore.QSettings().value("tabular/interpolation", True, type=bool),
                     )
 
                     dfs.append(selected_signals)
@@ -3169,7 +3169,7 @@ class WithMDIArea:
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
                 time_from_zero=False,
                 empty_channels="zeros",
-                use_interpolation=QtCore.QSettings().value("tabular/interpolation",True, type=bool),
+                use_interpolation=QtCore.QSettings().value("tabular/interpolation", True, type=bool),
             )
 
             if self.comparison:
@@ -4150,7 +4150,7 @@ class WithMDIArea:
             for i, visible in enumerate(window_info["configuration"]["channels_header_columns_visible"]):
                 plot.channel_selection.setColumnHidden(i, not visible)
 
-        hide_missing = window_info["configuration"].get("hide_missing_channels", False)
+        hide_missing = window_info["configuration"].get("plot/hide_missing_channels", False)
         hide_disabled = window_info["configuration"].get("hide_disabled_channels", False)
         if hide_missing or hide_disabled:
             plot.channel_selection.hide_missing_channels = hide_missing
@@ -4224,7 +4224,7 @@ class WithMDIArea:
             channels=signals_,
             time_from_zero=False,
             ignore_value2text_conversions=self.ignore_value2text_conversions,
-            use_interpolation=QtCore.QSettings().value("tabular/interpolation",True, type=bool),
+            use_interpolation=QtCore.QSettings().value("tabular/interpolation", True, type=bool),
         )
 
         found = set(signals.columns)

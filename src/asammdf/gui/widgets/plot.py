@@ -3410,7 +3410,7 @@ class Plot(QtWidgets.QWidget):
             "focused_mode": not self.focused_mode_btn.isFlat(),
             "delta_mode": "value" if self.delta_btn.isFlat() else "delta",
             "hide_bookmarks": self.bookmark_btn.isFlat(),
-            "hide_missing_channels": self.channel_selection.hide_missing_channels,
+            "plot/hide_missing_channels": self.channel_selection.hide_missing_channels,
             "hide_disabled_channels": self.channel_selection.hide_disabled_channels,
         }
 
@@ -5345,8 +5345,8 @@ class PlotGraphics(pg.PlotWidget):
             x_start = self.x_range[0]
 
             no_brush = QtGui.QBrush()
-            pen_width = self._settings.value("line_width", 1, type=int)
-            dots_with = self._settings.value("dots_width", 4, type=int)
+            pen_width = self._settings.value("plot/curve/line_width", 1, type=int)
+            dots_with = self._settings.value("plot/curve/dots_width", 4, type=int)
 
             paint.resetTransform()
             paint.translate(0, 0)
@@ -5354,7 +5354,7 @@ class PlotGraphics(pg.PlotWidget):
 
             flash_current_signal = self.flash_current_signal
 
-            if self._settings.value("curve_dots_cap_style", "square") == "square":
+            if self._settings.value("plot/curve/dots_cap_style", "square") == "square":
                 cap_style = QtCore.Qt.PenCapStyle.SquareCap
             else:
                 cap_style = QtCore.Qt.PenCapStyle.RoundCap
@@ -5850,7 +5850,7 @@ class PlotGraphics(pg.PlotWidget):
                         axis.set_pen(fn.mkPen("#000000"))
                         axis.setTextPen("#000000")
                     case _:
-                        plot_foreground = self._settings.value("plot_foreground", "#ffffff")
+                        plot_foreground = self._settings.value("plot/foreground", "#ffffff")
                         axis.set_pen(fn.mkPen(plot_foreground))
                         axis.setTextPen(plot_foreground)
 

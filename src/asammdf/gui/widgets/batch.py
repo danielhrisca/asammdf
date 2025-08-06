@@ -1974,7 +1974,7 @@ MultiRasterSeparator;&
         self.oned_as.currentTextChanged.connect(self.store_export_setttings)
 
     def restore_export_settings(self):
-        self.output_format.setCurrentText(self._settings.value("export_batch", "MDF"))
+        self.output_format.setCurrentText(self._settings.value("export_batch/format", "MDF"))
 
         self.mdf_version.setCurrentText(self._settings.setValue("export_batch/MDF/version", "4.10"))
         self.mdf_compression.setCurrentText(self._settings.value("export_batch/MDF/compression", "transposed deflate"))

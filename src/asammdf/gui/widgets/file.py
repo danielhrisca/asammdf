@@ -1141,7 +1141,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                     "focused_mode": False,
                                     "delta_mode": "delta",
                                     "hide_bookmarks": True,
-                                    "hide_missing_channels": False,
+                                    "plot/hide_missing_channels": False,
                                     "hide_disabled_channels": False,
                                 },
                                 "geometry": [0, 0, 1475, 924],
@@ -3326,7 +3326,7 @@ MultiRasterSeparator;&
         self.oned_as.currentTextChanged.connect(self.store_export_setttings)
 
     def restore_export_setttings(self):
-        self.output_format.setCurrentText(self._settings.value("export", "MDF"))
+        self.output_format.setCurrentText(self._settings.value("export/format", "MDF"))
 
         self.mdf_version.setCurrentText(self._settings.setValue("export/MDF/version", "4.10"))
         self.mdf_compression.setCurrentText(self._settings.value("export/MDF/compression", "transposed deflate"))

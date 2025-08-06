@@ -40,9 +40,11 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         self.display_cg_name = self._settings.value("display_cg_name", False, type=bool)
 
-        self.integer_interpolation = int(self._settings.value("integer_interpolation", "2 - hybrid interpolation")[0])
+        self.integer_interpolation = int(
+            self._settings.value("mdf/integer_interpolation", "2 - hybrid interpolation")[0]
+        )
 
-        self.float_interpolation = int(self._settings.value("float_interpolation", "1 - linear interpolation")[0])
+        self.float_interpolation = int(self._settings.value("mdf/float_interpolation", "1 - linear interpolation")[0])
 
         self.batch = BatchWidget(
             self.ignore_value2text_conversions,
@@ -302,7 +304,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             theme_option.addAction(action)
             action.triggered.connect(partial(self.set_integer_interpolation, option))
 
-            if option == self._settings.value("integer_interpolation", "2 - hybrid interpolation"):
+            if option == self._settings.value("mdf/integer_interpolation", "2 - hybrid interpolation"):
                 action.setChecked(True)
                 action.triggered.emit()
 
@@ -320,7 +322,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             theme_option.addAction(action)
             action.triggered.connect(partial(self.set_float_interpolation, option))
 
-            if option == self._settings.value("float_interpolation", "1 - linear interpolation"):
+            if option == self._settings.value("mdf/float_interpolation", "1 - linear interpolation"):
                 action.setChecked(True)
                 action.triggered.emit()
 
@@ -332,7 +334,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         # tabular interpolation
         subplot_action = QtGui.QAction("Tabular windows interpolation", menu)
         subplot_action.setCheckable(True)
-        state = self._settings.value("tabular/interpolation",True, type=bool)
+        state = self._settings.value("tabular/interpolation", True, type=bool)
         subplot_action.toggled.connect(self.set_tabular_interpolation_option)
         subplot_action.setChecked(state)
         menu.addAction(subplot_action)
@@ -1069,7 +1071,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             pg.setConfigOption("foreground", "k")
 
     def set_integer_interpolation(self, option):
-        self._settings.setValue("integer_interpolation", option)
+        self._settings.setValue("mdf/integer_interpolation", option)
 
         option = int(option[0])
         self.integer_interpolation = option
@@ -1082,7 +1084,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.batch.integer_interpolation = option
 
     def set_float_interpolation(self, option):
-        self._settings.setValue("float_interpolation", option)
+        self._settings.setValue("mdf/float_interpolation", option)
 
         option = int(option[0])
         self.float_interpolation = option
@@ -1292,7 +1294,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def set_tabular_interpolation_option(self, state):
         if isinstance(state, str):
             state = True if state == "true" else False
-        self._settings.setValue("tabular/interpolation",state)
+        self._settings.setValue("tabular/interpolation", state)
 
     def set_ignore_value2text_conversions_option(self, state):
         if isinstance(state, str):

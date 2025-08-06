@@ -343,7 +343,7 @@ class ViewBoxWithCursor(pg.ViewBox):
 
         pos = ev.pos()
 
-        factor = self._settings.value("zoom_wheel_factor", 0.165, type=float)
+        factor = self._settings.value("plot/zoom/wheel_factor", 0.165, type=float)
 
         if ev.delta() > 0:
             s = [(None if m is False else 1 / (1 + factor)) for m in mask]
@@ -430,7 +430,7 @@ class ViewBoxWithCursor(pg.ViewBox):
         if not self.state["mouseEnabled"][1]:
             return
 
-        factor = self._settings.value("zoom_wheel_factor", 0.165, type=float)
+        factor = self._settings.value("plot/zoom/wheel_factor", 0.165, type=float)
 
         if zoom_in:
             scale = 1 / (1 + factor)

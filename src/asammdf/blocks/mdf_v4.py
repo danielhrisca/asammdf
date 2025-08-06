@@ -338,8 +338,8 @@ class MDF4(MDF_Common[Group]):
         self._read_fragment_size = GLOBAL_OPTIONS["read_fragment_size"]
         self._write_fragment_size = GLOBAL_OPTIONS["write_fragment_size"]
         self._single_bit_uint_as_bool = GLOBAL_OPTIONS["single_bit_uint_as_bool"]
-        self._integer_interpolation = GLOBAL_OPTIONS["integer_interpolation"]
-        self._float_interpolation = GLOBAL_OPTIONS["float_interpolation"]
+        self._integer_interpolation = GLOBAL_OPTIONS["mdf/integer_interpolation"]
+        self._float_interpolation = GLOBAL_OPTIONS["mdf/float_interpolation"]
         self._use_display_names = kwargs.get("use_display_names", GLOBAL_OPTIONS["use_display_names"])
         self._raise_on_incomplete_blocks = GLOBAL_OPTIONS["raise_on_incomplete_blocks"]
         self._fill_0_for_missing_computation_channels = kwargs.get(
