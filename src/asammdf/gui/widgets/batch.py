@@ -133,7 +133,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         self.filter_view.setCurrentIndex(-1)
         self.filter_view.currentIndexChanged.connect(self.update_channel_tree)
-        self.filter_view.setCurrentText(self._settings.value("filter_view", "Internal file structure"))
+        self.filter_view.setCurrentText(self._settings.value("mdf/filter_view", "Internal file structure"))
 
         self.load_can_database_btn.clicked.connect(self.load_can_database)
         self.load_lin_database_btn.clicked.connect(self.load_lin_database)

@@ -12,7 +12,7 @@ class FFTWindow(Ui_FFTWindow, QtWidgets.QMainWindow):
         self.setupUi(self)
 
         self._settings = QtCore.QSettings()
-        self.with_dots = self._settings.value("dots", False, type=bool)
+        self.with_dots = self._settings.value("plot/dots", False, type=bool)
 
         self.signal = signal
 

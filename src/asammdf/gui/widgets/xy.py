@@ -58,7 +58,7 @@ class XY(Ui_XYDisplay, QtWidgets.QWidget):
             x=[],
             y=[],
             symbol="o",
-            symbolPen={"color": self._settings.value("cursor_color", "#ff0000"), "width": 2},
+            symbolPen={"color": self._settings.value("plot/cursor/color", "#ff0000"), "width": 2},
             symbolBrush=QtGui.QBrush(),
             symbolSize=10,
         )

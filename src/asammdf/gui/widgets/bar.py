@@ -342,5 +342,5 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
 
     def set_format(self, fmt):
         self.format = fmt
-        self._settings.setValue("numeric_format", fmt)
+        self._settings.setValue("numeric/integer_format", fmt)
         self._update_values()

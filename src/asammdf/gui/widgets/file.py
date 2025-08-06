@@ -311,12 +311,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.channel_view.setCurrentIndex(-1)
             self.filter_view.setCurrentIndex(-1)
 
-            self.filter_view.setCurrentText(self._settings.value("filter_view", "Internal file structure"))
+            self.filter_view.setCurrentText(self._settings.value("mdf/filter_view", "Internal file structure"))
 
             self.channel_view.currentIndexChanged.connect(partial(self._update_channel_tree, widget=self.channels_tree))
             self.filter_view.currentIndexChanged.connect(partial(self._update_channel_tree, widget=self.filter_tree))
 
-            self.channel_view.setCurrentText(self._settings.value("channels_view", "Internal file structure"))
+            self.channel_view.setCurrentText(self._settings.value("mdf/channels_view", "Internal file structure"))
 
             if progress:
                 progress.setValue(70)
@@ -674,7 +674,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 items.sort(key=lambda x: x.name)
             widget.addTopLevelItems(items)
 
-        setting = "channels_view" if widget is self.channels_tree else "filter_view"
+        setting = "mdf/channels_view" if widget is self.channels_tree else "mdf/filter_view"
         self._settings.setValue(setting, view.currentText())
 
     def output_format_changed(self, name):

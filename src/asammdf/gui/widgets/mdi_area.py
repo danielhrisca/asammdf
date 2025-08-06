@@ -1325,7 +1325,7 @@ class WithMDIArea:
                         channels=uuids_signals,
                         ignore_value2text_conversions=self.ignore_value2text_conversions,
                         time_from_zero=False,
-                        use_interpolation=QtCore.QSettings().value("tabular_interpolation", True, type=bool),
+                        use_interpolation=QtCore.QSettings().value("tabular/interpolation",True, type=bool),
                     )
 
                     dfs.append(selected_signals)
@@ -3169,7 +3169,7 @@ class WithMDIArea:
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
                 time_from_zero=False,
                 empty_channels="zeros",
-                use_interpolation=QtCore.QSettings().value("tabular_interpolation", True, type=bool),
+                use_interpolation=QtCore.QSettings().value("tabular/interpolation",True, type=bool),
             )
 
             if self.comparison:
@@ -4224,7 +4224,7 @@ class WithMDIArea:
             channels=signals_,
             time_from_zero=False,
             ignore_value2text_conversions=self.ignore_value2text_conversions,
-            use_interpolation=QtCore.QSettings().value("tabular_interpolation", True, type=bool),
+            use_interpolation=QtCore.QSettings().value("tabular/interpolation",True, type=bool),
         )
 
         found = set(signals.columns)

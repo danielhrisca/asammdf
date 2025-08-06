@@ -1537,7 +1537,7 @@ class Plot(QtWidgets.QWidget):
             self.lock = self.plot.lock
 
         self.cursor_info = CursorInfo(
-            precision=QtCore.QSettings().value("plot_cursor_precision", 6),
+            precision=QtCore.QSettings().value("plot/cursor/display_precision", 6),
             unit=self.x_unit,
             name=self.x_name,
             plot=self.plot,
@@ -1840,14 +1840,14 @@ class Plot(QtWidgets.QWidget):
         self.splitter.splitterMoved.connect(self.set_splitter)
 
         self.hide_selected_channel_value(
-            hide=self._settings.value("plot_hide_selected_channel_value", False, type=bool)
+            hide=self._settings.value("plot/hide_selected_channel_value", False, type=bool)
         )
-        self.toggle_focused_mode(focused=self._settings.value("plot_focused_mode", False, type=bool))
-        self.toggle_region_values_display_mode(mode=self._settings.value("plot_region_values_display_mode", "value"))
+        self.toggle_focused_mode(focused=self._settings.value("plot/focused_mode", False, type=bool))
+        self.toggle_region_values_display_mode(mode=self._settings.value("plot/region_values_display_mode", "value"))
 
-        self.toggle_bookmarks(hide=not self._settings.value("plot_bookmarks", False, type=bool))
-        self.hide_axes(hide=self._settings.value("plot_hide_axes", False, type=bool))
-        self.set_locked(locked=self._settings.value("plot_locked", False, type=bool))
+        self.toggle_bookmarks(hide=not self._settings.value("plot/bookmarks", False, type=bool))
+        self.hide_axes(hide=self._settings.value("plot/hide_axes", False, type=bool))
+        self.set_locked(locked=self._settings.value("plot/locked", False, type=bool))
 
         self.zoom_history = []
         self.zoom_history_index = -1
@@ -1989,7 +1989,7 @@ class Plot(QtWidgets.QWidget):
 
         children = []
 
-        if self._settings.value("current_theme") == "Dark":
+        if self._settings.value("interface/current_theme") == "Dark":
             background_color = QtGui.QColor(0, 0, 0)
         else:
             background_color = QtGui.QColor(255, 255, 255)
@@ -2629,7 +2629,7 @@ class Plot(QtWidgets.QWidget):
     def hide_axes(self, event=None, hide=None):
         if hide is None:
             hide = not self.hide_axes_btn.isFlat()
-            self._settings.setValue("plot_hide_axes", hide)
+            self._settings.setValue("plot/hide_axes", hide)
 
         if hide:
             self.plot.y_axis.hide()
@@ -2653,7 +2653,7 @@ class Plot(QtWidgets.QWidget):
     def hide_selected_channel_value(self, event=None, hide=None):
         if hide is None:
             hide = not self.selected_channel_value_btn.isFlat()
-            self._settings.setValue("plot_hide_selected_channel_value", hide)
+            self._settings.setValue("plot/hide_selected_channel_value", hide)
 
         if hide:
             self.selected_channel_value.hide()
@@ -3264,7 +3264,7 @@ class Plot(QtWidgets.QWidget):
     def set_locked(self, event=None, locked=None):
         if locked is None:
             locked = not self.locked
-            self._settings.setValue("plot_locked", locked)
+            self._settings.setValue("plot/locked", locked)
 
         if locked:
             tooltip = "The Y axis is locked. Press to unlock"
@@ -3441,7 +3441,7 @@ class Plot(QtWidgets.QWidget):
         self.bookmark_btn.setIcon(icon)
 
         if hide is None:
-            self._settings.setValue("plot_bookmarks", not self.bookmark_btn.isFlat())
+            self._settings.setValue("plot/bookmarks", not self.bookmark_btn.isFlat())
 
     def toggle_focused_mode(self, event=None, focused=None):
         if focused is not None:
@@ -3454,7 +3454,7 @@ class Plot(QtWidgets.QWidget):
         self.keyPressEvent(key_event)
 
         if focused is None:
-            self._settings.setValue("plot_focused_mode", self.focused_mode)
+            self._settings.setValue("plot/focused_mode", self.focused_mode)
 
         if not self.focused_mode:
             self.focused_mode_btn.setFlat(True)
@@ -3493,7 +3493,7 @@ class Plot(QtWidgets.QWidget):
         self.delta_btn.setIcon(icon)
 
         if mode is None:
-            self._settings.setValue("plot_region_values_display_mode", self.region_values_display_mode)
+            self._settings.setValue("plot/region_values_display_mode", self.region_values_display_mode)
 
         self.range_modified()
 
@@ -3763,7 +3763,7 @@ class PlotGraphics(pg.PlotWidget):
         )
 
         if x_axis == "time":
-            fmt = self._settings.value("plot_xaxis")
+            fmt = self._settings.value("plot/xaxis_units")
             if fmt == "seconds" or not fmt:
                 fmt = "phys"
         else:
@@ -4695,7 +4695,7 @@ class PlotGraphics(pg.PlotWidget):
             if (
                 self.cursor1
                 and self.cursor1.isVisible()
-                and self._settings.value("zoom_x_center_on_cursor", True, type=bool)
+                and self._settings.value("plot/zoom/x_center_on_cursor", True, type=bool)
             ):
                 pos = self.cursor1.value()
                 x_range = pos - delta / 2, pos + delta / 2
@@ -5842,7 +5842,7 @@ class PlotGraphics(pg.PlotWidget):
 
         if uuid in self.common_axis_items:
             if self.current_uuid not in self.common_axis_items or force:
-                match self._settings.value("plot_background"):
+                match self._settings.value("plot/background"):
                     case "Black":
                         axis.set_pen(fn.mkPen("#FFFFFF"))
                         axis.setTextPen("#FFFFFF")
@@ -6244,7 +6244,7 @@ class CursorInfo(QtWidgets.QLabel):
 
             if ok:
                 self.set_precision(precision)
-                QtCore.QSettings().setValue("plot_cursor_precision", precision)
+                QtCore.QSettings().setValue("plot/cursor/display_precision", precision)
 
     def update_value(self):
         cursor_info_text = ""

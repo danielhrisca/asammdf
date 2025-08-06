@@ -1635,7 +1635,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
         self.tree.dataView.model().format = fmt
         self.tree.pgdf.data_changed()
-        self._settings.setValue("tabular_format", fmt)
+        self._settings.setValue("tabular/integer_format",fmt)
 
         for row in range(self.filters.count()):
             filter = self.filters.itemWidget(self.filters.item(row))

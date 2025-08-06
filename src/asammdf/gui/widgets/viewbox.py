@@ -53,7 +53,7 @@ class ViewBoxMenu(QtWidgets.QMenu):
         center_on_mouse.setActionGroup(group)
         self.x_zoom_mode_menu.addAction(center_on_mouse)
 
-        if self._settings.value("zoom_x_center_on_cursor", True, type=bool):
+        if self._settings.value("plot/zoom/x_center_on_cursor", True, type=bool):
             center_on_cursor.setChecked(True)
         else:
             center_on_mouse.setChecked(True)
@@ -81,12 +81,7 @@ class ViewBoxMenu(QtWidgets.QMenu):
         pin_zero_level.setActionGroup(group)
         self.y_zoom_mode_menu.addAction(pin_zero_level)
 
-        zoom_y_mode = self._settings.value("zoom_y_mode", "")
-        if not zoom_y_mode:
-            if self._settings.value("zoom_y_center_on_cursor", True, type=bool):
-                zoom_y_mode = "center_on_cursor"
-            else:
-                zoom_y_mode = "center_on_mouse"
+        zoom_y_mode = self._settings.value("plot/zoom/y_mode", "center_on_mouse")
 
         if zoom_y_mode == "pin_zero_level":
             pin_zero_level.setChecked(True)
@@ -128,12 +123,10 @@ class ViewBoxMenu(QtWidgets.QMenu):
         self.view().setLeftButtonAction(mode)
 
     def set_x_zoom_mode(self, on_cursor=True):
-        self._settings.setValue("zoom_x_center_on_cursor", on_cursor)
+        self._settings.setValue("plot/zoom/x_center_on_cursor", on_cursor)
 
     def set_y_zoom_mode(self, zoom_mode="center_on_cursor"):
-        if zoom_mode != "pin_zero_level":
-            self._settings.setValue("zoom_y_center_on_cursor", zoom_mode == "center_on_cursor")
-        self._settings.setValue("zoom_y_mode", zoom_mode)
+        self._settings.setValue("plot/zoom/y_mode", zoom_mode)
 
 
 class ViewBoxWithCursor(pg.ViewBox):
@@ -389,7 +382,7 @@ class ViewBoxWithCursor(pg.ViewBox):
         y_range = br.y(), tl.y()
 
         if (
-            self._settings.value("zoom_x_center_on_cursor", True, type=bool)
+            self._settings.value("plot/zoom/x_center_on_cursor", True, type=bool)
             and self.cursor is not None
             and self.cursor.isVisible()
         ):
@@ -398,13 +391,7 @@ class ViewBoxWithCursor(pg.ViewBox):
             pos = self.cursor.value()
             x_range = pos - delta / 2, pos + delta / 2
 
-        zoom_y_mode = self._settings.value("zoom_y_mode", "")
-
-        if not zoom_y_mode:
-            if self._settings.value("zoom_y_center_on_cursor", False, type=bool):
-                zoom_y_mode = "center_on_cursor"
-            else:
-                zoom_y_mode = "center_on_mouse"
+        zoom_y_mode = self._settings.value("plot/zoom/y_mode", "center_on_mouse")
 
         if zoom_y_mode == "pin_zero_level":
             y_pos_val, sig_y_bottom, sig_y_top = self.plot.value_at_cursor()
@@ -450,13 +437,7 @@ class ViewBoxWithCursor(pg.ViewBox):
         else:
             scale = 1 + factor
 
-        zoom_y_mode = self._settings.value("zoom_y_mode", "")
-
-        if not zoom_y_mode:
-            if self._settings.value("zoom_y_center_on_cursor", False, type=bool):
-                zoom_y_mode = "center_on_cursor"
-            else:
-                zoom_y_mode = "center_on_mouse"
+        zoom_y_mode = self._settings.value("plot/zoom/y_mode", "center_on_mouse")
 
         selected_uuids, current_uuid = self.plot.selected_items()
         viewbox_y_range = None

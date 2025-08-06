@@ -30,7 +30,7 @@ class PlotWindow(QtWidgets.QMainWindow):
         self.setMenuBar(self.menubar)
 
         self._settings = QtCore.QSettings()
-        self.with_dots = self._settings.value("dots", False, type=bool)
+        self.with_dots = self._settings.value("plot/dots", False, type=bool)
 
         if isinstance(signals, (list, tuple)):
             signals = {sig.name: PlotSignal(sig) for sig in signals}
@@ -51,7 +51,7 @@ class PlotWindow(QtWidgets.QMainWindow):
             plot_background_option.addAction(action)
             action.triggered.connect(partial(self.set_plot_background, option))
 
-            if option == self._settings.value("plot_background", "Black"):
+            if option == self._settings.value("plot/background", "Black"):
                 action.setChecked(True)
                 action.triggered.emit()
 
@@ -68,7 +68,7 @@ class PlotWindow(QtWidgets.QMainWindow):
             plot_xaxis_option.addAction(action)
             action.triggered.connect(partial(self.set_plot_xaxis, option))
 
-            if option == self._settings.value("plot_xaxis", "seconds"):
+            if option == self._settings.value("plot/xaxis_units", "seconds"):
                 action.setChecked(True)
                 action.triggered.emit()
 
@@ -85,11 +85,11 @@ class PlotWindow(QtWidgets.QMainWindow):
             theme_option.addAction(action)
             action.triggered.connect(partial(self.set_theme, option))
 
-            if option == self._settings.value("theme", "Light"):
+            if option == self._settings.value("interface/theme", "Light"):
                 action.setChecked(True)
                 action.triggered.emit()
 
-        submenu = QtWidgets.QMenu("Theme", self.menubar)
+        submenu = QtWidgets.QMenu("interface/theme", self.menubar)
         submenu.addActions(theme_option.actions())
         menu.addMenu(submenu)
 
@@ -322,12 +322,12 @@ class PlotWindow(QtWidgets.QMainWindow):
 
     def toggle_dots(self, key):
         self.with_dots = not self.with_dots
-        self._settings.setValue("dots", self.with_dots)
+        self._settings.setValue("plot/dots", self.with_dots)
 
         self.plot.plot.update_lines(with_dots=self.with_dots)
 
     def set_plot_background(self, option):
-        self._settings.setValue("plot_background", option)
+        self._settings.setValue("plot/background", option)
         if option == "Black":
             pg.setConfigOption("background", "k")
             pg.setConfigOption("foreground", "w")
@@ -336,7 +336,7 @@ class PlotWindow(QtWidgets.QMainWindow):
             pg.setConfigOption("foreground", "k")
 
     def set_plot_xaxis(self, option):
-        self._settings.setValue("plot_xaxis", option)
+        self._settings.setValue("plot/xaxis_units", option)
         if option == "seconds":
             fmt = "phys"
         elif option == "time":
@@ -354,7 +354,7 @@ class PlotWindow(QtWidgets.QMainWindow):
             plot.range_modified()
 
     def set_theme(self, option):
-        self._settings.setValue("theme", option)
+        self._settings.setValue("interface/theme", option)
         app = QtWidgets.QApplication.instance()
         if option == "Light":
             app.setPalette(self._light_palette)

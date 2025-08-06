@@ -31,7 +31,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         super().setUp()
         settings = QSettings()
         settings.setValue("zoom_x_center_on_cursor", True)
-        settings.setValue("plot_cursor_precision", 6)
+        settings.setValue("plot/cursor/display_precision", 6)
         # Open measurement file
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Switch ComboBox to "Natural sort"

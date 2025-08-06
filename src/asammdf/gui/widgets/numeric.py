@@ -1493,13 +1493,13 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         self.float_precision.currentIndexChanged.connect(self.set_float_precision)
 
-        format = format or self._settings.value("numeric_format", "Physical")
+        format = format or self._settings.value("numeric/integer_format", "Physical")
         if format not in ("Physical", "Hex", "Binary", "Ascii"):
             format = "Physical"
-            self._settings.setValue("numeric_format", format)
+            self._settings.setValue("numeric/integer_format", format)
 
         if float_precision is None:
-            float_precision = self._settings.value("numeric_float_precision", -1, type=int)
+            float_precision = self._settings.value("numeric/float_precision", -1, type=int)
         self.float_precision.setCurrentIndex(float_precision + 1)
 
         self.timebase = np.array([])
@@ -1932,11 +1932,11 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             fmt = "phys"
 
         self.channels.dataView.set_format(fmt)
-        self._settings.setValue("numeric_format", fmt_s)
+        self._settings.setValue("numeric/integer_format", fmt_s)
         self.channels.backend.data_changed()
 
     def set_float_precision(self, index):
-        self._settings.setValue("numeric_float_precision", index - 1)
+        self._settings.setValue("numeric/float_precision", index - 1)
         self.channels.dataView.model().float_precision = index - 1
         self.channels.backend.data_changed()
 

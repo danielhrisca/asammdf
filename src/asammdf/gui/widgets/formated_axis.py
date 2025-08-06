@@ -417,13 +417,7 @@ class FormatedAxis(pg.AxisItem):
             pos = event.pos()
             rect = self.boundingRect()
 
-            zoom_y_mode = self._settings.value("zoom_y_mode", "")
-
-            if not zoom_y_mode:
-                if self._settings.value("zoom_y_center_on_cursor", False, type=bool):
-                    zoom_y_mode = "center_on_cursor"
-                else:
-                    zoom_y_mode = "center_on_mouse"
+            zoom_y_mode = self._settings.value("plot/zoom/y_mode", "center_on_mouse")
 
             if zoom_y_mode == "pin_zero_level":
                 plot, uuid = self.linked_signal
@@ -497,13 +491,7 @@ class FormatedAxis(pg.AxisItem):
                     pos = event.pos()
                     rect = self.boundingRect()
 
-                    zoom_y_mode = self._settings.value("zoom_y_mode", "")
-
-                    if not zoom_y_mode:
-                        if self._settings.value("zoom_y_center_on_cursor", False, type=bool):
-                            zoom_y_mode = "center_on_cursor"
-                        else:
-                            zoom_y_mode = "center_on_mouse"
+                    zoom_y_mode = self._settings.value("plot/zoom/y_mode", "center_on_mouse")
 
                     if zoom_y_mode == "pin_zero_level":
                         plot, uuid = self.linked_signal

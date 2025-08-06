@@ -33,7 +33,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         WithMDIArea.__init__(self, comparison=True)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
-        self._settings.setValue("current_theme", self._settings.value("theme", "Light"))
+        self._settings.setValue("interface/current_theme", self._settings.value("interface/theme", "Light"))
         self._light_palette = self.palette()
 
         self.ignore_value2text_conversions = self._settings.value("ignore_value2text_conversions", False, type=bool)
@@ -176,7 +176,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         subplot_action = QtGui.QAction("Sub-windows", menu)
         subplot_action.setCheckable(True)
 
-        state = self._settings.value("subplots", True, type=bool)
+        state = self._settings.value("mdf/subwindows", True, type=bool)
         subplot_action.toggled.connect(self.set_subplot_option)
         subplot_action.triggered.connect(self.set_subplot_option)
         subplot_action.setChecked(state)
@@ -185,7 +185,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         # Link sub-windows X-axis
         subplot_action = QtGui.QAction("Link sub-windows X-axis", menu)
         subplot_action.setCheckable(True)
-        state = self._settings.value("subplots_link", True, type=bool)
+        state = self._settings.value("mdf/subwindows_link", True, type=bool)
         subplot_action.toggled.connect(self.set_subplot_link_option)
         subplot_action.setChecked(state)
         menu.addAction(subplot_action)
@@ -213,7 +213,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             plot_background_option.addAction(action)
             action.triggered.connect(partial(self.set_plot_background, option))
 
-            if option == self._settings.value("plot_background", "Black"):
+            if option == self._settings.value("plot/background", "Black"):
                 action.setChecked(True)
                 action.triggered.emit()
 
@@ -230,7 +230,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             plot_xaxis_option.addAction(action)
             action.triggered.connect(partial(self.set_plot_xaxis, option))
 
-            if option == self._settings.value("plot_xaxis", "seconds"):
+            if option == self._settings.value("plot/xaxis_units", "seconds"):
                 action.setChecked(True)
                 action.triggered.emit()
 
@@ -247,11 +247,11 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             theme_option.addAction(action)
             action.triggered.connect(partial(self.set_theme, option))
 
-            if option == self._settings.value("theme", "Light"):
+            if option == self._settings.value("interface/theme", "Light"):
                 action.setChecked(True)
                 action.triggered.emit()
 
-        submenu = QtWidgets.QMenu("Theme", self.menubar)
+        submenu = QtWidgets.QMenu("interface/theme", self.menubar)
         submenu.addActions(theme_option.actions())
         menu.addMenu(submenu)
 
@@ -270,7 +270,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             step_option.addAction(action)
             action.triggered.connect(partial(self.set_line_interconnect, option))
 
-            if option == self._settings.value("line_interconnect", "line"):
+            if option == self._settings.value("plot/cursor/line_interconnect", "line"):
                 action.setChecked(True)
                 action.triggered.emit()
 
@@ -332,7 +332,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         # tabular interpolation
         subplot_action = QtGui.QAction("Tabular windows interpolation", menu)
         subplot_action.setCheckable(True)
-        state = self._settings.value("tabular_interpolation", True, type=bool)
+        state = self._settings.value("tabular/interpolation",True, type=bool)
         subplot_action.toggled.connect(self.set_tabular_interpolation_option)
         subplot_action.setChecked(state)
         menu.addAction(subplot_action)
@@ -343,7 +343,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         action = QtGui.QAction("Color")
         action.triggered.connect(partial(self.edit_cursor_options, action=action))
-        color = self._settings.value("cursor_color", "white")
+        color = self._settings.value("plot/cursor/color", "white")
         icon = draw_color_icon(color)
         action.setIcon(icon)
         submenu.addAction(action)
@@ -853,11 +853,11 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         menu.addActions(open_group.actions())
 
-        self.with_dots = self._settings.value("dots", False, type=bool)
+        self.with_dots = self._settings.value("plot/dots", False, type=bool)
         self.setWindowTitle(f"asammdf {libversion} [PID={os.getpid()}] - Single files")
 
-        self.set_subplot_option(self._settings.value("subplots", "Disabled"))
-        self.set_subplot_link_option(self._settings.value("subplots_link", "Disabled"))
+        self.set_subplot_option(self._settings.value("mdf/subwindows", "Disabled"))
+        self.set_subplot_link_option(self._settings.value("mdf/subwindows_link", "Disabled"))
         self.hide_missing_channels = False
         self.hide_disabled_channels = False
 
@@ -982,14 +982,14 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 count = len(current_plot.plot.signals)
 
                 self.with_dots = new_setting_has_dots
-                self._settings.setValue("dots", self.with_dots)
+                self._settings.setValue("plot/dots", self.with_dots)
                 file_widget.set_line_style(with_dots=new_setting_has_dots)
                 self.set_line_style(with_dots=self.with_dots)
         else:
             widget = self.get_current_widget()
             if widget and isinstance(widget, Plot):
                 self.with_dots = not self.with_dots
-                self._settings.setValue("dots", self.with_dots)
+                self._settings.setValue("plot/dots", self.with_dots)
                 self.set_line_style(with_dots=self.with_dots)
 
     def show_sub_windows(self, mode):
@@ -1020,12 +1020,12 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def edit_cursor_options(self, checked=None, action=None):
         if action:
             if action.text() == "Color":
-                color = self._settings.value("cursor_color", "white")
+                color = self._settings.value("plot/cursor/color", "white")
                 color = QtWidgets.QColorDialog.getColor(color)
                 if not color.isValid():
                     return
 
-                self._settings.setValue("cursor_color", color.name())
+                self._settings.setValue("plot/cursor/color", color.name())
 
                 icon = draw_color_icon(color)
                 action.setIcon(icon)
@@ -1037,12 +1037,12 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 self._settings.setValue("show_cursor_horizontal_line", action.isChecked())
 
             elif action.text() == "Line width":
-                self._settings.setValue("cursor_line_width", action.defaultWidget().currentIndex() + 1)
+                self._settings.setValue("plot/cursor/line_width", action.defaultWidget().currentIndex() + 1)
 
         cursor_circle = self._settings.value("show_cursor_circle", False, type=bool)
         cursor_horizontal_line = self._settings.value("show_cursor_horizontal_line", False, type=bool)
-        cursor_line_width = self._settings.value("cursor_line_width", 1, type=int)
-        cursor_color = self._settings.value("cursor_color", "#e69138")
+        cursor_line_width = self._settings.value("plot/cursor/line_width", 1, type=int)
+        cursor_color = self._settings.value("plot/cursor/color", "#e69138")
 
         for i in range(self.files.count()):
             file = self.files.widget(i)
@@ -1052,7 +1052,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         if isinstance(state, str):
             state = True if state == "true" else False
         self.set_subplots(state)
-        self._settings.setValue("subplots", state)
+        self._settings.setValue("mdf/subwindows", state)
 
         count = self.files.count()
 
@@ -1060,7 +1060,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self.files.widget(i).set_subplots(state)
 
     def set_plot_background(self, option):
-        self._settings.setValue("plot_background", option)
+        self._settings.setValue("plot/background", option)
         if option == "Black":
             pg.setConfigOption("background", "k")
             pg.setConfigOption("foreground", "w")
@@ -1095,7 +1095,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.batch.float_interpolation = option
 
     def set_plot_xaxis(self, option):
-        self._settings.setValue("plot_xaxis", option)
+        self._settings.setValue("plot/xaxis_units", option)
         if option == "seconds":
             fmt = "phys"
         elif option == "time":
@@ -1120,7 +1120,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     plot.range_modified(plot.plot.region)
 
     def set_theme(self, option):
-        self._settings.setValue("theme", option)
+        self._settings.setValue("interface/theme", option)
         app = QtWidgets.QApplication.instance()
         if option == "Light":
             app.setPalette(self._light_palette)
@@ -1270,7 +1270,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             app.setPalette(palette)
 
     def set_line_interconnect(self, option):
-        self._settings.setValue("line_interconnect", option)
+        self._settings.setValue("plot/cursor/line_interconnect", option)
 
         self.line_interconnect = option
 
@@ -1283,7 +1283,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         if isinstance(state, str):
             state = True if state == "true" else False
         self.set_subplots_link(state)
-        self._settings.setValue("subplots_link", state)
+        self._settings.setValue("mdf/subwindows_link", state)
         count = self.files.count()
 
         for i in range(count):
@@ -1292,7 +1292,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def set_tabular_interpolation_option(self, state):
         if isinstance(state, str):
             state = True if state == "true" else False
-        self._settings.setValue("tabular_interpolation", state)
+        self._settings.setValue("tabular/interpolation",state)
 
     def set_ignore_value2text_conversions_option(self, state):
         if isinstance(state, str):
@@ -1618,7 +1618,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 widget.autofit_sub_plots()
 
                 self.with_dots = widget.with_dots
-                self._settings.setValue("dots", self.with_dots)
+                self._settings.setValue("plot/dots", self.with_dots)
 
                 count = self.files.count()
 
