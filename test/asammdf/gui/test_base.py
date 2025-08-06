@@ -56,7 +56,7 @@ class TestBase(unittest.TestCase):
     pyqtgraph.setConfigOption("foreground", "w")
 
     settings = QtCore.QSettings()
-    settings.setValue("zoom_x_center_on_cursor", True)
+    settings.setValue("plot/zoom/x_center_on_cursor", True)
     settings.setValue("plot/cursor/display_precision", 6)
 
     longMessage = False

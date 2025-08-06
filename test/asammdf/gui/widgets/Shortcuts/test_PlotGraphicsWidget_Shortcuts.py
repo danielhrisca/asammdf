@@ -30,7 +30,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         """
         super().setUp()
         settings = QSettings()
-        settings.setValue("zoom_x_center_on_cursor", True)
+        settings.setValue("plot/zoom/x_center_on_cursor", True)
         settings.setValue("plot/cursor/display_precision", 6)
         # Open measurement file
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
@@ -361,7 +361,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
 
         self.pg.cursor1.color = "#000000"
         settings = QSettings()
-        settings.setValue("zoom_x_center_on_cursor", True)
+        settings.setValue("plot/zoom/x_center_on_cursor", True)
 
         self.add_channels([35, 36, 37])
 
@@ -1120,7 +1120,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             - Evaluate that after pressing key "W", signal is displayed from first to last column
         """
         settings = QSettings()
-        settings.setValue("zoom_x_center_on_cursor", True)
+        settings.setValue("plot/zoom/x_center_on_cursor", True)
 
         self.assertIsNotNone(self.add_channels([35]))
         channel_35 = self.channels[0]
