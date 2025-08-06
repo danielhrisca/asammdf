@@ -505,7 +505,11 @@ class Channel:
       channel has no conversion
     * ``display_name`` - str : channel display name; this is extracted from the
       XML channel comment
+    * ``ignore_save`` - bool : ignore channel when saving a measurement (is set
+      to True for nested channels derived from channel arrays)
     * ``name`` - str : channel name
+    * ``original_name`` - str : channel name without positional indeces from
+      channel arrays
     * ``source`` - SourceInformation : channel source information; None if the
       channel has no source information
     * ``unit`` - str : channel unit
@@ -550,6 +554,7 @@ class Channel:
         "fast_path",
         "flags",
         "id",
+        "ignore_save",
         "links_nr",
         "lower_ext_limit",
         "lower_limit",
@@ -558,6 +563,7 @@ class Channel:
         "name",
         "name_addr",
         "next_ch_addr",
+        "original_name",
         "pos_invalidation_bit",
         "precision",
         "reserved0",
@@ -1169,6 +1175,8 @@ class Channel:
 
         self.standard_C_size = True
         self.fast_path: tuple[int, int, int, int, int, np.dtype[Any]] | None = None
+        self.ignore_save = False
+        self.original_name = self.name
 
     def __getitem__(self, item: str) -> object:
         return getattr(self, item)
@@ -1184,7 +1192,7 @@ class Channel:
         cc_map: dict[bytes | int, int],
         si_map: dict[bytes | int, int],
     ) -> int:
-        text = self.name
+        text = self.name if not self.original_name else self.original_name
         if text in defined_texts:
             self.name_addr = defined_texts[text]
         else:
