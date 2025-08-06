@@ -89,7 +89,7 @@ class PlotWindow(QtWidgets.QMainWindow):
                 action.setChecked(True)
                 action.triggered.emit()
 
-        submenu = QtWidgets.QMenu("interface/theme", self.menubar)
+        submenu = QtWidgets.QMenu("Theme", self.menubar)
         submenu.addActions(theme_option.actions())
         menu.addMenu(submenu)
 

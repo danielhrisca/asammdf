@@ -4150,7 +4150,7 @@ class WithMDIArea:
             for i, visible in enumerate(window_info["configuration"]["channels_header_columns_visible"]):
                 plot.channel_selection.setColumnHidden(i, not visible)
 
-        hide_missing = window_info["configuration"].get("plot/hide_missing_channels", False)
+        hide_missing = window_info["configuration"].get("hide_missing_channels", False)
         hide_disabled = window_info["configuration"].get("hide_disabled_channels", False)
         if hide_missing or hide_disabled:
             plot.channel_selection.hide_missing_channels = hide_missing

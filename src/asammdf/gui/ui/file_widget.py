@@ -176,7 +176,7 @@ class Ui_file_widget(object):
         self.filter_view.addItem("")
         self.filter_view.addItem("")
         self.filter_view.addItem("")
-        self.filter_view.setObjectName(u"mdf/filter_view")
+        self.filter_view.setObjectName(u"filter_view")
 
         self.verticalLayout_2.addWidget(self.filter_view)
 

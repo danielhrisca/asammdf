@@ -1141,7 +1141,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                     "focused_mode": False,
                                     "delta_mode": "delta",
                                     "hide_bookmarks": True,
-                                    "plot/hide_missing_channels": False,
+                                    "hide_missing_channels": False,
                                     "hide_disabled_channels": False,
                                 },
                                 "geometry": [0, 0, 1475, 924],

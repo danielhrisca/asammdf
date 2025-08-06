@@ -36,8 +36,8 @@ GLOBAL_OPTIONS: Final[_GlobalOptions] = {
     "write_fragment_size": 4 * 1024 * 1024,
     "use_display_names": True,
     "single_bit_uint_as_bool": False,
-    "mdf/integer_interpolation": IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
-    "mdf/float_interpolation": FloatInterpolation.LINEAR_INTERPOLATION,
+    "integer_interpolation": IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
+    "float_interpolation": FloatInterpolation.LINEAR_INTERPOLATION,
     "temporary_folder": None,
     "raise_on_incomplete_blocks": True,
     "raise_on_multiple_occurrences": True,
@@ -49,8 +49,8 @@ _Opt = Literal[
     "write_fragment_size",
     "use_display_names",
     "single_bit_uint_as_bool",
-    "mdf/integer_interpolation",
-    "mdf/float_interpolation",
+    "integer_interpolation",
+    "float_interpolation",
     "temporary_folder",
     "raise_on_incomplete_blocks",
     "raise_on_multiple_occurrences",
@@ -74,9 +74,9 @@ def set_global_option(opt: _Opt, value: Any) -> None:
         "fill_0_for_missing_computation_channels",
     ):
         GLOBAL_OPTIONS[opt] = bool(value)
-    elif opt == "mdf/integer_interpolation":
+    elif opt == "integer_interpolation":
         GLOBAL_OPTIONS[opt] = IntegerInterpolation(value)
-    elif opt == "mdf/float_interpolation":
+    elif opt == "float_interpolation":
         GLOBAL_OPTIONS[opt] = FloatInterpolation(value)
     elif opt == "temporary_folder":
         value = value or None

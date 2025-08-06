@@ -253,7 +253,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 action.setChecked(True)
                 action.triggered.emit()
 
-        submenu = QtWidgets.QMenu("interface/theme", self.menubar)
+        submenu = QtWidgets.QMenu("Theme", self.menubar)
         submenu.addActions(theme_option.actions())
         menu.addMenu(submenu)
 
@@ -272,7 +272,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             step_option.addAction(action)
             action.triggered.connect(partial(self.set_line_interconnect, option))
 
-            if option == self._settings.value("plot/cursor/line_interconnect", "line"):
+            if option == self._settings.value("plot/curve/line_interconnect", "line"):
                 action.setChecked(True)
                 action.triggered.emit()
 
@@ -1272,7 +1272,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             app.setPalette(palette)
 
     def set_line_interconnect(self, option):
-        self._settings.setValue("plot/cursor/line_interconnect", option)
+        self._settings.setValue("plot/curve/line_interconnect", option)
 
         self.line_interconnect = option
 

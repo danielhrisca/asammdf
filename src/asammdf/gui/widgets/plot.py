@@ -3410,7 +3410,7 @@ class Plot(QtWidgets.QWidget):
             "focused_mode": not self.focused_mode_btn.isFlat(),
             "delta_mode": "value" if self.delta_btn.isFlat() else "delta",
             "hide_bookmarks": self.bookmark_btn.isFlat(),
-            "plot/hide_missing_channels": self.channel_selection.hide_missing_channels,
+            "hide_missing_channels": self.channel_selection.hide_missing_channels,
             "hide_disabled_channels": self.channel_selection.hide_disabled_channels,
         }
 
