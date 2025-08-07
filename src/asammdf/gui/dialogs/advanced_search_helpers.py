@@ -1,4 +1,4 @@
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 
 class SearchTreeItem(QtWidgets.QTreeWidgetItem):
@@ -31,6 +31,9 @@ class SearchTreeWidget(QtWidgets.QTreeWidget):
         self.setDragDropMode(QtWidgets.QAbstractItemView.DragDropMode.NoDragDrop)
         self.setUniformRowHeights(True)
 
+        self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.open_menu)
+
         self.can_delete_items = can_delete_items
 
     def keyPressEvent(self, event):
@@ -44,3 +47,22 @@ class SearchTreeWidget(QtWidgets.QTreeWidget):
             event.accept()
         else:
             super().keyPressEvent(event)
+
+    def open_menu(self, position):
+        count = 0
+        iterator = QtWidgets.QTreeWidgetItemIterator(self)
+        while iterator.value():
+            iterator += 1
+            count += 1
+
+        self.context_menu = menu = QtWidgets.QMenu()
+        menu.addAction(f"{count} items")
+        menu.addSeparator()
+        action = QtGui.QAction("Expand all", menu)
+        action.triggered.connect(self.expandAll)
+        menu.addAction(action)
+        action = QtGui.QAction("Collapse all", menu)
+        action.triggered.connect(self.collapseAll)
+        menu.addAction(action)
+
+        menu.exec(self.viewport().mapToGlobal(position))
