@@ -735,7 +735,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         )
         dlg.setModal(True)
         dlg.exec_()
-        result, pattern_window = dlg.result, dlg.pattern_window
+        result, pattern_window = dlg.payload, dlg.pattern_window
 
         if result:
             if pattern_window:
@@ -3012,7 +3012,7 @@ MultiRasterSeparator;&
         )
         dlg.setModal(True)
         dlg.exec_()
-        result = dlg.result
+        result = dlg.payload
         if result:
             name = list(result)[0]
             self.raster_channel.setCurrentText(name)

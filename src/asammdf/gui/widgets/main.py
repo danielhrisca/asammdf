@@ -1516,7 +1516,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 dlg = MultiSearch(measurements, parent=self)
                 dlg.setModal(True)
                 dlg.exec_()
-                result = dlg.result
+                result = dlg.payload
                 if result:
                     options = [
                         "New plot window",

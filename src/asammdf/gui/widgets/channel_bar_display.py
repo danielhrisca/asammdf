@@ -174,7 +174,7 @@ class ChannelBarDisplay(Ui_ChannelBarDisplay, QtWidgets.QWidget):
         dlg = RangeEditor(self.unit, self.ranges)
         dlg.exec_()
         if dlg.pressed_button == "apply":
-            self.ranges = dlg.result
+            self.ranges = dlg.payload
 
     def select_color(self):
         color = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color))

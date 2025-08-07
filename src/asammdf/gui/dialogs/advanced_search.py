@@ -48,7 +48,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         self.selection.can_delete_items = True
 
-        self.result = {}
+        self.payload = {}
         self.add_window_request = False
         if mdf:
             self.channels_db = mdf.channels_db
@@ -345,26 +345,26 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
     def _apply(self, event=None):
         if self._return_names:
-            self.result = set()
+            self.payload = set()
 
             iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
             while item := iterator.value():
-                self.result.add(item.text(self.NameColumn))
+                self.payload.add(item.text(self.NameColumn))
                 iterator += 1
         else:
-            self.result = {}
+            self.payload = {}
 
             iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
             while item := iterator.value():
                 entry = int(item.text(self.GroupColumn)), int(item.text(self.ChannelColumn))
                 name = item.text(self.NameColumn)
-                self.result[entry] = name
+                self.payload[entry] = name
                 iterator += 1
 
         self.accept()
 
     def _apply_pattern(self, event):
-        self.result = {
+        self.payload = {
             "pattern": self.pattern.text().strip(),
             "match_type": self.pattern_match_type.currentText(),
             "case_sensitive": self.case_sensitivity_pattern.currentText() == "Case sensitive",
@@ -377,11 +377,11 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             "y_range": sorted([self.y_range_min.value(), self.y_range_max.value()]),
         }
 
-        if not self.result["pattern"]:
+        if not self.payload["pattern"]:
             MessageBox.warning(self, "Cannot apply pattern", "The pattern cannot be empty")
             return
 
-        if not self.result["name"]:
+        if not self.payload["name"]:
             MessageBox.warning(self, "Cannot apply pattern", "The name cannot be empty")
             return
 
@@ -393,11 +393,11 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self._apply()
 
     def _cancel(self, event):
-        self.result = {}
+        self.payload = {}
         self.reject()
 
     def _cancel_pattern(self, event):
-        self.result = {}
+        self.payload = {}
         self.reject()
 
     def _define_ranges(self, event=None):
@@ -405,7 +405,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         dlg = RangeEditor(f"Channel of <{name}>", ranges=self.ranges, parent=self)
         dlg.exec_()
         if dlg.pressed_button == "apply":
-            self.ranges = dlg.result
+            self.ranges = dlg.payload
 
     def _match_double_clicked(self, item):
         selection = set()

@@ -16,7 +16,7 @@ class RangeEditor(Ui_RangeDialog, QtWidgets.QDialog):
 
         self.name = name
         self.unit = unit
-        self.result = []
+        self.payload = []
         self.pressed_button = None
         self._brush = brush
 
@@ -55,7 +55,7 @@ class RangeEditor(Ui_RangeDialog, QtWidgets.QDialog):
             widget = self.ranges.itemWidget(item)
             ranges.append(widget.to_dict(brush=self._brush))
 
-        self.result = ranges
+        self.payload = ranges
         self.pressed_button = "apply"
         self.close()
 
@@ -69,9 +69,9 @@ class RangeEditor(Ui_RangeDialog, QtWidgets.QDialog):
 
     def reset(self, event):
         self.ranges.clear()
-        self.result = []
+        self.payload = []
 
     def cancel(self, event):
-        self.result = []
+        self.payload = []
         self.pressed_button = "cancel"
         self.close()

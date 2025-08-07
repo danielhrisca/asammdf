@@ -4357,7 +4357,7 @@ class PlotGraphics(pg.PlotWidget):
         )
         dlg.setModal(True)
         dlg.exec_()
-        computed_channel = dlg.result
+        computed_channel = dlg.payload
 
         if self.mdf is None:
             mdf.close()
@@ -4474,7 +4474,7 @@ class PlotGraphics(pg.PlotWidget):
         )
         dlg.setModal(True)
         dlg.exec_()
-        computed_channel = dlg.result
+        computed_channel = dlg.payload
 
         if self.mdf is None:
             mdf.close()

@@ -28,7 +28,7 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
             widget.setDefault(False)
             widget.setAutoDefault(False)
 
-        self.result = set()
+        self.payload = set()
         self.measurements = measurements
 
         self.matches.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
@@ -97,18 +97,18 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
     def _apply(self, event):
         count = self.selection.count()
 
-        self.result = set()
+        self.payload = set()
         for i in range(count):
             text = self.selection.item(i).text()
             uuid, channel_name = text.split(":\t")
             for mdf in self.measurements:
                 if mdf.uuid == uuid:
                     for entry in mdf.channels_db[channel_name]:
-                        self.result.add((uuid, entry, channel_name))
+                        self.payload.add((uuid, entry, channel_name))
         self.close()
 
     def _cancel(self, event):
-        self.result = set()
+        self.payload = set()
         self.close()
 
     def show_measurement_list(self, event):

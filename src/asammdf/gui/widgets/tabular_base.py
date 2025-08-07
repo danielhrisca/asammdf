@@ -476,7 +476,7 @@ class DataTableView(QtWidgets.QTableView):
                 dlg = RangeEditor("<selected signals>", "", ranges=ranges, parent=self, brush=True)
                 dlg.exec_()
                 if dlg.pressed_button == "apply":
-                    ranges = dlg.result
+                    ranges = dlg.payload
 
                     for index in selected_items:
                         original_name = self.pgdf.df_unfiltered.columns[index]
@@ -1666,7 +1666,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             dlg = RangeEditor(name, "", self.ranges[original_name], parent=self, brush=True)
             dlg.exec_()
             if dlg.pressed_button == "apply":
-                ranges = dlg.result
+                ranges = dlg.payload
                 self.ranges[original_name] = ranges
 
     def decrease_font(self):

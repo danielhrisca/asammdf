@@ -904,7 +904,7 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
             dlg.setModal(True)
             dlg.exec_()
 
-            if new_pattern := dlg.result:
+            if new_pattern := dlg.payload:
                 del dlg
                 self.pattern_modified.emit(new_pattern, id(self))
 
@@ -1233,7 +1233,7 @@ class WithMDIArea:
                 )
                 dlg.setModal(True)
                 dlg.exec_()
-                result, pattern_window = dlg.result, dlg.pattern_window
+                result, pattern_window = dlg.payload, dlg.pattern_window
 
                 if result:
                     name = list(result.values())[0]

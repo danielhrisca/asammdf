@@ -50,7 +50,7 @@ class GPSDialog(Ui_GPSDialog, QtWidgets.QDialog):
         )
         dlg.setModal(True)
         dlg.exec_()
-        result, pattern_window = dlg.result, dlg.pattern_window
+        result, pattern_window = dlg.payload, dlg.pattern_window
 
         if result:
             self.latitude.setText(list(result)[0])
@@ -67,7 +67,7 @@ class GPSDialog(Ui_GPSDialog, QtWidgets.QDialog):
         )
         dlg.setModal(True)
         dlg.exec_()
-        result, pattern_window = dlg.result, dlg.pattern_window
+        result, pattern_window = dlg.payload, dlg.pattern_window
 
         if result:
             self.longitude.setText(list(result)[0])

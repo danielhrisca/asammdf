@@ -634,7 +634,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             dlg.setModal(True)
             dlg.exec_()
-            pattern = dlg.result
+            pattern = dlg.payload
 
             if pattern:
                 group = ChannelsTreeItem(ChannelsTreeItem.Group, name=pattern["name"], pattern=pattern)
@@ -797,14 +797,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     dlg = RangeEditor(f"channels from <{item._name}>", ranges=item.ranges, parent=self)
                     dlg.exec_()
                     if dlg.pressed_button == "apply":
-                        item.set_ranges(dlg.result)
+                        item.set_ranges(dlg.payload)
                         item.update_child_values()
 
                 elif type == ChannelsTreeItem.Channel:
                     dlg = RangeEditor(item.signal.name, item.unit, item.ranges, parent=self)
                     dlg.exec_()
                     if dlg.pressed_button == "apply":
-                        item.set_ranges(dlg.result)
+                        item.set_ranges(dlg.payload)
                         item.set_value(item._raw_value, item._value, update=True)
 
             else:
@@ -816,11 +816,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 if dlg.pressed_button == "apply":
                     for item in selected_items:
                         if item.type() == item.Channel:
-                            item.set_ranges(copy_ranges(dlg.result))
+                            item.set_ranges(copy_ranges(dlg.payload))
                             item.set_value(item._raw_value, item._value, update=True)
 
                         elif item.type() == item.Group:
-                            item.set_ranges(copy_ranges(dlg.result))
+                            item.set_ranges(copy_ranges(dlg.payload))
                             item.update_child_values()
 
             self.refresh()
@@ -1589,7 +1589,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 )
                 dlg.setModal(True)
                 dlg.exec_()
-                pattern = dlg.result
+                pattern = dlg.payload
 
                 if pattern:
                     item.pattern = pattern

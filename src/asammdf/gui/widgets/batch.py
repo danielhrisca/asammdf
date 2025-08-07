@@ -969,7 +969,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             )
             dlg.setModal(True)
             dlg.exec_()
-            result = dlg.result
+            result = dlg.payload
             if result:
                 name = list(result)[0]
                 self.raster_channel.setCurrentText(name)
@@ -1016,7 +1016,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             )
             dlg.setModal(True)
             dlg.exec_()
-            result = dlg.result
+            result = dlg.payload
 
             if result:
                 if view.currentText() == "Internal file structure":
