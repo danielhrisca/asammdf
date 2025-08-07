@@ -47,7 +47,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.setWindowIcon(icon)
 
         self.selection.can_delete_items = True
-        self.selection.all_texts = True
 
         self.result = {}
         self.add_window_request = False
@@ -246,9 +245,10 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                     matches = {}
                     for name in found_names:
                         for entry in self.channels_db[name]:
+                            (group_index, channel_index) = entry
+                            ch = self.mdf.groups[group_index].channels[channel_index]
+
                             if entry not in matches:
-                                (group_index, channel_index) = entry
-                                ch = self.mdf.groups[group_index].channels[channel_index]
                                 cg = self.mdf.groups[group_index].channel_group
 
                                 source = ch.source or getattr(cg, "acq_source", None)
@@ -318,6 +318,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                 self.status.setText(str(err))
 
             self.matches.setSortingEnabled(True)
+            self.matches.collapseAll()
 
     def _add(self, event):
         selection = set()
