@@ -126,7 +126,7 @@ def deepcopy_cfg_item(item):
             "enabled": item.get("enabled", True),
             "individual_axis": item.get("individual_axis", False),
             "common_axis": item.get("common_axis", False),
-            "color": fn.mkColor(item["color"]),
+            "color": fn.mkColor(item.get("color", "#0000ff"])),
             "computed": item.get("computed", False),
             "ranges": ranges,
             "precision": item.get("precision", 3),
