@@ -26,7 +26,7 @@
   <property name="sizeGripEnabled">
    <bool>true</bool>
   </property>
-  <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,0,0,0,0,0,0,0,0" columnstretch="0,0,0,0,0">
+  <layout class="QGridLayout" name="gridLayout" rowstretch="0,6,0,1,0,0" columnstretch="0,1,0,0">
    <property name="leftMargin">
     <number>1</number>
    </property>
@@ -42,146 +42,7 @@
    <property name="spacing">
     <number>1</number>
    </property>
-   <item row="7" column="0">
-    <widget class="QLabel" name="label_8">
-     <property name="text">
-      <string>Computed channel comment</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
-     </property>
-    </widget>
-   </item>
-   <item row="7" column="1" colspan="4">
-    <widget class="QPlainTextEdit" name="comment"/>
-   </item>
-   <item row="9" column="3">
-    <widget class="QPushButton" name="apply_btn">
-     <property name="text">
-      <string>Apply</string>
-     </property>
-    </widget>
-   </item>
-   <item row="9" column="4">
-    <widget class="QPushButton" name="cancel_btn">
-     <property name="text">
-      <string>Cancel</string>
-     </property>
-    </widget>
-   </item>
-   <item row="9" column="1">
-    <spacer name="horizontalSpacer_3">
-     <property name="orientation">
-      <enum>Qt::Orientation::Horizontal</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>40</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="8" column="1">
-    <widget class="QLineEdit" name="unit">
-     <property name="placeholderText">
-      <string/>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="0">
-    <widget class="QLabel" name="label_7">
-     <property name="text">
-      <string>Computed channel name</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0" colspan="5">
-    <widget class="QGroupBox" name="groupBox_2">
-     <property name="title">
-      <string>Computation mode</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1">
-      <property name="leftMargin">
-       <number>1</number>
-      </property>
-      <property name="topMargin">
-       <number>1</number>
-      </property>
-      <property name="rightMargin">
-       <number>1</number>
-      </property>
-      <property name="bottomMargin">
-       <number>1</number>
-      </property>
-      <property name="spacing">
-       <number>1</number>
-      </property>
-      <item row="2" column="0">
-       <widget class="QRadioButton" name="complete_signal">
-        <property name="text">
-         <string>complete signal</string>
-        </property>
-        <property name="checked">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QRadioButton" name="sample_by_sample">
-        <property name="text">
-         <string>sample by sample</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="QLabel" name="label_25">
-        <property name="text">
-         <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-hr { height: 1px; border-width: 0; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;&quot;&gt;&lt;li style=&quot; font-family:'MS Shell Dlg 2'; font-size:8pt;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;the function will be called only once&lt;/li&gt;
-&lt;li style=&quot; font-family:'MS Shell Dlg 2'; font-size:8pt;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;each argument will receive the complete signal ndarray&lt;/li&gt;&lt;/ul&gt;
-&lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;&quot;&gt;&lt;li style=&quot; font-family:'MS Shell Dlg 2'; font-size:8pt;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;the&lt;span style=&quot; font-style:italic;&quot;&gt; &lt;/span&gt;&lt;span style=&quot; font-weight:700; font-style:italic;&quot;&gt;t&lt;/span&gt;&lt;span style=&quot; font-style:italic;&quot;&gt; &lt;/span&gt;argument will receive the complete time base ndarray&lt;/li&gt;&lt;/ul&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLabel" name="label_24">
-        <property name="text">
-         <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-hr { height: 1px; border-width: 0; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;&quot;&gt;&lt;li style=&quot; font-family:'MS Shell Dlg 2'; font-size:8pt;&quot; style=&quot; margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;the function will be called several times for each of the individual time stamp in the time base&lt;/li&gt;
-&lt;li style=&quot; font-family:'MS Shell Dlg 2'; font-size:8pt;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;earch argument will receive the signal sample at the current time stamp&lt;/li&gt;
-&lt;li style=&quot; font-family:'MS Shell Dlg 2'; font-size:8pt;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;the&lt;span style=&quot; font-weight:700; font-style:italic;&quot;&gt; t&lt;/span&gt; argument will receive the current time stamp value&lt;/li&gt;&lt;/ul&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="textFormat">
-         <enum>Qt::TextFormat::RichText</enum>
-        </property>
-        <property name="wordWrap">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="Line" name="line">
-        <property name="orientation">
-         <enum>Qt::Orientation::Horizontal</enum>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item row="0" column="0" colspan="5">
+   <item row="0" column="0" colspan="2">
     <widget class="QGroupBox" name="groupBox_3">
      <property name="title">
       <string>Triggering</string>
@@ -202,6 +63,29 @@ hr { height: 1px; border-width: 0; }
       <property name="spacing">
        <number>1</number>
       </property>
+      <item row="0" column="0">
+       <widget class="QRadioButton" name="triggering_on_all">
+        <property name="minimumSize">
+         <size>
+          <width>155</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>all channels timestamps</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QRadioButton" name="triggering_on_channel">
+        <property name="text">
+         <string>on channel</string>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="2">
        <spacer name="horizontalSpacer_8">
         <property name="orientation">
@@ -214,6 +98,31 @@ hr { height: 1px; border-width: 0; }
          </size>
         </property>
        </spacer>
+      </item>
+      <item row="4" column="1" colspan="2">
+       <widget class="QLineEdit" name="trigger_channel">
+        <property name="frame">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="3">
+       <widget class="QPushButton" name="trigger_search_btn">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset resource="resource.qrc">
+          <normaloff>:/search.png</normaloff>:/search.png</iconset>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QRadioButton" name="triggering_on_interval">
+        <property name="text">
+         <string>time interval</string>
+        </property>
+       </widget>
       </item>
       <item row="1" column="1">
        <widget class="QDoubleSpinBox" name="trigger_interval">
@@ -246,62 +155,15 @@ hr { height: 1px; border-width: 0; }
         </property>
        </widget>
       </item>
-      <item row="4" column="1" colspan="2">
-       <widget class="QLineEdit" name="trigger_channel"/>
-      </item>
-      <item row="4" column="0">
-       <widget class="QRadioButton" name="triggering_on_channel">
-        <property name="text">
-         <string>on channel</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QRadioButton" name="triggering_on_interval">
-        <property name="text">
-         <string>time interval</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="3">
-       <widget class="QPushButton" name="trigger_search_btn">
-        <property name="text">
-         <string/>
-        </property>
-        <property name="icon">
-         <iconset resource="resource.qrc">
-          <normaloff>:/search.png</normaloff>:/search.png</iconset>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QRadioButton" name="triggering_on_all">
-        <property name="minimumSize">
-         <size>
-          <width>155</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>all channels timestamps</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
      </layout>
     </widget>
    </item>
-   <item row="4" column="0" colspan="5">
-    <widget class="QGroupBox" name="groupBox">
+   <item row="0" column="2">
+    <widget class="QGroupBox" name="groupBox_2">
      <property name="title">
-      <string>Function</string>
+      <string>Computation mode</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <property name="spacing">
-       <number>1</number>
-      </property>
+     <layout class="QGridLayout" name="gridLayout_2" columnstretch="0">
       <property name="leftMargin">
        <number>1</number>
       </property>
@@ -314,130 +176,53 @@ hr { height: 1px; border-width: 0; }
       <property name="bottomMargin">
        <number>1</number>
       </property>
-      <item>
-       <widget class="QScrollArea" name="scrollArea">
-        <property name="frameShape">
-         <enum>QFrame::Shape::NoFrame</enum>
+      <property name="spacing">
+       <number>1</number>
+      </property>
+      <item row="0" column="0">
+       <widget class="QRadioButton" name="sample_by_sample">
+        <property name="toolTip">
+         <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+hr { height: 1px; border-width: 0; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;&quot;&gt;&lt;li style=&quot; font-family:'MS Shell Dlg 2'; font-size:8pt;&quot; style=&quot; margin-top:12px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;the function will be called several times for each of the individual time stamp in the time base&lt;/li&gt;
+&lt;li style=&quot; font-family:'MS Shell Dlg 2'; font-size:8pt;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;earch argument will receive the signal sample at the current time stamp&lt;/li&gt;
+&lt;li style=&quot; font-family:'MS Shell Dlg 2'; font-size:8pt;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;the&lt;span style=&quot; font-weight:700; font-style:italic;&quot;&gt; t&lt;/span&gt; argument will receive the current time stamp value&lt;/li&gt;&lt;/ul&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
-        <property name="lineWidth">
-         <number>0</number>
+        <property name="text">
+         <string>sample by sample</string>
         </property>
-        <property name="widgetResizable">
+        <property name="checked">
          <bool>true</bool>
         </property>
-        <widget class="QWidget" name="args_widget">
-         <property name="geometry">
-          <rect>
-           <x>0</x>
-           <y>0</y>
-           <width>717</width>
-           <height>54</height>
-          </rect>
-         </property>
-         <layout class="QGridLayout" name="arg_layout">
-          <property name="leftMargin">
-           <number>1</number>
-          </property>
-          <property name="topMargin">
-           <number>1</number>
-          </property>
-          <property name="rightMargin">
-           <number>1</number>
-          </property>
-          <property name="bottomMargin">
-           <number>1</number>
-          </property>
-          <property name="spacing">
-           <number>1</number>
-          </property>
-          <item row="0" column="2">
-           <widget class="QPushButton" name="show_definition_btn">
-            <property name="text">
-             <string/>
-            </property>
-            <property name="icon">
-             <iconset resource="resource.qrc">
-              <normaloff>:/info.png</normaloff>:/info.png</iconset>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <spacer name="horizontalSpacer">
-            <property name="orientation">
-             <enum>Qt::Orientation::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_9">
-            <property name="minimumSize">
-             <size>
-              <width>155</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Name</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QComboBox" name="functions"/>
-          </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="label">
-            <property name="text">
-             <string>Arguments:</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QRadioButton" name="complete_signal">
+        <property name="toolTip">
+         <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;meta charset=&quot;utf-8&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+hr { height: 1px; border-width: 0; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;&quot;&gt;&lt;li style=&quot; font-family:'MS Shell Dlg 2'; font-size:8pt;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;the function will be called only once&lt;/li&gt;
+&lt;li style=&quot; font-family:'MS Shell Dlg 2'; font-size:8pt;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;each argument will receive the complete signal ndarray&lt;/li&gt;&lt;/ul&gt;
+&lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 1;&quot;&gt;&lt;li style=&quot; font-family:'MS Shell Dlg 2'; font-size:8pt;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;the&lt;span style=&quot; font-style:italic;&quot;&gt; &lt;/span&gt;&lt;span style=&quot; font-weight:700; font-style:italic;&quot;&gt;t&lt;/span&gt;&lt;span style=&quot; font-style:italic;&quot;&gt; &lt;/span&gt;argument will receive the complete time base ndarray&lt;/li&gt;&lt;/ul&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string>complete signal</string>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
        </widget>
       </item>
      </layout>
     </widget>
    </item>
-   <item row="8" column="0">
-    <widget class="QLabel" name="label_6">
-     <property name="text">
-      <string>Computed channel unit</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="1" colspan="4">
-    <widget class="QLineEdit" name="name">
-     <property name="inputMask">
-      <string/>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="placeholderText">
-      <string/>
-     </property>
-    </widget>
-   </item>
-   <item row="9" column="2">
-    <spacer name="horizontalSpacer_7">
-     <property name="orientation">
-      <enum>Qt::Orientation::Horizontal</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>40</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="3" column="0" colspan="5">
+   <item row="0" column="3">
     <widget class="QGroupBox" name="groupBox_4">
      <property name="title">
       <string>Time stamps shift</string>
@@ -460,12 +245,6 @@ hr { height: 1px; border-width: 0; }
       </property>
       <item row="0" column="0">
        <widget class="QRadioButton" name="shift_type_fixed">
-        <property name="minimumSize">
-         <size>
-          <width>155</width>
-          <height>0</height>
-         </size>
-        </property>
         <property name="text">
          <string>Fixed</string>
         </property>
@@ -510,6 +289,195 @@ hr { height: 1px; border-width: 0; }
      </layout>
     </widget>
    </item>
+   <item row="1" column="0" colspan="4">
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Function</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <property name="spacing">
+       <number>1</number>
+      </property>
+      <property name="leftMargin">
+       <number>1</number>
+      </property>
+      <property name="topMargin">
+       <number>1</number>
+      </property>
+      <property name="rightMargin">
+       <number>1</number>
+      </property>
+      <property name="bottomMargin">
+       <number>1</number>
+      </property>
+      <item>
+       <widget class="QScrollArea" name="scrollArea">
+        <property name="frameShape">
+         <enum>QFrame::Shape::NoFrame</enum>
+        </property>
+        <property name="lineWidth">
+         <number>0</number>
+        </property>
+        <property name="widgetResizable">
+         <bool>true</bool>
+        </property>
+        <widget class="QWidget" name="args_widget">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>0</y>
+           <width>717</width>
+           <height>312</height>
+          </rect>
+         </property>
+         <layout class="QGridLayout" name="arg_layout">
+          <property name="leftMargin">
+           <number>1</number>
+          </property>
+          <property name="topMargin">
+           <number>1</number>
+          </property>
+          <property name="rightMargin">
+           <number>1</number>
+          </property>
+          <property name="bottomMargin">
+           <number>1</number>
+          </property>
+          <property name="spacing">
+           <number>1</number>
+          </property>
+          <item row="0" column="2">
+           <widget class="QPushButton" name="show_definition_btn">
+            <property name="text">
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset resource="resource.qrc">
+              <normaloff>:/info.png</normaloff>:/info.png</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="func_name_label">
+            <property name="minimumSize">
+             <size>
+              <width>155</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Name</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="functions"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>Arguments:</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="name_label">
+     <property name="text">
+      <string>Name</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1" colspan="3">
+    <widget class="QLineEdit" name="name">
+     <property name="inputMask">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="placeholderText">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="label_8">
+     <property name="text">
+      <string>Comment</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1" colspan="3">
+    <widget class="QPlainTextEdit" name="comment"/>
+   </item>
+   <item row="4" column="0">
+    <widget class="QLabel" name="label_6">
+     <property name="text">
+      <string>Unit</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1" colspan="3">
+    <widget class="QLineEdit" name="unit">
+     <property name="placeholderText">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="3">
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <spacer name="horizontalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="apply_btn">
+       <property name="text">
+        <string>Apply</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="cancel_btn">
+       <property name="text">
+        <string>Cancel</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
   </layout>
  </widget>
  <tabstops>
@@ -527,8 +495,6 @@ hr { height: 1px; border-width: 0; }
   <tabstop>name</tabstop>
   <tabstop>comment</tabstop>
   <tabstop>unit</tabstop>
-  <tabstop>apply_btn</tabstop>
-  <tabstop>cancel_btn</tabstop>
  </tabstops>
  <resources>
   <include location="resource.qrc"/>

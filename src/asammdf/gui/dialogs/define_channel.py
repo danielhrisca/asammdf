@@ -128,6 +128,9 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                     time_stamps_shift["global_variable_timestamps_shift"]
                 )
 
+        self.name_label.setMinimumSize(QtCore.QSize(self.triggering_on_all.width() + 4, 0))
+        self.func_name_label.setMinimumSize(QtCore.QSize(self.triggering_on_all.width() - 1, 0))
+
         self.showMaximized()
 
     def apply(self):
