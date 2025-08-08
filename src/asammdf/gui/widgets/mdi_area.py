@@ -2890,6 +2890,7 @@ class WithMDIArea:
                 required_channels_list,
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
                 copy_master=False,
+                raw=True,
             ):
                 required_channels[sig.name] = sig
 

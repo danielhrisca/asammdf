@@ -505,7 +505,7 @@ def compute_signal(
                     if name in measured_signals:
                         sig = measured_signals[name]
 
-                        if use_raw_values.get(arg, "False"):
+                        if use_raw_values.get(arg, False):
                             signals.append(sig)
                         else:
                             signal = sig.physical(copy=False, ignore_value2text_conversions=True)
@@ -619,7 +619,7 @@ def compute_signal(
                     samples.append(current_sample)
 
                 result = Signal(
-                    name="_",
+                    name=description["channel_name"] or "_",
                     samples=samples,
                     timestamps=common_timebase + shift,
                     flags=Signal.Flags.computed,
@@ -650,7 +650,7 @@ def compute_signal(
                     common_timebase = common_timebase[-len(samples) :]
 
                 result = Signal(
-                    name="_",
+                    name=description["channel_name"] or "_",
                     samples=samples,
                     timestamps=common_timebase + shift,
                     flags=Signal.Flags.computed,
