@@ -3326,6 +3326,7 @@ class WithMDIArea:
                 required_channels,
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
                 copy_master=False,
+                raw=True,
             )
         }
 
@@ -3804,6 +3805,7 @@ class WithMDIArea:
                             [el[0] for el in matrix_components],
                             ignore_value2text_conversions=self.ignore_value2text_conversions,
                             copy_master=False,
+                            raw=True,
                         ),
                         matrix_components,
                         strict=False,
@@ -3871,6 +3873,7 @@ class WithMDIArea:
                         required_channels,
                         ignore_value2text_conversions=self.ignore_value2text_conversions,
                         copy_master=False,
+                        raw=True,
                     )
                 }
 
