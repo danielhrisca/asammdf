@@ -291,7 +291,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
     def extract_bus_logging_finished(self):
         if self._progress.error is None:
-            message = self._progress.result
+            message = self._progress.output
 
             self.output_info_bus.setPlainText("\n".join(message))
         self._progress = None
@@ -428,7 +428,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
     def extract_bus_csv_logging_finished(self):
         if self._progress.error is None:
-            message = self._progress.result
+            message = self._progress.output
 
             self.output_info_bus.setPlainText("\n".join(message))
 

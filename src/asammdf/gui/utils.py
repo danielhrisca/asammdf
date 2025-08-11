@@ -216,7 +216,7 @@ def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progr
 
 class QWorkerThread(QtCore.QThread):
     error = QtCore.Signal(object)
-    result = QtCore.Signal(object)
+    output = QtCore.Signal(object)
 
     # will forward to the progress dialog
     setLabelText = QtCore.Signal(str)
@@ -231,7 +231,7 @@ class QWorkerThread(QtCore.QThread):
         [
             "finished",
             "error",
-            "result",
+            "output",
             "setLabelText",
             "setWindowTitle",
             "setWindowIcon",
@@ -249,7 +249,7 @@ class QWorkerThread(QtCore.QThread):
         self.signals = self.SIGNALS_TEMPLATE(
             self.finished,
             self.error,
-            self.result,
+            self.output,
             self.setLabelText,
             self.setWindowTitle,
             self.setWindowIcon,
@@ -276,7 +276,7 @@ class QWorkerThread(QtCore.QThread):
             exctype, value = sys.exc_info()[:2]
             self.error.emit((exctype, value, traceback.format_exc()))
         else:
-            self.result.emit(result)
+            self.output.emit(result)
         finally:
             self.kwargs = self.args = None
 
@@ -289,7 +289,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         super().__init__(*args, **kwargs)
         self.thread = None
         self.error = None
-        self.result = None
+        self.output = None
         self.close_on_finish = True
         self.hide_on_finish = False
 
@@ -301,7 +301,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self, target, args, kwargs, wait_here=False, close_on_finish=True, hide_on_finish=False
     ):
         self.show()
-        self.result = None
+        self.output = None
         self.error = None
         self.thread_finished = False
 
@@ -309,7 +309,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.hide_on_finish = hide_on_finish
 
         self.thread = QWorkerThread(target, *args, parent=self, **kwargs)
-        self.thread.result.connect(self.receive_result)
+        self.thread.output.connect(self.receive_output)
         self.thread.finished.connect(self.thread_complete)
         self.thread.error.connect(self.receive_error)
         self.thread.setLabelText.connect(self.setLabelText)
@@ -326,7 +326,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             self.thread.finished.connect(loop.quit)
             loop.exec()
 
-        return self.result
+        return self.output
 
     def setLabelText(self, text):
         super().setLabelText(text)
@@ -334,8 +334,8 @@ class ProgressDialog(QtWidgets.QProgressDialog):
     def processEvents(self):
         pass
 
-    def receive_result(self, result):
-        self.result = result
+    def receive_output(self, output):
+        self.output = output
 
     def receive_error(self, error):
         self.error = error
@@ -345,7 +345,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         if self.hide_on_finish:
             self.hide()
 
-        self.thread.result.disconnect(self.receive_result)
+        self.thread.output.disconnect(self.receive_output)
         self.thread.finished.disconnect(self.thread_complete)
         self.thread.error.disconnect(self.receive_error)
         self.thread.setLabelText.disconnect(self.setLabelText)

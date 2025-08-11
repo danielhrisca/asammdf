@@ -1830,7 +1830,7 @@ MultiRasterSeparator;&
 
     def extract_bus_logging_finished(self):
         if self._progress.error is None:
-            file_name, message = self._progress.result
+            file_name, message = self._progress.output
 
             self.output_info_bus.setPlainText("\n".join(message))
             self.open_new_files.emit([str(file_name)])
@@ -1969,7 +1969,7 @@ MultiRasterSeparator;&
 
     def extract_bus_csv_logging_finished(self):
         if self._progress.error is None:
-            message = self._progress.result
+            message = self._progress.output
 
             self.output_info_bus.setPlainText("\n".join(message))
 
