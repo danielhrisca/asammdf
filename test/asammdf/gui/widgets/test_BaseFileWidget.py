@@ -49,16 +49,16 @@ class TestFileWidget(TestBase):
         """
         if default:
             self.widget = FileWidget(
-                measurement_file,
-                True,  # with_dots
-                True,  # subplots
-                True,  # subplots_link
-                False,  # ignore_value2text_conversions
-                False,  # display_cg_name
-                "line",  # line_interconnect
-                "",  # password
-                False,  # hide_missing_channels
-                False,  # hide_disabled_channels
+                file_name=measurement_file,
+                with_dots=True,
+                subplots=True,
+                subplots_link=True,
+                ignore_value2text_conversions=False,
+                display_cg_name=False,
+                line_interconnect="line",
+                password="",
+                hide_missing_channels=False,
+                hide_disabled_channels=False,
             )
         else:
             self.widget = FileWidget(measurement_file, *args)

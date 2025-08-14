@@ -1845,6 +1845,8 @@ class Plot(QtWidgets.QWidget):
         self.toggle_focused_mode(focused=self._settings.value("plot/focused_mode", False, type=bool))
         self.toggle_region_values_display_mode(mode=self._settings.value("plot/region_values_display_mode", "value"))
 
+        self.bookmarks = bookmarks  # bookmarks need to be set, before `toggle_bookmarks` is called
+
         self.toggle_bookmarks(hide=not self._settings.value("plot/bookmarks", False, type=bool))
         self.hide_axes(hide=self._settings.value("plot/hide_axes", False, type=bool))
         self.set_locked(locked=self._settings.value("plot/locked", False, type=bool))
@@ -1852,8 +1854,6 @@ class Plot(QtWidgets.QWidget):
         self.zoom_history = []
         self.zoom_history_index = -1
         self.update_zoom = False
-
-        self.bookmarks = bookmarks
 
         self.show()
 
