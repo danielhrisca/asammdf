@@ -45,7 +45,7 @@ class VRTTWidget(Ui_VRTT_Widget, QtWidgets.QWidget):
             self.conversion,
             parent=self,
         )
-        dlg.exec_()
+        dlg.exec()
         if dlg.pressed_button == "apply":
             self.conversion = dlg.conversion()
 

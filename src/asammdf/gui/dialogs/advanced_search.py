@@ -403,7 +403,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
     def _define_ranges(self, event=None):
         name = self.pattern.text().strip()
         dlg = RangeEditor(f"Channel of <{name}>", ranges=self.ranges, parent=self)
-        dlg.exec_()
+        dlg.exec()
         if dlg.pressed_button == "apply":
             self.ranges = dlg.payload
 

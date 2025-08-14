@@ -633,7 +633,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 channels_db=channels_db,
             )
             dlg.setModal(True)
-            dlg.exec_()
+            dlg.exec()
             pattern = dlg.payload
 
             if pattern:
@@ -795,14 +795,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 type = item.type()
                 if type == ChannelsTreeItem.Group:
                     dlg = RangeEditor(f"channels from <{item._name}>", ranges=item.ranges, parent=self)
-                    dlg.exec_()
+                    dlg.exec()
                     if dlg.pressed_button == "apply":
                         item.set_ranges(dlg.payload)
                         item.update_child_values()
 
                 elif type == ChannelsTreeItem.Channel:
                     dlg = RangeEditor(item.signal.name, item.unit, item.ranges, parent=self)
-                    dlg.exec_()
+                    dlg.exec()
                     if dlg.pressed_button == "apply":
                         item.set_ranges(dlg.payload)
                         item.set_value(item._raw_value, item._value, update=True)
@@ -812,7 +812,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 for item in selected_items:
                     ranges.extend(item.ranges)
                 dlg = RangeEditor("<selected items>", ranges=unique_ranges(ranges), parent=self)
-                dlg.exec_()
+                dlg.exec()
                 if dlg.pressed_button == "apply":
                     for item in selected_items:
                         if item.type() == item.Channel:
@@ -1251,7 +1251,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             original_conversion = conversion_transfer(original_conversion, version=4)
 
             dlg = ConversionEditor(channel_name, conversion, original_conversion=original_conversion, parent=self)
-            dlg.exec_()
+            dlg.exec()
             if dlg.pressed_button == "apply":
                 conversion = dlg.conversion()
 
@@ -1588,7 +1588,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     pattern=pattern,
                 )
                 dlg.setModal(True)
-                dlg.exec_()
+                dlg.exec()
                 pattern = dlg.payload
 
                 if pattern:

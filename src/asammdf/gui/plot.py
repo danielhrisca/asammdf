@@ -58,7 +58,7 @@ def plot(signals: Signal | list[Signal], title: str = "", validate: bool = True)
 
         app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
 
-        app.exec_()
+        app.exec()
 
     else:
         raise Exception("Signal plotting requires pyqtgraph or matplotlib")

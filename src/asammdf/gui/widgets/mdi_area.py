@@ -902,7 +902,7 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
                 channels_db=channels_db,
             )
             dlg.setModal(True)
-            dlg.exec_()
+            dlg.exec()
 
             if new_pattern := dlg.payload:
                 del dlg
@@ -1000,7 +1000,7 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
                     options=("Plot", "Numeric") if self.comparison else ("Plot", "Numeric", "Tabular"), parent=self
                 )
                 dialog.setModal(True)
-                dialog.exec_()
+                dialog.exec()
 
                 if dialog.result():
                     window_type = dialog.selected_type()
@@ -1232,7 +1232,7 @@ class WithMDIArea:
                     parent=self,
                 )
                 dlg.setModal(True)
-                dlg.exec_()
+                dlg.exec()
                 result, pattern_window = dlg.payload, dlg.pattern_window
 
                 if result:
