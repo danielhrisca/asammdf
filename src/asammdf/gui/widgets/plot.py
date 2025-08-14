@@ -594,7 +594,7 @@ class PlotSignal(Signal):
                         precision,
                     )
                     stats["overall_integral"] = value_as_str(
-                        np.trapz(sig.samples, sig.timestamps), format, None, precision
+                        np.trapezoid(sig.samples, sig.timestamps), format, None, precision
                     )
 
                 stats["overall_min"] = value_as_str(self.min, format, self.plot_samples.dtype, precision)
@@ -693,7 +693,7 @@ class PlotSignal(Signal):
                                 precision,
                             )
                             new_stats["selected_integral"] = value_as_str(
-                                np.trapz(samples, timestamps), format, None, precision
+                                np.trapezoid(samples, timestamps), format, None, precision
                             )
 
                     else:
@@ -784,7 +784,7 @@ class PlotSignal(Signal):
                             precision,
                         )
                         new_stats["visible_integral"] = value_as_str(
-                            np.trapz(samples, timestamps), format, None, precision
+                            np.trapezoid(samples, timestamps), format, None, precision
                         )
 
                 else:

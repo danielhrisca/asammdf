@@ -522,7 +522,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
-                item = self.itemAt(e.pos())
+                item = self.itemAt(e.position().toPoint())
 
                 if item and item.type() == item.Info:
                     item = item.parent()
