@@ -9063,7 +9063,7 @@ class MDF4(MDF_Common[Group]):
         while True:
             try:
                 fragments = [next(stream) for stream in data_streams]
-            except:
+            except Exception:
                 break
             #
             # if perf_counter() - tt > 120:
