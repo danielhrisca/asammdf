@@ -8,12 +8,13 @@ from PySide6.QtGui import QColor, QKeySequence, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QTreeWidgetItemIterator
 
-from test.asammdf.gui.test_base import OpenMDF, Pixmap
+from test.asammdf.gui.test_base import OpenMDF, Pixmap, safe_setup
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestTreeWidgetShortcuts(TestFileWidget):
+    @safe_setup
     def setUp(self):
         """
         Events:
@@ -88,6 +89,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
     Tests for Ctrl+C, Ctrl+V was tested in test_PlotWidget_Shortcuts
     """
 
+    @safe_setup
     def setUp(self):
         """
         Events:

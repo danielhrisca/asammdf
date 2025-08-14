@@ -9,11 +9,12 @@ from PySide6.QtWidgets import QApplication, QTreeWidgetItemIterator
 from asammdf.gui.widgets import numeric, plot, tabular
 from asammdf.gui.widgets.file import FileWidget
 from asammdf.gui.widgets.main import MainWindow
-from test.asammdf.gui.test_base import TestBase
+from test.asammdf.gui.test_base import safe_setup, TestBase
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 
 class TestShortcuts(TestBase):
+    @safe_setup
     def setUp(self):
         """
         Events:

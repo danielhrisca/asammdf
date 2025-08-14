@@ -16,7 +16,7 @@ import pandas as pd
 from PySide6 import QtCore, QtTest, QtWidgets
 import scipy
 
-from test.asammdf.gui.test_base import OpenHDF5, OpenMDF
+from test.asammdf.gui.test_base import OpenHDF5, OpenMDF, safe_setup
 from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 
 # Note: If it's possible and make sense, use self.subTests
@@ -73,6 +73,7 @@ class TestPushButtonScrambleTexts(TestBatchWidget):
 
 
 class TestPushButtonApply(TestBatchWidget):
+    @safe_setup
     def setUp(self):
         """
         Events

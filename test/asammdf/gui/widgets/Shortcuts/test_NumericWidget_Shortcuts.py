@@ -9,10 +9,12 @@ from PySide6.QtTest import QTest
 
 from asammdf import mdf
 from asammdf.gui.utils import copy_ranges
+from test.asammdf.gui.test_base import safe_setup
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 
 class TestTableViewShortcuts(TestFileWidget):
+    @safe_setup
     def setUp(self):
         """
         Events:
@@ -218,6 +220,7 @@ class TestTableViewShortcuts(TestFileWidget):
 
 
 class TestNumericShortcuts(TestFileWidget):
+    @safe_setup
     def setUp(self):
         """
         Events:

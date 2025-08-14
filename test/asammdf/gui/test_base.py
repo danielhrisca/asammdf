@@ -14,6 +14,7 @@ class DragAndDrop
 """
 
 from collections.abc import Iterable
+import functools
 import os
 import pathlib
 import shutil
@@ -42,6 +43,23 @@ app = pyqtgraph.mkQApp()
 app.setOrganizationName("py-asammdf")
 app.setOrganizationDomain("py-asammdf")
 app.setApplicationName("py-asammdf")
+
+
+def safe_setup(func):
+    """Decorator for a TestCase setUp method.
+    Ensures that if setUp raises an exception, tearDown is still called.
+    """
+
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except:
+            if hasattr(self, "tearDown"):
+                self.tearDown()
+            raise
+
+    return wrapper
 
 
 @unittest.skipIf(sys.platform == "darwin", "Test Development on MacOS was not done yet.")
@@ -105,6 +123,7 @@ class TestBase(unittest.TestCase):
             QtCore.QCoreApplication.processEvents()
             QtCore.QCoreApplication.sendPostedEvents()
 
+    @safe_setup
     def setUp(self) -> None:
         if os.path.exists(self.test_workspace):
             try:

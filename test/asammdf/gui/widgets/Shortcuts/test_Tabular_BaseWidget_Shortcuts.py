@@ -11,11 +11,12 @@ from PySide6.QtCore import QPoint, QRect
 from PySide6.QtWidgets import QApplication
 
 from asammdf import mdf
-from test.asammdf.gui.test_base import Pixmap
+from test.asammdf.gui.test_base import Pixmap, safe_setup
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 
 class TestDataTableViewShortcuts(TestFileWidget):
+    @safe_setup
     def setUp(self):
         """
         Events:
@@ -155,6 +156,7 @@ class TestDataTableViewShortcuts(TestFileWidget):
 
 
 class TestTabularBaseShortcuts(TestFileWidget):
+    @safe_setup
     def setUp(self):
         """
         Events:

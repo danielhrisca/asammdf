@@ -1,6 +1,5 @@
 import json
 import os
-import pathlib
 from random import randint
 import shutil
 from unittest import mock
@@ -10,12 +9,13 @@ from PySide6 import QtCore, QtTest, QtWidgets
 from asammdf.gui.widgets.file import FileWidget
 from asammdf.gui.widgets.numeric import Numeric
 from asammdf.gui.widgets.plot import Plot
-from test.asammdf.gui.test_base import TestBase
+from test.asammdf.gui.test_base import safe_setup, TestBase
 
 
 class TestFileWidget(TestBase):
     testResult = None
 
+    @safe_setup
     def setUp(self):
         super().setUp()
         self.widget = None
@@ -25,10 +25,8 @@ class TestFileWidget(TestBase):
         self.mc_widget_ed = patcher.start()
         self.addCleanup(patcher.stop)
 
-        try:  # is preferable to work with a copy of the file
-            self.measurement_file = shutil.copy(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"), self.test_workspace)
-        except:  # but if old processes isn't finished or something keeps the file in use, do not fail the test
-            self.measurement_file = os.path.join(self.resource, "ASAP2_Demo_V171.mf4")
+        # it is preferable to work with a copy of the file
+        self.measurement_file = shutil.copy(os.path.join(self.resource, "ASAP2_Demo_V171.mf4"), self.test_workspace)
 
     def tearDown(self):
         # save last state graphical view of widget if failure

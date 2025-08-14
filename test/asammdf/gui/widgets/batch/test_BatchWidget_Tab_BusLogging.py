@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from PySide6 import QtCore, QtTest
 
-from test.asammdf.gui.test_base import DBC, OpenMDF
+from test.asammdf.gui.test_base import DBC, OpenMDF, safe_setup
 from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 
 # Note: If it's possible and make sense, use self.subTests
@@ -22,6 +22,7 @@ from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 
 @unittest.skipIf(os.getenv("NO_NET_ACCESS"), "Test requires Internet access")
 class TestPushButtons(TestBatchWidget):
+    @safe_setup
     def setUp(self):
         super().setUp()
         url = "https://github.com/danielhrisca/asammdf/files/4328945/OBD2-DBC-MDF4.zip"

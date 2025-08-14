@@ -4,7 +4,7 @@ from unittest import mock
 
 import numpy as np
 
-from test.asammdf.gui.test_base import OpenMDF
+from test.asammdf.gui.test_base import OpenMDF, safe_setup
 from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 
 # Note: If it's possible and make sense, use self.subTests
@@ -15,6 +15,7 @@ class TestPushButtons(TestBatchWidget):
     default_test_file = "ASAP2_Demo_V171.mf4"
     class_test_file = "test_batch.mf4"
 
+    @safe_setup
     def setUp(self):
         """
         Events

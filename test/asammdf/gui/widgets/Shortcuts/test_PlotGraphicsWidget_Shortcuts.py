@@ -9,11 +9,12 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QTreeWidgetItemIterator
 
 from asammdf import mdf
-from test.asammdf.gui.test_base import Pixmap
+from test.asammdf.gui.test_base import Pixmap, safe_setup
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestPlotGraphicsShortcuts(TestPlotWidget):
+    @safe_setup
     def setUp(self):
         """
         Events:

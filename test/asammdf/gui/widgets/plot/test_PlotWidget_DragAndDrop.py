@@ -3,13 +3,13 @@ from unittest import mock
 
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
 
-from test.asammdf.gui.test_base import DragAndDrop
+from test.asammdf.gui.test_base import DragAndDrop, safe_setup
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestDragAndDrop(TestPlotWidget):
     # Note: Test Plot Widget through FileWidget.
-
+    @safe_setup
     def setUp(self):
         super().setUp()
 
