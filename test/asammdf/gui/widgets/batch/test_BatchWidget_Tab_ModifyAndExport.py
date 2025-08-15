@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import datetime
-from math import ceil
 import os
 from pathlib import Path
 from random import randint
@@ -789,7 +788,6 @@ class TestPushButtonApply(TestBatchWidget):
                 self.assertEqual(channel.timestamps.min(), start_cut)
                 self.assertEqual(channel.timestamps.max(), stop_cut)
 
-    # @unittest.skip("FIXME: test keeps failing in CI")
     def test_resample_by_step_0(self):
         """
         Events
@@ -826,12 +824,12 @@ class TestPushButtonApply(TestBatchWidget):
         self.assertTrue(output_file.exists())
         with OpenMDF(output_file) as mdf_file:
             for channel in mdf_file.iter_channels():
-                size = ceil((channel.timestamps.max() - channel.timestamps.min()) / step) + 1  # + min
+                length = channel.timestamps.max() - channel.timestamps.min()
+                size = round(length / step) + 1  # + min
                 self.assertEqual(size, channel.timestamps.size)
-                for i in range(size):
-                    self.assertAlmostEqual(channel.timestamps[i], channel.timestamps.min() + step * i, places=12)
+                for i, timestamp in enumerate(channel.timestamps):
+                    self.assertAlmostEqual(timestamp, channel.timestamps.min() + step * i, places=12)
 
-    # @unittest.skip("FIXME: test keeps failing in CI")
     def test_resample_by_step_1(self):
         """
         Events
@@ -869,7 +867,8 @@ class TestPushButtonApply(TestBatchWidget):
         self.assertTrue(output_file.exists())
         with OpenMDF(output_file) as mdf_file:
             for channel in mdf_file.iter_channels():
-                size = ceil((channel.timestamps.max() - channel.timestamps.min()) / step) + 1  # + min
+                length = channel.timestamps.max() - channel.timestamps.min()
+                size = round(length / step) + 1
                 self.assertEqual(size, channel.timestamps.size)
-                for i in range(size):
-                    self.assertAlmostEqual(channel.timestamps[i], step * i, places=12)
+                for i, timestamp in enumerate(channel.timestamps):
+                    self.assertAlmostEqual(timestamp, step * i, places=12)
