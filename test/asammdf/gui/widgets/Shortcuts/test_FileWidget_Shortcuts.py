@@ -73,7 +73,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
             mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mo_WindowSelectionDialog,
         ):
             with self.subTest("test_search_shortcut_new_window"):
-                mo_AdvancedSearch.return_value.result = matrix_items
+                mo_AdvancedSearch.return_value.payload = matrix_items
                 mo_AdvancedSearch.return_value.pattern_window = False
                 mo_WindowSelectionDialog.return_value.dialog.return_value = 1  # Ok
                 mo_WindowSelectionDialog.return_value.selected_type.return_value = "New plot window"
@@ -100,7 +100,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
             with self.subTest("test_search_shortcut_pattern_window"):
                 # Setup
                 mo_AdvancedSearch.return_value.pattern_window = True
-                mo_AdvancedSearch.return_value.result = {
+                mo_AdvancedSearch.return_value.payload = {
                     "case_sensitive": False,
                     "filter_type": "Unspecified",
                     "filter_value": 0.0,
@@ -137,7 +137,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
                 mo_WindowSelectionDialog.return_value.dialog.return_value = 1  # Ok
                 mo_WindowSelectionDialog.return_value.selected_type.return_value = f"*{matrix_pattern}*"
                 mo_WindowSelectionDialog.return_value.disable_new_channels.return_value = False
-                mo_AdvancedSearch.return_value.result = u_word_items
+                mo_AdvancedSearch.return_value.payload = u_word_items
                 mo_AdvancedSearch.return_value.pattern_window = False
 
                 # Press Ctrl+F

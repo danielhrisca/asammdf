@@ -192,7 +192,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         }
         # mock for QInputDialog object
         with mock.patch("asammdf.gui.widgets.tree.AdvancedSearch") as mo_AdvancedSearch:
-            mo_AdvancedSearch.return_value.result = result
+            mo_AdvancedSearch.return_value.payload = result
             # Press Ctrl+Insert
             QTest.keySequence(self.ctw, QKeySequence(self.shortcuts["add_pattern_based_group"]))
         # Evaluate
@@ -491,7 +491,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         self.processEvents(0.01)
 
         with mock.patch("asammdf.gui.widgets.tree.RangeEditor") as mo_RangeEditor:
-            mo_RangeEditor.return_value.result = range_editor_result
+            mo_RangeEditor.return_value.payload = range_editor_result
             mo_RangeEditor.return_value.pressed_button = "apply"
             # Press "Alt+R"
             QTest.keySequence(self.ctw, QKeySequence(self.shortcuts["set_color_range"]))

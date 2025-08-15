@@ -89,7 +89,7 @@ class TestDataTableViewShortcuts(TestFileWidget):
         # QtTest.QTest.keySequence(self.dtw, QtGui.QKeySequence(self.shortcuts["set_color_range"]))
         self.processEvents()
         with mock.patch("asammdf.gui.widgets.tabular_base.RangeEditor") as mo_RangeEditor:
-            mo_RangeEditor.return_value.result = range_editor_result
+            mo_RangeEditor.return_value.payload = range_editor_result
             mo_RangeEditor.return_value.pressed_button = "apply"
             # Press "Ctrl+R"
             QtTest.QTest.keySequence(self.dtw, QtGui.QKeySequence(self.shortcuts["set_color_range"]))

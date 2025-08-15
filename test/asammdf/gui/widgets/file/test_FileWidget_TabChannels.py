@@ -656,7 +656,7 @@ class TestTabChannels(TestFileWidget):
         # Case 0:
         with self.subTest("test_PushButton_Search_0"):
             with mock.patch("asammdf.gui.widgets.file.AdvancedSearch") as mc_AdvancedSearch:
-                mc_AdvancedSearch.return_value.result = {}
+                mc_AdvancedSearch.return_value.payload = {}
                 mc_AdvancedSearch.return_value.pattern_window = False
                 mc_AdvancedSearch.return_value.add_window_request = False
 
@@ -672,7 +672,7 @@ class TestTabChannels(TestFileWidget):
         # Case 1:
         with self.subTest("test_PushButton_Search_1"):
             with mock.patch("asammdf.gui.widgets.file.AdvancedSearch") as mc_AdvancedSearch:
-                mc_AdvancedSearch.return_value.result = {
+                mc_AdvancedSearch.return_value.payload = {
                     (4, 3): "ASAM.M.SCALAR.FLOAT64.IDENTICAL",
                     (2, 10): "ASAM.M.SCALAR.FLOAT32.IDENTICAL",
                 }
@@ -704,7 +704,7 @@ class TestTabChannels(TestFileWidget):
                 mock.patch("asammdf.gui.widgets.file.AdvancedSearch") as mc_AdvancedSearch,
                 mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mc_WindowSelectionDialog,
             ):
-                mc_AdvancedSearch.return_value.result = {
+                mc_AdvancedSearch.return_value.payload = {
                     (4, 3): "ASAM.M.SCALAR.FLOAT64.IDENTICAL",
                     (2, 10): "ASAM.M.SCALAR.FLOAT32.IDENTICAL",
                 }

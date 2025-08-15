@@ -1260,7 +1260,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                 },
             }
             with mock.patch("asammdf.gui.widgets.plot.DefineChannel") as mo_DefineChannel:
-                mo_DefineChannel.return_value.result = computed_channel
+                mo_DefineChannel.return_value.payload = computed_channel
                 # Press key Insert
                 QTest.keySequence(self.plot.channel_selection, QKeySequence(self.shortcuts["insert_computation"]))
 

@@ -121,7 +121,7 @@ class TestTableViewShortcuts(TestFileWidget):
         self.table_view.selectRow(0)
         self.processEvents()
         with mock.patch("asammdf.gui.widgets.numeric.RangeEditor") as mo_RangeEditor:
-            mo_RangeEditor.return_value.result = expected_value
+            mo_RangeEditor.return_value.payload = expected_value
             mo_RangeEditor.return_value.pressed_button = "apply"
             # Press "Alt+R"
             QTest.keySequence(self.table_view, QKeySequence(self.shortcuts["set_color_ranges"]))
