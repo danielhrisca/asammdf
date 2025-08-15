@@ -41,14 +41,11 @@ class TestCANBusLogging(unittest.TestCase):
             print(file)
 
         path = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
-
-        mdf = MDF(path)
-
         dbc = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
-
         signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
 
-        out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]}, ignore_value2text_conversion=True)
+        with MDF(path) as mdf:
+            out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]}, ignore_value2text_conversion=True)
 
         for signal in signals:
             name = signal.stem
@@ -64,16 +61,12 @@ class TestCANBusLogging(unittest.TestCase):
         print("J1939 extract")
 
         temp_dir = Path(TestCANBusLogging.tempdir_j1939.name)
-
+        dbc = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
+        signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
         path = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
 
-        mdf = MDF(path)
-
-        dbc = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
-
-        signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
-
-        out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]}, ignore_value2text_conversion=True)
+        with MDF(path) as mdf:
+            out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]}, ignore_value2text_conversion=True)
 
         for signal in signals:
             name = signal.stem
@@ -90,19 +83,16 @@ class TestCANBusLogging(unittest.TestCase):
 
         temp_dir = Path(TestCANBusLogging.tempdir_j1939.name)
 
-        path = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
-
-        mdf = MDF(path)
-
         # dbc = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
         # This dbc throws exception without the suggested changes in branch "relaxed_j1939"...
         # else it is identical to the CSS Electronics demo file in test package
         d = os.path.dirname(__file__)
         dbc = os.path.join(d, "almost-J1939.dbc")  # Pls replace with file from expanded zip file
-
         signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
+        path = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
 
-        out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]})
+        with MDF(path) as mdf:
+            out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]})
 
         for signal in signals:
             name = signal.stem
@@ -118,25 +108,20 @@ class TestCANBusLogging(unittest.TestCase):
         temp_dir = Path(TestCANBusLogging.tempdir_j1939.name)
 
         path = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".mf4"][0]
-
-        mdf = MDF(path)
-
         dbc = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".dbc"][0]
-
         signals = [input_file for input_file in temp_dir.iterdir() if input_file.suffix == ".npy"]
 
-        for signal in signals:
-            name = signal.stem
+        with MDF(path) as mdf:
+            for signal in signals:
+                name = signal.stem
 
-            target = np.load(signal)
+                target = np.load(signal)
 
-            values = mdf.get_can_signal(name=name, database=str(dbc)).samples
+                values = mdf.get_can_signal(name=name, database=str(dbc)).samples
+                self.assertTrue(np.array_equal(values, target))
 
-            self.assertTrue(np.array_equal(values, target))
-
-            values = mdf.get_bus_signal("CAN", name=name, database=str(dbc)).samples
-
-            self.assertTrue(np.array_equal(values, target))
+                values = mdf.get_bus_signal("CAN", name=name, database=str(dbc)).samples
+                self.assertTrue(np.array_equal(values, target))
 
 
 if __name__ == "__main__":
