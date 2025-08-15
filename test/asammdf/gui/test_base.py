@@ -115,13 +115,12 @@ class TestBase(unittest.TestCase):
 
     @staticmethod
     def processEvents(timeout=0.001):
-        QtCore.QCoreApplication.processEvents()
-        QtCore.QCoreApplication.sendPostedEvents()
-        QtCore.QEventLoop.processEvents(QtCore.QEventLoop())
-        if timeout:
-            time.sleep(timeout)
-            QtCore.QCoreApplication.processEvents()
-            QtCore.QCoreApplication.sendPostedEvents()
+        t_end = time.perf_counter() + timeout
+        while True:
+            time.sleep(0.001)
+            QtCore.QCoreApplication.processEvents(flags=QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
+            if time.perf_counter() > t_end:
+                break
 
     @safe_setup
     def setUp(self) -> None:
@@ -214,7 +213,7 @@ class TestBase(unittest.TestCase):
         )
         self.processEvents(0.5)
 
-    def is_not_blinking(self, to_grab, colors: set[str], timeout=5):
+    def is_not_blinking(self, to_grab, colors: set[str], timeout=5.0):
         """
         Parameters
         ----------
