@@ -109,7 +109,7 @@ class TestBase(unittest.TestCase):
 
         loop = QtCore.QEventLoop()
         QtCore.QTimer.singleShot(int(duration * 1000), loop.quit)
-        loop.exec_()
+        loop.exec()
 
         w.showMaximized()
 

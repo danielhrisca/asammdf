@@ -173,7 +173,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
                     "integer_format": "phys".
 
         Evaluate:
-            - Evaluate that method exec_() of AdvancedSearch object was called.
+            - Evaluate that method exec() of AdvancedSearch object was called.
             - Evaluate that in plot channel selection exists a new group with specific name and pattern dict.
             - Evaluate that group contains all channels from measurement with a specific sequence of string
                 in their name.
@@ -196,7 +196,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
             # Press Ctrl+Insert
             QTest.keySequence(self.ctw, QKeySequence(self.shortcuts["add_pattern_based_group"]))
         # Evaluate
-        mo_AdvancedSearch.return_value.exec_.assert_called()
+        mo_AdvancedSearch.return_value.exec.assert_called()
         self.assertEqual(1, self.ctw.topLevelItemCount())
         group = self.ctw.topLevelItem(0)
         self.assertEqual(group.name, result["name"])

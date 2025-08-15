@@ -19,7 +19,7 @@ class QMenuWrap(QtWidgets.QMenu):
 
     def exec(self, *args, **kwargs):
         if not self.return_action:
-            return super().exec_(*args, **kwargs)
+            return super().exec(*args, **kwargs)
         return self.return_action
 
 
