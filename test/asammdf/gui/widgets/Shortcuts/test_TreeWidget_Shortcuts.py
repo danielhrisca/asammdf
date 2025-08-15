@@ -501,8 +501,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         self.assertEqual(self.channels[0].ranges, range_editor_result)
 
         self.mouseClick_WidgetItem(self.channels[0])
-        for _ in range(100):
-            self.processEvents(None)
+        self.processEvents(0.1)
 
         # Displayed signal
         sig = self.channels[0].signal
@@ -524,7 +523,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         # Set X and Y ranges for viewbox
         plot.plot.viewbox.setXRange(x, w, padding=0)
         plot.plot.viewbox.setYRange(y, h, padding=0)
-        self.processEvents(None)
+        self.processEvents(0.1)
 
         # Click in the middle of the plot
         QTest.mouseClick(
@@ -534,8 +533,6 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
             QPoint(int(plot.plot.width() / 2), int(plot.plot.height() / 2)),
         )
         self.processEvents(0.1)
-        for _ in range(100):
-            self.processEvents(0.01)
         selected_channel_value = plot.selected_channel_value.grab()
         plot_graphics = plot.plot.grab()
 
@@ -559,7 +556,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
             Qt.KeyboardModifier.NoModifier,
             QPoint(plot.plot.width() // 2, plot.plot.height() // 2),
         )
-        self.processEvents(1)
+        self.processEvents(0.1)
         selected_channel_value = plot.selected_channel_value.grab()
         plot_graphics = plot.plot.grab()
 
