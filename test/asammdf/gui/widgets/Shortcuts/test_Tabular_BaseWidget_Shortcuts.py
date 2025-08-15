@@ -1,7 +1,6 @@
 #!/usr/bin/env python\
 
 from os import path
-from pathlib import Path
 from sys import platform
 from unittest import mock, skipIf
 
@@ -30,11 +29,9 @@ class TestDataTableViewShortcuts(TestFileWidget):
 
         """
         super().setUp()
-        # Open measurement file
-        measurement_file = str(Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
         # Open measurement file
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Create a tabular window
         self.create_window(window_type="Tabular", channels_indexes=(35, 36))
         # Evaluate
@@ -170,11 +167,9 @@ class TestTabularBaseShortcuts(TestFileWidget):
 
         """
         super().setUp()
-        # Open measurement file
-        measurement_file = str(Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
         # Open measurement file
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
 
         self.create_window(window_type="Tabular", channels_indexes=(35, 36))
 
@@ -335,11 +330,9 @@ class TestDataFrameViewerShortcuts(TestFileWidget):
 
         """
         super().setUp()
-        # Open measurement file
-        measurement_file = str(Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
         # Open measurement file
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
 
         self.create_window(window_type="Tabular", channels_indexes=(35, 36))
 

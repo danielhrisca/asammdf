@@ -59,10 +59,8 @@ class TestTabModifyAndExport(TestFileWidget):
             - Evaluate that file was created.
             - Open File and check that there are only two channels.
         """
-        # Setup
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
         # Event
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Go to Tab: "Modify & Export": Index 1
         self.widget.aspects.setCurrentIndex(1)
         self.widget.filter_view.setCurrentText("Natural sort")

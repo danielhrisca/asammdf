@@ -1,6 +1,5 @@
 #!/usr/bin/env python\
 
-import pathlib
 from unittest import mock
 
 from PySide6.QtCore import QPoint
@@ -25,11 +24,9 @@ class TestTreeWidgetShortcuts(TestFileWidget):
 
         """
         super().setUp()
-        # Open measurement file
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
         # Open measurement file
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         self.tw = self.widget.channels_tree  # TreeWidget
 
         # get shortcuts
@@ -101,9 +98,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         """
         super().setUp()
         # Open measurement file
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
-        # Open measurement file
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Select channels -> Press PushButton "Create Window" -> "Plot"
         self.create_window(window_type="Plot")
 

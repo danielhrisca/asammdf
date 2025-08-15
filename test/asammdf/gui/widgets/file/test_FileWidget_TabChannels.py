@@ -110,10 +110,9 @@ class TestTabChannels(TestFileWidget):
             - Evaluate that Plot Window is added in "mdi_area"
         """
         # Setup
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
         valid_dsp = str(pathlib.Path(self.resource, "valid.dsp"))
         # Event
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
 
         with mock.patch("asammdf.gui.widgets.file.QtWidgets.QFileDialog.getOpenFileName") as mo_getOpenFileName:
             mo_getOpenFileName.return_value = valid_dsp, None
@@ -174,7 +173,6 @@ class TestTabChannels(TestFileWidget):
                     - Numeric, Plot, Tabular
         """
         # Setup
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
         valid_dspf = str(pathlib.Path(self.resource, "valid.dspf"))
         invalid_json_decode_error_dspf = str(pathlib.Path(self.resource, "invalid_JsonDecodeError.dspf"))
         invalid_numeric_section_key_error_dspf = str(pathlib.Path(self.resource, "invalid_NumericSectionKeyError.dspf"))
@@ -182,7 +180,7 @@ class TestTabChannels(TestFileWidget):
         invalid_tabular_section_key_error_dspf = str(pathlib.Path(self.resource, "invalid_TabularSectionKeyError.dspf"))
 
         # Event
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
 
         # Case 0
         with self.subTest("test_PushButton_LoadOfflineWindows_DSPF_0"):
@@ -340,10 +338,8 @@ class TestTabChannels(TestFileWidget):
         valid_lab = str(pathlib.Path(self.resource, "valid.lab"))
         invalid_missing_section_lab = str(pathlib.Path(self.resource, "invalid_MissingSection.lab"))
         invalid_empty_section_lab = str(pathlib.Path(self.resource, "invalid_EmptySection.lab"))
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
-
         # Event
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Switch ComboBox to "Internal file structure"
         self.widget.channel_view.setCurrentText("Internal file structure")
         # Case 0:
@@ -465,9 +461,8 @@ class TestTabChannels(TestFileWidget):
         # Setup
         valid_dspf = str(pathlib.Path(self.resource, "valid.dspf"))
         saved_dspf = pathlib.Path(self.test_workspace, f"{self.id()}.dspf")
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Switch ComboBox to "Internal file structure"
         self.widget.channel_view.setCurrentText("Internal file structure")
 
@@ -514,10 +509,8 @@ class TestTabChannels(TestFileWidget):
         Evaluate:
             - Evaluate that all channels from "channels_tree" are checked.
         """
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
-
         # Event
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
 
         # Switch ComboBox to "Natural sort"
         self.widget.channel_view.setCurrentText("Natural Sort")
@@ -575,10 +568,9 @@ class TestTabChannels(TestFileWidget):
         Evaluate:
             - Evaluate that all channels from "channels_tree" are unchecked.
         """
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
         # Event
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
 
         # Switch ComboBox to "Natural sort"
         self.widget.channel_view.setCurrentText("Natural Sort")
@@ -649,10 +641,8 @@ class TestTabChannels(TestFileWidget):
                 - Evaluate that 2 channels are selected in "channel_tree"
                 - Plot Window is added.
         """
-        # Setup
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
         # Event
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Case 0:
         with self.subTest("test_PushButton_Search_0"):
             with mock.patch("asammdf.gui.widgets.file.AdvancedSearch") as mc_AdvancedSearch:
@@ -754,10 +744,8 @@ class TestTabChannels(TestFileWidget):
             - Evaluate that 4 sub-windows are created.
             - Check if windows contain channel selected.
         """
-        # Setup
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
         # Event
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         self.widget.channel_view.setCurrentText("Natural sort")
 
         # Case 0:
@@ -838,10 +826,8 @@ class TestTabChannels(TestFileWidget):
         Evaluate:
             - Evaluate that new dialog is visible and display channel meta-data.
         """
-        # Setup
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
         # Event
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         self.widget.channel_view.setCurrentText("Internal file structure")
 
         first_item = self.widget.channels_tree.topLevelItem(0)

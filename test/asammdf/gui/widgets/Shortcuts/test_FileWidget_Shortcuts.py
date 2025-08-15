@@ -1,7 +1,6 @@
 #!/usr/bin/env python\
 
 from math import ceil, sqrt
-import pathlib
 from random import randint
 from unittest import mock
 
@@ -30,7 +29,6 @@ class TestFileWidgetShortcuts(TestFileWidget):
         """
         super().setUp()
         # Open measurement file
-        self.measurement_file = str(pathlib.Path(TestFileWidget.resource, "ASAP2_Demo_V171.mf4"))
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
 
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
