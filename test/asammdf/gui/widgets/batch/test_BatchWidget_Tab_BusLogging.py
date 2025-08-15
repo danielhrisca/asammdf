@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import codecs
+from datetime import datetime
 import os
 from pathlib import Path
 import sys
@@ -341,7 +342,11 @@ class TestPushButtons(TestBatchWidget):
             seconds = int(max_ts - min_ts)
             microseconds = np.floor((max_ts - min_ts - seconds) * pow(10, 6))
 
-            delay = np.datetime64(mdf_file.start_time)  # - np.timedelta64(3, "h")   # idk from why, local fail...
+            # mdf start time is local, so get local tz offset to calculate the delay
+            local_dt = datetime.now().astimezone()
+            offset_seconds = int(local_dt.utcoffset().total_seconds())
+            delay = np.datetime64(mdf_file.start_time) - np.timedelta64(offset_seconds, "s")
+
             csv_table.timestamps = pd.DatetimeIndex(csv_table.timestamps.values, yearfirst=True).values - delay
 
             # Evaluate timestamps min
