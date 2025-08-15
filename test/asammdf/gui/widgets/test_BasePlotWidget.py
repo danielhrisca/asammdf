@@ -1,11 +1,12 @@
-import threading as td
+import threading
+import time
 from unittest import mock
 
 import pyautogui
 from PySide6 import QtCore, QtTest, QtWidgets
 from PySide6.QtCore import QCoreApplication, QPoint, QPointF, Qt
 from PySide6.QtGui import QInputDevice, QPointingDevice, QWheelEvent
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QWidget
 
 from test.asammdf.gui.test_base import DragAndDrop
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
@@ -88,43 +89,42 @@ class TestPlotWidget(TestFileWidget):
             while not mo_action.text.called:
                 self.processEvents(0.02)
 
-    def move_item_inside_channels_tree_widget(self, plot=None, src=None, dst=None):
+    def move_item_inside_channels_tree_widget(
+        self, plot=None, src: QTreeWidgetItem = None, dst: QTreeWidgetItem | QTreeWidget = None
+    ):
         if src is None or dst is None:
             raise Exception("src and dst is cannot be None")
 
-        channels_tree_widget = src.treeWidget()
-        if channels_tree_widget.headerItem().sizeHint(0).height() == -1:
-            channels_tree_widget.headerItem().setSizeHint(0, QtCore.QSize(50, 25))
-        # height of header item
-        header_item_h = channels_tree_widget.headerItem().sizeHint(0).height()
-        # height of regular item
-        item_h = channels_tree_widget.visualItemRect(src).height()
-        correction = 0.2
-        # start drag coordinates
-        drag_x, drag_y = (
-            channels_tree_widget.visualItemRect(src).center().x(),
-            channels_tree_widget.visualItemRect(src).center().y() + header_item_h + int(item_h * correction),
-        )
+        def get_global_center(_item: QTreeWidgetItem) -> QPoint:
+            _tree_widget = _item.treeWidget()
+            index = _tree_widget.indexFromItem(_item)
+            rect = _tree_widget.visualRect(index)
+            return _tree_widget.viewport().mapToGlobal(rect.center())
+
         # stop drag (drop) coordinates
-        if dst is channels_tree_widget:  # destination is channel tree widget
-            drop_x, drop_y = dst.rect().center().x(), dst.rect().center().y()
+        if isinstance(dst, QTreeWidgetItem):
+            delta = get_global_center(dst) - get_global_center(src)
         else:
-            if dst.type() == dst.Channel:  # for insertion below channel
-                correction = 0.5
-            drop_x, drop_y = (
-                channels_tree_widget.visualItemRect(dst).center().x(),
-                channels_tree_widget.visualItemRect(dst).center().y() + header_item_h + int(item_h * correction),
-            )
-        QtTest.QTest.mouseMove(channels_tree_widget, QPoint(drag_x, drag_y))
-        # minimum necessary time for drag action to be implemented
-        t = 1
+            delta = dst.viewport().mapToGlobal(dst.viewport().rect().center()) - get_global_center(src)
 
-        def call_drop_event(x, y, duration, h):
-            x *= h / y
-            pyautogui.drag(int(x), y, duration=duration)
+        global_start = get_global_center(src)
+        pyautogui.moveTo(global_start.x(), global_start.y())
 
-        td.Timer(0.0001, call_drop_event, args=(int(drag_x * 0.5), drop_y - drag_y, t, item_h)).start()
-        self.manual_use(self.widget, duration=t + 0.002)
+        duration = 1.0
+        done_event = threading.Event()
+
+        def call_drop_event():
+            pyautogui.drag(delta.x(), delta.y(), duration=duration)
+            done_event.set()
+
+        thread = threading.Thread(target=call_drop_event)
+        thread.start()
+
+        while not done_event.is_set():
+            time.sleep(0.1)
+            self.processEvents(0.001)
+
+        thread.join()
 
     def wheel_action(self, w: QWidget, x: float, y: float, angle_delta: int):
         """
