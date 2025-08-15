@@ -28,20 +28,6 @@ class TestFileWidget(TestBase):
         # it is preferable to work with a copy of the file
         self.measurement_file = shutil.copy(os.path.join(self.resource, "ASAP2_Demo_V171.mf4"), self.test_workspace)
 
-    def tearDown(self):
-        # save last state graphical view of widget if failure
-        path = self.screenshots
-        for name in self.id().split(".")[:-1]:
-            _path = os.path.join(path, name)
-            if not os.path.exists(_path):
-                os.makedirs(_path)
-            path = _path
-        self.widget.grab().save(os.path.join(path, f"{self.id().split('.')[-1]}.png"))
-
-        if self.widget is not None:
-            self.widget.close()
-        super().tearDown()
-
     def setUpFileWidget(self, *args, measurement_file, default):
         """
         Created because for a lot of testcases,

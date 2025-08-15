@@ -153,16 +153,22 @@ class TestBase(unittest.TestCase):
         self.processEvents()
         w = getattr(self, "widget", None)
         if w:
+            self.take_screenshot(w)
             self.destroy(w)
 
         self.mc_ErrorDialog.reset_mock()
 
         if self.test_workspace and pathlib.Path(self.test_workspace).exists():
-            try:
-                shutil.rmtree(self.test_workspace)
-            except PermissionError as e:
-                self.destroy(w)
-                print(e)
+            shutil.rmtree(self.test_workspace)
+
+    def take_screenshot(self, widget):
+        path = self.screenshots
+        for name in self.id().split(".")[:-1]:
+            _path = os.path.join(path, name)
+            if not os.path.exists(_path):
+                os.makedirs(_path)
+            path = _path
+        widget.grab().save(os.path.join(path, f"{self.id().split('.')[-1]}.png"))
 
     @staticmethod
     def destroy(w):
