@@ -9,11 +9,14 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QTreeWidgetItemIterator
 
 from asammdf import mdf
+from asammdf.gui.widgets.plot import PlotGraphics
 from test.asammdf.gui.test_base import Pixmap, safe_setup
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestPlotGraphicsShortcuts(TestPlotWidget):
+    pg: PlotGraphics
+
     @safe_setup
     def setUp(self):
         """
@@ -113,31 +116,36 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         # Evaluate that two cursors are available
         self.assertEqual(2, len(cursors))
 
-        # Evaluate that new rectangle with different color is present
+        # area left of range must have background color
         self.assertTrue(
             Pixmap.is_colored(
                 pixmap=range_pixmap,
                 color_name=Pixmap.COLOR_BACKGROUND,
                 x=0,
                 y=0,
-                width=min(cursors) - 1,
+                width=min(cursors),
             )
         )
-        self.assertTrue(
-            Pixmap.is_colored(
-                pixmap=range_pixmap,
-                color_name=Pixmap.COLOR_RANGE,
-                x=min(cursors) + 1,
-                y=0,
-                width=max(cursors),
-            )
-        )
+
+        # area right of range must have background color
         self.assertTrue(
             Pixmap.is_colored(
                 pixmap=range_pixmap,
                 color_name=Pixmap.COLOR_BACKGROUND,
                 x=max(cursors) + 1,
                 y=0,
+            )
+        )
+
+        # area inside range must have range color, first and last line are black
+        self.assertTrue(
+            Pixmap.is_colored(
+                pixmap=range_pixmap,
+                color_name=Pixmap.COLOR_RANGE,
+                x=min(cursors) + 1,
+                y=1,
+                width=max(cursors) - (min(cursors) + 1),
+                height=range_pixmap.height() - 2,
             )
         )
 
@@ -158,31 +166,36 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertEqual(cursors[0], new_cursors[0], "First cursor have new position after manipulation")
         self.assertNotEqual(cursors[1], new_cursors[1], "Second cursors have same position after manipulation")
 
-        # Evaluate that new rectangle with different color is present
+        # area left of range must have background color
         self.assertTrue(
             Pixmap.is_colored(
                 pixmap=range_pixmap,
                 color_name=Pixmap.COLOR_BACKGROUND,
                 x=0,
                 y=0,
-                width=min(new_cursors) - 1,
+                width=min(new_cursors),
             )
         )
-        self.assertTrue(
-            Pixmap.is_colored(
-                pixmap=range_pixmap,
-                color_name=Pixmap.COLOR_RANGE,
-                x=min(new_cursors) + 1,
-                y=0,
-                width=max(new_cursors),
-            )
-        )
+
+        # area right of range must have background color
         self.assertTrue(
             Pixmap.is_colored(
                 pixmap=range_pixmap,
                 color_name=Pixmap.COLOR_BACKGROUND,
                 x=max(new_cursors) + 1,
                 y=0,
+            )
+        )
+
+        # area inside range must have range color, first and last line are black
+        self.assertTrue(
+            Pixmap.is_colored(
+                pixmap=range_pixmap,
+                color_name=Pixmap.COLOR_RANGE,
+                x=min(new_cursors) + 1,
+                y=1,
+                width=max(new_cursors) - (min(new_cursors) + 1),
+                height=range_pixmap.height() - 2,
             )
         )
 
@@ -208,31 +221,36 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         for c in cursors:
             self.assertNotIn(c, new_cursors, f"cursor {c} is the same")
 
-        # Evaluate that new rectangle with different color is present
+        # area left of range must have background color
         self.assertTrue(
             Pixmap.is_colored(
                 pixmap=range_pixmap,
                 color_name=Pixmap.COLOR_BACKGROUND,
                 x=0,
                 y=0,
-                width=min(new_cursors) - 1,
+                width=min(new_cursors),
             )
         )
-        self.assertTrue(
-            Pixmap.is_colored(
-                pixmap=range_pixmap,
-                color_name=Pixmap.COLOR_RANGE,
-                x=min(new_cursors) + 1,
-                y=0,
-                width=max(new_cursors),
-            )
-        )
+
+        # area right of range must have background color
         self.assertTrue(
             Pixmap.is_colored(
                 pixmap=range_pixmap,
                 color_name=Pixmap.COLOR_BACKGROUND,
                 x=max(new_cursors) + 1,
                 y=0,
+            )
+        )
+
+        # area inside range must have range color, first and last line are black
+        self.assertTrue(
+            Pixmap.is_colored(
+                pixmap=range_pixmap,
+                color_name=Pixmap.COLOR_RANGE,
+                x=min(new_cursors) + 1,
+                y=1,
+                width=max(new_cursors) - (min(new_cursors) + 1),
+                height=range_pixmap.height() - 2,
             )
         )
 
@@ -262,9 +280,8 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         channel_color = self.channels[0].color.name()
 
         # Count intersections between middle line and signal
-        initial_intersections = Pixmap.color_map(self.pg.grab(QRect(0, int(self.pg.height() / 2), self.pg.width(), 1)))[
-            0
-        ].count(channel_color)
+        horizontal_line = QRect(0, int(self.pg.height() / 2), self.pg.width(), 1)
+        initial_intersections = Pixmap.color_map(self.pg.grab(horizontal_line))[0].count(channel_color)
         self.assertTrue(initial_intersections)
 
         # Setup for cursor
@@ -289,6 +306,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertEqual(len(cursors), 2)
 
         # Get a set of colors founded between cursors
+        self.is_not_blinking(self.pg, {channel_color})
         colors = Pixmap.color_names_exclude_defaults(
             self.pg.grab(QRect(cursors[0], 0, cursors[1] - cursors[0], self.pg.height()))
         )
@@ -301,9 +319,8 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertTrue(color)
 
         # Count intersection of midd line and signal between cursors
-        expected_intersections = Pixmap.color_map(
-            self.pg.grab(QRect(cursors[0], int(self.pg.height() / 2), cursors[1] - cursors[0], 1))
-        )[0].count(color)
+        horizontal_line = QRect(cursors[0], int(self.pg.height() / 2), cursors[1] - cursors[0], 1)
+        expected_intersections = Pixmap.color_map(self.pg.grab(horizontal_line))[0].count(color)
         self.assertTrue(expected_intersections)
 
         # Press key "X"
@@ -311,9 +328,8 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.processEvents()
 
         # Evaluate how much times signal intersect midd line
-        actual_intersections = Pixmap.color_map(self.pg.grab(QRect(0, int(self.pg.height() / 2), self.pg.width(), 1)))[
-            0
-        ].count(channel_color)
+        horizontal_line = QRect(0, int(self.pg.height() / 2), self.pg.width(), 1)
+        actual_intersections = Pixmap.color_map(self.pg.grab(horizontal_line))[0].count(channel_color)
         self.assertEqual(actual_intersections, expected_intersections)
         self.assertLess(actual_intersections, initial_intersections)
 
@@ -347,18 +363,18 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             - Evaluate that all signals are continuous on plot
         """
 
-        def continuous(ch):
+        def continuous(signal_color: str) -> bool:
             pixmap = self.pg.grab()
-            image = pixmap.toImage()
-            signal_color = ch.color.name()
-            start, stop = Pixmap.search_signal_extremes_by_ax(pixmap, signal_color=signal_color, ax="x")
-            for x in range(start, stop + 1):
-                for j in range(self.pg.height()):
-                    if image.pixelColor(x, j).name() == signal_color:
-                        break
+            if extremes := Pixmap.search_signal_extremes_by_ax(pixmap, signal_color=signal_color, ax="X"):
+                start, stop = extremes
+            else:
+                return False
 
-                else:
-                    raise Exception(f"column {x} doesn't have color of channel {ch.name} from {start=} to {stop=}")
+            for x in range(start, stop + 1):
+                column_colors = Pixmap.color_names(self.pg.grab(QRect(x, 0, 1, pixmap.height())))
+                if signal_color not in column_colors:
+                    return False
+            return True
 
         self.pg.cursor1.color = "#000000"
         settings = QSettings()
@@ -542,15 +558,15 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
 
             # search if all channels are fitted into extremes
             self.mouseDClick_WidgetItem(channel_35)
-            continuous(channel_35)
+            self.assertTrue(continuous(color_35))
 
             self.mouseDClick_WidgetItem(channel_35)
             self.mouseDClick_WidgetItem(channel_36)
-            continuous(channel_36)
+            self.assertTrue(continuous(color_36))
 
             self.mouseDClick_WidgetItem(channel_36)
             self.mouseDClick_WidgetItem(channel_37)
-            continuous(channel_37)
+            self.assertTrue(continuous(color_37))
 
     def test_grid_shortcut(self):
         """
@@ -752,31 +768,36 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         # Evaluate that two cursors are available
         self.assertEqual(2, len(cursors))
 
-        # Evaluate that new rectangle with different color is present
+        # area left of range must have background color
         self.assertTrue(
             Pixmap.is_colored(
                 pixmap=range_pixmap,
                 color_name=Pixmap.COLOR_BACKGROUND,
                 x=0,
                 y=0,
-                width=min(cursors) - 1,
+                width=min(cursors),
             )
         )
-        self.assertTrue(
-            Pixmap.is_colored(
-                pixmap=range_pixmap,
-                color_name=Pixmap.COLOR_RANGE,
-                x=min(cursors) + 1,
-                y=0,
-                width=max(cursors),
-            )
-        )
+
+        # area right of range must have background color
         self.assertTrue(
             Pixmap.is_colored(
                 pixmap=range_pixmap,
                 color_name=Pixmap.COLOR_BACKGROUND,
                 x=max(cursors) + 1,
                 y=0,
+            )
+        )
+
+        # area inside range must have range color, first and last line are black
+        self.assertTrue(
+            Pixmap.is_colored(
+                pixmap=range_pixmap,
+                color_name=Pixmap.COLOR_RANGE,
+                x=min(cursors) + 1,
+                y=1,
+                width=max(cursors) - (min(cursors) + 1),
+                height=range_pixmap.height() - 2,
             )
         )
 
@@ -797,25 +818,18 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         for c in cursors:
             self.assertNotIn(c, new_cursors, f"cursor {c} is the same")
 
-        # Evaluate that new rectangle with different color is present
+        # area left of range must have background color
         self.assertTrue(
             Pixmap.is_colored(
                 pixmap=range_pixmap,
                 color_name=Pixmap.COLOR_BACKGROUND,
                 x=0,
                 y=0,
-                width=min(new_cursors) - 1,
+                width=min(new_cursors),
             )
         )
-        self.assertTrue(
-            Pixmap.is_colored(
-                pixmap=range_pixmap,
-                color_name=Pixmap.COLOR_RANGE,
-                x=min(new_cursors) + 1,
-                y=0,
-                width=max(new_cursors),
-            )
-        )
+
+        # area right of range must have background color
         self.assertTrue(
             Pixmap.is_colored(
                 pixmap=range_pixmap,
@@ -824,6 +838,19 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
                 y=0,
             )
         )
+
+        # area inside range must have range color, first and last line are black
+        self.assertTrue(
+            Pixmap.is_colored(
+                pixmap=range_pixmap,
+                color_name=Pixmap.COLOR_RANGE,
+                x=min(new_cursors) + 1,
+                y=1,
+                width=max(new_cursors) - (min(new_cursors) + 1),
+                height=range_pixmap.height() - 2,
+            )
+        )
+
         # Press Key 'R' for range selection
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["range"]))
         self.processEvents(timeout=0.01)
@@ -1016,10 +1043,10 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.processEvents(0.1)
 
         # Find extremes of signals
-        old_from_to_y_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "y")
-        old_from_to_x_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "x")
-        old_from_to_y_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "y")
-        old_from_to_x_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "x")
+        old_from_to_y_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "Y")
+        old_from_to_x_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "X")
+        old_from_to_y_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "Y")
+        old_from_to_x_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "X")
 
         # Select first channel and move signal using commands Shift + PgDown/Down/Left
         self.mouseClick_WidgetItem(channel_36)
@@ -1038,10 +1065,10 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.is_not_blinking(self.pg, {channel_36.color.name(), channel_37.color.name()})
 
         # Find new extremes
-        new_from_to_y_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "y")
-        new_from_to_y_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "y")
-        new_from_to_x_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "x")
-        new_from_to_x_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "x")
+        new_from_to_y_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "Y")
+        new_from_to_y_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "Y")
+        new_from_to_x_channel_36 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_36.color.name(), "X")
+        new_from_to_x_channel_37 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_37.color.name(), "X")
 
         # Evaluate
         self.assertLess(old_from_to_y_channel_36[0], new_from_to_y_channel_36[0])
@@ -1135,7 +1162,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.processEvents(0.01)
 
         # search first and last column where is displayed first signal
-        extremes_of_channel_35 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_35.color.name(), ax="x")
+        extremes_of_channel_35 = Pixmap.search_signal_extremes_by_ax(self.pg.grab(), channel_35.color.name(), ax="X")
         # Evaluate that there are extremes of first signal
         self.assertTrue(extremes_of_channel_35)
         # Press "I"
@@ -1154,7 +1181,7 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         QTest.keySequence(self.pg, QKeySequence(self.shortcuts["home"]))
         self.processEvents()
         # Select all columns from left to right
-        for x in range(self.pg.height() - 1):
+        for x in range(self.pg.width()):
             column = self.pg.grab(QRect(x, 0, 1, self.pg.height()))
             if x < extremes_of_channel_35[0] - 1:
                 self.assertTrue(Pixmap.is_black(column), f"column {x} is not black")

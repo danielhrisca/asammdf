@@ -1,5 +1,4 @@
 import threading
-import time
 from unittest import mock
 
 import pyautogui
@@ -8,6 +7,7 @@ from PySide6.QtCore import QCoreApplication, QPoint, QPointF, Qt
 from PySide6.QtGui import QInputDevice, QPointingDevice, QWheelEvent
 from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QWidget
 
+from asammdf.gui.widgets.plot import Plot
 from test.asammdf.gui.test_base import DragAndDrop
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
@@ -25,6 +25,8 @@ class QMenuWrap(QtWidgets.QMenu):
 
 
 class TestPlotWidget(TestFileWidget):
+    plot: Plot
+
     class Column:
         NAME = 0
         RAWVALUE = 1
@@ -121,8 +123,7 @@ class TestPlotWidget(TestFileWidget):
         thread.start()
 
         while not done_event.is_set():
-            time.sleep(0.1)
-            self.processEvents(0.001)
+            self.processEvents(0.1)
 
         thread.join()
 

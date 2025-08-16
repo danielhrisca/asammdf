@@ -13,6 +13,7 @@ from test.asammdf.gui.test_base import safe_setup, TestBase
 
 
 class TestFileWidget(TestBase):
+    widget: FileWidget
     testResult = None
 
     @safe_setup

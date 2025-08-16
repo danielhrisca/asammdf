@@ -10,11 +10,16 @@ from PySide6.QtCore import QPoint, QRect
 from PySide6.QtWidgets import QApplication
 
 from asammdf import mdf
+from asammdf.gui.widgets.tabular import Tabular
+from asammdf.gui.widgets.tabular_base import DataFrameViewer, DataTableView
 from test.asammdf.gui.test_base import Pixmap, safe_setup
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 
 class TestDataTableViewShortcuts(TestFileWidget):
+    tabular: Tabular
+    dtw: DataTableView
+
     @safe_setup
     def setUp(self):
         """
@@ -67,9 +72,9 @@ class TestDataTableViewShortcuts(TestFileWidget):
         value2 = 150.0
         self.processEvents()
         green = QtGui.QColor.fromRgbF(0.000000, 1.000000, 0.000000, 1.000000)
-        green_brush = QtGui.QBrush(green, QtGui.Qt.SolidPattern)
+        green_brush = QtGui.QBrush(green, QtGui.Qt.BrushStyle.SolidPattern)
         red = QtGui.QColor.fromRgbF(1.000000, 0.000000, 0.000000, 1.000000)
-        red_brush = QtGui.QBrush(red, QtGui.Qt.SolidPattern)
+        red_brush = QtGui.QBrush(red, QtGui.Qt.BrushStyle.SolidPattern)
         range_editor_result = [
             {
                 "background_color": green_brush,
@@ -125,7 +130,7 @@ class TestDataTableViewShortcuts(TestFileWidget):
             )
         )
         # Evaluate
-        self.assertFalse(Pixmap.has_color(pm, red))
+        self.assertFalse(Pixmap.has_color(pm, red, tolerance=10))  # tolerance for text smoothing
         self.assertFalse(Pixmap.has_color(pm, green))
 
         # Find colored row
@@ -149,10 +154,12 @@ class TestDataTableViewShortcuts(TestFileWidget):
         )
         # Evaluate
         self.assertTrue(Pixmap.has_color(pm, green))
-        self.assertTrue(Pixmap.has_color(pm, red))
+        self.assertTrue(Pixmap.has_color(pm, red, tolerance=10))  # tolerance for text smoothing
 
 
 class TestTabularBaseShortcuts(TestFileWidget):
+    tabular: Tabular
+
     @safe_setup
     def setUp(self):
         """
@@ -317,6 +324,9 @@ class TestTabularBaseShortcuts(TestFileWidget):
 
 @skipIf(platform != "win32", "Failed on linux. Shortcut can copy only value for one cell")
 class TestDataFrameViewerShortcuts(TestFileWidget):
+    tabular: Tabular
+    dfw: DataFrameViewer
+
     def setUp(self):
         """
             Events:

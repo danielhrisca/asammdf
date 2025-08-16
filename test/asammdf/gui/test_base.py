@@ -20,15 +20,19 @@ import pathlib
 import shutil
 import sys
 import time
+from typing import Literal
 import unittest
 from unittest import mock
 
 from h5py import File as HDF5
+import numpy as np
+from numpy.typing import NDArray
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtTest, QtWidgets
 
 from asammdf import mdf
 from asammdf.gui.utils import excepthook
+from asammdf.gui.widgets.tree import ChannelsTreeItem
 
 if sys.platform == "win32":
     os.environ["QT_QPA_PLATFORM"] = "windows"
@@ -219,7 +223,7 @@ class TestBase(unittest.TestCase):
         )
         self.processEvents(0.5)
 
-    def is_not_blinking(self, to_grab, colors: set[str], timeout=5.0):
+    def is_not_blinking(self, to_grab: QtWidgets.QWidget, colors: set[str], timeout: float = 5.0) -> bool:
         """
         Parameters
         ----------
@@ -234,10 +238,11 @@ class TestBase(unittest.TestCase):
             raise Warning(f"object {to_grab} has no attribute grab")
 
         now = time.perf_counter()
-        all_colors = Pixmap.color_names_exclude_defaults(to_grab.grab())
-        while not colors.issubset(all_colors):
+        while True:
             self.processEvents(0.01)
             all_colors = Pixmap.color_names_exclude_defaults(to_grab.grab())
+            if colors.issubset(all_colors):
+                break
             if time.perf_counter() - now > timeout:
                 return False
         return True
@@ -280,229 +285,300 @@ class Pixmap:
     COLOR_CURSOR = "#e69138"
 
     @staticmethod
-    def is_black(pixmap) -> bool:
+    def to_numpy(pixmap: QtGui.QPixmap) -> NDArray[np.uint32]:
         """
-        Excepting cursor
-        """
-        image = pixmap.toImage()
+        Convert a QPixmap to a NumPy array of 32-bit ARGB values.
 
-        for y in range(image.height()):
-            for x in range(image.width()):
-                color = QtGui.QColor(image.pixel(x, y))
-                if color.name() not in (Pixmap.COLOR_BACKGROUND, Pixmap.COLOR_CURSOR):
-                    return False
-        return True
-
-    @staticmethod
-    def is_colored(pixmap, color_name, x, y, width=None, height=None):
-        image = pixmap.toImage()
-
-        offset = 1
-        y = y + offset
-
-        if not width:
-            width = image.width()
-        if not height:
-            height = image.height()
-
-        for _y in range(offset, image.height()):
-            for _x in range(image.width()):
-                color = QtGui.QColor(image.pixel(_x, _y))
-                if _x < x or _y < y:
-                    continue
-                # De unde 2?
-                elif (_x > width - x) or (_y > height - y - 2):
-                    break
-                if color.name() != color_name:
-                    print(x, y, width, height)
-                    print(_x, _y, color.name())
-                    return False
-        return True
-
-    @staticmethod
-    def has_color(pixmap, color_name):
-        """
-        Return True if "pixmap" has "color_name" color
-        """
-        image = pixmap.toImage()
-        if not isinstance(color_name, str):
-            if hasattr(color_name, "color"):
-                color_name = color_name.color.name()
-            elif hasattr(color_name, "name"):
-                color_name = color_name.name()
-            else:
-                raise SyntaxError(f"Object {color_name} doesn't have the attribute <<color>> or <<name()>>")
-        for y in range(image.height()):
-            for x in range(image.width()):
-                color = QtGui.QColor(image.pixel(x, y))
-                if color.name() == color_name:
-                    return True
-        return False
-
-    @staticmethod
-    def color_names(pixmap):
-        """
+        This function returns a new NumPy array with a copy of the pixel data, so
+        modifications to the array do not affect the original QPixmap.
 
         Parameters
         ----------
-        pixmap: QPixmap object of PlotGraphics object
+        pixmap : QtGui.QPixmap
+            The QPixmap to convert.
 
         Returns
         -------
-        All colors from pixmap including default colors
+        NDArray[np.uint32]
+            A 2D NumPy array of shape (height, width), where each element is a
+            32-bit unsigned integer representing a pixel in ARGB format.
         """
-        color_names = set()
+        image = pixmap.toImage().convertToFormat(QtGui.QImage.Format.Format_ARGB32)
+        ptr = image.bits()
+        arr = np.frombuffer(ptr, np.uint32).reshape((pixmap.height(), pixmap.width()))
+        return arr.copy()
 
-        image = pixmap.toImage()
-        for y in range(image.height()):
-            for x in range(image.width()):
-                color = QtGui.QColor(image.pixel(x, y))
-                color_names.add(color.name())
+    @staticmethod
+    def is_black(pixmap: QtGui.QPixmap) -> bool:
+        """
+        Check if a QPixmap is entirely black, ignoring background and cursor colors.
+
+        The function computes all unique colors in the pixmap, excludes the
+        predefined background and cursor colors, and determines whether any
+        remaining colors exist.
+
+        Parameters
+        ----------
+        pixmap : QtGui.QPixmap
+            The QPixmap to check.
+
+        Returns
+        -------
+        bool
+            True if all visible pixels are black (excluding background and cursor),
+            False otherwise.
+        """
+        ignored_colors = {Pixmap.COLOR_BACKGROUND, Pixmap.COLOR_CURSOR}
+        colors = Pixmap.color_names(pixmap) - ignored_colors
+        return len(colors) == 0
+
+    @staticmethod
+    def is_colored(
+        pixmap: QtGui.QPixmap,
+        color_name: str,
+        x: int,
+        y: int,
+        width: int | None = None,
+        height: int | None = None,
+    ) -> bool:
+        """
+        Check whether a rectangular region of a QPixmap is entirely filled with a given color.
+
+        Parameters
+        ----------
+        pixmap : QtGui.QPixmap
+            The QPixmap to inspect.
+        color_name : str
+            The target color, expressed as a hex string (e.g., "#ff0000").
+        x : int
+            The x-coordinate of the top-left corner of the rectangle.
+        y : int
+            The y-coordinate of the top-left corner of the rectangle.
+        width : int | None, optional
+            The width of the rectangle. If None, defaults to the width of the pixmap from x.
+        height : int | None, optional
+            The height of the rectangle. If None, defaults to the height of the pixmap from y.
+
+        Returns
+        -------
+        bool
+            True if all pixels in the specified rectangle have the given color, False otherwise.
+
+        """
+        width = width or (pixmap.width() - x)
+        height = height or (pixmap.height() - x)
+
+        arr = Pixmap.to_numpy(pixmap)
+        arr_rect = arr[y : y + height, x : x + width]
+        colors_in_rect = {QtGui.QColor.fromRgba(x).name() for x in np.unique_values(arr_rect)}
+        return colors_in_rect == {color_name}
+
+    @staticmethod
+    def has_color(pixmap: QtGui.QPixmap, color_name: str | QtGui.QColor | ChannelsTreeItem, tolerance: int = 0) -> bool:
+        """
+        Return True if "pixmap" contains a color close to "color_name", allowing some tolerance.
+
+        This function accounts for anti-aliasing and smoothing by checking
+        if any pixel's color is within a specified tolerance of the target color.
+
+        Parameters
+        ----------
+        pixmap : QtGui.QPixmap
+            The pixmap to check.
+        color_name : QtGui.QColor or str
+            The color to detect, either as a QColor or hex string (e.g., "#ff0000").
+        tolerance : int
+            Maximum allowed Euclidean distance in RGB space to consider a pixel as matching.
+
+        Returns
+        -------
+        bool
+            True if at least one pixel in the pixmap is close enough to the target color.
+        """
+        if isinstance(color_name, str):
+            color_name = QtGui.QColor(color_name)
+        elif isinstance(color_name, ChannelsTreeItem):
+            color_name = QtGui.QColor(color_name.color)
+
+        arr = Pixmap.to_numpy(pixmap)
+        # Extract RGB components
+        r = (arr >> 16) & 0xFF
+        g = (arr >> 8) & 0xFF
+        b = arr & 0xFF
+
+        # Compute squared distance to target color in RGB space
+        dr = r.astype(np.int64) - color_name.red()
+        dg = g.astype(np.int64) - color_name.green()
+        db = b.astype(np.int64) - color_name.blue()
+        dist_sq = np.square(dr) + np.square(dg) + np.square(db)
+
+        return bool(np.any(dist_sq <= tolerance**2))
+
+    @staticmethod
+    def color_names(pixmap: QtGui.QPixmap) -> set[str]:
+        """
+        Return a set of all unique colors in a QPixmap as hex strings.
+
+        The function converts the QPixmap to a NumPy array of 32-bit ARGB values,
+        finds all unique pixel values, and converts each to a standard hex color
+        string (e.g., "#ff0000").
+
+        Parameters
+        ----------
+        pixmap : QtGui.QPixmap
+            The QPixmap from which to extract colors.
+
+        Returns
+        -------
+        set[str]
+            A set of hex color strings representing all unique colors present in the pixmap.
+        """
+        arr = Pixmap.to_numpy(pixmap)
+        argb32_set = np.unique_values(arr)
+        color_names = {QtGui.QColor.fromRgba(x).name() for x in argb32_set}
         return color_names
 
     @staticmethod
-    def color_names_exclude_defaults(pixmap):
+    def color_names_exclude_defaults(pixmap: QtGui.QPixmap) -> set[str]:
         """
-        Parameters
-        ----------
-        pixmap: QPixmap object of PlotGraphics object
+        Return a set of all unique colors in a QPixmap, excluding default colors.
 
-        Returns
-        -------
-        All colors from pixmap excluding default colors
-        """
-        color_names = set()
-        defaults = (Pixmap.COLOR_BACKGROUND, Pixmap.COLOR_CURSOR, Pixmap.COLOR_RANGE)
-        image = pixmap.toImage()
-        for y in range(image.height()):
-            for x in range(image.width()):
-                color = QtGui.QColor(image.pixel(x, y))
-                if color not in defaults:
-                    color_names.add(color.name())
-        return color_names
-
-    @staticmethod
-    def color_map(pixmap):
-        """
-        return dict, where:
-            > keys are line of pixmap
-            > values is a list of color names ordered by columns of pixmap
-        """
-        color_dict = {}
-        line = []
-        image = pixmap.toImage()
-        for y in range(image.height()):
-            for x in range(image.width()):
-                line.append(QtGui.QColor(image.pixel(x, y)).name())
-            color_dict[y] = line
-            line = []
-        return color_dict
-
-    @staticmethod
-    def cursors_x(pixmap):
-        """
+        This function extracts all unique colors from the pixmap and removes
+        predefined default colors such as background, cursor, and range colors.
 
         Parameters
         ----------
-        pixmap: QPixmap object of PlotGraphics object
+        pixmap : QtGui.QPixmap
+            The QPixmap from which to extract colors.
 
         Returns
         -------
-        list of cursors line from pixmap
+        set[str]
+            A set of hex color strings representing all unique colors in the pixmap,
+            excluding the default background, cursor, and range colors.
         """
-        image = pixmap.toImage()
-
-        cursors = []
-        possible_cursor = None
-
-        for x in range(image.width()):
-            count = 0
-            for y in range(image.height()):
-                color = QtGui.QColor(image.pixel(x, y))
-                # Count straight vertical line pixels with COLOR_CURSOR color
-                if color.name() == Pixmap.COLOR_CURSOR:
-                    count += 1
-            if count >= (image.height() - 1) / 2 - 1:  # For Y shortcut tests, one cursor is a discontinuous line
-                cursors.append(x)
-        return cursors
+        defaults = {Pixmap.COLOR_BACKGROUND, Pixmap.COLOR_CURSOR, Pixmap.COLOR_RANGE}
+        return Pixmap.color_names(pixmap) - defaults
 
     @staticmethod
-    def search_signal_extremes_by_ax(pixmap, signal_color, ax: str):
+    def color_map(pixmap: QtGui.QPixmap) -> dict[int, list[str]]:
         """
-        Return column where signal start and end
-        If ax = Y: Return a list with extremes of signal by 0Y axes
-        If ax = X: Return a list with extremes of signal by 0X axes
+        Convert a QPixmap into a per-line mapping of pixel colors as hex strings.
+
+        This function efficiently maps each pixel in the pixmap to its corresponding
+        hex color string using NumPy. It avoids Python loops over individual pixels
+        by vectorizing the conversion from ARGB32 values to color strings.
+
+        Parameters
+        ----------
+        pixmap : QtGui.QPixmap
+            The QPixmap to convert.
+
+        Returns
+        -------
+        dict[int, list[str]]
+            A dictionary where:
+            - Keys are row indices (0-based).
+            - Values are lists of hex color strings representing the colors of
+            pixels in that row, ordered by column.
         """
-        if not isinstance(signal_color, str):
-            if hasattr(signal_color, "color"):
-                signal_color = signal_color.color.name()
-            elif hasattr(signal_color, "name"):
-                signal_color = signal_color.name()
-            else:
-                raise SyntaxError(f"Object {signal_color} doesn't have the attribute <<color>> or <<name()>>")
-        from_to = []
-        image = pixmap.toImage()
-        if ax in ("x", "X"):
-            for x in range(image.width()):
-                for y in range(image.height()):
-                    if image.pixelColor(x, y).name() == signal_color:
-                        from_to.append(x)
-                        break
-                if from_to:
-                    break
-            if not from_to:
-                return
-            for x in range(image.width() - 1, from_to[0], -1):
-                for y in range(image.height()):
-                    if image.pixelColor(x, y).name() == signal_color:
-                        from_to.append(x)
-                        break
-                if len(from_to) == 2:
-                    break
-            return from_to
+        arr = Pixmap.to_numpy(pixmap)  # shape (H, W), dtype uint32
 
-        elif ax in ("y", "Y"):
-            for y in range(image.height()):
-                for x in range(image.width()):
-                    if image.pixelColor(x, y).name() == signal_color:
-                        from_to.append(y)
-                        break
-                if from_to:
-                    break
-            if not from_to:
-                return
+        # 1. Map all unique ARGB values to hex strings
+        unique_vals = np.unique(arr)  # returns sortes values
+        lookup = np.array([QtGui.QColor.fromRgba(int(val)).name() for val in unique_vals])
 
-            for y in range(image.height() - 1, from_to[0], -1):
-                for x in range(image.width()):
-                    if image.pixelColor(x, y).name() == signal_color:
-                        from_to.append(y)
-                        break
-                if len(from_to) == 2:
-                    break
-            return from_to
+        # 2. Create an index array
+        # np.searchsorted requires sorted unique_vals
+        indices = np.searchsorted(unique_vals, arr)
+
+        # 3. Map indices to hex strings
+        hex_array = lookup[indices]  # shape (H, W) (hex strings)
+
+        return {y: list(row) for y, row in enumerate(hex_array)}
 
     @staticmethod
-    def search_y_of_signal_in_column(pixmap_column, signal_color):
+    def cursors_x(pixmap: QtGui.QPixmap, threshold: float = 0.3) -> list[int]:
         """
-        Return the first pixel line number where the signal color was found.
-        """
-        image = pixmap_column.toImage()
-        if image.width() > 1:
-            raise TypeError(f"<<{image.width()} != 1>>. Please check pixmap width!")
-        if not isinstance(signal_color, str):
-            if hasattr(signal_color, "color"):
-                signal_color = signal_color.color.name()
-            elif hasattr(signal_color, "name"):
-                signal_color = signal_color.name()
-            else:
-                raise SyntaxError(f"Object {signal_color} doesn't have the attribute <<color>> or <<name()>>")
+        Find the x-coordinates of vertical cursors in a QPixmap, including dashed cursors.
 
-        line = None
-        for y in range(image.height()):
-            if QtGui.QColor(image.pixel(0, y)).name() == signal_color:
-                line = y
-                break
-        return line
+        A column is considered a vertical cursor if the fraction of pixels matching
+        the cursor color exceeds the given threshold.
+
+        Parameters
+        ----------
+        pixmap : QtGui.QPixmap
+            The pixmap to scan for vertical cursor pixels.
+        threshold : float
+            Minimum fraction of pixels in a column that must match the cursor color
+            to consider it a vertical cursor (between 0 and 1).
+
+        Returns
+        -------
+        list[int]
+            List of x-coordinates corresponding to detected vertical cursors.
+        """
+        arr = Pixmap.to_numpy(pixmap)
+        cursor_color = QtGui.QColor(Pixmap.COLOR_CURSOR).rgba()
+
+        # Count pixels matching the cursor color per column
+        match_counts = np.sum(arr == cursor_color, axis=0)
+
+        # Determine fraction of pixels in each column that match
+        fraction = match_counts / arr.shape[0]
+
+        # Columns exceeding the threshold are considered vertical cursors
+        cols_with_cursor = np.nonzero(fraction >= threshold)[0]
+
+        return [int(x) for x in cols_with_cursor]
+
+    @staticmethod
+    def search_signal_extremes_by_ax(
+        pixmap: QtGui.QPixmap, signal_color: str | QtGui.QColor, ax: Literal["X", "Y"]
+    ) -> tuple[int, int] | None:
+        """
+        Find the start and end indices of a colored signal in a QPixmap along a specified axis.
+
+        This function returns the first and last row or column where the signal color appears,
+        using NumPy for fast pixel scanning.
+
+        Parameters
+        ----------
+        pixmap : QtGui.QPixmap
+            The pixmap containing the signal.
+        signal_color : str or QtGui.QColor
+            The color of the signal to search for, as a hex string or QColor.
+        ax : {"X", "Y"}
+            The axis along which to find extremes:
+            - "X": returns [start_column, end_column]
+            - "Y": returns [start_row, end_row]
+
+        Returns
+        -------
+        tuple[int, int] | None
+            Two-element tuple with the start and end index along the chosen axis, or None if color not found.
+        """
+        # Normalize signal color to hex string
+        if isinstance(signal_color, str):
+            signal_color = QtGui.QColor(signal_color)
+
+        arr = Pixmap.to_numpy(pixmap)  # shape (H, W), dtype uint32
+        # Convert signal color to ARGB uint32
+        signal_val = QtGui.QColor(signal_color).rgba()
+
+        if ax.upper() == "X":
+            mask = np.any(arr == signal_val, axis=0)  # columns containing signal
+            indices = np.flatnonzero(mask)
+        elif ax.upper() == "Y":
+            mask = np.any(arr == signal_val, axis=1)  # rows containing signal
+            indices = np.flatnonzero(mask)
+        else:
+            raise ValueError("ax must be 'X' or 'Y'")
+
+        if len(indices) == 0:
+            return None
+
+        return (int(indices[0]), int(indices[-1]))
 
 
 class OpenFileContextManager:

@@ -7,11 +7,14 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QMessageBox
 
 from asammdf.gui.serde import COLORS
+from asammdf.gui.widgets.plot import Plot
 from test.asammdf.gui.test_base import Pixmap, safe_setup
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestPlotShortcuts(TestPlotWidget):
+    plot: Plot
+
     @safe_setup
     def setUp(self):
         """
