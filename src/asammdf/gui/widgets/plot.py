@@ -605,7 +605,7 @@ class PlotSignal(Signal):
                 stats["overall_start"] = value_as_str(sig.timestamps[0], format, np.dtype("f8"), precision)
                 stats["overall_stop"] = value_as_str(sig.timestamps[-1], format, np.dtype("f8"), precision)
                 stats["overall_delta"] = value_as_str(
-                    sig.samples[-1] - sig.samples[0],
+                    sig.samples.max() - sig.samples.min(),
                     format,
                     self.plot_samples.dtype,
                     precision,
@@ -5874,7 +5874,7 @@ class PlotGraphics(pg.PlotWidget):
 
         self.current_uuid = uuid
 
-        viewbox.setYRange(*sig.y_range, padding=0)
+        viewbox.setYRange(*[float(y) for y in sig.y_range], padding=0)
 
         self.current_uuid_changed.emit(uuid)
         self.update()

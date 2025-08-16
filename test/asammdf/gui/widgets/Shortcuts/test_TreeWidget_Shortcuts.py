@@ -503,7 +503,9 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         # Coordinates for viewbox, second dot in the center of visual
         min_ = med_ = max_ = None
         for _ in range(len(sig)):
-            if sig.samples[_] == 0 and (sig.samples[_ + 10] - sig.samples[_ - 10]) < (sig.samples.max() / 10):
+            val1, val2 = sig.samples[_ + 10], sig.samples[_ - 10]
+            val_diff = max(val1, val2) - min(val1, val2)  # to avoid integer overflow
+            if sig.samples[_] == 0 and val_diff < (sig.samples.max() / 10):
                 min_ = _
                 break
         for _ in range(min_, len(sig)):
@@ -514,10 +516,12 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
             if sig.samples[_] == sig.samples.max():
                 max_ = _
                 break
-        x, y, w, h = sig.timestamps[min_], sig.samples[min_], sig.timestamps[med_], sig.samples[med_]
+
         # Set X and Y ranges for viewbox
-        plot.plot.viewbox.setXRange(x, w, padding=0)
-        plot.plot.viewbox.setYRange(y, h, padding=0)
+        x1, x2 = sig.timestamps[min_], sig.timestamps[med_]
+        y1, y2 = float(sig.samples[min_]), float(sig.samples[med_])
+        plot.plot.viewbox.setXRange(x1, x2, padding=0)
+        plot.plot.viewbox.setYRange(y1, y2, padding=0)
         self.processEvents(0.1)
 
         # Click in the middle of the plot
@@ -538,10 +542,11 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         self.assertTrue(Pixmap.has_color(plot_graphics, red))
         self.assertFalse(Pixmap.has_color(plot_graphics, self.channels[0]))
 
-        x, y, w, h = sig.timestamps[med_], sig.samples[med_], sig.timestamps[max_], sig.samples[max_]
         # Set X and Y ranges for viewbox
-        plot.plot.viewbox.setXRange(x, w, padding=0)
-        plot.plot.viewbox.setYRange(y, h, padding=0)
+        x1, x2 = sig.timestamps[med_], sig.timestamps[max_]
+        y1, y2 = float(sig.samples[med_]), float(sig.samples[max_])
+        plot.plot.viewbox.setXRange(x1, x2, padding=0)
+        plot.plot.viewbox.setYRange(y1, y2, padding=0)
         self.processEvents(0.1)
 
         # Click in the middle of the plot
