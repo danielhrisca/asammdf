@@ -177,7 +177,7 @@ def excepthook(exc_type, exc_value, tracebackobj):
     print("".join(traceback.format_tb(tracebackobj)))
     print(f"{exc_type}: {exc_value}")
 
-    ErrorDialog(message=errmsg, trace=msg, title="The following error was triggered").exec_()
+    ErrorDialog(message=errmsg, trace=msg, title="The following error was triggered").exec()
 
 
 def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progress=None):

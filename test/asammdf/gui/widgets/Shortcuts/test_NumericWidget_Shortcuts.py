@@ -1,7 +1,6 @@
 #!/usr/bin/env python\
 import json
 import os
-import pathlib
 from unittest import mock
 
 from PySide6.QtGui import QColor, QKeySequence
@@ -9,10 +8,12 @@ from PySide6.QtTest import QTest
 
 from asammdf import mdf
 from asammdf.gui.utils import copy_ranges
+from test.asammdf.gui.test_base import safe_setup
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 
 class TestTableViewShortcuts(TestFileWidget):
+    @safe_setup
     def setUp(self):
         """
         Events:
@@ -26,11 +27,9 @@ class TestTableViewShortcuts(TestFileWidget):
 
         """
         super().setUp()
-        # Open measurement file
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
         # Open measurement file
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
 
         self.create_window(window_type="Numeric")
 
@@ -119,7 +118,7 @@ class TestTableViewShortcuts(TestFileWidget):
         self.table_view.selectRow(0)
         self.processEvents()
         with mock.patch("asammdf.gui.widgets.numeric.RangeEditor") as mo_RangeEditor:
-            mo_RangeEditor.return_value.result = expected_value
+            mo_RangeEditor.return_value.payload = expected_value
             mo_RangeEditor.return_value.pressed_button = "apply"
             # Press "Alt+R"
             QTest.keySequence(self.table_view, QKeySequence(self.shortcuts["set_color_ranges"]))
@@ -218,6 +217,7 @@ class TestTableViewShortcuts(TestFileWidget):
 
 
 class TestNumericShortcuts(TestFileWidget):
+    @safe_setup
     def setUp(self):
         """
         Events:
@@ -231,11 +231,9 @@ class TestNumericShortcuts(TestFileWidget):
 
         """
         super().setUp()
-        # Open measurement file
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
         # Open measurement file
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
 
         self.create_window(window_type="Numeric")
 

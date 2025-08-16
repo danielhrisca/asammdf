@@ -9,11 +9,12 @@ from PySide6.QtWidgets import QApplication, QTreeWidgetItemIterator
 from asammdf.gui.widgets import numeric, plot, tabular
 from asammdf.gui.widgets.file import FileWidget
 from asammdf.gui.widgets.main import MainWindow
-from test.asammdf.gui.test_base import TestBase
+from test.asammdf.gui.test_base import safe_setup, TestBase
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 
 class TestShortcuts(TestBase):
+    @safe_setup
     def setUp(self):
         """
         Events:
@@ -157,7 +158,7 @@ class TestShortcuts(TestBase):
         sw_count = 0  # Sub-windows
         # Mock for Advanced search and windowSelectionDialog objects
         with mock.patch("asammdf.gui.widgets.file.AdvancedSearch") as mo_AdvancedSearch:
-            mo_AdvancedSearch.return_value.result = matrix_items
+            mo_AdvancedSearch.return_value.payload = matrix_items
             mo_AdvancedSearch.return_value.pattern_window = False
             mo_AdvancedSearch.return_value.add_window_request = False
             # Check some channels

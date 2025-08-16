@@ -10,7 +10,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QPushButton, QTreeWidgetItemIterator, QWidget
 
 from asammdf.gui.widgets.batch import BatchWidget
-from test.asammdf.gui.test_base import TestBase
+from test.asammdf.gui.test_base import safe_setup, TestBase
 
 
 class TestBatchWidget(TestBase):
@@ -21,6 +21,7 @@ class TestBatchWidget(TestBase):
     bus_aspect = 3
     default_test_file = "ASAP2_Demo_V171.mf4"
 
+    @safe_setup
     def setUp(self):
         super().setUp()
         self.widget = None

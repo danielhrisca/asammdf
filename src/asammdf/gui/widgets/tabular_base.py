@@ -474,7 +474,7 @@ class DataTableView(QtWidgets.QTableView):
                     ranges.extend(self.pgdf.tabular.ranges[original_name])
 
                 dlg = RangeEditor("<selected signals>", "", ranges=ranges, parent=self, brush=True)
-                dlg.exec_()
+                dlg.exec()
                 if dlg.pressed_button == "apply":
                     ranges = dlg.payload
 
@@ -1664,7 +1664,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             original_name = self.tree.pgdf.df_unfiltered.columns[index]
 
             dlg = RangeEditor(name, "", self.ranges[original_name], parent=self, brush=True)
-            dlg.exec_()
+            dlg.exec()
             if dlg.pressed_button == "apply":
                 ranges = dlg.payload
                 self.ranges[original_name] = ranges

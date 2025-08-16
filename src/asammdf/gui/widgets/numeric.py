@@ -850,7 +850,7 @@ class TableView(QtWidgets.QTableView):
                     parent=self,
                     brush=True,
                 )
-                dlg.exec_()
+                dlg.exec()
                 if dlg.pressed_button == "apply":
                     ranges = dlg.payload
                     for row in selected_items:
@@ -1079,7 +1079,7 @@ class TableView(QtWidgets.QTableView):
         signal = self.backend.signals[row]
 
         dlg = RangeEditor(signal.name, signal.unit, self.ranges[signal.entry], parent=self, brush=True)
-        dlg.exec_()
+        dlg.exec()
         if dlg.pressed_button == "apply":
             ranges = dlg.payload
             self.ranges[signal.entry] = ranges

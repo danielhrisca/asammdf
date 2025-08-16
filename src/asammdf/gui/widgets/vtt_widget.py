@@ -36,7 +36,7 @@ class VTTWidget(Ui_VTT_Widget, QtWidgets.QWidget):
 
     def edit_conversion(self):
         dlg = ConversionEditor(f"Raw={self.value.value()} referenced", self.conversion, parent=self)
-        dlg.exec_()
+        dlg.exec()
         if dlg.pressed_button == "apply":
             self.conversion = dlg.conversion()
 
