@@ -103,20 +103,19 @@ class TestPlotWidget(TestFileWidget):
             rect = _tree_widget.visualRect(index)
             return _tree_widget.viewport().mapToGlobal(rect.center())
 
-        # stop drag (drop) coordinates
-        if isinstance(dst, QTreeWidgetItem):
-            delta = get_global_center(dst) - get_global_center(src)
-        else:
-            delta = dst.viewport().mapToGlobal(dst.viewport().rect().center()) - get_global_center(src)
-
+        # drag start and stop coordinates
         global_start = get_global_center(src)
-        pyautogui.moveTo(global_start.x(), global_start.y())
+        if isinstance(dst, QTreeWidgetItem):
+            global_end = get_global_center(dst)
+        else:
+            global_end = dst.viewport().mapToGlobal(dst.viewport().rect().center())
 
         duration = 1.0
         done_event = threading.Event()
 
         def call_drop_event():
-            pyautogui.drag(delta.x(), delta.y(), duration=duration)
+            pyautogui.moveTo(global_start.x(), global_start.y())
+            pyautogui.dragTo(global_end.x(), global_end.y(), duration=duration)
             done_event.set()
 
         thread = threading.Thread(target=call_drop_event)
@@ -126,6 +125,7 @@ class TestPlotWidget(TestFileWidget):
             self.processEvents(0.1)
 
         thread.join()
+        self.processEvents(0.1)
 
     def wheel_action(self, w: QWidget, x: float, y: float, angle_delta: int):
         """
