@@ -1,6 +1,5 @@
 import json
 import os
-import pathlib
 from random import randint
 import shutil
 from unittest import mock
@@ -10,12 +9,14 @@ from PySide6 import QtCore, QtTest, QtWidgets
 from asammdf.gui.widgets.file import FileWidget
 from asammdf.gui.widgets.numeric import Numeric
 from asammdf.gui.widgets.plot import Plot
-from test.asammdf.gui.test_base import TestBase
+from test.asammdf.gui.test_base import safe_setup, TestBase
 
 
 class TestFileWidget(TestBase):
+    widget: FileWidget
     testResult = None
 
+    @safe_setup
     def setUp(self):
         super().setUp()
         self.widget = None
@@ -25,24 +26,8 @@ class TestFileWidget(TestBase):
         self.mc_widget_ed = patcher.start()
         self.addCleanup(patcher.stop)
 
-        try:  # is preferable to work with a copy of the file
-            self.measurement_file = shutil.copy(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"), self.test_workspace)
-        except:  # but if old processes isn't finished or something keeps the file in use, do not fail the test
-            self.measurement_file = os.path.join(self.resource, "ASAP2_Demo_V171.mf4")
-
-    def tearDown(self):
-        # save last state graphical view of widget if failure
-        path = self.screenshots
-        for name in self.id().split(".")[:-1]:
-            _path = os.path.join(path, name)
-            if not os.path.exists(_path):
-                os.makedirs(_path)
-            path = _path
-        self.widget.grab().save(os.path.join(path, f"{self.id().split('.')[-1]}.png"))
-
-        if self.widget is not None:
-            self.widget.close()
-        super().tearDown()
+        # it is preferable to work with a copy of the file
+        self.measurement_file = shutil.copy(os.path.join(self.resource, "ASAP2_Demo_V171.mf4"), self.test_workspace)
 
     def setUpFileWidget(self, *args, measurement_file, default):
         """
@@ -51,16 +36,16 @@ class TestFileWidget(TestBase):
         """
         if default:
             self.widget = FileWidget(
-                measurement_file,
-                True,  # with_dots
-                True,  # subplots
-                True,  # subplots_link
-                False,  # ignore_value2text_conversions
-                False,  # display_cg_name
-                "line",  # line_interconnect
-                "",  # password
-                False,  # hide_missing_channels
-                False,  # hide_disabled_channels
+                file_name=measurement_file,
+                with_dots=True,
+                subplots=True,
+                subplots_link=True,
+                ignore_value2text_conversions=False,
+                display_cg_name=False,
+                line_interconnect="line",
+                password="",
+                hide_missing_channels=False,
+                hide_disabled_channels=False,
             )
         else:
             self.widget = FileWidget(measurement_file, *args)

@@ -56,7 +56,7 @@ export = [
 export-matlab-v5 = ["scipy>=1.13.0"]
 gui = [
     "natsort",
-    "PySide6>=6.7.0",
+    "PySide6>=6.7.0,<6.9",  # remove upper limit when pyqtGraph segfaults are fixed
     "pyqtgraph>=0.13.4",
     "pyqtlet2[PySide6]",
     "packaging",

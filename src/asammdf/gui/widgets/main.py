@@ -1515,7 +1515,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
                 dlg = MultiSearch(measurements, parent=self)
                 dlg.setModal(True)
-                dlg.exec_()
+                dlg.exec()
                 result = dlg.payload
                 if result:
                     options = [
@@ -1530,7 +1530,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
                     dialog = WindowSelectionDialog(options=options, default=default, parent=self)
                     dialog.setModal(True)
-                    dialog.exec_()
+                    dialog.exec()
 
                     if dialog.result():
                         window_type = dialog.selected_type()
@@ -1670,7 +1670,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     file.functions, channels, parent=self, global_variables=file.global_variables
                 )
                 dlg.setModal(True)
-                dlg.exec_()
+                dlg.exec()
 
                 if dlg.pressed_button == "apply":
                     original_definitions = dlg.original_definitions
@@ -1688,7 +1688,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def bus_database_manager(self):
         dlg = BusDatabaseManagerDialog(parent=self)
         dlg.setModal(True)
-        dlg.exec_()
+        dlg.exec()
 
         if dlg.pressed_button == "apply":
             dlg.store()

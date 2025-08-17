@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import datetime
-from math import ceil
 import os
 from pathlib import Path
 from random import randint
@@ -16,7 +15,7 @@ import pandas as pd
 from PySide6 import QtCore, QtTest, QtWidgets
 import scipy
 
-from test.asammdf.gui.test_base import OpenHDF5, OpenMDF
+from test.asammdf.gui.test_base import OpenHDF5, OpenMDF, safe_setup
 from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 
 # Note: If it's possible and make sense, use self.subTests
@@ -73,6 +72,7 @@ class TestPushButtonScrambleTexts(TestBatchWidget):
 
 
 class TestPushButtonApply(TestBatchWidget):
+    @safe_setup
     def setUp(self):
         """
         Events
@@ -353,21 +353,24 @@ class TestPushButtonApply(TestBatchWidget):
             # Get channels timestamps max, min, difference between extremes
             min_ts = min(channel.timestamps.min() for channel in mdf_channels)
             max_ts = max(channel.timestamps.max() for channel in mdf_channels)
-            seconds = int(max_ts - min_ts)
-            microseconds = np.floor((max_ts - min_ts - seconds) * pow(10, 6))
+            seconds = max_ts - min_ts
 
             # Read file as pandas
-            pandas_tab = pd.read_csv(csv_path, header=[0, 1])
-            pandas_tab.timestamps = pd.DatetimeIndex(
-                pandas_tab.timestamps.values, yearfirst=True
-            ).values - np.datetime64(mdf_file.start_time)
+            pandas_tab = pd.read_csv(csv_path, header=[0, 1], parse_dates=[0], index_col=0)
 
             # Evaluate timestamps min
-            self.assertEqual(np.timedelta64(pandas_tab.timestamps.values.min(), "us").item().microseconds, 0)
-            self.assertEqual(np.timedelta64(pandas_tab.timestamps.values.min(), "us").item().seconds, 0)
+            self.assertAlmostEqual(
+                pandas_tab.index[0].timestamp(),
+                mdf_file.start_time.timestamp(),
+                delta=1e-6,
+            )
+
             # Evaluate timestamps max
-            self.assertEqual(np.timedelta64(pandas_tab.timestamps.values.max(), "us").item().microseconds, microseconds)
-            self.assertEqual(np.timedelta64(pandas_tab.timestamps.values.max(), "us").item().seconds, seconds)
+            self.assertAlmostEqual(
+                pandas_tab.index[-1].timestamp(),
+                mdf_file.start_time.timestamp() + seconds,
+                delta=1e-6,
+            )
 
             # Evaluate channels names and units
             for channel, unit in zip(mdf_channels, units, strict=False):
@@ -785,10 +788,10 @@ class TestPushButtonApply(TestBatchWidget):
             self.assertEqual(self.start_time, mdf_file.start_time)
 
             for channel in mdf_file.iter_channels():
+                # FIXME: this assertion fails for "ASAM.M.SCALAR.SBYTE.IDENTICAL.DISCRETE"
                 self.assertEqual(channel.timestamps.min(), start_cut)
                 self.assertEqual(channel.timestamps.max(), stop_cut)
 
-    # @unittest.skip("FIXME: test keeps failing in CI")
     def test_resample_by_step_0(self):
         """
         Events
@@ -825,12 +828,12 @@ class TestPushButtonApply(TestBatchWidget):
         self.assertTrue(output_file.exists())
         with OpenMDF(output_file) as mdf_file:
             for channel in mdf_file.iter_channels():
-                size = ceil((channel.timestamps.max() - channel.timestamps.min()) / step) + 1  # + min
+                length = channel.timestamps.max() - channel.timestamps.min()
+                size = round(length / step) + 1  # + min
                 self.assertEqual(size, channel.timestamps.size)
-                for i in range(size):
-                    self.assertAlmostEqual(channel.timestamps[i], channel.timestamps.min() + step * i, places=12)
+                for i, timestamp in enumerate(channel.timestamps):
+                    self.assertAlmostEqual(timestamp, channel.timestamps.min() + step * i, places=12)
 
-    # @unittest.skip("FIXME: test keeps failing in CI")
     def test_resample_by_step_1(self):
         """
         Events
@@ -868,7 +871,8 @@ class TestPushButtonApply(TestBatchWidget):
         self.assertTrue(output_file.exists())
         with OpenMDF(output_file) as mdf_file:
             for channel in mdf_file.iter_channels():
-                size = ceil((channel.timestamps.max() - channel.timestamps.min()) / step) + 1  # + min
+                length = channel.timestamps.max() - channel.timestamps.min()
+                size = round(length / step) + 1
                 self.assertEqual(size, channel.timestamps.size)
-                for i in range(size):
-                    self.assertAlmostEqual(channel.timestamps[i], step * i, places=12)
+                for i, timestamp in enumerate(channel.timestamps):
+                    self.assertAlmostEqual(timestamp, step * i, places=12)

@@ -3,12 +3,13 @@ from unittest import mock
 
 from PySide6 import QtCore, QtGui, QtTest
 
-from test.asammdf.gui.test_base import Pixmap
+from test.asammdf.gui.test_base import Pixmap, safe_setup
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestDoubleClick(TestPlotWidget):
     # Note: Test Plot Widget through FileWidget.
+    @safe_setup
     def setUp(self):
         super().setUp()
 
@@ -174,7 +175,6 @@ class TestDoubleClick(TestPlotWidget):
                 msg=f"Color of channel {plot_channel_0.text(self.Column.NAME)} is not present on plot.",
             )
 
-    # @unittest.skipIf(sys.platform == "win32", "fails on Windows")
     def test_EnableDisable_ParentGroup(self):
         """
         Test Scope:
@@ -315,7 +315,6 @@ class TestDoubleClick(TestPlotWidget):
                     msg=f"Color for Channel: {channel.text(self.Column.NAME)} not present on 'plot'",
                 )
 
-    # @unittest.skipIf(sys.platform == "win32", "fails on Windows")
     def test_EnableDisable_Subgroup(self):
         """
         Test Scope:

@@ -968,7 +968,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 apply_text="Set raster channel",
             )
             dlg.setModal(True)
-            dlg.exec_()
+            dlg.exec()
             result = dlg.payload
             if result:
                 name = list(result)[0]
@@ -1015,7 +1015,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 apply_text="Check signals",
             )
             dlg.setModal(True)
-            dlg.exec_()
+            dlg.exec()
             result = dlg.payload
 
             if result:
