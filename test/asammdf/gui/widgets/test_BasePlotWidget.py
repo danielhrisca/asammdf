@@ -110,21 +110,32 @@ class TestPlotWidget(TestFileWidget):
         else:
             global_end = dst.viewport().mapToGlobal(dst.viewport().rect().center())
 
-        duration = 1.0
+        # create event to synchronize mouse mover thread and main thread
         done_event = threading.Event()
 
-        def call_drop_event():
+        def move_mouse():
+            # jump to start position
             pyautogui.moveTo(global_start.x(), global_start.y())
-            pyautogui.dragTo(global_end.x(), global_end.y(), duration=duration)
+
+            # start drag by pressing left mouse button and moving mouse slowly
+            pyautogui.mouseDown()
+            pyautogui.moveTo(global_start.x() + 20, global_start.y(), duration=0.2)
+
+            # jump to target
+            pyautogui.moveTo(global_end.x() + 20, global_end.y())
+
+            # drop by moving mouse slowly and releasing mouse button
+            pyautogui.moveTo(global_end.x(), global_end.y(), duration=0.2)
+            pyautogui.mouseUp()
             done_event.set()
 
-        thread = threading.Thread(target=call_drop_event)
-        thread.start()
+        mouse_mover_thread = threading.Thread(target=move_mouse)
+        mouse_mover_thread.start()
 
         while not done_event.is_set():
             self.processEvents(0.1)
 
-        thread.join()
+        mouse_mover_thread.join()
         self.processEvents(0.1)
 
     def wheel_action(self, w: QWidget, x: float, y: float, angle_delta: int):
