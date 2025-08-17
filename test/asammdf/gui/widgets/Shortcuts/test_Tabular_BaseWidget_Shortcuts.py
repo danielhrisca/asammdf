@@ -1,8 +1,7 @@
 #!/usr/bin/env python\
 
 from os import path
-from sys import platform
-from unittest import mock, skipIf
+from unittest import mock
 
 import numpy
 from PySide6 import QtGui, QtTest
@@ -322,7 +321,6 @@ class TestTabularBaseShortcuts(TestFileWidget):
         self.assertGreater(font_size, self.tabular.tree.dataView.font().pointSize())
 
 
-@skipIf(platform != "win32", "Failed on linux. Shortcut can copy only value for one cell")
 class TestDataFrameViewerShortcuts(TestFileWidget):
     tabular: Tabular
     dfw: DataFrameViewer
