@@ -846,7 +846,6 @@ class TestContextMenu(TestPlotWidget):
             self.assertNotEqual(previous_c_color, current_c_color)
             self.assertNotEqual(current_b_color, current_c_color)
 
-    # @unittest.skipIf(sys.platform == "win32", "times out on Windows")
     def test_Action_CopyDisplayProperties_Group(self):
         """
         Test Scope:
@@ -1047,7 +1046,6 @@ class TestContextMenu(TestPlotWidget):
             # Evaluate
             self.assertEqual(group_channel_a_properties, group_channel_b_properties)
 
-    # @unittest.skipIf(sys.platform == "win32", "times out on Windows")
     def test_Action_CopyChannelStructure_Group(self):
         """
         Test Scope:
