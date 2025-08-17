@@ -353,21 +353,24 @@ class TestPushButtonApply(TestBatchWidget):
             # Get channels timestamps max, min, difference between extremes
             min_ts = min(channel.timestamps.min() for channel in mdf_channels)
             max_ts = max(channel.timestamps.max() for channel in mdf_channels)
-            seconds = int(max_ts - min_ts)
-            microseconds = np.floor((max_ts - min_ts - seconds) * pow(10, 6))
+            seconds = max_ts - min_ts
 
             # Read file as pandas
-            pandas_tab = pd.read_csv(csv_path, header=[0, 1])
-            pandas_tab.timestamps = pd.DatetimeIndex(
-                pandas_tab.timestamps.values, yearfirst=True
-            ).values - np.datetime64(mdf_file.start_time)
+            pandas_tab = pd.read_csv(csv_path, header=[0, 1], parse_dates=[0], index_col=0)
 
             # Evaluate timestamps min
-            self.assertEqual(np.timedelta64(pandas_tab.timestamps.values.min(), "us").item().microseconds, 0)
-            self.assertEqual(np.timedelta64(pandas_tab.timestamps.values.min(), "us").item().seconds, 0)
+            self.assertAlmostEqual(
+                pandas_tab.index[0].timestamp(),
+                mdf_file.start_time.timestamp(),
+                delta=1e-6,
+            )
+
             # Evaluate timestamps max
-            self.assertEqual(np.timedelta64(pandas_tab.timestamps.values.max(), "us").item().microseconds, microseconds)
-            self.assertEqual(np.timedelta64(pandas_tab.timestamps.values.max(), "us").item().seconds, seconds)
+            self.assertAlmostEqual(
+                pandas_tab.index[-1].timestamp(),
+                mdf_file.start_time.timestamp() + seconds,
+                delta=1e-6,
+            )
 
             # Evaluate channels names and units
             for channel, unit in zip(mdf_channels, units, strict=False):
