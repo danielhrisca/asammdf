@@ -401,9 +401,10 @@ class PlotSignal(Signal):
             else:
                 samples = self.raw_samples[np.isfinite(self.raw_samples)]
                 if len(samples):
-                    self._avg_raw = np.mean(samples)
-                    self._rms_raw = np.sqrt(np.mean(np.square(samples)))
-                    self._std_raw = np.std(samples)
+                    _float_samples = samples.astype(np.float64)
+                    self._avg_raw = np.mean(_float_samples)
+                    self._rms_raw = np.sqrt(np.mean(np.square(_float_samples)))
+                    self._std_raw = np.std(_float_samples)
                 else:
                     self._min_raw = "n.a."
                     self._max_raw = "n.a."
@@ -435,9 +436,10 @@ class PlotSignal(Signal):
                     self.is_string = False
                     samples = self.phys_samples[np.isfinite(self.phys_samples)]
                     if len(samples):
-                        self._avg = np.mean(samples)
-                        self._rms = np.sqrt(np.mean(np.square(samples)))
-                        self._std = np.std(samples)
+                        _float_samples = samples.astype(np.float64)
+                        self._avg = np.mean(_float_samples)
+                        self._rms = np.sqrt(np.mean(np.square(_float_samples)))
+                        self._std = np.std(_float_samples)
                     else:
                         self._min = "n.a."
                         self._max = "n.a."
@@ -594,7 +596,7 @@ class PlotSignal(Signal):
                         precision,
                     )
                     stats["overall_integral"] = value_as_str(
-                        np.trapz(sig.samples, sig.timestamps), format, None, precision
+                        np.trapezoid(sig.samples, sig.timestamps), format, None, precision
                     )
 
                 stats["overall_min"] = value_as_str(self.min, format, self.plot_samples.dtype, precision)
@@ -604,12 +606,20 @@ class PlotSignal(Signal):
                 stats["overall_std"] = value_as_str(sig.std, format, None, precision)
                 stats["overall_start"] = value_as_str(sig.timestamps[0], format, np.dtype("f8"), precision)
                 stats["overall_stop"] = value_as_str(sig.timestamps[-1], format, np.dtype("f8"), precision)
-                stats["overall_delta"] = value_as_str(
-                    sig.samples[-1] - sig.samples[0],
-                    format,
-                    self.plot_samples.dtype,
-                    precision,
-                )
+                if self.plot_samples.dtype.kind in "ui":
+                    stats["overall_delta"] = value_as_str(
+                        int(sig.samples[-1]) - int(sig.samples[0]),
+                        format,
+                        self.plot_samples.dtype,
+                        precision,
+                    )
+                else:
+                    stats["overall_delta"] = value_as_str(
+                        sig.samples[-1] - sig.samples[0],
+                        format,
+                        self.plot_samples.dtype,
+                        precision,
+                    )
                 stats["overall_delta_t"] = value_as_str(x[-1] - x[0], format, np.dtype("f8"), precision)
                 stats["unit"] = sig.unit
                 stats["color"] = sig.color
@@ -657,12 +667,13 @@ class PlotSignal(Signal):
                             samples[-1], format, self.plot_samples.dtype, precision
                         )
 
+                        _float_samples = samples.astype(np.float64)
                         new_stats["selected_min"] = value_as_str(np.nanmin(samples), format, samples.dtype, precision)
                         new_stats["selected_max"] = value_as_str(np.nanmax(samples), format, samples.dtype, precision)
-                        new_stats["selected_average"] = value_as_str(np.mean(samples), format, None, precision)
-                        new_stats["selected_std"] = value_as_str(np.std(samples), format, None, precision)
+                        new_stats["selected_average"] = value_as_str(np.mean(_float_samples), format, None, precision)
+                        new_stats["selected_std"] = value_as_str(np.std(_float_samples), format, None, precision)
                         new_stats["selected_rms"] = value_as_str(
-                            np.sqrt(np.mean(np.square(samples))),
+                            np.sqrt(np.mean(np.square(_float_samples))),
                             format,
                             None,
                             precision,
@@ -693,7 +704,7 @@ class PlotSignal(Signal):
                                 precision,
                             )
                             new_stats["selected_integral"] = value_as_str(
-                                np.trapz(samples, timestamps), format, None, precision
+                                np.trapezoid(samples, timestamps), format, None, precision
                             )
 
                     else:
@@ -750,13 +761,13 @@ class PlotSignal(Signal):
 
                 if size:
                     kind = samples.dtype.kind
-
+                    _float_samples = samples.astype(np.float64)
                     new_stats["visible_min"] = value_as_str(np.nanmin(samples), format, samples.dtype, precision)
                     new_stats["visible_max"] = value_as_str(np.nanmax(samples), format, samples.dtype, precision)
-                    new_stats["visible_average"] = value_as_str(np.mean(samples), format, None, precision)
-                    new_stats["visible_std"] = value_as_str(np.std(samples), format, None, precision)
+                    new_stats["visible_average"] = value_as_str(np.mean(_float_samples), format, None, precision)
+                    new_stats["visible_std"] = value_as_str(np.std(_float_samples), format, None, precision)
                     new_stats["visible_rms"] = value_as_str(
-                        np.sqrt(np.mean(np.square(samples))), format, None, precision
+                        np.sqrt(np.mean(np.square(_float_samples))), format, None, precision
                     )
                     if kind in "ui":
                         new_stats["visible_delta"] = value_as_str(
@@ -767,7 +778,7 @@ class PlotSignal(Signal):
                         )
                     else:
                         new_stats["visible_delta"] = value_as_str(
-                            cut.samples[-1] - cut.samples[0],
+                            _float_samples[-1] - _float_samples[0],
                             format,
                             samples.dtype,
                             precision,
@@ -784,7 +795,7 @@ class PlotSignal(Signal):
                             precision,
                         )
                         new_stats["visible_integral"] = value_as_str(
-                            np.trapz(samples, timestamps), format, None, precision
+                            np.trapezoid(samples, timestamps), format, None, precision
                         )
 
                 else:
@@ -1845,6 +1856,8 @@ class Plot(QtWidgets.QWidget):
         self.toggle_focused_mode(focused=self._settings.value("plot/focused_mode", False, type=bool))
         self.toggle_region_values_display_mode(mode=self._settings.value("plot/region_values_display_mode", "value"))
 
+        self.bookmarks = bookmarks  # bookmarks need to be set, before `toggle_bookmarks` is called
+
         self.toggle_bookmarks(hide=not self._settings.value("plot/bookmarks", False, type=bool))
         self.hide_axes(hide=self._settings.value("plot/hide_axes", False, type=bool))
         self.set_locked(locked=self._settings.value("plot/locked", False, type=bool))
@@ -1852,8 +1865,6 @@ class Plot(QtWidgets.QWidget):
         self.zoom_history = []
         self.zoom_history_index = -1
         self.update_zoom = False
-
-        self.bookmarks = bookmarks
 
         self.show()
 
@@ -4356,7 +4367,7 @@ class PlotGraphics(pg.PlotWidget):
             parent=self,
         )
         dlg.setModal(True)
-        dlg.exec_()
+        dlg.exec()
         computed_channel = dlg.payload
 
         if self.mdf is None:
@@ -4473,7 +4484,7 @@ class PlotGraphics(pg.PlotWidget):
             parent=self,
         )
         dlg.setModal(True)
-        dlg.exec_()
+        dlg.exec()
         computed_channel = dlg.payload
 
         if self.mdf is None:
@@ -4607,7 +4618,7 @@ class PlotGraphics(pg.PlotWidget):
                     signal.y_range = min_, max_
 
                     if signal.uuid == self.current_uuid:
-                        self.viewbox.setYRange(min_, max_, padding=0)
+                        self.viewbox.setYRange(float(min_), float(max_), padding=0)
 
             self.block_zoom_signal = False
             self.zoom_changed.emit(False)
@@ -5874,7 +5885,7 @@ class PlotGraphics(pg.PlotWidget):
 
         self.current_uuid = uuid
 
-        viewbox.setYRange(*sig.y_range, padding=0)
+        viewbox.setYRange(*[float(y) for y in sig.y_range], padding=0)
 
         self.current_uuid_changed.emit(uuid)
         self.update()

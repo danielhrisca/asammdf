@@ -734,7 +734,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             parent=self,
         )
         dlg.setModal(True)
-        dlg.exec_()
+        dlg.exec()
         result, pattern_window = dlg.payload, dlg.pattern_window
 
         if result:
@@ -747,7 +747,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 dialog = WindowSelectionDialog(options=options, parent=self)
                 dialog.setModal(True)
-                dialog.exec_()
+                dialog.exec()
 
                 if dialog.result():
                     window_type = dialog.selected_type()
@@ -875,7 +875,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                     dialog = WindowSelectionDialog(options=options, default=default, parent=self)
                     dialog.setModal(True)
-                    dialog.exec_()
+                    dialog.exec()
 
                     if dialog.result():
                         window_type = dialog.selected_type()
@@ -1664,7 +1664,7 @@ MultiRasterSeparator;&
                 parent=self,
             )
             dialog.setModal(True)
-            dialog.exec_()
+            dialog.exec()
 
             if dialog.result():
                 window_type = dialog.selected_type()
@@ -1717,7 +1717,7 @@ MultiRasterSeparator;&
                 parent=self,
             )
             dlg.setModal(True)
-            dlg.exec_()
+            dlg.exec()
 
             if dlg.valid:
                 latitude = dlg.latitude.text().strip()
@@ -3011,7 +3011,7 @@ MultiRasterSeparator;&
             parent=self,
         )
         dlg.setModal(True)
-        dlg.exec_()
+        dlg.exec()
         result = dlg.payload
         if result:
             name = list(result)[0]

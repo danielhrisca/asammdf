@@ -6,11 +6,12 @@ from PySide6.QtWidgets import QTreeWidgetItemIterator
 
 from asammdf.gui.serde import COLORS
 from asammdf.gui.utils import BLUE
-from test.asammdf.gui.test_base import Pixmap
+from test.asammdf.gui.test_base import Pixmap, safe_setup
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestPushButtons(TestPlotWidget):
+    @safe_setup
     def setUp(self):
         super().setUp()
 
