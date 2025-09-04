@@ -2934,58 +2934,67 @@ class WithMDIArea:
             signals.update(computed_signals)
 
         if not self.comparison:
-            events = []
             origin = self.mdf.start_time
-
-            if self.mdf.version >= "4.00":
-                mdf_events = list(self.mdf.events)
-
-                for pos, event in enumerate(mdf_events):
-                    event_info = {}
-                    event_info["value"] = event.value
-                    event_info["type"] = v4c.EVENT_TYPE_TO_STRING[event.event_type]
-
-                    if event.name:
-                        description = event.name
-                    else:
-                        description = ""
-
-                    if event.comment:
-                        try:
-                            comment = extract_xml_comment(event.comment)
-                        except:
-                            comment = event.comment
-                        if description:
-                            description = f"{description} ({comment})"
-                        else:
-                            description = comment
-                    event_info["description"] = description
-                    event_info["index"] = pos
-                    event_info["tool"] = event.tool
-
-                    if event.range_type == v4c.EVENT_RANGE_TYPE_POINT:
-                        events.append(event_info)
-                    elif event.range_type == v4c.EVENT_RANGE_TYPE_BEGINNING:
-                        events.append([event_info])
-                    else:
-                        if event.parent is not None:
-                            parent = events[event.parent]
-                            parent.append(event_info)
-                        events.append(None)
-                events = [ev for ev in events if ev is not None]
+            windows = list(self.mdi_area.subWindowList())
+            for window in windows:
+                widget = window.widget()
+                if isinstance(widget, Plot):
+                    events = [bookmark.copy() for bookmark in widget.bookmarks]
+                    break
             else:
-                for gp in self.mdf.groups:
-                    if not gp.trigger:
-                        continue
 
-                    for i in range(gp.trigger.trigger_events_nr):
-                        event = {
-                            "value": gp.trigger[f"trigger_{i}_time"],
-                            "index": i,
-                            "description": gp.trigger.comment,
-                            "type": v4c.EVENT_TYPE_TO_STRING[v4c.EVENT_TYPE_TRIGGER],
-                        }
-                        events.append(event)
+                events = []
+
+                if self.mdf.version >= "4.00":
+                    mdf_events = list(self.mdf.events)
+
+                    for pos, event in enumerate(mdf_events):
+                        event_info = {}
+                        event_info["value"] = event.value
+                        event_info["type"] = v4c.EVENT_TYPE_TO_STRING[event.event_type]
+
+                        if event.name:
+                            description = event.name
+                        else:
+                            description = ""
+
+                        if event.comment:
+                            try:
+                                comment = extract_xml_comment(event.comment)
+                            except:
+                                comment = event.comment
+                            if description:
+                                description = f"{description} ({comment})"
+                            else:
+                                description = comment
+                        event_info["description"] = description
+                        event_info["index"] = pos
+                        event_info["tool"] = event.tool
+
+                        if event.range_type == v4c.EVENT_RANGE_TYPE_POINT:
+                            events.append(event_info)
+                        elif event.range_type == v4c.EVENT_RANGE_TYPE_BEGINNING:
+                            events.append([event_info])
+                        else:
+                            if event.parent is not None:
+                                parent = events[event.parent]
+                                parent.append(event_info)
+                            events.append(None)
+                    events = [ev for ev in events if ev is not None]
+                else:
+                    for gp in self.mdf.groups:
+                        if not gp.trigger:
+                            continue
+
+                        for i in range(gp.trigger.trigger_events_nr):
+                            event = {
+                                "value": gp.trigger[f"trigger_{i}_time"],
+                                "index": i,
+                                "description": gp.trigger.comment,
+                                "type": v4c.EVENT_TYPE_TO_STRING[v4c.EVENT_TYPE_TRIGGER],
+                            }
+                            events.append(event)
+                            
             mdf = self.mdf
 
         else:
