@@ -1,6 +1,5 @@
 #!/usr/bin/env python\
 
-import pathlib
 from unittest import mock
 
 from PySide6.QtCore import QPoint
@@ -8,12 +7,13 @@ from PySide6.QtGui import QColor, QKeySequence, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QTreeWidgetItemIterator
 
-from test.asammdf.gui.test_base import OpenMDF, Pixmap
+from test.asammdf.gui.test_base import OpenMDF, Pixmap, safe_setup
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
 
 class TestTreeWidgetShortcuts(TestFileWidget):
+    @safe_setup
     def setUp(self):
         """
         Events:
@@ -24,11 +24,9 @@ class TestTreeWidgetShortcuts(TestFileWidget):
 
         """
         super().setUp()
-        # Open measurement file
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
 
         # Open measurement file
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         self.tw = self.widget.channels_tree  # TreeWidget
 
         # get shortcuts
@@ -88,6 +86,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
     Tests for Ctrl+C, Ctrl+V was tested in test_PlotWidget_Shortcuts
     """
 
+    @safe_setup
     def setUp(self):
         """
         Events:
@@ -99,9 +98,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         """
         super().setUp()
         # Open measurement file
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
-        # Open measurement file
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Select channels -> Press PushButton "Create Window" -> "Plot"
         self.create_window(window_type="Plot")
 
@@ -171,7 +168,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
                     "integer_format": "phys".
 
         Evaluate:
-            - Evaluate that method exec_() of AdvancedSearch object was called.
+            - Evaluate that method exec() of AdvancedSearch object was called.
             - Evaluate that in plot channel selection exists a new group with specific name and pattern dict.
             - Evaluate that group contains all channels from measurement with a specific sequence of string
                 in their name.
@@ -190,11 +187,11 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         }
         # mock for QInputDialog object
         with mock.patch("asammdf.gui.widgets.tree.AdvancedSearch") as mo_AdvancedSearch:
-            mo_AdvancedSearch.return_value.result = result
+            mo_AdvancedSearch.return_value.payload = result
             # Press Ctrl+Insert
             QTest.keySequence(self.ctw, QKeySequence(self.shortcuts["add_pattern_based_group"]))
         # Evaluate
-        mo_AdvancedSearch.return_value.exec_.assert_called()
+        mo_AdvancedSearch.return_value.exec.assert_called()
         self.assertEqual(1, self.ctw.topLevelItemCount())
         group = self.ctw.topLevelItem(0)
         self.assertEqual(group.name, result["name"])
@@ -489,7 +486,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         self.processEvents(0.01)
 
         with mock.patch("asammdf.gui.widgets.tree.RangeEditor") as mo_RangeEditor:
-            mo_RangeEditor.return_value.result = range_editor_result
+            mo_RangeEditor.return_value.payload = range_editor_result
             mo_RangeEditor.return_value.pressed_button = "apply"
             # Press "Alt+R"
             QTest.keySequence(self.ctw, QKeySequence(self.shortcuts["set_color_range"]))
@@ -499,15 +496,16 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         self.assertEqual(self.channels[0].ranges, range_editor_result)
 
         self.mouseClick_WidgetItem(self.channels[0])
-        for _ in range(100):
-            self.processEvents(None)
+        self.processEvents(0.1)
 
         # Displayed signal
         sig = self.channels[0].signal
         # Coordinates for viewbox, second dot in the center of visual
         min_ = med_ = max_ = None
         for _ in range(len(sig)):
-            if sig.samples[_] == 0 and (sig.samples[_ + 10] - sig.samples[_ - 10]) < (sig.samples.max() / 10):
+            val1, val2 = sig.samples[_ + 10], sig.samples[_ - 10]
+            val_diff = max(val1, val2) - min(val1, val2)  # to avoid integer overflow
+            if sig.samples[_] == 0 and val_diff < (sig.samples.max() / 10):
                 min_ = _
                 break
         for _ in range(min_, len(sig)):
@@ -518,11 +516,13 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
             if sig.samples[_] == sig.samples.max():
                 max_ = _
                 break
-        x, y, w, h = sig.timestamps[min_], sig.samples[min_], sig.timestamps[med_], sig.samples[med_]
+
         # Set X and Y ranges for viewbox
-        plot.plot.viewbox.setXRange(x, w, padding=0)
-        plot.plot.viewbox.setYRange(y, h, padding=0)
-        self.processEvents(None)
+        x1, x2 = sig.timestamps[min_], sig.timestamps[med_]
+        y1, y2 = float(sig.samples[min_]), float(sig.samples[med_])
+        plot.plot.viewbox.setXRange(x1, x2, padding=0)
+        plot.plot.viewbox.setYRange(y1, y2, padding=0)
+        self.processEvents(0.1)
 
         # Click in the middle of the plot
         QTest.mouseClick(
@@ -532,8 +532,6 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
             QPoint(int(plot.plot.width() / 2), int(plot.plot.height() / 2)),
         )
         self.processEvents(0.1)
-        for _ in range(100):
-            self.processEvents(0.01)
         selected_channel_value = plot.selected_channel_value.grab()
         plot_graphics = plot.plot.grab()
 
@@ -544,10 +542,11 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
         self.assertTrue(Pixmap.has_color(plot_graphics, red))
         self.assertFalse(Pixmap.has_color(plot_graphics, self.channels[0]))
 
-        x, y, w, h = sig.timestamps[med_], sig.samples[med_], sig.timestamps[max_], sig.samples[max_]
         # Set X and Y ranges for viewbox
-        plot.plot.viewbox.setXRange(x, w, padding=0)
-        plot.plot.viewbox.setYRange(y, h, padding=0)
+        x1, x2 = sig.timestamps[med_], sig.timestamps[max_]
+        y1, y2 = float(sig.samples[med_]), float(sig.samples[max_])
+        plot.plot.viewbox.setXRange(x1, x2, padding=0)
+        plot.plot.viewbox.setYRange(y1, y2, padding=0)
         self.processEvents(0.1)
 
         # Click in the middle of the plot
@@ -557,7 +556,7 @@ class TestChannelsTreeWidgetShortcuts(TestPlotWidget):
             Qt.KeyboardModifier.NoModifier,
             QPoint(plot.plot.width() // 2, plot.plot.height() // 2),
         )
-        self.processEvents(1)
+        self.processEvents(0.1)
         selected_channel_value = plot.selected_channel_value.grab()
         plot_graphics = plot.plot.grab()
 

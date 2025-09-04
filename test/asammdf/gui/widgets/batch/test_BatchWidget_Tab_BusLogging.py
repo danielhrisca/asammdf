@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import codecs
+from datetime import datetime
 import os
 from pathlib import Path
 import sys
@@ -13,7 +14,7 @@ import numpy as np
 import pandas as pd
 from PySide6 import QtCore, QtTest
 
-from test.asammdf.gui.test_base import DBC, OpenMDF
+from test.asammdf.gui.test_base import DBC, OpenMDF, safe_setup
 from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 
 # Note: If it's possible and make sense, use self.subTests
@@ -22,6 +23,7 @@ from test.asammdf.gui.widgets.test_BaseBatchWidget import TestBatchWidget
 
 @unittest.skipIf(os.getenv("NO_NET_ACCESS"), "Test requires Internet access")
 class TestPushButtons(TestBatchWidget):
+    @safe_setup
     def setUp(self):
         super().setUp()
         url = "https://github.com/danielhrisca/asammdf/files/4328945/OBD2-DBC-MDF4.zip"
@@ -340,7 +342,11 @@ class TestPushButtons(TestBatchWidget):
             seconds = int(max_ts - min_ts)
             microseconds = np.floor((max_ts - min_ts - seconds) * pow(10, 6))
 
-            delay = np.datetime64(mdf_file.start_time)  # - np.timedelta64(3, "h")   # idk from why, local fail...
+            # mdf start time is local, so get local tz offset to calculate the delay
+            local_dt = datetime.now().astimezone()
+            offset_seconds = int(local_dt.utcoffset().total_seconds())
+            delay = np.datetime64(mdf_file.start_time) - np.timedelta64(offset_seconds, "s")
+
             csv_table.timestamps = pd.DatetimeIndex(csv_table.timestamps.values, yearfirst=True).values - delay
 
             # Evaluate timestamps min

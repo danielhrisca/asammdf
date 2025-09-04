@@ -267,7 +267,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             return_names=True,
         )
         dlg.setModal(True)
-        dlg.exec_()
+        dlg.exec()
         result, pattern_window = dlg.payload, dlg.pattern_window
 
         if result:
@@ -285,7 +285,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             return_names=True,
         )
         dlg.setModal(True)
-        dlg.exec_()
+        dlg.exec()
         result, pattern_window = dlg.payload, dlg.pattern_window
 
         if result:

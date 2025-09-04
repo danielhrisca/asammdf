@@ -1,7 +1,6 @@
 #!/usr/bin/env python\
 
 from math import ceil, sqrt
-import pathlib
 from random import randint
 from unittest import mock
 
@@ -10,7 +9,7 @@ from PySide6.QtGui import QKeySequence, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QTreeWidgetItemIterator
 
-from test.asammdf.gui.test_base import OpenMDF, Pixmap
+from test.asammdf.gui.test_base import OpenMDF, Pixmap, safe_setup
 from test.asammdf.gui.widgets.test_BaseFileWidget import TestFileWidget
 
 
@@ -19,6 +18,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
     Test for F11 shortcut was moved to Main Window tests
     """
 
+    @safe_setup
     def setUp(self):
         """
         Events:
@@ -29,7 +29,6 @@ class TestFileWidgetShortcuts(TestFileWidget):
         """
         super().setUp()
         # Open measurement file
-        self.measurement_file = str(pathlib.Path(TestFileWidget.resource, "ASAP2_Demo_V171.mf4"))
         self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
 
         self.assertEqual(len(self.widget.mdi_area.subWindowList()), 0)
@@ -72,7 +71,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
             mock.patch("asammdf.gui.widgets.file.WindowSelectionDialog") as mo_WindowSelectionDialog,
         ):
             with self.subTest("test_search_shortcut_new_window"):
-                mo_AdvancedSearch.return_value.result = matrix_items
+                mo_AdvancedSearch.return_value.payload = matrix_items
                 mo_AdvancedSearch.return_value.pattern_window = False
                 mo_WindowSelectionDialog.return_value.dialog.return_value = 1  # Ok
                 mo_WindowSelectionDialog.return_value.selected_type.return_value = "New plot window"
@@ -99,7 +98,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
             with self.subTest("test_search_shortcut_pattern_window"):
                 # Setup
                 mo_AdvancedSearch.return_value.pattern_window = True
-                mo_AdvancedSearch.return_value.result = {
+                mo_AdvancedSearch.return_value.payload = {
                     "case_sensitive": False,
                     "filter_type": "Unspecified",
                     "filter_value": 0.0,
@@ -136,7 +135,7 @@ class TestFileWidgetShortcuts(TestFileWidget):
                 mo_WindowSelectionDialog.return_value.dialog.return_value = 1  # Ok
                 mo_WindowSelectionDialog.return_value.selected_type.return_value = f"*{matrix_pattern}*"
                 mo_WindowSelectionDialog.return_value.disable_new_channels.return_value = False
-                mo_AdvancedSearch.return_value.result = u_word_items
+                mo_AdvancedSearch.return_value.payload = u_word_items
                 mo_AdvancedSearch.return_value.pattern_window = False
 
                 # Press Ctrl+F

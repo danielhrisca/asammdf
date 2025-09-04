@@ -172,7 +172,7 @@ class ChannelBarDisplay(Ui_ChannelBarDisplay, QtWidgets.QWidget):
 
     def mouseDoubleClickEvent(self, event):
         dlg = RangeEditor(self.unit, self.ranges)
-        dlg.exec_()
+        dlg.exec()
         if dlg.pressed_button == "apply":
             self.ranges = dlg.payload
 

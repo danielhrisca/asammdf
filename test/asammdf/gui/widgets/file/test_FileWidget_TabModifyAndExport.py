@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 import pathlib
-import shutil
-import time
 from unittest import mock
 
 from PySide6 import QtCore, QtTest, QtWidgets
@@ -24,22 +22,19 @@ class TestTabModifyAndExport(TestFileWidget):
             - New file is created
             - No channel from first file is found in 2nd file (scrambled file)
         """
-        # Setup
-        measurement_file = str(pathlib.Path(self.test_workspace, "ASAP2_Demo_V171.mf4"))
-        shutil.copy(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"), measurement_file)
         # Event
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
+        channels = list(self.widget.mdf.channels_db)
+
         # Go to Tab: "Modify & Export": Index 1
         self.widget.aspects.setCurrentIndex(1)
+
         # Press PushButton ScrambleTexts
         QtTest.QTest.mouseClick(self.widget.scramble_btn, QtCore.Qt.MouseButton.LeftButton)
-
-        channels = list(self.widget.mdf.channels_db)
+        self.processEvents(0.5)
 
         # Evaluate
         scrambled_filepath = pathlib.Path(self.test_workspace, "ASAP2_Demo_V171.scrambled.mf4")
-        # Wait for Thread to finish
-        time.sleep(0.1)
 
         with OpenMDF(scrambled_filepath) as mdf_file:
             result = filter(lambda c: c in mdf_file.channels_db, channels)
@@ -64,10 +59,8 @@ class TestTabModifyAndExport(TestFileWidget):
             - Evaluate that file was created.
             - Open File and check that there are only two channels.
         """
-        # Setup
-        measurement_file = str(pathlib.Path(self.resource, "ASAP2_Demo_V171.mf4"))
         # Event
-        self.setUpFileWidget(measurement_file=measurement_file, default=True)
+        self.setUpFileWidget(measurement_file=self.measurement_file, default=True)
         # Go to Tab: "Modify & Export": Index 1
         self.widget.aspects.setCurrentIndex(1)
         self.widget.filter_view.setCurrentText("Natural sort")

@@ -49,7 +49,7 @@ class GPSDialog(Ui_GPSDialog, QtWidgets.QDialog):
             parent=self,
         )
         dlg.setModal(True)
-        dlg.exec_()
+        dlg.exec()
         result, pattern_window = dlg.payload, dlg.pattern_window
 
         if result:
@@ -66,7 +66,7 @@ class GPSDialog(Ui_GPSDialog, QtWidgets.QDialog):
             parent=self,
         )
         dlg.setModal(True)
-        dlg.exec_()
+        dlg.exec()
         result, pattern_window = dlg.payload, dlg.pattern_window
 
         if result:
