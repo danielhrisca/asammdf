@@ -332,7 +332,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         # tabular interpolation
         subplot_action = QtGui.QAction("Tabular windows interpolation", menu)
         subplot_action.setCheckable(True)
-        state = self._settings.value("tabular/interpolation",True, type=bool)
+        state = self._settings.value("tabular/interpolation", True, type=bool)
         subplot_action.toggled.connect(self.set_tabular_interpolation_option)
         subplot_action.setChecked(state)
         menu.addAction(subplot_action)
@@ -1292,7 +1292,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def set_tabular_interpolation_option(self, state):
         if isinstance(state, str):
             state = True if state == "true" else False
-        self._settings.setValue("tabular/interpolation",state)
+        self._settings.setValue("tabular/interpolation", state)
 
     def set_ignore_value2text_conversions_option(self, state):
         if isinstance(state, str):
