@@ -1303,6 +1303,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                     iterator += 1
 
+        self.clear_windows()
+
         if extension in (".dspf", ".dsp"):
             new_functions = {}
 
@@ -1338,8 +1340,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             if new_functions or info.get("global_variables", "") != self.global_variables:
                 self.update_functions({}, new_functions, f"{self.global_variables}\n{info.get('global_variables', '')}")
-
-        self.clear_windows()
 
         windows = info.get("windows", [])
         errors = {}
