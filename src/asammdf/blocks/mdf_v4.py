@@ -1217,9 +1217,11 @@ class MDF4(MDF_Common[Group]):
 
                                     # update channel name
                                     new_block.name = _get_name_with_indices(new_block.name, channel.name, nd_coords)
+                                    new_block.ignore_save = True
 
                                     # append to channel list
                                     channels.append(new_block)
+                                    grp.signal_data.append(None)
 
                                     # update channel dependencies
                                     if (deps := dependencies[cn_id]) is not None:
@@ -1241,6 +1243,7 @@ class MDF4(MDF_Common[Group]):
                             orig_name = channel.name
                             for cn_id in range(index, ch_len):
                                 nd_coords = _get_nd_coords(0, multipliers)
+                                channels[cn_id].original_name = channels[cn_id].name
                                 name = _get_name_with_indices(channels[cn_id].name, orig_name, nd_coords)
                                 entries = self.channels_db.pop(channels[cn_id].name)
                                 channels[cn_id].name = name
@@ -11062,13 +11065,23 @@ class MDF4(MDF_Common[Group]):
             for i, gp in enumerate(self.groups):
                 channels = gp.channels
 
+                prev_channel = None
                 for j, channel in enumerate(channels):
+                    # ignore copied channels created as part of CA-CN nested structures
+                    if channel.ignore_save:
+                        continue
+
                     if channel.attachment is not None:
                         channel.attachment_addr = self.attachments[channel.attachment].address
                     elif channel.attachment_nr:
                         channel.attachment_addr = 0
 
-                    address = channel.to_blocks(address, blocks, defined_texts, cc_map, si_map)
+                    if channel not in blocks:
+                        address = channel.to_blocks(address, blocks, defined_texts, cc_map, si_map)
+                        # link cn_cn_next address between root channels
+                        if prev_channel:
+                            prev_channel.next_ch_addr = channel.address
+                        prev_channel = channel
 
                     if channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
                         if channel.attachment is not None:
@@ -11167,45 +11180,36 @@ class MDF4(MDF_Common[Group]):
                             channel.data_block_addr = 0
 
                     dep_list = gp.channel_dependencies[j]
-                    if dep_list:
-                        if all(isinstance(dep, ChannelArrayBlock) for dep in dep_list):
-                            dep_list = typing.cast(list[ChannelArrayBlock], dep_list)
-                            for dep in dep_list:
-                                dep.address = address
-                                address += dep.block_len
-                                blocks.append(dep)
-                            for k, dep in enumerate(dep_list[:-1]):
-                                dep.composition_addr = dep_list[k + 1].address
-                            dep_list[-1].composition_addr = 0
+                    if not dep_list:
+                        channel.component_addr = 0
+                        continue
 
-                            channel.component_addr = dep_list[0].address
-
+                    # update composition channels' addresses
+                    composed_channel = None
+                    for dep in dep_list:
+                        if isinstance(dep, ChannelArrayBlock):
+                            comp_addr = dep.address = address
+                            blocks.append(dep)
+                            address += dep.block_len
                         else:
-                            dep_list = typing.cast(list[tuple[int, int]], dep_list)
-                            index = dep_list[0][1]
-                            addr_ = gp.channels[index].address
+                            index = dep[1]
+                            composition = channels[index]
+                            address = composition.to_blocks(address, blocks, defined_texts, cc_map, si_map)
+                            comp_addr = composition.address
 
-                group_channels = gp.channels
-                if group_channels:
-                    for j, channel in enumerate(group_channels[:-1]):
-                        channel.next_ch_addr = group_channels[j + 1].address
-                    group_channels[-1].next_ch_addr = 0
+                        # link cn_composition channel for root channel
+                        if composed_channel is None:
+                            channel.component_addr = comp_addr
+                        # link ca_composition address for CA blocks
+                        elif isinstance(composed_channel, ChannelArrayBlock):
+                            composed_channel.composition_addr = comp_addr
+                        # link cn_cn_next address between sibling dependency channels
+                        else:
+                            index = composed_channel[1]
+                            composition = channels[index]
+                            composition.next_ch_addr = comp_addr
 
-                # channel dependencies
-                j = len(channels) - 1
-                while j >= 0:
-                    dep_list = gp.channel_dependencies[j]
-                    if dep_list and all(isinstance(dep, tuple) for dep in dep_list):
-                        dep_list = typing.cast(list[tuple[int, int]], dep_list)
-                        index = dep_list[0][1]
-                        channels[j].component_addr = channels[index].address
-                        index = dep_list[-1][1]
-                        channels[j].next_ch_addr = channels[index].next_ch_addr
-                        channels[index].next_ch_addr = 0
-
-                        for _, ch_nr in dep_list:
-                            channels[ch_nr].source_addr = 0
-                    j -= 1
+                        composed_channel = dep
 
                 # channel group
                 if gp.channel_group.flags & v4c.FLAG_CG_VLSD:

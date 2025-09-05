@@ -816,6 +816,10 @@ class MDF:
     def groups(self) -> list[mdf_v3.Group] | list[mdf_v4.Group]:
         return self._mdf.groups
 
+    @groups.setter
+    def groups(self, groups: list[mdf_v3.Group] | list[mdf_v4.Group]) -> None:
+        self._mdf.groups = groups
+
     @property
     def channels_db(self) -> ChannelsDB:
         return self._mdf.channels_db
