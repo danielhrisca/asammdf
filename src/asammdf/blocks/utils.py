@@ -271,6 +271,7 @@ def get_text_v3(address: int, stream: FileLike | mmap.mmap, mapped: bool = False
         return "" if decode else b""
 
     if mapped:
+        stream = typing.cast(mmap.mmap, stream)
         block_id = stream[address : address + 2]
         if block_id != b"TX":
             return "" if decode else b""
@@ -369,6 +370,7 @@ def get_text_v4(
         return "" if decode else b""
 
     if mapped:
+        stream = typing.cast(mmap.mmap, stream)
         if address + 16 > file_limit:
             handle_incomplete_block(address)
             return "" if decode else b""
@@ -939,6 +941,7 @@ def count_channel_groups(
 
     if version >= 4:
         if mapped:
+            stream = typing.cast(mmap.mmap, stream)
             dg_addr = UINT64_uf(stream, 88)[0]
             while dg_addr:
                 stream.seek(dg_addr + 32)

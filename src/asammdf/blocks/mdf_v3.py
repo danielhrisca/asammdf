@@ -48,7 +48,7 @@ from .cutils import data_block_from_arrays, get_channel_raw_bytes
 from .mdf_common import MDF_Common, MdfCommonKwargs
 from .options import GLOBAL_OPTIONS
 from .source_utils import Source
-from .types import ChannelsType, CompressionType, RasterType, StrPath
+from .types import ChannelsType, CompressionType, StrPath
 from .utils import (
     as_non_byte_sized_signed_int,
     CHANNEL_COUNT,
@@ -766,6 +766,7 @@ class MDF3(MDF_Common[Group]):
                     if filter_channels:
                         display_names = {}
                         if mapped:
+                            stream = typing.cast(mmap.mmap, stream)
                             (
                                 id_,
                                 block_len,
@@ -2701,7 +2702,7 @@ class MDF3(MDF_Common[Group]):
         name: str | None = ...,
         group: int | None = ...,
         index: int | None = ...,
-        raster: RasterType | None = ...,
+        raster: float | None = ...,
         samples_only: Literal[False] = ...,
         data: tuple[bytes, int, int | None] | None = ...,
         raw: bool = ...,
@@ -2717,7 +2718,7 @@ class MDF3(MDF_Common[Group]):
         name: str | None = ...,
         group: int | None = ...,
         index: int | None = ...,
-        raster: RasterType | None = ...,
+        raster: float | None = ...,
         *,
         samples_only: Literal[True],
         data: tuple[bytes, int, int | None] | None = ...,
@@ -2734,7 +2735,7 @@ class MDF3(MDF_Common[Group]):
         name: str | None = ...,
         group: int | None = ...,
         index: int | None = ...,
-        raster: RasterType | None = ...,
+        raster: float | None = ...,
         samples_only: bool = ...,
         data: tuple[bytes, int, int | None] | None = ...,
         raw: bool = ...,
@@ -2749,7 +2750,7 @@ class MDF3(MDF_Common[Group]):
         name: str | None = None,
         group: int | None = None,
         index: int | None = None,
-        raster: RasterType | None = None,
+        raster: float | None = None,
         samples_only: bool = False,
         data: tuple[bytes, int, int | None] | None = None,
         raw: bool = False,

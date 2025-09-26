@@ -46,7 +46,7 @@ for i, val in enumerate(vals):
 R = 1 - np.sqrt(X**2 + Y**2)
 samples = np.cos(2 * np.pi * X + phi) * R
 
-timestamps = np.arange(0, 2, 0.02)
+timestamps = np.arange(0, 2, 0.02, dtype=np.float32)
 
 s_map = Signal(samples=samples, timestamps=timestamps, name="Variable Map Signal", unit="dB")
 s_map.plot()

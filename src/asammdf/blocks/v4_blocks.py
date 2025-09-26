@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from hashlib import md5
 import inspect
 import logging
+import mmap
 from pathlib import Path
 import re
 from struct import pack, unpack, unpack_from
@@ -200,6 +201,7 @@ class AttachmentBlock:
                 raise KeyError
 
             if mapped:
+                stream = typing.cast(mmap.mmap, stream)
                 (
                     self.id,
                     self.reserved0,
@@ -425,6 +427,7 @@ class ChannelKwargs(BlockKwargs, total=False):
     upper_ext_limit: float
     attachment_addr: int
     file_limit: int | float
+    units_map: dict[int, str]
 
 
 CN = b"##CN"
@@ -578,6 +581,7 @@ class Channel:
                 raise KeyError
 
             if mapped:
+                stream = typing.cast(mmap.mmap, stream)
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 if address + self.block_len > file_limit:
@@ -1567,6 +1571,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
+                stream = typing.cast(mmap.mmap, stream)
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 if self.id != b"##CA":
@@ -2043,6 +2048,7 @@ class ChannelGroup:
                 raise KeyError
 
             if mapped:
+                stream = typing.cast(mmap.mmap, stream)
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 if address + self.block_len > file_limit:
@@ -2150,6 +2156,7 @@ class ChannelGroup:
                     source = None
                 else:
                     if mapped:
+                        stream = typing.cast(mmap.mmap, stream)
                         raw_bytes = stream[address : address + v4c.SI_BLOCK_SIZE]
                     else:
                         stream.seek(address)
@@ -4669,6 +4676,7 @@ class DataBlock:
                 raise KeyError
 
             if mapped:
+                stream = typing.cast(mmap.mmap, stream)
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 if address + self.block_len > file_limit:
@@ -5028,6 +5036,7 @@ class DataGroup:
                 raise KeyError
 
             if mapped:
+                stream = typing.cast(mmap.mmap, stream)
                 (
                     self.id,
                     self.reserved0,
@@ -5205,6 +5214,7 @@ class DataList(_DataListBase):
             file_limit = kwargs.get("file_limit", float("inf"))
 
             if mapped:
+                stream = typing.cast(mmap.mmap, stream)
                 if self.address + COMMON_SIZE > file_limit:
                     logger.warning(f"incomplete block at 0x{self.address:x} exceeds the file size")
                     self.next_dl_addr = 0
@@ -5992,6 +6002,7 @@ class GuardBlock:
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
+                stream = typing.cast(mmap.mmap, stream)
                 (
                     self.id,
                     self.reserved0,
@@ -6627,6 +6638,7 @@ class ListData(_ListDataBase):
             file_limit = kwargs.get("file_limit", float("inf"))
 
             if mapped:
+                stream = typing.cast(mmap.mmap, stream)
                 if self.address + COMMON_SIZE > file_limit:
                     logger.warning(f"incomplete block at 0x{self.address:x} exceeds the file size")
                     self.next_ld_addr = 0
@@ -7163,6 +7175,7 @@ class TextBlock:
             self.address = address = kwargs["address"]
 
             if mapped:
+                stream = typing.cast(mmap.mmap, stream)
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 size = self.block_len - COMMON_SIZE

@@ -110,8 +110,6 @@ module = [
     "cchardet.*",
     "cmerg.*",
     "fsspec.*",
-    "h5py.*",
-    "hdf5storage.*",
     "isal.*",
     "lz4.*",
     "mdfreader.*",

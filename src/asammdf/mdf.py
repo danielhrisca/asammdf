@@ -31,19 +31,6 @@ import pandas as pd
 from pandas import DataFrame
 from typing_extensions import Any, LiteralString, Never, overload, TypedDict, Unpack
 
-try:
-    from isal.isal_zlib import decompress
-except ImportError:
-    from zlib import decompress
-import tempfile
-
-from lz4.frame import compress as lz_compress
-from lz4.frame import decompress as lz_decompress
-from numpy import (
-    frombuffer,
-    uint8,
-)
-
 from . import tool
 from .blocks import mdf_v2, mdf_v3, mdf_v4
 from .blocks import v2_v3_blocks as v3b
@@ -77,7 +64,6 @@ from .blocks.utils import (
     components,
     csv_bytearray2hex,
     csv_int2hex,
-    DataBlockInfo,
     downcast,
     FileLike,
     Fragment,
@@ -123,6 +109,8 @@ try:
     POLARS_AVAILABLE = True
 except:
     POLARS_AVAILABLE = False
+
+NDArray1D = np.ndarray[tuple[int], np.dtype[Any]]
 
 logger = logging.getLogger("asammdf")
 LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
@@ -1156,8 +1144,9 @@ class MDF:
             New `MDF` object.
         """
 
-        if inplace and all(not gp.uses_ld for gp in self.groups) and self.version >= "4.00":
-            return self._cut_inplace(start=start, stop=stop, whence=whence, progress=progress)
+        if inplace and all(not gp.uses_ld for gp in self.groups) and isinstance(self._mdf, mdf_v4.MDF4):
+            self._mdf._cut_inplace(start=start, stop=stop, whence=whence, progress=progress)
+            return self
 
         if version is None:
             version = self.version
@@ -1378,238 +1367,13 @@ class MDF:
 
         return out
 
-    def _cut_inplace(
-        self,
-        start: float | None = None,
-        stop: float | None = None,
-        whence: int = 0,
-        progress: Any | None = None,
-    ) -> "MDF":
-        """Cut `MDF`. `start` and `stop` are absolute values or values relative
-        to the first timestamp depending on the `whence` argument. This
-        function is a lot faster than `cut`.
-
-        .. versionadded:: 8.7.0
-
-        Parameters
-        ----------
-        start : float, optional
-            Start time; default is None. If None, the start of the measurement
-            is used.
-        stop : float, optional
-            Stop time; default is None. If None, the end of the measurement is
-            used.
-        whence : int, default 0
-            How to search for the start and stop values.
-
-            * 0 : absolute
-            * 1 : relative to first timestamp
-
-        Returns
-        -------
-        out : MDF
-            New `MDF` object if the inplace cut cannot be done, or `self` if
-            the inplace cut is possible
-
-        """
-
-        if start is None and stop is None:
-            return self
-
-        if whence == 1:
-            timestamps: list[float] = []
-            for group in self.virtual_groups:
-                master = self._mdf.get_master(group, record_offset=0, record_count=1)
-                if master.size:
-                    timestamps.append(master[0])
-
-            if timestamps:
-                first_timestamp = np.amin(timestamps)
-            else:
-                first_timestamp = 0
-
-            if start is not None:
-                start += first_timestamp
-            if stop is not None:
-                stop += first_timestamp
-
-        groups_nr = len(self.groups)
-
-        if progress is not None:
-            if callable(progress):
-                progress(0, groups_nr)
-            else:
-                progress.signals.setValue.emit(0)
-                progress.signals.setMaximum.emit(groups_nr)
-
-        for i, group in enumerate(self.groups):
-            channel_group = group.channel_group
-            record_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
-
-            stream: FileLike | mmap.mmap | tempfile._TemporaryFileWrapper[bytes]
-            if group.data_location == v4c.LOCATION_ORIGINAL_FILE:
-                stream = typing.cast(FileLike | mmap.mmap, self._mdf._file)
-            else:
-                stream = self._mdf._tempfile
-
-            out_seek = self._mdf._tempfile.seek
-            out_tell = self._mdf._tempfile.tell
-            out_write = self._mdf._tempfile.write
-
-            read = stream.read
-            seek = stream.seek
-
-            new_blocks = []
-            new_cycles_nr = 0
-
-            for j, info in enumerate(group.data_blocks):
-                if progress and progress.stop:
-                    raise Terminated
-                (
-                    address,
-                    original_size,
-                    compressed_size,
-                    block_type,
-                    param,
-                    block_limit,
-                ) = (
-                    info.address,
-                    typing.cast(int, info.original_size),
-                    info.compressed_size,
-                    info.block_type,
-                    info.param,
-                    info.block_limit,
-                )
-
-                seek(address)
-                new_data: bytes | memoryview[int] = read(typing.cast(int, compressed_size))
-
-                match block_type:
-                    case v4c.DZ_BLOCK_DEFLATE:
-                        new_data = decompress(new_data, bufsize=original_size)
-                    case v4c.DZ_BLOCK_TRANSPOSED:
-                        new_data = decompress(new_data, bufsize=original_size)
-                        cols = typing.cast(int, param)
-                        lines = original_size // cols
-                        matrix_size = lines * cols
-
-                        if matrix_size != original_size:
-                            new_data = (
-                                frombuffer(new_data[:matrix_size], dtype=uint8)
-                                .reshape((cols, lines))
-                                .T.ravel()
-                                .tobytes()
-                                + new_data[matrix_size:]
-                            )
-                        else:
-                            new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
-
-                    case v4c.DZ_BLOCK_LZ:
-                        new_data = lz_decompress(new_data)
-
-                if block_limit is not None:
-                    new_data = new_data[:block_limit]
-
-                count = len(new_data) // record_size
-
-                fragment = Fragment(
-                    new_data,
-                    0,
-                    count,
-                    None,
-                )
-
-                master = self.get_master(i, data=fragment, one_piece=True)
-
-                if not len(master):
-                    continue
-
-                needs_cutting = True
-
-                if start is None:
-                    start_index = 0
-                    if master[0] > stop:
-                        break
-                    else:
-                        fragment_stop = min(stop, master[-1])
-                        stop_index = np.searchsorted(master, fragment_stop, side="right")
-                        if stop_index == len(master):
-                            needs_cutting = False
-
-                elif stop is None:
-                    start_index = 0
-                    if master[-1] < start:
-                        continue
-                    else:
-                        fragment_start = max(start, master[0])
-                        start_index = np.searchsorted(master, fragment_start, side="left")
-                        stop_index = len(master)
-                        if start_index == 0:
-                            needs_cutting = False
-                else:
-                    if master[0] > stop:
-                        break
-                    elif master[-1] < start:
-                        continue
-                    else:
-                        fragment_start = max(start, master[0])
-                        start_index = np.searchsorted(master, fragment_start, side="left")
-                        fragment_stop = min(stop, master[-1])
-                        stop_index = np.searchsorted(master, fragment_stop, side="right")
-                        if start_index == 0 and stop_index == len(master):
-                            needs_cutting = False
-
-                if needs_cutting:
-                    data = new_data[start_index * record_size : stop_index * record_size]
-                    count = stop_index - start_index
-
-                else:
-                    data = new_data
-
-                out_seek(0, 2)
-
-                raw_size = len(data)
-                data = lz_compress(data, store_size=True)
-
-                size = len(data)
-                out_seek(0, 2)
-                data_address = out_tell()
-                out_write(data)
-
-                info = DataBlockInfo(
-                    address=data_address,
-                    block_type=v4c.DZ_BLOCK_LZ,
-                    original_size=raw_size,
-                    compressed_size=size,
-                    param=0,
-                )
-
-                new_blocks.append(info)
-                new_cycles_nr += count
-
-            channel_group.cycles_nr = new_cycles_nr
-            group.data_blocks = new_blocks
-            group.data_location = v4c.LOCATION_TEMPORARY_FILE
-
-            if progress is not None:
-                if callable(progress):
-                    progress(i + 1, groups_nr)
-                else:
-                    progress.signals.setValue.emit(i + 1)
-
-                    if progress.stop:
-                        print("return terminated")
-                        raise Terminated
-
-        return self
-
     @overload
     def get(
         self,
         name: str | None = ...,
         group: int | None = ...,
         index: int | None = ...,
-        raster: RasterType | None = ...,
+        raster: float | None = ...,
         samples_only: Literal[False] = ...,
         data: tuple[bytes, int, int | None] | Fragment | None = ...,
         raw: bool = ...,
@@ -1625,7 +1389,7 @@ class MDF:
         name: str | None = ...,
         group: int | None = ...,
         index: int | None = ...,
-        raster: RasterType | None = ...,
+        raster: float | None = ...,
         *,
         samples_only: Literal[True],
         data: tuple[bytes, int, int | None] | Fragment | None = ...,
@@ -1642,7 +1406,7 @@ class MDF:
         name: str | None = ...,
         group: int | None = ...,
         index: int | None = ...,
-        raster: RasterType | None = ...,
+        raster: float | None = ...,
         *,
         samples_only: Literal[True],
         data: tuple[bytes, int, int | None] | Fragment | None = ...,
@@ -1659,7 +1423,7 @@ class MDF:
         name: str | None = ...,
         group: int | None = ...,
         index: int | None = ...,
-        raster: RasterType | None = ...,
+        raster: float | None = ...,
         samples_only: bool = ...,
         data: tuple[bytes, int, int | None] | Fragment | None = ...,
         raw: bool = ...,
@@ -1674,7 +1438,7 @@ class MDF:
         name: str | None = None,
         group: int | None = None,
         index: int | None = None,
-        raster: RasterType | None = None,
+        raster: float | None = None,
         samples_only: bool = False,
         data: tuple[bytes, int, int | None] | Fragment | None = None,
         raw: bool = False,
@@ -2029,13 +1793,13 @@ class MDF:
         elif fmt == "mat":
             if format == "7.3":
                 try:
-                    from hdf5storage import savemat
+                    import hdf5storage
                 except ImportError:
                     logger.warning("hdf5storage not found; export to mat v7.3 is unavailable")
                     return None
             else:
                 try:
-                    from scipy.io import savemat
+                    import scipy.io as sio
                 except ImportError:
                     logger.warning("scipy not found; export to mat v4 and v5 is unavailable")
                     return None
@@ -2145,7 +1909,7 @@ class MDF:
                                 raise Terminated
 
                     samples: NDArray[Any] | pd.Series[Any]
-                    for i, channel in enumerate(df):
+                    for i, channel in enumerate(df.columns):
                         samples = df[channel]
                         unit = units.get(channel, "")
                         comment = comments.get(channel, "")
@@ -2358,7 +2122,7 @@ class MDF:
                         units_row = [units[name] for name in names_row]
                         writer.writerow(units_row)
 
-                    for col in df:
+                    for col in df.columns:
                         if df[col].dtype.kind == "S":
                             for encoding, errors in (
                                 ("utf-8", "strict"),
@@ -2549,8 +2313,8 @@ class MDF:
 
             if not single_time_base:
 
-                def decompose(samples: NDArray[Any]) -> dict[str, NDArray[Any]]:
-                    dct: dict[str, NDArray[Any]] = {}
+                def decompose(samples: NDArray[Any]) -> dict[str, NDArray1D]:
+                    dct: dict[str, NDArray1D] = {}
 
                     for name in samples.dtype.names or ():
                         vals = samples[name]
@@ -2558,11 +2322,12 @@ class MDF:
                         if vals.dtype.names:
                             dct.update(decompose(vals))
                         else:
+                            vals = typing.cast(NDArray1D, vals)
                             dct[name] = vals
 
                     return dct
 
-                mdict: dict[str, NDArray[Any]] = {}
+                mdict: dict[str, NDArray1D] = {}
 
                 master_name_template = "DGM{}_{}"
                 channel_name_template = "DG{}_{}"
@@ -2634,6 +2399,7 @@ class MDF:
                             mdict.update(sigs)
 
                         else:
+                            sig.samples = typing.cast(NDArray1D, sig.samples)
                             mdict[channel_name] = sig.samples
 
                     if progress is not None:
@@ -2668,7 +2434,7 @@ class MDF:
                     mdict[channel_name] = df[name].to_numpy()
 
                     if hasattr(mdict[channel_name].dtype, "categories"):
-                        mdict[channel_name] = np.array(mdict[channel_name], dtype="S")
+                        mdict[channel_name] = mdict[channel_name].astype("S")
 
                     if progress is not None:
                         if callable(progress):
@@ -2694,7 +2460,7 @@ class MDF:
                         raise Terminated
 
             if format == "7.3":
-                savemat(
+                hdf5storage.savemat(
                     str(filename),
                     mdict,
                     long_field_names=True,
@@ -2705,9 +2471,9 @@ class MDF:
                     store_python_metadata=False,
                 )
             else:
-                savemat(
+                sio.savemat(
                     str(filename),
-                    mdict,
+                    mdict,  # type: ignore[arg-type, unused-ignore]
                     long_field_names=True,
                     oned_as=oned_as,
                     do_compression=bool(compression),
@@ -3770,7 +3536,7 @@ class MDF:
                 only_basenames=only_basenames,
             )
 
-    def master_using_raster(self, raster: RasterType, endpoint: bool = False) -> NDArray[Any]:
+    def master_using_raster(self, raster: float, endpoint: bool = False) -> NDArray[Any]:
         """Get single master based on the raster.
 
         Parameters
