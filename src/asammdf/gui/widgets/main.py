@@ -1496,7 +1496,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         for i in range(count):
             self.files.widget(i).close()
         if self.fullscreen:
-            widget, index = self.fullscreen
+            widget, _index = self.fullscreen
             widget.close()
             widget.deleteLater()
         event.accept()

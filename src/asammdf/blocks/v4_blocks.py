@@ -255,9 +255,7 @@ class AttachmentBlock:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.file_name = get_text_v4(
-                self.file_name_addr, stream, mapped=mapped, file_limit=file_limit
-            )
+            self.file_name = get_text_v4(self.file_name_addr, stream, mapped=mapped, file_limit=file_limit)
             self.mime = get_text_v4(self.mime_addr, stream, mapped=mapped, file_limit=file_limit)
             self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped, file_limit=file_limit)
 
@@ -734,9 +732,7 @@ class Channel:
                 parsed_strings = kwargs["parsed_strings"]
                 if parsed_strings is None:
                     self.name = get_text_v4(self.name_addr, stream, mapped=mapped, file_limit=file_limit)
-                    self.comment = get_text_v4(
-                        self.comment_addr, stream, mapped=mapped, file_limit=file_limit
-                    )
+                    self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped, file_limit=file_limit)
 
                     if kwargs["use_display_names"]:
                         self.display_names = extract_display_names(self.comment)
@@ -779,7 +775,6 @@ class Channel:
                                     stream=stream,
                                     address=address,
                                     mapped=mapped,
-                                   
                                     file_limit=file_limit,
                                 )
                                 cc_map[raw_bytes] = cc_map[address] = conv
@@ -815,7 +810,6 @@ class Channel:
                                     stream=stream,
                                     address=address,
                                     mapped=mapped,
-                                   
                                     file_limit=file_limit,
                                 )
                                 si_map[raw_bytes] = si_map[address] = source
@@ -1032,7 +1026,6 @@ class Channel:
                                     raw_bytes=raw_bytes,
                                     stream=stream,
                                     address=address,
-                                   
                                     mapped=mapped,
                                     file_limit=file_limit,
                                 )
@@ -1066,7 +1059,6 @@ class Channel:
                                     raw_bytes=raw_bytes,
                                     stream=stream,
                                     address=address,
-                                   
                                     mapped=mapped,
                                     file_limit=file_limit,
                                 )
@@ -2171,7 +2163,6 @@ class ChannelGroup:
                             stream=stream,
                             address=address,
                             mapped=mapped,
-                           
                             file_limit=file_limit,
                         )
                         si_map[raw_bytes] = source
@@ -2888,9 +2879,9 @@ class ChannelConversion(_ChannelConversionBase):
             conv_type = conv
 
             if conv_type == v4c.CONVERSION_TYPE_ALG:
-                self.formula = get_text_v4(
-                    self.formula_addr, stream, mapped=mapped, file_limit=file_limit
-                ).replace("x", "X")
+                self.formula = get_text_v4(self.formula_addr, stream, mapped=mapped, file_limit=file_limit).replace(
+                    "x", "X"
+                )
             else:
                 self.formula = ""
 
@@ -2956,7 +2947,6 @@ class ChannelConversion(_ChannelConversionBase):
                                         stream=stream,
                                         mapped=mapped,
                                         decode=False,
-                                        
                                         file_limit=file_limit,
                                     )
                                 elif _id == b"##CC":
@@ -2964,7 +2954,6 @@ class ChannelConversion(_ChannelConversionBase):
                                         address=address,
                                         stream=stream,
                                         mapped=mapped,
-                                        
                                         file_limit=file_limit,
                                     )
                                     refs["default_addr"] = cc_block
@@ -2987,18 +2976,17 @@ class ChannelConversion(_ChannelConversionBase):
                                 stream=stream,
                                 mapped=mapped,
                                 decode=False,
-                                
                                 file_limit=file_limit,
                             )
 
                     address = self.default_addr
                     refs["default_addr"] = get_text_v4(
-                            address=address,
-                            stream=stream,
-                            mapped=mapped,
-                            decode=False,
-                            file_limit=file_limit,
-                        )
+                        address=address,
+                        stream=stream,
+                        mapped=mapped,
+                        decode=False,
+                        file_limit=file_limit,
+                    )
 
         else:
             self.name = kwargs.get("name", "")
@@ -6189,7 +6177,7 @@ class HeaderBlock:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.comment = get_text_v4(address=self.comment_addr, stream=stream,file_limit=file_limit)
+            self.comment = get_text_v4(address=self.comment_addr, stream=stream, file_limit=file_limit)
 
         except KeyError:
             self.address = 0x40
@@ -6935,15 +6923,9 @@ class SourceInformation:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.name = get_text_v4(
-                address=self.name_addr, stream=stream, mapped=mapped, file_limit=file_limit
-            )
-            self.path = get_text_v4(
-                address=self.path_addr, stream=stream, mapped=mapped, file_limit=file_limit
-            )
-            self.comment = get_text_v4(
-                address=self.comment_addr, stream=stream, mapped=mapped, file_limit=file_limit
-            )
+            self.name = get_text_v4(address=self.name_addr, stream=stream, mapped=mapped, file_limit=file_limit)
+            self.path = get_text_v4(address=self.path_addr, stream=stream, mapped=mapped, file_limit=file_limit)
+            self.comment = get_text_v4(address=self.comment_addr, stream=stream, mapped=mapped, file_limit=file_limit)
 
         else:
             self.address = 0

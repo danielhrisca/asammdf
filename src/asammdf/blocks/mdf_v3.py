@@ -3241,7 +3241,7 @@ class MDF3(MDF_Common[Group]):
                 time_values: list[NDArray[Any]] = []
                 count = 0
                 for fragment in data_:
-                    data_bytes, offset, _count = fragment
+                    data_bytes, _offset, _count = fragment
                     dtype_, byte_size, byte_offset, bit_offset = record
 
                     buffer = get_channel_raw_bytes(

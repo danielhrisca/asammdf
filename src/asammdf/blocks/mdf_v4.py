@@ -890,9 +890,7 @@ class MDF4(MDF_Common[Group]):
                         comment_addr,
                     ) = v4c.CHANNEL_FILTER_uf(stream, ch_addr)
                     channel_type = stream[ch_addr + v4c.COMMON_SIZE + links_nr * 8]
-                    name = get_text_v4(
-                        name_addr, stream, mapped=mapped, file_limit=self.file_limit
-                    )
+                    name = get_text_v4(name_addr, stream, mapped=mapped, file_limit=self.file_limit)
                     if use_display_names:
                         comment = get_text_v4(
                             comment_addr,
@@ -917,9 +915,7 @@ class MDF4(MDF_Common[Group]):
                     ) = v4c.CHANNEL_FILTER_u(stream.read(v4c.CHANNEL_FILTER_SIZE))
                     stream.seek(ch_addr + v4c.COMMON_SIZE + links_nr * 8)
                     channel_type = stream.read(1)[0]
-                    name = get_text_v4(
-                        name_addr, stream, mapped=mapped, file_limit=self.file_limit
-                    )
+                    name = get_text_v4(name_addr, stream, mapped=mapped, file_limit=self.file_limit)
 
                     if use_display_names:
                         comment = get_text_v4(
@@ -1013,7 +1009,7 @@ class MDF4(MDF_Common[Group]):
                     mapped=mapped,
                     parsed_strings=None,
                     file_limit=self.file_limit,
-                    units_map=self._units_map
+                    units_map=self._units_map,
                 )
 
             if channel.data_type not in VALID_DATA_TYPES:
@@ -1917,7 +1913,7 @@ class MDF4(MDF_Common[Group]):
                     handle_incomplete_block(address, self.original_name)
                     return False
 
-                id_string, block_len = COMMON_SHORT_uf(stream, address)
+                id_string, _block_len = COMMON_SHORT_uf(stream, address)
 
                 if id_string == b"##LD":
                     uses_ld = True
@@ -1938,7 +1934,7 @@ class MDF4(MDF_Common[Group]):
                     return False
 
                 stream.seek(address)
-                id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
+                id_string, _block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                 # can be a DataBlock
                 if id_string == b"##LD":
@@ -2072,7 +2068,7 @@ class MDF4(MDF_Common[Group]):
                                 return handle_incomplete_block(original_address, self.original_name)
 
                             # can be a DataBlock
-                            if id_string != b'##DZ':
+                            if id_string != b"##DZ":
                                 size = block_len - 24
                                 if size:
                                     size = min(size, total_size)
@@ -2300,7 +2296,7 @@ class MDF4(MDF_Common[Group]):
 
                 if original_address + block_len > self.file_limit:
                     return handle_incomplete_block(original_address, self.original_name)
-                
+
                 # can be a DataBlock
                 if id_string in (b"##DT", b"##DV"):
                     size = block_len - 24
@@ -3552,7 +3548,7 @@ class MDF4(MDF_Common[Group]):
                     offset,
                     dg_cntr,
                     ch_cntr,
-                    struct_self,
+                    _struct_self,
                     new_fields,
                 ) = self._append_structure_composition(
                     gp,
@@ -3627,7 +3623,7 @@ class MDF4(MDF_Common[Group]):
                 for name in names:
                     samples = signal.samples[name]
                     shape = samples.shape[1:]
-                    
+
                     if name == array_name:
                         gp_dep.append([parent_dep])
 
@@ -3705,7 +3701,6 @@ class MDF4(MDF_Common[Group]):
                         ch_cntr += 1
 
                     else:
-
                         # add channel dependency block
                         ca_kwargs = {
                             "dims": 1,
@@ -4484,8 +4479,8 @@ class MDF4(MDF_Common[Group]):
                     offset,
                     dg_cntr,
                     ch_cntr,
-                    struct_self,
-                    new_fields,
+                    _struct_self,
+                    _new_fields,
                     new_types,
                 ) = self._append_structure_composition_column_oriented(
                     gp,
@@ -5459,7 +5454,6 @@ class MDF4(MDF_Common[Group]):
                         "dim_size_0": shape[0],
                     }
                     parent_dep = ChannelArrayBlock(**ca_kwargs)
-                    
 
                 for name in names:
                     samples = array_samples[name]
@@ -5543,7 +5537,6 @@ class MDF4(MDF_Common[Group]):
                         ch_cntr += 1
 
                     else:
-
                         record.append(
                             (
                                 samples.dtype,
@@ -5854,7 +5847,7 @@ class MDF4(MDF_Common[Group]):
                 names = samples.dtype.names
                 if names is None:
                     raise RuntimeError("'names' is None")
-                
+
                 array_name = name
                 samples = array_samples[array_name]
                 shape = samples.shape[1:]
@@ -5895,7 +5888,6 @@ class MDF4(MDF_Common[Group]):
                             ca_kwargs[f"dim_size_{i}"] = shape[i]  # type: ignore[literal-required]
 
                     parent_dep = ChannelArrayBlock(**ca_kwargs)
-                    
 
                 else:
                     # add channel dependency block for composed parent channel
@@ -6183,14 +6175,13 @@ class MDF4(MDF_Common[Group]):
                 case v4c.SIGNAL_TYPE_ARRAY:
                     names = signal.dtype.names
 
-
                     if names is None:
                         raise RuntimeError("'names' is None")
-                    
+
                     for name in names:
                         samples = signal[name]
                         shape = samples.shape[1:]
-                        s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
+                        _s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
                         size = s_size // 8
                         for dim in shape:
                             size *= dim
@@ -7397,7 +7388,9 @@ class MDF4(MDF_Common[Group]):
 
         groups = self.groups
 
-        channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT)
+        channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (
+            v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
+        )
 
         _dtype = np.dtype(channel.dtype_fmt)
         conditions = [
@@ -7725,7 +7718,9 @@ class MDF4(MDF_Common[Group]):
             ]
         )
 
-        channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT)
+        channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (
+            v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
+        )
 
         channel_group = grp.channel_group
         samples_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
@@ -8139,7 +8134,9 @@ class MDF4(MDF_Common[Group]):
         gp_nr = group_index
         ch_nr = channel_index
 
-        channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT)
+        channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (
+            v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
+        )
 
         data_type = channel.data_type
         channel_type = channel.channel_type
@@ -11651,8 +11648,8 @@ class MDF4(MDF_Common[Group]):
 
                             if next_block_type == b"##DZ":
                                 (
-                                    zip_type,
-                                    param,
+                                    _zip_type,
+                                    _param,
                                     original_size,
                                     zip_size,
                                 ) = v4c.DZ_COMMON_INFO_uf(stream.read(v4c.DZ_COMMON_INFO_SIZE))
@@ -11660,7 +11657,7 @@ class MDF4(MDF_Common[Group]):
                                 exceeded = limit - (next_block_address + v4c.DZ_COMMON_SIZE + zip_size) < 0
 
                             else:
-                                id_string, block_len = COMMON_SHORT_uf(stream.read(v4c.COMMON_SIZE))
+                                _id_string, block_len = COMMON_SHORT_uf(stream.read(v4c.COMMON_SIZE))
                                 original_size = block_len - 24
 
                                 exceeded = limit - (next_block_address + block_len) < 0
@@ -12097,7 +12094,7 @@ class MDF4(MDF_Common[Group]):
 
                 if attachment_addr is not None:
                     if attachment_addr not in self._dbc_cache:
-                        attachment, at_name, md5_sum = self.extract_attachment(
+                        attachment, at_name, _md5_sum = self.extract_attachment(
                             index=attachment_addr,
                         )
                         if at_name.suffix.lower() not in (".arxml", ".dbc"):
@@ -12342,7 +12339,7 @@ class MDF4(MDF_Common[Group]):
                 attachment_addr = channel.attachment
                 if attachment_addr is not None:
                     if attachment_addr not in self._dbc_cache:
-                        attachment, at_name, md5_sum = self.extract_attachment(
+                        attachment, at_name, _md5_sum = self.extract_attachment(
                             index=attachment_addr,
                         )
                         if at_name.suffix.lower() not in (".arxml", ".dbc", ".ldf"):

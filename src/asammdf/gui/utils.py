@@ -1051,7 +1051,7 @@ def get_color_using_ranges(
 
         for range_info in ranges:
             (
-                background_color,
+                _background_color,
                 font_color,
                 op1,
                 op2,

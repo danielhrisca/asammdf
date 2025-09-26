@@ -1144,7 +1144,7 @@ class MDF:
             Start timestamps from 0s in the cut measurement.
         inplace : bool, default False
             Cut the measurement inplace modifying the original `MDF` object. This argument
-            overrides the arguments `version` (gets set to self.version), 
+            overrides the arguments `version` (gets set to self.version),
             `include_ends` (gets set to False) and `time_from_zero` (gets set to False) and is
             done only for MDF v4 files.
 
@@ -1156,11 +1156,7 @@ class MDF:
             New `MDF` object.
         """
 
-        if (
-            inplace 
-            and all(not gp.uses_ld for gp in self.groups) 
-            and self.version>= "4.00"
-        ):
+        if inplace and all(not gp.uses_ld for gp in self.groups) and self.version >= "4.00":
             return self._cut_inplace(start=start, stop=stop, whence=whence, progress=progress)
 
         if version is None:
@@ -1381,7 +1377,7 @@ class MDF:
         out._transfer_metadata(self, message=f"Cut from {start_} to {stop_}")
 
         return out
-    
+
     def _cut_inplace(
         self,
         start: float | None = None,
@@ -1412,7 +1408,7 @@ class MDF:
         Returns
         -------
         out : MDF
-            New `MDF` object if the inplace cut cannot be done, or `self` if 
+            New `MDF` object if the inplace cut cannot be done, or `self` if
             the inplace cut is possible
 
         """
@@ -1447,7 +1443,6 @@ class MDF:
                 progress.signals.setMaximum.emit(groups_nr)
 
         for i, group in enumerate(self.groups):
-            
             channel_group = group.channel_group
             record_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
 
@@ -1566,11 +1561,11 @@ class MDF:
 
                 if needs_cutting:
                     data = new_data[start_index * record_size : stop_index * record_size]
-                    count = (stop_index - start_index)
+                    count = stop_index - start_index
 
                 else:
                     data = new_data
-                
+
                 out_seek(0, 2)
 
                 raw_size = len(data)
@@ -1582,12 +1577,12 @@ class MDF:
                 out_write(data)
 
                 info = DataBlockInfo(
-                        address=data_address,
-                        block_type=v4c.DZ_BLOCK_LZ,
-                        original_size=raw_size,
-                        compressed_size=size,
-                        param=0,
-                    )
+                    address=data_address,
+                    block_type=v4c.DZ_BLOCK_LZ,
+                    original_size=raw_size,
+                    compressed_size=size,
+                    param=0,
+                )
 
                 new_blocks.append(info)
                 new_cycles_nr += count
@@ -1605,7 +1600,7 @@ class MDF:
                     if progress.stop:
                         print("return terminated")
                         raise Terminated
-                    
+
         return self
 
     @overload

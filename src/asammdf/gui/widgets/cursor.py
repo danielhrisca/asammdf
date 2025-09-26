@@ -158,7 +158,7 @@ class Bookmark(pg.InfiniteLine):
             plot.px = (plot.x_range[1] - plot.x_range[0]) / rect.width()
             plot.py = rect.height()
 
-            x, y = plot.scale_curve_to_pixmap(
+            x, _y = plot.scale_curve_to_pixmap(
                 position,
                 0,
                 y_range=plot.viewbox.viewRange()[1],
@@ -336,10 +336,10 @@ class Cursor(pg.InfiniteLine):
                 paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
 
             else:
-                signal, idx = plot.signal_by_uuid(uuid)
+                signal, _idx = plot.signal_by_uuid(uuid)
                 if signal.enable:
                     index = plot.get_timestamp_index(position, signal.timestamps)
-                    raw_value, raw_kind, y_value, kind, fmt = signal.value_at_index(index)
+                    _raw_value, _raw_kind, y_value, _kind, _fmt = signal.value_at_index(index)
                     if y_value != "n.a.":
                         x, y = plot.scale_curve_to_pixmap(
                             position,
@@ -509,14 +509,14 @@ class Region(pg.LinearRegionItem):
             plot.px = (plot.x_range[1] - plot.x_range[0]) / rect.width()
             plot.py = rect.height()
 
-            x1, y1 = plot.scale_curve_to_pixmap(
+            x1, _y1 = plot.scale_curve_to_pixmap(
                 self.lines[0].value(),
                 0,
                 y_range=plot.viewbox.viewRange()[1],
                 x_start=plot.viewbox.viewRange()[0][0],
                 delta=delta,
             )
-            x2, y2 = plot.scale_curve_to_pixmap(
+            x2, _y2 = plot.scale_curve_to_pixmap(
                 self.lines[1].value(),
                 0,
                 y_range=plot.viewbox.viewRange()[1],

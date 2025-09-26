@@ -539,7 +539,7 @@ class PlotSignal(Signal):
                     position = cursor
                     stats["cursor_t"] = position
 
-                    raw_value, raw_kind, value, kind, _ = self.value_at_timestamp(position)
+                    _raw_value, _raw_kind, value, kind, _ = self.value_at_timestamp(position)
 
                     stats["cursor_value"] = value_as_str(value, format, self.plot_samples.dtype, precision)
 
@@ -553,11 +553,11 @@ class PlotSignal(Signal):
                     stats["selected_stop"] = value_as_str(stop, format, np.dtype("f8"), precision)
                     stats["selected_delta_t"] = value_as_str(stop - start, format, np.dtype("f8"), precision)
 
-                    rraw_value, raw_kind, value, kind, _ = self.value_at_timestamp(start)
+                    _rraw_value, _raw_kind, value, kind, _ = self.value_at_timestamp(start)
 
                     stats["selected_left"] = value_as_str(value, format, self.plot_samples.dtype, precision)
 
-                    raw_value, raw_kind, value, kind, _ = self.value_at_timestamp(stop)
+                    _raw_value, _raw_kind, value, kind, _ = self.value_at_timestamp(stop)
 
                     stats["selected_right"] = value_as_str(value, format, self.plot_samples.dtype, precision)
 
@@ -629,7 +629,7 @@ class PlotSignal(Signal):
                     position = cursor
                     stats["cursor_t"] = value_as_str(position, format, np.dtype("f8"), precision)
 
-                    raw_value, raw_kind, value, kind, _ = self.value_at_timestamp(position)
+                    _raw_value, _raw_kind, value, kind, _ = self.value_at_timestamp(position)
 
                     stats["cursor_value"] = value_as_str(value, format, self.plot_samples.dtype, precision)
 
@@ -2026,7 +2026,7 @@ class Plot(QtWidgets.QWidget):
             )
 
             if len(sig):
-                raw_value, raw_kind, value, kind, fmt = sig.value_at_timestamp(sig.timestamps[0])
+                raw_value, _raw_kind, value, kind, _fmt = sig.value_at_timestamp(sig.timestamps[0])
                 item.kind = kind
                 item._value = "n.a."
                 item.set_value(raw_value, value, force=True, update=True)
@@ -2487,7 +2487,7 @@ class Plot(QtWidgets.QWidget):
         self.plot.set_current_uuid(self.info_uuid, True)
 
     def compute_fft(self, uuid):
-        signal, index = self.plot.signal_by_uuid(uuid)
+        signal, _index = self.plot.signal_by_uuid(uuid)
         try:
             window = FFTWindow(PlotSignal(signal), parent=self)
             window.show()
@@ -2499,7 +2499,7 @@ class Plot(QtWidgets.QWidget):
 
         if uuid:
             palette = self.selected_channel_value.palette()
-            sig, idx = self.plot.signal_by_uuid(uuid)
+            sig, _idx = self.plot.signal_by_uuid(uuid)
             brush = QtGui.QBrush(sig.color)
             brush.setStyle(QtCore.Qt.BrushStyle.SolidPattern)
 
@@ -2533,10 +2533,10 @@ class Plot(QtWidgets.QWidget):
 
             for item in self._visible_items.values():
                 if item.type() == item.Channel:
-                    signal, idx = self.plot.signal_by_uuid(item.uuid)
+                    signal, _idx = self.plot.signal_by_uuid(item.uuid)
                     index = self.plot.get_timestamp_index(position, signal.timestamps)
 
-                    raw_value, raw_kind, value, kind, fmt = signal.value_at_index(index)
+                    raw_value, _raw_kind, value, kind, fmt = signal.value_at_index(index)
 
                     item.set_prefix()
                     item.kind = kind
@@ -2773,7 +2773,7 @@ class Plot(QtWidgets.QWidget):
                     if signal.plot_samples.dtype.kind in "uif":
                         signal.format = fmt
 
-                        raw_value, raw_kind, value, kind, fmt = signal.value_at_timestamp(0)
+                        _raw_value, _raw_kind, _value, kind, fmt = signal.value_at_timestamp(0)
 
                         widget = self.item_by_uuid(signal.uuid)
                         widget.kind = kind
@@ -3075,13 +3075,13 @@ class Plot(QtWidgets.QWidget):
 
         for item in self._visible_items.values():
             if item.type() == item.Channel:
-                signal, i = self.plot.signal_by_uuid(item.uuid)
+                signal, _i = self.plot.signal_by_uuid(item.uuid)
 
                 index = self.plot.get_timestamp_index(start, signal.timestamps)
-                start_raw_v, raw_kind, start_v, kind, fmt = signal.value_at_index(index)
+                start_raw_v, _raw_kind, start_v, kind, fmt = signal.value_at_index(index)
 
                 index = self.plot.get_timestamp_index(stop, signal.timestamps)
-                stop_raw_v, raw_kind, stop_v, kind, fmt = signal.value_at_index(index)
+                stop_raw_v, _raw_kind, stop_v, kind, fmt = signal.value_at_index(index)
 
                 if self.region_values_display_mode == "delta":
                     item.set_prefix("Δ = ")
@@ -4434,7 +4434,7 @@ class PlotGraphics(pg.PlotWidget):
 
     def get_stats(self, uuid):
         try:
-            sig, index = self.signal_by_uuid(uuid)
+            sig, _index = self.signal_by_uuid(uuid)
         except KeyError:
             return {}
         else:
@@ -4856,7 +4856,7 @@ class PlotGraphics(pg.PlotWidget):
                 position = 0
                 common_axis_handled = False
                 for uuid in uuids:
-                    signal, index = self.signal_by_uuid(uuid)
+                    signal, _index = self.signal_by_uuid(uuid)
 
                     if not signal.empty and signal.enable:
                         if signal.uuid in self.common_axis_items:
@@ -4941,7 +4941,7 @@ class PlotGraphics(pg.PlotWidget):
                 common_axis_handled = False
                 position = 0
                 for uuid in uuids:
-                    signal, index = self.signal_by_uuid(uuid)
+                    signal, _index = self.signal_by_uuid(uuid)
 
                     if not signal.empty and signal.enable:
                         if uuid in self.common_axis_items:
@@ -5026,7 +5026,7 @@ class PlotGraphics(pg.PlotWidget):
         ):
             if self.region is None:
                 pos = self.cursor1.value()
-                sig, idx = self.signal_by_uuid(self.current_uuid)
+                sig, _idx = self.signal_by_uuid(self.current_uuid)
 
                 timestamp = sig.timestamp_of_next_different_value(
                     pos, mode="different", previous=key == QtCore.Qt.Key.Key_Left
@@ -5040,7 +5040,7 @@ class PlotGraphics(pg.PlotWidget):
 
             else:
                 pos = self.region.moving_cursor.value()
-                sig, idx = self.signal_by_uuid(self.current_uuid)
+                sig, _idx = self.signal_by_uuid(self.current_uuid)
 
                 timestamp = sig.timestamp_of_next_different_value(
                     pos, mode="different", previous=key == QtCore.Qt.Key.Key_Left
@@ -5058,7 +5058,7 @@ class PlotGraphics(pg.PlotWidget):
         ):
             if self.region is None:
                 pos = self.cursor1.value()
-                sig, idx = self.signal_by_uuid(self.current_uuid)
+                sig, _idx = self.signal_by_uuid(self.current_uuid)
 
                 timestamp = sig.timestamp_of_next_different_value(
                     pos,
@@ -5075,7 +5075,7 @@ class PlotGraphics(pg.PlotWidget):
 
             else:
                 pos = self.region.moving_cursor.value()
-                sig, idx = self.signal_by_uuid(self.current_uuid)
+                sig, _idx = self.signal_by_uuid(self.current_uuid)
 
                 timestamp = sig.timestamp_of_next_different_value(
                     pos,
@@ -5223,7 +5223,7 @@ class PlotGraphics(pg.PlotWidget):
             factor = 10 if key in (QtCore.Qt.Key.Key_PageUp, QtCore.Qt.Key.Key_PageDown) else 100
 
             for uuid in uuids:
-                signal, index = self.signal_by_uuid(uuid)
+                signal, _index = self.signal_by_uuid(uuid)
 
                 bottom, top = signal.y_range
                 step = (top - bottom) / factor
@@ -5304,7 +5304,7 @@ class PlotGraphics(pg.PlotWidget):
         if uuid is None:
             return
 
-        signal, idx = self.signal_by_uuid(uuid)
+        signal, _idx = self.signal_by_uuid(uuid)
         signals = {signal.name: signal}
 
         diag = ScaleDialog(signals, signal.y_range, parent=self)
@@ -5752,12 +5752,12 @@ class PlotGraphics(pg.PlotWidget):
             if not sig.enable:
                 continue
 
-            raw_value, raw_kind, val, _1, _2 = sig.value_at_timestamp(x, numeric=True)
+            _raw_value, _raw_kind, val, _1, _2 = sig.value_at_timestamp(x, numeric=True)
 
             if val == "n.a.":
                 continue
 
-            x_val, y_val = self.scale_curve_to_pixmap(x, val, y_range=sig.y_range, x_start=x_start, delta=delta)
+            _x_val, y_val = self.scale_curve_to_pixmap(x, val, y_range=sig.y_range, x_start=x_start, delta=delta)
 
             candidates.append((abs(y_val - y), sig.uuid))
 
@@ -5794,7 +5794,7 @@ class PlotGraphics(pg.PlotWidget):
             self._update_timer.start()
 
     def set_common_axis(self, uuid, state):
-        signal, idx = self.signal_by_uuid(uuid)
+        signal, _idx = self.signal_by_uuid(uuid)
 
         if state in (QtCore.Qt.CheckState.Checked, True, 1):
             if not self.common_axis_items:
@@ -5842,7 +5842,7 @@ class PlotGraphics(pg.PlotWidget):
         axis = self.y_axis
         viewbox = self.viewbox
 
-        sig, index = self.signal_by_uuid(uuid)
+        sig, _index = self.signal_by_uuid(uuid)
 
         if sig.conversion and hasattr(sig.conversion, "text_0"):
             axis.text_conversion = sig.conversion
@@ -6152,12 +6152,12 @@ class PlotGraphics(pg.PlotWidget):
                 cursor = self.cursor1
 
             timestamp = cursor.value()
-            sig, idx = self.signal_by_uuid(uuid)
+            sig, _idx = self.signal_by_uuid(uuid)
             sig_y_bottom, sig_y_top = sig.y_range
-            raw_value, raw_kind, y, *_ = sig.value_at_timestamp(timestamp, numeric=True, strict_timebase=False)
+            _raw_value, _raw_kind, y, *_ = sig.value_at_timestamp(timestamp, numeric=True, strict_timebase=False)
 
         else:
-            sig, idx = self.signal_by_uuid(uuid)
+            sig, _idx = self.signal_by_uuid(uuid)
             sig_y_bottom, sig_y_top = sig.y_range
 
             if not len(sig):

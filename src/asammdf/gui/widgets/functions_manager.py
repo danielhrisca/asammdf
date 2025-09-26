@@ -337,7 +337,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
             generate_python_function(info["current_definition"], in_globals=_globals)
 
         function_source = self.function_definition.toPlainText().replace("\t", "    ")
-        func, trace = generate_python_function(function_source, in_globals=_globals)
+        func, _trace = generate_python_function(function_source, in_globals=_globals)
 
         if func is not None:
             name = func.__name__
@@ -356,7 +356,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
 
             for name in names:
                 info = self.definitions[name]
-                ok, func = self.check_syntax(silent=True, definition=info["definition"])
+                ok, _func = self.check_syntax(silent=True, definition=info["definition"])
 
                 if ok:
                     if info["current_definition"] != info["definition"]:

@@ -365,8 +365,6 @@ def get_text_v4(
         Unicode string or bytes object depending on the `decode` argument.
     """
 
-
-
     if address == 0:
         return "" if decode else b""
 

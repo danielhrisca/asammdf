@@ -1015,7 +1015,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if file_name:
             file_name = Path(file_name).with_suffix(".dspf")
-            file_name.write_text(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder), encoding='utf-8')
+            file_name.write_text(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder), encoding="utf-8")
 
             worker = md5()
             worker.update(file_name.read_bytes())
@@ -1392,7 +1392,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     break
 
         worker = md5()
-        worker.update(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder).encode('utf-8', errors='ignore'))
+        worker.update(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder).encode("utf-8", errors="ignore"))
         self._previous_window_config = worker.hexdigest()
 
         self.display_file_modified.emit(Path(self.loaded_display_file[0]).name)
@@ -1655,11 +1655,11 @@ MultiRasterSeparator;&
 
             if windows:
                 unsaved = False
-                
+
                 if hexdigest:
                     worker = md5()
                     try:
-                        worker.update(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder).encode('utf-8'))
+                        worker.update(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder).encode("utf-8"))
                         unsaved = worker.hexdigest() != hexdigest
                     except:
                         unsaved = False
@@ -1673,7 +1673,7 @@ MultiRasterSeparator;&
                         "Unsaved display windows",
                         f"{self.mdf.original_name.name} contains unsaved display changes.\n"
                         "Do you want to save the windows to a display file?",
-                        detailed_text=f'Complete file path:\n{self.mdf.original_name}',
+                        detailed_text=f"Complete file path:\n{self.mdf.original_name}",
                     )
 
                     if answer == MessageBox.StandardButton.Yes:
@@ -2828,8 +2828,7 @@ MultiRasterSeparator;&
         split_size = opts.mdf_split_size if output_format == "MDF" else 0
 
         if opts.needs_cut and not opts.cut_time_from_zero:
-            mdf = mdf_module.MDF(self.mdf.original_name, password=self.mdf._mdf._password,
-                    use_display_names=True)
+            mdf = mdf_module.MDF(self.mdf.original_name, password=self.mdf._mdf._password, use_display_names=True)
             mdf.configure(read_fragment_size=split_size)
         else:
             mdf = self.mdf.configure(read_fragment_size=split_size)
@@ -3328,7 +3327,7 @@ MultiRasterSeparator;&
                     if ok and text:
                         password = text
 
-                data, file_path, md5_sum = self.mdf.extract_attachment(index, password=password)
+                data, _file_path, _md5_sum = self.mdf.extract_attachment(index, password=password)
 
                 dsp = json.loads(data.decode("utf-8", errors="replace"), cls=ExtendedJsonDecoder)
                 dsp["display_file_name"] = "user_embedded_display.dspf"
@@ -3492,5 +3491,7 @@ MultiRasterSeparator;&
     def finalize_init(self):
         if self.mdi_area.subWindowList():
             worker = md5()
-            worker.update(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder).encode('utf-8', errors='ignore'))
+            worker.update(
+                json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder).encode("utf-8", errors="ignore")
+            )
             self._previous_window_config = worker.hexdigest()

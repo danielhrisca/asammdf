@@ -2535,7 +2535,7 @@ class WithMDIArea:
             if not file_info:
                 continue
 
-            file_index, file = file_info
+            _file_index, file = file_info
             origin_mdf = file.mdf.original_name.name
 
             selected_signals = file.mdf.select(
@@ -2566,7 +2566,7 @@ class WithMDIArea:
                 if not file_info:
                     continue
 
-                file_index, file = file_info
+                _file_index, file = file_info
 
                 signals.extend(
                     extract_signals_using_pattern(
@@ -2712,7 +2712,7 @@ class WithMDIArea:
             if not file_info:
                 continue
 
-            file_index, file = file_info
+            _file_index, file = file_info
 
             selected_signals = file.mdf.select(
                 [(entry["name"], entry["group_index"], entry["channel_index"]) for entry in uuids_signals.values()],
@@ -2942,7 +2942,6 @@ class WithMDIArea:
                     events = [bookmark.copy() for bookmark in widget.bookmarks]
                     break
             else:
-
                 events = []
 
                 if self.mdf.version >= "4.00":
@@ -2994,7 +2993,7 @@ class WithMDIArea:
                                 "type": v4c.EVENT_TYPE_TO_STRING[v4c.EVENT_TYPE_TRIGGER],
                             }
                             events.append(event)
-                            
+
             mdf = self.mdf
 
         else:
@@ -3759,7 +3758,7 @@ class WithMDIArea:
                 mdfs = [self.mdf]
             (
                 mime_data,
-                descriptions,
+                _descriptions,
                 found,
                 not_found,
                 computed,

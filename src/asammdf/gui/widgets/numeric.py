@@ -1462,9 +1462,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             )
 
             utils.ERROR_ICON = QtGui.QIcon()
-            utils.ERROR_ICON.addPixmap(
-                QtGui.QPixmap(":/error.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off
-            )
+            utils.ERROR_ICON.addPixmap(QtGui.QPixmap(":/error.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
 
         super().__init__(*args, **kwargs)
         self.setupUi(self)
