@@ -3149,10 +3149,9 @@ class MDF4(MDF_Common[Group]):
                     if sig_dtype.kind in "SV":
                         sig_type = v4c.SIGNAL_TYPE_STRING
             else:
-                prepare_record = False
                 if names in (v4c.CANOPEN_TIME_FIELDS, v4c.CANOPEN_DATE_FIELDS):
                     sig_type = v4c.SIGNAL_TYPE_CANOPEN
-                elif names[0] != sig.name:
+                elif sig.name not in names:
                     sig_type = v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
                 else:
                     sig_type = v4c.SIGNAL_TYPE_ARRAY
@@ -3577,8 +3576,10 @@ class MDF4(MDF_Common[Group]):
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 if names is None:
                     raise RuntimeError("'names' is None")
+
+                array_name = signal.name
                 # here we have channel arrays or mdf v3 channel dependencies
-                samples = signal.samples[names[0]]
+                samples = signal.samples[array_name]
                 shape = samples.shape[1:]
 
                 if len(names) > 1 or len(shape) > 1:
@@ -3617,7 +3618,6 @@ class MDF4(MDF_Common[Group]):
                             ca_kwargs[f"dim_size_{i}"] = shape[i]  # type: ignore[literal-required]
 
                     parent_dep = ChannelArrayBlock(**ca_kwargs)
-                    gp_dep.append([parent_dep])
 
                 else:
                     # add channel dependency block for composed parent channel
@@ -3629,150 +3629,154 @@ class MDF4(MDF_Common[Group]):
                         "dim_size_0": shape[0],
                     }
                     parent_dep = ChannelArrayBlock(**ca_kwargs)
-                    gp_dep.append([parent_dep])
 
-                # first we add the structure channel
-                s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
-
-                # add channel block
-                cn_kwargs = {
-                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
-                    "bit_count": s_size,
-                    "byte_offset": offset,
-                    "bit_offset": 0,
-                    "data_type": s_type,
-                    "flags": 0,
-                }
-
-                if invalidation_bytes_nr and signal.invalidation_bits is not None:
-                    if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
-                        invalidation_arrays = typing.cast(list[InvalidationArray], inval_bits[origin])
-                        invalidation_arrays.append(signal.invalidation_bits)
-                    else:
-                        inval_bits[origin] = signal.invalidation_bits
-                    cn_kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
-                    cn_kwargs["pos_invalidation_bit"] = origin[1]
-
-                ch = Channel(**cn_kwargs)
-                ch.name = name
-                ch.unit = signal.unit
-                ch.comment = signal.comment
-                ch.display_names = signal.display_names
-                ch.dtype_fmt = samples.dtype
-
-                record.append(
-                    (
-                        samples.dtype,
-                        samples.dtype.itemsize,
-                        offset,
-                        0,
-                    )
-                )
-
-                # source for channel
-                source = signal.source
-                if source:
-                    if source in si_map:
-                        ch.source = si_map[source]
-                    else:
-                        new_source = SourceInformation(source_type=source.source_type, bus_type=source.bus_type)
-                        new_source.name = source.name
-                        new_source.path = source.path
-                        new_source.comment = source.comment
-
-                        si_map[source] = new_source
-
-                        ch.source = new_source
-
-                gp_channels.append(ch)
-
-                size = s_size // 8
-                for dim in shape:
-                    size *= dim
-                offset += size
-
-                if not samples.flags["C_CONTIGUOUS"]:
-                    samples = np.ascontiguousarray(samples)
-                fields.append((samples, size))
-                gp_sig_types.append((sig_type, size))
-
-                gp_sdata.append(None)
-                entry = (dg_cntr, ch_cntr)
-                self.channels_db.add(name, entry)
-                for _name in ch.display_names:
-                    self.channels_db.add(_name, entry)
-
-                ch_cntr += 1
-
-                for name in names[1:]:
+                for name in names:
                     samples = signal.samples[name]
                     shape = samples.shape[1:]
+                    
+                    if name == array_name:
+                        gp_dep.append([parent_dep])
 
-                    # add channel dependency block
-                    ca_kwargs = {
-                        "dims": 1,
-                        "ca_type": v4c.CA_TYPE_SCALE_AXIS,
-                        "flags": 0,
-                        "byte_offset_base": samples.dtype.itemsize,
-                        "dim_size_0": shape[0],
-                    }
-                    dep = ChannelArrayBlock(**ca_kwargs)
-                    gp_dep.append([dep])
+                        # first we add the structure channel
+                        s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
 
-                    # add components channel
-                    s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
-                    byte_size = s_size // 8 or 1
-                    cn_kwargs = {
-                        "channel_type": v4c.CHANNEL_TYPE_VALUE,
-                        "bit_count": s_size,
-                        "byte_offset": offset,
-                        "bit_offset": 0,
-                        "data_type": s_type,
-                        "flags": 0,
-                    }
+                        # add channel block
+                        cn_kwargs = {
+                            "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                            "bit_count": s_size,
+                            "byte_offset": offset,
+                            "bit_offset": 0,
+                            "data_type": s_type,
+                            "flags": 0,
+                        }
 
-                    if invalidation_bytes_nr and signal.invalidation_bits is not None:
-                        if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
-                            invalidation_arrays = typing.cast(list[InvalidationArray], inval_bits[origin])
-                            invalidation_arrays.append(signal.invalidation_bits)
-                        else:
-                            inval_bits[origin] = signal.invalidation_bits
-                        cn_kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
-                        cn_kwargs["pos_invalidation_bit"] = origin[1]
+                        if invalidation_bytes_nr and signal.invalidation_bits is not None:
+                            if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                                invalidation_arrays = typing.cast(list[InvalidationArray], inval_bits[origin])
+                                invalidation_arrays.append(signal.invalidation_bits)
+                            else:
+                                inval_bits[origin] = signal.invalidation_bits
+                            cn_kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                            cn_kwargs["pos_invalidation_bit"] = origin[1]
 
-                    ch = Channel(**cn_kwargs)
-                    ch.name = name
-                    ch.unit = signal.unit
-                    ch.comment = signal.comment
-                    ch.display_names = signal.display_names
-                    ch.dtype_fmt = samples.dtype
+                        ch = Channel(**cn_kwargs)
+                        ch.name = name
+                        ch.unit = signal.unit
+                        ch.comment = signal.comment
+                        ch.display_names = signal.display_names
+                        ch.dtype_fmt = samples.dtype
 
-                    record.append(
-                        (
-                            samples.dtype,
-                            samples.dtype.itemsize,
-                            offset,
-                            0,
+                        record.append(
+                            (
+                                samples.dtype,
+                                samples.dtype.itemsize,
+                                offset,
+                                0,
+                            )
                         )
-                    )
 
-                    gp_channels.append(ch)
+                        # source for channel
+                        source = signal.source
+                        if source:
+                            if source in si_map:
+                                ch.source = si_map[source]
+                            else:
+                                new_source = SourceInformation(source_type=source.source_type, bus_type=source.bus_type)
+                                new_source.name = source.name
+                                new_source.path = source.path
+                                new_source.comment = source.comment
 
-                    entry = dg_cntr, ch_cntr
-                    parent_dep.axis_channels.append(entry)
-                    for dim in shape:
-                        byte_size *= dim
-                    offset += byte_size
+                                si_map[source] = new_source
 
-                    if not samples.flags["C_CONTIGUOUS"]:
-                        samples = np.ascontiguousarray(samples)
+                                ch.source = new_source
 
-                    fields.append((samples, byte_size))
+                        gp_channels.append(ch)
 
-                    gp_sdata.append(None)
-                    self.channels_db.add(name, entry)
+                        size = s_size // 8
+                        for dim in shape:
+                            size *= dim
+                        offset += size
 
-                    ch_cntr += 1
+                        if not samples.flags["C_CONTIGUOUS"]:
+                            samples = np.ascontiguousarray(samples)
+                        fields.append((samples, size))
+                        gp_sig_types.append((sig_type, size))
+
+                        gp_sdata.append(None)
+                        entry = (dg_cntr, ch_cntr)
+                        self.channels_db.add(name, entry)
+                        for _name in ch.display_names:
+                            self.channels_db.add(_name, entry)
+
+                        ch_cntr += 1
+
+                    else:
+
+                        # add channel dependency block
+                        ca_kwargs = {
+                            "dims": 1,
+                            "ca_type": v4c.CA_TYPE_SCALE_AXIS,
+                            "flags": 0,
+                            "byte_offset_base": samples.dtype.itemsize,
+                            "dim_size_0": shape[0],
+                        }
+                        dep = ChannelArrayBlock(**ca_kwargs)
+                        gp_dep.append([dep])
+
+                        # add components channel
+                        s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
+                        byte_size = s_size // 8 or 1
+                        cn_kwargs = {
+                            "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                            "bit_count": s_size,
+                            "byte_offset": offset,
+                            "bit_offset": 0,
+                            "data_type": s_type,
+                            "flags": 0,
+                        }
+
+                        if invalidation_bytes_nr and signal.invalidation_bits is not None:
+                            if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                                invalidation_arrays = typing.cast(list[InvalidationArray], inval_bits[origin])
+                                invalidation_arrays.append(signal.invalidation_bits)
+                            else:
+                                inval_bits[origin] = signal.invalidation_bits
+                            cn_kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                            cn_kwargs["pos_invalidation_bit"] = origin[1]
+
+                        ch = Channel(**cn_kwargs)
+                        ch.name = name
+                        ch.unit = signal.unit
+                        ch.comment = signal.comment
+                        ch.display_names = signal.display_names
+                        ch.dtype_fmt = samples.dtype
+
+                        record.append(
+                            (
+                                samples.dtype,
+                                samples.dtype.itemsize,
+                                offset,
+                                0,
+                            )
+                        )
+
+                        gp_channels.append(ch)
+
+                        entry = dg_cntr, ch_cntr
+                        parent_dep.axis_channels.append(entry)
+                        for dim in shape:
+                            byte_size *= dim
+                        offset += byte_size
+
+                        if not samples.flags["C_CONTIGUOUS"]:
+                            samples = np.ascontiguousarray(samples)
+
+                        fields.append((samples, byte_size))
+
+                        gp_sdata.append(None)
+                        self.channels_db.add(name, entry)
+
+                        ch_cntr += 1
 
             else:
                 encoding = signal.encoding
@@ -4127,7 +4131,6 @@ class MDF4(MDF_Common[Group]):
         ch_cntr = 0
         offset = 0
 
-        prepare_record = True
         source_block = acq_source
 
         master_metadata = signals[0].master_metadata
@@ -4288,7 +4291,7 @@ class MDF4(MDF_Common[Group]):
             else:
                 if names in (v4c.CANOPEN_TIME_FIELDS, v4c.CANOPEN_DATE_FIELDS):
                     sig_type = v4c.SIGNAL_TYPE_CANOPEN
-                elif names[0] != sig.name:
+                elif sig.name not in names:
                     sig_type = v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
                 else:
                     sig_type = v4c.SIGNAL_TYPE_ARRAY
@@ -4516,8 +4519,10 @@ class MDF4(MDF_Common[Group]):
                 if names is None:
                     raise RuntimeError("'names' is None")
 
+                array_name = signal.name
+
                 # here we have channel arrays or mdf v3 channel dependencies
-                samples = signal.samples[names[0]]
+                samples = signal.samples[array_name]
                 shape = samples.shape[1:]
 
                 if len(names) > 1 or len(shape) > 1:
@@ -4556,7 +4561,6 @@ class MDF4(MDF_Common[Group]):
                             ca_kwargs[f"dim_size_{i}"] = shape[i]  # type: ignore[literal-required]
 
                     parent_dep = ChannelArrayBlock(**ca_kwargs)
-                    gp_dep.append([parent_dep])
 
                 else:
                     # add channel dependency block for composed parent channel
@@ -4568,152 +4572,154 @@ class MDF4(MDF_Common[Group]):
                         "dim_size_0": shape[0],
                     }
                     parent_dep = ChannelArrayBlock(**ca_kwargs)
-                    gp_dep.append([parent_dep])
 
-                field_name = field_names.get_unique_name(name)
-
-                if not samples.flags["C_CONTIGUOUS"]:
-                    samples = np.ascontiguousarray(samples)
-
-                fields.append(samples)
-                dtype_pair = field_name, samples.dtype, shape
-                types.append(dtype_pair)
-
-                record.append(
-                    (
-                        samples.dtype,
-                        samples.dtype.itemsize,
-                        offset,
-                        0,
-                    )
-                )
-
-                # first we add the structure channel
-                s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
-
-                # add channel block
-                cn_kwargs = {
-                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
-                    "bit_count": s_size,
-                    "byte_offset": offset,
-                    "bit_offset": 0,
-                    "data_type": s_type,
-                    "flags": 0,
-                }
-
-                if signal.invalidation_bits is not None:
-                    invalidation_bits = signal.invalidation_bits
-                    cn_kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
-                    cn_kwargs["pos_invalidation_bit"] = 0
-                else:
-                    invalidation_bits = None
-
-                ch = Channel(**cn_kwargs)
-                ch.name = name
-                ch.unit = signal.unit
-                ch.comment = signal.comment
-                ch.display_names = signal.display_names
-                ch.dtype_fmt = samples.dtype
-
-                # source for channel
-                source = signal.source
-                if source:
-                    if source in si_map:
-                        ch.source = si_map[source]
-                    else:
-                        new_source = SourceInformation(source_type=source.source_type, bus_type=source.bus_type)
-                        new_source.name = source.name
-                        new_source.path = source.path
-                        new_source.comment = source.comment
-
-                        si_map[source] = new_source
-
-                        ch.source = new_source
-
-                gp_channels.append(ch)
-
-                size = s_size // 8
-                for dim in shape:
-                    size *= dim
-                offset += size
-
-                gp_sdata.append(None)
-                entry = (dg_cntr, ch_cntr)
-                self.channels_db.add(name, entry)
-                for _name in ch.display_names:
-                    self.channels_db.add(_name, entry)
-
-                ch_cntr += 1
-
-                for name in names[1:]:
-                    field_name = field_names.get_unique_name(name)
-
-                    samples = signal.samples[name]
+                for name in names:
+                    samples = signal[name]
                     shape = samples.shape[1:]
+                    if name == array_name:
+                        gp_dep.append([parent_dep])
 
-                    if not samples.flags["C_CONTIGUOUS"]:
-                        samples = np.ascontiguousarray(samples)
-                    fields.append(samples)
-                    types.append((field_name, samples.dtype, shape))
+                        field_name = field_names.get_unique_name(name)
 
-                    record.append(
-                        (
-                            samples.dtype,
-                            samples.dtype.itemsize,
-                            offset,
-                            0,
+                        if not samples.flags["C_CONTIGUOUS"]:
+                            samples = np.ascontiguousarray(samples)
+
+                        fields.append(samples)
+                        dtype_pair = field_name, samples.dtype, shape
+                        types.append(dtype_pair)
+
+                        record.append(
+                            (
+                                samples.dtype,
+                                samples.dtype.itemsize,
+                                offset,
+                                0,
+                            )
                         )
-                    )
 
-                    # add channel dependency block
-                    ca_kwargs = {
-                        "dims": 1,
-                        "ca_type": v4c.CA_TYPE_SCALE_AXIS,
-                        "flags": 0,
-                        "byte_offset_base": samples.dtype.itemsize,
-                        "dim_size_0": shape[0],
-                    }
-                    dep = ChannelArrayBlock(**ca_kwargs)
-                    gp_dep.append([dep])
+                        # first we add the structure channel
+                        s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
 
-                    # add components channel
-                    s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
-                    byte_size = s_size // 8 or 1
-                    cn_kwargs = {
-                        "channel_type": v4c.CHANNEL_TYPE_VALUE,
-                        "bit_count": s_size,
-                        "byte_offset": offset,
-                        "bit_offset": 0,
-                        "data_type": s_type,
-                        "flags": 0,
-                    }
+                        # add channel block
+                        cn_kwargs = {
+                            "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                            "bit_count": s_size,
+                            "byte_offset": offset,
+                            "bit_offset": 0,
+                            "data_type": s_type,
+                            "flags": 0,
+                        }
 
-                    if signal.invalidation_bits is not None:
-                        invalidation_bits = signal.invalidation_bits
-                        cn_kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
-                        cn_kwargs["pos_invalidation_bit"] = 0
+                        if signal.invalidation_bits is not None:
+                            invalidation_bits = signal.invalidation_bits
+                            cn_kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                            cn_kwargs["pos_invalidation_bit"] = 0
+                        else:
+                            invalidation_bits = None
+
+                        ch = Channel(**cn_kwargs)
+                        ch.name = name
+                        ch.unit = signal.unit
+                        ch.comment = signal.comment
+                        ch.display_names = signal.display_names
+                        ch.dtype_fmt = samples.dtype
+
+                        # source for channel
+                        source = signal.source
+                        if source:
+                            if source in si_map:
+                                ch.source = si_map[source]
+                            else:
+                                new_source = SourceInformation(source_type=source.source_type, bus_type=source.bus_type)
+                                new_source.name = source.name
+                                new_source.path = source.path
+                                new_source.comment = source.comment
+
+                                si_map[source] = new_source
+
+                                ch.source = new_source
+
+                        gp_channels.append(ch)
+
+                        size = s_size // 8
+                        for dim in shape:
+                            size *= dim
+                        offset += size
+
+                        gp_sdata.append(None)
+                        entry = (dg_cntr, ch_cntr)
+                        self.channels_db.add(name, entry)
+                        for _name in ch.display_names:
+                            self.channels_db.add(_name, entry)
+
+                        ch_cntr += 1
+
                     else:
-                        invalidation_bits = None
+                        field_name = field_names.get_unique_name(name)
 
-                    ch = Channel(**cn_kwargs)
-                    ch.name = name
-                    ch.unit = signal.unit
-                    ch.comment = signal.comment
-                    ch.display_names = signal.display_names
-                    ch.dtype_fmt = samples.dtype
+                        if not samples.flags["C_CONTIGUOUS"]:
+                            samples = np.ascontiguousarray(samples)
+                        fields.append(samples)
+                        types.append((field_name, samples.dtype, shape))
 
-                    gp_channels.append(ch)
+                        record.append(
+                            (
+                                samples.dtype,
+                                samples.dtype.itemsize,
+                                offset,
+                                0,
+                            )
+                        )
 
-                    entry = dg_cntr, ch_cntr
-                    parent_dep.axis_channels.append(entry)
-                    for dim in shape:
-                        byte_size *= dim
-                    offset += byte_size
+                        # add channel dependency block
+                        ca_kwargs = {
+                            "dims": 1,
+                            "ca_type": v4c.CA_TYPE_SCALE_AXIS,
+                            "flags": 0,
+                            "byte_offset_base": samples.dtype.itemsize,
+                            "dim_size_0": shape[0],
+                        }
+                        dep = ChannelArrayBlock(**ca_kwargs)
+                        gp_dep.append([dep])
 
-                    gp_sdata.append(None)
-                    self.channels_db.add(name, entry)
+                        # add components channel
+                        s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
+                        byte_size = s_size // 8 or 1
+                        cn_kwargs = {
+                            "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                            "bit_count": s_size,
+                            "byte_offset": offset,
+                            "bit_offset": 0,
+                            "data_type": s_type,
+                            "flags": 0,
+                        }
 
-                    ch_cntr += 1
+                        if signal.invalidation_bits is not None:
+                            invalidation_bits = signal.invalidation_bits
+                            cn_kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                            cn_kwargs["pos_invalidation_bit"] = 0
+                        else:
+                            invalidation_bits = None
+
+                        ch = Channel(**cn_kwargs)
+                        ch.name = name
+                        ch.unit = signal.unit
+                        ch.comment = signal.comment
+                        ch.display_names = signal.display_names
+                        ch.dtype_fmt = samples.dtype
+
+                        gp_channels.append(ch)
+
+                        entry = dg_cntr, ch_cntr
+                        parent_dep.axis_channels.append(entry)
+                        for dim in shape:
+                            byte_size *= dim
+                        offset += byte_size
+
+                        gp_sdata.append(None)
+                        self.channels_db.add(name, entry)
+
+                        ch_cntr += 1
 
                 gp.signal_types = np.dtype(types)
 
@@ -5340,7 +5346,7 @@ class MDF4(MDF_Common[Group]):
             else:
                 if fld_names in (v4c.CANOPEN_TIME_FIELDS, v4c.CANOPEN_DATE_FIELDS):
                     sig_type = v4c.SIGNAL_TYPE_CANOPEN
-                elif fld_names[0] != name:
+                elif name not in fld_names:
                     sig_type = v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
                 else:
                     sig_type = v4c.SIGNAL_TYPE_ARRAY
@@ -5348,6 +5354,8 @@ class MDF4(MDF_Common[Group]):
             if sig_type in (v4c.SIGNAL_TYPE_SCALAR, v4c.SIGNAL_TYPE_STRING):
                 s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape)
                 byte_size = s_size // 8 or 1
+
+                print(name, byte_size, samples.dtype, samples.shape)
 
                 # add channel block
                 cn_kwargs = {
@@ -5403,9 +5411,11 @@ class MDF4(MDF_Common[Group]):
                 # here we have channel arrays or mdf v3 channel dependencies
                 array_samples = samples
                 names = samples.dtype.names
+
+                array_name = name
                 if names is None:
                     raise RuntimeError("'names' is None")
-                samples = array_samples[names[0]]
+                samples = array_samples[array_name]
                 shape = samples.shape[1:]
 
                 if len(names) > 1:
@@ -5444,7 +5454,6 @@ class MDF4(MDF_Common[Group]):
                             ca_kwargs[f"dim_size_{i}"] = shape[i]  # type: ignore[literal-required]
 
                     parent_dep = ChannelArrayBlock(**ca_kwargs)
-                    gp_dep.append([parent_dep])
 
                 else:
                     # add channel dependency block for composed parent channel
@@ -5456,152 +5465,157 @@ class MDF4(MDF_Common[Group]):
                         "dim_size_0": shape[0],
                     }
                     parent_dep = ChannelArrayBlock(**ca_kwargs)
-                    gp_dep.append([parent_dep])
+                    
 
-                record.append(
-                    (
-                        samples.dtype,
-                        samples.dtype.itemsize,
-                        offset,
-                        0,
-                    )
-                )
-
-                # first we add the structure channel
-                s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
-
-                # add channel block
-                cn_kwargs = {
-                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
-                    "bit_count": s_size,
-                    "byte_offset": offset,
-                    "bit_offset": 0,
-                    "data_type": s_type,
-                    "flags": 0,
-                }
-
-                if invalidation_bytes_nr:
-                    if signal.invalidation_bits is not None:
-                        if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
-                            invalidation_arrays = typing.cast(list[InvalidationArray], inval_bits[origin])
-                            invalidation_arrays.append(signal.invalidation_bits)
-                        else:
-                            inval_bits[origin] = signal.invalidation_bits
-                        cn_kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
-                        cn_kwargs["pos_invalidation_bit"] = origin[1]
-
-                ch = Channel(**cn_kwargs)
-                ch.name = name
-                ch.unit = signal.unit
-                ch.comment = signal.comment
-                ch.display_names = signal.display_names
-                ch.dtype_fmt = samples.dtype
-
-                # source for channel
-                source = signal.source
-                if source:
-                    if source in si_map:
-                        ch.source = si_map[source]
-                    else:
-                        new_source = SourceInformation(source_type=source.source_type, bus_type=source.bus_type)
-                        new_source.name = source.name
-                        new_source.path = source.path
-                        new_source.comment = source.comment
-
-                        si_map[source] = new_source
-
-                        ch.source = new_source
-
-                gp_channels.append(ch)
-
-                size = s_size // 8
-                for dim in shape:
-                    size *= dim
-                offset += size
-
-                if not samples.flags["C_CONTIGUOUS"]:
-                    samples = np.ascontiguousarray(samples)
-
-                fields.append((samples, size))
-
-                gp_sdata.append(None)
-                entry = (dg_cntr, ch_cntr)
-                self.channels_db.add(name, entry)
-                for _name in ch.display_names:
-                    self.channels_db.add(_name, entry)
-
-                ch_cntr += 1
-
-                for name in names[1:]:
+                for name in names:
                     samples = array_samples[name]
                     shape = samples.shape[1:]
 
-                    record.append(
-                        (
-                            samples.dtype,
-                            samples.dtype.itemsize,
-                            offset,
-                            0,
+                    if name == array_name:
+                        gp_dep.append([parent_dep])
+
+                        record.append(
+                            (
+                                samples.dtype,
+                                samples.dtype.itemsize,
+                                offset,
+                                0,
+                            )
                         )
-                    )
 
-                    # add channel dependency block
-                    ca_kwargs = {
-                        "dims": 1,
-                        "ca_type": v4c.CA_TYPE_SCALE_AXIS,
-                        "flags": 0,
-                        "byte_offset_base": samples.dtype.itemsize,
-                        "dim_size_0": shape[0],
-                    }
-                    dep = ChannelArrayBlock(**ca_kwargs)
-                    gp_dep.append([dep])
+                        # first we add the structure channel
+                        s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
 
-                    # add components channel
-                    s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
-                    byte_size = s_size // 8 or 1
-                    cn_kwargs = {
-                        "channel_type": v4c.CHANNEL_TYPE_VALUE,
-                        "bit_count": s_size,
-                        "byte_offset": offset,
-                        "bit_offset": 0,
-                        "data_type": s_type,
-                        "flags": 0,
-                    }
+                        # add channel block
+                        cn_kwargs = {
+                            "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                            "bit_count": s_size,
+                            "byte_offset": offset,
+                            "bit_offset": 0,
+                            "data_type": s_type,
+                            "flags": 0,
+                        }
 
-                    if invalidation_bytes_nr:
-                        if signal.invalidation_bits is not None:
-                            if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
-                                invalidation_arrays = typing.cast(list[InvalidationArray], inval_bits[origin])
-                                invalidation_arrays.append(signal.invalidation_bits)
+                        if invalidation_bytes_nr:
+                            if signal.invalidation_bits is not None:
+                                if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                                    invalidation_arrays = typing.cast(list[InvalidationArray], inval_bits[origin])
+                                    invalidation_arrays.append(signal.invalidation_bits)
+                                else:
+                                    inval_bits[origin] = signal.invalidation_bits
+                                cn_kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                                cn_kwargs["pos_invalidation_bit"] = origin[1]
+
+                        ch = Channel(**cn_kwargs)
+                        ch.name = name
+                        ch.unit = signal.unit
+                        ch.comment = signal.comment
+                        ch.display_names = signal.display_names
+                        ch.dtype_fmt = samples.dtype
+
+                        # source for channel
+                        source = signal.source
+                        if source:
+                            if source in si_map:
+                                ch.source = si_map[source]
                             else:
-                                inval_bits[origin] = signal.invalidation_bits
-                            cn_kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
-                            cn_kwargs["pos_invalidation_bit"] = origin[1]
+                                new_source = SourceInformation(source_type=source.source_type, bus_type=source.bus_type)
+                                new_source.name = source.name
+                                new_source.path = source.path
+                                new_source.comment = source.comment
 
-                    ch = Channel(**cn_kwargs)
-                    ch.name = name
-                    ch.unit = signal.unit
-                    ch.comment = signal.comment
-                    ch.display_names = signal.display_names
-                    ch.dtype_fmt = samples.dtype
+                                si_map[source] = new_source
 
-                    gp_channels.append(ch)
+                                ch.source = new_source
 
-                    entry = dg_cntr, ch_cntr
-                    parent_dep.axis_channels.append(entry)
-                    for dim in shape:
-                        byte_size *= dim
-                    offset += byte_size
+                        gp_channels.append(ch)
 
-                    if not samples.flags["C_CONTIGUOUS"]:
-                        samples = np.ascontiguousarray(samples)
+                        size = s_size // 8
+                        for dim in shape:
+                            size *= dim
+                        offset += size
 
-                    fields.append((samples, byte_size))
+                        if not samples.flags["C_CONTIGUOUS"]:
+                            samples = np.ascontiguousarray(samples)
 
-                    gp_sdata.append(None)
-                    self.channels_db.add(name, entry)
+                        fields.append((samples, size))
 
-                    ch_cntr += 1
+                        gp_sdata.append(None)
+                        entry = (dg_cntr, ch_cntr)
+                        self.channels_db.add(name, entry)
+                        for _name in ch.display_names:
+                            self.channels_db.add(_name, entry)
+
+                        ch_cntr += 1
+
+                    else:
+
+                        record.append(
+                            (
+                                samples.dtype,
+                                samples.dtype.itemsize,
+                                offset,
+                                0,
+                            )
+                        )
+
+                        # add channel dependency block
+                        ca_kwargs = {
+                            "dims": 1,
+                            "ca_type": v4c.CA_TYPE_SCALE_AXIS,
+                            "flags": 0,
+                            "byte_offset_base": samples.dtype.itemsize,
+                            "dim_size_0": shape[0],
+                        }
+                        dep = ChannelArrayBlock(**ca_kwargs)
+                        gp_dep.append([dep])
+
+                        # add components channel
+                        s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
+                        byte_size = s_size // 8 or 1
+                        cn_kwargs = {
+                            "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                            "bit_count": s_size,
+                            "byte_offset": offset,
+                            "bit_offset": 0,
+                            "data_type": s_type,
+                            "flags": 0,
+                        }
+
+                        if invalidation_bytes_nr:
+                            if signal.invalidation_bits is not None:
+                                if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                                    invalidation_arrays = typing.cast(list[InvalidationArray], inval_bits[origin])
+                                    invalidation_arrays.append(signal.invalidation_bits)
+                                else:
+                                    inval_bits[origin] = signal.invalidation_bits
+                                cn_kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                                cn_kwargs["pos_invalidation_bit"] = origin[1]
+
+                        ch = Channel(**cn_kwargs)
+                        ch.name = name
+                        ch.unit = signal.unit
+                        ch.comment = signal.comment
+                        ch.display_names = signal.display_names
+                        ch.dtype_fmt = samples.dtype
+
+                        gp_channels.append(ch)
+
+                        entry = dg_cntr, ch_cntr
+                        parent_dep.axis_channels.append(entry)
+                        for dim in shape:
+                            byte_size *= dim
+                        offset += byte_size
+
+                        if not samples.flags["C_CONTIGUOUS"]:
+                            samples = np.ascontiguousarray(samples)
+
+                        fields.append((samples, byte_size))
+
+                        gp_sdata.append(None)
+                        self.channels_db.add(name, entry)
+
+                        ch_cntr += 1
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 struct = Signal(
@@ -5789,7 +5803,7 @@ class MDF4(MDF_Common[Group]):
             else:
                 if fld_names in (v4c.CANOPEN_TIME_FIELDS, v4c.CANOPEN_DATE_FIELDS):
                     sig_type = v4c.SIGNAL_TYPE_CANOPEN
-                elif fld_names[0] != name:
+                elif name not in fld_names:
                     sig_type = v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
                 else:
                     sig_type = v4c.SIGNAL_TYPE_ARRAY
@@ -5846,17 +5860,10 @@ class MDF4(MDF_Common[Group]):
                 names = samples.dtype.names
                 if names is None:
                     raise RuntimeError("'names' is None")
-                samples = array_samples[names[0]]
+                
+                array_name = name
+                samples = array_samples[array_name]
                 shape = samples.shape[1:]
-
-                record.append(
-                    (
-                        samples.dtype,
-                        samples.dtype.itemsize,
-                        offset,
-                        0,
-                    )
-                )
 
                 if len(names) > 1:
                     # add channel dependency block for composed parent channel
@@ -5894,7 +5901,7 @@ class MDF4(MDF_Common[Group]):
                             ca_kwargs[f"dim_size_{i}"] = shape[i]  # type: ignore[literal-required]
 
                     parent_dep = ChannelArrayBlock(**ca_kwargs)
-                    gp_dep.append([parent_dep])
+                    
 
                 else:
                     # add channel dependency block for composed parent channel
@@ -5908,129 +5915,143 @@ class MDF4(MDF_Common[Group]):
                     parent_dep = ChannelArrayBlock(**ca_kwargs)
                     gp_dep.append([parent_dep])
 
-                field_name = field_names.get_unique_name(name)
-
-                fields.append(samples)
-                dtype_pair = field_name, samples.dtype, shape
-                types.append(dtype_pair)
-
-                # first we add the structure channel
-                s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
-
-                # add channel block
-                cn_kwargs = {
-                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
-                    "bit_count": s_size,
-                    "byte_offset": offset,
-                    "bit_offset": 0,
-                    "data_type": s_type,
-                    "flags": 0,
-                }
-
-                if signal.invalidation_bits is not None:
-                    cn_kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                    cn_kwargs["pos_invalidation_bit"] = 0
-
-                ch = Channel(**cn_kwargs)
-                ch.name = name
-                ch.unit = signal.unit
-                ch.comment = signal.comment
-                ch.display_names = signal.display_names
-                ch.dtype_fmt = samples.dtype
-
-                # source for channel
-                source = signal.source
-                if source:
-                    if source in si_map:
-                        ch.source = si_map[source]
-                    else:
-                        new_source = SourceInformation(source_type=source.source_type, bus_type=source.bus_type)
-                        new_source.name = source.name
-                        new_source.path = source.path
-                        new_source.comment = source.comment
-
-                        si_map[source] = new_source
-
-                        ch.source = new_source
-
-                gp_channels.append(ch)
-
-                size = s_size // 8
-                for dim in shape:
-                    size *= dim
-                offset += size
-
-                gp_sdata.append(None)
-                entry = (dg_cntr, ch_cntr)
-                self.channels_db.add(name, entry)
-                for _name in ch.display_names:
-                    self.channels_db.add(_name, entry)
-
-                ch_cntr += 1
-
-                for name in names[1:]:
-                    field_name = field_names.get_unique_name(name)
-
+                for name in names:
                     samples = array_samples[name]
                     shape = samples.shape[1:]
-                    fields.append(samples)
-                    types.append((field_name, samples.dtype, shape))
 
-                    record.append(
-                        (
-                            samples.dtype,
-                            samples.dtype.itemsize,
-                            offset,
-                            0,
+                    if name == array_name:
+                        gp_dep.append([parent_dep])
+
+                        record.append(
+                            (
+                                samples.dtype,
+                                samples.dtype.itemsize,
+                                offset,
+                                0,
+                            )
                         )
-                    )
 
-                    # add channel dependency block
-                    ca_kwargs = {
-                        "dims": 1,
-                        "ca_type": v4c.CA_TYPE_SCALE_AXIS,
-                        "flags": 0,
-                        "byte_offset_base": samples.dtype.itemsize,
-                        "dim_size_0": shape[0],
-                    }
-                    dep = ChannelArrayBlock(**ca_kwargs)
-                    gp_dep.append([dep])
+                        field_name = field_names.get_unique_name(name)
 
-                    # add components channel
-                    s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
-                    byte_size = s_size // 8 or 1
-                    cn_kwargs = {
-                        "channel_type": v4c.CHANNEL_TYPE_VALUE,
-                        "bit_count": s_size,
-                        "byte_offset": offset,
-                        "bit_offset": 0,
-                        "data_type": s_type,
-                        "flags": 0,
-                    }
+                        fields.append(samples)
+                        dtype_pair = field_name, samples.dtype, shape
+                        types.append(dtype_pair)
 
-                    if signal.invalidation_bits is not None:
-                        cn_kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                        cn_kwargs["pos_invalidation_bit"] = 0
+                        # first we add the structure channel
+                        s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
 
-                    ch = Channel(**cn_kwargs)
-                    ch.name = name
-                    ch.unit = signal.unit
-                    ch.comment = signal.comment
-                    ch.display_names = signal.display_names
-                    ch.dtype_fmt = samples.dtype
+                        # add channel block
+                        cn_kwargs = {
+                            "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                            "bit_count": s_size,
+                            "byte_offset": offset,
+                            "bit_offset": 0,
+                            "data_type": s_type,
+                            "flags": 0,
+                        }
 
-                    gp_channels.append(ch)
+                        if signal.invalidation_bits is not None:
+                            cn_kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                            cn_kwargs["pos_invalidation_bit"] = 0
 
-                    entry = dg_cntr, ch_cntr
-                    parent_dep.axis_channels.append(entry)
-                    for dim in shape:
-                        byte_size *= dim
-                    offset += byte_size
+                        ch = Channel(**cn_kwargs)
+                        ch.name = name
+                        ch.unit = signal.unit
+                        ch.comment = signal.comment
+                        ch.display_names = signal.display_names
+                        ch.dtype_fmt = samples.dtype
 
-                    gp_sdata.append(None)
-                    self.channels_db.add(name, entry)
+                        # source for channel
+                        source = signal.source
+                        if source:
+                            if source in si_map:
+                                ch.source = si_map[source]
+                            else:
+                                new_source = SourceInformation(source_type=source.source_type, bus_type=source.bus_type)
+                                new_source.name = source.name
+                                new_source.path = source.path
+                                new_source.comment = source.comment
 
-                    ch_cntr += 1
+                                si_map[source] = new_source
+
+                                ch.source = new_source
+
+                        gp_channels.append(ch)
+
+                        size = s_size // 8
+                        for dim in shape:
+                            size *= dim
+                        offset += size
+
+                        gp_sdata.append(None)
+                        entry = (dg_cntr, ch_cntr)
+                        self.channels_db.add(name, entry)
+                        for _name in ch.display_names:
+                            self.channels_db.add(_name, entry)
+
+                        ch_cntr += 1
+
+                    else:
+                        field_name = field_names.get_unique_name(name)
+
+                        fields.append(samples)
+                        types.append((field_name, samples.dtype, shape))
+
+                        record.append(
+                            (
+                                samples.dtype,
+                                samples.dtype.itemsize,
+                                offset,
+                                0,
+                            )
+                        )
+
+                        # add channel dependency block
+                        ca_kwargs = {
+                            "dims": 1,
+                            "ca_type": v4c.CA_TYPE_SCALE_AXIS,
+                            "flags": 0,
+                            "byte_offset_base": samples.dtype.itemsize,
+                            "dim_size_0": shape[0],
+                        }
+                        dep = ChannelArrayBlock(**ca_kwargs)
+                        gp_dep.append([dep])
+
+                        # add components channel
+                        s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
+                        byte_size = s_size // 8 or 1
+                        cn_kwargs = {
+                            "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                            "bit_count": s_size,
+                            "byte_offset": offset,
+                            "bit_offset": 0,
+                            "data_type": s_type,
+                            "flags": 0,
+                        }
+
+                        if signal.invalidation_bits is not None:
+                            cn_kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                            cn_kwargs["pos_invalidation_bit"] = 0
+
+                        ch = Channel(**cn_kwargs)
+                        ch.name = name
+                        ch.unit = signal.unit
+                        ch.comment = signal.comment
+                        ch.display_names = signal.display_names
+                        ch.dtype_fmt = samples.dtype
+
+                        gp_channels.append(ch)
+
+                        entry = dg_cntr, ch_cntr
+                        parent_dep.axis_channels.append(entry)
+                        for dim in shape:
+                            byte_size *= dim
+                        offset += byte_size
+
+                        gp_sdata.append(None)
+                        self.channels_db.add(name, entry)
+
+                        ch_cntr += 1
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 struct = Signal(
@@ -6167,29 +6188,33 @@ class MDF4(MDF_Common[Group]):
 
                 case v4c.SIGNAL_TYPE_ARRAY:
                     names = signal.dtype.names
+                    array_name = signal.name
 
                     if names is None:
                         raise RuntimeError("'names' is None")
+                    
+                    for name in names:
+                        if name == array_name:
 
-                    samples = signal[names[0]]
+                            samples = signal[name]
 
-                    if not samples.flags["C_CONTIGUOUS"]:
-                        samples = np.ascontiguousarray(samples)
+                            if not samples.flags["C_CONTIGUOUS"]:
+                                samples = np.ascontiguousarray(samples)
 
-                    fields.append((samples, sig_size))
+                            fields.append((samples, sig_size))
 
-                    for name in names[1:]:
-                        samples = signal[name]
-                        shape = samples.shape[1:]
-                        s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
-                        size = s_size // 8
-                        for dim in shape:
-                            size *= dim
+                        else:
+                            samples = signal[name]
+                            shape = samples.shape[1:]
+                            s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
+                            size = s_size // 8
+                            for dim in shape:
+                                size *= dim
 
-                        if not samples.flags["C_CONTIGUOUS"]:
-                            samples = np.ascontiguousarray(samples)
+                            if not samples.flags["C_CONTIGUOUS"]:
+                                samples = np.ascontiguousarray(samples)
 
-                        fields.append((samples, size))
+                            fields.append((samples, size))
 
                 case _:
                     if self.compact_vlsd:
