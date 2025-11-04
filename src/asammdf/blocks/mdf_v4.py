@@ -6188,33 +6188,23 @@ class MDF4(MDF_Common[Group]):
 
                 case v4c.SIGNAL_TYPE_ARRAY:
                     names = signal.dtype.names
-                    array_name = signal.name
+
 
                     if names is None:
                         raise RuntimeError("'names' is None")
                     
                     for name in names:
-                        if name == array_name:
+                        samples = signal[name]
+                        shape = samples.shape[1:]
+                        s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
+                        size = s_size // 8
+                        for dim in shape:
+                            size *= dim
 
-                            samples = signal[name]
+                        if not samples.flags["C_CONTIGUOUS"]:
+                            samples = np.ascontiguousarray(samples)
 
-                            if not samples.flags["C_CONTIGUOUS"]:
-                                samples = np.ascontiguousarray(samples)
-
-                            fields.append((samples, sig_size))
-
-                        else:
-                            samples = signal[name]
-                            shape = samples.shape[1:]
-                            s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
-                            size = s_size // 8
-                            for dim in shape:
-                                size *= dim
-
-                            if not samples.flags["C_CONTIGUOUS"]:
-                                samples = np.ascontiguousarray(samples)
-
-                            fields.append((samples, size))
+                        fields.append((samples, size))
 
                 case _:
                     if self.compact_vlsd:
