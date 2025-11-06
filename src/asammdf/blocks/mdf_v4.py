@@ -3151,6 +3151,8 @@ class MDF4(MDF_Common[Group]):
             else:
                 if names in (v4c.CANOPEN_TIME_FIELDS, v4c.CANOPEN_DATE_FIELDS):
                     sig_type = v4c.SIGNAL_TYPE_CANOPEN
+                elif sig.flags & sig.Flags.scale_axis:
+                    sig_type = v4c.SIGNAL_TYPE_SCALE_AXIS
                 elif sig.name not in names:
                     sig_type = v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
                 else:
@@ -3777,6 +3779,96 @@ class MDF4(MDF_Common[Group]):
                         self.channels_db.add(name, entry)
 
                         ch_cntr += 1
+
+            elif sig_type == v4c.SIGNAL_TYPE_SCALE_AXIS:
+
+                array_name = signal.name
+                # here we have channel arrays or mdf v3 channel dependencies
+                samples = signal.samples[array_name]
+                shape = samples.shape[1:]
+
+                ca_kwargs: ChannelArrayBlockKwargs = {
+                    "dims": 1,
+                    "ca_type": v4c.CA_TYPE_LOOKUP,
+                    "flags": v4c.FLAG_CA_AXIS,
+                    "byte_offset_base": samples.dtype.itemsize,
+                    "dim_size_0": shape[0],
+                }
+
+                gp_dep.append([ChannelArrayBlock(**ca_kwargs)])
+
+                # first we add the structure channel
+                s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
+
+                # add channel block
+                cn_kwargs = {
+                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                    "bit_count": s_size,
+                    "byte_offset": offset,
+                    "bit_offset": 0,
+                    "data_type": s_type,
+                    "flags": 0,
+                }
+
+                if invalidation_bytes_nr and signal.invalidation_bits is not None:
+                    if (origin := signal.invalidation_bits.origin) == InvalidationArray.ORIGIN_UNKNOWN:
+                        invalidation_arrays = typing.cast(list[InvalidationArray], inval_bits[origin])
+                        invalidation_arrays.append(signal.invalidation_bits)
+                    else:
+                        inval_bits[origin] = signal.invalidation_bits
+                    cn_kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                    cn_kwargs["pos_invalidation_bit"] = origin[1]
+
+                ch = Channel(**cn_kwargs)
+                ch.name = name
+                ch.unit = signal.unit
+                ch.comment = signal.comment
+                ch.display_names = signal.display_names
+                ch.dtype_fmt = samples.dtype
+
+                record.append(
+                    (
+                        samples.dtype,
+                        samples.dtype.itemsize,
+                        offset,
+                        0,
+                    )
+                )
+
+                # source for channel
+                source = signal.source
+                if source:
+                    if source in si_map:
+                        ch.source = si_map[source]
+                    else:
+                        new_source = SourceInformation(source_type=source.source_type, bus_type=source.bus_type)
+                        new_source.name = source.name
+                        new_source.path = source.path
+                        new_source.comment = source.comment
+
+                        si_map[source] = new_source
+
+                        ch.source = new_source
+
+                gp_channels.append(ch)
+
+                size = s_size // 8
+                for dim in shape:
+                    size *= dim
+                offset += size
+
+                if not samples.flags["C_CONTIGUOUS"]:
+                    samples = np.ascontiguousarray(samples)
+                fields.append((samples, size))
+                gp_sig_types.append((sig_type, size))
+
+                gp_sdata.append(None)
+                entry = (dg_cntr, ch_cntr)
+                self.channels_db.add(name, entry)
+                for _name in ch.display_names:
+                    self.channels_db.add(_name, entry)
+
+                ch_cntr += 1
 
             else:
                 encoding = signal.encoding
@@ -6189,7 +6281,6 @@ class MDF4(MDF_Common[Group]):
                 case v4c.SIGNAL_TYPE_ARRAY:
                     names = signal.dtype.names
 
-
                     if names is None:
                         raise RuntimeError("'names' is None")
                     
@@ -6205,6 +6296,19 @@ class MDF4(MDF_Common[Group]):
                             samples = np.ascontiguousarray(samples)
 
                         fields.append((samples, size))
+
+                case v4c.SIGNAL_TYPE_SCALE_AXIS:
+                    samples = signal[signal.dtype.names[0]]
+                    shape = samples.shape[1:]
+                    s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
+                    size = s_size // 8
+                    for dim in shape:
+                        size *= dim
+
+                    if not samples.flags["C_CONTIGUOUS"]:
+                        samples = np.ascontiguousarray(samples)
+
+                    fields.append((samples, size))
 
                 case _:
                     if self.compact_vlsd:

@@ -1885,6 +1885,7 @@ class SignalFlags:
     computed = 0x20
     virtual = 0x40
     virtual_master = 0x80
+    scale_axis = 0x100
 
 
 _Params = ParamSpec("_Params")
