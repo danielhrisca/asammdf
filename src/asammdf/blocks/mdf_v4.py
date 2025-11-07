@@ -3789,7 +3789,7 @@ class MDF4(MDF_Common[Group]):
 
                 ca_kwargs: ChannelArrayBlockKwargs = {
                     "dims": 1,
-                    "ca_type": v4c.CA_TYPE_LOOKUP,
+                    "ca_type": v4c.CA_TYPE_SCALE_AXIS,
                     "flags": v4c.FLAG_CA_AXIS,
                     "byte_offset_base": samples.dtype.itemsize,
                     "dim_size_0": shape[0],
@@ -5446,8 +5446,6 @@ class MDF4(MDF_Common[Group]):
             if sig_type in (v4c.SIGNAL_TYPE_SCALAR, v4c.SIGNAL_TYPE_STRING):
                 s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape)
                 byte_size = s_size // 8 or 1
-
-                print(name, byte_size, samples.dtype, samples.shape)
 
                 # add channel block
                 cn_kwargs = {
