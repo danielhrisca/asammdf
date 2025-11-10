@@ -1116,7 +1116,7 @@ class MDF4(MDF_Common[Group]):
 
                     first_dep = ca_block = ChannelArrayBlock(address=component_addr, stream=stream, mapped=mapped)
                     ca_dependencies = [first_dep]
-
+                    ca_cnt = len(ca_dependencies)
                     byte_offset_factors: list[int] = []
                     bit_pos_inval_factors: list[int] = []
                     dimensions: list[int] = []
@@ -1164,7 +1164,6 @@ class MDF4(MDF_Common[Group]):
                             )
                             break
 
-                    ca_cnt = len(ca_dependencies)
                     for ca_blck in ca_dependencies[:ca_cnt]:
                         # only consider CN templates
                         if ca_blck.ca_type != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
@@ -1236,7 +1235,10 @@ class MDF4(MDF_Common[Group]):
                                     if not isinstance(dep, ChannelArrayBlock):
                                         dep_entry = (dep[0], dep[1] + (ch_len - index) * elem_id)
                                         cn_deps.append(dep_entry)
-                                dependencies.append(cn_deps)
+                                if deps:
+                                    dependencies.append(cn_deps)
+                                else:
+                                    dependencies.append(None)
                             else:
                                 dependencies.append(None)
 
