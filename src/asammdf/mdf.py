@@ -778,6 +778,7 @@ class MDF:
             self._mdf._integer_interpolation = from_other._mdf._integer_interpolation
             self._mdf._float_interpolation = from_other._mdf._float_interpolation
             self._mdf._raise_on_multiple_occurrences = from_other._mdf._raise_on_multiple_occurrences
+            self._mdf._fill_0_for_missing_computation_channels = from_other._mdf._fill_0_for_missing_computation_channels
 
         if read_fragment_size is not None:
             self._mdf._read_fragment_size = int(read_fragment_size)
@@ -806,6 +807,9 @@ class MDF:
 
         if raise_on_multiple_occurrences is not None:
             self._mdf._raise_on_multiple_occurrences = bool(raise_on_multiple_occurrences)
+
+        if fill_0_for_missing_computation_channels is not None:
+            self._mdf._fill_0_for_missing_computation_channels = bool(fill_0_for_missing_computation_channels)
 
     @property
     def original_name(self) -> str | Path | None:
