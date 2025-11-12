@@ -1495,6 +1495,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     f"Cutting from {opts.cut_start}s to {opts.cut_stop}s from \n{source_file}"
                 )
 
+                inplace=not opts.cut_time_from_zero
+
                 # cut self.mdf
                 target = mdf.cut
                 result = target(
@@ -1504,9 +1506,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     version=opts.mdf_version if output_format == "MDF" else "4.10",
                     time_from_zero=opts.cut_time_from_zero,
                     progress=progress,
+                    inplace=inplace,
                 )
 
-                mdf.close()
+                if not inplace:
+                    mdf.close()
+                    
                 mdf = result
 
                 mdf.configure(

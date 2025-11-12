@@ -921,28 +921,31 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         if toggle_frames:
             self.toggle_frames()
 
-    def to_config(self):
+    def to_config(self, save_check=False):
         config = {}
+
+        save_check = False
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
         signals = []
-        if self.channel_view.currentText() == "Internal file structure":
-            while item := iterator.value():
-                if item.parent() is None:
+        if not save_check:
+            if self.channel_view.currentText() == "Internal file structure":
+                while item := iterator.value():
+                    if item.parent() is None:
+                        iterator += 1
+                        continue
+
+                    if item.checkState(0) == QtCore.Qt.CheckState.Checked:
+                        signals.append(item.text(0))
+
                     iterator += 1
-                    continue
+            else:
+                while item := iterator.value():
+                    if item.checkState(0) == QtCore.Qt.CheckState.Checked:
+                        signals.append(item.text(0))
 
-                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                    signals.append(item.text(0))
-
-                iterator += 1
-        else:
-            while item := iterator.value():
-                if item.checkState(0) == QtCore.Qt.CheckState.Checked:
-                    signals.append(item.text(0))
-
-                iterator += 1
+                    iterator += 1
 
         config["selected_channels"] = signals
 
@@ -953,7 +956,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             if not wid_config:
                 continue
 
-            geometry = window.geometry()
+            geometry = window.geometry() if not save_check else QtCore.QRect()
             window_config = {
                 "title": window.windowTitle(),
                 "configuration": wid_config,
@@ -963,8 +966,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     geometry.width(),
                     geometry.height(),
                 ],
-                "maximized": window.isMaximized(),
-                "minimized": window.isMinimized(),
+                "maximized": window.isMaximized() if not save_check else False,
+                "minimized": window.isMinimized() if not save_check else False,
             }
             if isinstance(wid, Numeric):
                 window_config["type"] = "Numeric"
@@ -989,7 +992,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             windows.append(window_config)
 
-        current_window = self.mdi_area.currentSubWindow()
+        current_window = self.mdi_area.currentSubWindow() if not save_check else None
 
         config["windows"] = windows
         config["active_window"] = current_window.windowTitle() if current_window else ""
@@ -1392,7 +1395,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     break
 
         worker = md5()
-        worker.update(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder).encode('utf-8', errors='ignore'))
+        worker.update(json.dumps(self.to_config(save_check=True), indent=2, cls=ExtendedJsonEncoder).encode('utf-8', errors='ignore'))
         self._previous_window_config = worker.hexdigest()
 
         self.display_file_modified.emit(Path(self.loaded_display_file[0]).name)
@@ -1659,7 +1662,7 @@ MultiRasterSeparator;&
                 if hexdigest:
                     worker = md5()
                     try:
-                        worker.update(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder).encode('utf-8'))
+                        worker.update(json.dumps(self.to_config(save_check=True), indent=2, cls=ExtendedJsonEncoder).encode('utf-8', errors='ignore'))
                         unsaved = worker.hexdigest() != hexdigest
                     except:
                         unsaved = False
@@ -2832,7 +2835,8 @@ MultiRasterSeparator;&
                     use_display_names=True)
             mdf.configure(read_fragment_size=split_size)
         else:
-            mdf = self.mdf.configure(read_fragment_size=split_size)
+            mdf = self.mdf
+            mdf.configure(read_fragment_size=split_size)
 
         integer_interpolation = self.mdf._mdf._integer_interpolation
         float_interpolation = self.mdf._mdf._float_interpolation
@@ -2869,6 +2873,8 @@ MultiRasterSeparator;&
             progress.signals.setWindowTitle.emit("Cutting measurement")
             progress.signals.setLabelText.emit(f"Cutting from {opts.cut_start}s to {opts.cut_stop}s")
 
+            inplace=not opts.cut_time_from_zero
+
             # cut self.mdf
             result = mdf.cut(
                 start=opts.cut_start,
@@ -2876,7 +2882,7 @@ MultiRasterSeparator;&
                 whence=opts.whence,
                 version=opts.mdf_version if output_format == "MDF" else "4.10",
                 time_from_zero=opts.cut_time_from_zero,
-                inplace=not opts.cut_time_from_zero,
+                inplace=inplace,
                 progress=progress,
             )
 
@@ -2887,8 +2893,9 @@ MultiRasterSeparator;&
                 float_interpolation=float_interpolation,
             )
 
-            if mdf is not self.mdf:
+            if mdf is not self.mdf and not inplace:
                 mdf.close()
+
             mdf = result
 
         if opts.needs_resample:
@@ -3492,5 +3499,5 @@ MultiRasterSeparator;&
     def finalize_init(self):
         if self.mdi_area.subWindowList():
             worker = md5()
-            worker.update(json.dumps(self.to_config(), indent=2, cls=ExtendedJsonEncoder).encode('utf-8', errors='ignore'))
+            worker.update(json.dumps(self.to_config(save_check=True), indent=2, cls=ExtendedJsonEncoder).encode('utf-8', errors='ignore'))
             self._previous_window_config = worker.hexdigest()
