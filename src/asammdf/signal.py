@@ -91,6 +91,22 @@ class Signal:  # noqa: PLW1641
         Encoding for string signals.
     flags : int, optional
         Flags for user-defined attributes and stream sync.
+
+    axes : dict, optional
+        axis descriptions for components
+
+        .. versionadded:: 8.8.0
+
+    conversions : dict, optional
+        conversion descriptions for components
+
+        .. versionadded:: 8.8.0
+
+    units : dict, optional
+        unit descriptions for components
+
+        .. versionadded:: 8.8.0
+    
     """
 
     Flags = SignalFlags
@@ -116,6 +132,9 @@ class Signal:  # noqa: PLW1641
         flags: int = Flags.no_flags,
         virtual_conversion: dict[str, object] | ChannelConversionType | None = None,
         virtual_master_conversion: dict[str, object] | ChannelConversionType | None = None,
+        axes: dict[str, object] | None = None,
+        conversions: dict[str, object] | None = None,
+        units: dict[str, object] | None = None,
     ) -> None:
         if not name:
             message = (
@@ -173,6 +192,9 @@ class Signal:  # noqa: PLW1641
             self.encoding = encoding
             self.group_index = group_index
             self.channel_index = channel_index
+            self.axes = axes
+            self.conversions = conversions
+            self.units = units
             self._invalidation_bits = InvalidationArray(invalidation_bits) if invalidation_bits is not None else None
 
             self.source: Source | None
@@ -531,22 +553,7 @@ class Signal:  # noqa: PLW1641
             return Signal(
                 np.array([], dtype=self.samples.dtype),
                 np.array([], dtype=self.timestamps.dtype),
-                self.unit,
-                self.name,
-                self.conversion,
-                self.comment,
-                self.raw,
-                self.master_metadata,
-                self.display_names,
-                self.attachment,
-                self.source,
-                self.bit_count,
-                encoding=self.encoding,
-                group_index=self.group_index,
-                channel_index=self.channel_index,
-                flags=self.flags,
-                virtual_conversion=self.virtual_conversion,
-                virtual_master_conversion=self.virtual_master_conversion,
+                **self.invariable_attributes()
             )
 
         invalidation_bits: NDArray[np.bool] | None
@@ -556,23 +563,8 @@ class Signal:  # noqa: PLW1641
                 result = Signal(
                     self.samples.copy(),
                     self.timestamps.copy(),
-                    self.unit,
-                    self.name,
-                    self.conversion,
-                    self.comment,
-                    self.raw,
-                    self.master_metadata,
-                    self.display_names,
-                    self.attachment,
-                    self.source,
-                    self.bit_count,
                     invalidation_bits=self.invalidation_bits.copy() if self.invalidation_bits is not None else None,
-                    encoding=self.encoding,
-                    group_index=self.group_index,
-                    channel_index=self.channel_index,
-                    flags=self.flags,
-                    virtual_conversion=self.virtual_conversion,
-                    virtual_master_conversion=self.virtual_master_conversion,
+                    **self.invariable_attributes()
                 )
 
             else:
@@ -581,22 +573,7 @@ class Signal:  # noqa: PLW1641
                     result = Signal(
                         np.array([], dtype=self.samples.dtype),
                         np.array([], dtype=self.timestamps.dtype),
-                        self.unit,
-                        self.name,
-                        self.conversion,
-                        self.comment,
-                        self.raw,
-                        self.master_metadata,
-                        self.display_names,
-                        self.attachment,
-                        self.source,
-                        self.bit_count,
-                        encoding=self.encoding,
-                        group_index=self.group_index,
-                        channel_index=self.channel_index,
-                        flags=self.flags,
-                        virtual_conversion=self.virtual_conversion,
-                        virtual_master_conversion=self.virtual_master_conversion,
+                        **self.invariable_attributes()
                     )
 
                 else:
@@ -635,23 +612,8 @@ class Signal:  # noqa: PLW1641
                     result = Signal(
                         samples,
                         timestamps,
-                        self.unit,
-                        self.name,
-                        self.conversion,
-                        self.comment,
-                        self.raw,
-                        self.master_metadata,
-                        self.display_names,
-                        self.attachment,
-                        self.source,
-                        self.bit_count,
                         invalidation_bits=invalidation_bits,
-                        encoding=self.encoding,
-                        group_index=self.group_index,
-                        channel_index=self.channel_index,
-                        flags=self.flags,
-                        virtual_conversion=self.virtual_conversion,
-                        virtual_master_conversion=self.virtual_master_conversion,
+                        **self.invariable_attributes()
                     )
 
         else:
@@ -661,22 +623,7 @@ class Signal:  # noqa: PLW1641
                     result = Signal(
                         np.array([], dtype=self.samples.dtype),
                         np.array([], dtype=self.timestamps.dtype),
-                        self.unit,
-                        self.name,
-                        self.conversion,
-                        self.comment,
-                        self.raw,
-                        self.master_metadata,
-                        self.display_names,
-                        self.attachment,
-                        self.source,
-                        self.bit_count,
-                        encoding=self.encoding,
-                        group_index=self.group_index,
-                        channel_index=self.channel_index,
-                        flags=self.flags,
-                        virtual_conversion=self.virtual_conversion,
-                        virtual_master_conversion=self.virtual_master_conversion,
+                        **self.invariable_attributes()
                     )
 
                 else:
@@ -714,23 +661,8 @@ class Signal:  # noqa: PLW1641
                     result = Signal(
                         samples,
                         timestamps,
-                        self.unit,
-                        self.name,
-                        self.conversion,
-                        self.comment,
-                        self.raw,
-                        self.master_metadata,
-                        self.display_names,
-                        self.attachment,
-                        self.source,
-                        self.bit_count,
                         invalidation_bits=invalidation_bits,
-                        encoding=self.encoding,
-                        group_index=self.group_index,
-                        channel_index=self.channel_index,
-                        flags=self.flags,
-                        virtual_conversion=self.virtual_conversion,
-                        virtual_master_conversion=self.virtual_master_conversion,
+                        **self.invariable_attributes()
                     )
 
             else:
@@ -739,22 +671,7 @@ class Signal:  # noqa: PLW1641
                     result = Signal(
                         np.array([], dtype=self.samples.dtype),
                         np.array([], dtype=self.timestamps.dtype),
-                        self.unit,
-                        self.name,
-                        self.conversion,
-                        self.comment,
-                        self.raw,
-                        self.master_metadata,
-                        self.display_names,
-                        self.attachment,
-                        self.source,
-                        self.bit_count,
-                        encoding=self.encoding,
-                        group_index=self.group_index,
-                        channel_index=self.channel_index,
-                        flags=self.flags,
-                        virtual_conversion=self.virtual_conversion,
-                        virtual_master_conversion=self.virtual_master_conversion,
+                        **self.invariable_attributes()
                     )
                 else:
                     start_idx = np.searchsorted(self.timestamps, start, side="left")
@@ -838,23 +755,8 @@ class Signal:  # noqa: PLW1641
                     result = Signal(
                         samples,
                         timestamps,
-                        self.unit,
-                        self.name,
-                        self.conversion,
-                        self.comment,
-                        self.raw,
-                        self.master_metadata,
-                        self.display_names,
-                        self.attachment,
-                        self.source,
-                        self.bit_count,
                         invalidation_bits=invalidation_bits,
-                        encoding=self.encoding,
-                        group_index=self.group_index,
-                        channel_index=self.channel_index,
-                        flags=self.flags,
-                        virtual_conversion=self.virtual_conversion,
-                        virtual_master_conversion=self.virtual_master_conversion,
+                        **self.invariable_attributes()
                     )
 
         return result
@@ -904,23 +806,8 @@ class Signal:  # noqa: PLW1641
             result = Signal(
                 np.append(self.samples, other.samples, axis=0),
                 np.append(self.timestamps, timestamps),
-                self.unit,
-                self.name,
-                self.conversion,
-                self.comment,
-                self.raw,
-                self.master_metadata,
-                self.display_names,
-                self.attachment,
-                self.source,
-                self.bit_count,
                 invalidation_bits=invalidation_bits,
-                encoding=self.encoding,
-                group_index=self.group_index,
-                channel_index=self.channel_index,
-                flags=self.flags,
-                virtual_conversion=self.virtual_conversion,
-                virtual_master_conversion=self.virtual_master_conversion,
+                **self.invariable_attributes()
             )
         else:
             result = self
@@ -976,21 +863,7 @@ class Signal:  # noqa: PLW1641
             return Signal(
                 self.samples[:0].copy(),
                 self.timestamps[:0].copy(),
-                self.unit,
-                self.name,
-                comment=self.comment,
-                conversion=self.conversion,
-                raw=self.raw,
-                master_metadata=self.master_metadata,
-                display_names=self.display_names,
-                attachment=self.attachment,
-                invalidation_bits=None,
-                encoding=self.encoding,
-                group_index=self.group_index,
-                channel_index=self.channel_index,
-                flags=self.flags,
-                virtual_conversion=self.virtual_conversion,
-                virtual_master_conversion=self.virtual_master_conversion,
+                **self.invariable_attributes()
             )
         else:
             # # we need to validate first otherwise we can get false invalid data
@@ -1011,21 +884,8 @@ class Signal:  # noqa: PLW1641
                 return Signal(
                     self.samples[:0].copy(),
                     self.timestamps[:0].copy(),
-                    self.unit,
-                    self.name,
-                    comment=self.comment,
-                    conversion=self.conversion,
-                    raw=self.raw,
-                    master_metadata=self.master_metadata,
-                    display_names=self.display_names,
-                    attachment=self.attachment,
                     invalidation_bits=None if invalidation_bits is None else np.array([], dtype=bool),
-                    encoding=self.encoding,
-                    group_index=self.group_index,
-                    channel_index=self.channel_index,
-                    flags=self.flags,
-                    virtual_conversion=self.virtual_conversion,
-                    virtual_master_conversion=self.virtual_master_conversion,
+                    **self.invariable_attributes()
                 )
 
             if len(signal.samples.shape) > 1:
@@ -1101,22 +961,8 @@ class Signal:  # noqa: PLW1641
             return Signal(
                 s,
                 new_timestamps,
-                self.unit,
-                self.name,
-                comment=self.comment,
-                conversion=self.conversion,
-                source=self.source,
-                raw=self.raw,
-                master_metadata=self.master_metadata,
-                display_names=self.display_names,
-                attachment=self.attachment,
                 invalidation_bits=invalidation_bits,
-                encoding=self.encoding,
-                group_index=self.group_index,
-                channel_index=self.channel_index,
-                flags=self.flags,
-                virtual_conversion=self.virtual_conversion,
-                virtual_master_conversion=self.virtual_master_conversion,
+                **self.invariable_attributes()
             )
 
     def __apply_func(self, other: Union["Signal", NDArray[Any], float] | None, func_name: str) -> "Signal":
@@ -1169,21 +1015,8 @@ class Signal:  # noqa: PLW1641
         return Signal(
             samples=s,
             timestamps=time,
-            unit=self.unit,
-            name=self.name,
-            conversion=conversion,
-            raw=self.raw,
-            master_metadata=self.master_metadata,
-            display_names=self.display_names,
-            attachment=self.attachment,
             invalidation_bits=invalidation_bits,
-            source=self.source,
-            encoding=self.encoding,
-            group_index=self.group_index,
-            channel_index=self.channel_index,
-            flags=self.flags,
-            virtual_conversion=self.virtual_conversion,
-            virtual_master_conversion=self.virtual_master_conversion,
+            **self.invariable_attributes(conversion=conversion)
         )
 
     def __pos__(self) -> "Signal":
@@ -1193,38 +1026,16 @@ class Signal:  # noqa: PLW1641
         return Signal(
             np.negative(self.samples),
             self.timestamps,
-            unit=self.unit,
-            name=self.name,
-            conversion=self.conversion,
-            raw=self.raw,
-            master_metadata=self.master_metadata,
-            display_names=self.display_names,
-            attachment=self.attachment,
             invalidation_bits=self.invalidation_bits,
-            source=self.source,
-            encoding=self.encoding,
-            flags=self.flags,
-            virtual_conversion=self.virtual_conversion,
-            virtual_master_conversion=self.virtual_master_conversion,
+            **self.invariable_attributes()
         )
 
     def __round__(self, n: int) -> "Signal":
         return Signal(
             np.around(self.samples, n),
             self.timestamps,
-            unit=self.unit,
-            name=self.name,
-            conversion=self.conversion,
-            raw=self.raw,
-            master_metadata=self.master_metadata,
-            display_names=self.display_names,
-            attachment=self.attachment,
             invalidation_bits=self.invalidation_bits,
-            source=self.source,
-            encoding=self.encoding,
-            flags=self.flags,
-            virtual_conversion=self.virtual_conversion,
-            virtual_master_conversion=self.virtual_master_conversion,
+**self.invariable_attributes()
         )
 
     def __sub__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
@@ -1293,19 +1104,8 @@ class Signal:  # noqa: PLW1641
         return Signal(
             s,
             time,
-            unit=self.unit,
-            name=self.name,
-            conversion=self.conversion,
-            raw=self.raw,
-            master_metadata=self.master_metadata,
-            display_names=self.display_names,
-            attachment=self.attachment,
             invalidation_bits=self.invalidation_bits,
-            source=self.source,
-            encoding=self.encoding,
-            flags=self.flags,
-            virtual_conversion=self.virtual_conversion,
-            virtual_master_conversion=self.virtual_master_conversion,
+            **self.invariable_attributes()
         )
 
     def __lshift__(self, other: Union["Signal", NDArray[Any], float] | None) -> "Signal":
@@ -1345,18 +1145,8 @@ class Signal:  # noqa: PLW1641
         return Signal(
             np.fabs(self.samples),
             self.timestamps,
-            unit=self.unit,
-            name=self.name,
-            conversion=self.conversion,
-            raw=self.raw,
-            master_metadata=self.master_metadata,
-            display_names=self.display_names,
-            attachment=self.attachment,
             invalidation_bits=self.invalidation_bits,
-            source=self.source,
-            flags=self.flags,
-            virtual_conversion=self.virtual_conversion,
-            virtual_master_conversion=self.virtual_master_conversion,
+            **self.invariable_attributes()
         )
 
     @overload
@@ -1372,23 +1162,8 @@ class Signal:  # noqa: PLW1641
             return Signal(
                 self.samples[val],
                 self.timestamps[val],
-                self.unit,
-                self.name,
-                self.conversion,
-                self.comment,
-                self.raw,
-                self.master_metadata,
-                self.display_names,
-                self.attachment,
-                self.source,
-                self.bit_count,
                 invalidation_bits=self.invalidation_bits[val] if self.invalidation_bits is not None else None,
-                encoding=self.encoding,
-                group_index=self.group_index,
-                channel_index=self.channel_index,
-                flags=self.flags,
-                virtual_conversion=self.virtual_conversion,
-                virtual_master_conversion=self.virtual_master_conversion,
+                **self.invariable_attributes()
             )
 
     def __setitem__(self, idx: Any, val: Any) -> None:
@@ -1410,19 +1185,8 @@ class Signal:  # noqa: PLW1641
         return Signal(
             self.samples.astype(np_type),
             self.timestamps,
-            unit=self.unit,
-            name=self.name,
-            conversion=self.conversion,
-            raw=self.raw,
-            master_metadata=self.master_metadata,
-            display_names=self.display_names,
-            attachment=self.attachment,
             invalidation_bits=self.invalidation_bits,
-            source=self.source,
-            encoding=self.encoding,
-            flags=self.flags,
-            virtual_conversion=self.virtual_conversion,
-            virtual_master_conversion=self.virtual_master_conversion,
+            **self.invariable_attributes()
         )
 
     def physical(self, copy: bool = True, ignore_value2text_conversions: bool = False) -> "Signal":
@@ -1463,21 +1227,10 @@ class Signal:  # noqa: PLW1641
         return Signal(
             samples,
             self.timestamps.copy() if copy else self.timestamps,
-            unit=self.unit,
-            name=self.name,
-            conversion=None,
-            raw=False,
-            master_metadata=self.master_metadata,
-            display_names=self.display_names,
-            attachment=self.attachment,
             invalidation_bits=self.invalidation_bits,
-            source=self.source,
-            encoding=encoding,
-            group_index=self.group_index,
-            channel_index=self.channel_index,
-            flags=self.flags,
-            virtual_conversion=self.virtual_conversion,
             virtual_master_conversion=self.virtual_master_conversion,
+            **self.invariable_attributes(encoding=encoding,conversion=None,
+            raw=False,)
         )
 
     def validate(self, copy: bool = True) -> "Signal":
@@ -1501,23 +1254,7 @@ class Signal:  # noqa: PLW1641
                 signal = Signal(
                     self.samples[idx],
                     self.timestamps[idx],
-                    self.unit,
-                    self.name,
-                    self.conversion,
-                    self.comment,
-                    self.raw,
-                    self.master_metadata,
-                    self.display_names,
-                    self.attachment,
-                    self.source,
-                    self.bit_count,
-                    invalidation_bits=None,
-                    encoding=self.encoding,
-                    group_index=self.group_index,
-                    channel_index=self.channel_index,
-                    flags=self.flags,
-                    virtual_conversion=self.virtual_conversion,
-                    virtual_master_conversion=self.virtual_master_conversion,
+                    **self.invariable_attributes()
                 )
 
         if copy:
@@ -1530,25 +1267,36 @@ class Signal:  # noqa: PLW1641
         return Signal(
             self.samples.copy(),
             self.timestamps.copy(),
-            self.unit,
-            self.name,
-            self.conversion,
-            self.comment,
-            self.raw,
-            self.master_metadata,
-            self.display_names,
-            self.attachment,
-            self.source,
-            self.bit_count,
             invalidation_bits=self.invalidation_bits.copy() if self.invalidation_bits is not None else None,
-            encoding=self.encoding,
-            group_index=self.group_index,
-            channel_index=self.channel_index,
-            flags=self.flags,
-            virtual_conversion=self.virtual_conversion,
-            virtual_master_conversion=self.virtual_master_conversion,
+            **self.invariable_attributes()
         )
+    
+    def invariable_attributes(self, **kwargs):
+        attrs =  {
+            "unit": self.unit,
+            "name": self.name,
+            "conversion": self.conversion,
+            "comment": self.comment,
+            "raw": self.raw,
+            "master_metadata": self.master_metadata,
+            "display_names": self.display_names,
+            "attachment": self.attachment,
+            "source": self.source,
+            "bit_count": self.bit_count,
+            "encoding": self.encoding,
+            "group_index": self.group_index,
+            "channel_index": self.channel_index,
+            "flags": self.flags,
+            "virtual_conversion": self.virtual_conversion,
+            "virtual_master_conversion": self.virtual_master_conversion,
+            "axes": self.axes,
+            "conversions": self.conversions,
+            "units": self.units,
+        }
+        attrs.update(kwargs)
 
+        return attrs
+    
 
 if __name__ == "__main__":
     pass

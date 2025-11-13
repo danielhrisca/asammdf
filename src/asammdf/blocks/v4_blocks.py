@@ -523,6 +523,7 @@ class Channel:
         "attachment",
         "attachment_addr",
         "attachment_nr",
+        "axes",
         "bit_count",
         "bit_offset",
         "block_len",
@@ -533,6 +534,7 @@ class Channel:
         "component_addr",
         "conversion",
         "conversion_addr",
+        "conversions",
         "data_block_addr",
         "data_type",
         "default_X_cg_addr",
@@ -561,12 +563,14 @@ class Channel:
         "sync_type",
         "unit",
         "unit_addr",
+        "units",
         "upper_ext_limit",
         "upper_limit",
     )
 
     def __init__(self, **kwargs: Unpack[ChannelKwargs]) -> None:
         self.dtype_fmt: np.dtype[Any] = np.dtype(np.void)
+        self.axes = self.conversions = self.units = None
 
         if "stream" in kwargs:
             self.address = address = kwargs["address"]
@@ -1538,6 +1542,8 @@ class ChannelArrayBlockKwargs(BlockKwargs, total=False):
     flags: int
     byte_offset_base: int
     invalidation_bit_base: int
+    file_limit : int | float
+    cc_map: dict[bytes | int, "ChannelConversion"]
 
 
 class ChannelArrayBlock(_ChannelArrayBlockBase):
@@ -1573,6 +1579,13 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             stream = kwargs["stream"]
 
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
+
+            cc_map = kwargs["cc_map"]
+            file_limit = kwargs["file_limit"]
+
+            if address + COMMON_SIZE > file_limit:
+                handle_incomplete_block(address)
+                raise KeyError
 
             if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
@@ -1646,7 +1659,43 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 
                 if self.flags & v4c.FLAG_CA_AXIS:
                     for i in range(dims_nr):
-                        self[f"axis_conversion_{i}"] = links[i]
+                        address = links[i]
+                        self[f"axis_conversion_{i}_addr"] = address
+
+                        if address:
+                    
+                            if address in cc_map:
+                                conv = cc_map[address]
+                            else:
+                                if address + 16 > file_limit:
+                                    handle_incomplete_block(address)
+                                    raise MdfException(f"Incomplete block at {address:x}")
+
+                                (size,) = UINT64_uf(stream, address + 8)
+
+                                if address + size > file_limit:
+                                    handle_incomplete_block(address)
+                                    raise MdfException(f"Incomplete block at {address:x}")
+
+                                raw_bytes = stream[address : address + size]
+
+                                if raw_bytes in cc_map:
+                                    conv = cc_map[raw_bytes]
+                                else:
+                                    conv = ChannelConversion(
+                                        raw_bytes=raw_bytes,
+                                        stream=stream,
+                                        address=address,
+                                        mapped=mapped,
+                                        
+                                        file_limit=file_limit,
+                                    )
+                                    cc_map[raw_bytes] = cc_map[address] = conv
+                        else:
+                            conv = None
+
+                        self[f"axis_conversion_{i}"] = conv
+
                     links = links[dims_nr:]
 
                 if (self.flags & v4c.FLAG_CA_AXIS) and not (self.flags & v4c.FLAG_CA_FIXED_AXIS):
@@ -1730,9 +1779,50 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                     links = links[3:]
 
                 if self.flags & v4c.FLAG_CA_AXIS:
+                    current_address = stream.tell()
                     for i in range(dims_nr):
-                        self[f"axis_conversion_{i}"] = links[i]
+                        address = links[i]
+                        self[f"axis_conversion_{i}_addr"] = address
+
+                        if address:
+
+                            if address in cc_map:
+                                conv = cc_map[address]
+                            else:
+                                if address + 16 > file_limit:
+                                    handle_incomplete_block(address)
+                                    raise MdfException(f"Incomplete block at {address:x}")
+                                
+                                stream.seek(address)
+
+                                (size,) = UINT64_uf(stream.read(8))
+
+                                if address + size > file_limit:
+                                    handle_incomplete_block(address)
+                                    raise MdfException(f"Incomplete block at {address:x}")
+
+                                stream.seek(address)
+                                raw_bytes = stream.read(size)
+
+                                if raw_bytes in cc_map:
+                                    conv = cc_map[raw_bytes]
+                                else:
+                                    conv = ChannelConversion(
+                                        raw_bytes=raw_bytes,
+                                        stream=stream,
+                                        address=address,
+                                        mapped=mapped,
+                                        file_limit=file_limit,
+                                    )
+                                    cc_map[raw_bytes] = cc_map[address] = conv
+                        else:
+                            conv = None
+
+                        self[f"axis_conversion_{i}"] = conv
+                    
                     links = links[dims_nr:]
+
+                    stream.seek(current_address)
 
                 if (self.flags & v4c.FLAG_CA_AXIS) and not (self.flags & v4c.FLAG_CA_FIXED_AXIS):
                     for i in range(dims_nr):
@@ -1779,6 +1869,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                 self.byte_offset_base = kwargs.get("byte_offset_base", 1)
                 self.invalidation_bit_base = kwargs.get("invalidation_bit_base", 0)
                 self.dim_size_0 = kwargs["dim_size_0"]
+
             elif ca_type == v4c.CA_TYPE_LOOKUP:
                 flags = kwargs["flags"]
                 dims_nr = kwargs["dims"]
@@ -1788,7 +1879,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                     self.links_nr = 1 + dims_nr
                     self.composition_addr = 0
                     for i in range(dims_nr):
-                        self[f"axis_conversion_{i}"] = 0
+                        self[f"axis_conversion_{i}_addr"] = 0
                     self.ca_type = v4c.CA_TYPE_LOOKUP
                     self.storage = v4c.CA_STORAGE_TYPE_CN_TEMPLATE
                     self.dims = dims_nr
@@ -1805,7 +1896,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                     self.links_nr = 1 + dims_nr * 4
                     self.composition_addr = 0
                     for i in range(dims_nr):
-                        self[f"axis_conversion_{i}"] = 0
+                        self[f"axis_conversion_{i}_addr"] = 0
                     for i in range(dims_nr):
                         self[f"scale_axis_{i}_dg_addr"] = 0
                         self[f"scale_axis_{i}_cg_addr"] = 0
@@ -1884,7 +1975,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             )
 
         if flags & v4c.FLAG_CA_AXIS:
-            keys += tuple(f"axis_conversion_{i}" for i in range(dims_nr))
+            keys += tuple(f"axis_conversion_{i}_addr" for i in range(dims_nr))
 
         if (flags & v4c.FLAG_CA_AXIS) and not (flags & v4c.FLAG_CA_FIXED_AXIS):
             for i in range(dims_nr):
@@ -1919,6 +2010,35 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 
         result = pack(fmt, *[getattr(self, key) for key in keys])
         return result
+    
+    def get_axes_information(self) -> list:
+        axes = []
+
+        for i in range(self.dims):
+            info = {}
+
+            if self.ca_type == v4c.CA_TYPE_ARRAY:
+                info['type'] = "NO_AXIS"
+                info['size'] = typing.cast(int, self[f"dim_size_{i}"])
+        
+            elif self.flags & v4c.FLAG_CA_FIXED_AXIS:
+
+                info['type'] = "FIXED_AXIS"
+                info['size'] = typing.cast(int, self[f"dim_size_{i}"])
+                info['values'] = [self[f"axis_{i}_value_{j}"] for j in range(typing.cast(int, self[f"dim_size_{i}"]))]
+
+            else:
+
+                info['type'] = "REF_AXIS"
+                info['size'] = typing.cast(int, self[f"dim_size_{i}"])
+                info['ref'] = self.axis_channels[i]
+
+            if self.flags & v4c.FLAG_CA_AXIS:
+                info['conversion'] = self[f"axis_conversion_{i}"]
+
+            axes.append(info)
+        
+        return axes
 
     def get_byte_offset_factors(self) -> list[int]:
         """Return a list of factors f(d), used to calculate byte offset."""
@@ -1946,6 +2066,30 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                 factors.insert(0, factor)
 
         return factors
+    
+    def to_blocks(
+        self,
+        address: int,
+        blocks: list[bytes | SupportsBytes],
+        defined_texts: dict[bytes | str, int],
+        cc_map: dict[bytes | int, int],
+    ) -> int:
+        if self.flags & v4c.FLAG_CA_AXIS:
+            for i in range(self.dims):
+
+                conversion = self[f"axis_conversion_{i}"]
+                if conversion:
+                    address = conversion.to_blocks(address, blocks, defined_texts, cc_map)
+                    self[f"axis_conversion_{i}_addr"] = conversion.address
+                else:
+                    self[f"axis_conversion_{i}_addr"] = 0
+
+        blocks.append(self)
+
+        self.address = address
+        address += self.block_len + 8
+
+        return address
 
 
 class ChannelGroupKwargs(BlockKwargs, total=False):

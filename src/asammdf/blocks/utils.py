@@ -67,7 +67,7 @@ except:
             else:
                 encoding = None
             return {"encoding": encoding}
-
+        
 
 class Terminated(Exception):
     def __init__(self, *args: object) -> None:
