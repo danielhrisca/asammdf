@@ -1228,7 +1228,6 @@ class Signal:  # noqa: PLW1641
             samples,
             self.timestamps.copy() if copy else self.timestamps,
             invalidation_bits=self.invalidation_bits,
-            virtual_master_conversion=self.virtual_master_conversion,
             **self.invariable_attributes(encoding=encoding,conversion=None,
             raw=False,)
         )

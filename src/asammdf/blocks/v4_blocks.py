@@ -1880,6 +1880,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                     self.composition_addr = 0
                     for i in range(dims_nr):
                         self[f"axis_conversion_{i}_addr"] = 0
+                        self[f"axis_conversion_{i}"] = kwargs.get(f"axis_conversion_{i}", None)
                     self.ca_type = v4c.CA_TYPE_LOOKUP
                     self.storage = v4c.CA_STORAGE_TYPE_CN_TEMPLATE
                     self.dims = dims_nr
@@ -1897,6 +1898,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                     self.composition_addr = 0
                     for i in range(dims_nr):
                         self[f"axis_conversion_{i}_addr"] = 0
+                        self[f"axis_conversion_{i}"] = kwargs.get(f"axis_conversion_{i}", None)
                     for i in range(dims_nr):
                         self[f"scale_axis_{i}_dg_addr"] = 0
                         self[f"scale_axis_{i}_cg_addr"] = 0
@@ -2017,24 +2019,35 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
         for i in range(self.dims):
             info = {}
 
-            if self.ca_type == v4c.CA_TYPE_ARRAY:
-                info['type'] = "NO_AXIS"
-                info['size'] = typing.cast(int, self[f"dim_size_{i}"])
+            match self.ca_type:
+                case v4c.CA_TYPE_ARRAY:
+                    info['type'] = "NO_AXIS"
+                    info['size'] = typing.cast(int, self[f"dim_size_{i}"])
+
+                case v4c.CA_TYPE_SCALE_AXIS:
+                    info['type'] = "SCALE_AXIS"
+                    info['size'] = typing.cast(int, self[f"dim_size_{i}"])
+
+                case _:
         
-            elif self.flags & v4c.FLAG_CA_FIXED_AXIS:
+                    if self.flags & v4c.FLAG_CA_FIXED_AXIS:
 
-                info['type'] = "FIXED_AXIS"
-                info['size'] = typing.cast(int, self[f"dim_size_{i}"])
-                info['values'] = [self[f"axis_{i}_value_{j}"] for j in range(typing.cast(int, self[f"dim_size_{i}"]))]
+                        info['type'] = "FIXED_AXIS"
+                        info['size'] = typing.cast(int, self[f"dim_size_{i}"])
+                        info['values'] = [self[f"axis_{i}_value_{j}"] for j in range(typing.cast(int, self[f"dim_size_{i}"]))]
+                    
+                    else:
 
-            else:
-
-                info['type'] = "REF_AXIS"
-                info['size'] = typing.cast(int, self[f"dim_size_{i}"])
-                info['ref'] = self.axis_channels[i]
+                        info['type'] = "REF_AXIS"
+                        info['size'] = typing.cast(int, self[f"dim_size_{i}"])
+                        info['ref'] = self.axis_channels[i]
 
             if self.flags & v4c.FLAG_CA_AXIS:
                 info['conversion'] = self[f"axis_conversion_{i}"]
+            else:
+                info['conversion'] = None
+
+            info['inverser_layout'] = self.flags & v4c.FLAG_CA_INVERSE_LAYOUT
 
             axes.append(info)
         
@@ -2087,7 +2100,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
         blocks.append(self)
 
         self.address = address
-        address += self.block_len + 8
+        address += self.block_len
 
         return address
 
