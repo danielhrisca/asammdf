@@ -69,6 +69,16 @@ class Ui_file_widget(object):
 
         self.channels_layout.addWidget(self.channel_view)
 
+        self.channels_search_name = QLineEdit(self.verticalLayoutWidget)
+        self.channels_search_name.setObjectName(u"channels_search_name")
+        self.channels_search_name.setClearButtonEnabled(True)
+        self.channels_layout.addWidget(self.channels_search_name)
+
+        self.channels_search_bus = QLineEdit(self.verticalLayoutWidget)
+        self.channels_search_bus.setObjectName(u"channels_search_bus")
+        self.channels_search_bus.setClearButtonEnabled(True)
+        self.channels_layout.addWidget(self.channels_search_bus)
+
         self.channels_tree = TreeWidget(self.verticalLayoutWidget)
         self.channels_tree.setObjectName(u"channels_tree")
 
@@ -179,6 +189,16 @@ class Ui_file_widget(object):
         self.filter_view.setObjectName(u"filter_view")
 
         self.verticalLayout_2.addWidget(self.filter_view)
+
+        self.filter_search_name = QLineEdit(self.modify)
+        self.filter_search_name.setObjectName(u"filter_search_name")
+        self.filter_search_name.setClearButtonEnabled(True)
+        self.verticalLayout_2.addWidget(self.filter_search_name)
+
+        self.filter_search_bus = QLineEdit(self.modify)
+        self.filter_search_bus.setObjectName(u"filter_search_bus")
+        self.filter_search_bus.setClearButtonEnabled(True)
+        self.verticalLayout_2.addWidget(self.filter_search_bus)
 
         self.filter_tree = TreeWidget(self.modify)
         self.filter_tree.setObjectName(u"filter_tree")
@@ -1086,6 +1106,8 @@ class Ui_file_widget(object):
         self.channel_view.setItemText(0, QCoreApplication.translate("file_widget", u"Natural sort", None))
         self.channel_view.setItemText(1, QCoreApplication.translate("file_widget", u"Internal file structure", None))
         self.channel_view.setItemText(2, QCoreApplication.translate("file_widget", u"Selected channels only", None))
+        self.channels_search_name.setPlaceholderText(QCoreApplication.translate("file_widget", u"channel pattern", None))
+        self.channels_search_bus.setPlaceholderText(QCoreApplication.translate("file_widget", u"source pattern", None))
 
         ___qtreewidgetitem = self.channels_tree.headerItem()
         ___qtreewidgetitem.setText(0, QCoreApplication.translate("file_widget", u"Channels", None));
@@ -1128,6 +1150,8 @@ class Ui_file_widget(object):
         self.filter_view.setItemText(0, QCoreApplication.translate("file_widget", u"Natural sort", None))
         self.filter_view.setItemText(1, QCoreApplication.translate("file_widget", u"Internal file structure", None))
         self.filter_view.setItemText(2, QCoreApplication.translate("file_widget", u"Selected channels only", None))
+        self.filter_search_name.setPlaceholderText(QCoreApplication.translate("file_widget", u"channel pattern", None))
+        self.filter_search_bus.setPlaceholderText(QCoreApplication.translate("file_widget", u"source pattern", None))
 
         ___qtreewidgetitem1 = self.filter_tree.headerItem()
         ___qtreewidgetitem1.setText(0, QCoreApplication.translate("file_widget", u"Channels", None));
