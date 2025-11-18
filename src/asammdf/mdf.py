@@ -4313,7 +4313,6 @@ class MDF:
                     )
                     signal.samples = samples
 
-                signal.raw = False
                 signal.conversion = None
                 if signal.samples.dtype.kind == "S":
                     signal.encoding = "utf-8" if self.version >= "4.00" else "latin-1"
@@ -4545,7 +4544,6 @@ class MDF:
                     )
                     signal.samples = samples
 
-                signal.raw = False
                 signal.conversion = None
                 if signal.samples.dtype.kind == "S":
                     signal.encoding = "utf-8" if self.version >= "4.00" else "latin-1"
@@ -5251,7 +5249,6 @@ class MDF:
                                 )
                                 signal.samples = samples
 
-                            signal.raw = False
                             signal.conversion = None
                             if signal.samples.dtype.kind == "S":
                                 signal.encoding = "utf-8" if self.version >= "4.00" else "latin-1"
@@ -5710,7 +5707,6 @@ class MDF:
                         )
                         signal.samples = samples
 
-                    signal.raw = False
                     signal.conversion = None
                     if signal.samples.dtype.kind == "S":
                         signal.encoding = "utf-8" if self.version >= "4.00" else "latin-1"

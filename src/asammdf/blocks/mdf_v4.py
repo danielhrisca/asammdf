@@ -3235,8 +3235,7 @@ class MDF4(MDF_Common[Group]):
 
                     # conversions for channel
                     conversion = conversion_transfer(signal.conversion, version=4)
-                    if signal.raw:
-                        ch.conversion = conversion
+                    ch.conversion = conversion
 
                     # source for channel
                     source = signal.source
@@ -3352,8 +3351,7 @@ class MDF4(MDF_Common[Group]):
                     ch.attachment = attachment
 
                     # conversions for channel
-                    if signal.raw:
-                        ch.conversion = conversion_transfer(signal.conversion, version=4)
+                    ch.conversion = conversion_transfer(signal.conversion, version=4)
 
                     # source for channel
 
@@ -3987,8 +3985,7 @@ class MDF4(MDF_Common[Group]):
 
                 # conversions for channel
                 conversion = conversion_transfer(signal.conversion, version=4)
-                if signal.raw:
-                    ch.conversion = conversion
+                ch.conversion = conversion
 
                 # source for channel
                 source = signal.source
@@ -4426,8 +4423,7 @@ class MDF4(MDF_Common[Group]):
                 ch.display_names = signal.display_names
 
                 # conversions for channel
-                if signal.raw:
-                    ch.conversion = conversion_transfer(signal.conversion, version=4)
+                ch.conversion = conversion_transfer(signal.conversion, version=4)
 
                 # source for channel
                 source = signal.source
@@ -4880,8 +4876,7 @@ class MDF4(MDF_Common[Group]):
 
                 # conversions for channel
                 conversion = conversion_transfer(signal.conversion, version=4)
-                if signal.raw:
-                    ch.conversion = conversion
+                ch.conversion = conversion
 
                 # source for channel
                 source = signal.source
@@ -5428,9 +5423,7 @@ class MDF4(MDF_Common[Group]):
         for name in names:
             samples = signal.samples[name]
             fld_names = samples.dtype.names
-
-            if name == 'CAN_DataFrame.ID':
-                print('ID', samples.dtype)
+            dtype = samples.dtype
 
             if fld_names is None:
                 sig_type = v4c.SIGNAL_TYPE_SCALAR
@@ -5471,8 +5464,10 @@ class MDF4(MDF_Common[Group]):
                 ch = Channel(**cn_kwargs)
                 ch.name = name
                 ch.dtype_fmt = np.dtype((samples.dtype, samples.shape[1:]))
-                ch.unit = units.get(name, "")
-                ch.conversion = conversions.get(name, None)
+
+                if dtype.metadata:
+                    ch.conversion = dtype.metadata('conversion', None)
+                    ch.unit = dtype.metadata('unit', "")
 
                 record.append(
                     (
@@ -7318,6 +7313,8 @@ class MDF4(MDF_Common[Group]):
                 if conversion:
                     samples = conversion.convert(samples)
 
+            samples = samples.view(np.dtype(samples.dtype, metadata={'conversion': conversion, 'unit': (conversion and conversion.unit) or channel.unit}))
+
             res = samples, invalidation_bits
 
         else:
@@ -7338,6 +7335,8 @@ class MDF4(MDF_Common[Group]):
                 name = channel.name
 
             unit = (conversion and conversion.unit) or channel.unit
+
+            samples = samples.view(np.dtype(samples.dtype, metadata={'conversion': conversion, 'unit': (conversion and conversion.unit) or channel.unit}))
 
             comment = channel.comment
 
@@ -7374,7 +7373,6 @@ class MDF4(MDF_Common[Group]):
                     name=name,
                     comment=comment,
                     conversion=conversion,
-                    raw=raw,
                     master_metadata=master_metadata,
                     attachment=attachment,
                     source=source,
@@ -7915,13 +7913,13 @@ class MDF4(MDF_Common[Group]):
                 if ca_block.ca_type == v4c.CA_TYPE_SCALE_AXIS:
                     shape = (ca_block.dim_size_0,)
                     arrays.append(vals)
-                    dtype_pair = channel.name, vals.dtype, shape
+                    dtype_pair = channel.name, np.dtype(vals.dtype, metadata={'conversion': channel.conversion, "unit": channel.unit}), shape
                     types.append(dtype_pair)
 
                 elif ca_block.ca_type == v4c.CA_TYPE_LOOKUP:
                     shape = vals.shape[1:]
                     arrays.append(vals)
-                    dtype_pair = channel.name, vals.dtype, shape
+                    dtype_pair = channel.name, np.dtype(vals.dtype, metadata={'conversion': channel.conversion, "unit": channel.unit}), shape
                     types.append(dtype_pair)
 
                     if ca_block.flags & v4c.FLAG_CA_FIXED_AXIS:
@@ -7934,7 +7932,7 @@ class MDF4(MDF_Common[Group]):
                             axis = array(axis_list)
                             axis = array([axis for _ in range(cycles_nr)])
                             arrays.append(axis)
-                            dtype_pair = (f"axis_{i}", axis.dtype, shape)
+                            dtype_pair = (f"axis_{i}", np.dtype(axis.dtype, metadata={'axis_type': 'FIXED_AXIS'}), shape)
                             types.append(dtype_pair)
                     else:
                         for i in range(dims_nr):

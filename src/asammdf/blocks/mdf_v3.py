@@ -1308,7 +1308,7 @@ class MDF3(MDF_Common[Group]):
             cc_block = conversion_transfer(signal.conversion)
             cc_block.unit = unit = signal.unit
 
-            israw = signal.raw
+            israw = bool(signal.conversion) 
 
             if not israw and not unit:
                 conversion = None

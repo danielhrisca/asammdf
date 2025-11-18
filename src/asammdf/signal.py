@@ -37,6 +37,38 @@ logger = logging.getLogger("asammdf")
 ORIGIN_UNKNOWN = (-1, -1)
 
 
+def convert(arr, ignore_value2text_conversions=False):
+    fields = arr.dtype.fields
+    
+    if fields:
+        arrays = []
+        types = []
+
+        for name, (dt, offset) in arr.dtype.fields.items():
+            converted = convert(arr[name])
+            arrays.append(convert(arr[name]))
+            types.append((name, converted.dtype, converted.shape[1:]))
+
+        res = np.rec.fromarrays(arrays, dtype=types)
+        res = res.view(np.lib.format.drop_metadata(res.dtype))
+
+    else:
+
+        dtype = arr.dtype
+        if dtype.metadata and 'conversion' in dtype.metadata:
+            conversion = dtype.metadata['conversion']
+            if conversion:
+                res = dtype.metadata['conversion'].convert(arr, ignore_value2text_conversions=ignore_value2text_conversions)
+            else:
+                res = arr
+        else:
+            res = arr
+
+        res = res.view(np.lib.format.drop_metadata(res.dtype))
+
+    return res
+
+
 class InvalidationArray(np.ndarray[tuple[int], np.dtype[np.bool]]):
     ORIGIN_UNKNOWN = ORIGIN_UNKNOWN
 
@@ -73,8 +105,6 @@ class Signal:  # noqa: PLW1641
         Dict that contains extra conversion information about the signal.
     comment : str, optional
         Signal comment.
-    raw : bool, default True
-        Signal samples are raw values, with no physical conversion applied.
     master_metadata : tuple, optional
         Master name and sync type.
     display_names : dict, optional
@@ -119,7 +149,6 @@ class Signal:  # noqa: PLW1641
         name: str = "",
         conversion: dict[str, object] | ChannelConversionType | None = None,
         comment: str = "",
-        raw: bool = True,
         master_metadata: tuple[str, int] | None = None,
         display_names: dict[str, str] | None = None,
         attachment: tuple[bytes | str, Path, bytes | str] | None = None,
@@ -185,7 +214,6 @@ class Signal:  # noqa: PLW1641
             self.comment = comment
             self.flags = flags
             self._plot_axis: Line3DCollection | None = None
-            self.raw = raw
             self.master_metadata = master_metadata
             self.display_names = display_names or {}
             self.attachment = attachment
@@ -211,14 +239,14 @@ class Signal:  # noqa: PLW1641
             else:
                 self.bit_count = bit_count
 
-            self.conversion: ChannelConversionType | None
-            if conversion:
-                if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
-                    self.conversion = from_dict(conversion)
+            if not self.samples.dtype.metadata:
+                if conversion:
+                    if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
+                        self.conversion = from_dict(conversion)
+                    else:
+                        self.conversion = conversion
                 else:
-                    self.conversion = conversion
-            else:
-                self.conversion = None
+                    self.conversion = None
 
             self.virtual_conversion: ChannelConversionType | None
             if self.flags & self.Flags.virtual:
@@ -237,6 +265,18 @@ class Signal:  # noqa: PLW1641
                     self.virtual_master_conversion = virtual_master_conversion
             else:
                 self.virtual_master_conversion = None
+
+    @property
+    def conversion(self):
+        metadata = self.samples.dtype.metadata or {}
+        return metadata.get('conversion', None)
+    
+    @conversion.setter
+    def conversion(self, conv):
+        metadata = dict(self.samples.dtype.metadata or {})
+        metadata['conversion'] = conv
+        self.samples = self.samples.view(dtype=np.dtype(self.samples.dtype, metadata=metadata))
+
 
     @property
     def invalidation_bits(self) -> InvalidationArray | None:
@@ -270,7 +310,6 @@ class Signal:  # noqa: PLW1641
 \tcomment="{self.comment}"
 \tflags="{self.flags}"
 \tmastermeta="{self.master_metadata}"
-\traw={self.raw}
 \tdisplay_names={self.display_names}
 \tattachment={self.attachment}>
 """
@@ -919,7 +958,7 @@ class Signal:  # noqa: PLW1641
 
                 elif kind in "ui":
                     if integer_interpolation_mode == IntegerInterpolation.HYBRID_INTERPOLATION:
-                        if signal.raw and signal.conversion:
+                        if signal.conversion:
                             kind = signal.conversion.convert(signal.samples[:1]).dtype.kind
                             if kind == "f":
                                 integer_interpolation_mode = IntegerInterpolation.LINEAR_INTERPOLATION
@@ -1006,9 +1045,10 @@ class Signal:  # noqa: PLW1641
             invalidation_bits = self.invalidation_bits
 
         else:
-            func = getattr(self.samples, func_name)
+            samples = self.physical().samples
+            func = getattr(samples, func_name)
             s = func(other)
-            conversion = self.conversion
+            conversion = None
             time = self.timestamps
             invalidation_bits = self.invalidation_bits
 
@@ -1211,25 +1251,18 @@ class Signal:  # noqa: PLW1641
             New `Signal` with physical values.
         """
 
-        if not self.raw or self.conversion is None:
-            if copy:
-                samples = self.samples.copy()
-            else:
-                samples = self.samples
-            encoding = None
+        samples = convert(self.samples, ignore_value2text_conversions=ignore_value2text_conversions)
+
+        if samples.dtype.kind == "S":
+            encoding = "utf-8" if self.conversion.id == b"##CC" else "latin-1"
         else:
-            samples = self.conversion.convert(self.samples, ignore_value2text_conversions=ignore_value2text_conversions)
-            if samples.dtype.kind == "S":
-                encoding = "utf-8" if self.conversion.id == b"##CC" else "latin-1"
-            else:
-                encoding = None
+            encoding = None
 
         return Signal(
             samples,
             self.timestamps.copy() if copy else self.timestamps,
             invalidation_bits=self.invalidation_bits,
-            **self.invariable_attributes(encoding=encoding,conversion=None,
-            raw=False,)
+            **self.invariable_attributes(encoding=encoding)
         )
 
     def validate(self, copy: bool = True) -> "Signal":
@@ -1276,7 +1309,6 @@ class Signal:  # noqa: PLW1641
             "name": self.name,
             "conversion": self.conversion,
             "comment": self.comment,
-            "raw": self.raw,
             "master_metadata": self.master_metadata,
             "display_names": self.display_names,
             "attachment": self.attachment,
