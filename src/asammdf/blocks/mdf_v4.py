@@ -7585,7 +7585,7 @@ class MDF4(MDF_Common[Group]):
         record_count: int | None,
         master_is_required: bool,
         raw: bool,
-    ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[np.bool]]: ...
+    ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[np.bool], None]: ...
 
     def _get_structure(
         self,
