@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 from textwrap import fill
 from typing import TYPE_CHECKING, Union
+import warnings
 
 import numpy as np
 from numpy.typing import ArrayLike, DTypeLike, NDArray
@@ -45,8 +46,8 @@ def convert(arr, ignore_value2text_conversions=False):
         types = []
 
         for name, (dt, offset) in arr.dtype.fields.items():
-            converted = convert(arr[name])
-            arrays.append(convert(arr[name]))
+            converted = convert(arr[name], ignore_value2text_conversions=ignore_value2text_conversions)
+            arrays.append(converted)
             types.append((name, converted.dtype, converted.shape[1:]))
 
         res = np.rec.fromarrays(arrays, dtype=types)
@@ -55,10 +56,10 @@ def convert(arr, ignore_value2text_conversions=False):
     else:
 
         dtype = arr.dtype
-        if dtype.metadata and 'conversion' in dtype.metadata:
-            conversion = dtype.metadata['conversion']
+        if (metadata := dtype.base.metadata) and 'conversion' in metadata:
+            conversion = metadata['conversion']
             if conversion:
-                res = dtype.metadata['conversion'].convert(arr, ignore_value2text_conversions=ignore_value2text_conversions)
+                res = conversion.convert(arr, ignore_value2text_conversions=ignore_value2text_conversions)
             else:
                 res = arr
         else:
@@ -105,6 +106,8 @@ class Signal:  # noqa: PLW1641
         Dict that contains extra conversion information about the signal.
     comment : str, optional
         Signal comment.
+    raw : bool, default True
+        Signal samples are raw values, with no physical conversion applied. Deprecated
     master_metadata : tuple, optional
         Master name and sync type.
     display_names : dict, optional
@@ -121,21 +124,6 @@ class Signal:  # noqa: PLW1641
         Encoding for string signals.
     flags : int, optional
         Flags for user-defined attributes and stream sync.
-
-    axes : dict, optional
-        axis descriptions for components
-
-        .. versionadded:: 8.8.0
-
-    conversions : dict, optional
-        conversion descriptions for components
-
-        .. versionadded:: 8.8.0
-
-    units : dict, optional
-        unit descriptions for components
-
-        .. versionadded:: 8.8.0
     
     """
 
@@ -161,10 +149,10 @@ class Signal:  # noqa: PLW1641
         flags: int = Flags.no_flags,
         virtual_conversion: dict[str, object] | ChannelConversionType | None = None,
         virtual_master_conversion: dict[str, object] | ChannelConversionType | None = None,
-        axes: dict[str, object] | None = None,
-        conversions: dict[str, object] | None = None,
-        units: dict[str, object] | None = None,
+        **kwargs,
     ) -> None:
+        if "raw" in kwargs:
+            warnings.warn("the 'raw' argument for the Signal class has been removed")
         if not name:
             message = (
                 '"samples", "timestamps" and "name" are mandatory '
@@ -220,9 +208,6 @@ class Signal:  # noqa: PLW1641
             self.encoding = encoding
             self.group_index = group_index
             self.channel_index = channel_index
-            self.axes = axes
-            self.conversions = conversions
-            self.units = units
             self._invalidation_bits = InvalidationArray(invalidation_bits) if invalidation_bits is not None else None
 
             self.source: Source | None
@@ -239,7 +224,7 @@ class Signal:  # noqa: PLW1641
             else:
                 self.bit_count = bit_count
 
-            if not self.samples.dtype.metadata:
+            if not self.samples.dtype.base.metadata:
                 if conversion:
                     if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
                         self.conversion = from_dict(conversion)
@@ -268,15 +253,14 @@ class Signal:  # noqa: PLW1641
 
     @property
     def conversion(self):
-        metadata = self.samples.dtype.metadata or {}
+        metadata = self.samples.dtype.base.metadata or {}
         return metadata.get('conversion', None)
     
     @conversion.setter
     def conversion(self, conv):
-        metadata = dict(self.samples.dtype.metadata or {})
+        metadata = dict(self.samples.dtype.base.metadata or {})
         metadata['conversion'] = conv
         self.samples = self.samples.view(dtype=np.dtype(self.samples.dtype, metadata=metadata))
-
 
     @property
     def invalidation_bits(self) -> InvalidationArray | None:
@@ -1228,9 +1212,32 @@ class Signal:  # noqa: PLW1641
             invalidation_bits=self.invalidation_bits,
             **self.invariable_attributes()
         )
+    
+    def raw(self, copy=False):
+        """Get the raw samples values
+        Parameters
+        ----------
+        copy : bool, default True
+            Copy the samples and timestamps in the returned Signal.
+
+        Returns
+        -------
+        phys : Signal
+            New `Signal` with raw values.
+        """
+        samples = self.samples.view(np.lib.format.drop_metadata(self.samples.dtype))
+        if copy:
+            samples = samples.copy()
+
+        return Signal(
+            samples,
+            self.timestamps.copy() if copy else self.timestamps,
+            invalidation_bits=self.invalidation_bits,
+            **self.invariable_attributes(encoding=None, conversion=None)
+        )
 
     def physical(self, copy: bool = True, ignore_value2text_conversions: bool = False) -> "Signal":
-        """Get the physical sample values.
+        """Get the scaled (physical) samples values.
 
         Parameters
         ----------
@@ -1248,7 +1255,7 @@ class Signal:  # noqa: PLW1641
         Returns
         -------
         phys : Signal
-            New `Signal` with physical values.
+            New `Signal` with scaled (physical) values.
         """
 
         samples = convert(self.samples, ignore_value2text_conversions=ignore_value2text_conversions)
@@ -1264,6 +1271,8 @@ class Signal:  # noqa: PLW1641
             invalidation_bits=self.invalidation_bits,
             **self.invariable_attributes(encoding=encoding)
         )
+    
+    scaled = physical
 
     def validate(self, copy: bool = True) -> "Signal":
         """Apply invalidation bits if they are available for this signal.
@@ -1320,9 +1329,6 @@ class Signal:  # noqa: PLW1641
             "flags": self.flags,
             "virtual_conversion": self.virtual_conversion,
             "virtual_master_conversion": self.virtual_master_conversion,
-            "axes": self.axes,
-            "conversions": self.conversions,
-            "units": self.units,
         }
         attrs.update(kwargs)
 

@@ -175,7 +175,6 @@ class PlotSignal(Signal):
             signal.name,
             signal.conversion,
             signal.comment,
-            signal.raw,
             signal.master_metadata,
             signal.display_names,
             signal.attachment,
