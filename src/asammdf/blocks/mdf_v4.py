@@ -5719,7 +5719,6 @@ class MDF4(MDF_Common[Group]):
                         if not samples.flags["C_CONTIGUOUS"]:
                             samples = np.ascontiguousarray(samples)
                         fields.append((samples, size))
-                        gp_sig_types.append((sig_type, size))
 
                         gp_sdata.append(None)
                         entry = (dg_cntr, ch_cntr)
@@ -7406,13 +7405,11 @@ class MDF4(MDF_Common[Group]):
                         master_is_required=master_is_required,
                     )
 
-                axes = conversions = units = None
-
         else:
             samples = vals
             timestamps = np.array([], dtype=np.float64)
             invalidation_bits = None
-            encoding = axes = conversions = units = None
+            encoding = None
 
         if all_invalid:
             invalidation_bits = np.ones(len(samples), dtype=bool)
@@ -7819,7 +7816,7 @@ class MDF4(MDF_Common[Group]):
         record_offset: int,
         record_count: int | None,
         master_is_required: Literal[False],
-    ) -> tuple[NDArray[Any], None, NDArray[np.bool] | None, None,  dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]: ...
+    ) -> tuple[NDArray[Any], None, NDArray[np.bool] | None, None]: ...
 
     @overload
     def _get_array(
@@ -7835,7 +7832,7 @@ class MDF4(MDF_Common[Group]):
         record_offset: int,
         record_count: int | None,
         master_is_required: Literal[False],
-    ) -> tuple[NDArray[Any], None, None, None,  dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]: ...
+    ) -> tuple[NDArray[Any], None, None, None]: ...
 
     @overload
     def _get_array(
@@ -7851,7 +7848,7 @@ class MDF4(MDF_Common[Group]):
         record_offset: int,
         record_count: int | None,
         master_is_required: Literal[True],
-    ) -> tuple[NDArray[Any], NDArray[Any], NDArray[np.bool] | None, None,  dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]: ...
+    ) -> tuple[NDArray[Any], NDArray[Any], NDArray[np.bool] | None, None]: ...
 
     @overload
     def _get_array(
@@ -7867,7 +7864,7 @@ class MDF4(MDF_Common[Group]):
         record_offset: int,
         record_count: int | None,
         master_is_required: Literal[True],
-    ) -> tuple[NDArray[Any], NDArray[Any], None, None,  dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]: ...
+    ) -> tuple[NDArray[Any], NDArray[Any], None, None]: ...
 
     @overload
     def _get_array(
@@ -7883,7 +7880,7 @@ class MDF4(MDF_Common[Group]):
         record_offset: int,
         record_count: int | None,
         master_is_required: bool,
-    ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[np.bool] | None, None,  dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]: ...
+    ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[np.bool] | None, None]: ...
 
     def _get_array(
         self,
@@ -7898,7 +7895,7 @@ class MDF4(MDF_Common[Group]):
         record_offset: int,
         record_count: int | None,
         master_is_required: bool,
-    ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[np.bool] | None, None,  dict[str, Any] | None, dict[str, Any] | None, dict[str, Any] | None]:
+    ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[np.bool] | None, None]:
         grp = group
         gp_nr = group_index
         ch_nr = channel_index
