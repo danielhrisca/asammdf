@@ -9,7 +9,7 @@ from functools import lru_cache
 from hashlib import md5
 from io import StringIO
 import logging
-from math import ceil, floor
+from math import ceil, floor, prod
 from mimetypes import guess_type
 import mmap
 import os
@@ -734,7 +734,7 @@ class MDF4(MDF_Common[Group]):
 
                         if dep.flags & v4c.FLAG_CA_AXIS:
                             for i in range(dep.dims):
-                                cc_addr = typing.cast(int, dep[f"axis_conversion_{i}"])
+                                cc_addr = typing.cast(int, dep[f"axis_conversion_{i}_addr"])
                                 if cc_addr:
                                     conv = ChannelConversion(
                                         stream=stream,
@@ -1110,17 +1110,13 @@ class MDF4(MDF_Common[Group]):
                         )
                     )
 
-                    channel.axes = axes = []
-
-                    first_dep = ca_block = ChannelArrayBlock(address=component_addr, stream=stream, mapped=mapped, cc_map=self._cc_ma, file_limit=self.file_limit,)
+                    first_dep = ca_block = ChannelArrayBlock(address=component_addr, stream=stream, mapped=mapped, cc_map=self._cc_map, file_limit=self.file_limit,)
                     ca_dependencies = [first_dep]
                     ca_cnt = len(ca_dependencies)
                     byte_offset_factors: list[int] = []
                     bit_pos_inval_factors: list[int] = []
                     dimensions: list[int] = []
                     total_elem = 1
-
-                    axes.extend(ca_block.get_axes_information())
 
                     # recurse into CA structure
                     while ca_block.composition_addr:
@@ -1135,7 +1131,6 @@ class MDF4(MDF_Common[Group]):
                                 file_limit=self.file_limit,
                             )
                             ca_dependencies.append(ca_block)
-                            axes.extend(ca_block.get_axes_information())
 
                         elif channel.data_type == v4c.DATA_TYPE_BYTEARRAY:
                             # read CA-CN nested structure
@@ -3674,15 +3669,16 @@ class MDF4(MDF_Common[Group]):
 
                     else:
                         parent_deps = []
-                        for i, axis in enumerate(array_axes):
+                        byte_offset_base = samples.dtype.itemsize
+                        for i, (axis, shp) in enumerate(zip(array_axes[::-1], shape[::-1])):
                             if axis['type'] == 'REF_AXIS':
                                 ca_kwargs = {
                                     "dims": 1,
                                     "ca_type": v4c.CA_TYPE_LOOKUP,
                                     "flags": v4c.FLAG_CA_AXIS,
-                                    "byte_offset_base": samples.dtype.itemsize,
+                                    "byte_offset_base": byte_offset_base,
                                     "axis_conversion_0": axis['conversion'],
-                                    "dim_size_0": shape[i]
+                                    "dim_size_0": shp
                                 }
 
                                 parent_dep_with_refs = dep = ChannelArrayBlock(**ca_kwargs)
@@ -3691,15 +3687,17 @@ class MDF4(MDF_Common[Group]):
                                     "dims": 1,
                                     "ca_type": v4c.CA_TYPE_LOOKUP,
                                     "flags": v4c.FLAG_CA_AXIS | v4c.FLAG_CA_FIXED_AXIS,
-                                    "byte_offset_base": samples.dtype.itemsize,
+                                    "byte_offset_base": byte_offset_base,
                                     "axis_conversion_0": axis['conversion'],
-                                    "dim_size_0": shape[i]
+                                    "dim_size_0": shp
                                 }
-                                for j in range(shape[i]):
+                                for j in range(shp):
                                     ca_kwargs[f"axis_0_value_{j}"] = axis['values'][j]
                                 dep = ChannelArrayBlock(**ca_kwargs)
                             
-                            parent_deps.append(dep)
+                            byte_offset_base *= shp
+                            
+                            parent_deps.insert(0, dep)
 
                 current_dt_offset = 0
                 for name, dt_dtype, dt_offset in dt_fields:
@@ -3872,6 +3870,10 @@ class MDF4(MDF_Common[Group]):
                             self.channels_db.add(name, entry)
 
                             ch_cntr += 1
+
+                if delta := (signal.samples.dtype.itemsize - current_dt_offset):
+                    padding = np.zeros((signal.samples.shape[0], delta), dtype='u1')
+                    fields.append((padding, delta))
             else:
                 encoding = signal.encoding
                 samples = signal.samples
@@ -5811,6 +5813,10 @@ class MDF4(MDF_Common[Group]):
 
                             ch_cntr += 1
 
+                if delta := (array_samples.dtype.itemsize - current_dt_offset):
+                    padding = np.zeros((array_samples.shape[0], delta), dtype='u1')
+                    fields.append((padding, delta))
+
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 struct = Signal(
                     samples,
@@ -5833,9 +5839,6 @@ class MDF4(MDF_Common[Group]):
                     defined_texts,
                     invalidation_bytes_nr,
                     inval_bits,
-                    axes = axes,
-                    conversions = conversions,
-                    units = units,
                 )
                 dep_list.append(sub_structure)
                 fields.extend(new_fields)
@@ -6406,6 +6409,10 @@ class MDF4(MDF_Common[Group]):
                             samples = np.ascontiguousarray(samples)
 
                         fields.append((samples, size))
+
+                    if delta := (signal.dtype.itemsize - current_dt_offset):
+                        padding = np.zeros((signal.shape[0], delta), dtype='u1')
+                        fields.append((padding, delta))
 
                 case _:
                     if self.compact_vlsd:
@@ -7345,7 +7352,7 @@ class MDF4(MDF_Common[Group]):
             if dependency_list:
                 if not isinstance(dependency_list[0], ChannelArrayBlock):
                     dependency_list = typing.cast(list[tuple[int, int]], dependency_list)
-                    samples, timestamps, invalidation_bits, encoding, axes, conversions, units = self._get_structure(
+                    samples, timestamps, invalidation_bits, encoding = self._get_structure(
                         channel=channel,
                         group=grp,
                         group_index=gp_nr,
@@ -7353,7 +7360,7 @@ class MDF4(MDF_Common[Group]):
                         dependency_list=dependency_list,
                         raster=raster,
                         data=data,
-                        ignore_invalidation_bits=ignore_invalidation_bits,
+                        ignore_invalidation_bits=ignore_invalidation_bits, 
                         record_offset=record_offset,
                         record_count=record_count,
                         master_is_required=master_is_required,
@@ -7361,7 +7368,7 @@ class MDF4(MDF_Common[Group]):
                     )
                 else:
                     dependency_list = typing.cast(list[ChannelArrayBlock], dependency_list)
-                    samples, timestamps, invalidation_bits, encoding, axes, conversions, units = self._get_array(
+                    samples, timestamps, invalidation_bits, encoding = self._get_array(
                         channel=channel,
                         group=grp,
                         group_index=gp_nr,
@@ -7904,15 +7911,14 @@ class MDF4(MDF_Common[Group]):
         else:
             fragments = iter((data,))
 
-        dep = ca_block = dependency_list[0]
-        shape = tuple(typing.cast(int, ca_block[f"dim_size_{i}"]) for i in range(ca_block.dims))
-        shape = tuple(dim for dim in shape if dim > 1)
+        axes = []
+        for dep in dependency_list:
+            axes.extend(dep.get_axes_information())
+
+        shape = tuple(axis['size'] for axis in axes)
         shape = shape or (1,)
 
-        dim = 1
-        for d in shape:
-            dim *= d
-        size = ca_block.byte_offset_base * dim
+        size = prod(shape, start=channel.bit_count // 8)
 
         if group.uses_ld:
             record_size = group.channel_group.samples_byte_nr
@@ -7936,6 +7942,7 @@ class MDF4(MDF_Common[Group]):
         )
 
         channel_invalidation_present = (not self._ignore_invalidation_bits) and channel.flags & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT)
+        inverse_layout = any(axis['inverse_layout'] for axis in axes)
 
         channel_group = grp.channel_group
         samples_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
@@ -7961,7 +7968,7 @@ class MDF4(MDF_Common[Group]):
 
             vals = frombuffer(data_bytes, dtype=dtype_fmt)["vals"]
 
-            if dep.flags & v4c.FLAG_CA_INVERSE_LAYOUT:
+            if inverse_layout:
                 shape = vals.shape
                 shape = (shape[0], *shape[1:][::-1])
                 vals = vals.reshape(shape)
@@ -7972,128 +7979,39 @@ class MDF4(MDF_Common[Group]):
             cycles_nr = len(vals)
 
             dtype_pair: tuple[str, np.dtype[Any], tuple[int, ...]]
-            for ca_block in dependency_list[:1]:
-                if not isinstance(ca_block, ChannelArrayBlock):
-                    break
 
-                dims_nr = ca_block.dims
+            shape = vals.shape[1:]
+            arrays.append(vals)
+            dtype_pair = channel.name, np.dtype(vals.dtype, metadata={'conversion': channel.conversion, "unit": channel.unit, "axes": axes}), shape
+            types.append(dtype_pair)
 
-                if ca_block.ca_type == v4c.CA_TYPE_SCALE_AXIS:
-                    shape = (ca_block.dim_size_0,)
-                    arrays.append(vals)
-                    dtype_pair = channel.name, np.dtype(vals.dtype, metadata={'conversion': channel.conversion, "unit": channel.unit}), shape
-                    types.append(dtype_pair)
+            for i, axis in enumerate(axes):
+                shape = (axis['size'],)
 
-                elif ca_block.ca_type == v4c.CA_TYPE_LOOKUP:
-                    shape = vals.shape[1:]
-                    arrays.append(vals)
-                    dtype_pair = channel.name, np.dtype(vals.dtype, metadata={'conversion': channel.conversion, "unit": channel.unit}), shape
-                    types.append(dtype_pair)
+                match axis['type']:
+                    case 'NO_AXIS' | "SCALE_AXIS":
+                        pass
 
-                    if ca_block.flags & v4c.FLAG_CA_FIXED_AXIS:
-                        for i in range(dims_nr):
-                            shape = (typing.cast(int, ca_block[f"dim_size_{i}"]),)
-                            axis_list: list[float] = []
-                            for j in range(shape[0]):
-                                key = f"axis_{i}_value_{j}"
-                                axis_list.append(typing.cast(float, ca_block[key]))
-                            axis = array(axis_list)
-                            axis = array([axis for _ in range(cycles_nr)])
-                            arrays.append(axis)
-                            dtype_pair = (f"axis_{i}", np.dtype(axis.dtype, metadata={'axis_type': 'FIXED_AXIS'}), shape)
-                            types.append(dtype_pair)
-                    else:
-                        for i in range(dims_nr):
-                            axis_channel = ca_block.axis_channels[i]
-                            shape = (typing.cast(int, ca_block[f"dim_size_{i}"]),)
+                    case 'FIXED_AXIS':
+                        fix_axis = array(axis['values'])
+                        axis_array = array([fix_axis for _ in range(cycles_nr)])
+                        arrays.append(axis_array)
+                        dtype_pair = (f"axis_{i}", np.dtype(fix_axis.dtype, metadata={'axes': [axis], 'conversion': axis['conversion']}), shape)
+                        types.append(dtype_pair)
 
-                            if axis_channel is None:
-                                axisname = f"axis_{i}"
-                                axis_values = array(
-                                    [arange(shape[0])] * cycles,
-                                    dtype=f"({shape[0]},)f8",
-                                )
-
-                            else:
-                                try:
-                                    (ref_dg_nr, ref_ch_nr) = axis_channel
-                                except:
-                                    debug_channel(self, grp, channel, dependency_list)
-                                    raise
-
-                                axisname = self.groups[ref_dg_nr].channels[ref_ch_nr].name
-
-                                if ref_dg_nr == gp_nr:
-                                    axis_values = self.get(
-                                        group=ref_dg_nr,
-                                        index=ref_ch_nr,
-                                        samples_only=True,
-                                        data=fragment,
-                                        ignore_invalidation_bits=ignore_invalidation_bits,
-                                        record_offset=record_offset,
-                                        record_count=cycles,
-                                        raw=True,
-                                    )[0]
-                                else:
-                                    channel_group = grp.channel_group
-                                    record_size = channel_group.samples_byte_nr
-                                    record_size += channel_group.invalidation_bytes_nr
-                                    start = offset // record_size
-                                    end = start + len(data_bytes) // record_size + 1
-                                    ref = self.get(
-                                        group=ref_dg_nr,
-                                        index=ref_ch_nr,
-                                        samples_only=True,
-                                        ignore_invalidation_bits=ignore_invalidation_bits,
-                                        record_offset=record_offset,
-                                        record_count=cycles,
-                                        raw=True,
-                                    )[0]
-                                    axis_values = ref[start:end].copy()
-
-                                axis_values = axis_values[axisname]
-                                if len(axis_values) == 0 and cycles:
-                                    axis_values = array([arange(shape[0])] * cycles)
-
-                            arrays.append(axis_values)
-                            dtype_pair = (axisname, axis_values.dtype, shape)
-                            types.append(dtype_pair)
-
-                elif ca_block.ca_type == v4c.CA_TYPE_ARRAY:
-                    shape = vals.shape[1:]
-                    arrays.append(vals)
-                    dtype_pair = channel.name, vals.dtype, shape
-                    types.append(dtype_pair)
-
-            for ca_block in dependency_list[1:]:
-                if not isinstance(ca_block, ChannelArrayBlock):
-                    break
-
-                dims_nr = ca_block.dims
-
-                if ca_block.flags & v4c.FLAG_CA_FIXED_AXIS:
-                    for i in range(dims_nr):
-                        shape = (typing.cast(int, ca_block[f"dim_size_{i}"]),)
-                        axis_list = []
-                        for j in range(shape[0]):
-                            key = f"axis_{i}_value_{j}"
-                            axis_list.append(typing.cast(float, ca_block[key]))
-
-                        axis = array([axis_list for _ in range(cycles_nr)], dtype=f"{shape}f8")
-                        arrays.append(axis)
-                        types.append((f"axis_{i}", axis.dtype, shape))
-                else:
-                    for i in range(dims_nr):
-                        axis_channel = ca_block.axis_channels[i]
-                        shape = (typing.cast(int, ca_block[f"dim_size_{i}"]),)
-
+                    case 'REF_AXIS':
+                        axis_channel = axis['ref']
+                        
                         if axis_channel is None:
                             axisname = f"axis_{i}"
-                            axis_values = array([arange(shape[0])] * cycles, dtype=f"({shape[0]},)f8")
+                            axis_values = array(
+                                [arange(shape[0])] * cycles,
+                                dtype=f"({shape[0]},)f8",
+                            )
 
                         else:
                             try:
-                                ref_dg_nr, ref_ch_nr = axis_channel
+                                (ref_dg_nr, ref_ch_nr) = axis_channel
                             except:
                                 debug_channel(self, grp, channel, dependency_list)
                                 raise
@@ -8109,7 +8027,7 @@ class MDF4(MDF_Common[Group]):
                                     ignore_invalidation_bits=ignore_invalidation_bits,
                                     record_offset=record_offset,
                                     record_count=cycles,
-                                    raw=False,
+                                    raw=True,
                                 )[0]
                             else:
                                 channel_group = grp.channel_group
@@ -8124,15 +8042,16 @@ class MDF4(MDF_Common[Group]):
                                     ignore_invalidation_bits=ignore_invalidation_bits,
                                     record_offset=record_offset,
                                     record_count=cycles,
-                                    raw=False,
+                                    raw=True,
                                 )[0]
                                 axis_values = ref[start:end].copy()
+
                             axis_values = axis_values[axisname]
                             if len(axis_values) == 0 and cycles:
                                 axis_values = array([arange(shape[0])] * cycles)
 
                         arrays.append(axis_values)
-                        dtype_pair = (axisname, axis_values.dtype, shape)
+                        dtype_pair = (axisname, np.dtype(axis_values.dtype.base, metadata={"conversion": axis['conversion'], "axes": [axis]}), shape)
                         types.append(dtype_pair)
 
             vals = np.rec.fromarrays(arrays, np.dtype(types))

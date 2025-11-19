@@ -2047,7 +2047,8 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             else:
                 info['conversion'] = None
 
-            info['inverser_layout'] = self.flags & v4c.FLAG_CA_INVERSE_LAYOUT
+            info['inverse_layout'] = self.flags & v4c.FLAG_CA_INVERSE_LAYOUT
+            info['byte_offset_base'] = self.byte_offset_base
 
             axes.append(info)
         
