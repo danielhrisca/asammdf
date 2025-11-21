@@ -69,7 +69,7 @@ from .. import tool
 from ..signal import InvalidationArray, Signal
 from . import bus_logging_utils, mdf_common
 from . import v4_constants as v4c
-from .conversion_utils import conversion_transfer
+from .conversion_utils import conversion_transfer, from_dict
 from .cutils import (
     data_block_from_arrays,
     extract,
@@ -732,20 +732,6 @@ class MDF4(MDF_Common[Group]):
                             else:
                                 dep.comparison_quantity_channel = None
 
-                        if dep.flags & v4c.FLAG_CA_AXIS:
-                            for i in range(dep.dims):
-                                cc_addr = typing.cast(int, dep[f"axis_conversion_{i}_addr"])
-                                if cc_addr:
-                                    conv = ChannelConversion(
-                                        stream=stream,
-                                        address=cc_addr,
-                                        mapped=mapped,
-                                        file_limit=self.file_limit,
-                                    )
-                                    dep.axis_conversions.append(conv)
-                                else:
-                                    dep.axis_conversions.append(None)
-
                         if (dep.flags & v4c.FLAG_CA_AXIS) and not (dep.flags & v4c.FLAG_CA_FIXED_AXIS):
                             for i in range(dep.dims):
                                 ch_addr = typing.cast(int, dep[f"scale_axis_{i}_ch_addr"])
@@ -1100,6 +1086,7 @@ class MDF4(MDF_Common[Group]):
                     channel.dtype_fmt = ret_composition_dtype
 
                 else:
+
                     # only channel arrays with storage=CN_TEMPLATE are
                     # supported so far
                     channel.dtype_fmt = np.dtype(
@@ -1110,142 +1097,149 @@ class MDF4(MDF_Common[Group]):
                         )
                     )
 
-                    first_dep = ca_block = ChannelArrayBlock(address=component_addr, stream=stream, mapped=mapped, cc_map=self._cc_map, file_limit=self.file_limit,)
-                    ca_dependencies = [first_dep]
-                    ca_cnt = len(ca_dependencies)
+                    ca_dependencies = []
                     byte_offset_factors: list[int] = []
                     bit_pos_inval_factors: list[int] = []
                     dimensions: list[int] = []
                     total_elem = 1
 
-                    # recurse into CA structure
-                    while ca_block.composition_addr:
-                        stream.seek(ca_block.composition_addr)
-                        blk_id = stream.read(4)
-                        if blk_id == b"##CA":
+                    if channel.data_type == v4c.DATA_TYPE_BYTEARRAY:
+                        # read CA-CN nested structure
+                        ca_block = ChannelArrayBlock(
+                            address=component_addr,
+                            stream=stream,
+                            mapped=mapped,
+                            cc_map=self._cc_map,
+                            file_limit=self.file_limit,
+                        )
+                        if ca_block.storage != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
+                            logger.warning("Only CN template arrays are supported")
+                            break
+                        
+                        (
+                            ch_cntr,
+                            ret_composition,
+                            ret_composition_dtype,
+                        ) = self._read_channels(
+                            ca_block.composition_addr,
+                            grp,
+                            stream,
+                            dg_cntr,
+                            ch_cntr,
+                            channel,
+                            mapped=mapped,
+                        )
+                        ret_composition = typing.cast(list[ChannelArrayBlock], ret_composition)
+
+                        channel.dtype_fmt = ret_composition_dtype
+
+                        if ret_composition:
+                            ca_dependencies.extend(ret_composition)
+
+                    else:
+                        while component_addr:
+                            stream.seek(component_addr)
+                            blk_id = stream.read(4)
+                            if blk_id != b"##CA":
+                                logger.warning(
+                                    f"expected b'##CA' header but found {blk_id}"
+                                )
+                                break
+
                             ca_block = ChannelArrayBlock(
-                                address=ca_block.composition_addr,
+                                address=component_addr,
                                 stream=stream,
                                 mapped=mapped,
                                 cc_map=self._cc_map,
                                 file_limit=self.file_limit,
                             )
+                            if ca_block.storage != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
+                                logger.warning("Only CN template arrays are supported")
+                                break
+
                             ca_dependencies.append(ca_block)
 
-                        elif channel.data_type == v4c.DATA_TYPE_BYTEARRAY:
-                            # read CA-CN nested structure
-                            (
-                                ch_cntr,
-                                ret_composition,
-                                ret_composition_dtype,
-                            ) = self._read_channels(
-                                ca_block.composition_addr,
-                                grp,
-                                stream,
-                                dg_cntr,
-                                ch_cntr,
-                                channel,
-                                mapped=mapped,
-                            )
-                            ret_composition = typing.cast(list[ChannelArrayBlock], ret_composition)
+                            component_addr = ca_block.composition_addr
 
-                            channel.dtype_fmt = ret_composition_dtype
+                        for ca_blck in ca_dependencies:
+                            # 1D array with dimensions
+                            for i in range(ca_blck.dims):
+                                dim_size = typing.cast(int, ca_blck[f"dim_size_{i}"])
+                                dimensions.append(dim_size)
+                                total_elem *= dim_size
 
-                            if ret_composition:
-                                ca_dependencies.extend(ret_composition)
+                            # 1D arrays for byte offset and invalidation bit pos calculations
+                            byte_offset_factors.extend(ca_blck.get_byte_offset_factors())
+                            bit_pos_inval_factors.extend(ca_blck.get_bit_pos_inval_factors())
 
-                            break
+                        multipliers = [1] * len(dimensions)
+                        for i in range(len(dimensions) - 2, -1, -1):
+                            multipliers[i] = multipliers[i + 1] * dimensions[i + 1]
 
-                        else:
-                            logger.warning(
-                                "skipping CN block; Nested CA structure should be contained within BYTEARRAY data type"
-                            )
-                            break
+                        def _get_nd_coords(index: int, factors: list[int]) -> list[int]:
+                            """Convert 1D index to CA's nD coordinates."""
+                            coords = [0] * len(factors)
+                            for i, factor in enumerate(factors):
+                                coords[i] = index // factor
+                                index %= factor
+                            return coords
 
-                    for ca_blck in ca_dependencies[:ca_cnt]:
-                        # only consider CN templates
-                        if ca_blck.ca_type != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
-                            logger.warning("Only CN template arrays are supported")
-                            continue
+                        def _get_name_with_indices(ch_name: str, ch_parent_name: str, indices: list[int]) -> str:
+                            coords = "[" + "][".join(str(coord) for coord in indices) + "]"
+                            m = re.match(ch_parent_name, ch_name)
+                            n = re.search(r"\[\d+\]", ch_name)
+                            if m:
+                                name = ch_name[: m.end()] + coords + ch_name[m.end() :]
+                            elif n:
+                                name = ch_name[: n.start()] + coords + ch_name[n.start() :]
+                            else:
+                                name = ch_name + coords
+                            return name
 
-                        # 1D array with dimensions
-                        for i in range(ca_blck.dims):
-                            dim_size = typing.cast(int, ca_blck[f"dim_size_{i}"])
-                            dimensions.append(dim_size)
-                            total_elem *= dim_size
+                        ch_len = len(channels)
+                        for elem_id in range(total_elem):
+                            for cn_id in range(index, ch_len):
+                                nd_coords = _get_nd_coords(elem_id, multipliers)
 
-                        # 1D arrays for byte offset and invalidation bit pos calculations
-                        byte_offset_factors.extend(ca_blck.get_byte_offset_factors())
-                        bit_pos_inval_factors.extend(ca_blck.get_bit_pos_inval_factors())
+                                # copy composition block
+                                new_block = deepcopy(channels[cn_id])
 
-                    multipliers = [1] * len(dimensions)
-                    for i in range(len(dimensions) - 2, -1, -1):
-                        multipliers[i] = multipliers[i + 1] * dimensions[i + 1]
+                                # update byte offset & position of invalidation bit
+                                byte_offset = bit_offset = 0
+                                for coord, byte_factor, bit_factor in zip(
+                                    nd_coords, byte_offset_factors, bit_pos_inval_factors, strict=False
+                                ):
+                                    byte_offset += coord * byte_factor
+                                    bit_offset += coord * bit_factor
+                                new_block.byte_offset += byte_offset
+                                new_block.pos_invalidation_bit += bit_offset
 
-                    def _get_nd_coords(index: int, factors: list[int]) -> list[int]:
-                        """Convert 1D index to CA's nD coordinates."""
-                        coords = [0] * len(factors)
-                        for i, factor in enumerate(factors):
-                            coords[i] = index // factor
-                            index %= factor
-                        return coords
+                                # update channel name
+                                new_block.name = _get_name_with_indices(new_block.name, channel.name, nd_coords)
 
-                    def _get_name_with_indices(ch_name: str, ch_parent_name: str, indices: list[int]) -> str:
-                        coords = "[" + "][".join(str(coord) for coord in indices) + "]"
-                        m = re.match(ch_parent_name, ch_name)
-                        n = re.search(r"\[\d+\]", ch_name)
-                        if m:
-                            name = ch_name[: m.end()] + coords + ch_name[m.end() :]
-                        elif n:
-                            name = ch_name[: n.start()] + coords + ch_name[n.start() :]
-                        else:
-                            name = ch_name + coords
-                        return name
+                                # append to channel list
+                                channels.append(new_block)
 
-                    ch_len = len(channels)
-                    for elem_id in range(total_elem):
-                        for cn_id in range(index, ch_len):
-                            nd_coords = _get_nd_coords(elem_id, multipliers)
-
-                            # copy composition block
-                            new_block = deepcopy(channels[cn_id])
-
-                            # update byte offset & position of invalidation bit
-                            byte_offset = bit_offset = 0
-                            for coord, byte_factor, bit_factor in zip(
-                                nd_coords, byte_offset_factors, bit_pos_inval_factors, strict=False
-                            ):
-                                byte_offset += coord * byte_factor
-                                bit_offset += coord * bit_factor
-                            new_block.byte_offset += byte_offset
-                            new_block.pos_invalidation_bit += bit_offset
-
-                            # update channel name
-                            new_block.name = _get_name_with_indices(new_block.name, channel.name, nd_coords)
-
-                            # append to channel list
-                            channels.append(new_block)
-
-                            # update channel dependencies
-                            if (deps := dependencies[cn_id]) is not None:
-                                cn_deps: list[tuple[int, int]] = []
-                                for dep in deps:
-                                    if not isinstance(dep, ChannelArrayBlock):
-                                        dep_entry = (dep[0], dep[1] + (ch_len - index) * elem_id)
-                                        cn_deps.append(dep_entry)
-                                if deps:
-                                    dependencies.append(cn_deps)
+                                # update channel dependencies
+                                if (deps := dependencies[cn_id]) is not None:
+                                    cn_deps: list[tuple[int, int]] = []
+                                    for dep in deps:
+                                        if not isinstance(dep, ChannelArrayBlock):
+                                            dep_entry = (dep[0], dep[1] + (ch_len - index) * elem_id)
+                                            cn_deps.append(dep_entry)
+                                    if deps:
+                                        dependencies.append(cn_deps)
+                                    else:
+                                        dependencies.append(None)
                                 else:
                                     dependencies.append(None)
-                            else:
-                                dependencies.append(None)
 
-                            # update channels db
-                            entry = (dg_cntr, ch_cntr)
-                            self.channels_db.add(new_block.name, entry)
-                            ch_cntr += 1
+                                # update channels db
+                                entry = (dg_cntr, ch_cntr)
+                                self.channels_db.add(new_block.name, entry)
+                                ch_cntr += 1
 
-                    dependencies[index] = ca_dependencies
+                        dependencies[index] = ca_dependencies or None
 
             else:
                 dependencies.append(None)
@@ -1919,7 +1913,7 @@ class MDF4(MDF_Common[Group]):
         if mapped:
             if address:
                 if address + COMMON_SHORT_SIZE > self.file_limit:
-                    handle_incomplete_block(address, self.original_name)
+                    handle_incomplete_block(address, self.file_limit, self.original_name)
                     return False
 
                 id_string, block_len = COMMON_SHORT_uf(stream, address)
@@ -1939,7 +1933,7 @@ class MDF4(MDF_Common[Group]):
         else:
             if address:
                 if address + COMMON_SHORT_SIZE > self.file_limit:
-                    handle_incomplete_block(address, self.original_name)
+                    handle_incomplete_block(address, self.file_limit, self.original_name)
                     return False
 
                 stream.seek(address)
@@ -1985,12 +1979,12 @@ class MDF4(MDF_Common[Group]):
         if mapped:
             if original_address := address:
                 if address + COMMON_SHORT_SIZE > self.file_limit:
-                    return handle_incomplete_block(original_address, self.original_name)
+                    return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                 id_string, block_len = COMMON_SHORT_uf(stream, address)
 
                 if address + block_len > self.file_limit:
-                    return handle_incomplete_block(original_address, self.original_name)
+                    return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                 # can be a DataBlock
                 if id_string in (b"##DT", b"##DV"):
@@ -2069,12 +2063,12 @@ class MDF4(MDF_Common[Group]):
                             original_address = addr = getattr(dl, f"data_block_addr{i}")
 
                             if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                return handle_incomplete_block(original_address, self.original_name)
+                                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                             id_string, block_len = COMMON_SHORT_uf(stream, addr)
 
                             if original_address + block_len > self.file_limit:
-                                return handle_incomplete_block(original_address, self.original_name)
+                                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                             # can be a DataBlock
                             if id_string != b'##DZ':
@@ -2157,12 +2151,12 @@ class MDF4(MDF_Common[Group]):
                             original_address = addr = getattr(ld, f"data_block_addr_{i}")
 
                             if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                return handle_incomplete_block(original_address, self.original_name)
+                                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                             id_string, block_len = COMMON_SHORT_uf(stream, addr)
 
                             if original_address + block_len > self.file_limit:
-                                return handle_incomplete_block(original_address, self.original_name)
+                                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                             # can be a DataBlock
                             if id_string == b"##DV":
@@ -2215,12 +2209,12 @@ class MDF4(MDF_Common[Group]):
                                 inval_addr = typing.cast(int, ld[f"invalidation_bits_addr_{i}"])
                                 if original_address := inval_addr:
                                     if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                        return handle_incomplete_block(original_address, self.original_name)
+                                        return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                                     id_string, block_len = COMMON_SHORT_uf(stream, inval_addr)
 
                                     if original_address + block_len > self.file_limit:
-                                        return handle_incomplete_block(original_address, self.original_name)
+                                        return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                                     if id_string == b"##DI":
                                         size = block_len - 24
@@ -2298,13 +2292,13 @@ class MDF4(MDF_Common[Group]):
         else:
             if original_address := address:
                 if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                    return handle_incomplete_block(original_address, self.original_name)
+                    return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                 stream.seek(address)
                 id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                 if original_address + block_len > self.file_limit:
-                    return handle_incomplete_block(original_address, self.original_name)
+                    return handle_incomplete_block(original_address, self.file_limit, self.original_name)
                 
                 # can be a DataBlock
                 if id_string in (b"##DT", b"##DV"):
@@ -2382,13 +2376,13 @@ class MDF4(MDF_Common[Group]):
                             original_address = addr = getattr(dl, f"data_block_addr{i}")
 
                             if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                return handle_incomplete_block(original_address, self.original_name)
+                                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                             stream.seek(addr)
                             id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                             if original_address + block_len > self.file_limit:
-                                return handle_incomplete_block(original_address, self.original_name)
+                                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                             # can be a DataBlock
                             if id_string != b"##DZ":
@@ -2471,13 +2465,13 @@ class MDF4(MDF_Common[Group]):
                             original_address = addr = getattr(ld, f"data_block_addr{i}")
 
                             if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                return handle_incomplete_block(original_address, self.original_name)
+                                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                             stream.seek(addr)
                             id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                             if original_address + block_len > self.file_limit:
-                                return handle_incomplete_block(original_address, self.original_name)
+                                return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                             # can be a DataBlock
                             if id_string == b"##DV":
@@ -2531,13 +2525,13 @@ class MDF4(MDF_Common[Group]):
                                 inval_addr = typing.cast(int, ld[f"invalidation_bits_addr_{i}"])
                                 if original_address := inval_addr:
                                     if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                                        return handle_incomplete_block(original_address, self.original_name)
+                                        return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                                     stream.seek(inval_addr)
                                     id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                                     if original_address + block_len > self.file_limit:
-                                        return handle_incomplete_block(original_address, self.original_name)
+                                        return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                                     if id_string == b"##DI":
                                         size = block_len - 24
@@ -2619,13 +2613,13 @@ class MDF4(MDF_Common[Group]):
             raise MdfException(f"Expected non-zero SDBLOCK address but got 0x{address:X}")
 
         if original_address + COMMON_SHORT_SIZE > self.file_limit:
-            return handle_incomplete_block(original_address, self.original_name)
+            return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
         stream.seek(address)
         id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
         if original_address + block_len > self.file_limit:
-            return handle_incomplete_block(original_address, self.original_name)
+            return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
         # can be a DataBlock
         if id_string == b"##SD":
@@ -2671,13 +2665,13 @@ class MDF4(MDF_Common[Group]):
                     original_address = addr = typing.cast(int, dl[f"data_block_addr{i}"])
 
                     if original_address + COMMON_SHORT_SIZE > self.file_limit:
-                        return handle_incomplete_block(original_address, self.original_name)
+                        return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                     stream.seek(addr)
                     id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                     if original_address + block_len > self.file_limit:
-                        return handle_incomplete_block(original_address, self.original_name)
+                        return handle_incomplete_block(original_address, self.file_limit, self.original_name)
 
                     # can be a DataBlock
                     if id_string == b"##SD":
@@ -3597,17 +3591,28 @@ class MDF4(MDF_Common[Group]):
                                 'conversion': None,
                                 'size': size
                             }
-                            for size in shape
+                            for size in shape[::-1]
                         ]
                     else:
+                        names = [name for name in names if name != array_name][::-1]
                         array_axes = [
                             {
                                 "type": 'REF_AXIS',
                                 'conversion': None,
-                                'size': size
+                                'size': size,
+                                'dtype_field_name': name,
                             }
-                            for size in shape
+                            for size, name in zip(shape[::-1], names)
                         ]
+
+                # A2l axes are defined in the XYZ oreder
+                # MDF axes are stored in ZYX order
+                array_axes = array_axes[::-1]
+
+                ref_names = {
+                    ax.get('dtype_field_name', ''): i
+                    for i, ax in enumerate(array_axes)
+                }
 
                 if len(names) == 1 and all(axis['type'] == 'NO_AXIS' for axis in array_axes):
                     # add channel dependency block for composed parent channel
@@ -3617,8 +3622,8 @@ class MDF4(MDF_Common[Group]):
                         "flags": 0,
                         "byte_offset_base": samples.dtype.itemsize,
                     }
-                    for i in range(dims_nr):
-                        ca_kwargs[f"dim_size_{i}"] = shape[i]  # type: ignore[literal-required]
+                    for i, size in enumerate(shape):
+                        ca_kwargs[f"dim_size_{i}"] = size  # type: ignore[literal-required]
 
                     parent_deps = [ChannelArrayBlock(**ca_kwargs)]
 
@@ -3644,9 +3649,12 @@ class MDF4(MDF_Common[Group]):
                             "byte_offset_base": samples.dtype.itemsize,
                         }
 
-                        for i in range(dims_nr):
-                            ca_kwargs[f"axis_conversion_{i}"] = array_axes[i]['conversion']
-                            ca_kwargs[f"dim_size_{i}"] = shape[i]  # type: ignore[literal-required]
+                        for i, size in enumerate(shape):
+                            conv = array_axes[i]['conversion']
+                            if isinstance(conv, dict):
+                                conv = from_dict(conv)
+                            ca_kwargs[f"axis_conversion_{i}"] = conv
+                            ca_kwargs[f"dim_size_{i}"] = size  # type: ignore[literal-required]
 
                         parent_dep_with_refs = ChannelArrayBlock(**ca_kwargs)
                         parent_deps = [parent_dep_with_refs]
@@ -3658,10 +3666,14 @@ class MDF4(MDF_Common[Group]):
                             "flags": v4c.FLAG_CA_AXIS | v4c.FLAG_CA_FIXED_AXIS,
                             "byte_offset_base": samples.dtype.itemsize,
                         }
-                        for i in range(dims_nr):
-                            ca_kwargs[f"axis_conversion_{i}"] = array_axes[i]['conversion']
-                            ca_kwargs[f"dim_size_{i}"] = shape[i]  # type: ignore[literal-required]
-                            for j in range(shape[i]):
+
+                        for i, size  in enumerate(shape):
+                            conv = array_axes[i]['conversion']
+                            if isinstance(conv, dict):
+                                conv = from_dict(conv)
+                            ca_kwargs[f"axis_conversion_{i}"] = conv
+                            ca_kwargs[f"dim_size_{i}"] = size  # type: ignore[literal-required]
+                            for j in range(size):
                                 ca_kwargs[f"axis_{i}_value_{j}"] = array_axes[i]['values'][j]
 
                         parent_dep_with_refs = None
@@ -3670,14 +3682,18 @@ class MDF4(MDF_Common[Group]):
                     else:
                         parent_deps = []
                         byte_offset_base = samples.dtype.itemsize
-                        for i, (axis, shp) in enumerate(zip(array_axes[::-1], shape[::-1])):
+                        for i, (axis, shp) in enumerate(zip(array_axes, shape)):
+                            conv = axis['conversion']
+                            if isinstance(conv, dict):
+                                conv = from_dict(conv)
+
                             if axis['type'] == 'REF_AXIS':
                                 ca_kwargs = {
                                     "dims": 1,
                                     "ca_type": v4c.CA_TYPE_LOOKUP,
                                     "flags": v4c.FLAG_CA_AXIS,
                                     "byte_offset_base": byte_offset_base,
-                                    "axis_conversion_0": axis['conversion'],
+                                    "axis_conversion_0": conv,
                                     "dim_size_0": shp
                                 }
 
@@ -3688,7 +3704,7 @@ class MDF4(MDF_Common[Group]):
                                     "ca_type": v4c.CA_TYPE_LOOKUP,
                                     "flags": v4c.FLAG_CA_AXIS | v4c.FLAG_CA_FIXED_AXIS,
                                     "byte_offset_base": byte_offset_base,
-                                    "axis_conversion_0": axis['conversion'],
+                                    "axis_conversion_0": conv,
                                     "dim_size_0": shp
                                 }
                                 for j in range(shp):
@@ -3787,7 +3803,7 @@ class MDF4(MDF_Common[Group]):
 
                         ch_cntr += 1
 
-                    elif not name.startswith('axis_'):
+                    elif name not in ref_names:
                         itemsize = samples.dtype.itemsize
                         fields.append((samples, itemsize))
                         offset += itemsize
@@ -3795,11 +3811,12 @@ class MDF4(MDF_Common[Group]):
                     else:
 
                         metadata = array_dtype[name].metadata or array_dtype[name].base.metadata or {}
-                        axes = metadata.get('axes', [])
 
-                        idx = int(name.split('_')[-1])
+                        idx = ref_names[name]
 
-                        if array_axes[idx]['type'] == 'FIXED_AXIS':
+                        axis = array_axes[idx]
+
+                        if axis['type'] == 'FIXED_AXIS':
                             itemsize = samples.dtype.itemsize
                             fields.append((samples, itemsize))
                             offset += itemsize
@@ -3839,7 +3856,7 @@ class MDF4(MDF_Common[Group]):
                                 cn_kwargs["pos_invalidation_bit"] = origin[1]
 
                             ch = Channel(**cn_kwargs)
-                            ch.name = name
+                            ch.name = axis.get('ref_name', '') or name
                             ch.unit = metadata.get("unit", "")
                             ch.comment = f'{array_name} axis {idx}'
                             ch.dtype_fmt = samples.dtype
@@ -5590,7 +5607,10 @@ class MDF4(MDF_Common[Group]):
                         }
 
                         for i in range(dims_nr):
-                            ca_kwargs[f"axis_conversion_{i}"] = array_axes[i]['conversion']
+                            conv = array_axes[i]['conversion']
+                            if isinstance(conv, dict):
+                                conv = from_dict(conv)
+                            ca_kwargs[f"axis_conversion_{i}"] = conv
                             ca_kwargs[f"dim_size_{i}"] = shape[i]  # type: ignore[literal-required]
 
                         parent_dep_with_refs = ChannelArrayBlock(**ca_kwargs)
@@ -5604,7 +5624,10 @@ class MDF4(MDF_Common[Group]):
                             "byte_offset_base": samples.dtype.itemsize,
                         }
                         for i in range(dims_nr):
-                            ca_kwargs[f"axis_conversion_{i}"] = array_axes[i]['conversion']
+                            conv = array_axes[i]['conversion']
+                            if isinstance(conv, dict):
+                                conv = from_dict(conv)
+                            ca_kwargs[f"axis_conversion_{i}"] = conv
                             ca_kwargs[f"dim_size_{i}"] = shape[i]  # type: ignore[literal-required]
                             for j in range(shape[i]):
                                 ca_kwargs[f"axis_{i}_value_{j}"] = array_axes[i]['values'][j]
@@ -5615,13 +5638,18 @@ class MDF4(MDF_Common[Group]):
                     else:
                         parent_deps = []
                         for i, axis in enumerate(array_axes):
+                            conv = axis['conversion']
+                            if isinstance(conv, dict):
+                                conv = from_dict(conv)
+
                             if axis['type'] == 'REF_AXIS':
+                                ca_kwargs[f"axis_conversion_{i}"] = conv
                                 ca_kwargs = {
                                     "dims": 1,
                                     "ca_type": v4c.CA_TYPE_LOOKUP,
                                     "flags": v4c.FLAG_CA_AXIS,
                                     "byte_offset_base": samples.dtype.itemsize,
-                                    "axis_conversion_0": axis['conversion'],
+                                    "axis_conversion_0": conv,
                                     "dim_size_0": shape[i]
                                 }
 
@@ -5632,7 +5660,7 @@ class MDF4(MDF_Common[Group]):
                                     "ca_type": v4c.CA_TYPE_LOOKUP,
                                     "flags": v4c.FLAG_CA_AXIS | v4c.FLAG_CA_FIXED_AXIS,
                                     "byte_offset_base": samples.dtype.itemsize,
-                                    "axis_conversion_0": axis['conversion'],
+                                    "axis_conversion_0": conv,
                                     "dim_size_0": shape[i]
                                 }
                                 for j in range(shape[i]):
@@ -7995,6 +8023,7 @@ class MDF4(MDF_Common[Group]):
                         arrays.append(axis_array)
                         dtype_pair = (f"axis_{i}", np.dtype(fix_axis.dtype, metadata={'axes': [axis], 'conversion': axis['conversion']}), shape)
                         types.append(dtype_pair)
+                        axis['dtype_field_name'] = f"axis_{i}"
 
                     case 'REF_AXIS':
                         axis_channel = axis['ref']
@@ -8046,6 +8075,9 @@ class MDF4(MDF_Common[Group]):
                             axis_values = axis_values[axisname]
                             if len(axis_values) == 0 and cycles:
                                 axis_values = array([arange(shape[0])] * cycles)
+
+                        axis['ref_name'] = axisname
+                        axis['dtype_field_name'] = axisname
 
                         arrays.append(axis_values)
                         dtype_pair = (axisname, np.dtype(axis_values.dtype.base, metadata={"conversion": axis['conversion'], "axes": [axis]}), shape)
@@ -11375,13 +11407,6 @@ class MDF4(MDF_Common[Group]):
                                     dep[f"input_quantity_{i}_dg_addr"] = grp.data_group.address
                                     dep[f"input_quantity_{i}_cg_addr"] = grp.channel_group.address
                                     dep[f"input_quantity_{i}_ch_addr"] = ch.address
-
-                                for i, conversion in enumerate(dep.axis_conversions):
-                                    if conversion:
-                                        address = conversion.to_blocks(address, blocks, defined_texts, cc_map)
-                                        dep[f"axis_conversion_{i}"] = conversion.address
-                                    else:
-                                        dep[f"axis_conversion_{i}"] = 0
 
                                 if dep.output_quantity_channel:
                                     gp_nr, ch_nr = dep.output_quantity_channel

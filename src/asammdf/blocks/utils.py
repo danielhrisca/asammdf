@@ -372,7 +372,7 @@ def get_text_v4(
 
     if mapped:
         if address + 16 > file_limit:
-            handle_incomplete_block(address)
+            handle_incomplete_block(address, file_limit)
             return "" if decode else b""
 
         block_id, size = BLK_COMMON_uf(stream, address)
@@ -380,13 +380,13 @@ def get_text_v4(
             return "" if decode else b""
 
         if (end_of_string := address + size) > file_limit:
-            handle_incomplete_block(address)
+            handle_incomplete_block(address, file_limit)
             return "" if decode else b""
 
         text_bytes = stream[address + 24 : end_of_string].split(b"\0", 1)[0].strip(b" \r\t\n")
     else:
         if address + 24 > file_limit:
-            handle_incomplete_block(address)
+            handle_incomplete_block(address, file_limit)
             return "" if decode else b""
         stream.seek(address)
         block_id, size = BLK_COMMON_u(stream.read(24))
@@ -394,7 +394,7 @@ def get_text_v4(
             return "" if decode else b""
 
         if address + size > file_limit:
-            handle_incomplete_block(address)
+            handle_incomplete_block(address, file_limit)
             return "" if decode else b""
 
         text_bytes = stream.read(size - 24).split(b"\0", 1)[0].strip(b" \r\t\n")
@@ -1941,13 +1941,13 @@ class Timer:
             print(f"TIMER {self.name}:\n\t* inactive")
 
 
-def handle_incomplete_block(address: int, file: StrPath | None = None) -> None:
+def handle_incomplete_block(address: int, file_limit: int, file: StrPath | None = None) -> None:
     if file is None:
         file = "The file"
     else:
         file = Path(file).name
 
-    msg = f"Incomplete block at 0x{address:x} exceeds the file size. {file} might be corrupted or partially written."
+    msg = f"Incomplete block at 0x{address:x} exceeds the file size 0x{file_limit:x}. {file} might be corrupted or partially written."
     logger.warning(msg)
 
     if GLOBAL_OPTIONS["raise_on_incomplete_blocks"]:

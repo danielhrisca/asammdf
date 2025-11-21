@@ -196,7 +196,7 @@ class AttachmentBlock:
             file_limit = kwargs["file_limit"]
 
             if address + v4c.AT_COMMON_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             if mapped:
@@ -218,7 +218,7 @@ class AttachmentBlock:
                 ) = v4c.AT_COMMON_uf(stream, address)
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 address += v4c.AT_COMMON_SIZE
@@ -245,7 +245,7 @@ class AttachmentBlock:
                 ) = v4c.AT_COMMON_u(stream.read(v4c.AT_COMMON_SIZE))
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 self.embedded_data = stream.read(self.embedded_size)
@@ -580,14 +580,14 @@ class Channel:
             file_limit = kwargs["file_limit"]
 
             if address + COMMON_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 if self.id != b"##CN":
@@ -764,13 +764,13 @@ class Channel:
                             conv = cc_map[address]
                         else:
                             if address + 16 > file_limit:
-                                handle_incomplete_block(address)
+                                handle_incomplete_block(address, file_limit)
                                 raise MdfException(f"Incomplete block at {address:x}")
 
                             (size,) = UINT64_uf(stream, address + 8)
 
                             if address + size > file_limit:
-                                handle_incomplete_block(address)
+                                handle_incomplete_block(address, file_limit)
                                 raise MdfException(f"Incomplete block at {address:x}")
 
                             raw_bytes = stream[address : address + size]
@@ -806,7 +806,7 @@ class Channel:
                             source = si_map[address]
                         else:
                             if address + v4c.SI_BLOCK_SIZE > file_limit:
-                                handle_incomplete_block(address)
+                                handle_incomplete_block(address, file_limit)
                                 raise MdfException(f"Incomplete block at {address:x}")
 
                             raw_bytes = stream[address : address + v4c.SI_BLOCK_SIZE]
@@ -837,7 +837,7 @@ class Channel:
                 stream.seek(address)
 
                 if address + CN_SINGLE_ATTACHMENT_BLOCK_SIZE > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 block = stream.read(CN_SINGLE_ATTACHMENT_BLOCK_SIZE)
@@ -845,7 +845,7 @@ class Channel:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(block)
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 if self.id != b"##CN":
@@ -1017,14 +1017,14 @@ class Channel:
                             conv = cc_map[address]
                         else:
                             if address + 16 > file_limit:
-                                handle_incomplete_block(address)
+                                handle_incomplete_block(address, file_limit)
                                 raise MdfException(f"Incomplete block at {address:x}")
 
                             stream.seek(address + 8)
                             (size,) = UINT64_u(stream.read(8))
 
                             if address + size > file_limit:
-                                handle_incomplete_block(address)
+                                handle_incomplete_block(address, file_limit)
                                 raise MdfException(f"Incomplete block at {address:x}")
 
                             stream.seek(address)
@@ -1058,7 +1058,7 @@ class Channel:
                             source = si_map[address]
                         else:
                             if address + v4c.SI_BLOCK_SIZE > file_limit:
-                                handle_incomplete_block(address)
+                                handle_incomplete_block(address, file_limit)
                                 raise MdfException(f"Incomplete block at {address:x}")
 
                             stream.seek(address)
@@ -1553,8 +1553,6 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
     * ``address`` - int : array block address
     * ``axis_channels`` - list : list of (group index, channel index)
       pairs referencing the axis of this array block
-    * ``axis_conversions`` - list : list of ChannelConversion or None
-      for each axis of this array block
     * ``dynamic_size_channels`` - list : list of (group index, channel index)
       pairs referencing the axis dynamic size of this array block
     * ``input_quantity_channels`` - list : list of (group index, channel index)
@@ -1571,7 +1569,6 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
         self.input_quantity_channels: list[tuple[int, int] | None] = []
         self.output_quantity_channel: tuple[int, int] | None = None
         self.comparison_quantity_channel: tuple[int, int] | None = None
-        self.axis_conversions: list[ChannelConversion | None] = []
 
         try:
             self.address = address = kwargs["address"]
@@ -1584,7 +1581,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             file_limit = kwargs["file_limit"]
 
             if address + COMMON_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             if mapped:
@@ -1668,13 +1665,13 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                                 conv = cc_map[address]
                             else:
                                 if address + 16 > file_limit:
-                                    handle_incomplete_block(address)
+                                    handle_incomplete_block(address, file_limit)
                                     raise MdfException(f"Incomplete block at {address:x}")
 
                                 (size,) = UINT64_uf(stream, address + 8)
 
                                 if address + size > file_limit:
-                                    handle_incomplete_block(address)
+                                    handle_incomplete_block(address, file_limit)
                                     raise MdfException(f"Incomplete block at {address:x}")
 
                                 raw_bytes = stream[address : address + size]
@@ -1790,15 +1787,15 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                                 conv = cc_map[address]
                             else:
                                 if address + 16 > file_limit:
-                                    handle_incomplete_block(address)
+                                    handle_incomplete_block(address, file_limit)
                                     raise MdfException(f"Incomplete block at {address:x}")
                                 
-                                stream.seek(address)
+                                stream.seek(address + 8)
 
                                 (size,) = UINT64_uf(stream.read(8))
 
                                 if address + size > file_limit:
-                                    handle_incomplete_block(address)
+                                    handle_incomplete_block(address, file_limit)
                                     raise MdfException(f"Incomplete block at {address:x}")
 
                                 stream.seek(address)
@@ -2041,6 +2038,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                         info['type'] = "REF_AXIS"
                         info['size'] = typing.cast(int, self[f"dim_size_{i}"])
                         info['ref'] = self.axis_channels[i]
+                        info['ref_name'] = ''
 
             if self.flags & v4c.FLAG_CA_AXIS:
                 info['conversion'] = self[f"axis_conversion_{i}"]
@@ -2049,6 +2047,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 
             info['inverse_layout'] = self.flags & v4c.FLAG_CA_INVERSE_LAYOUT
             info['byte_offset_base'] = self.byte_offset_base
+            info['dtype_field_name'] = ""
 
             axes.append(info)
         
@@ -2067,17 +2066,14 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
     def _factors(self, base: int) -> list[int]:
         factor = base
         factors = [factor]
-        # column oriented layout
-        if self.flags & v4c.FLAG_CA_INVERSE_LAYOUT:
-            for i in range(1, self.dims):
-                factor *= typing.cast(int, self[f"dim_size_{i - 1}"])
-                factors.append(factor)
+
+        for i in range(1, self.dims):
+            factor *= typing.cast(int, self[f"dim_size_{i - 1}"])
+            factors.append(factor)
 
         # row oriented layout
-        else:
-            for i in range(self.dims - 2, -1, -1):
-                factor *= typing.cast(int, self[f"dim_size_{i + 1}"])
-                factors.insert(0, factor)
+        if not (self.flags & v4c.FLAG_CA_INVERSE_LAYOUT):
+            factors = factors[::-1]
 
         return factors
     
@@ -2205,14 +2201,14 @@ class ChannelGroup:
             file_limit = kwargs["file_limit"]
 
             if address + COMMON_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 if self.block_len == v4c.CG_BLOCK_SIZE:
@@ -2261,7 +2257,7 @@ class ChannelGroup:
                 ) = v4c.COMMON_u(stream.read(COMMON_SIZE))
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 if self.block_len == v4c.CG_BLOCK_SIZE:
@@ -2729,7 +2725,7 @@ class ChannelConversion(_ChannelConversionBase):
             file_limit = kwargs["file_limit"]
 
             if address + COMMON_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             try:
@@ -2737,7 +2733,7 @@ class ChannelConversion(_ChannelConversionBase):
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(tx_block)
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 if self.id != b"##CC":
@@ -2753,7 +2749,7 @@ class ChannelConversion(_ChannelConversionBase):
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(stream.read(COMMON_SIZE))
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError from None
 
                 if self.id != b"##CC":
@@ -3065,7 +3061,7 @@ class ChannelConversion(_ChannelConversionBase):
                         address = typing.cast(int, self[f"text_{i}"])
                         if address:
                             if address + 4 > file_limit:
-                                handle_incomplete_block(address)
+                                handle_incomplete_block(address, file_limit)
                                 refs[f"text_{i}"] = b""
                                 continue
 
@@ -3102,7 +3098,7 @@ class ChannelConversion(_ChannelConversionBase):
                         address = self.default_addr
                         if address:
                             if address + 4 > file_limit:
-                                handle_incomplete_block(address)
+                                handle_incomplete_block(address, file_limit)
                                 refs["default_addr"] = b""
                             else:
                                 stream.seek(address)
@@ -4835,14 +4831,14 @@ class DataBlock:
             file_limit = kwargs["file_limit"]
 
             if address + COMMON_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 if self.id not in (b"##DT", b"##RD", b"##SD", b"##DV", b"##DI"):
@@ -4857,7 +4853,7 @@ class DataBlock:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(stream.read(COMMON_SIZE))
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 if self.id not in (b"##DT", b"##RD", b"##SD", b"##DV", b"##DI"):
@@ -4960,7 +4956,7 @@ class DataZippedBlock:
             file_limit = kwargs["file_limit"]
 
             if address + v4c.DZ_COMMON_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             stream.seek(address)
@@ -4985,7 +4981,7 @@ class DataZippedBlock:
                 raise MdfException(message)
 
             if address + self.block_len > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             self.data = stream.read(self.zip_size)
@@ -5194,7 +5190,7 @@ class DataGroup:
             file_limit = kwargs["file_limit"]
 
             if address + v4c.DG_BLOCK_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             if mapped:
@@ -5619,7 +5615,7 @@ class EventBlock(_EventBlockBase):
             file_limit = kwargs["file_limit"]
 
             if address + COMMON_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             stream.seek(address)
@@ -5627,7 +5623,7 @@ class EventBlock(_EventBlockBase):
             (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(stream.read(COMMON_SIZE))
 
             if address + self.block_len > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             block = stream.read(self.block_len - COMMON_SIZE)
@@ -5977,7 +5973,7 @@ class FileHistory:
             file_limit = kwargs["file_limit"]
 
             if address + v4c.FH_BLOCK_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             (
@@ -6673,7 +6669,7 @@ class HeaderList:
             file_limit = kwargs["file_limit"]
 
             if address + v4c.HL_BLOCK_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             stream.seek(address)
@@ -7064,7 +7060,7 @@ class SourceInformation:
             file_limit = kwargs["file_limit"]
 
             if address + v4c.SI_BLOCK_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             try:
