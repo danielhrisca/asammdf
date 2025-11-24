@@ -321,6 +321,7 @@ class MDF4(MDF_Common[Group]):
         self._closed = False
 
         self.temporary_folder = kwargs.get("temporary_folder", GLOBAL_OPTIONS["temporary_folder"])
+        self._add_array_components = kwargs.get("add_array_components", GLOBAL_OPTIONS["add_array_components"])
 
         if channels is None:
             self.load_filter: set[str] = set()
@@ -1161,85 +1162,87 @@ class MDF4(MDF_Common[Group]):
 
                             component_addr = ca_block.composition_addr
 
-                        for ca_blck in ca_dependencies:
-                            # 1D array with dimensions
-                            for i in range(ca_blck.dims):
-                                dim_size = typing.cast(int, ca_blck[f"dim_size_{i}"])
-                                dimensions.append(dim_size)
-                                total_elem *= dim_size
+                        dependencies[index] = ca_dependencies or None
 
-                            # 1D arrays for byte offset and invalidation bit pos calculations
-                            byte_offset_factors.extend(ca_blck.get_byte_offset_factors())
-                            bit_pos_inval_factors.extend(ca_blck.get_bit_pos_inval_factors())
+                        if self._add_array_components:
 
-                        multipliers = [1] * len(dimensions)
-                        for i in range(len(dimensions) - 2, -1, -1):
-                            multipliers[i] = multipliers[i + 1] * dimensions[i + 1]
+                            for ca_blck in ca_dependencies:
+                                # 1D array with dimensions
+                                for i in range(ca_blck.dims):
+                                    dim_size = typing.cast(int, ca_blck[f"dim_size_{i}"])
+                                    dimensions.append(dim_size)
+                                    total_elem *= dim_size
 
-                        def _get_nd_coords(index: int, factors: list[int]) -> list[int]:
-                            """Convert 1D index to CA's nD coordinates."""
-                            coords = [0] * len(factors)
-                            for i, factor in enumerate(factors):
-                                coords[i] = index // factor
-                                index %= factor
-                            return coords
+                                # 1D arrays for byte offset and invalidation bit pos calculations
+                                byte_offset_factors.extend(ca_blck.get_byte_offset_factors())
+                                bit_pos_inval_factors.extend(ca_blck.get_bit_pos_inval_factors())
 
-                        def _get_name_with_indices(ch_name: str, ch_parent_name: str, indices: list[int]) -> str:
-                            coords = "[" + "][".join(str(coord) for coord in indices) + "]"
-                            m = re.match(ch_parent_name, ch_name)
-                            n = re.search(r"\[\d+\]", ch_name)
-                            if m:
-                                name = ch_name[: m.end()] + coords + ch_name[m.end() :]
-                            elif n:
-                                name = ch_name[: n.start()] + coords + ch_name[n.start() :]
-                            else:
-                                name = ch_name + coords
-                            return name
+                            multipliers = [1] * len(dimensions)
+                            for i in range(len(dimensions) - 2, -1, -1):
+                                multipliers[i] = multipliers[i + 1] * dimensions[i + 1]
 
-                        ch_len = len(channels)
-                        for elem_id in range(total_elem):
-                            for cn_id in range(index, ch_len):
-                                nd_coords = _get_nd_coords(elem_id, multipliers)
+                            def _get_nd_coords(index: int, factors: list[int]) -> list[int]:
+                                """Convert 1D index to CA's nD coordinates."""
+                                coords = [0] * len(factors)
+                                for i, factor in enumerate(factors):
+                                    coords[i] = index // factor
+                                    index %= factor
+                                return coords
 
-                                # copy composition block
-                                new_block = deepcopy(channels[cn_id])
+                            def _get_name_with_indices(ch_name: str, ch_parent_name: str, indices: list[int]) -> str:
+                                coords = "[" + "][".join(str(coord) for coord in indices) + "]"
+                                m = re.match(ch_parent_name, ch_name)
+                                n = re.search(r"\[\d+\]", ch_name)
+                                if m:
+                                    name = ch_name[: m.end()] + coords + ch_name[m.end() :]
+                                elif n:
+                                    name = ch_name[: n.start()] + coords + ch_name[n.start() :]
+                                else:
+                                    name = ch_name + coords
+                                return name
 
-                                # update byte offset & position of invalidation bit
-                                byte_offset = bit_offset = 0
-                                for coord, byte_factor, bit_factor in zip(
-                                    nd_coords, byte_offset_factors, bit_pos_inval_factors, strict=False
-                                ):
-                                    byte_offset += coord * byte_factor
-                                    bit_offset += coord * bit_factor
-                                new_block.byte_offset += byte_offset
-                                new_block.pos_invalidation_bit += bit_offset
+                            ch_len = len(channels)
+                            for elem_id in range(total_elem):
+                                for cn_id in range(index, ch_len):
+                                    nd_coords = _get_nd_coords(elem_id, multipliers)
 
-                                # update channel name
-                                new_block.name = _get_name_with_indices(new_block.name, channel.name, nd_coords)
+                                    # copy composition block
+                                    new_block = deepcopy(channels[cn_id])
 
-                                # append to channel list
-                                channels.append(new_block)
+                                    # update byte offset & position of invalidation bit
+                                    byte_offset = bit_offset = 0
+                                    for coord, byte_factor, bit_factor in zip(
+                                        nd_coords, byte_offset_factors, bit_pos_inval_factors, strict=False
+                                    ):
+                                        byte_offset += coord * byte_factor
+                                        bit_offset += coord * bit_factor
+                                    new_block.byte_offset += byte_offset
+                                    new_block.pos_invalidation_bit += bit_offset
 
-                                # update channel dependencies
-                                if (deps := dependencies[cn_id]) is not None:
-                                    cn_deps: list[tuple[int, int]] = []
-                                    for dep in deps:
-                                        if not isinstance(dep, ChannelArrayBlock):
-                                            dep_entry = (dep[0], dep[1] + (ch_len - index) * elem_id)
-                                            cn_deps.append(dep_entry)
-                                    if deps:
-                                        dependencies.append(cn_deps)
+                                    # update channel name
+                                    new_block.name = _get_name_with_indices(new_block.name, channel.name, nd_coords)
+
+                                    # append to channel list
+                                    channels.append(new_block)
+
+                                    # update channel dependencies
+                                    if (deps := dependencies[cn_id]) is not None:
+                                        cn_deps: list[tuple[int, int]] = []
+                                        for dep in deps:
+                                            if not isinstance(dep, ChannelArrayBlock):
+                                                dep_entry = (dep[0], dep[1] + (ch_len - index) * elem_id)
+                                                cn_deps.append(dep_entry)
+                                        if deps:
+                                            dependencies.append(cn_deps)
+                                        else:
+                                            dependencies.append(None)
                                     else:
                                         dependencies.append(None)
-                                else:
-                                    dependencies.append(None)
 
-                                # update channels db
-                                entry = (dg_cntr, ch_cntr)
-                                self.channels_db.add(new_block.name, entry)
-                                ch_cntr += 1
-
-                        dependencies[index] = ca_dependencies or None
+                                    # update channels db
+                                    entry = (dg_cntr, ch_cntr)
+                                    self.channels_db.add(new_block.name, entry)
+                                    ch_cntr += 1
 
             else:
                 dependencies.append(None)
@@ -3728,6 +3731,11 @@ class MDF4(MDF_Common[Group]):
                     current_dt_offset = dt_offset + dt_dtype.itemsize
                     
                     if name == array_name:
+                        metadata = array_dtype[name].metadata or array_dtype[name].base.metadata or {}
+                        conversion = signal.conversion or metadata.get("conversion", None)
+                        if isinstance(conversion, dict):
+                            conversion = from_dict(conversion)
+
                         gp_dep.append(parent_deps)
 
                         # first we add the structure channel
@@ -3758,6 +3766,7 @@ class MDF4(MDF_Common[Group]):
                         ch.comment = signal.comment
                         ch.display_names = signal.display_names
                         ch.dtype_fmt = samples.dtype
+                        ch.conversion = conversion
 
                         record.append(
                             (
