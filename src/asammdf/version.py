@@ -1,3 +1,3 @@
 """asammdf version module"""
 
-__version__ = "8.7.1.dev1"
+__version__ = "8.8.0.dev1"

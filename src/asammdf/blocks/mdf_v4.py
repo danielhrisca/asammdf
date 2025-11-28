@@ -7952,7 +7952,7 @@ class MDF4(MDF_Common[Group]):
         shape = tuple(axis['size'] for axis in axes)
         shape = shape or (1,)
 
-        size = prod(shape, start=channel.bit_count // 8)
+        size = prod(shape, start=(channel.bit_count // 8) or 1)
 
         if group.uses_ld:
             record_size = group.channel_group.samples_byte_nr

@@ -1284,8 +1284,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.loaded_display_file = Path(info.get("display_file_name", "")), b""
 
             self.functions.update(info.get("functions", {}))
-            self.global_variables = f"{self.global_variables}\n{info.get('global_variables', '')}"
-            self.global_variables = "\n".join([line for line in self.global_variables.splitlines() if line])
+            global_vars = [
+                line.strip()
+                for line in self.global_variables.splitlines()
+                if line.strip()
+            ]
+            for line in info.get('global_variables', '').splitlines():
+                line = line.strip()
+                if line and line not in global_vars:
+                    global_vars.append(line)
+            self.global_variables = "\n".join(global_vars)
 
         if channels:
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
