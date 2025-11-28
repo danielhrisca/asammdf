@@ -37,7 +37,7 @@ class BusDatabaseManagerDialog(QtWidgets.QDialog):
 
         self.verticalLayout.addWidget(self.widget)
 
-        self.horLayout = QtWidgets.QHBoxLayout(self)
+        self.horLayout = QtWidgets.QHBoxLayout()
 
         spacer = QtWidgets.QSpacerItem(
             40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum
