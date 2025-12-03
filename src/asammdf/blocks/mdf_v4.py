@@ -10309,7 +10309,7 @@ class MDF4(MDF_Common[Group]):
                                         message = _msg
                                         break
                                 else:
-                                    unknown_ids[msg_id].append(True)
+                                    unknown_ids[(msg_id, is_extended)].append(True)
                                     continue
 
                             is_j1939 = message.is_j1939 or global_is_j1939
