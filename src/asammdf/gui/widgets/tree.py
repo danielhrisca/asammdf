@@ -2427,6 +2427,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             self.signal.text_conversion = None
 
+            self.signal._min = self.signal._max = None
+
             if self.signal.conversion:
                 samples = self.signal.conversion.convert(self.signal.samples, as_bytes=True)
                 if samples.dtype.kind not in "SUV":

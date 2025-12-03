@@ -556,21 +556,31 @@ def get_required_from_computed(channel):
     return names
 
 
-def substitude_mime_uuids(mime, uuid=None, force=False):
+def substitude_mime_uuids(mime, uuids=None, force=False):
     if not mime:
         return mime
+    
+    if uuids is None:
+        uuids = [None]
+    elif not isinstance(uuids, (tuple, list)):
+        uuids = [uuids]
+
+    item_uuid = uuids[0] if uuids else None
 
     new_mime = []
 
     for item in mime:
         if item.get("type", "channel") == "channel":
-            if force or item["origin_uuid"] is None:
-                item["origin_uuid"] = uuid
-            new_mime.append(item)
+            for uuid in uuids:
+                new_item = deepcopy(item)
+                new_item['uuid'] = os.urandom(6).hex()
+                if force or new_item["origin_uuid"] is None:
+                    new_item["origin_uuid"] = uuid
+                new_mime.append(new_item)
         else:
-            item["channels"] = substitude_mime_uuids(item["channels"], uuid, force=force)
+            item["channels"] = substitude_mime_uuids(item["channels"], uuids, force=force)
             if force or item["origin_uuid"] is None:
-                item["origin_uuid"] = uuid
+                item["origin_uuid"] = item_uuid
             new_mime.append(item)
     return new_mime
 
@@ -1296,8 +1306,14 @@ class WithMDIArea:
                     if self.file_by_uuid(uuid):
                         break
                 else:
-                    mime_data = substitude_mime_uuids(mime_data, uuid=self.uuid, force=True)
-                    entries = get_flatten_entries_from_mime(mime_data)
+                    if self.comparison:
+                        mdfs = [file.mdf for file in self.iter_files()]
+                        uuids = [mdf.uuid for mdf in mdfs] or None
+                        mime_data = substitude_mime_uuids(mime_data, uuids, force=True)
+                        entries = get_flatten_entries_from_mime(mime_data)
+                    else:
+                        mime_data = substitude_mime_uuids(mime_data, self.uuid, force=True)
+                        entries = get_flatten_entries_from_mime(mime_data)
 
                 signals_ = [entry for entry in entries if (entry["group_index"], entry["channel_index"]) != (-1, -1)]
 
@@ -1377,7 +1393,6 @@ class WithMDIArea:
 
                         if self.comparison:
                             sig.tooltip = f"{sig.name}\n@ {file.mdf.orignial_name}"
-                            sig.name = f"{file_index + 1}: {sig.name}"
 
                     signals.extend(selected_signals)
 
@@ -1450,7 +1465,6 @@ class WithMDIArea:
 
                         if self.comparison:
                             sig.tooltip = f"{sig.name}\n@ {file.mdf.original_name}"
-                            sig.name = f"{file_index + 1}: {sig.name}"
 
                         if sig.samples.dtype.kind not in "SU" and (
                             sig.samples.dtype.names or len(sig.samples.shape) > 1
@@ -2497,7 +2511,7 @@ class WithMDIArea:
             flatten_entries = get_flatten_entries_from_mime(names)
 
             if not self.comparison:
-                names = substitude_mime_uuids(names, uuid=self.uuid, force=True)
+                names = substitude_mime_uuids(names, self.uuid, force=True)
                 flatten_entries = get_flatten_entries_from_mime(names)
 
             signals_ = [
@@ -2676,7 +2690,7 @@ class WithMDIArea:
         flatten_entries = get_flatten_entries_from_mime(mime_data)
 
         if not self.comparison:
-            mime_data = substitude_mime_uuids(mime_data, uuid=self.uuid, force=True)
+            mime_data = substitude_mime_uuids(mime_data, self.uuid, force=True)
             flatten_entries = get_flatten_entries_from_mime(mime_data)
 
         # TO DO : is this necessary here?
@@ -3030,7 +3044,7 @@ class WithMDIArea:
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
         sub.pattern_modified.connect(self.window_pattern_modified)
-
+        
         if not self.subplots:
             self.mdi_area.clear_windows()
             w = self.mdi_area.addSubWindow(sub)
@@ -3047,9 +3061,9 @@ class WithMDIArea:
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
 
-        plot.show()
+        sub.setWindowTitle(generate_window_title(sub, "Plot"))
 
-        w.setWindowTitle(generate_window_title(w, "Plot"))
+        plot.show()
 
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
         plot.edit_channel_request.connect(partial(self.edit_channel, widget=plot))
@@ -3109,7 +3123,7 @@ class WithMDIArea:
                 if self.file_by_uuid(uuid):
                     break
             else:
-                names = substitude_mime_uuids(names, uuid=self.uuid, force=True)
+                names = substitude_mime_uuids(names, self.uuid, force=True)
                 flatten_entries = get_flatten_entries_from_mime(names)
 
             signals_ = [
