@@ -66,6 +66,10 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
             self.status.setText(f"This window will be closed in {self._timeout}s\nAbort the countdown - [F1]")
             self.timer.start(1000)
 
+        for window in QtGui.QGuiApplication.topLevelWindows():
+            if window.flags() & QtCore.Qt.WindowFlags.SplashScreen:
+                window.close()
+
     def copy_to_clipboard(self, event):
         text = f"Error: {self.error_message.text()}\n\nDetails: {self.trace.toPlainText()}"
         QtWidgets.QApplication.instance().clipboard().setText(text)
