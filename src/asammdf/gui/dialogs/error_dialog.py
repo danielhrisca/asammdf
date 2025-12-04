@@ -67,7 +67,12 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
             self.timer.start(1000)
 
         for window in QtGui.QGuiApplication.topLevelWindows():
-            if window.flags() & QtCore.Qt.WindowFlags.SplashScreen:
+            if hasattr(window, "flags"):
+                flags = window.flags()
+            else:
+                flags = window.windowFlags()
+                
+            if (flags & QtCore.Qt.WindowFlags.SplashScreen) == QtCore.Qt.WindowFlags.SplashScreen:
                 window.close()
 
     def copy_to_clipboard(self, event):
