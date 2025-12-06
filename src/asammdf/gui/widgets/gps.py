@@ -91,10 +91,11 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         result = []
 
         def callback(*args):
-            result.append(args[0])
+            if args and args[0] is not None and args[0] != '':
+                result.append(args[0])
 
         map_widget = self.map.getMapWidgetAtIndex(self.map.mapWidgetIndex)
-        map_widget.page.runJavaScript("map.getZoom()", self.map.mapWidgetIndex, callback)
+        map_widget.page.runJavaScript("map.getZoom()", callback)
 
         app = QtWidgets.QApplication.instance()
 
