@@ -129,116 +129,11 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="0" colspan="5">
-        <widget class="SearchTreeWidget" name="matches">
-         <property name="selectionMode">
-          <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
-         </property>
-         <property name="uniformRowHeights">
-          <bool>false</bool>
-         </property>
-         <property name="sortingEnabled">
-          <bool>false</bool>
-         </property>
-         <attribute name="headerMinimumSectionSize">
-          <number>40</number>
-         </attribute>
-         <attribute name="headerStretchLastSection">
-          <bool>true</bool>
-         </attribute>
-         <column>
-          <property name="text">
-           <string>Name</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Group</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Index</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Unit</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Source name</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Source path</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Comment</string>
-          </property>
-         </column>
-        </widget>
-       </item>
        <item row="4" column="0">
         <widget class="QLabel" name="label">
          <property name="text">
           <string>Final selection</string>
          </property>
-        </widget>
-       </item>
-       <item row="5" column="0" colspan="5">
-        <widget class="SearchTreeWidget" name="selection">
-         <property name="selectionMode">
-          <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
-         </property>
-         <property name="sortingEnabled">
-          <bool>false</bool>
-         </property>
-         <attribute name="headerMinimumSectionSize">
-          <number>25</number>
-         </attribute>
-         <attribute name="headerShowSortIndicator" stdset="0">
-          <bool>false</bool>
-         </attribute>
-         <column>
-          <property name="text">
-           <string>Name</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Group</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Index</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Unit</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Source name</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Source path</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Comment</string>
-          </property>
-         </column>
         </widget>
        </item>
        <item row="3" column="0" colspan="5">
@@ -379,6 +274,44 @@
           </widget>
          </item>
         </layout>
+       </item>
+       <item row="2" column="0" colspan="5">
+        <widget class="QTreeView" name="matches">
+         <property name="editTriggers">
+          <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+         </property>
+         <property name="selectionMode">
+          <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
+         </property>
+         <property name="uniformRowHeights">
+          <bool>true</bool>
+         </property>
+         <property name="sortingEnabled">
+          <bool>true</bool>
+         </property>
+         <attribute name="headerStretchLastSection">
+          <bool>true</bool>
+         </attribute>
+        </widget>
+       </item>
+       <item row="5" column="0" colspan="5">
+        <widget class="QTreeView" name="selection">
+         <property name="editTriggers">
+          <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+         </property>
+         <property name="selectionMode">
+          <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
+         </property>
+         <property name="uniformRowHeights">
+          <bool>true</bool>
+         </property>
+         <property name="sortingEnabled">
+          <bool>true</bool>
+         </property>
+         <attribute name="headerStretchLastSection">
+          <bool>true</bool>
+         </attribute>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -670,13 +603,6 @@
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>SearchTreeWidget</class>
-   <extends>QTreeWidget</extends>
-   <header>asammdf.gui.dialogs.advanced_search_helpers.h</header>
-  </customwidget>
- </customwidgets>
  <tabstops>
   <tabstop>search_box</tabstop>
   <tabstop>match_kind</tabstop>

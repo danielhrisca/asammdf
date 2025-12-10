@@ -2,7 +2,6 @@ import os
 import re
 from traceback import format_exc
 
-from natsort import natsorted
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -10,6 +9,222 @@ from ...blocks.utils import extract_xml_comment
 from ..ui.search_dialog import Ui_SearchDialog
 from .messagebox import MessageBox
 from .range_editor import RangeEditor
+
+NameColumn = 0
+GroupColumn = 1
+ChannelColumn = 2
+UnitColumn = 3
+SourceNameColumn = 4
+SourcePathColumn = 5
+CommentColumn = 6
+
+
+class SearchItem:
+
+    def __init__(self, values=(), parent=None):
+        self._parent = parent
+        self._children = []
+        self._values = values
+
+    def __contains__(self, item):
+        for child in self._children:
+            if item in child:
+                return True
+            
+        return tuple(self) == tuple(item)
+
+    def appendChild(self, item):
+        item.parent = self
+        self._children.append(item)
+
+    def child(self, row):
+        return self._children[row]
+    
+    def childCount(self):
+        return len(self._children)
+    
+    def clear(self):
+        for child in self._children:
+            child.clear()
+
+        self._children.clear()
+
+    def copy(self):
+        return SearchItem(tuple(self))
+    
+    def data(self, return_names=False):
+        if return_names:
+            res = set()
+            for child in self._children:
+                res |= child.data(return_names)
+
+            if self.parent:
+                res.add(self[NameColumn])
+        else:
+            res = {}
+            for child in self._children:
+                res.update(child.data(return_names))
+
+            if self.parent:
+                res[(self[GroupColumn], self[ChannelColumn])] = self[NameColumn]
+
+        return res
+    
+    @property
+    def parent(self):
+        return self._parent
+    
+    @parent.setter
+    def parent(self, v):
+        self._parent = v
+
+    def remove(self, item):
+        self._children = [
+            child
+            for child in self._children
+            if tuple(child) != tuple(item)
+        ]
+        for child in self._children:
+            child.remove(item)
+
+    def row(self):
+        return self._parent._children.index(self) if self._parent else 0
+    
+    def sort(self, column, order=QtCore.Qt.SortOrder.AscendingOrder):
+        reverse = order == QtCore.Qt.SortOrder.DescendingOrder
+
+        if column != NameColumn:
+            self._children.sort(key=lambda x: (x[column], x[NameColumn]), reverse=reverse)
+        else:
+            self._children.sort(key=lambda x: (x[column], x[GroupColumn], x[ChannelColumn]), reverse=reverse)
+
+        for child in self._children:
+            child.sort(column, order)
+
+    def __getitem__(self, idx):
+        return self._values[idx]
+    
+    def __iter__(self):
+        yield from self._values
+
+
+class Model(QtCore.QAbstractItemModel):
+    NameColumn = 0
+    GroupColumn = 1
+    ChannelColumn = 2
+    UnitColumn = 3
+    SourceNameColumn = 4
+    SourcePathColumn = 5
+    CommentColumn = 6
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._root = SearchItem()
+        self.order = QtCore.Qt.SortOrder.AscendingOrder
+        self.column = 0
+
+    def __contains__(self, item):
+        return item in self._root
+    
+    def add(self, data):
+        if not data:
+            return
+        
+        if isinstance(data, SearchItem):
+            data = [data]
+
+        self.beginResetModel()
+        for item in data:
+            self._root.appendChild(item.copy())
+        self.sort(self.column, self.order)
+        self.endResetModel()
+
+    def all_data(self, return_names=False):
+        return self._root.data(return_names)
+
+    def clear(self):
+        self.beginResetModel()
+        self._root.clear()
+        self.endResetModel()
+
+    def columnCount(self, parent=QtCore.QModelIndex()):
+        return 7
+
+    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
+        if index.isValid():
+
+            if role == QtCore.Qt.ItemDataRole.DisplayRole:
+
+                item = index.internalPointer()
+                return item[index.column()]
+
+
+    def headerData(self, section, orientation, role=QtCore.Qt.ItemDataRole.DisplayRole):
+        if role == QtCore.Qt.ItemDataRole.DisplayRole:
+            return [
+                "Name", "Group", "Index", "Unit", "Source name", "Source path", "Comment"
+            ][section]
+
+    def index(self, row, column, parent=QtCore.QModelIndex()):
+        if not self.hasIndex(row, column, parent):
+            return QtCore.QModelIndex()
+
+        if not parent.isValid():
+            parentItem = self._root
+        else:
+            parentItem = parent.internalPointer()
+
+        child = parentItem.child(row)
+        if child:
+            return self.createIndex(row, column, child)
+        else:
+            return QtCore.QModelIndex()
+
+    def parent(self, index):
+        if not index.isValid():
+            return QtCore.QModelIndex()
+
+        child = index.internalPointer()
+        parent = child.parent
+
+        if parent is self._root:
+            return QtCore.QModelIndex()
+
+        return self.createIndex(parent.row(), 0, parent)
+    
+    def remove(self, data):
+        if isinstance(data, SearchItem):
+            data = [data]
+
+        self.beginResetModel()
+        for item in data:
+            self._root.remove(item)
+        self.sort(self.column, self.order)
+        self.endResetModel()
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+
+        if not parent.isValid():
+            item = self._root
+        else:
+            item = parent.internalPointer()
+
+        return item.childCount()
+
+    def set_matches(self, matches):
+        self.beginResetModel()
+        self._root.clear()
+        self._root = matches
+        self.sort(self.column, self.order)
+        self.endResetModel()
+
+    def sort(self, column, order=QtCore.Qt.SortOrder.AscendingOrder):
+        self.beginResetModel()
+        self.order = order
+        self.column = column
+        self._root.sort(column, order)
+        self.endResetModel()
 
 
 class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
@@ -42,11 +257,17 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
+        self.match_model = Model()
+        self.matches.setModel(self.match_model)
+
+        self.selection_model = Model()
+        self.selection.setModel(self.selection_model)
+
         icon = QtGui.QIcon()
         icon.addFile(":/search.png", QtCore.QSize(), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.setWindowIcon(icon)
 
-        self.selection.can_delete_items = True
+        # self.selection.can_delete_items = True
 
         self.payload = {}
         self.add_window_request = False
@@ -64,11 +285,15 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         self.search_box.editingFinished.connect(self.search_text_changed)
         self.match_kind.currentTextChanged.connect(self.search_box.textChanged.emit)
-        self.matches.itemDoubleClicked.connect(self._match_double_clicked)
-        self.selection.itemDoubleClicked.connect(self._selection_double_clicked)
+        self.matches.doubleClicked.connect(self._match_double_clicked)
+        self.selection.doubleClicked.connect(self._selection_double_clicked)
 
         self.matches.header().sectionResized.connect(self.section_resized)
         self.selection.header().sectionResized.connect(self.section_resized)
+        self.matches.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        self.selection.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        self.matches.customContextMenuRequested.connect(self.open_matches_menu)
+        self.selection.customContextMenuRequested.connect(self.open_selection_menu)
 
         self.apply_pattern_btn.clicked.connect(self._apply_pattern)
         self.cancel_pattern_btn.clicked.connect(self._cancel_pattern)
@@ -90,9 +315,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         self.apply_btn.setText(apply_text)
         self.add_window_btn.setText(add_window_text)
-
-        self.selection.can_delete_items = True
-        self.matches.can_delete_items = False
 
         if not show_add_window:
             self.add_window_btn.hide()
@@ -126,12 +348,12 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         self.setWindowTitle(window_title)
 
-        self.matches.setColumnWidth(self.NameColumn, 450)
-        self.matches.setColumnWidth(self.GroupColumn, 40)
-        self.matches.setColumnWidth(self.ChannelColumn, 40)
-        self.matches.setColumnWidth(self.UnitColumn, 40)
-        self.matches.setColumnWidth(self.SourceNameColumn, 170)
-        self.matches.setColumnWidth(self.SourcePathColumn, 170)
+        self.matches.setColumnWidth(NameColumn, 450)
+        self.matches.setColumnWidth(GroupColumn, 40)
+        self.matches.setColumnWidth(ChannelColumn, 40)
+        self.matches.setColumnWidth(UnitColumn, 40)
+        self.matches.setColumnWidth(SourceNameColumn, 170)
+        self.matches.setColumnWidth(SourcePathColumn, 170)
 
         self.setWindowFlag(QtCore.Qt.WindowType.WindowMaximizeButtonHint, True)
 
@@ -151,8 +373,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         extened_search = self.extended_search.checkState() == QtCore.Qt.CheckState.Checked
 
         if len(text) >= 2:
-            self.matches.collapseAll()
-            self.matches.clear()
 
             match_kind = self.match_kind.currentText()
 
@@ -269,13 +489,11 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                 info["names"].append(name)
 
                 matches = [(group_index, channel_index, info) for (group_index, channel_index), info in matches.items()]
-                matches.sort(key=lambda x: x[-1]["names"][0])
-
-                self.matches.clear()
+                
+                new_matches = SearchItem()
                 for group_index, channel_index, info in matches:
                     names = info["names"]
-                    group_index, channel_index = str(group_index), str(channel_index)
-                    item = QtWidgets.QTreeWidgetItem(
+                    item = SearchItem(
                         [
                             names[0],
                             group_index,
@@ -284,82 +502,56 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                             info["source_name"],
                             info["source_path"],
                             info["comment"],
-                        ]
+                        ],
+                        parent=new_matches
                     )
-                    self.matches.addTopLevelItem(item)
+                    new_matches.appendChild(item)
 
-                    children = [
-                        QtWidgets.QTreeWidgetItem(
-                            [
-                                name,
-                                group_index,
-                                channel_index,
-                                info["unit"],
-                                info["source_name"],
-                                info["source_path"],
-                                info["comment"],
-                            ]
-                        )
-                        for name in names[1:]
-                    ]
+                    for name in names[1:]:
+                        child = SearchItem(
+                                [
+                                    name,
+                                    group_index,
+                                    channel_index,
+                                    info["unit"],
+                                    info["source_name"],
+                                    info["source_path"],
+                                    info["comment"],
+                                ],
+                                parent=item
+                            )
+                        item.appendChild(child)
 
-                    if children:
-                        item.addChildren(children)
-
-                if matches:
-                    self.status.setText(f"{self.matches.topLevelItemCount()} results")
+                if new_matches:
+                    self.match_model.set_matches(new_matches)
+                    self.status.setText(f"{len(matches)} results")
                 else:
+                    self.match_model.clear()
                     self.status.setText("No results")
-
-                self.matches.expandAll()
 
             except Exception as err:
                 print(format_exc())
                 self.status.setText(str(err))
 
-            self.matches.setSortingEnabled(True)
             self.matches.collapseAll()
 
     def _add(self, event):
-        selection = set()
+        indexes = list({index.row(): index for index in self.matches.selectedIndexes() if index.isValid()}.values())
+        if not indexes:
+            return
+        
+        data = []
+        
+        for index in indexes:
+            new_data = index.internalPointer()
 
-        iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-        while item := iterator.value():
-            data = tuple(item.text(i) for i in range(self.columns))
-            selection.add(data)
+            if new_data not in self.selection_model:
+                data.append(new_data)
 
-            iterator += 1
-
-        for item in self.matches.selectedItems():
-            data = tuple(item.text(i) for i in range(self.columns))
-            selection.add(data)
-
-        selection = natsorted(selection)
-
-        items = [QtWidgets.QTreeWidgetItem(texts) for texts in selection]
-
-        self.selection.setSortingEnabled(False)
-        self.selection.clear()
-        self.selection.addTopLevelItems(items)
-        self.selection.setSortingEnabled(True)
+        self.selection_model.add(data)
 
     def _apply(self, event=None):
-        if self._return_names:
-            self.payload = set()
-
-            iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-            while item := iterator.value():
-                self.payload.add(item.text(self.NameColumn))
-                iterator += 1
-        else:
-            self.payload = {}
-
-            iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-            while item := iterator.value():
-                entry = int(item.text(self.GroupColumn)), int(item.text(self.ChannelColumn))
-                name = item.text(self.NameColumn)
-                self.payload[entry] = name
-                iterator += 1
+        self.payload = self.selection_model.all_data(self._return_names)
 
         self.accept()
 
@@ -407,32 +599,68 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         if dlg.pressed_button == "apply":
             self.ranges = dlg.payload
 
-    def _match_double_clicked(self, item):
-        selection = set()
-        new_item = item
+    def _match_double_clicked(self, index):
+        if not index.isValid():
+            return
 
-        iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-        while item := iterator.value():
-            data = tuple(item.text(i) for i in range(self.columns))
-            selection.add(data)
+        new_data = index.internalPointer()
 
-            iterator += 1
+        if new_data not in self.selection_model:
+            self.selection_model.add(new_data)
 
-        new_data = tuple(new_item.text(i) for i in range(self.columns))
+    def open_matches_menu(self, position):
+        count = self.match_model.rowCount()
 
-        if new_data not in selection:
-            selection.add(new_data)
+        self.context_menu = menu = QtWidgets.QMenu()
+        menu.addAction(f"{count} items")
+        menu.addSeparator()
+        action = QtGui.QAction("Expand all", menu)
+        action.triggered.connect(self.matches.expandAll)
+        menu.addAction(action)
+        action = QtGui.QAction("Collapse all", menu)
+        action.triggered.connect(self.matches.collapseAll)
+        menu.addAction(action)
 
-            selection = natsorted(selection)
+        menu.exec(self.matches.viewport().mapToGlobal(position))
 
-            items = [QtWidgets.QTreeWidgetItem(texts) for texts in selection]
+    def open_selection_menu(self, position):
+        count = self.selection_model.rowCount()
 
-            self.selection.clear()
-            self.selection.addTopLevelItems(items)
+        self.context_menu = menu = QtWidgets.QMenu()
+        menu.addAction(f"{count} items")
+        menu.addSeparator()
+        action = QtGui.QAction("Delete", menu)
+        action.triggered.connect(self.selection.expandAll)
+        menu.addAction(action)
 
-    def _selection_double_clicked(self, item):
-        root = self.selection.invisibleRootItem()
-        (item.parent() or root).removeChild(item)
+        action = menu.exec(self.selection.viewport().mapToGlobal(position))
+
+        if action is None:
+            return
+
+        if action.text() == 'Delete':
+
+            indexes = list({index.row(): index for index in self.selection.selectedIndexes() if index.isValid()}.values())
+            if not indexes:
+                return
+            
+            data = []
+        
+            for index in indexes:
+                to_delete = index.internalPointer()
+
+                if to_delete in self.selection_model:
+                    data.append(to_delete)
+
+            self.selection_model.remove(data)
+
+    def _selection_double_clicked(self, index):
+        if not index.isValid():
+            return
+
+        item = index.internalPointer()
+
+        self.selection_model.remove(item)
 
     @QtCore.Slot(int, int, int, result=None)
     def section_resized(self, index, old_size, new_size):
@@ -449,7 +677,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             return
         else:
             item = items[0]
-            group_index, index = int(item.text(self.GroupColumn)), int(item.text(self.ChannelColumn))
+            group_index, index = int(item.text(GroupColumn)), int(item.text(ChannelColumn))
 
         try:
             channel = self.mdf.get_channel_metadata(group=group_index, index=index)
