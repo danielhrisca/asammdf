@@ -253,14 +253,15 @@ class Signal:  # noqa: PLW1641
 
     @property
     def conversion(self):
-        metadata = self.samples.dtype.base.metadata or {}
+        metadata = self.samples.dtype.metadata or self.samples.dtype.base.metadata or {}
         return metadata.get('conversion', None)
     
     @conversion.setter
     def conversion(self, conv):
-        metadata = dict(self.samples.dtype.base.metadata or {})
+        metadata = dict(self.samples.dtype.metadata or self.samples.dtype.base.metadata or {})
         metadata['conversion'] = conv
-        self.samples = self.samples.view(dtype=np.dtype(self.samples.dtype, metadata=metadata))
+        self.samples = self.samples.view(
+            dtype=np.dtype(np.lib.format.drop_metadata(self.samples.dtype), metadata=metadata))
 
     @property
     def invalidation_bits(self) -> InvalidationArray | None:
