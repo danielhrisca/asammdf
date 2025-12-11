@@ -109,13 +109,6 @@ class SearchItem:
 
 
 class Model(QtCore.QAbstractItemModel):
-    NameColumn = 0
-    GroupColumn = 1
-    ChannelColumn = 2
-    UnitColumn = 3
-    SourceNameColumn = 4
-    SourcePathColumn = 5
-    CommentColumn = 6
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -228,13 +221,6 @@ class Model(QtCore.QAbstractItemModel):
 
 
 class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
-    NameColumn = 0
-    GroupColumn = 1
-    ChannelColumn = 2
-    UnitColumn = 3
-    SourceNameColumn = 4
-    SourcePathColumn = 5
-    CommentColumn = 6
 
     columns = 7
 
@@ -672,26 +658,31 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
     def show_overlapping_alias(
         self,
     ):
-        items = self.matches.selectedItems() or self.selection.selectedItems()
-        if not items:
+        indexes = [
+            *list({index.row(): index for index in self.matches.selectedIndexes() if index.isValid()}.values()),
+            *list({index.row(): index for index in self.selection.selectedIndexes() if index.isValid()}.values()),
+        ]
+        if not indexes:
             return
-        else:
-            item = items[0]
-            group_index, index = int(item.text(GroupColumn)), int(item.text(ChannelColumn))
+        
+        for index in indexes:
+            item = index.internalPointer()
+        
+            group_index, channel_index = item[GroupColumn], int(item[ChannelColumn])
 
         try:
-            channel = self.mdf.get_channel_metadata(group=group_index, index=index)
+            channel = self.mdf.get_channel_metadata(group=group_index, index=channel_index)
             info = (channel.data_type, channel.byte_offset, channel.bit_count)
             position = (group_index, index)
             alias = {}
-            for gp_index, gp in enumerate(self.mdf.groups):
-                for ch_index, ch in enumerate(gp.channels):
-                    if (gp_index, ch_index) != position and (ch.data_type, ch.byte_offset, ch.bit_count) == info:
-                        alias[ch.name] = (gp_index, ch_index)
+            gp = self.mdf.groups[group_index]
+            for ch_index, ch in enumerate(gp.channels):
+                if ch_index != channel_index and (ch.data_type, ch.byte_offset, ch.bit_count) == info:
+                    alias[ch.name] = (group_index, ch_index)
 
             if alias:
                 alias_text = "\n".join(
-                    f"{name} - group {gp_index} index {ch_index}" for name, (gp_index, ch_index) in alias.items()
+                    f"{name} - group {group_index} index {ch_index}" for name, (group_index, ch_index) in alias.items()
                 )
                 MessageBox.information(
                     self,
