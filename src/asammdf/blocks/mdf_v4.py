@@ -3605,7 +3605,7 @@ class MDF4(MDF_Common[Group]):
                                 'size': size,
                                 'dtype_field_name': name,
                             }
-                            for size, name in zip(shape[::-1], names)
+                            for size, name in zip(shape[::-1], names, strict=False)
                         ]
 
                 # A2l axes are defined in the XYZ oreder
@@ -3685,7 +3685,7 @@ class MDF4(MDF_Common[Group]):
                     else:
                         parent_deps = []
                         byte_offset_base = samples.dtype.itemsize
-                        for i, (axis, shp) in enumerate(zip(array_axes, shape)):
+                        for i, (axis, shp) in enumerate(zip(array_axes, shape, strict=False)):
                             conv = axis['conversion']
                             if isinstance(conv, dict):
                                 conv = from_dict(conv)
