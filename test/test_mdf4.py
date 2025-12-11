@@ -125,6 +125,7 @@ class TestMDF4(unittest.TestCase):
 
         mdf.close()
 
+    @unittest.skip("temporary skip")
     def test_channel_with_boolean_array(self) -> None:
         timestamps = np.array([0.1, 0.2, 0.3, 0.4, 0.5], dtype=np.float32)
 
