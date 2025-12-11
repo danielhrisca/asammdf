@@ -70,6 +70,34 @@ def convert(arr, ignore_value2text_conversions=False):
     return res
 
 
+def replace_metadata(dtype, name, attribute, value, current_name=""):
+    if dtype.fields:
+        new_dt = {
+            'names': [],
+            'formats': [],
+            'offsets': [],
+        }
+        for fname, (dt, offset, *_) in dtype.fields.items():
+            new_dt['names'].append(fname)
+            new_dt['offsets'].append(offset)
+            new_dt['formats'].append(
+                replace_metadata(dt, name, attribute, value, fname)
+            )
+
+        if old_metadata := (dtype.metadata or dtype.base.metadata):
+            return np.dtype(new_dt, metadata=dict(old_metadata))
+        else:
+            return np.dtype(new_dt)
+        
+    else:
+        if current_name and current_name != name:
+            return dtype
+        else:
+            metadata = dict(dtype.metadata or dtype.base.metadata or {})
+            metadata[attribute] = value
+            return np.dtype(np.lib.format.drop_metadata(dtype), metadata=metadata)
+
+
 class InvalidationArray(np.ndarray[tuple[int], np.dtype[np.bool]]):
     ORIGIN_UNKNOWN = ORIGIN_UNKNOWN
 
@@ -258,10 +286,9 @@ class Signal:  # noqa: PLW1641
     
     @conversion.setter
     def conversion(self, conv):
-        metadata = dict(self.samples.dtype.metadata or self.samples.dtype.base.metadata or {})
-        metadata['conversion'] = conv
         self.samples = self.samples.view(
-            dtype=np.dtype(np.lib.format.drop_metadata(self.samples.dtype), metadata=metadata))
+            replace_metadata(self.samples.dtype, self.name, "conversion", conv)
+        )
 
     @property
     def invalidation_bits(self) -> InvalidationArray | None:
