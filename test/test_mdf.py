@@ -162,8 +162,8 @@ class TestMDF(unittest.TestCase):
                             for j in range(1, 20):
                                 types: list[npt.DTypeLike] = [
                                     (f"Channel_{j}", "(2, 3)<u8"),
-                                    (f"channel_{j}_axis_1", "(2, )<u8"),
-                                    (f"channel_{j}_axis_2", "(3, )<u8"),
+                                    (f"channel_{j}_Y_axis", "(2, )<u8"),
+                                    (f"channel_{j}_X_axis", "(3, )<u8"),
                                 ]
                                 dtype = np.dtype(types)
 
@@ -539,8 +539,8 @@ class TestMDF(unittest.TestCase):
                             for j in range(1, 20):
                                 types: list[npt.DTypeLike] = [
                                     (f"Channel_{j}", "(2, 3)<u8"),
-                                    (f"channel_{j}_axis_1", "(2, )<u8"),
-                                    (f"channel_{j}_axis_2", "(3, )<u8"),
+                                    (f"channel_{j}_Y_axis", "(2, )<u8"),
+                                    (f"channel_{j}_X_axis", "(3, )<u8"),
                                 ]
                                 dtype = np.dtype(types)
 
