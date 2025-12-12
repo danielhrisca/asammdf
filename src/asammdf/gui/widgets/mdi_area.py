@@ -3424,7 +3424,7 @@ class WithMDIArea:
                 if old_name in required_channels:
                     item = widget.item_by_uuid
 
-                    computed_channel = widget.plot.channel_item_to_config(item)
+                    computed_channel = widget.channel_item_to_config(item)
                     computed_channel["computation"] = replace_computation_dependency(
                         computed_channel["computation"], old_name, new_name
                     )

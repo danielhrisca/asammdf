@@ -1278,22 +1278,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.loaded_display_file = file_name, worker.hexdigest()
 
         else:
-            extension = None
+            extension = ".dict"
             info = file_name
             channels = info.get("selected_channels", [])
             self.loaded_display_file = Path(info.get("display_file_name", "")), b""
-
-            self.functions.update(info.get("functions", {}))
-            global_vars = [
-                line.strip()
-                for line in self.global_variables.splitlines()
-                if line.strip()
-            ]
-            for line in info.get('global_variables', '').splitlines():
-                line = line.strip()
-                if line and line not in global_vars:
-                    global_vars.append(line)
-            self.global_variables = "\n".join(global_vars)
 
         if channels:
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
@@ -1325,7 +1313,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.clear_windows()
 
-        if extension in (".dspf", ".dsp"):
+        if extension in (".dspf", ".dsp", ".dict"):
+            new_global_vars = "\n".join(line.strip() for line in info.get('global_variables', '').splitlines() if line.strip())
+            global_vars = "\n".join(line.strip() for line in self.global_variables.splitlines() if line.strip())
+
+            if new_global_vars not in global_vars:
+                global_vars += new_global_vars
+                updated_global_vars = True
+            else:
+                updated_global_vars = False
+
             new_functions = {}
 
             if "functions" in info:
@@ -1358,8 +1355,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                     "definition": definition,
                                 }
 
-            if new_functions or info.get("global_variables", "") != self.global_variables:
-                self.update_functions({}, new_functions, f"{self.global_variables}\n{info.get('global_variables', '')}")
+            if new_functions or updated_global_vars:
+                self.update_functions({}, new_functions, global_vars)
 
         windows = info.get("windows", [])
         errors = {}
