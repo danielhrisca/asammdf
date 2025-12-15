@@ -20,8 +20,8 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBo
     QHeaderView, QLabel, QLineEdit, QListView,
     QListWidget, QListWidgetItem, QPushButton, QRadioButton,
     QScrollArea, QSizePolicy, QSpacerItem, QSplitter,
-    QStackedWidget, QTabWidget, QTextEdit, QTreeWidget,
-    QTreeWidgetItem, QVBoxLayout, QWidget)
+    QStackedWidget, QTabWidget, QTextEdit, QTreeView,
+    QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from asammdf.gui.widgets.list import MinimalListWidget
 from asammdf.gui.widgets.tree import TreeWidget
@@ -69,7 +69,7 @@ class Ui_file_widget(object):
 
         self.channels_layout.addWidget(self.channel_view)
 
-        self.channels_tree = TreeWidget(self.verticalLayoutWidget)
+        self.channels_tree = QTreeView(self.verticalLayoutWidget)
         self.channels_tree.setObjectName(u"channels_tree")
 
         self.channels_layout.addWidget(self.channels_tree)
@@ -1087,8 +1087,6 @@ class Ui_file_widget(object):
         self.channel_view.setItemText(1, QCoreApplication.translate("file_widget", u"Internal file structure", None))
         self.channel_view.setItemText(2, QCoreApplication.translate("file_widget", u"Selected channels only", None))
 
-        ___qtreewidgetitem = self.channels_tree.headerItem()
-        ___qtreewidgetitem.setText(0, QCoreApplication.translate("file_widget", u"Channels", None));
 #if QT_CONFIG(tooltip)
         self.channels_tree.setToolTip(QCoreApplication.translate("file_widget", u"Double click channel to see extended information", None))
 #endif // QT_CONFIG(tooltip)
@@ -1129,8 +1127,8 @@ class Ui_file_widget(object):
         self.filter_view.setItemText(1, QCoreApplication.translate("file_widget", u"Internal file structure", None))
         self.filter_view.setItemText(2, QCoreApplication.translate("file_widget", u"Selected channels only", None))
 
-        ___qtreewidgetitem1 = self.filter_tree.headerItem()
-        ___qtreewidgetitem1.setText(0, QCoreApplication.translate("file_widget", u"Channels", None));
+        ___qtreewidgetitem = self.filter_tree.headerItem()
+        ___qtreewidgetitem.setText(0, QCoreApplication.translate("file_widget", u"Channels", None));
 #if QT_CONFIG(tooltip)
         self.filter_tree.setToolTip(QCoreApplication.translate("file_widget", u"Double click channel to see extended information", None))
 #endif // QT_CONFIG(tooltip)
@@ -1255,9 +1253,9 @@ class Ui_file_widget(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("file_widget", u"LIN", None))
         self.label_12.setText(QCoreApplication.translate("file_widget", u"Prefix", None))
         self.aspects.setTabText(self.aspects.indexOf(self.extract_bus_tab), QCoreApplication.translate("file_widget", u"Bus Logging", None))
-        ___qtreewidgetitem2 = self.info.headerItem()
-        ___qtreewidgetitem2.setText(1, QCoreApplication.translate("file_widget", u"Value", None));
-        ___qtreewidgetitem2.setText(0, QCoreApplication.translate("file_widget", u"Cathegory", None));
+        ___qtreewidgetitem1 = self.info.headerItem()
+        ___qtreewidgetitem1.setText(1, QCoreApplication.translate("file_widget", u"Value", None));
+        ___qtreewidgetitem1.setText(0, QCoreApplication.translate("file_widget", u"Cathegory", None));
         self.aspects.setTabText(self.aspects.indexOf(self.info_tab), QCoreApplication.translate("file_widget", u"Info", None))
         self.aspects.setTabText(self.aspects.indexOf(self.attachments_tab), QCoreApplication.translate("file_widget", u"Attachments", None))
     # retranslateUi

@@ -21,6 +21,7 @@ from ...blocks.utils import extract_encryption_information, extract_xml_comment,
 from ...blocks.v4_blocks import AttachmentBlock, FileHistory, HeaderBlock
 from ...blocks.v4_blocks import TextBlock as TextV4
 from ...blocks.v4_constants import (
+    BUS_TYPE_NONE,
     BUS_TYPE_CAN,
     BUS_TYPE_ETHERNET,
     BUS_TYPE_FLEXRAY,
@@ -62,9 +63,74 @@ from .mdi_area import get_functions, MdiAreaWidget, WithMDIArea
 from .numeric import Numeric
 from .plot import Plot
 from .tabular import Tabular
-from .tree import add_children
 from .tree_item import MinimalTreeItem
 from .xy import XY
+
+
+def add_children(
+    root,
+    channels,
+    channel_dependencies,
+    signals,
+    entries=None,
+    seen=None,
+    version="4.11",
+    group_index = 0,
+):
+    seen=seen or set()
+    if entries is None:
+        entries = list(range(len(channels)))
+
+    for i in entries:
+        if i in seen:
+            continue
+
+        channel = channels[i]
+
+        entry = group_index, i
+        ch = TreeItem(
+            name=channel.name,
+            type=ChannelT,
+            entry=entry,
+        )
+
+        if channel.source:
+            source = TreeItem(
+                name=channel.source.name or "Source Information",
+                type=SourceT,
+                entry=entry,
+                bus_type=0 if version < '4.00' else channel.source.bus_type
+            )
+
+            ch.appendChild(source)
+
+        if channel.conversion:
+            conv = TreeItem(
+                name=channel.conversion.name or "Conversion",
+                type=ConversionT,
+                entry=entry,
+            )
+
+            ch.appendChild(conv)
+
+        root.appendChild(ch)
+        seen.add(i)
+
+        dep = channel_dependencies[i]
+        if version >= "4.00":
+            if dep and isinstance(dep[0], tuple):
+                entries=[it[1] for it in dep]
+                f = 1
+                add_children(
+                    ch,
+                    channels,
+                    channel_dependencies,
+                    signals,
+                    entries=entries,
+                    version=version,
+                    group_index = group_index,
+                    seen=seen,
+                )
 
 
 def _process_dict(d):
@@ -114,6 +180,295 @@ class Delegate(QtWidgets.QStyledItemDelegate):
 
     def setModelData(self, editor, model, index):
         return
+    
+
+ChannelGroupT = 0
+ChannelT = 1
+SourceT = 2
+ConversionT = 3
+    
+
+class TreeItem:
+
+    def __init__(self, name="", type=ChannelT, entry=(), has_data=False, bus_type=BUS_TYPE_NONE, parent=None):
+        self.parent = parent
+        self._children = []
+        self.name = name
+        self.type = type
+        self.entry = entry
+        self._check_state = QtCore.Qt.CheckState.Unchecked
+        self.has_data = has_data
+        self.bus_type = bus_type
+
+    def appendChild(self, item):
+        item.parent = self
+        self._children.append(item)
+
+    def child(self, row):
+        return self._children[row]
+    
+    def childCount(self):
+        return len(self._children)
+    
+    def clear(self):
+        for child in self._children:
+            child.clear()
+
+        self._children.clear()
+
+    def copy(self):
+        return TreeItem(tuple(self))
+
+    def row(self):
+        return self.parent._children.index(self) if self.parent else 0
+
+    def __iter__(self):
+        yield from (self.name, self.type, self.entry)
+
+
+class Model(QtCore.QAbstractItemModel):
+
+    ICONS = ()
+    SOURCE_ICONS = ()
+
+    def __init__(self, display_cg_name=False, origin_uuid="", *args, **kwargs):
+        if not Model.ICONS:
+            Model.ICONS = (
+                QtGui.QIcon(":/list.png"),
+                QtGui.QIcon(":/graph.png"),
+                QtGui.QIcon(":/calibration_curve.png"),
+                QtGui.QIcon(":/convert.png"),
+            )
+            Model.SOURCE_ICONS = (
+                QtGui.QIcon(),
+                QtGui.QIcon(),
+                QtGui.QIcon(":/bus_can.png"),
+                QtGui.QIcon(":/bus_lin.png"),
+                QtGui.QIcon(),
+                QtGui.QIcon(":/bus_flx.png"),
+                QtGui.QIcon(),
+                QtGui.QIcon(":/bus_eth.png"),
+                QtGui.QIcon(":/bus_usb.png"),
+            )
+
+        super().__init__(*args, **kwargs)
+
+        self._root = TreeItem()
+        self._mode = "Internal file structure"
+        self.mdf = None
+        self.display_cg_name = display_cg_name
+        self.origin_uuid = origin_uuid
+
+    def clear(self):
+        self.beginResetModel()
+        self._root.clear()
+        self.endResetModel()
+
+    def columnCount(self, parent=QtCore.QModelIndex()):
+        return 1
+
+    def data(self, index, role=QtCore.Qt.ItemDataRole.DisplayRole):
+        if index.isValid():
+            item = index.internalPointer()
+
+            match role:
+                case QtCore.Qt.ItemDataRole.DisplayRole:
+                    return item.name
+                
+                case QtCore.Qt.ItemDataRole.DecorationRole:
+                    if item.type == SourceT:
+                        return Model.SOURCE_ICONS[item.bus_type]
+                    else:
+                        return Model.ICONS[item.type]
+                
+                case QtCore.Qt.ItemDataRole.ForegroundRole:
+                    if item.type == ChannelGroupT and item.has_data:
+                        return QtGui.QBrush(QtGui.QColor(GREEN))
+                    
+                case QtCore.Qt.ItemDataRole.ToolTipRole:
+                    group, index = item.entry
+                    return f"{item.name} @ {group=} {index=}"
+
+    def headerData(self, section, orientation, role=QtCore.Qt.ItemDataRole.DisplayRole):
+        if role == QtCore.Qt.ItemDataRole.DisplayRole:
+            return "Channels"
+
+    def index(self, row, column, parent=QtCore.QModelIndex()):
+        if not self.hasIndex(row, column, parent):
+            return QtCore.QModelIndex()
+
+        if not parent.isValid():
+            parentItem = self._root
+        else:
+            parentItem = parent.internalPointer()
+
+        child = parentItem.child(row)
+        if child:
+            return self.createIndex(row, column, child)
+        else:
+            return QtCore.QModelIndex()
+        
+    def load_mdf(self, mdf):
+        self.beginResetModel()
+        self.mdf = mdf
+        mode = self._mode
+        self._mode = ""
+        self.mode = mode
+        self.endResetModel()
+
+    @property 
+    def mode(self):
+        return self._mode
+    
+    @mode.setter
+    def mode(self, val):
+        if self._mode != val:
+            self.beginResetModel()
+            self._mode = val
+            self._root.clear()
+
+            version = self.mdf.version
+
+            match self._mode:
+                case "Natural sort":
+                    channels = []
+                    for i, group in enumerate(self.mdf.groups):
+                        for j, ch in enumerate(group.channels):
+                            entry = i, j
+
+                            channel = TreeItem(
+                                name=ch.name,
+                                type=ChannelT,
+                                entry=entry,
+                            )
+
+                            channels.append(channel)
+
+                            if ch.source:
+                                source = TreeItem(
+                                    name=ch.source.name or "Source Information",
+                                    type=SourceT,
+                                    entry=entry,
+                                    bus_type=0 if version < '4.00' else ch.source.bus_type
+                                )
+
+                                channel.appendChild(source)
+
+                            if ch.conversion:
+                                conv = TreeItem(
+                                    name=ch.conversion.name or "Conversion",
+                                    type=ConversionT,
+                                    entry=entry,
+                                )
+
+                                channel.appendChild(conv)
+
+                    if len(channels) < 30000:
+                        channels = natsorted(channels, key=lambda x: x.name)
+                    else:
+                        channels.sort(key=lambda x: x.name)
+                    
+                    for channel in channels:
+                        self._root.appendChild(channel)
+
+                case "Internal file structure":
+                    channels = []
+                    for i, group in enumerate(self.mdf.groups):
+                        comment = extract_xml_comment(group.channel_group.comment)
+
+                        if self.display_cg_name:
+                            acq_name = getattr(group.channel_group, "acq_name", "")
+                            if acq_name:
+                                base_name = f"CG {i} {acq_name}"
+                            else:
+                                base_name = f"CG {i}"
+                            if comment and acq_name != comment:
+                                name = base_name + f" ({comment})"
+                            else:
+                                name = base_name
+
+                        else:
+                            base_name = f"Channel group {i}"
+                            if comment:
+                                name = base_name + f" ({comment})"
+                            else:
+                                name = base_name
+
+                        entry=(i, 0xFFFFFFFFFFFFFFFF)
+                        ch_group = TreeItem(
+                            name=name,
+                            type=ChannelGroupT,
+                            entry=entry,
+                        )
+
+                        if source := getattr(group.channel_group, "acq_source", None):
+                            source = TreeItem(
+                                name=source.name or "Source Information",
+                                type=SourceT,
+                                entry=entry,
+                                bus_type=0 if version < '4.00' else source.bus_type
+                            )
+
+                            ch_group.appendChild(source)
+
+                        self._root.appendChild(ch_group)
+
+                        add_children(
+                            ch_group,
+                            group.channels,
+                            group.channel_dependencies,
+                            None,
+                            None,
+                            None,
+                            version,
+                            i,
+                        )
+
+            self.endResetModel()
+
+    def parent(self, index):
+        if not index.isValid():
+            return QtCore.QModelIndex()
+
+        child = index.internalPointer()
+        parent = child.parent
+
+        if parent is self._root:
+            return QtCore.QModelIndex()
+
+        return self.createIndex(parent.row(), 0, parent)
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+
+        if not parent.isValid():
+            item = self._root
+        else:
+            item = parent.internalPointer()
+
+        return item.childCount()
+    
+    @property
+    def selected(self):
+        return set()
+    
+    @selected.setter
+    def selected(self, sel):
+        pass
+
+    def set_matches(self, matches):
+        self.beginResetModel()
+        self._root.clear()
+        self._root = matches
+        self.sort(self.column, self.order)
+        self.endResetModel()
+
+    def sort(self, column, order=QtCore.Qt.SortOrder.AscendingOrder):
+        self.beginResetModel()
+        self.order = order
+        self.column = column
+        self._root.sort(column, order)
+        self.endResetModel()
+
 
 
 class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
@@ -136,6 +491,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         *args,
         **kwargs,
     ):
+        from time import perf_counter
+        t0 = perf_counter()
         self.default_folder = kwargs.pop("default_folder", "")
         display_file = kwargs.pop("display_file", "")
         databases = kwargs.pop("databases", None)
@@ -290,6 +647,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.mdf.configure(raise_on_multiple_occurrences=False)
 
+            self.ch_model = Model(self.display_cg_name, self.uuid)
+            self.channels_tree.setModel(self.ch_model)
+            self.ch_model.load_mdf(self.mdf)
+
+            print('load mdf ', perf_counter()-t0)
+            to = perf_counter
+
             if progress:
                 progress.setLabelText("Loading graphical elements")
             QtWidgets.QApplication.processEvents()
@@ -309,7 +673,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
             self.splitter.addWidget(self.mdi_area)
 
-            self.channels_tree.itemDoubleClicked.connect(self.show_info)
+            # self.channels_tree.itemDoubleClicked.connect(self.show_info)
             self.filter_tree.itemDoubleClicked.connect(self.show_info)
 
             self.channel_view.setCurrentIndex(-1)
@@ -415,6 +779,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.aspects.currentChanged.connect(self.aspect_changed)
 
+            print('load graphical elems ', perf_counter()-t0)
+            to = perf_counter
+
         except:
             if progress:
                 progress.setValue(100)
@@ -502,7 +869,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         else:
             default_display_file = self.mdf.header._common_properties.get("pr_display_file", "")
 
-            if default_display_file:
+            if default_display_file and 0:
                 default_display_file = Path(default_display_file)
                 if default_display_file.exists():
                     self.load_channel_list(file_name=default_display_file, show_progress=False)
@@ -535,6 +902,30 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self._update_channel_tree(widget=widget)
 
     def _update_channel_tree(self, index=None, widget=None, force=False):
+        from time import perf_counter
+        t0 = perf_counter()
+
+        if widget is None:
+            widget = self.channels_tree
+        if not force:
+            if widget is self.channels_tree and self.channel_view.currentIndex() == -1:
+                return
+            elif widget is self.filter_tree and (self.filter_view.currentIndex() == -1):
+                return
+
+        view = self.channel_view if widget is self.channels_tree else self.filter_view
+
+        signals = self.ch_model.selected
+
+        self.ch_model.mode = view.currentText()
+
+        self.ch_model.selected = signals
+
+        print('update tree', perf_counter()-t0)
+
+    def _update_channel_tree2(self, index=None, widget=None, force=False):
+        from time import perf_counter
+        t0 = perf_counter()
         if widget is None:
             widget = self.channels_tree
         if not force:
@@ -590,6 +981,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         elif widget.mode == "Internal file structure":
             items = []
+
+            help_t = 0
+            addc_t = 0
 
             for i, group in enumerate(self.mdf.groups):
                 entry = i, 0xFFFFFFFFFFFFFFFF
@@ -648,8 +1042,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     channel_group.setForeground(0, QtGui.QBrush(QtGui.QColor(GREEN)))
                 items.append(channel_group)
 
+                tt0 = perf_counter()
                 channels = [HelperChannel(name=ch.name, entry=(i, j)) for j, ch in enumerate(group.channels)]
-
+                help_t += perf_counter() - tt0
+                tt0 = perf_counter()
                 add_children(
                     channel_group,
                     channels,
@@ -660,7 +1056,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     version=self.mdf.version,
                 )
 
+                addc_t += perf_counter() - tt0
+
             widget.addTopLevelItems(items)
+
+            print(f'\t{help_t=}\n\t{addc_t=}')
 
         else:
             items = []
@@ -680,6 +1080,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         setting = "mdf/channels_view" if widget is self.channels_tree else "mdf/filter_view"
         self._settings.setValue(setting, view.currentText())
+
+        print('update tree', perf_counter()-t0)
 
     def output_format_changed(self, name):
         if name == "MDF":

@@ -76,7 +76,7 @@ def add_children(
 
         entry = ch.entry
 
-        child = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=origin_uuid)
+        child = MinimalTreeItem(ch.name, strings=[ch.name], origin_uuid=origin_uuid)
 
         dep = channel_dependencies[entry[1]]
         if version >= "4.00":

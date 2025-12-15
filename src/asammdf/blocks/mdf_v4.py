@@ -11434,8 +11434,11 @@ class MDF4(MDF_Common[Group]):
                                     dep.comparison_quantity_ch_addr = ch.address
 
                                 for i, (gp_nr, ch_nr) in enumerate(filter(None, dep.axis_channels)):
-                                    grp = self.groups[gp_nr]
-                                    ch = grp.channels[ch_nr]
+                                    try:
+                                        grp = self.groups[gp_nr]
+                                        ch = grp.channels[ch_nr]
+                                    except:
+                                        sssw = 8
                                     dep[f"scale_axis_{i}_dg_addr"] = grp.data_group.address
                                     dep[f"scale_axis_{i}_cg_addr"] = grp.channel_group.address
                                     dep[f"scale_axis_{i}_ch_addr"] = ch.address

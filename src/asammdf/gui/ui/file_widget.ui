@@ -109,15 +109,10 @@
             </widget>
            </item>
            <item>
-            <widget class="TreeWidget" name="channels_tree">
+            <widget class="QTreeView" name="channels_tree">
              <property name="toolTip">
               <string>Double click channel to see extended information</string>
              </property>
-             <column>
-              <property name="text">
-               <string>Channels</string>
-              </property>
-             </column>
             </widget>
            </item>
            <item>
