@@ -29,7 +29,7 @@ from ..utils import (
 from .tree_item import MinimalTreeItem
 
 NOT_FOUND = 0xFFFFFFFF
-MINIMUM_COLUMN_WIDTH = 20
+MINIMUM_COLUMN_WIDTH = 30
 
 
 def substitude_mime_uuids(mime, uuid=None, force=False, random_uuid=False):
@@ -1807,6 +1807,12 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if column not in (self.CommonAxisColumn, self.IndividualAxisColumn):
             width = max(width, MINIMUM_COLUMN_WIDTH)
             super().setColumnWidth(column, width)
+
+    def setColumnHidden(self, column, hidden):
+        if column in (self.ValueColumn, self.NameColumn):
+            super().setColumnHidden(column, False)
+        else:
+            super().setColumnHidden(column, hidden)
 
     def set_font_size(self, size):
         font = self.font()
