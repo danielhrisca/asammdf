@@ -3584,8 +3584,9 @@ class MDF4(MDF_Common[Group]):
                 names_nr = len(names)
 
                 metadata = array_dtype[array_name].metadata or array_dtype[array_name].base.metadata or {}
-                if metadata:
+                if 'axes' in metadata:
                     array_axes = metadata['axes']
+
                 else:
                     if len(names) == 1:
                         array_axes = [
