@@ -75,7 +75,7 @@ class Terminated(Exception):
 
 
 THREAD_COUNT: Final = max(multiprocessing.cpu_count() - 1, 1)
-target_byte_order: Final = "<=" if sys.byteorder == "little" else ">="
+target_byte_order: Final = "<=|" if sys.byteorder == "little" else ">=|"
 
 
 UINT8_u: Callable[[Buffer], tuple[int]] = Struct("<B").unpack

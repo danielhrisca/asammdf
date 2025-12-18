@@ -202,7 +202,7 @@ class PlotSignal(Signal):
         self.channel_index = getattr(signal, "channel_index", NOT_FOUND)
         self.precision = getattr(signal, "precision", 3)
 
-        self._mode = "raw"
+        self._mode = "phys"
         self.enable = getattr(signal, "enable", False)
 
         self.format = getattr(signal, "format", "phys")
