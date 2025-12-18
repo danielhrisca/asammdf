@@ -21,11 +21,11 @@ from ...blocks.utils import extract_encryption_information, extract_xml_comment,
 from ...blocks.v4_blocks import AttachmentBlock, FileHistory, HeaderBlock
 from ...blocks.v4_blocks import TextBlock as TextV4
 from ...blocks.v4_constants import (
-    BUS_TYPE_NONE,
     BUS_TYPE_CAN,
     BUS_TYPE_ETHERNET,
     BUS_TYPE_FLEXRAY,
     BUS_TYPE_LIN,
+    BUS_TYPE_NONE,
     BUS_TYPE_USB,
     CompressionAlgorithm,
     FLAG_CG_BUS_EVENT,
