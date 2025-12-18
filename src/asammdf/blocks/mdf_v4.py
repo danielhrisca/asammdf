@@ -8335,7 +8335,6 @@ class MDF4(MDF_Common[Group]):
             record_size += channel_group.invalidation_bytes_nr
 
             ch_dtype = np.min_scalar_type(channel_group.cycles_nr) 
-            print('min', channel.name, ch_dtype)
             channel.dtype_fmt = ch_dtype
 
             count = 0
@@ -8348,8 +8347,6 @@ class MDF4(MDF_Common[Group]):
                     fragment.invalidation_data,
                 )
                 offset = offset // record_size
-
-                print(offset, type(offset))
 
                 vals = arange(len(data_bytes) // record_size, dtype=ch_dtype)
                 vals += offset
@@ -8432,8 +8429,6 @@ class MDF4(MDF_Common[Group]):
                         signal.timestamps,
                         signal.invalidation_bits,
                     )
-
-            print(vals.dtype)
 
         else:
             channel_group = grp.channel_group
