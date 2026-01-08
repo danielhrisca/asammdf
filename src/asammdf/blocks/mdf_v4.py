@@ -4167,6 +4167,7 @@ class MDF4(MDF_Common[Group]):
                             original_size=raw_size,
                             compressed_size=size,
                             param=0,
+                            location=v4c.LOCATION_TEMPORARY_FILE,
                         )
                     )
 
@@ -4187,6 +4188,7 @@ class MDF4(MDF_Common[Group]):
                         original_size=raw_size,
                         compressed_size=size,
                         param=0,
+                        location=v4c.LOCATION_TEMPORARY_FILE,
                     )
                 )
 
@@ -4360,6 +4362,7 @@ class MDF4(MDF_Common[Group]):
                             original_size=chunk,
                             compressed_size=chunk,
                             param=0,
+                            location=v4c.LOCATION_TEMPORARY_FILE,
                         )
                     )
                     data_address += chunk
@@ -4372,6 +4375,7 @@ class MDF4(MDF_Common[Group]):
                             original_size=size,
                             compressed_size=size,
                             param=0,
+                            location=v4c.LOCATION_TEMPORARY_FILE,
                         )
                     )
                     size = 0
@@ -5007,6 +5011,7 @@ class MDF4(MDF_Common[Group]):
                         original_size=raw_size,
                         compressed_size=size,
                         param=0,
+                        location=v4c.LOCATION_TEMPORARY_FILE,
                     )
                 )
 
@@ -5318,6 +5323,7 @@ class MDF4(MDF_Common[Group]):
                     original_size=size,
                     compressed_size=size,
                     param=0,
+                    location=v4c.LOCATION_TEMPORARY_FILE,
                 )
             )
         else:
@@ -6596,6 +6602,7 @@ class MDF4(MDF_Common[Group]):
                             original_size=raw_size,
                             compressed_size=size,
                             param=0,
+                            location=v4c.LOCATION_TEMPORARY_FILE,
                         )
                     )
 
@@ -6615,6 +6622,7 @@ class MDF4(MDF_Common[Group]):
                         original_size=raw_size,
                         compressed_size=size,
                         param=0,
+                        location=v4c.LOCATION_TEMPORARY_FILE,
                     )
                 )
 
@@ -6768,6 +6776,7 @@ class MDF4(MDF_Common[Group]):
                         original_size=raw_size,
                         compressed_size=size,
                         param=0,
+                        location=v4c.LOCATION_TEMPORARY_FILE,
                     )
                 )
 
@@ -7431,6 +7440,7 @@ class MDF4(MDF_Common[Group]):
  
                 if (
                     data is None
+                    and grp.data_location == v4c.LOCATION_ORIGINAL_FILE
                     and self._mapped_file
                     and not grp.signal_data[ch_nr]
                     and grp.record[ch_nr]
@@ -12160,6 +12170,7 @@ class MDF4(MDF_Common[Group]):
                                             compressed_size=compressed_size,
                                             original_size=original_size,
                                             param=0,
+                                            location=v4c.LOCATION_TEMPORARY_FILE,
                                         )
                                         final_records[rec_id].append(block_info)
                                 else:
@@ -12186,6 +12197,7 @@ class MDF4(MDF_Common[Group]):
                                             compressed_size=original_size,
                                             original_size=original_size,
                                             param=0,
+                                            location=v4c.LOCATION_TEMPORARY_FILE,
                                         )
                                         final_records[rec_id].append(block_info)
 
@@ -12250,6 +12262,7 @@ class MDF4(MDF_Common[Group]):
                                                 compressed_size=compressed_size,
                                                 original_size=original_size,
                                                 param=None,
+                                                location=v4c.LOCATION_TEMPORARY_FILE,
                                             )
 
                                             final_records[rec_id].append(block_info)
@@ -12277,6 +12290,7 @@ class MDF4(MDF_Common[Group]):
                                                 compressed_size=original_size,
                                                 original_size=original_size,
                                                 param=None,
+                                                location=v4c.LOCATION_TEMPORARY_FILE,
                                             )
 
                                             final_records[rec_id].append(block_info)

@@ -1467,6 +1467,7 @@ class DataBlockInfo:
         "first_timestamp",
         "invalidation_block",
         "last_timestamp",
+        "location",
         "original_size",
         "param",
     )
@@ -1482,6 +1483,7 @@ class DataBlockInfo:
         block_limit: int | None = None,
         first_timestamp: bytes | None = None,
         last_timestamp: bytes | None = None,
+        location: int = v4c.LOCATION_ORIGINAL_FILE,
     ) -> None:
         self.address = address
         self.block_type = block_type
@@ -1492,6 +1494,7 @@ class DataBlockInfo:
         self.block_limit = block_limit
         self.first_timestamp = first_timestamp
         self.last_timestamp = last_timestamp
+        self.location = location
 
     def __repr__(self) -> str:
         return (
@@ -1503,7 +1506,8 @@ class DataBlockInfo:
             f"invalidation_block={self.invalidation_block}, "
             f"block_limit={self.block_limit}, "
             f"first_timestamp={self.first_timestamp!r}, "
-            f"last_timestamp={self.last_timestamp!r})"
+            f"last_timestamp={self.last_timestamp!r},)"
+            f"location={self.location!r})"
         )
 
 

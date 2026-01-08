@@ -1642,6 +1642,7 @@ class MDF3(MDF_Common[Group]):
                             compressed_size=size,
                             block_type=0,
                             param=0,
+                            location=1,
                         )
                     )
                 else:
@@ -2030,6 +2031,7 @@ class MDF3(MDF_Common[Group]):
                             compressed_size=size,
                             block_type=0,
                             param=0,
+                            location=1,
                         )
                     )
                 else:
@@ -2084,6 +2086,7 @@ class MDF3(MDF_Common[Group]):
                     original_size=size,
                     compressed_size=size,
                     param=0,
+                    location=1,
                 )
             )
 
@@ -2331,6 +2334,7 @@ class MDF3(MDF_Common[Group]):
                     original_size=size,
                     compressed_size=size,
                     param=0,
+                    location=1,
                 )
             )
         else:
@@ -2513,6 +2517,7 @@ class MDF3(MDF_Common[Group]):
                             compressed_size=extended_size,
                             block_type=0,
                             param=0,
+                            location=1,
                         )
                     )
 
@@ -2564,6 +2569,7 @@ class MDF3(MDF_Common[Group]):
                     original_size=extended_size,
                     compressed_size=extended_size,
                     param=0,
+                    location=1,
                 )
             )
 
@@ -3719,6 +3725,7 @@ class MDF3(MDF_Common[Group]):
                         original_size=size,
                         compressed_size=size,
                         param=0,
+                        location=1,
                     )
                     data_blocks[rec_id] = [block_info]
 
