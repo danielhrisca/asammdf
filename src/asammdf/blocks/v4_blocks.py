@@ -53,7 +53,9 @@ except:
 COMPRESSION_LEVEL = 2
 
 try:
+    from deflate import zlib_compress as compress
     from deflate import zlib_decompress
+    
     def decompress(data, bufsize):
         return zlib_decompress(data, originalsize=bufsize)
 
