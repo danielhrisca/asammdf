@@ -7448,7 +7448,7 @@ class MDF4(MDF_Common[Group]):
                     
                     if master_is_required:
                         master_channel = grp.channels[master_index]
-                        info = typing.cast(
+                        channel_dtype, byte_size, byte_offset, bit_offset = info = typing.cast(
                             tuple[np.dtype[Any], int, int, int], grp.record[master_index]
                         )
                         signals.append(
