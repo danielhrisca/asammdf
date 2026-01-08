@@ -36,6 +36,7 @@ keywords = [
 dependencies = [
     "canmatrix[arxml,dbc]>=1.2",
     "isal; platform_machine == 'x86_64' or platform_machine == 'AMD64'",
+    "deflate; platform_machine == 'x86_64' or platform_machine == 'AMD64'",
     "lxml>=4.9.3",
     "lz4",
     "numexpr>=2.10.0",

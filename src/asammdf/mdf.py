@@ -32,9 +32,14 @@ from pandas import DataFrame
 from typing_extensions import Any, LiteralString, Never, overload, TypedDict, Unpack
 
 try:
-    from isal.isal_zlib import decompress
+    from deflate import zlib_decompress
+    def decompress(data, bufsize):
+        return zlib_decompress(data, originalsize=bufsize)
 except ImportError:
-    from zlib import decompress
+    try: 
+        from isal.isal_zlib import decompress
+    except ImportError:
+        from zlib import decompress
 import tempfile
 
 from lz4.frame import compress as lz_compress

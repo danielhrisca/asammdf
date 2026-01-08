@@ -50,18 +50,24 @@ try:
 except:
     pass
 
-try:
-    from isal.isal_zlib import compress, decompress
+COMPRESSION_LEVEL = 2
 
-    COMPRESSION_LEVEL = 2
+try:
+    from deflate import zlib_decompress
+    def decompress(data, bufsize):
+        return zlib_decompress(data, originalsize=bufsize)
 
 except ImportError:
-    from zlib import (  # type: ignore[assignment, no-redef, unused-ignore]
-        compress,
-        decompress,
-    )
+    try:
+        from isal.isal_zlib import compress, decompress
 
-    COMPRESSION_LEVEL = 1
+    except ImportError:
+        from zlib import (  # type: ignore[assignment, no-redef, unused-ignore]
+            compress,
+            decompress,
+        )
+
+        COMPRESSION_LEVEL = 1
 
 try:
     from sympy import lambdify, symbols

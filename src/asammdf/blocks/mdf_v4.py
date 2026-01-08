@@ -158,9 +158,15 @@ except:
     CRYPTOGRAPHY_AVAILABLE = False
 
 try:
-    from isal.isal_zlib import decompress
+    from deflate import zlib_decompress
+    def decompress(data, bufsize):
+        return zlib_decompress(data, originalsize=bufsize)
+    
 except ImportError:
-    from zlib import decompress
+    try: 
+        from isal.isal_zlib import decompress
+    except ImportError:
+        from zlib import decompress
 
 if TYPE_CHECKING:
     from ..mdf import MDF
