@@ -7514,6 +7514,8 @@ class MDF4(MDF_Common[Group]):
 
                     if master_is_required:
                         master, signal = signals
+                        if master_channel.conversion:
+                            master = master_channel.conversion.convert(master)
                         samples, timestamps, invalidation_bits, encoding = signal[0], master[0], signal[1], None
                     else:
                         signal = signals[0]
