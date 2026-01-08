@@ -7484,7 +7484,7 @@ class MDF4(MDF_Common[Group]):
 
                     signals = []
 
-                    for info, channel, (raw_data, invalidation_bits) in zip(info_rec, channels, raw_and_invalidation):
+                    for info, channel, (raw_data, invalidation_bits) in zip(info_rec, channels, raw_and_invalidation, strict=False):
 
                         channel_dtype, byte_size, byte_offset, bit_offset = info
 

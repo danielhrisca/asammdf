@@ -1,3 +1,8 @@
 [submodule "ext/libdeflate"]
 	path = ext/libdeflate
 	url = https://github.com/ebiggers/libdeflate
+
+[submodule "ext/lz4"]
+	path = ext/lz4
+	url = https://github.com/lz4/lz4
+
