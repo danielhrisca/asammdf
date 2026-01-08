@@ -2531,8 +2531,6 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 
       for (int i=0; i<info_count; i++) {
         thread = &thread_info[position];
-        if (i % 10000 == 0)
-          printf("block i=%d\n", i);
 
         if (i >= thread_count) {
 #if defined(_WIN32)

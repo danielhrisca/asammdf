@@ -4201,7 +4201,6 @@ class MDF:
                 channel = grp.channels[ch_index]
 
                 if (info := grp.record[ch_index]) is None:
-                    print("NASOl")
                     return self._select_fallback(
                         channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
                     )

@@ -74,6 +74,7 @@ from .cutils import (
     data_block_from_arrays,
     extract,
     get_channel_raw_bytes,
+    get_channel_raw_bytes_complete,
     get_channel_raw_bytes_parallel,
     get_invalidation_bits_array,
     get_vlsd_max_sample_size,
@@ -1800,7 +1801,7 @@ class MDF4(MDF_Common[Group]):
                         finished = True
                         break
 
-                if 0 and (vv := (perf_counter() - tt)) > 10:
+                if (vv := (perf_counter() - tt)) > 10:
                     print(f"{ss / 1024 / 1024 / vv:.6f} MB/s {cc=} {vv=}")
                     cc = 0
                     ss = 0
@@ -7365,6 +7366,7 @@ class MDF4(MDF_Common[Group]):
         dependency_list = grp.channel_dependencies[ch_nr]
 
         master_is_required = not samples_only or bool(raster)
+        master_index = self.masters_db.get(gp_nr, None)
 
         vals: NDArray[Any] | None = None
         all_invalid = False
@@ -7426,28 +7428,119 @@ class MDF4(MDF_Common[Group]):
                     )
 
             else:
+ 
                 if (
-                    data
-                    and (fast_path := channel.fast_path) is not None
-                    and not master_is_required
-                    and ignore_invalidation_bits
-                    and not raster
+                    data is None
+                    and self._mapped_file
+                    and not grp.signal_data[ch_nr]
+                    and grp.record[ch_nr]
+                    and (not master_is_required or (master_is_required and master_index is not None and grp.record[master_index]))
                 ):
-                    samples, timestamps, invalidation_bits, encoding = self._fast_scalar_path(*fast_path, data)
-                else:
-                    samples, timestamps, invalidation_bits, encoding = self._get_scalar(
-                        channel=channel,
-                        group=grp,
-                        group_index=gp_nr,
-                        channel_index=ch_nr,
-                        dependency_list=dependency_list,
-                        raster=raster,
-                        data=data,
-                        ignore_invalidation_bits=ignore_invalidation_bits,
-                        record_offset=record_offset,
-                        record_count=record_count,
-                        master_is_required=master_is_required,
+
+                    grp.load_all_data_blocks()
+                    blocks = grp.data_blocks
+                    record_size = grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr
+                    cycles_nr = grp.channel_group.cycles_nr
+
+                    signals = []
+                    channels = []
+                    info_rec = []
+                    
+                    if master_is_required:
+                        master_channel = grp.channels[master_index]
+                        info = typing.cast(
+                            tuple[np.dtype[Any], int, int, int], grp.record[master_index]
+                        )
+                        signals.append(
+                            (byte_offset, byte_size, master_channel.pos_invalidation_bit)
+                        )
+                        channels.append(master_channel)
+                        info_rec.append(info)
+                    
+                    channel_dtype, byte_size, byte_offset, bit_offset = info = grp.record[ch_nr]
+                    signals.append((byte_offset, byte_size, channel.pos_invalidation_bit))
+                    channels.append(channel)
+                    info_rec.append(info)
+
+                    raw_and_invalidation = get_channel_raw_bytes_complete(
+                        blocks,
+                        signals,
+                        self._mapped_file.name,
+                        cycles_nr,
+                        record_size,
+                        grp.channel_group.invalidation_bytes_nr,
+                        THREAD_COUNT,
                     )
+
+                    signals = []
+
+                    for info, channel, (raw_data, invalidation_bits) in zip(info_rec, channels, raw_and_invalidation):
+
+                        channel_dtype, byte_size, byte_offset, bit_offset = info
+
+                        vals = np.frombuffer(raw_data, dtype=channel_dtype)
+
+                        data_type = channel.data_type
+
+                        if not channel.standard_C_size:
+                            size = byte_size
+
+                            if channel_dtype.byteorder == "=" and data_type in (
+                                v4c.DATA_TYPE_SIGNED_MOTOROLA,
+                                v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                            ):
+                                view = np.dtype(f">u{vals.itemsize}")
+                            else:
+                                view = np.dtype(f"{channel_dtype.byteorder}u{vals.itemsize}")
+
+                            if view != vals.dtype:
+                                vals = vals.view(view)
+
+                            if bit_offset:
+                                vals >>= bit_offset
+
+                            if channel.bit_count != size * 8:
+                                if data_type in v4c.SIGNED_INT:
+                                    vals = as_non_byte_sized_signed_int(vals, channel.bit_count)
+                                else:
+                                    mask = (1 << channel.bit_count) - 1
+                                    vals &= mask
+                            elif data_type in v4c.SIGNED_INT:
+                                view = f"{channel_dtype.byteorder}i{vals.itemsize}"
+                                if np.dtype(view) != vals.dtype:
+                                    vals = vals.view(view)
+
+                        signals.append((vals, invalidation_bits))
+
+                    if master_is_required:
+                        master, signal = signals
+                        samples, timestamps, invalidation_bits, encoding = signal[0], master[0], signal[1], None
+                    else:
+                        signal = signals[0]
+                        samples, timestamps, invalidation_bits, encoding = signal[0], None, signal[1], None
+
+                else:
+                    if (
+                        (fast_path := channel.fast_path) is not None
+                        and not master_is_required
+                        and ignore_invalidation_bits
+                        and not raster
+                    ):
+                        samples, timestamps, invalidation_bits, encoding = self._fast_scalar_path(*fast_path, data)
+                    else:
+                        samples, timestamps, invalidation_bits, encoding = self._get_scalar(
+                            channel=channel,
+                            group=grp,
+                            group_index=gp_nr,
+                            channel_index=ch_nr,
+                            dependency_list=dependency_list,
+                            raster=raster,
+                            data=data,
+                            ignore_invalidation_bits=ignore_invalidation_bits,
+                            record_offset=record_offset,
+                            record_count=record_count,
+                            master_is_required=master_is_required,
+                        )
 
         else:
             samples = vals
@@ -7479,8 +7572,8 @@ class MDF4(MDF_Common[Group]):
                     samples = conversion.convert(samples)
                     conversion = None
 
-                if samples.dtype.kind == "S":
-                    encoding = "utf-8"
+            if samples.dtype.kind == "S":
+                encoding = "utf-8"
 
             channel_type = channel.channel_type
 
