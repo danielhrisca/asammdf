@@ -5,6 +5,7 @@ from functools import lru_cache
 import logging
 import mmap
 import multiprocessing
+import os
 from pathlib import Path
 from random import randint
 import re
@@ -12,7 +13,7 @@ import string
 from struct import Struct
 import subprocess
 import sys
-from tempfile import TemporaryDirectory
+from tempfile import TemporaryDirectory, gettempdir
 from time import perf_counter
 from types import TracebackType
 import typing
@@ -1489,7 +1490,7 @@ class DataBlockInfo:
         self.block_type = block_type
         self.original_size = original_size
         self.compressed_size = compressed_size
-        self.param = param
+        self.param = param or 0
         self.invalidation_block = invalidation_block
         self.block_limit = block_limit
         self.first_timestamp = first_timestamp
@@ -1956,3 +1957,97 @@ def handle_incomplete_block(address: int, file_limit: int, file: StrPath | None 
 
     if GLOBAL_OPTIONS["raise_on_incomplete_blocks"]:
         raise MdfException(msg)
+
+
+if sys.platform == 'win32':
+    class NamedTemporaryFile:
+        def __init__(self, mode='w+b', dir=None):
+            if dir is None:
+                self.dir = Path(gettempdir())
+            else:
+                self.dir = Path(dir)
+
+            self.name = str(self.dir / os.urandom(6).hex())
+            self.mode = 'w+b'
+            self.file = os.open(self.name, os.O_CREAT | os.O_RDWR | os.O_BINARY | os.O_RANDOM)
+            self._closed = False
+
+        def close(self):
+            os.close(self.file)
+            self._closed = True
+            Path(self.name).unlink()
+        
+        def closed(self):
+            return self._closed
+        
+        def fileno(self):
+            return self.file
+        
+        def flush(self):
+            return os.fsync(self.file)
+        
+        def isatty(self):
+            return os.isatty(self.file)
+        
+        def peek(self, size=0):
+            pos = self.tell()
+            data = os.read(self.file, size)
+            self.seek(pos)
+            return data
+        
+        @property
+        def raw(self):
+            return None
+        
+        def read(self, size=-1):
+            if size == -1:
+                pos = self.tell()
+                self.seek(0, os.SEEK_END)
+                size = self.tell()-pos
+                self.seek(pos)
+
+            return os.read(self.file, size)
+        
+        def read1(self):
+            return os.read(self.file, 1)
+        
+        def readable(self):
+            return True
+        
+        def readinto(self, buffer):
+            buffer[:] = self.read()
+        
+        def readinto1(self, buffer):
+            buffer[:1] = self.read1()
+        
+        def readline(self):
+            return b''
+        
+        def readlines(self):
+            return []
+        
+        def seek(self, target, whence=os.SEEK_SET):
+            return os.lseek(self.file, target, whence)
+        
+        def seekable(self):
+            return True
+        
+        def tell(self):
+            return os.lseek(self.file, 0, os.SEEK_CUR)
+        
+        def truncate(self, length=None):
+            if length is not None:
+                return os.ftruncate(self.file, length)
+        
+        def writeable(self):
+            return True
+        
+        def write(self, buffer):
+            return os.write(self.file, buffer)
+        
+        def writelines(self, lines):
+            for line in lines:
+                return os.write(self.file, line)
+        
+else:
+    from tempfile import NamedTemporaryFile

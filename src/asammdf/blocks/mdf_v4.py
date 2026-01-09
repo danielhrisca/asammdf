@@ -18,7 +18,7 @@ import re
 import shutil
 import sys
 import tempfile
-from tempfile import gettempdir, NamedTemporaryFile
+from tempfile import gettempdir
 from traceback import format_exc
 import typing
 from typing import BinaryIO, Final, Literal, TYPE_CHECKING
@@ -111,6 +111,7 @@ from .utils import (
     is_file_like,
     load_can_database,
     MdfException,
+    NamedTemporaryFile,
     SignalDataBlockInfo,
     Terminated,
     THREAD_COUNT,
@@ -383,6 +384,7 @@ class MDF4(MDF_Common[Group]):
         self._column_storage = False
 
         self._units_map = {}
+        self._mapped_file = None
 
         super().__init__(kwargs.get("raise_on_multiple_occurrences", GLOBAL_OPTIONS["raise_on_multiple_occurrences"]))
 
@@ -7440,12 +7442,16 @@ class MDF4(MDF_Common[Group]):
  
                 if (
                     data is None
-                    and grp.data_location == v4c.LOCATION_ORIGINAL_FILE
                     and self._mapped_file
                     and not grp.signal_data[ch_nr]
                     and grp.record[ch_nr]
                     and (not master_is_required or (master_is_required and master_index is not None and grp.record[master_index]))
                 ):
+                    if grp.data_location == v4c.LOCATION_ORIGINAL_FILE:
+                        file_name = self._mapped_file.name
+                    else:
+                        file_name = self._tempfile.name
+
 
                     grp.load_all_data_blocks()
                     blocks = grp.data_blocks
@@ -7475,7 +7481,7 @@ class MDF4(MDF_Common[Group]):
                     raw_and_invalidation = get_channel_raw_bytes_complete(
                         blocks,
                         signals,
-                        self._mapped_file.name,
+                        file_name,
                         cycles_nr,
                         record_size,
                         grp.channel_group.invalidation_bytes_nr,

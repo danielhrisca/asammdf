@@ -2161,7 +2161,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
         current_uncompressed_size=original_size;
       }
 
-      const int decompressed_size = LZ4_decompress_safe(inptr, pUncomp, compressed_size, original_size);
+      int decompressed_size = LZ4_decompress_safe((char *)inptr, (char *) pUncomp, (size_t)compressed_size, (size_t)original_size);
 
       // reverse transposition
       if (block_type == 4) {
@@ -2286,26 +2286,41 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 
     hFile = CreateFile(lpFileName,
                        GENERIC_READ,                          // dwDesiredAccess
-                       FILE_SHARE_READ,                                     // dwShareMode
+                       FILE_SHARE_READ,                       // dwShareMode
                        NULL,                                  // lpSecurityAttributes
                        OPEN_EXISTING,                         // dwCreationDisposition
                        FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
                        0);                                    // hTemplateFile
     if (hFile == INVALID_HANDLE_VALUE) {
-      fprintf(stderr, "CreateFile failed with error %d\n", GetLastError());
-      return 1;
+      hFile = CreateFile(lpFileName,
+                         GENERIC_READ,                          // dwDesiredAccess
+                         FILE_SHARE_READ|FILE_SHARE_WRITE,                                     // dwShareMode
+                         NULL,                                  // lpSecurityAttributes
+                         OPEN_EXISTING,                         // dwCreationDisposition
+                         FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
+                         0);
+      if (hFile == INVALID_HANDLE_VALUE) {
+        fprintf(stderr, "CreateFile failed with error %d\n", GetLastError());
+        snprintf(err_string, 1024, "CreateFile failed with error %d\n\0", GetLastError());
+        PyErr_SetString(PyExc_OSError, err_string);
+        return NULL;
+      }
     }
 
     if (!GetFileSizeEx(hFile, &liFileSize)) {
       fprintf(stderr, "GetFileSize failed with error %d\n", GetLastError());
+      snprintf(err_string, 1024, "GetFileSize failed with error %d\n\0", GetLastError());
+      PyErr_SetString(PyExc_OSError, err_string);
       CloseHandle(hFile);
-      return 1;
+      return NULL;
     }
 
     if (liFileSize.QuadPart == 0) {
       fprintf(stderr, "File is empty\n");
+      snprintf(err_string, 1024, "File is empty\n\0");
+      PyErr_SetString(PyExc_OSError, err_string);
       CloseHandle(hFile);
-      return 1;
+      return NULL;
     }
 
     hMap = CreateFileMapping(
@@ -2317,8 +2332,10 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
              NULL);                         // Name
     if (hMap == 0) {
       fprintf(stderr, "CreateFileMapping failed with error %d\n", GetLastError());
+      snprintf(err_string, 1024, "CreateFileMapping failed with error %d\n\0", GetLastError());
+      PyErr_SetString(PyExc_OSError, err_string);
       CloseHandle(hFile);
-      return 1;
+      return NULL;
     }
 
     lpBasePtr = MapViewOfFile(
@@ -2329,9 +2346,11 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
                   0);                    // dwNumberOfBytesToMap
     if (lpBasePtr == NULL) {
       fprintf(stderr, "MapViewOfFile failed with error %d\n", GetLastError());
+      snprintf(err_string, 1024, "MapViewOfFile failed with error %d\n\0", GetLastError());
+      PyErr_SetString(PyExc_OSError, err_string);
       CloseHandle(hMap);
       CloseHandle(hFile);
-      return 1;
+      return NULL;
     }
 
     HANDLE  *hThreads, *block_ready, *bytes_ready;
@@ -2434,12 +2453,12 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       info_count = PyTuple_Size(data_blocks_info);
     }
 
-
     if (info_count)
     {
       if (info_count < thread_count) {
         thread_count = info_count;
       }
+
       block_info = (PtrInfoBlock) malloc(sizeof(InfoBlock) * info_count);
       if (!block_info) {
         PyErr_SetString(PyExc_ValueError, "Memmory allocation error for block_info\n\0");
@@ -2677,7 +2696,10 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     PyObject *inv, *inv_array, *origin;
 
     out = PyTuple_New(signal_count);
-    if (!out) return NULL;
+    if (!out) {
+      printf("erorare PyTuple_New(signal_count)\n");
+      return NULL;
+    }
 
     uint8_t * invalidation_data = NULL;
     if (invalidation_bytes) {
@@ -2694,7 +2716,10 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     for (int i=0; i<signal_count; i++) {
       //printf("signal %d\n", i);
       ref = PyTuple_New(2);
-      if (!ref) return NULL;
+      if (!ref) {
+        printf("erorare PyTuple_New(2)\n");
+        return NULL;
+      }
       PyTuple_SetItem(ref, 0, signal_info[i].obj);
       if (invalidation_data) {
         if (cache[signal_info[i].invalidation_bit_position] < 0)

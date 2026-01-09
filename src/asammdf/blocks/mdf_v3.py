@@ -11,7 +11,6 @@ import mmap
 import os
 from pathlib import Path
 import sys
-from tempfile import NamedTemporaryFile
 import time
 from traceback import format_exc
 import typing
@@ -61,6 +60,7 @@ from .utils import (
     get_text_v3,
     is_file_like,
     MdfException,
+    NamedTemporaryFile,
     Terminated,
     UniqueDB,
     validate_version_argument,
@@ -241,6 +241,8 @@ class MDF3(MDF_Common[Group]):
         self._delete_on_close = False
 
         progress = kwargs.get("progress", None)
+
+        self._mapped_file = None 
 
         super().__init__(kwargs.get("raise_on_multiple_occurrences", GLOBAL_OPTIONS["raise_on_multiple_occurrences"]))
 
