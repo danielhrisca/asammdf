@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <libdeflate.h>
+#include <lz4.h>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -2087,10 +2088,11 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
     }
 
     if (block_type == 0) {
+      // no compression
       data_ptr = inptr;
-
     }
-    else {
+    else if ((block_type == 1) || (block_type == 2)) {
+      // zlib deflate compression with or without transposition
 
       // decompress
       if (original_size > current_uncompressed_size) {
@@ -2146,6 +2148,57 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
       else {
         data_ptr = pUncomp;
       }
+    }
+    else if ((block_type == 3) || (block_type == 4)) {
+      // LZ with or without transposition
+
+      // decompress
+      if (original_size > current_uncompressed_size) {
+        //printf("\tThr %d new ptr\n", thread_info->idx);
+        if (pUncomp) free(pUncomp);
+        pUncomp = (uint8_t *) malloc(original_size);
+        //if (!pUncomp) printf("\tThr %d pUncomp error\n", thread_info->idx);
+        current_uncompressed_size=original_size;
+      }
+
+      const int decompressed_size = LZ4_decompress_safe(inptr, pUncomp, compressed_size, original_size);
+
+      // reverse transposition
+      if (block_type == 4) {
+        cols = param;
+        lines = original_size / cols;
+
+        if (current_out_size < original_size) {
+          //printf("\tThr %d new trtrtrptr\n", thread_info->idx);
+          if (pUncompTr) free(pUncompTr);
+          pUncompTr = (uint8_t *) malloc(original_size);
+          //if (!pUncompTr) printf("\tThr %d pUncompTr error\n", thread_info->idx);
+          current_out_size = original_size;
+        }
+
+        start = clock();
+        read = pUncomp;
+        for (int j = 0; j < (Py_ssize_t)cols; j++)
+        {
+          write = pUncompTr + j;
+          for (int i = 0; i < (Py_ssize_t)lines; i++)
+          {
+            *write = *read++;
+            write += cols;
+          }
+        }
+        end = clock();
+        t7 += end - start;
+
+        data_ptr = pUncompTr;
+
+        //printf("\tThr %d transposed\n", thread_info->idx);
+
+      }
+      else {
+        data_ptr = pUncomp;
+      }
+
     }
 
     //printf("\tThr %d %d %d\n", thread_info->idx, cycles, max_cycles);
