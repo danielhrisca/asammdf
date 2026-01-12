@@ -2050,4 +2050,5 @@ if sys.platform == 'win32':
                 return os.write(self.file, line)
         
 else:
-    pass
+    from tempfile import NamedTemporaryFile
+    
