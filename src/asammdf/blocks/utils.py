@@ -13,7 +13,7 @@ import string
 from struct import Struct
 import subprocess
 import sys
-from tempfile import TemporaryDirectory, gettempdir
+from tempfile import gettempdir, TemporaryDirectory
 from time import perf_counter
 from types import TracebackType
 import typing
@@ -2050,4 +2050,4 @@ if sys.platform == 'win32':
                 return os.write(self.file, line)
         
 else:
-    from tempfile import NamedTemporaryFile
+    pass

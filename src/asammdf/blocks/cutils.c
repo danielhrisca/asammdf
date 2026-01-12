@@ -10,6 +10,7 @@
 #include <time.h>
 #include <libdeflate.h>
 #include <lz4.h>
+#include <lz4frame.h>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -2040,7 +2041,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
   record_size = thread_info->record_size;
 
-  int result;
+  int result, end_of_frame=0;
   clock_t start, end;
   double t1=0, t2=0, t3=0, t4=0, t5=0, t6=0, t7=0;
 
@@ -2048,6 +2049,13 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   uint8_t *pUncomp=NULL, *pUncompTr=NULL, *read, *data_ptr;
 
   inptr = thread_info->inptr;
+  char * destination_cursor;
+  char * source_cursor, *source_end ;
+  size_t destination_written;
+  size_t destination_write;
+  size_t destination_size;
+  size_t source_remain;
+  size_t source_read;
 
   while (1) {
 #if defined(_WIN32)
@@ -2058,7 +2066,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
     t3 += end - start;
     if (thread_info->stop) break;
 
-    /* printf("Thr %d processing\n", thread_info->idx);
+    /* printf("Thr %d processing %d signals\n", thread_info->idx, thread_info->signal_count);
     printf("Block type=%d\n", thread_info->block_info->block_type);
     printf("Block limit=%d\n", thread_info->block_info->block_limit);
     printf("Block original_size%d\n", thread_info->block_info->original_size);
@@ -2161,7 +2169,78 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
         current_uncompressed_size=original_size;
       }
 
-      int decompressed_size = LZ4_decompress_safe((char *)inptr, (char *) pUncomp, (size_t)compressed_size, (size_t)original_size);
+      destination_cursor = pUncomp;
+      source_cursor = inptr;
+      destination_size = original_size;
+      destination_write = destination_size;
+      destination_written = 0;
+      source_read = compressed_size;
+      source_end = inptr + compressed_size;
+
+      LZ4F_decompressOptions_t options;
+      memset(&options, 0, sizeof options);
+      options.stableDst = 1;
+
+      LZ4F_dctx* dctx;
+      { size_t const dctxStatus = LZ4F_createDecompressionContext(&dctx, LZ4F_VERSION);
+        if (LZ4F_isError(dctxStatus)) {
+          snprintf(err_string, 1024, "LZ4F_dctx creation error: %s\n\0", LZ4F_getErrorName(dctxStatus));
+          return 1;
+        }
+      }
+
+      LZ4F_frameInfo_t info;
+      size_t consumedSize = 0;
+      { size_t const fires = LZ4F_getFrameInfo(dctx, &info, source_cursor, &source_read);
+        if (LZ4F_isError(fires)) {
+          snprintf(err_string, 1024, "LZ4F_getFrameInfo error: %s\n\0", LZ4F_getErrorName(fires));
+          return 1;
+        }
+      }
+
+      source_cursor += source_read;
+      source_remain -= source_read;
+
+      source_read = source_remain;
+
+
+      while (1)
+      {
+        result = LZ4F_decompress (dctx,
+                                  destination_cursor,
+                                  &destination_write,
+                                  source_cursor,
+                                  &source_read,
+                                  &options);
+
+        if (LZ4F_isError (result))
+        {
+          snprintf(err_string, 1024, "LZ4F_decompress failed with code: %s\n\0", LZ4F_getErrorName(result));
+          return 1;
+        }
+
+        destination_written += destination_write;
+        source_cursor += source_read;
+        source_read = source_end - source_cursor;
+        if (result == 0) {
+          break;
+        }
+        else if (source_cursor == source_end)
+        {
+          /* We've reached end of input. */
+          break;
+        }
+
+        /* Data still remaining to be decompressed, so increment the destination
+           cursor location, and reset destination_write ready for the next
+           iteration. Important to re-initialize destination_cursor here (as
+           opposed to simply incrementing it) so we're pointing to the realloc'd
+           memory location. */
+        destination_cursor = pUncomp + destination_written;
+        destination_write = destination_size - destination_written;
+      }
+
+      LZ4F_freeDecompressionContext (dctx);
 
       // reverse transposition
       if (block_type == 4) {
@@ -2216,7 +2295,6 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
         write += byte_count;
         read += record_size;
       }
-
     }
 
     //printf("\tThr %d set event\n", thread_info->idx);
@@ -2458,6 +2536,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       if (info_count < thread_count) {
         thread_count = info_count;
       }
+
+      thread_count = 1;
 
       block_info = (PtrInfoBlock) malloc(sizeof(InfoBlock) * info_count);
       if (!block_info) {
@@ -2779,7 +2859,6 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     return out;
   }
 }
-
 
 
 // Our Module's Function Definition struct

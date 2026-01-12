@@ -7485,10 +7485,10 @@ class MDF4(MDF_Common[Group]):
                         cycles_nr,
                         record_size,
                         grp.channel_group.invalidation_bytes_nr,
-                        THREAD_COUNT,
+                        1, #THREAD_COUNT,
                     )
 
-                    signals = []
+                    extracted_signals = []
 
                     for info, channel, (raw_data, invalidation_bits) in zip(info_rec, channels, raw_and_invalidation, strict=False):
 
@@ -7526,15 +7526,17 @@ class MDF4(MDF_Common[Group]):
                                 if np.dtype(view) != vals.dtype:
                                     vals = vals.view(view)
 
-                        signals.append((vals, invalidation_bits))
+                        extracted_signals.append((vals, invalidation_bits))
 
                     if master_is_required:
-                        master, signal = signals
+                        master, signal = extracted_signals
                         if master_channel.conversion:
-                            master = master_channel.conversion.convert(master)
-                        samples, timestamps, invalidation_bits, encoding = signal[0], master[0], signal[1], None
+                            master = master_channel.conversion.convert(master[0])
+                        else:
+                            master = master[0]
+                        samples, timestamps, invalidation_bits, encoding = signal[0], master, signal[1], None
                     else:
-                        signal = signals[0]
+                        signal = extracted_signals[0]
                         samples, timestamps, invalidation_bits, encoding = signal[0], None, signal[1], None
 
                 else:
@@ -8453,7 +8455,6 @@ class MDF4(MDF_Common[Group]):
             record_size += channel_group.invalidation_bytes_nr
 
             ch_dtype = np.min_scalar_type(channel_group.cycles_nr) 
-            print('min', channel.name, ch_dtype)
             channel.dtype_fmt = ch_dtype
 
             count = 0
@@ -8466,8 +8467,6 @@ class MDF4(MDF_Common[Group]):
                     fragment.invalidation_data,
                 )
                 offset = offset // record_size
-
-                print(offset, type(offset))
 
                 vals = arange(len(data_bytes) // record_size, dtype=ch_dtype)
                 vals += offset
@@ -8550,8 +8549,6 @@ class MDF4(MDF_Common[Group]):
                         signal.timestamps,
                         signal.invalidation_bits,
                     )
-
-            print(vals.dtype)
 
         else:
             channel_group = grp.channel_group
@@ -12242,7 +12239,7 @@ class MDF4(MDF_Common[Group]):
                                 original_size = len(new_data)
                                 if original_size:
                                     if compress:
-                                        new_data = lz_compress(new_data, store_size=True)
+                                        new_data = lz_compress(new_data, store_size=False)
                                         compressed_size = len(new_data)
 
                                         write(new_data)
