@@ -4194,11 +4194,11 @@ class MDF:
                     channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
                 )
 
-            channel = grp.channels[master_index]
+            master_channel = grp.channels[master_index]
             master_dtype, byte_size, byte_offset, _ = typing.cast(
                 tuple[np.dtype[Any], int, int, int], grp.record[master_index]
             )
-            signals = [(byte_offset, byte_size, channel.pos_invalidation_bit)]
+            signals = [(byte_offset, byte_size, master_channel.pos_invalidation_bit)]
 
             for ch_index in channel_indexes:
                 channel = grp.channels[ch_index]
@@ -4226,18 +4226,18 @@ class MDF:
             # prepare the master
             vals = np.frombuffer(master_bytes, dtype=master_dtype)
 
-            data_type = channel.data_type
+            data_type = master_channel.data_type
 
-            if not channel.standard_C_size:
+            if not master_channel.standard_C_size:
                 size = byte_size
 
-                if channel_dtype.byteorder == "=" and data_type in (
+                if master_dtype.byteorder == "=" and data_type in (
                     v4c.DATA_TYPE_SIGNED_MOTOROLA,
                     v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
                 ):
                     view = np.dtype(f">u{vals.itemsize}")
                 else:
-                    view = np.dtype(f"{channel_dtype.byteorder}u{vals.itemsize}")
+                    view = np.dtype(f"{master_dtype.byteorder}u{vals.itemsize}")
 
                 if view != vals.dtype:
                     vals = vals.view(view)
@@ -4245,20 +4245,20 @@ class MDF:
                 if bit_offset:
                     vals >>= bit_offset
 
-                if channel.bit_count != size * 8:
+                if master_channel.bit_count != size * 8:
                     if data_type in v4c.SIGNED_INT:
-                        vals = as_non_byte_sized_signed_int(vals, channel.bit_count)
+                        vals = as_non_byte_sized_signed_int(vals, master_channel.bit_count)
                     else:
-                        mask = (1 << channel.bit_count) - 1
+                        mask = (1 << master_channel.bit_count) - 1
                         vals &= mask
                 elif data_type in v4c.SIGNED_INT:
-                    view = f"{channel_dtype.byteorder}i{vals.itemsize}"
+                    view = f"{master_dtype.byteorder}i{vals.itemsize}"
                     if np.dtype(view) != vals.dtype:
                         vals = vals.view(view)
 
             master = vals
-            if channel.conversions:
-                master = channel.conversions.convert(master)
+            if master_channel.conversions:
+                master = master_channel.conversions.convert(master)
 
             for pair, (raw_data, invalidation_bits) in zip(pairs, raw_and_invalidation, strict=False):
                 ch_index = pair[-1]
