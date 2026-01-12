@@ -2050,7 +2050,7 @@ if sys.platform == 'win32':
                 return os.write(self.file, line)
         
 else:
-    pass
+    from tempfile import NamedTemporaryFile
 
 
 def validate_blocks(blocks: list[SignalDataBlockInfo], record_size: int) -> bool:
