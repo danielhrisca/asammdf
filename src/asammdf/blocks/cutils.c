@@ -2222,21 +2222,9 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
         destination_written += destination_write;
         source_cursor += source_read;
         source_read = source_end - source_cursor;
-        if (result == 0) {
-          break;
-        }
-        else if (source_cursor == source_end)
-        {
-          /* We've reached end of input. */
-          break;
-        }
+        if ((result == 0) || (source_cursor == source_end) ) break;
 
-        /* Data still remaining to be decompressed, so increment the destination
-           cursor location, and reset destination_write ready for the next
-           iteration. Important to re-initialize destination_cursor here (as
-           opposed to simply incrementing it) so we're pointing to the realloc'd
-           memory location. */
-        destination_cursor = pUncomp + destination_written;
+        destination_cursor = (char *) (pUncomp + destination_written);
         destination_write = destination_size - destination_written;
       }
 
