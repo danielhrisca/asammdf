@@ -2023,6 +2023,8 @@ typedef struct ProcessesingBlock {
 #else
   pthread_cond_t   bytes_ready;
   pthread_cond_t  block_ready;
+  bool bytes_really_ready;
+  bool block_really_ready;
   pthread_mutex_t   bytes_ready_lock;
   pthread_mutex_t   block_ready_lock;
 #endif
@@ -2066,18 +2068,40 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
     t3 += end - start;
     if (thread_info->stop) break;
 
-    /* printf("Thr %d processing %d signals\n", thread_info->idx, thread_info->signal_count);
+    printf("Thr %d processing %d signals\n", thread_info->idx, thread_info->signal_count);
     printf("Block type=%d\n", thread_info->block_info->block_type);
     printf("Block limit=%d\n", thread_info->block_info->block_limit);
     printf("Block original_size%d\n", thread_info->block_info->original_size);
     printf("Block compressed_size=%d\n", thread_info->block_info->compressed_size);
     printf("Block param=%d\n", thread_info->block_info->param);
-    printf("Block record_offset=%d\n", thread_info->block_info->record_offset); */
+    printf("Block record_offset=%d\n", thread_info->block_info->record_offset); 
 
 #else
+    
     pthread_mutex_lock(&thread_info->block_ready_lock);
-    pthread_cond_wait(&thread_info->block_ready, &thread_info->block_ready_lock);
+    printf("mutex locked=%d\n", thread_info->idx);
+    while (!thread_info->block_really_ready) {
+      pthread_cond_wait(&thread_info->block_ready, &thread_info->block_ready_lock);
+      printf("waiting on block_really_ready\n");
+      sleep(1);
+    }
+    
+    thread_info->block_really_ready = false;
+    printf("conidition received=%d\n", thread_info->idx);
     pthread_mutex_unlock(&thread_info->block_ready_lock);
+    printf("mutex done=%d\n", thread_info->idx);
+    printf("Thr %d processing %d signals\n", thread_info->idx, thread_info->signal_count);
+    printf("Block type=%d\n", thread_info->block_info->block_type);
+    printf("Block limit=%d\n", thread_info->block_info->block_limit);
+    printf("Block original_size%d\n", thread_info->block_info->original_size);
+    printf("Block compressed_size=%d\n", thread_info->block_info->compressed_size);
+    printf("Block param=%d\n", thread_info->block_info->param);
+    printf("Block record_offset=%d\n", thread_info->block_info->record_offset); 
+    printf("waiting for mutex=%d\n", thread_info->idx);
+    printf("block_really_ready=%d\n", thread_info->block_really_ready);
+    printf("bytes_really_ready=%d\n", thread_info->bytes_really_ready);
+    
+    
 #endif
 
     original_size = thread_info->block_info->original_size;
@@ -2268,7 +2292,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
     }
 
-    //printf("\tThr %d %d %d\n", thread_info->idx, cycles, max_cycles);
+    printf("\tThr %d %d %d\n", thread_info->idx, cycles, max_cycles);
 
     for (int i =0; i<thread_info->signal_count; i++) {
       byte_offset = thread_info->signals[i].byte_offset;
@@ -2285,12 +2309,13 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
       }
     }
 
-    //printf("\tThr %d set event\n", thread_info->idx);
+    printf("\tThr %d set event\n", thread_info->idx);
 
 #if defined(_WIN32)
     SetEvent(thread_info->bytes_ready);
 #else
     pthread_mutex_lock(&thread_info->bytes_ready_lock);
+    thread_info->bytes_really_ready = true;
     pthread_cond_signal(&thread_info->bytes_ready);
     pthread_mutex_unlock(&thread_info->bytes_ready_lock);
 #endif
@@ -2328,6 +2353,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
   int result;
   clock_t start, end;
   double tt=0;
+  
+  printf("get_channel_raw_bytes_complete\n");
 
   if (!PyArg_ParseTuple(args, "OOsnnnO|n",
                         &data_blocks_info, &signals, &file_name, &cycles, &record_size, &invalidation_bytes, &group_index,
@@ -2337,10 +2364,11 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
   }
   else
   {
-
+  printf("import\n");
     ref = PyImport_ImportModule("asammdf");
     InvalidationArray = PyObject_GetAttrString(ref, "InvalidationArray");
     Py_XDECREF(ref);
+    printf("import done\n");
     //fptr = fopen(file_name,"rb");
 
 #if defined(_WIN32)
@@ -2426,7 +2454,9 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     block_ready = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
     bytes_ready = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
 #else
+    printf("opening %s\n", file_name);
     int fdin = open(file_name, O_RDONLY);
+    printf("open returned %d\n", fdin);
     struct stat statbuf;
     uint8_t * lpBasePtr;
 
@@ -2443,6 +2473,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     bytes_ready = (pthread_cond_t  *) malloc(sizeof(pthread_cond_t) * thread_count);
     bytes_ready_locks = (pthread_mutex_t  *) malloc(sizeof(pthread_mutex_t) * thread_count);
     block_ready_locks = (pthread_mutex_t  *) malloc(sizeof(pthread_mutex_t) * thread_count);
+    printf("threads ready\n");
 #endif
 
     PtrSignalInfo signal_info;
@@ -2524,8 +2555,6 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       if (info_count < thread_count) {
         thread_count = info_count;
       }
-
-      thread_count = 1;
 
       block_info = (PtrInfoBlock) malloc(sizeof(InfoBlock) * info_count);
       if (!block_info) {
@@ -2623,6 +2652,9 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         pthread_mutex_init(&bytes_ready_locks[i], NULL) ;
         thread_info[i].bytes_ready_lock = bytes_ready_locks[i];
         thread_info[i].block_ready_lock = block_ready_locks[i];
+        thread_info[i].bytes_really_ready = false;
+        thread_info[i].block_really_ready = false;
+        printf("cond mutex info ready\n");
 #endif
         thread_info[i].inptr = (uint8_t *) malloc(max_compressed);
         if (!thread_info[i].inptr) {
@@ -2664,6 +2696,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
           return NULL;
         }
       }
+      printf("threads created\n");
 #endif
 
       position = 0;
@@ -2671,6 +2704,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 
       for (int i=0; i<info_count; i++) {
         thread = &thread_info[position];
+        printf("info_count %d Of %d\n", i, info_count);
 
         if (i >= thread_count) {
 #if defined(_WIN32)
@@ -2680,9 +2714,13 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
           tt += end - start;
           ResetEvent(bytes_ready[position]);
 #else
+          printf("bytes_ready_locks %d\n", i);
           pthread_mutex_lock(&bytes_ready_locks[position]);
-          pthread_cond_wait(&bytes_ready[position], &bytes_ready_locks[position]);
+          while (!thread->bytes_really_ready)
+            pthread_cond_wait(&bytes_ready[position], &bytes_ready_locks[position]);
+          thread->bytes_really_ready = false;
           pthread_mutex_unlock(&bytes_ready_locks[position]);
+          printf("bytes_ready_locks done %d\n", i);
 #endif
         }
 
@@ -2697,9 +2735,12 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 #if defined(_WIN32)
         SetEvent(block_ready[position]);
 #else
+        printf("block_ready_locks %d postion=%d\n", i, position);
         pthread_mutex_lock(&block_ready_locks[position]);
+        thread->block_really_ready = true;
         pthread_cond_signal(&block_ready[position]);
         pthread_mutex_unlock(&block_ready_locks[position]);
+        printf("block_ready_locks done %d postion=%d\n", i, position);
 #endif
 
         position++;
@@ -2710,6 +2751,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       //printf("TT=%lf\n", tt);
 
       for (int i=0; i<thread_count; i++) {
+        printf("thread %d\n", i);
         thread = &thread_info[position];
 
 #if defined(_WIN32)
@@ -2717,7 +2759,9 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         ResetEvent(bytes_ready[position]);
 #else
         pthread_mutex_lock(&bytes_ready_locks[position]);
-        pthread_cond_wait(&bytes_ready[position], &bytes_ready_locks[position]);
+        while (!thread->bytes_really_ready)
+          pthread_cond_wait(&bytes_ready[position], &bytes_ready_locks[position]);
+        thread->bytes_really_ready = false;
         pthread_mutex_unlock(&bytes_ready_locks[position]);
 #endif
         thread->stop = 1;
@@ -2726,6 +2770,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         SetEvent(block_ready[position]);
 #else
         pthread_mutex_lock(&block_ready_locks[position]);
+        thread->block_really_ready = true;
         pthread_cond_signal(&block_ready[position]);
         pthread_mutex_unlock(&block_ready_locks[position]);
 #endif
