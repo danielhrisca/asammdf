@@ -2185,7 +2185,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
       { size_t const dctxStatus = LZ4F_createDecompressionContext(&dctx, LZ4F_VERSION);
         if (LZ4F_isError(dctxStatus)) {
           snprintf(err_string, 1024, "LZ4F_dctx creation error: %s\n\0", LZ4F_getErrorName(dctxStatus));
-          return 1;
+          return NULL;
         }
       }
 
@@ -2194,7 +2194,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
       { size_t const fires = LZ4F_getFrameInfo(dctx, &info, source_cursor, &source_read);
         if (LZ4F_isError(fires)) {
           snprintf(err_string, 1024, "LZ4F_getFrameInfo error: %s\n\0", LZ4F_getErrorName(fires));
-          return 1;
+          return NULL;
         }
       }
 
@@ -2216,7 +2216,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
         if (LZ4F_isError (result))
         {
           snprintf(err_string, 1024, "LZ4F_decompress failed with code: %s\n\0", LZ4F_getErrorName(result));
-          return 1;
+          return NULL;
         }
 
         destination_written += destination_write;
@@ -2300,7 +2300,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   if (pUncomp) free(pUncomp);
   if (pUncompTr) free(pUncompTr);
   //printf("t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", t1, t2, t3, t4, t5, t6, t7);
-  return 0;
+  return NULL;
 }
 
 
