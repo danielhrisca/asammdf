@@ -95,13 +95,13 @@ from .blocks.utils import (
     MdfException,
     plausible_timestamps,
     randomized_string,
-    SignalDataBlockInfo,
     SUPPORTED_VERSIONS,
     Terminated,
     THREAD_COUNT,
     UINT16_u,
     UINT64_u,
     UniqueDB,
+    validate_blocks,
     validate_version_argument,
     VirtualChannelGroup,
 )
@@ -4139,13 +4139,6 @@ class MDF:
                 comment="">
         ]
         """
-
-        def validate_blocks(blocks: list[SignalDataBlockInfo], record_size: int) -> bool:
-            for block in blocks:
-                if block.original_size % record_size:
-                    return False
-
-            return True
         
         if (
             not isinstance(self._mdf, mdf_v4.MDF4)
@@ -4183,6 +4176,10 @@ class MDF:
             grp.load_all_data_blocks()
             blocks = grp.data_blocks
             record_size = grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr
+            if not validate_blocks(blocks, record_size):
+                return self._select_fallback(
+                channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
+            )
             cycles_nr = grp.channel_group.cycles_nr
             channel_indexes = groups[group_index]
 

@@ -121,6 +121,7 @@ from .utils import (
     UINT32_uf,
     UINT64_uf,
     UniqueDB,
+    validate_blocks,
     validate_version_argument,
     VirtualChannelGroup,
 )
@@ -7439,9 +7440,14 @@ class MDF4(MDF_Common[Group]):
                     )
 
             else:
+                grp.load_all_data_blocks()
+                blocks = grp.data_blocks
+                record_size = grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr
+                cycles_nr = grp.channel_group.cycles_nr
  
                 if (
                     data is None
+                    and validate_blocks(blocks, record_size)
                     and self._mapped_file
                     and not grp.signal_data[ch_nr]
                     and grp.record[ch_nr]
@@ -7451,12 +7457,6 @@ class MDF4(MDF_Common[Group]):
                         file_name = self._mapped_file.name
                     else:
                         file_name = self._tempfile.name
-
-
-                    grp.load_all_data_blocks()
-                    blocks = grp.data_blocks
-                    record_size = grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr
-                    cycles_nr = grp.channel_group.cycles_nr
 
                     signals = []
                     channels = []
