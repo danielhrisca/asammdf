@@ -2044,7 +2044,7 @@ if sys.platform == 'win32':
         
         def truncate(self, length=None):
             if length is not None:
-                os.ftruncate(self.file, length)
+                return os.ftruncate(self.file, length)
         
         def writeable(self):
             return True
