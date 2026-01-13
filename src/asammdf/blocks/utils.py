@@ -1986,9 +1986,6 @@ if sys.platform == 'win32':
         def flush(self):
             return os.fsync(self.file)
         
-        def __fspath__(self):
-            return str(Path(self.name).resolve())
-        
         def isatty(self):
             return os.isatty(self.file)
         
