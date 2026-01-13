@@ -2692,6 +2692,14 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                         text = f"{self._value_prefix}{text}"
                     else:
                         text = f"{self._value_prefix}{value}"
+                        string = value_as_str(
+                            value,
+                            self.format,
+                            self.signal.plot_samples.dtype,
+                            self.precision,
+                        )
+
+                        text = f"{self._value_prefix}{string}"
 
                 else:
                     string = value_as_str(
