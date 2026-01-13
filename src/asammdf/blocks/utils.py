@@ -1992,6 +1992,10 @@ if sys.platform == 'win32':
         def isatty(self):
             return os.isatty(self.file)
         
+        def __iter__(self):
+            while byte := os.read(self.file, 1):
+                yield byte
+        
         def peek(self, size=0):
             pos = self.tell()
             data = os.read(self.file, size)
@@ -2002,7 +2006,7 @@ if sys.platform == 'win32':
         def raw(self):
             return None
         
-        def read(self, size=-1):
+        def read(self, size=-1, /):
             if size == -1:
                 pos = self.tell()
                 self.seek(0, os.SEEK_END)
@@ -2029,7 +2033,7 @@ if sys.platform == 'win32':
         def readlines(self):
             return []
         
-        def seek(self, target, whence=os.SEEK_SET):
+        def seek(self, target, whence=os.SEEK_SET, /):
             return os.lseek(self.file, target, whence)
         
         def seekable(self):
@@ -2040,12 +2044,13 @@ if sys.platform == 'win32':
         
         def truncate(self, length=None):
             if length is not None:
-                return os.ftruncate(self.file, length)
+                os.ftruncate(self.file, length)
+                self.seek(0)
         
         def writeable(self):
             return True
         
-        def write(self, buffer):
+        def write(self, buffer, /):
             return os.write(self.file, buffer)
         
         def writelines(self, lines):
