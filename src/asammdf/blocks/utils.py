@@ -1987,7 +1987,7 @@ if sys.platform == 'win32':
             return os.fsync(self.file)
         
         def __fspath__(self):
-            return self.name
+            return self.name.encode('utf8')
         
         def isatty(self):
             return os.isatty(self.file)
