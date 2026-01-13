@@ -1986,6 +1986,9 @@ if sys.platform == 'win32':
         def flush(self):
             return os.fsync(self.file)
         
+        def __fspath__(self):
+            return self.name
+        
         def isatty(self):
             return os.isatty(self.file)
         
@@ -2050,7 +2053,7 @@ if sys.platform == 'win32':
                 return os.write(self.file, line)
         
 else:
-    from tempfile import NamedTemporaryFile
+    pass
 
 
 def validate_blocks(blocks: list[SignalDataBlockInfo], record_size: int) -> bool:
