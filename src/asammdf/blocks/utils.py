@@ -13,7 +13,7 @@ import string
 from struct import Struct
 import subprocess
 import sys
-from tempfile import gettempdir, TemporaryDirectory
+from tempfile import gettempdir, NamedTemporaryFile, TemporaryDirectory
 from time import perf_counter
 from types import TracebackType
 import typing
@@ -2056,10 +2056,7 @@ if sys.platform == 'win32':
         def writelines(self, lines):
             for line in lines:
                 return os.write(self.file, line)
-        
-else:
-    pass
-
+    
 
 def validate_blocks(blocks: list[SignalDataBlockInfo], record_size: int) -> bool:
     for block in blocks:
