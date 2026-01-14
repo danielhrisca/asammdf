@@ -4316,7 +4316,6 @@ class MDF:
                     name=channel.name,
                     comment=channel.comment,
                     conversion=conversion,
-                    raw=True,
                     master_metadata=master_metadata,
                     attachment=None,
                     source=source,

@@ -3156,7 +3156,6 @@ class MDF3(MDF_Common[Group]):
                 name=channel.name,
                 comment=comment,
                 conversion=conversion,
-                raw=raw,
                 master_metadata=master_metadata,
                 display_names=display_names,
                 source=source,
