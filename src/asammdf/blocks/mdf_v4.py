@@ -10042,7 +10042,6 @@ class MDF4(MDF_Common[Group]):
                         name=signal_name,
                         unit=signal.unit or "",
                         comment=comment,
-                        raw=raw,
                         conversion=extracted_signal["conversion"],
                     )
                     if len(sig):
@@ -10216,7 +10215,6 @@ class MDF4(MDF_Common[Group]):
                         unit=signal.unit or "",
                         comment=comment,
                         conversion=extracted_signal["conversion"],
-                        raw=raw,
                     )
                     if len(sig):
                         return sig
@@ -10500,7 +10498,6 @@ class MDF4(MDF_Common[Group]):
                                                 f"CAN{bus}.{message.name}.{signal_name}": "bus",
                                                 f"{message.name}.{signal_name}": "message",
                                             },
-                                            raw=True,
                                             conversion=signal["conversion"],
                                         )
 
@@ -10786,7 +10783,6 @@ class MDF4(MDF_Common[Group]):
                                                 f"LIN{bus}.{message.name}.{signal_name}": "bus",
                                                 f"{message.name}.{signal_name}": "message",
                                             },
-                                            raw=True,
                                             conversion=signal["conversion"],
                                         )
 
@@ -12564,7 +12560,6 @@ class MDF4(MDF_Common[Group]):
                                             f"CAN{bus}.{frame.name}.{signal['name']}": "bus_name",
                                         },
                                         conversion=signal["conversion"],
-                                        raw=True,
                                     )
 
                                     sigs.append(sig)
@@ -12732,7 +12727,6 @@ class MDF4(MDF_Common[Group]):
                                         f"LIN.{frame.name}.{signal['name']}": "bus_name",
                                     },
                                     conversion=signal["conversion"],
-                                    raw=True,
                                 )
 
                                 sigs.append(sig)

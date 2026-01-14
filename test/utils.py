@@ -49,7 +49,6 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
             unit=f"unit_{i}",
             conversion=None,
             comment=f"Unsigned int 16bit channel {i}",
-            raw=True,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
@@ -73,7 +72,6 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
             unit=f"unit_{i}",
             conversion=cls(**conversion),
             comment=f"Signed 16bit channel {i} with linear conversion",
-            raw=True,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
@@ -96,7 +94,6 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
             unit=f"unit_{i}",
             conversion=cls(**conversion),
             comment=f"Sinus channel {i} with algebraic conversion",
-            raw=True,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
@@ -124,7 +121,6 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
             unit=f"unit_{i}",
             conversion=cls(**conversion),
             comment=f"Channel {i} with rational conversion",
-            raw=True,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
@@ -140,7 +136,6 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
             name=f"Channel_{i}",
             unit=f"unit_{i}",
             comment=f"String channel {i}",
-            raw=True,
             encoding=encoding,
         )
         sigs.append(sig)
@@ -156,7 +151,6 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
             name=f"Channel_{i}",
             unit=f"unit_{i}",
             comment=f"Byte array channel {i}",
-            raw=True,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
@@ -187,7 +181,6 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
             unit=f"unit_{i}",
             comment=f"Value to text channel {i}",
             conversion=cls(**conversion),
-            raw=True,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
@@ -296,7 +289,6 @@ def generate_arrays_test_file(tmpdir: str) -> Path | None:
             unit=f"unit_{i}",
             conversion=None,
             comment=f"Array channel {i}",
-            raw=True,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
@@ -343,7 +335,6 @@ def generate_arrays_test_file(tmpdir: str) -> Path | None:
             unit=f"unit_{i}",
             conversion=None,
             comment=f"Array channel {i} with default axis",
-            raw=True,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
@@ -380,7 +371,6 @@ def generate_arrays_test_file(tmpdir: str) -> Path | None:
             unit=f"unit_{i}",
             conversion=None,
             comment=f"Structure channel composition {i}",
-            raw=True,
         )
         sigs.append(sig)
 
