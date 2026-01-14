@@ -1507,7 +1507,7 @@ class DataBlockInfo:
             f"invalidation_block={self.invalidation_block}, "
             f"block_limit={self.block_limit}, "
             f"first_timestamp={self.first_timestamp!r}, "
-            f"last_timestamp={self.last_timestamp!r},)"
+            f"last_timestamp={self.last_timestamp!r},"
             f"location={self.location!r})"
         )
 
