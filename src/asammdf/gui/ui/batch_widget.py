@@ -31,13 +31,14 @@ class Ui_batch_widget(object):
     def setupUi(self, batch_widget):
         if not batch_widget.objectName():
             batch_widget.setObjectName(u"batch_widget")
-        batch_widget.resize(828, 718)
-        self.gridLayout_9 = QGridLayout(batch_widget)
-        self.gridLayout_9.setSpacing(1)
-        self.gridLayout_9.setObjectName(u"gridLayout_9")
-        self.gridLayout_9.setContentsMargins(1, 1, 1, 1)
+        batch_widget.resize(1073, 718)
+        self.verticalLayout_6 = QVBoxLayout(batch_widget)
+        self.verticalLayout_6.setSpacing(1)
+        self.verticalLayout_6.setObjectName(u"verticalLayout_6")
+        self.verticalLayout_6.setContentsMargins(1, 1, 1, 1)
         self.splitter = QSplitter(batch_widget)
         self.splitter.setObjectName(u"splitter")
+        self.splitter.setLineWidth(3)
         self.splitter.setOrientation(Qt.Orientation.Horizontal)
         self.aspects = QTabWidget(self.splitter)
         self.aspects.setObjectName(u"aspects")
@@ -137,7 +138,7 @@ class Ui_batch_widget(object):
         self.scrollArea_3.setWidgetResizable(True)
         self.scrollAreaWidgetContents_3 = QWidget()
         self.scrollAreaWidgetContents_3.setObjectName(u"scrollAreaWidgetContents_3")
-        self.scrollAreaWidgetContents_3.setGeometry(QRect(0, 0, 517, 706))
+        self.scrollAreaWidgetContents_3.setGeometry(QRect(0, 0, 715, 706))
         self.horizontalLayout_2 = QHBoxLayout(self.scrollAreaWidgetContents_3)
         self.horizontalLayout_2.setSpacing(1)
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
@@ -845,7 +846,7 @@ class Ui_batch_widget(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 517, 706))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 715, 706))
         self.gridLayout_3 = QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_3.setSpacing(1)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
@@ -1105,13 +1106,20 @@ class Ui_batch_widget(object):
 
         self.aspects.addTab(self.extract_bus_tab, icon10, "")
         self.splitter.addWidget(self.aspects)
-
-        self.gridLayout_9.addWidget(self.splitter, 1, 0, 1, 1)
-
-        self.list_layout = QVBoxLayout()
+        self.widget = QWidget(self.splitter)
+        self.widget.setObjectName(u"widget")
+        self.list_layout = QVBoxLayout(self.widget)
         self.list_layout.setSpacing(1)
         self.list_layout.setObjectName(u"list_layout")
-        self.files_list = MinimalListWidget(batch_widget)
+        self.list_layout.setContentsMargins(0, 0, 0, 0)
+        self.label_16 = QLabel(self.widget)
+        self.label_16.setObjectName(u"label_16")
+        self.label_16.setTextFormat(Qt.TextFormat.RichText)
+        self.label_16.setWordWrap(True)
+
+        self.list_layout.addWidget(self.label_16)
+
+        self.files_list = MinimalListWidget(self.widget)
         self.files_list.setObjectName(u"files_list")
 
         self.list_layout.addWidget(self.files_list)
@@ -1119,7 +1127,7 @@ class Ui_batch_widget(object):
         self.verticalLayout_3 = QVBoxLayout()
         self.verticalLayout_3.setSpacing(1)
         self.verticalLayout_3.setObjectName(u"verticalLayout_3")
-        self.sort_by_start_time_btn = QPushButton(batch_widget)
+        self.sort_by_start_time_btn = QPushButton(self.widget)
         self.sort_by_start_time_btn.setObjectName(u"sort_by_start_time_btn")
         icon11 = QIcon()
         icon11.addFile(u":/clock.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
@@ -1127,7 +1135,7 @@ class Ui_batch_widget(object):
 
         self.verticalLayout_3.addWidget(self.sort_by_start_time_btn)
 
-        self.sort_alphabetically_btn = QPushButton(batch_widget)
+        self.sort_alphabetically_btn = QPushButton(self.widget)
         self.sort_alphabetically_btn.setObjectName(u"sort_alphabetically_btn")
         icon12 = QIcon()
         icon12.addFile(u":/alphabetical_sorting.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
@@ -1138,11 +1146,10 @@ class Ui_batch_widget(object):
 
         self.list_layout.addLayout(self.verticalLayout_3)
 
+        self.splitter.addWidget(self.widget)
 
-        self.gridLayout_9.addLayout(self.list_layout, 1, 1, 1, 1)
+        self.verticalLayout_6.addWidget(self.splitter)
 
-        self.gridLayout_9.setColumnStretch(0, 2)
-        self.gridLayout_9.setColumnStretch(1, 1)
 
         self.retranslateUi(batch_widget)
 
@@ -1312,6 +1319,7 @@ class Ui_batch_widget(object):
         self.extract_bus_btn.setText(QCoreApplication.translate("batch_widget", u"Extract Bus signals", None))
         self.label_27.setText("")
         self.aspects.setTabText(self.aspects.indexOf(self.extract_bus_tab), QCoreApplication.translate("batch_widget", u"Bus logging", None))
+        self.label_16.setText(QCoreApplication.translate("batch_widget", u"<html><head/><body><p>The channels from the first measurement will be used in the Modifi &amp; Export tab</p></body></html>", None))
         self.sort_by_start_time_btn.setText(QCoreApplication.translate("batch_widget", u"Sort by start time", None))
         self.sort_alphabetically_btn.setText(QCoreApplication.translate("batch_widget", u"Sort alphabetically", None))
     # retranslateUi
