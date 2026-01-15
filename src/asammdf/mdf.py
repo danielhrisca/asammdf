@@ -3263,9 +3263,14 @@ class MDF:
                                 new_group_source = new_group.channel_group.acq_source
                                 if (
                                     new_group.channel_group.acq_name == org_group.channel_group.acq_name
-                                    and (new_group_source and org_group_source)
-                                    and new_group_source.name == org_group_source.name
-                                    and new_group_source.path == org_group_source.path
+                                    and (
+                                        ((new_group_source and org_group_source)
+                                        and new_group_source.name == org_group_source.name
+                                        and new_group_source.path == org_group_source.path
+                                        )
+                                        or (new_group_source is None and org_group_source is None)
+                                    )
+
                                     and new_group.channel_group.samples_byte_nr
                                     == org_group.channel_group.samples_byte_nr
                                 ):

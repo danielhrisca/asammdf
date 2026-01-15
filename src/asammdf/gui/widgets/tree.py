@@ -1839,6 +1839,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             col = getattr(self, name, -1)
             if col == -1:
                 continue
+            elif name in ("NameColumn", "ValueColumn"):
+                is_visible = True
 
             self.setColumnHidden(col, not is_visible)
 
@@ -1847,6 +1849,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             col = getattr(self, name, -1)
             if col == -1:
                 continue
+            elif name in ("NameColumn", "ValueColumn"):
+                size = max(size, 50)
 
             self.setColumnWidth(col, size)
 
