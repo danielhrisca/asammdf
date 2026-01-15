@@ -19,6 +19,7 @@ from ...blocks.v4_constants import (
     BUS_TYPE_USB,
 )
 from ..dialogs.advanced_search import AdvancedSearch
+from ..dialogs.error_dialog import ErrorDialog
 from ..dialogs.messagebox import MessageBox
 from ..serde import load_channel_names_from_file, load_lab
 from ..ui.batch_widget import Ui_batch_widget
@@ -662,6 +663,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 item.setSizeHint(widget.sizeHint())
 
     def concatenate_finished(self):
+        if self._progress.error:
+            ErrorDialog(
+                "File concatenation failed",
+                "The concatenate command failed",
+                self._progress.error[-1],
+                self,
+            ).exec()
         self._progress = None
 
     def concatenate(self, event=None):
@@ -708,7 +716,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self._progress = setup_progress(parent=self, autoclose=False)
         self._progress.finished.connect(self.concatenate_finished)
 
-        rez = self._progress.run_thread_with_progress(
+        self._progress.run_thread_with_progress(
             target=self.concatenate_thread,
             args=(
                 output_file_name,
@@ -818,6 +826,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         return result
 
     def stack_finished(self):
+        if self._progress.error:
+            ErrorDialog(
+                "File stacking failed",
+                "The stack command failed",
+                self._progress.error[-1],
+                self,
+            ).exec()
         self._progress = None
 
     def stack(self, event):
@@ -1330,6 +1345,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         return Options(options)
 
     def apply_processing_finished(self):
+        if self._progress.error:
+            ErrorDialog(
+                "File processing failed",
+                "The file processing commands failed",
+                self._progress.error[-1],
+                self,
+            ).exec()
         self._progress = None
 
     def apply_processing(self, event):

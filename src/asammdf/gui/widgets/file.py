@@ -1885,6 +1885,13 @@ MultiRasterSeparator;&
 
             self.output_info_bus.setPlainText("\n".join(message))
             self.open_new_files.emit([str(file_name)])
+        else:
+            ErrorDialog(
+                "Extract bus logging failed",
+                "The bus logging extraction failed",
+                self._progress.error[-1],
+                self,
+            ).exec()
 
         self._progress = None
 
@@ -2023,6 +2030,14 @@ MultiRasterSeparator;&
             message = self._progress.output
 
             self.output_info_bus.setPlainText("\n".join(message))
+        else:
+            ErrorDialog(
+                "Extract bus logging to CSV failed",
+                "The bus logging extraction to CSV failed",
+                self._progress.error[-1],
+                self,
+            ).exec()
+
 
         self._progress = None
 
@@ -2828,6 +2843,14 @@ MultiRasterSeparator;&
         )
 
     def apply_processing_finished(self):
+        if self._progress.error:
+            ErrorDialog(
+                "File processing failed",
+                "The file processing commands failed",
+                self._progress.error[-1],
+                self,
+            ).exec()
+
         self._progress = None
 
     def apply_processing_thread(self, file_name, opts, version, needs_filter, channels, progress=None):
