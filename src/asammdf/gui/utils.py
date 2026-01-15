@@ -184,8 +184,8 @@ def excepthook(exc_type, exc_value, tracebackobj):
     ErrorDialog(message=errmsg, trace=msg, title="The following error was triggered").exec()
 
 
-def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progress=None):
-    thr = WorkerThread(target=target, kwargs=kwargs)
+def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progress=None, args=()):
+    thr = WorkerThread(target=target, kwargs=kwargs, args=args)
 
     thr.start()
 

@@ -37,6 +37,7 @@ from ..utils import (
     copy_ranges,
     generate_python_function_globals,
     replace_computation_dependency,
+    setup_progress,
 )
 from .can_bus_trace import CANBusTrace
 from .flexray_bus_trace import FlexRayBusTrace
@@ -1017,7 +1018,7 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
                     disable_new_channels = dialog.disable_new_channels()
                     names = extract_mime_names(data, disable_new_channels=disable_new_channels)
 
-                    self.add_window_request.emit([window_type, names])
+                    self.add_window_request.emit([window_type, names, True])
                 event.accept()
             else:
                 try:
@@ -1229,6 +1230,7 @@ class WithMDIArea:
             ignore_value2text_conversions = False
             current_count = len(widget.plot.signals)
             count = len(names)
+
         elif isinstance(widget, XY):
             if names:
                 name = names[0]
@@ -1268,6 +1270,17 @@ class WithMDIArea:
 
         else:
             ignore_value2text_conversions = self.ignore_value2text_conversions
+
+        progress = setup_progress(
+            parent=self,
+            title="Adding new channels",
+            message="Please be patient, this can take a while with large files",
+            icon_name="window",
+        )
+        progress.setRange(0, 1)
+        progress.resize(500, progress.height())
+        progress.show()
+        QtWidgets.QApplication.processEvents()
 
         try:
             names = list(names)
@@ -1665,31 +1678,68 @@ class WithMDIArea:
         except MdfException:
             print(format_exc())
 
+        progress.close()
+
     def add_window(self, args):
-        window_type, names = args
+        if len(args) == 2:
+            window_type, names, show_dialog = *args, False
+        else:
+            window_type, names, show_dialog = args
+
+        func_args = (names,)
 
         if self.comparison:
             if window_type == "Plot":
-                return self._add_plot_window(names)
+                target = self._add_plot_window
             elif window_type == "Numeric":
-                return self._add_numeric_window(names)
+                target =self._add_numeric_window
+            else:
+                target = None
         else:
             if window_type == "CAN Bus Trace":
-                return self._add_can_bus_trace_window()
+                target =self._add_can_bus_trace_window
+                func_args = ()
             elif window_type == "FlexRay Bus Trace":
-                return self._add_flexray_bus_trace_window()
+                target = self._add_flexray_bus_trace_window
+                func_args = ()
+
             elif window_type == "LIN Bus Trace":
-                return self._add_lin_bus_trace_window()
+                target =self._add_lin_bus_trace_window
+                func_args = ()
             elif window_type == "GPS":
-                return self._add_gps_window(names)
+                target =self._add_gps_window
             elif window_type == "Plot":
-                return self._add_plot_window(names)
+                target =self._add_plot_window
             elif window_type == "Numeric":
-                return self._add_numeric_window(names)
+                target = self._add_numeric_window
             elif window_type == "Tabular":
-                return self._add_tabular_window(names)
+                target = self._add_tabular_window
             elif window_type == "XY":
-                return self._add_xy_window(names)
+                target = self._add_xy_window
+            else:
+                target = None
+
+        if target is None:
+            return
+
+        if show_dialog:
+            progress = setup_progress(
+                parent=self,
+                title=f"Adding new {window_type} window",
+                message="Please be patient, this can take a while with large files",
+                icon_name="window",
+            )
+            progress.setRange(0, 1)
+            progress.resize(500, progress.height())
+            progress.show()
+            QtWidgets.QApplication.processEvents()
+
+            target(*func_args)
+
+            progress.close()
+
+        else:
+            return target(*func_args)
 
     def _add_can_bus_trace_window(self, ranges=None):
         dfs = []

@@ -907,11 +907,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         )
 
                         if window_type == "New plot window":
-                            self.add_window(["Plot", signals])
+                            self.add_window(["Plot", signals, True])
                         elif window_type == "New numeric window":
-                            self.add_window(["Numeric", signals])
+                            self.add_window(["Numeric", signals, True])
                         elif window_type == "New tabular window":
-                            self.add_window(["Tabular", signals])
+                            self.add_window(["Tabular", signals, True])
                         else:
                             for mdi in self.mdi_area.subWindowList():
                                 if mdi.windowTitle() == window_type:
