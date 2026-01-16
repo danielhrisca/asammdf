@@ -1675,10 +1675,11 @@ class WithMDIArea:
                     destination = None
                 widget.add_new_channels(signals, mime_data=mime_data, destination=destination)
 
-        except MdfException:
-            print(format_exc())
-
-        progress.close()
+        except:
+            progress.close()
+            raise
+        else:
+            progress.close
 
     def add_window(self, args):
         if len(args) == 2:
@@ -1734,9 +1735,13 @@ class WithMDIArea:
             progress.show()
             QtWidgets.QApplication.processEvents()
 
-            target(*func_args)
-
-            progress.close()
+            try:
+                target(*func_args)
+            except:
+                progress.close()
+                raise
+            else:
+                progress.close()
 
         else:
             return target(*func_args)

@@ -8148,7 +8148,10 @@ class MDF4(MDF_Common[Group]):
 
                     case 'FIXED_AXIS':
                         fix_axis = array(axis['values'])
-                        axis_array = array([fix_axis for _ in range(cycles_nr)])
+                        if cycles_nr:
+                            axis_array = array([fix_axis for _ in range(cycles_nr)])
+                        else:
+                            axis_array = array([fix_axis])[:0]
                         arrays.append(axis_array)
                         dtype_pair = (f"axis_{i}", np.dtype(fix_axis.dtype, metadata={'axes': [axis], 'conversion': axis['conversion']}), shape)
                         types.append(dtype_pair)
