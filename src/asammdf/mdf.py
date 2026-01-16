@@ -4220,6 +4220,7 @@ class MDF:
                 cycles_nr,
                 record_size,
                 grp.channel_group.invalidation_bytes_nr,
+                group_index,
                 THREAD_COUNT,
             )
             master_bytes, _ = raw_and_invalidation[0]

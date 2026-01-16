@@ -7485,7 +7485,8 @@ class MDF4(MDF_Common[Group]):
                         cycles_nr,
                         record_size,
                         grp.channel_group.invalidation_bytes_nr,
-                        1, #THREAD_COUNT,
+                        gp_nr,
+                        THREAD_COUNT,
                     )
 
                     extracted_signals = []

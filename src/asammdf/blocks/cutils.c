@@ -2419,18 +2419,6 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     Py_XDECREF(ref);
     //fptr = fopen(file_name,"rb");
 
-#if defined(_WIN32)
-    
-    HANDLE  *hThreads;
-    DWORD   *dwThreadIdArray;
-    hThreads = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
-    dwThreadIdArray = (DWORD  *) malloc(sizeof(DWORD) * thread_count);
-#else
-
-    pthread_t *dwThreadIdArray = (pthread_t  *) malloc(sizeof(pthread_t) * thread_count);
-
-#endif
-
     PtrSignalInfo signal_info;
 
     is_list = PyList_Check(signals);
@@ -2511,7 +2499,19 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         thread_count = info_count;
       }
 
-      // printf("thread count %d\n", thread_count);
+      printf("thread count %d\n", thread_count);
+
+      #if defined(_WIN32)
+    
+          HANDLE  *hThreads=NULL;
+          DWORD   *dwThreadIdArray=NULL;
+          hThreads = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
+          dwThreadIdArray = (DWORD  *) malloc(sizeof(DWORD) * thread_count);
+      #else
+
+          pthread_t *dwThreadIdArray = (pthread_t  *) malloc(sizeof(pthread_t) * thread_count);
+
+      #endif
 
       block_info = (PtrInfoBlock) malloc(sizeof(InfoBlock) * info_count);
       if (!block_info) {
@@ -2645,6 +2645,10 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 
       free(block_info);
       free(thread_info);
+      free(dwThreadIdArray);
+      #if defined(_WIN32)
+          free(hThreads);
+      #endif
     }
 
     PyObject *inv, *inv_array, *origin;
@@ -2717,13 +2721,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     free(cache);
 
     free(signal_info);
-    free(dwThreadIdArray);
-
+    
     Py_XDECREF(InvalidationArray);
-
-#if defined(_WIN32)
-    free(hThreads);
-#endif
 
     return out;
   }
