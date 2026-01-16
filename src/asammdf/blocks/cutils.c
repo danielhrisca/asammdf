@@ -2010,24 +2010,17 @@ typedef struct SignalInfo {
 
 
 typedef struct ProcessesingBlock {
-  uint8_t stop;
-  uint8_t * inptr;
+  
   PtrInfoBlock block_info;
+  Py_ssize_t block_count;
   struct SignalInfo *signals;
   Py_ssize_t signal_count;
   Py_ssize_t record_size;
   Py_ssize_t idx;
-#if defined(_WIN32)
-  HANDLE bytes_ready;
-  HANDLE block_ready;
-#else
-  pthread_cond_t   bytes_ready;
-  pthread_cond_t  block_ready;
-  bool bytes_really_ready;
-  bool block_really_ready;
-  pthread_mutex_t   bytes_ready_lock;
-  pthread_mutex_t   block_ready_lock;
-#endif
+  Py_ssize_t max_compressed;
+  uint8_t thread_count;
+  char * file_name;
+
 } ProcessesingBlock, *PtrProcessesingBlock;
 
 
@@ -2037,7 +2030,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   int64_t original_size, compressed_size, record_offset, block_limit, cycles, current_uncompressed_size=0, current_out_size=0, max_cycles=0;
   PtrProcessesingBlock thread_info;
   thread_info = (PtrProcessesingBlock) lpParam;
-  PtrInfoBlock block_info;
+  InfoBlock block_info;
 
   Py_ssize_t signal_count, thread_idx, record_size, in_size, cols, lines;
 
@@ -2050,7 +2043,6 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   uint8_t *outptr, *inptr, *write;
   uint8_t *pUncomp=NULL, *pUncompTr=NULL, *read, *data_ptr;
 
-  inptr = thread_info->inptr;
   char * destination_cursor;
   char * source_cursor, *source_end ;
   size_t destination_written;
@@ -2059,56 +2051,119 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   size_t source_remain;
   size_t source_read;
 
-  while (1) {
-#if defined(_WIN32)
-    start = clock();
-    WaitForSingleObject(thread_info->block_ready, INFINITE);
-    ResetEvent(thread_info->block_ready);
-    end = clock();
-    t3 += end - start;
+  #if defined(_WIN32)
+    TCHAR *lpFileName = TEXT(thread_info->file_name);
+    HANDLE hFile;
+    HANDLE hMap;
+    LPVOID lpBasePtr;
+    LARGE_INTEGER liFileSize;
 
-    /* printf("Thr %d processing %d signals\n", thread_info->idx, thread_info->signal_count);
-    printf("Block type=%d\n", thread_info->block_info->block_type);
-    printf("Block limit=%d\n", thread_info->block_info->block_limit);
-    printf("Block original_size%d\n", thread_info->block_info->original_size);
-    printf("Block compressed_size=%d\n", thread_info->block_info->compressed_size);
-    printf("Block param=%d\n", thread_info->block_info->param);
-    printf("Block record_offset=%d\n", thread_info->block_info->record_offset); */
-
-#else
-
-    pthread_mutex_lock(&thread_info->block_ready_lock);
-    while (!thread_info->block_really_ready) {
-      pthread_cond_wait(&thread_info->block_ready, &thread_info->block_ready_lock);
+    hFile = CreateFile(lpFileName,
+                       GENERIC_READ,                          // dwDesiredAccess
+                       FILE_SHARE_READ,                       // dwShareMode
+                       NULL,                                  // lpSecurityAttributes
+                       OPEN_EXISTING,                         // dwCreationDisposition
+                       FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
+                       0);                                    // hTemplateFile
+    if (hFile == INVALID_HANDLE_VALUE) {
+      hFile = CreateFile(lpFileName,
+                         GENERIC_READ,                          // dwDesiredAccess
+                         FILE_SHARE_READ|FILE_SHARE_WRITE,                                     // dwShareMode
+                         NULL,                                  // lpSecurityAttributes
+                         OPEN_EXISTING,                         // dwCreationDisposition
+                         FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
+                         0);
+      if (hFile == INVALID_HANDLE_VALUE) {
+        fprintf(stderr, "CreateFile failed with error %d\n", GetLastError());
+        snprintf(err_string, 1024, "CreateFile failed with error %d\n\0", GetLastError());
+        PyErr_SetString(PyExc_OSError, err_string);
+        return NULL;
+      }
     }
 
-    thread_info->block_really_ready = false;
-    pthread_mutex_unlock(&thread_info->block_ready_lock);
-    /* printf("Thr %d processing %d signals\n", thread_info->idx, thread_info->signal_count);
-    printf("Block type=%d\n", thread_info->block_info->block_type);
-    printf("Block limit=%d\n", thread_info->block_info->block_limit);
-    printf("Block original_size%d\n", thread_info->block_info->original_size);
-    printf("Block compressed_size=%d\n", thread_info->block_info->compressed_size);
-    printf("Block param=%d\n", thread_info->block_info->param);
-    printf("Block record_offset=%d\n", thread_info->block_info->record_offset);
-    printf("waiting for mutex=%d\n", thread_info->idx);
-    printf("block_really_ready=%d\n", thread_info->block_really_ready);
-    printf("bytes_really_ready=%d\n", thread_info->bytes_really_ready); */
+    if (!GetFileSizeEx(hFile, &liFileSize)) {
+      fprintf(stderr, "GetFileSize failed with error %d\n", GetLastError());
+      snprintf(err_string, 1024, "GetFileSize failed with error %d\n\0", GetLastError());
+      PyErr_SetString(PyExc_OSError, err_string);
+      CloseHandle(hFile);
+      return NULL;
+    }
+
+    if (liFileSize.QuadPart == 0) {
+      fprintf(stderr, "File is empty\n");
+      snprintf(err_string, 1024, "File is empty\n\0");
+      PyErr_SetString(PyExc_OSError, err_string);
+      CloseHandle(hFile);
+      return NULL;
+    }
+
+    hMap = CreateFileMapping(
+             hFile,
+             NULL,                          // Mapping attributes
+             PAGE_READONLY,                 // Protection flags
+             0,                             // MaximumSizeHigh
+             0,                             // MaximumSizeLow
+             NULL);                         // Name
+    if (hMap == 0) {
+      fprintf(stderr, "CreateFileMapping failed with error %d\n", GetLastError());
+      snprintf(err_string, 1024, "CreateFileMapping failed with error %d\n\0", GetLastError());
+      PyErr_SetString(PyExc_OSError, err_string);
+      CloseHandle(hFile);
+      return NULL;
+    }
+
+    lpBasePtr = MapViewOfFile(
+                  hMap,
+                  FILE_MAP_READ,         // dwDesiredAccess
+                  0,                     // dwFileOffsetHigh
+                  0,                     // dwFileOffsetLow
+                  0);                    // dwNumberOfBytesToMap
+    if (lpBasePtr == NULL) {
+      fprintf(stderr, "MapViewOfFile failed with error %d\n", GetLastError());
+      snprintf(err_string, 1024, "MapViewOfFile failed with error %d\n\0", GetLastError());
+      PyErr_SetString(PyExc_OSError, err_string);
+      CloseHandle(hMap);
+      CloseHandle(hFile);
+      return NULL;
+    }
+
+#else
+    int fdin = open(file_name, O_RDONLY);
+    struct stat statbuf;
+    uint8_t * lpBasePtr;
+
+    fstat (fdin, &statbuf);
+
+    lpBasePtr = mmap (0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0);
 
 #endif
 
-    if (thread_info->stop) break;
+  inptr = (uint8_t *) malloc(thread_info->max_compressed);
 
-    original_size = thread_info->block_info->original_size;
-    compressed_size = thread_info->block_info->compressed_size;
-    param = thread_info->block_info->param;
-    block_type = thread_info->block_info->block_type;
-    record_offset = thread_info->block_info->record_offset;
+  for (int block_idx=thread_info->idx; block_idx<thread_info->block_count; block_idx+=thread_info->thread_count) {
+    block_info = thread_info->block_info[block_idx];
+
+    /* printf("Thr %d of %d  processing %d signals\n", thread_info->idx, thread_info->thread_count, thread_info->signal_count);
+    printf("Block %d of %d\n", block_idx, thread_info->block_count);
+    printf("Block type=%d\n", block_info.block_type);
+    printf("Block limit=%d\n", block_info.block_limit);
+    printf("Block original_size %d\n", block_info.original_size);
+    printf("Block compressed_size=%d inptr=%d\n", block_info.compressed_size, thread_info->max_compressed);
+    printf("Block param=%d\n", block_info.param);
+    printf("Block record_offset=%d\n", block_info.record_offset); */
+
+    memcpy(inptr, ((uint8_t*)lpBasePtr) + block_info.address, block_info.compressed_size);
+
+    original_size = block_info.original_size;
+    compressed_size = block_info.compressed_size;
+    param = block_info.param;
+    block_type = block_info.block_type;
+    record_offset = block_info.record_offset;
 
     count = original_size / record_size;
 
-    if (thread_info->block_info->block_limit >= 0) {
-      cycles = thread_info->block_info->block_limit / record_size ;
+    if (block_info.block_limit >= 0) {
+      cycles = block_info.block_limit / record_size ;
     }
     else {
       cycles = count;
@@ -2305,21 +2360,23 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
     }
 
     // printf("\tThr %d set event\n", thread_info->idx);
-
-#if defined(_WIN32)
-    SetEvent(thread_info->bytes_ready);
-#else
-    pthread_mutex_lock(&thread_info->bytes_ready_lock);
-    thread_info->bytes_really_ready = true;
-    pthread_cond_signal(&thread_info->bytes_ready);
-    pthread_mutex_unlock(&thread_info->bytes_ready_lock);
-#endif
-
   }
 
+#if defined(_WIN32)
+      UnmapViewOfFile(lpBasePtr);
+      CloseHandle(hMap);
+      CloseHandle(hFile);
+
+#else
+      munmap(lpBasePtr, statbuf.st_size);
+      close(fdin);
+      
+#endif
+
+  if (inptr) free(inptr);
   if (pUncomp) free(pUncomp);
   if (pUncompTr) free(pUncompTr);
-  //printf("t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", t1, t2, t3, t4, t5, t6, t7);
+  //printf("IDX=%d t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", thread_info->idx, t1, t2, t3, t4, t5, t6, t7);
   return NULL;
 }
 
@@ -2335,7 +2392,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
              cycles, step = 0, invalidation_bytes;
   Py_ssize_t isize = 0, offset = 0;
   int is_list;
-  int64_t byte_offset, byte_count, new_cycles, max_uncompressed=0, max_compressed=0, record_offset=0;
+  int64_t byte_offset, byte_count, new_cycles, max_compressed=0, record_offset=0;
   int32_t invalidation_bit_position;
 
   PtrInfoBlock block_info;
@@ -2363,105 +2420,14 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     //fptr = fopen(file_name,"rb");
 
 #if defined(_WIN32)
-    TCHAR *lpFileName = TEXT(file_name);
-    HANDLE hFile;
-    HANDLE hMap;
-    LPVOID lpBasePtr;
-    LARGE_INTEGER liFileSize;
-
-    hFile = CreateFile(lpFileName,
-                       GENERIC_READ,                          // dwDesiredAccess
-                       FILE_SHARE_READ,                       // dwShareMode
-                       NULL,                                  // lpSecurityAttributes
-                       OPEN_EXISTING,                         // dwCreationDisposition
-                       FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
-                       0);                                    // hTemplateFile
-    if (hFile == INVALID_HANDLE_VALUE) {
-      hFile = CreateFile(lpFileName,
-                         GENERIC_READ,                          // dwDesiredAccess
-                         FILE_SHARE_READ|FILE_SHARE_WRITE,                                     // dwShareMode
-                         NULL,                                  // lpSecurityAttributes
-                         OPEN_EXISTING,                         // dwCreationDisposition
-                         FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
-                         0);
-      if (hFile == INVALID_HANDLE_VALUE) {
-        fprintf(stderr, "CreateFile failed with error %d\n", GetLastError());
-        snprintf(err_string, 1024, "CreateFile failed with error %d\n\0", GetLastError());
-        PyErr_SetString(PyExc_OSError, err_string);
-        return NULL;
-      }
-    }
-
-    if (!GetFileSizeEx(hFile, &liFileSize)) {
-      fprintf(stderr, "GetFileSize failed with error %d\n", GetLastError());
-      snprintf(err_string, 1024, "GetFileSize failed with error %d\n\0", GetLastError());
-      PyErr_SetString(PyExc_OSError, err_string);
-      CloseHandle(hFile);
-      return NULL;
-    }
-
-    if (liFileSize.QuadPart == 0) {
-      fprintf(stderr, "File is empty\n");
-      snprintf(err_string, 1024, "File is empty\n\0");
-      PyErr_SetString(PyExc_OSError, err_string);
-      CloseHandle(hFile);
-      return NULL;
-    }
-
-    hMap = CreateFileMapping(
-             hFile,
-             NULL,                          // Mapping attributes
-             PAGE_READONLY,                 // Protection flags
-             0,                             // MaximumSizeHigh
-             0,                             // MaximumSizeLow
-             NULL);                         // Name
-    if (hMap == 0) {
-      fprintf(stderr, "CreateFileMapping failed with error %d\n", GetLastError());
-      snprintf(err_string, 1024, "CreateFileMapping failed with error %d\n\0", GetLastError());
-      PyErr_SetString(PyExc_OSError, err_string);
-      CloseHandle(hFile);
-      return NULL;
-    }
-
-    lpBasePtr = MapViewOfFile(
-                  hMap,
-                  FILE_MAP_READ,         // dwDesiredAccess
-                  0,                     // dwFileOffsetHigh
-                  0,                     // dwFileOffsetLow
-                  0);                    // dwNumberOfBytesToMap
-    if (lpBasePtr == NULL) {
-      fprintf(stderr, "MapViewOfFile failed with error %d\n", GetLastError());
-      snprintf(err_string, 1024, "MapViewOfFile failed with error %d\n\0", GetLastError());
-      PyErr_SetString(PyExc_OSError, err_string);
-      CloseHandle(hMap);
-      CloseHandle(hFile);
-      return NULL;
-    }
-
-    HANDLE  *hThreads, *block_ready, *bytes_ready;
+    
+    HANDLE  *hThreads;
     DWORD   *dwThreadIdArray;
     hThreads = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
     dwThreadIdArray = (DWORD  *) malloc(sizeof(DWORD) * thread_count);
-    block_ready = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
-    bytes_ready = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
 #else
-    int fdin = open(file_name, O_RDONLY);
-    struct stat statbuf;
-    uint8_t * lpBasePtr;
-
-    fstat (fdin, &statbuf);
-
-    lpBasePtr = mmap (0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0);
 
     pthread_t *dwThreadIdArray = (pthread_t  *) malloc(sizeof(pthread_t) * thread_count);
-
-    pthread_mutex_t *bytes_ready_locks, *block_ready_locks;  // Declare mutex
-    pthread_cond_t *block_ready, *bytes_ready;
-
-    block_ready = (pthread_cond_t  *) malloc(sizeof(pthread_cond_t) * thread_count);
-    bytes_ready = (pthread_cond_t  *) malloc(sizeof(pthread_cond_t) * thread_count);
-    bytes_ready_locks = (pthread_mutex_t  *) malloc(sizeof(pthread_mutex_t) * thread_count);
-    block_ready_locks = (pthread_mutex_t  *) malloc(sizeof(pthread_mutex_t) * thread_count);
 
 #endif
 
@@ -2545,6 +2511,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         thread_count = info_count;
       }
 
+      // printf("thread count %d\n", thread_count);
+
       block_info = (PtrInfoBlock) malloc(sizeof(InfoBlock) * info_count);
       if (!block_info) {
         PyErr_SetString(PyExc_ValueError, "Memmory allocation error for block_info\n\0");
@@ -2555,6 +2523,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_ValueError, "Memmory allocation error for thread_info\n\0");
         return NULL;
       }
+
+      record_offset =0;
 
       for (int i=0; i<info_count; i++) {
 
@@ -2613,50 +2583,26 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         }
         Py_XDECREF(ref);
 
-        max_compressed = MAX(max_compressed, block_info[i].compressed_size);
-        //max_uncompressed = max_uncompressed, block_info[i].original_size);
+        block_info[i].record_offset = record_offset;
 
+        record_offset += block_info[i].original_size / record_size;
+
+        max_compressed = MAX(max_compressed, block_info[i].compressed_size);
       }
 
-      //printf("NAX compressed=%ld\n", max_compressed);
+      // printf("MAX compressed=%ld\n", max_compressed);
 
       for (int i=0; i<thread_count; i++) {
-#if defined(_WIN32)
-        block_ready[i] =  CreateEvent(
-                            NULL,               // default security attributes
-                            true,               // manual-reset event
-                            false,              // initial state is nonsignaled
-                            NULL                // object name
-                          );
-        bytes_ready[i] = CreateEvent(
-                           NULL,                // default security attributes
-                           true,                // manual-reset event
-                           false,               // initial state is nonsignaled
-                           NULL                 // object name
-                         );
-#else
-        pthread_cond_init(&block_ready[i], NULL) ;
-        pthread_cond_init(&bytes_ready[i], NULL) ;
-        pthread_mutex_init(&block_ready_locks[i], NULL) ;
-        pthread_mutex_init(&bytes_ready_locks[i], NULL) ;
-        thread_info[i].bytes_ready_lock = bytes_ready_locks[i];
-        thread_info[i].block_ready_lock = block_ready_locks[i];
-        thread_info[i].bytes_really_ready = false;
-        thread_info[i].block_really_ready = false;
-#endif
-        thread_info[i].inptr = (uint8_t *) malloc(max_compressed);
-        if (!thread_info[i].inptr) {
-          PyErr_SetString(PyExc_ValueError, "Memmory allocation error for thread_info[i].inptr\n\0");
-          return NULL;
-        }
-        thread_info[i].block_info = NULL;
+
+        thread_info[i].block_info = block_info;
+        thread_info[i].block_count = info_count;
         thread_info[i].signals = signal_info;
         thread_info[i].signal_count = signal_and_invalidation_count;
         thread_info[i].record_size = record_size;
-        thread_info[i].stop = 0;
         thread_info[i].idx = i;
-        thread_info[i].block_ready = block_ready[i];
-        thread_info[i].bytes_ready = bytes_ready[i];
+        thread_info[i].max_compressed = max_compressed;
+        thread_info[i].thread_count = thread_count;
+        thread_info[i].file_name = file_name;
       }
 
       //printf("%d threads %d blocks %d cycles %d size\n", thread_count, info_count, cycles, cycles * byte_count);
@@ -2677,6 +2623,11 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         }
       }
 
+      WaitForMultipleObjects(thread_count, hThreads, true, INFINITE);
+
+      for (int i=0; i< thread_count; i++)
+        CloseHandle(hThreads[i]);
+
 #else
       for (int i=0; i< thread_count; i++) {
         if (pthread_create(&(dwThreadIdArray[i]), NULL, get_channel_raw_bytes_complete_C, &thread_info[i]))
@@ -2685,106 +2636,12 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
           return NULL;
         }
       }
-      usleep(100);
 
-#endif
-
-      position = 0;
-      int64_t slp=0;
-
-      for (int i=0; i<info_count; i++) {
-        thread = &thread_info[position];
-
-        if (i >= thread_count) {
-#if defined(_WIN32)
-          start = clock();
-          WaitForSingleObject(bytes_ready[position], INFINITE);
-          end = clock();
-          tt += end - start;
-          ResetEvent(bytes_ready[position]);
-#else
-          pthread_mutex_lock(&thread->bytes_ready_lock);
-          while (!thread->bytes_really_ready)
-            pthread_cond_wait(&thread->bytes_ready, &thread->bytes_ready_lock);
-          thread->bytes_really_ready = false;
-          pthread_mutex_unlock(&thread->bytes_ready_lock);
-#endif
-        }
-
-        thread->block_info = &block_info[i];
-        thread->block_info->record_offset = record_offset;
-        record_offset += block_info[i].original_size / record_size;
-        memcpy(thread->inptr, ((uint8_t*)lpBasePtr) + block_info[i].address, block_info[i].compressed_size);
-
-        //FSEEK64(fptr, block_info[i].address, 0);
-        //result = fread(thread->inptr, 1, block_info[i].compressed_size, fptr);
-
-#if defined(_WIN32)
-        SetEvent(block_ready[position]);
-#else
-        pthread_mutex_lock(&thread->block_ready_lock);
-        thread->block_really_ready = true;
-        pthread_cond_signal(&thread->block_ready);
-        pthread_mutex_unlock(&thread->block_ready_lock);
-#endif
-
-        position++;
-        if (position == thread_count) position = 0;
-
-      }
-
-      //printf("TT=%lf\n", tt);
-
-      for (int i=0; i<thread_count; i++) {
-        thread = &thread_info[position];
-
-#if defined(_WIN32)
-        WaitForSingleObject(bytes_ready[position], INFINITE);
-        ResetEvent(bytes_ready[position]);
-#else
-        pthread_mutex_lock(&thread->bytes_ready_lock);
-        while (!thread->bytes_really_ready)
-          pthread_cond_wait(&thread->bytes_ready, &thread->bytes_ready_lock);
-        thread->bytes_really_ready = false;
-        pthread_mutex_unlock(&thread->bytes_ready_lock);
-#endif
-        thread->stop = 1;
-
-#if defined(_WIN32)
-        SetEvent(block_ready[position]);
-#else
-        pthread_mutex_lock(&thread->block_ready_lock);
-        pthread_cond_signal(&thread->block_ready);
-        thread->block_really_ready = true;
-        pthread_mutex_unlock(&thread->block_ready_lock);
-#endif
-
-        position++;
-        if (position == thread_count) position = 0;
-      }
-
-#if defined(_WIN32)
-      UnmapViewOfFile(lpBasePtr);
-      CloseHandle(hMap);
-      CloseHandle(hFile);
-
-      WaitForMultipleObjects(thread_count, hThreads, true, INFINITE);
-      for (int i=0; i< thread_count; i++) {
-        CloseHandle(hThreads[i]);
-        CloseHandle(block_ready[i]);
-        CloseHandle(bytes_ready[i]);
-      }
-#else
-      munmap(lpBasePtr, statbuf.st_size);
-      close(fdin);
       for (int i=0; i< thread_count; i++) {
         pthread_join(dwThreadIdArray[i], NULL);
       }
-#endif
 
-      for (int i=0; i<thread_count; i++) {
-        free(thread_info[i].inptr);
-      }
+#endif
 
       free(block_info);
       free(thread_info);
@@ -2860,17 +2717,12 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     free(cache);
 
     free(signal_info);
-    free(block_ready);
-    free(bytes_ready);
     free(dwThreadIdArray);
 
     Py_XDECREF(InvalidationArray);
 
 #if defined(_WIN32)
     free(hThreads);
-#else
-    free(bytes_ready_locks);
-    free(block_ready_locks);
 #endif
 
     return out;
