@@ -2128,7 +2128,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
     }
 
 #else
-    int fdin = open(file_name, O_RDONLY);
+    int fdin = open(thread_info->file_name, O_RDONLY);
     struct stat statbuf;
     uint8_t * lpBasePtr;
 
