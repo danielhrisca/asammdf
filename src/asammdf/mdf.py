@@ -4052,6 +4052,7 @@ class MDF:
         ignore_value2text_conversions: bool = False,
         record_count: int | None = None,
         validate: bool = False,
+        threads = 11,
     ) -> list[Signal]:
         """Retrieve the channels listed in the `channels` argument as `Signal`
         objects.
@@ -4221,7 +4222,7 @@ class MDF:
                 record_size,
                 grp.channel_group.invalidation_bytes_nr,
                 group_index,
-                THREAD_COUNT,
+                threads, #THREAD_COUNT,
             )
             master_bytes, _ = raw_and_invalidation[0]
             raw_and_invalidation = raw_and_invalidation[1:]

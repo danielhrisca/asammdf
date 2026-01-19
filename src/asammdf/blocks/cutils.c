@@ -2020,11 +2020,19 @@ typedef struct ProcessesingBlock {
   Py_ssize_t max_compressed;
   uint8_t thread_count;
   char * file_name;
+  char * inptr0;
+  char * inptr1;
+  uint8_t inptr0_status;
+  uint8_t inptr1_status;
 
 } ProcessesingBlock, *PtrProcessesingBlock;
 
+#define DATA_READY 1
+#define DATA_PROCESSED 2
+#define NO_DATA 0
 
-void * get_channel_raw_bytes_complete_C(void *lpParam )
+
+void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
 {
   Py_ssize_t count, byte_count, byte_offset, delta, thread_count, param, block_type;
   int64_t original_size, compressed_size, record_offset, block_limit, cycles, current_uncompressed_size=0, current_out_size=0, max_cycles=0;
@@ -2051,97 +2059,19 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   size_t source_remain;
   size_t source_read;
 
-  #if defined(_WIN32)
-    TCHAR *lpFileName = TEXT(thread_info->file_name);
-    HANDLE hFile;
-    HANDLE hMap;
-    LPVOID lpBasePtr;
-    LARGE_INTEGER liFileSize;
-
-    hFile = CreateFile(lpFileName,
-                       GENERIC_READ,                          // dwDesiredAccess
-                       FILE_SHARE_READ,                       // dwShareMode
-                       NULL,                                  // lpSecurityAttributes
-                       OPEN_EXISTING,                         // dwCreationDisposition
-                       FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
-                       0);                                    // hTemplateFile
-    if (hFile == INVALID_HANDLE_VALUE) {
-      hFile = CreateFile(lpFileName,
-                         GENERIC_READ,                          // dwDesiredAccess
-                         FILE_SHARE_READ|FILE_SHARE_WRITE,                                     // dwShareMode
-                         NULL,                                  // lpSecurityAttributes
-                         OPEN_EXISTING,                         // dwCreationDisposition
-                         FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
-                         0);
-      if (hFile == INVALID_HANDLE_VALUE) {
-        fprintf(stderr, "CreateFile failed with error %d\n", GetLastError());
-        snprintf(err_string, 1024, "CreateFile failed with error %d\n\0", GetLastError());
-        PyErr_SetString(PyExc_OSError, err_string);
-        return NULL;
-      }
-    }
-
-    if (!GetFileSizeEx(hFile, &liFileSize)) {
-      fprintf(stderr, "GetFileSize failed with error %d\n", GetLastError());
-      snprintf(err_string, 1024, "GetFileSize failed with error %d\n\0", GetLastError());
-      PyErr_SetString(PyExc_OSError, err_string);
-      CloseHandle(hFile);
-      return NULL;
-    }
-
-    if (liFileSize.QuadPart == 0) {
-      fprintf(stderr, "File is empty\n");
-      snprintf(err_string, 1024, "File is empty\n\0");
-      PyErr_SetString(PyExc_OSError, err_string);
-      CloseHandle(hFile);
-      return NULL;
-    }
-
-    hMap = CreateFileMapping(
-             hFile,
-             NULL,                          // Mapping attributes
-             PAGE_READONLY,                 // Protection flags
-             0,                             // MaximumSizeHigh
-             0,                             // MaximumSizeLow
-             NULL);                         // Name
-    if (hMap == 0) {
-      fprintf(stderr, "CreateFileMapping failed with error %d\n", GetLastError());
-      snprintf(err_string, 1024, "CreateFileMapping failed with error %d\n\0", GetLastError());
-      PyErr_SetString(PyExc_OSError, err_string);
-      CloseHandle(hFile);
-      return NULL;
-    }
-
-    lpBasePtr = MapViewOfFile(
-                  hMap,
-                  FILE_MAP_READ,         // dwDesiredAccess
-                  0,                     // dwFileOffsetHigh
-                  0,                     // dwFileOffsetLow
-                  0);                    // dwNumberOfBytesToMap
-    if (lpBasePtr == NULL) {
-      fprintf(stderr, "MapViewOfFile failed with error %d\n", GetLastError());
-      snprintf(err_string, 1024, "MapViewOfFile failed with error %d\n\0", GetLastError());
-      PyErr_SetString(PyExc_OSError, err_string);
-      CloseHandle(hMap);
-      CloseHandle(hFile);
-      return NULL;
-    }
-
-#else
-    int fdin = open(thread_info->file_name, O_RDONLY);
-    struct stat statbuf;
-    uint8_t * lpBasePtr;
-
-    fstat (fdin, &statbuf);
-
-    lpBasePtr = mmap (0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0);
-
-#endif
-
-  inptr = (uint8_t *) malloc(thread_info->max_compressed);
+  bool on_inptr0 = true;
 
   for (int block_idx=thread_info->idx; block_idx<thread_info->block_count; block_idx+=thread_info->thread_count) {
     block_info = thread_info->block_info[block_idx];
+
+    if (on_inptr0) {
+      while (thread_info->inptr0_status != DATA_READY);
+      inptr = thread_info->inptr0;
+    }
+    else {
+      while (thread_info->inptr1_status != DATA_READY);
+      inptr = thread_info->inptr1;
+    }
 
     /* printf("Thr %d of %d  processing %d signals\n", thread_info->idx, thread_info->thread_count, thread_info->signal_count);
     printf("Block %d of %d\n", block_idx, thread_info->block_count);
@@ -2151,8 +2081,6 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
     printf("Block compressed_size=%d inptr=%d\n", block_info.compressed_size, thread_info->max_compressed);
     printf("Block param=%d\n", block_info.param);
     printf("Block record_offset=%d\n", block_info.record_offset); */
-
-    memcpy(inptr, ((uint8_t*)lpBasePtr) + block_info.address, block_info.compressed_size);
 
     original_size = block_info.original_size;
     compressed_size = block_info.compressed_size;
@@ -2359,23 +2287,207 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
       }
     }
 
+    if (on_inptr0) {
+      thread_info->inptr0_status = DATA_PROCESSED;
+      on_inptr0 = false;
+    }
+    else {
+      thread_info->inptr1_status = DATA_PROCESSED;
+      on_inptr0 = true;
+    }
+
     // printf("\tThr %d set event\n", thread_info->idx);
   }
 
+  if (pUncomp) free(pUncomp);
+  if (pUncompTr) free(pUncompTr);
+  //printf("IDX=%d t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", thread_info->idx, t1, t2, t3, t4, t5, t6, t7);
+  return NULL;
+}
+
+
+void * get_channel_raw_bytes_complete_C(void *lpParam )
+{
+  Py_ssize_t count, byte_count, byte_offset, delta, thread_count, param, block_type;
+  int64_t original_size, compressed_size, record_offset, block_limit, cycles, current_uncompressed_size=0, current_out_size=0, max_cycles=0;
+  PtrProcessesingBlock thread_info;
+  thread_info = (PtrProcessesingBlock) lpParam;
+  InfoBlock block_info;
+
+  Py_ssize_t signal_count, thread_idx, record_size, in_size, cols, lines;
+
+  record_size = thread_info->record_size;
+
+  int result, end_of_frame=0;
+  clock_t start, end;
+  double t1=0, t2=0, t3=0, t4=0, t5=0, t6=0, t7=0;
+
+  uint8_t *outptr, *inptr, *write;
+  uint8_t *pUncomp=NULL, *pUncompTr=NULL, *read, *data_ptr;
+  bool on_inptr0 = true;
+
+  char * destination_cursor;
+  char * source_cursor, *source_end ;
+  size_t destination_written;
+  size_t destination_write;
+  size_t destination_size;
+  size_t source_remain;
+  size_t source_read;
+
+  thread_info->inptr0_status = NO_DATA;
+  thread_info->inptr1_status = NO_DATA;
+  thread_info->inptr0 = (char *) malloc(thread_info->max_compressed);
+  thread_info->inptr1 = (char *) malloc(thread_info->max_compressed);
+
+  #if defined(_WIN32)
+    TCHAR *lpFileName = TEXT(thread_info->file_name);
+    HANDLE hFile;
+    HANDLE hMap;
+    LPVOID lpBasePtr;
+    LARGE_INTEGER liFileSize;
+
+    hFile = CreateFile(lpFileName,
+                       GENERIC_READ,                          // dwDesiredAccess
+                       FILE_SHARE_READ,                       // dwShareMode
+                       NULL,                                  // lpSecurityAttributes
+                       OPEN_EXISTING,                         // dwCreationDisposition
+                       FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
+                       0);                                    // hTemplateFile
+    if (hFile == INVALID_HANDLE_VALUE) {
+      hFile = CreateFile(lpFileName,
+                         GENERIC_READ,                          // dwDesiredAccess
+                         FILE_SHARE_READ|FILE_SHARE_WRITE,                                     // dwShareMode
+                         NULL,                                  // lpSecurityAttributes
+                         OPEN_EXISTING,                         // dwCreationDisposition
+                         FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
+                         0);
+      if (hFile == INVALID_HANDLE_VALUE) {
+        fprintf(stderr, "CreateFile failed with error %d\n", GetLastError());
+        snprintf(err_string, 1024, "CreateFile failed with error %d\n\0", GetLastError());
+        PyErr_SetString(PyExc_OSError, err_string);
+        return NULL;
+      }
+    }
+
+    if (!GetFileSizeEx(hFile, &liFileSize)) {
+      fprintf(stderr, "GetFileSize failed with error %d\n", GetLastError());
+      snprintf(err_string, 1024, "GetFileSize failed with error %d\n\0", GetLastError());
+      PyErr_SetString(PyExc_OSError, err_string);
+      CloseHandle(hFile);
+      return NULL;
+    }
+
+    if (liFileSize.QuadPart == 0) {
+      fprintf(stderr, "File is empty\n");
+      snprintf(err_string, 1024, "File is empty\n\0");
+      PyErr_SetString(PyExc_OSError, err_string);
+      CloseHandle(hFile);
+      return NULL;
+    }
+
+    hMap = CreateFileMapping(
+             hFile,
+             NULL,                          // Mapping attributes
+             PAGE_READONLY,                 // Protection flags
+             0,                             // MaximumSizeHigh
+             0,                             // MaximumSizeLow
+             NULL);                         // Name
+    if (hMap == 0) {
+      fprintf(stderr, "CreateFileMapping failed with error %d\n", GetLastError());
+      snprintf(err_string, 1024, "CreateFileMapping failed with error %d\n\0", GetLastError());
+      PyErr_SetString(PyExc_OSError, err_string);
+      CloseHandle(hFile);
+      return NULL;
+    }
+
+    lpBasePtr = MapViewOfFile(
+                  hMap,
+                  FILE_MAP_READ,         // dwDesiredAccess
+                  0,                     // dwFileOffsetHigh
+                  0,                     // dwFileOffsetLow
+                  0);                    // dwNumberOfBytesToMap
+    if (lpBasePtr == NULL) {
+      fprintf(stderr, "MapViewOfFile failed with error %d\n", GetLastError());
+      snprintf(err_string, 1024, "MapViewOfFile failed with error %d\n\0", GetLastError());
+      PyErr_SetString(PyExc_OSError, err_string);
+      CloseHandle(hMap);
+      CloseHandle(hFile);
+      return NULL;
+    }
+
+    HANDLE  *hthread=NULL;
+    DWORD   *dwthread=NULL;
+
+    hthread = CreateThread(
+                        NULL,
+                        0,
+                        get_channel_raw_bytes_complete_decompress_thread,
+                        lpParam,
+                        0,
+                        dwthread
+                      );
+
+    if (!hthread) {
+      PyErr_SetString(PyExc_ValueError, "Failed to create decompress thread\n\0");
+      return NULL;
+    }
+
+#else
+    int fdin = open(thread_info->file_name, O_RDONLY);
+    struct stat statbuf;
+    uint8_t * lpBasePtr;
+
+    fstat (fdin, &statbuf);
+
+    lpBasePtr = mmap (0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0);
+
+    pthread_t *dwthread = NULL;
+
+    if (pthread_create(dwthread, NULL, get_channel_raw_bytes_complete_decompress_thread, lpParam))
+    {
+      PyErr_SetString(PyExc_ValueError, "Failed to create processing thread\n\0");
+      return NULL;
+    }
+
+#endif
+
+
+  for (int block_idx=thread_info->idx; block_idx<thread_info->block_count; block_idx+=thread_info->thread_count) {
+    block_info = thread_info->block_info[block_idx];
+
+    if (on_inptr0) {
+      while (thread_info->inptr0_status == DATA_READY);
+      memcpy(thread_info->inptr0, ((uint8_t*)lpBasePtr) + block_info.address, block_info.compressed_size);
+      on_inptr0 = false;
+      thread_info->inptr0_status = DATA_READY;
+
+    }
+    else {
+      while (thread_info->inptr1_status == DATA_READY);
+      memcpy(thread_info->inptr1, ((uint8_t*)lpBasePtr) + block_info.address, block_info.compressed_size);
+      on_inptr0 = true;
+      thread_info->inptr1_status = DATA_READY;
+    }
+  
+  }
+
 #if defined(_WIN32)
+  WaitForSingleObject(hthread, INFINITE);
+
+  CloseHandle(hthread);
       UnmapViewOfFile(lpBasePtr);
       CloseHandle(hMap);
       CloseHandle(hFile);
 
 #else
+      pthread_join(dwthread, NULL);
       munmap(lpBasePtr, statbuf.st_size);
       close(fdin);
       
 #endif
 
-  if (inptr) free(inptr);
-  if (pUncomp) free(pUncomp);
-  if (pUncompTr) free(pUncompTr);
+  if (thread_info->inptr0) free(thread_info->inptr0);
+  if (thread_info->inptr1) free(thread_info->inptr1);
   //printf("IDX=%d t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", thread_info->idx, t1, t2, t3, t4, t5, t6, t7);
   return NULL;
 }
