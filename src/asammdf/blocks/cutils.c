@@ -2017,19 +2017,20 @@ typedef struct ProcessesingBlock {
   Py_ssize_t signal_count;
   Py_ssize_t record_size;
   Py_ssize_t idx;
-  Py_ssize_t max_compressed;
-  uint8_t thread_count;
   char * file_name;
   char * inptr0;
   char * inptr1;
-  uint8_t inptr0_status;
-  uint8_t inptr1_status;
+
+  uint8_t thread_count;
+  HANDLE bytes_ready_0;
+  HANDLE block_ready_0;
+  HANDLE bytes_ready_1;
+  HANDLE block_ready_1;
 
 } ProcessesingBlock, *PtrProcessesingBlock;
 
 #define DATA_READY 1
 #define DATA_PROCESSED 2
-#define NO_DATA 0
 
 
 void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
@@ -2062,15 +2063,18 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
   bool on_inptr0 = true;
 
   for (int block_idx=thread_info->idx; block_idx<thread_info->block_count; block_idx+=thread_info->thread_count) {
+    
     block_info = thread_info->block_info[block_idx];
 
     if (on_inptr0) {
-      while (thread_info->inptr0_status != DATA_READY);
-      inptr = thread_info->inptr0;
+      WaitForSingleObject(thread_info->bytes_ready_0, INFINITE);
+      ResetEvent(thread_info->bytes_ready_0);
+      inptr = (uint8_t *) thread_info->inptr0;
     }
     else {
-      while (thread_info->inptr1_status != DATA_READY);
-      inptr = thread_info->inptr1;
+      WaitForSingleObject(thread_info->bytes_ready_1, INFINITE);
+      ResetEvent(thread_info->bytes_ready_1);
+      inptr = (uint8_t *) thread_info->inptr1;
     }
 
     /* printf("Thr %d of %d  processing %d signals\n", thread_info->idx, thread_info->thread_count, thread_info->signal_count);
@@ -2078,7 +2082,7 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
     printf("Block type=%d\n", block_info.block_type);
     printf("Block limit=%d\n", block_info.block_limit);
     printf("Block original_size %d\n", block_info.original_size);
-    printf("Block compressed_size=%d inptr=%d\n", block_info.compressed_size, thread_info->max_compressed);
+    printf("Block compressed_size=%d\n", block_info.compressed_size);
     printf("Block param=%d\n", block_info.param);
     printf("Block record_offset=%d\n", block_info.record_offset); */
 
@@ -2288,11 +2292,11 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
     }
 
     if (on_inptr0) {
-      thread_info->inptr0_status = DATA_PROCESSED;
+      SetEvent(thread_info->block_ready_0);
       on_inptr0 = false;
     }
     else {
-      thread_info->inptr1_status = DATA_PROCESSED;
+      SetEvent(thread_info->block_ready_1);
       on_inptr0 = true;
     }
 
@@ -2334,10 +2338,30 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   size_t source_remain;
   size_t source_read;
 
-  thread_info->inptr0_status = NO_DATA;
-  thread_info->inptr1_status = NO_DATA;
-  thread_info->inptr0 = (char *) malloc(thread_info->max_compressed);
-  thread_info->inptr1 = (char *) malloc(thread_info->max_compressed);
+  thread_info->block_ready_0 =  CreateEvent(
+                      NULL,               // default security attributes
+                      true,               // manual-reset event
+                      false,              // initial state is nonsignaled
+                      NULL                // object name
+                    );
+  thread_info->block_ready_1 =  CreateEvent(
+                      NULL,               // default security attributes
+                      true,               // manual-reset event
+                      false,              // initial state is nonsignaled
+                      NULL                // object name
+                    );
+  thread_info->bytes_ready_0 =  CreateEvent(
+                      NULL,               // default security attributes
+                      true,               // manual-reset event
+                      false,              // initial state is nonsignaled
+                      NULL                // object name
+                    );
+  thread_info->bytes_ready_1 =  CreateEvent(
+                      NULL,               // default security attributes
+                      true,               // manual-reset event
+                      false,              // initial state is nonsignaled
+                      NULL                // object name
+                    );
 
   #if defined(_WIN32)
     TCHAR *lpFileName = TEXT(thread_info->file_name);
@@ -2416,7 +2440,6 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
     }
 
     HANDLE  *hthread=NULL;
-    DWORD   *dwthread=NULL;
 
     hthread = CreateThread(
                         NULL,
@@ -2424,7 +2447,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
                         get_channel_raw_bytes_complete_decompress_thread,
                         lpParam,
                         0,
-                        dwthread
+                        NULL
                       );
 
     if (!hthread) {
@@ -2451,22 +2474,25 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
 #endif
 
+  SetEvent(thread_info->block_ready_0);
+  SetEvent(thread_info->block_ready_1);
 
   for (int block_idx=thread_info->idx; block_idx<thread_info->block_count; block_idx+=thread_info->thread_count) {
     block_info = thread_info->block_info[block_idx];
 
     if (on_inptr0) {
-      while (thread_info->inptr0_status == DATA_READY);
+      WaitForSingleObject(thread_info->block_ready_0, INFINITE);
       memcpy(thread_info->inptr0, ((uint8_t*)lpBasePtr) + block_info.address, block_info.compressed_size);
       on_inptr0 = false;
-      thread_info->inptr0_status = DATA_READY;
-
+      ResetEvent(thread_info->block_ready_0);
+      SetEvent(thread_info->bytes_ready_0);
     }
     else {
-      while (thread_info->inptr1_status == DATA_READY);
+      WaitForSingleObject(thread_info->block_ready_1, INFINITE);
       memcpy(thread_info->inptr1, ((uint8_t*)lpBasePtr) + block_info.address, block_info.compressed_size);
       on_inptr0 = true;
-      thread_info->inptr1_status = DATA_READY;
+      ResetEvent(thread_info->block_ready_1);
+      SetEvent(thread_info->bytes_ready_1);
     }
   
   }
@@ -2475,6 +2501,10 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   WaitForSingleObject(hthread, INFINITE);
 
   CloseHandle(hthread);
+  CloseHandle(thread_info->block_ready_0);
+  CloseHandle(thread_info->block_ready_1);
+  CloseHandle(thread_info->bytes_ready_0);
+  CloseHandle(thread_info->bytes_ready_1);
       UnmapViewOfFile(lpBasePtr);
       CloseHandle(hMap);
       CloseHandle(hFile);
@@ -2611,8 +2641,6 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         thread_count = info_count;
       }
 
-      printf("thread count %d\n", thread_count);
-
       #if defined(_WIN32)
     
           HANDLE  *hThreads=NULL;
@@ -2712,9 +2740,10 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         thread_info[i].signal_count = signal_and_invalidation_count;
         thread_info[i].record_size = record_size;
         thread_info[i].idx = i;
-        thread_info[i].max_compressed = max_compressed;
         thread_info[i].thread_count = thread_count;
         thread_info[i].file_name = file_name;
+        thread_info[i].inptr0 = malloc(max_compressed);
+        thread_info[i].inptr1 = malloc(max_compressed);
       }
 
       //printf("%d threads %d blocks %d cycles %d size\n", thread_count, info_count, cycles, cycles * byte_count);
@@ -2727,7 +2756,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
                         get_channel_raw_bytes_complete_C,
                         &thread_info[i],
                         0,
-                        &dwThreadIdArray[i]
+                        NULL
                       );
         if (!hThreads[i]) {
           PyErr_SetString(PyExc_ValueError, "Failed to create processing thread\n\0");
