@@ -2096,19 +2096,19 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
 
     if (on_inptr0) {
       pthread_mutex_lock(&thread_info->bytes_ready_lock_0);
-      while (!thread->bytes_really_ready_0)
-        pthread_cond_wait(&thread->bytes_ready_0, &thread->bytes_ready_lock_0);
-      thread->bytes_really_ready_0 = false;
-      pthread_mutex_unlock(&thread->bytes_ready_lock_0);
+      while (!thread_info->bytes_really_ready_0)
+        pthread_cond_wait(&thread_info->bytes_ready_0, &thread_info->bytes_ready_lock_0);
+      thread_info->bytes_really_ready_0 = false;
+      pthread_mutex_unlock(&thread_info->bytes_ready_lock_0);
 
       inptr = (uint8_t *) thread_info->inptr0;
     }
     else {
       pthread_mutex_lock(&thread_info->bytes_ready_lock_1);
-      while (!thread->bytes_really_ready_1)
-        pthread_cond_wait(&thread->bytes_ready_1, &thread->bytes_ready_lock_1);
-      thread->bytes_really_ready_1 = false;
-      pthread_mutex_unlock(&thread->bytes_ready_lock_1);
+      while (!thread_info->bytes_really_ready_1)
+        pthread_cond_wait(&thread_info->bytes_ready_1, &thread_info->bytes_ready_lock_1);
+      thread_info->bytes_really_ready_1 = false;
+      pthread_mutex_unlock(&thread_info->bytes_ready_lock_1);
 
       inptr = (uint8_t *) thread_info->inptr1;
     }
@@ -2615,33 +2615,33 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
     if (on_inptr0) {
 
       pthread_mutex_lock(&thread_info->block_ready_lock_0);
-      while (!thread->block_really_ready_0)
-        pthread_cond_wait(&thread->block_ready_0, &thread->block_ready_lock_0);
-      thread->block_really_ready_0 = false;
-      pthread_mutex_unlock(&thread->block_ready_lock_0);
+      while (!thread_info->block_really_ready_0)
+        pthread_cond_wait(&thread_info->block_ready_0, &thread_info->block_ready_lock_0);
+      thread_info->block_really_ready_0 = false;
+      pthread_mutex_unlock(&thread_info->block_ready_lock_0);
 
       memcpy(thread_info->inptr0, ((uint8_t*)lpBasePtr) + block_info.address, block_info.compressed_size);
       on_inptr0 = false;
 
-      pthread_mutex_lock(&thread->bytes_ready_lock_0);
-      thread->bytes_really_ready_0 = true;
-      pthread_cond_signal(&thread->bytes_ready_0);
-      pthread_mutex_unlock(&thread->bytes_ready_lock_0);
+      pthread_mutex_lock(&thread_info->bytes_ready_lock_0);
+      thread_info->bytes_really_ready_0 = true;
+      pthread_cond_signal(&thread_info->bytes_ready_0);
+      pthread_mutex_unlock(&thread_info->bytes_ready_lock_0);
     }
     else {
       pthread_mutex_lock(&thread_info->block_ready_lock_1);
-      while (!thread->block_really_ready_1)
-        pthread_cond_wait(&thread->block_ready_1, &thread->block_ready_lock_1);
-      thread->block_really_ready_1 = false;
-      pthread_mutex_unlock(&thread->block_ready_lock_1);
+      while (!thread_info->block_really_ready_1)
+        pthread_cond_wait(&thread_info->block_ready_1, &thread_info->block_ready_lock_1);
+      thread_info->block_really_ready_1 = false;
+      pthread_mutex_unlock(&thread_info->block_ready_lock_1);
 
       memcpy(thread_info->inptr1, ((uint8_t*)lpBasePtr) + block_info.address, block_info.compressed_size);
       on_inptr0 = true;
 
-      pthread_mutex_lock(&thread->bytes_ready_lock_1);
-      thread->bytes_really_ready_1 = true;
-      pthread_cond_signal(&thread->bytes_ready_1);
-      pthread_mutex_unlock(&thread->bytes_ready_lock_1);
+      pthread_mutex_lock(&thread_info->bytes_ready_lock_1);
+      thread_info->bytes_really_ready_1 = true;
+      pthread_cond_signal(&thread_info->bytes_ready_1);
+      pthread_mutex_unlock(&thread_info->bytes_ready_lock_1);
     }
 
   }
