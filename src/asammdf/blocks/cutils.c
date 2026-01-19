@@ -2366,7 +2366,8 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
 }
 
 
-void * get_channel_raw_bytes_complete_C_windows(void *lpParam )
+#if defined(_WIN32)
+void * get_channel_raw_bytes_complete_C(void *lpParam )
 {
   Py_ssize_t count, byte_count, byte_offset, delta, thread_count, param, block_type;
   int64_t original_size, compressed_size, record_offset, block_limit, cycles, current_uncompressed_size=0, current_out_size=0, max_cycles=0;
@@ -2393,9 +2394,6 @@ void * get_channel_raw_bytes_complete_C_windows(void *lpParam )
   size_t destination_size;
   size_t source_remain;
   size_t source_read;
-
-  thread_info[i].inptr0 = malloc(max_compressed);
-  thread_info[i].inptr1 = malloc(max_compressed);
 
   TCHAR *lpFileName = TEXT(thread_info->file_name);
   HANDLE hFile;
@@ -2547,14 +2545,12 @@ void * get_channel_raw_bytes_complete_C_windows(void *lpParam )
   CloseHandle(hMap);
   CloseHandle(hFile);
 
-  if (thread_info->inptr0) free(thread_info->inptr0);
-  if (thread_info->inptr1) free(thread_info->inptr1);
   //printf("IDX=%d t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", thread_info->idx, t1, t2, t3, t4, t5, t6, t7);
   return NULL;
 }
 
-
-void * get_channel_raw_bytes_complete_C_posix(void *lpParam )
+#else
+void * get_channel_raw_bytes_complete_C(void *lpParam )
 {
   Py_ssize_t count, byte_count, byte_offset, delta, thread_count, param, block_type;
   int64_t original_size, compressed_size, record_offset, block_limit, cycles, current_uncompressed_size=0, current_out_size=0, max_cycles=0;
@@ -2581,9 +2577,6 @@ void * get_channel_raw_bytes_complete_C_posix(void *lpParam )
   size_t destination_size;
   size_t source_remain;
   size_t source_read;
-
-  thread_info[i].inptr0 = malloc(max_compressed);
-  thread_info[i].inptr1 = malloc(max_compressed);
 
   int fdin = open(thread_info->file_name, O_RDONLY);
   struct stat statbuf;
@@ -2657,11 +2650,10 @@ void * get_channel_raw_bytes_complete_C_posix(void *lpParam )
   munmap(lpBasePtr, statbuf.st_size);
   close(fdin);
 
-  if (thread_info->inptr0) free(thread_info->inptr0);
-  if (thread_info->inptr1) free(thread_info->inptr1);
   //printf("IDX=%d t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", thread_info->idx, t1, t2, t3, t4, t5, t6, t7);
   return NULL;
 }
+#endif
 
 
 static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
@@ -2883,6 +2875,8 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         thread_info[i].idx = i;
         thread_info[i].thread_count = thread_count;
         thread_info[i].file_name = file_name;
+        thread_info[i].inptr0 = malloc(max_compressed);
+        thread_info[i].inptr1 = malloc(max_compressed);
       }
 
       //printf("%d threads %d blocks %d cycles %d size\n", thread_count, info_count, cycles, cycles * byte_count);
@@ -2892,7 +2886,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         hThreads[i] = CreateThread(
                         NULL,
                         0,
-                        get_channel_raw_bytes_complete_C_windows,
+                        get_channel_raw_bytes_complete_C,
                         &thread_info[i],
                         0,
                         NULL
@@ -2910,7 +2904,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 
 #else
       for (int i=0; i< thread_count; i++) {
-        if (pthread_create(&(dwThreadIdArray[i]), NULL, get_channel_raw_bytes_complete_C_posix, &thread_info[i]))
+        if (pthread_create(&(dwThreadIdArray[i]), NULL, get_channel_raw_bytes_complete_C, &thread_info[i]))
         {
           PyErr_SetString(PyExc_ValueError, "Failed to create processing thread\n\0");
           return NULL;
@@ -2922,6 +2916,10 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       }
 
 #endif
+      for (int i=0; i< thread_count; i++) {
+        if (thread_info[i].inptr0) free(thread_info[i].inptr0);
+        if (thread_info[i].inptr1) free(thread_info[i].inptr1);
+      }
 
       free(block_info);
       free(thread_info);
