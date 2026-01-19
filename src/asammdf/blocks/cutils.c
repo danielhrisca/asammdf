@@ -2010,7 +2010,7 @@ typedef struct SignalInfo {
 
 
 typedef struct ProcessesingBlock {
-  
+
   PtrInfoBlock block_info;
   Py_ssize_t block_count;
   struct SignalInfo *signals;
@@ -2021,16 +2021,30 @@ typedef struct ProcessesingBlock {
   char * inptr0;
   char * inptr1;
 
-  uint8_t thread_count;
+#if defined(_WIN32)
   HANDLE bytes_ready_0;
   HANDLE block_ready_0;
   HANDLE bytes_ready_1;
   HANDLE block_ready_1;
+#else
+  pthread_cond_t   bytes_ready_0;
+  pthread_cond_t   bytes_ready_1;
+  pthread_cond_t  block_ready_0;
+  pthread_cond_t  block_ready_1;
+  pthread_mutex_t   bytes_ready_lock_0;
+  pthread_mutex_t   block_ready_lock_0;
+  pthread_mutex_t   bytes_ready_lock_1;
+  pthread_mutex_t   block_ready_lock_1;
+  bool bytes_really_ready_0;
+  bool block_really_ready_0;
+  bool bytes_really_ready_1;
+  bool block_really_ready_1;
+
+#endif
+
+  uint8_t thread_count;
 
 } ProcessesingBlock, *PtrProcessesingBlock;
-
-#define DATA_READY 1
-#define DATA_PROCESSED 2
 
 
 void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
@@ -2063,8 +2077,10 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
   bool on_inptr0 = true;
 
   for (int block_idx=thread_info->idx; block_idx<thread_info->block_count; block_idx+=thread_info->thread_count) {
-    
+
     block_info = thread_info->block_info[block_idx];
+
+#if defined(_WIN32)
 
     if (on_inptr0) {
       WaitForSingleObject(thread_info->bytes_ready_0, INFINITE);
@@ -2076,6 +2092,28 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
       ResetEvent(thread_info->bytes_ready_1);
       inptr = (uint8_t *) thread_info->inptr1;
     }
+#else
+
+    if (on_inptr0) {
+      pthread_mutex_lock(&thread_info->bytes_ready_lock_0);
+      while (!thread->bytes_really_ready_0)
+        pthread_cond_wait(&thread->bytes_ready_0, &thread->bytes_ready_lock_0);
+      thread->bytes_really_ready_0 = false;
+      pthread_mutex_unlock(&thread->bytes_ready_lock_0);
+
+      inptr = (uint8_t *) thread_info->inptr0;
+    }
+    else {
+      pthread_mutex_lock(&thread_info->bytes_ready_lock_1);
+      while (!thread->bytes_really_ready_1)
+        pthread_cond_wait(&thread->bytes_ready_1, &thread->bytes_ready_lock_1);
+      thread->bytes_really_ready_1 = false;
+      pthread_mutex_unlock(&thread->bytes_ready_lock_1);
+
+      inptr = (uint8_t *) thread_info->inptr1;
+    }
+
+#endif
 
     /* printf("Thr %d of %d  processing %d signals\n", thread_info->idx, thread_info->thread_count, thread_info->signal_count);
     printf("Block %d of %d\n", block_idx, thread_info->block_count);
@@ -2291,6 +2329,7 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
       }
     }
 
+#if defined(_WIN32)
     if (on_inptr0) {
       SetEvent(thread_info->block_ready_0);
       on_inptr0 = false;
@@ -2299,7 +2338,24 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
       SetEvent(thread_info->block_ready_1);
       on_inptr0 = true;
     }
+#else
+    if (on_inptr0) {
+      pthread_mutex_lock(&thread_info->block_ready_lock_0);
+      thread_info->block_really_ready_0 = true;
+      pthread_cond_signal(&thread_info->block_ready_0);
+      pthread_mutex_unlock(&thread_info->block_ready_lock_0);
 
+      on_inptr0 = false;
+    }
+    else {
+      pthread_mutex_lock(&thread_info->block_ready_lock_1);
+      thread_info->block_really_ready_1 = true;
+      pthread_cond_signal(&thread_info->block_ready_1);
+      pthread_mutex_unlock(&thread_info->block_ready_lock_1);
+
+      on_inptr0 = true;
+    }
+#endif
     // printf("\tThr %d set event\n", thread_info->idx);
   }
 
@@ -2310,7 +2366,7 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
 }
 
 
-void * get_channel_raw_bytes_complete_C(void *lpParam )
+void * get_channel_raw_bytes_complete_C_windows(void *lpParam )
 {
   Py_ssize_t count, byte_count, byte_offset, delta, thread_count, param, block_type;
   int64_t original_size, compressed_size, record_offset, block_limit, cycles, current_uncompressed_size=0, current_out_size=0, max_cycles=0;
@@ -2338,141 +2394,124 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   size_t source_remain;
   size_t source_read;
 
-  thread_info->block_ready_0 =  CreateEvent(
-                      NULL,               // default security attributes
-                      true,               // manual-reset event
-                      false,              // initial state is nonsignaled
-                      NULL                // object name
-                    );
-  thread_info->block_ready_1 =  CreateEvent(
-                      NULL,               // default security attributes
-                      true,               // manual-reset event
-                      false,              // initial state is nonsignaled
-                      NULL                // object name
-                    );
-  thread_info->bytes_ready_0 =  CreateEvent(
-                      NULL,               // default security attributes
-                      true,               // manual-reset event
-                      false,              // initial state is nonsignaled
-                      NULL                // object name
-                    );
-  thread_info->bytes_ready_1 =  CreateEvent(
-                      NULL,               // default security attributes
-                      true,               // manual-reset event
-                      false,              // initial state is nonsignaled
-                      NULL                // object name
-                    );
+  thread_info[i].inptr0 = malloc(max_compressed);
+  thread_info[i].inptr1 = malloc(max_compressed);
 
-  #if defined(_WIN32)
-    TCHAR *lpFileName = TEXT(thread_info->file_name);
-    HANDLE hFile;
-    HANDLE hMap;
-    LPVOID lpBasePtr;
-    LARGE_INTEGER liFileSize;
+  TCHAR *lpFileName = TEXT(thread_info->file_name);
+  HANDLE hFile;
+  HANDLE hMap;
+  LPVOID lpBasePtr;
+  LARGE_INTEGER liFileSize;
 
+  hFile = CreateFile(lpFileName,
+                     GENERIC_READ,                          // dwDesiredAccess
+                     FILE_SHARE_READ,                       // dwShareMode
+                     NULL,                                  // lpSecurityAttributes
+                     OPEN_EXISTING,                         // dwCreationDisposition
+                     FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
+                     0);                                    // hTemplateFile
+  if (hFile == INVALID_HANDLE_VALUE) {
     hFile = CreateFile(lpFileName,
                        GENERIC_READ,                          // dwDesiredAccess
-                       FILE_SHARE_READ,                       // dwShareMode
+                       FILE_SHARE_READ|FILE_SHARE_WRITE,                                     // dwShareMode
                        NULL,                                  // lpSecurityAttributes
                        OPEN_EXISTING,                         // dwCreationDisposition
                        FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
-                       0);                                    // hTemplateFile
+                       0);
     if (hFile == INVALID_HANDLE_VALUE) {
-      hFile = CreateFile(lpFileName,
-                         GENERIC_READ,                          // dwDesiredAccess
-                         FILE_SHARE_READ|FILE_SHARE_WRITE,                                     // dwShareMode
-                         NULL,                                  // lpSecurityAttributes
-                         OPEN_EXISTING,                         // dwCreationDisposition
-                         FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
-                         0);
-      if (hFile == INVALID_HANDLE_VALUE) {
-        fprintf(stderr, "CreateFile failed with error %d\n", GetLastError());
-        snprintf(err_string, 1024, "CreateFile failed with error %d\n\0", GetLastError());
-        PyErr_SetString(PyExc_OSError, err_string);
-        return NULL;
-      }
-    }
-
-    if (!GetFileSizeEx(hFile, &liFileSize)) {
-      fprintf(stderr, "GetFileSize failed with error %d\n", GetLastError());
-      snprintf(err_string, 1024, "GetFileSize failed with error %d\n\0", GetLastError());
+      fprintf(stderr, "CreateFile failed with error %d\n", GetLastError());
+      snprintf(err_string, 1024, "CreateFile failed with error %d\n\0", GetLastError());
       PyErr_SetString(PyExc_OSError, err_string);
-      CloseHandle(hFile);
       return NULL;
     }
+  }
 
-    if (liFileSize.QuadPart == 0) {
-      fprintf(stderr, "File is empty\n");
-      snprintf(err_string, 1024, "File is empty\n\0");
-      PyErr_SetString(PyExc_OSError, err_string);
-      CloseHandle(hFile);
-      return NULL;
-    }
+  if (!GetFileSizeEx(hFile, &liFileSize)) {
+    fprintf(stderr, "GetFileSize failed with error %d\n", GetLastError());
+    snprintf(err_string, 1024, "GetFileSize failed with error %d\n\0", GetLastError());
+    PyErr_SetString(PyExc_OSError, err_string);
+    CloseHandle(hFile);
+    return NULL;
+  }
 
-    hMap = CreateFileMapping(
-             hFile,
-             NULL,                          // Mapping attributes
-             PAGE_READONLY,                 // Protection flags
-             0,                             // MaximumSizeHigh
-             0,                             // MaximumSizeLow
-             NULL);                         // Name
-    if (hMap == 0) {
-      fprintf(stderr, "CreateFileMapping failed with error %d\n", GetLastError());
-      snprintf(err_string, 1024, "CreateFileMapping failed with error %d\n\0", GetLastError());
-      PyErr_SetString(PyExc_OSError, err_string);
-      CloseHandle(hFile);
-      return NULL;
-    }
+  if (liFileSize.QuadPart == 0) {
+    fprintf(stderr, "File is empty\n");
+    snprintf(err_string, 1024, "File is empty\n\0");
+    PyErr_SetString(PyExc_OSError, err_string);
+    CloseHandle(hFile);
+    return NULL;
+  }
 
-    lpBasePtr = MapViewOfFile(
-                  hMap,
-                  FILE_MAP_READ,         // dwDesiredAccess
-                  0,                     // dwFileOffsetHigh
-                  0,                     // dwFileOffsetLow
-                  0);                    // dwNumberOfBytesToMap
-    if (lpBasePtr == NULL) {
-      fprintf(stderr, "MapViewOfFile failed with error %d\n", GetLastError());
-      snprintf(err_string, 1024, "MapViewOfFile failed with error %d\n\0", GetLastError());
-      PyErr_SetString(PyExc_OSError, err_string);
-      CloseHandle(hMap);
-      CloseHandle(hFile);
-      return NULL;
-    }
+  hMap = CreateFileMapping(
+           hFile,
+           NULL,                          // Mapping attributes
+           PAGE_READONLY,                 // Protection flags
+           0,                             // MaximumSizeHigh
+           0,                             // MaximumSizeLow
+           NULL);                         // Name
+  if (hMap == 0) {
+    fprintf(stderr, "CreateFileMapping failed with error %d\n", GetLastError());
+    snprintf(err_string, 1024, "CreateFileMapping failed with error %d\n\0", GetLastError());
+    PyErr_SetString(PyExc_OSError, err_string);
+    CloseHandle(hFile);
+    return NULL;
+  }
 
-    HANDLE  *hthread=NULL;
+  lpBasePtr = MapViewOfFile(
+                hMap,
+                FILE_MAP_READ,         // dwDesiredAccess
+                0,                     // dwFileOffsetHigh
+                0,                     // dwFileOffsetLow
+                0);                    // dwNumberOfBytesToMap
+  if (lpBasePtr == NULL) {
+    fprintf(stderr, "MapViewOfFile failed with error %d\n", GetLastError());
+    snprintf(err_string, 1024, "MapViewOfFile failed with error %d\n\0", GetLastError());
+    PyErr_SetString(PyExc_OSError, err_string);
+    CloseHandle(hMap);
+    CloseHandle(hFile);
+    return NULL;
+  }
 
-    hthread = CreateThread(
-                        NULL,
-                        0,
-                        get_channel_raw_bytes_complete_decompress_thread,
-                        lpParam,
-                        0,
-                        NULL
-                      );
+  thread_info->block_ready_0 =  CreateEvent(
+                                  NULL,               // default security attributes
+                                  true,               // manual-reset event
+                                  false,              // initial state is nonsignaled
+                                  NULL                // object name
+                                );
+  thread_info->block_ready_1 =  CreateEvent(
+                                  NULL,               // default security attributes
+                                  true,               // manual-reset event
+                                  false,              // initial state is nonsignaled
+                                  NULL                // object name
+                                );
+  thread_info->bytes_ready_0 =  CreateEvent(
+                                  NULL,               // default security attributes
+                                  true,               // manual-reset event
+                                  false,              // initial state is nonsignaled
+                                  NULL                // object name
+                                );
+  thread_info->bytes_ready_1 =  CreateEvent(
+                                  NULL,               // default security attributes
+                                  true,               // manual-reset event
+                                  false,              // initial state is nonsignaled
+                                  NULL                // object name
+                                );
 
-    if (!hthread) {
-      PyErr_SetString(PyExc_ValueError, "Failed to create decompress thread\n\0");
-      return NULL;
-    }
+  HANDLE  *hthread=NULL;
 
-#else
-    int fdin = open(thread_info->file_name, O_RDONLY);
-    struct stat statbuf;
-    uint8_t * lpBasePtr;
+  hthread = CreateThread(
+              NULL,
+              0,
+              get_channel_raw_bytes_complete_decompress_thread,
+              lpParam,
+              0,
+              NULL
+            );
 
-    fstat (fdin, &statbuf);
-
-    lpBasePtr = mmap (0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0);
-
-    pthread_t *dwthread = NULL;
-
-    if (pthread_create(dwthread, NULL, get_channel_raw_bytes_complete_decompress_thread, lpParam))
-    {
-      PyErr_SetString(PyExc_ValueError, "Failed to create processing thread\n\0");
-      return NULL;
-    }
-
-#endif
+  if (!hthread) {
+    PyErr_SetString(PyExc_ValueError, "Failed to create decompress thread\n\0");
+    return NULL;
+  }
 
   SetEvent(thread_info->block_ready_0);
   SetEvent(thread_info->block_ready_1);
@@ -2494,10 +2533,9 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
       ResetEvent(thread_info->block_ready_1);
       SetEvent(thread_info->bytes_ready_1);
     }
-  
+
   }
 
-#if defined(_WIN32)
   WaitForSingleObject(hthread, INFINITE);
 
   CloseHandle(hthread);
@@ -2505,16 +2543,119 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   CloseHandle(thread_info->block_ready_1);
   CloseHandle(thread_info->bytes_ready_0);
   CloseHandle(thread_info->bytes_ready_1);
-      UnmapViewOfFile(lpBasePtr);
-      CloseHandle(hMap);
-      CloseHandle(hFile);
+  UnmapViewOfFile(lpBasePtr);
+  CloseHandle(hMap);
+  CloseHandle(hFile);
 
-#else
-      pthread_join(dwthread, NULL);
-      munmap(lpBasePtr, statbuf.st_size);
-      close(fdin);
-      
-#endif
+  if (thread_info->inptr0) free(thread_info->inptr0);
+  if (thread_info->inptr1) free(thread_info->inptr1);
+  //printf("IDX=%d t1=%lf t2=%lf t3=%lf t4=%lf t5=%lf t6=%lf t7=%lf\n", thread_info->idx, t1, t2, t3, t4, t5, t6, t7);
+  return NULL;
+}
+
+
+void * get_channel_raw_bytes_complete_C_posix(void *lpParam )
+{
+  Py_ssize_t count, byte_count, byte_offset, delta, thread_count, param, block_type;
+  int64_t original_size, compressed_size, record_offset, block_limit, cycles, current_uncompressed_size=0, current_out_size=0, max_cycles=0;
+  PtrProcessesingBlock thread_info;
+  thread_info = (PtrProcessesingBlock) lpParam;
+  InfoBlock block_info;
+
+  Py_ssize_t signal_count, thread_idx, record_size, in_size, cols, lines;
+
+  record_size = thread_info->record_size;
+
+  int result, end_of_frame=0;
+  clock_t start, end;
+  double t1=0, t2=0, t3=0, t4=0, t5=0, t6=0, t7=0;
+
+  uint8_t *outptr, *inptr, *write;
+  uint8_t *pUncomp=NULL, *pUncompTr=NULL, *read, *data_ptr;
+  bool on_inptr0 = true;
+
+  char * destination_cursor;
+  char * source_cursor, *source_end ;
+  size_t destination_written;
+  size_t destination_write;
+  size_t destination_size;
+  size_t source_remain;
+  size_t source_read;
+
+  thread_info[i].inptr0 = malloc(max_compressed);
+  thread_info[i].inptr1 = malloc(max_compressed);
+
+  int fdin = open(thread_info->file_name, O_RDONLY);
+  struct stat statbuf;
+  uint8_t * lpBasePtr;
+
+  fstat (fdin, &statbuf);
+
+  lpBasePtr = mmap (0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0);
+
+  pthread_t *dwthread = NULL;
+
+  pthread_cond_init(&thread_info->block_ready_0, NULL) ;
+  pthread_cond_init(&thread_info->block_ready_1, NULL) ;
+  pthread_cond_init(&thread_info->bytes_ready_0, NULL) ;
+  pthread_cond_init(&thread_info->bytes_ready_1, NULL) ;
+
+  pthread_mutex_init(&thread_info->bytes_ready_lock_0, NULL) ;
+  pthread_mutex_init(&thread_info->bytes_ready_lock_1, NULL) ;
+  pthread_mutex_init(&thread_info->block_ready_lock_0, NULL) ;
+  pthread_mutex_init(&thread_info->block_ready_lock_1, NULL) ;
+
+  thread_info->bytes_really_ready_0 = false;
+  thread_info->bytes_really_ready_1 = false;
+  thread_info->block_really_ready_0 = true;
+  thread_info->block_really_ready_1 = true;
+
+  if (pthread_create(dwthread, NULL, get_channel_raw_bytes_complete_decompress_thread, lpParam))
+  {
+    PyErr_SetString(PyExc_ValueError, "Failed to create processing thread\n\0");
+    return NULL;
+  }
+
+  for (int block_idx=thread_info->idx; block_idx<thread_info->block_count; block_idx+=thread_info->thread_count) {
+    block_info = thread_info->block_info[block_idx];
+
+    if (on_inptr0) {
+
+      pthread_mutex_lock(&thread_info->block_ready_lock_0);
+      while (!thread->block_really_ready_0)
+        pthread_cond_wait(&thread->block_ready_0, &thread->block_ready_lock_0);
+      thread->block_really_ready_0 = false;
+      pthread_mutex_unlock(&thread->block_ready_lock_0);
+
+      memcpy(thread_info->inptr0, ((uint8_t*)lpBasePtr) + block_info.address, block_info.compressed_size);
+      on_inptr0 = false;
+
+      pthread_mutex_lock(&thread->bytes_ready_lock_0);
+      thread->bytes_really_ready_0 = true;
+      pthread_cond_signal(&thread->bytes_ready_0);
+      pthread_mutex_unlock(&thread->bytes_ready_lock_0);
+    }
+    else {
+      pthread_mutex_lock(&thread_info->block_ready_lock_1);
+      while (!thread->block_really_ready_1)
+        pthread_cond_wait(&thread->block_ready_1, &thread->block_ready_lock_1);
+      thread->block_really_ready_1 = false;
+      pthread_mutex_unlock(&thread->block_ready_lock_1);
+
+      memcpy(thread_info->inptr1, ((uint8_t*)lpBasePtr) + block_info.address, block_info.compressed_size);
+      on_inptr0 = true;
+
+      pthread_mutex_lock(&thread->bytes_ready_lock_1);
+      thread->bytes_really_ready_1 = true;
+      pthread_cond_signal(&thread->bytes_ready_1);
+      pthread_mutex_unlock(&thread->bytes_ready_lock_1);
+    }
+
+  }
+
+  pthread_join(dwthread, NULL);
+  munmap(lpBasePtr, statbuf.st_size);
+  close(fdin);
 
   if (thread_info->inptr0) free(thread_info->inptr0);
   if (thread_info->inptr1) free(thread_info->inptr1);
@@ -2641,17 +2782,17 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         thread_count = info_count;
       }
 
-      #if defined(_WIN32)
-    
-          HANDLE  *hThreads=NULL;
-          DWORD   *dwThreadIdArray=NULL;
-          hThreads = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
-          dwThreadIdArray = (DWORD  *) malloc(sizeof(DWORD) * thread_count);
-      #else
+#if defined(_WIN32)
 
-          pthread_t *dwThreadIdArray = (pthread_t  *) malloc(sizeof(pthread_t) * thread_count);
+      HANDLE  *hThreads=NULL;
+      DWORD   *dwThreadIdArray=NULL;
+      hThreads = (HANDLE  *) malloc(sizeof(HANDLE) * thread_count);
+      dwThreadIdArray = (DWORD  *) malloc(sizeof(DWORD) * thread_count);
+#else
 
-      #endif
+      pthread_t *dwThreadIdArray = (pthread_t  *) malloc(sizeof(pthread_t) * thread_count);
+
+#endif
 
       block_info = (PtrInfoBlock) malloc(sizeof(InfoBlock) * info_count);
       if (!block_info) {
@@ -2742,8 +2883,6 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         thread_info[i].idx = i;
         thread_info[i].thread_count = thread_count;
         thread_info[i].file_name = file_name;
-        thread_info[i].inptr0 = malloc(max_compressed);
-        thread_info[i].inptr1 = malloc(max_compressed);
       }
 
       //printf("%d threads %d blocks %d cycles %d size\n", thread_count, info_count, cycles, cycles * byte_count);
@@ -2753,7 +2892,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         hThreads[i] = CreateThread(
                         NULL,
                         0,
-                        get_channel_raw_bytes_complete_C,
+                        get_channel_raw_bytes_complete_C_windows,
                         &thread_info[i],
                         0,
                         NULL
@@ -2771,7 +2910,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 
 #else
       for (int i=0; i< thread_count; i++) {
-        if (pthread_create(&(dwThreadIdArray[i]), NULL, get_channel_raw_bytes_complete_C, &thread_info[i]))
+        if (pthread_create(&(dwThreadIdArray[i]), NULL, get_channel_raw_bytes_complete_C_posix, &thread_info[i]))
         {
           PyErr_SetString(PyExc_ValueError, "Failed to create processing thread\n\0");
           return NULL;
@@ -2787,9 +2926,9 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       free(block_info);
       free(thread_info);
       free(dwThreadIdArray);
-      #if defined(_WIN32)
-          free(hThreads);
-      #endif
+#if defined(_WIN32)
+      free(hThreads);
+#endif
     }
 
     PyObject *inv, *inv_array, *origin;
@@ -2862,7 +3001,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
     free(cache);
 
     free(signal_info);
-    
+
     Py_XDECREF(InvalidationArray);
 
     return out;
