@@ -2586,7 +2586,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 
   lpBasePtr = mmap (0, statbuf.st_size, PROT_READ, MAP_SHARED, fdin, 0);
 
-  pthread_t *dwthread = NULL;
+  pthread_t dwthread;
 
   pthread_cond_init(&thread_info->block_ready_0, NULL) ;
   pthread_cond_init(&thread_info->block_ready_1, NULL) ;
@@ -2603,7 +2603,7 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   thread_info->block_really_ready_0 = true;
   thread_info->block_really_ready_1 = true;
 
-  if (pthread_create(dwthread, NULL, get_channel_raw_bytes_complete_decompress_thread, lpParam))
+  if (pthread_create(&dwthread, NULL, get_channel_raw_bytes_complete_decompress_thread, lpParam))
   {
     PyErr_SetString(PyExc_ValueError, "Failed to create processing thread\n\0");
     return NULL;
