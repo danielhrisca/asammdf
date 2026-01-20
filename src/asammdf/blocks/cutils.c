@@ -11,6 +11,7 @@
 #include <libdeflate.h>
 #include <lz4.h>
 #include <lz4frame.h>
+#include <zstd.h>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -2247,7 +2248,6 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
 
       source_read = source_remain;
 
-
       while (1)
       {
         result = LZ4F_decompress (dctx,
@@ -2276,6 +2276,63 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
 
       // reverse transposition
       if (block_type == 4) {
+        cols = param;
+        lines = original_size / cols;
+
+        if (current_out_size < original_size) {
+          //printf("\tThr %d new trtrtrptr\n", thread_info->idx);
+          if (pUncompTr) free(pUncompTr);
+          pUncompTr = (uint8_t *) malloc(original_size);
+          //if (!pUncompTr) printf("\tThr %d pUncompTr error\n", thread_info->idx);
+          current_out_size = original_size;
+        }
+
+        start = clock();
+        read = pUncomp;
+        for (int j = 0; j < (Py_ssize_t)cols; j++)
+        {
+          write = pUncompTr + j;
+          for (int i = 0; i < (Py_ssize_t)lines; i++)
+          {
+            *write = *read++;
+            write += cols;
+          }
+        }
+        end = clock();
+        t7 += end - start;
+
+        data_ptr = pUncompTr;
+
+        //printf("\tThr %d transposed\n", thread_info->idx);
+
+      }
+      else {
+        data_ptr = pUncomp;
+      }
+
+    }
+
+    else if ((block_type == 5) || (block_type == 6)) {
+      // Zstd with or without transposition
+
+      // decompress
+      if (original_size > current_uncompressed_size) {
+        //printf("\tThr %d new ptr\n", thread_info->idx);
+        if (pUncomp) free(pUncomp);
+        pUncomp = (uint8_t *) malloc(original_size);
+        //if (!pUncomp) printf("\tThr %d pUncomp error\n", thread_info->idx);
+        current_uncompressed_size=original_size;
+      }
+
+      size_t const dSize = ZSTD_decompress(pUncomp, original_size, inptr, compressed_size);
+      if (dSize != original_size)
+      {
+        snprintf(err_string, 1024, "ZSTD_decompress failed\n\0");
+        return NULL;
+      }
+
+      // reverse transposition
+      if (block_type == 6) {
         cols = param;
         lines = original_size / cols;
 

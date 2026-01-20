@@ -6,3 +6,6 @@
 	path = ext/lz4
 	url = https://github.com/lz4/lz4
 
+[submodule "ext/zstd"]
+	path = ext/zstd
+	url = https://github.com/facebook/zstd
