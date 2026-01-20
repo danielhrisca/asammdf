@@ -4052,7 +4052,6 @@ class MDF:
         ignore_value2text_conversions: bool = False,
         record_count: int | None = None,
         validate: bool = False,
-        threads = 11,
     ) -> list[Signal]:
         """Retrieve the channels listed in the `channels` argument as `Signal`
         objects.
@@ -4222,7 +4221,7 @@ class MDF:
                 record_size,
                 grp.channel_group.invalidation_bytes_nr,
                 group_index,
-                threads, #THREAD_COUNT,
+                THREAD_COUNT,
             )
             master_bytes, _ = raw_and_invalidation[0]
             raw_and_invalidation = raw_and_invalidation[1:]
@@ -4263,6 +4262,15 @@ class MDF:
             master = vals
             if master_channel.conversions:
                 master = master_channel.conversions.convert(master)
+
+            if record_offset:
+                if record_count is None:
+                    master = master[record_offset:]
+                else:
+                    master = master[record_offset: record_offset+ record_count]
+            else:
+                if record_count is not None:
+                    master = master[: record_count]
 
             for pair, (raw_data, invalidation_bits) in zip(pairs, raw_and_invalidation, strict=False):
                 ch_index = pair[-1]
@@ -4315,6 +4323,22 @@ class MDF:
                         source = None
 
                 master_metadata = self._mdf._master_channel_metadata.get(group_index, None)
+
+                if record_offset:
+                    if record_count is None:
+                        vals = vals[record_offset:]
+                        if invalidation_bits is not None:
+                            invalidation_bits = invalidation_bits[record_offset:]
+                    else:
+                        end = record_offset+ record_count
+                        vals = vals[record_offset: end]
+                        if invalidation_bits is not None:
+                            invalidation_bits = invalidation_bits[record_offset: end]
+                else:
+                    if record_count is not None:
+                        vals = vals[: record_count]
+                        if invalidation_bits is not None:
+                            invalidation_bits = invalidation_bits[: record_count]
 
                 output_signals[pair] = Signal(
                     samples=vals,

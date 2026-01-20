@@ -7540,6 +7540,25 @@ class MDF4(MDF_Common[Group]):
                         signal = extracted_signals[0]
                         samples, timestamps, invalidation_bits, encoding = signal[0], None, signal[1], None
 
+                    if record_offset:
+                        if record_count is None:
+                            samples = samples[record_offset:]
+                            timestamps = timestamps[record_offset:]
+                            if invalidation_bits is not None:
+                                invalidation_bits = invalidation_bits[record_offset:]
+                        else:
+                            end = record_offset+ record_count
+                            samples = samples[record_offset: end]
+                            timestamps = timestamps[record_offset: end]
+                            if invalidation_bits is not None:
+                                invalidation_bits = invalidation_bits[record_offset: end]
+                    else:
+                        if record_count is not None:
+                            samples = samples[: record_count]
+                            timestamps = timestamps[: record_count]
+                            if invalidation_bits is not None:
+                                invalidation_bits = invalidation_bits[: record_count]
+
                 else:
                     if (
                         (fast_path := channel.fast_path) is not None
