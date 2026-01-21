@@ -1679,7 +1679,7 @@ class WithMDIArea:
             progress.close()
             raise
         else:
-            progress.close
+            progress.close()
 
     def add_window(self, args):
         if len(args) == 2:
