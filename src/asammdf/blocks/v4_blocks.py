@@ -6725,10 +6725,13 @@ class _ListDataBase:
         "data_block_len",
         "data_block_nr",
         "flags",
+        "flags_ext",
         "id",
         "links_nr",
         "next_ld_addr",
         "reserved0",
+        "zip_info",
+        "zip_info_inval",
     )
 
 
@@ -6824,7 +6827,7 @@ class ListData(_ListDataBase):
 
                 address += self.links_nr * 8
 
-                self.flags, self.data_block_nr = unpack_from("<2I", stream, address)
+                self.flags, self.zip_info, self.zip_info_inval, self.flags_ext, self.self.data_block_nr = unpack_from("<4BI", stream, address)
                 address += 8
                 if self.flags & v4c.FLAG_LD_EQUAL_LENGHT:
                     (self.data_block_len,) = UINT64_uf(stream, address)
@@ -6858,7 +6861,7 @@ class ListData(_ListDataBase):
                 for i in range(self.data_block_nr):
                     self[f"data_block_addr_{i}"] = links[i + 1]
 
-                if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
+                if self.flags_ext & v4c.FLAG_LD_EXT_INVALIDATION_PRESENT:
                     for i in range(self.data_block_nr):
                         self[f"invalidation_bits_addr_{i}"] = links[self.data_block_nr + 1 + i]
             else:
@@ -6886,7 +6889,7 @@ class ListData(_ListDataBase):
 
                 links = unpack(f"<{self.links_nr}Q", stream.read(self.links_nr * 8))
 
-                self.flags, self.data_block_nr = typing.cast(tuple[int, int], unpack("<2I", stream.read(8)))
+                self.flags, self.zip_info, self.zip_info_inval, self.flags_ext, self.self.data_block_nr = typing.cast(tuple[int, int], unpack("<4BI", stream.read(8)))
 
                 if self.flags & v4c.FLAG_LD_EQUAL_LENGHT:
                     (self.data_block_len,) = UINT64_u(stream.read(8))
@@ -6924,7 +6927,7 @@ class ListData(_ListDataBase):
                 for i in range(self.data_block_nr, 1):
                     self[f"data_block_addr_{i}"] = links[i]
 
-                if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
+                if self.flags_ext & v4c.FLAG_LD_EXT_INVALIDATION_PRESENT:
                     for i in range(self.data_block_nr, self.data_block_nr + 1):
                         self[f"invalidation_bits_addr_{i}"] = links[i]
 
@@ -6936,12 +6939,16 @@ class ListData(_ListDataBase):
 
             self.data_block_nr = kwargs["data_block_nr"]
             self.flags = kwargs["flags"]
+            self.flags_ext = kwargs.get("flags_ext", 0)
+            self.zip_info = kwargs.get("zip_info", 0)
+            self.zip_info_inval = kwargs.get("zip_info_inval", 0)
+            self.flags_ext = kwargs["flags_ext"]
             self.data_block_len = kwargs["data_block_len"]
             self.next_ld_addr = 0
 
             for i in range(self.data_block_nr):
                 self[f"data_block_addr_{i}"] = kwargs[f"data_block_addr_{i}"]  # type: ignore[literal-required]
-            if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
+            if self.flags_ext & v4c.FLAG_LD_EXT_INVALIDATION_PRESENT:
                 self.links_nr = 2 * self.data_block_nr + 1
 
                 for i in range(self.data_block_nr):
@@ -6970,12 +6977,12 @@ class ListData(_ListDataBase):
         fmt += f"{self.data_block_nr}Q"
         keys += tuple(f"data_block_addr_{i}" for i in range(self.data_block_nr))
 
-        if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
+        if self.flags & v4c.FLAG_LD_EXT_INVALIDATION_PRESENT:
             fmt += f"{self.data_block_nr}Q"
             keys += tuple(f"invalidation_bits_addr_{i}" for i in range(self.data_block_nr))
 
-        fmt += "2I"
-        keys += ("flags", "data_block_nr")
+        fmt += "4BI"
+        keys += ("flags", "zip_info", "zip_info_inval", "flags_ext", "data_block_nr")
 
         if self.flags & v4c.FLAG_LD_EQUAL_LENGHT:
             fmt += "Q"

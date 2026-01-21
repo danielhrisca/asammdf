@@ -2155,7 +2155,7 @@ class MDF4(MDF_Common[Group]):
                     uses_ld = True
                     while address:
                         ld = ListData(address=address, stream=stream, mapped=mapped, file_limit=self.file_limit)
-                        has_invalidation = ld.flags & v4c.FLAG_LD_INVALIDATION_PRESENT
+                        has_invalidation = ld.flags_ext & v4c.FLAG_LD_EXT_INVALIDATION_PRESENT
                         for i in range(ld.data_block_nr):
                             original_address = addr = getattr(ld, f"data_block_addr_{i}")
 
@@ -2457,7 +2457,7 @@ class MDF4(MDF_Common[Group]):
                     uses_ld = True
                     while address:
                         ld = ListData(address=address, stream=stream, file_limit=self.file_limit)
-                        has_invalidation = ld.flags & v4c.FLAG_LD_INVALIDATION_PRESENT
+                        has_invalidation = ld.flags_ext & v4c.FLAG_LD_EXT_INVALIDATION_PRESENT
                         for i in range(ld.data_block_nr):
                             original_address = addr = getattr(ld, f"data_block_addr{i}")
 
@@ -11060,7 +11060,7 @@ class MDF4(MDF_Common[Group]):
                             if compression:
                                 if gp.channel_group.samples_byte_nr > 1:
                                     current_zip_type = zip_type
-                                    if compression == 1:
+                                    if compression in (v4c.CompressionAlgorithm.DEFLATE, v4c.CompressionAlgorithm.LZ4,v4c.CompressionAlgorithm.ZSTD):
                                         param = 0
                                     else:
                                         param = gp.channel_group.samples_byte_nr
@@ -11088,7 +11088,7 @@ class MDF4(MDF_Common[Group]):
                             if inval_ is not None:
                                 inval_address = address = tell()
                                 if compression:
-                                    if compression == 1:
+                                    if compression in (v4c.CompressionAlgorithm.DEFLATE, v4c.CompressionAlgorithm.LZ4,v4c.CompressionAlgorithm.ZSTD):
                                         param = 0
                                     else:
                                         param = gp.channel_group.invalidation_bytes_nr
@@ -11114,10 +11114,12 @@ class MDF4(MDF_Common[Group]):
                                 "data_block_nr": 1,
                                 "data_block_len": gp.channel_group.cycles_nr,
                                 "data_block_addr_0": data_address,
+                                "flags_ext": 0
                             }
                             if inval_:
-                                ld_kwargs["flags"] |= v4c.FLAG_LD_INVALIDATION_PRESENT
+                                ld_kwargs["flags_ext"] |= v4c.FLAG_LD_EXT_INVALIDATION_PRESENT
                                 ld_kwargs["invalidation_bits_addr_0"] = inval_address  # type: ignore[typeddict-unknown-key]
+
                             ld_block = ListData(**ld_kwargs)
                             write(bytes(ld_block))
 
@@ -11212,14 +11214,20 @@ class MDF4(MDF_Common[Group]):
                                 "flags": v4c.FLAG_LD_EQUAL_LENGHT,
                                 "data_block_nr": len(dv_addr),
                                 "data_block_len": block_size // gp.channel_group.samples_byte_nr,
+                                "flags_ext": 0
                             }
                             for i, addr in enumerate(dv_addr):
                                 ld_kwargs[f"data_block_addr_{i}"] = addr  # type: ignore[literal-required]
 
                             if di_addr:
-                                ld_kwargs["flags"] |= v4c.FLAG_LD_INVALIDATION_PRESENT
+                                ld_kwargs["flags_ext"] |= v4c.FLAG_LD_EXT_INVALIDATION_PRESENT
                                 for i, addr in enumerate(di_addr):
                                     ld_kwargs[f"invalidation_bits_addr_{i}"] = addr  # type: ignore[literal-required]
+
+                            if self.version >= "4.30":
+                                ld_kwargs['zip_info'] = zip_type
+                                ld_kwargs['zip_info_inval'] = zip_type
+                                ld_kwargs['flags'] |= v4c.FLAG_LD_ZIP_INFO_VALID
 
                             ld_block = ListData(**ld_kwargs)
                             write(bytes(ld_block))
