@@ -44,6 +44,7 @@ dependencies = [
     "pandas>=2.2.2",
     "python-dateutil",
     "typing-extensions~=4.10",
+    "zstd",
 ]
 
 [project.optional-dependencies]

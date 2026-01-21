@@ -24,6 +24,11 @@ import typing
 from typing import BinaryIO, Final, Literal, TYPE_CHECKING
 from zipfile import ZIP_DEFLATED, ZipFile
 
+try:
+    from isal.isal_zlib import decompress as zlib_decompress
+except ImportError:
+    from zlib import decompress as zlib_decompress
+
 import canmatrix
 from canmatrix.canmatrix import CanMatrix
 from lz4.frame import compress as lz_compress
@@ -64,6 +69,7 @@ from typing_extensions import (
     TypeIs,
     Unpack,
 )
+from zstd import decompress as zstd_decompress
 
 from .. import tool
 from ..signal import InvalidationArray, Signal
@@ -160,17 +166,6 @@ try:
 except:
     CRYPTOGRAPHY_AVAILABLE = False
 
-try:
-    from deflate import zlib_decompress
-    def decompress(data, bufsize):
-        return zlib_decompress(data, originalsize=bufsize)
-    
-except ImportError:
-    try: 
-        from isal.isal_zlib import decompress
-    except ImportError:
-        from zlib import decompress
-
 if TYPE_CHECKING:
     from ..mdf import MDF
 
@@ -195,6 +190,18 @@ EMPTY_TUPLE: Final = ()
 
 # 100 extra steps for the sorting, 1 step after sorting and 1 step at finish
 SORT_STEPS: Final = 102
+
+
+DECOMPRESS_FUNC_MAP = {
+    # data block type
+    v4c.DT_BLOCK: lambda x: x,
+    v4c.DZ_BLOCK_DEFLATE: zlib_decompress,
+    v4c.DZ_BLOCK_TRANSPOSED: zlib_decompress,
+    v4c.DZ_BLOCK_LZ: lz_decompress,
+    v4c.DZ_BLOCK_LZ_TRANSPOSED: lz_decompress,
+    v4c.DZ_BLOCK_ZSTD:zstd_decompress,
+    v4c.DZ_BLOCK_ZSTD_TRANSPOSED: zstd_decompress,
+}
 
 
 logger = logging.getLogger("asammdf")
@@ -408,7 +415,8 @@ class MDF4(MDF_Common[Group]):
                             tmpdir = Path(self.temporary_folder)
                         self.name = tmpdir / f"{os.urandom(6).hex()}_{Path(name).name}"
                         shutil.copy(name, self.name)
-                        self._file = open(self.name, "rb+")
+                        self._mapped_file = open(self.name, "rb+")
+                        self._file = mmap.mmap(self._mapped_file.fileno(), 0, access=(mmap.ACCESS_READ | mmap.ACCESS_WRITE))
                         self._from_filelike = False
                         self._delete_on_close = True
                         self._read(self._file, mapped=False, progress=progress)
@@ -441,7 +449,7 @@ class MDF4(MDF_Common[Group]):
             self.version: str = version
 
             if self.version >= "4.20":
-                self._column_storage = kwargs.get("column_storage", True)
+                self._column_storage = kwargs.get("column_storage", False)
             else:
                 self._column_storage = False
 
@@ -520,7 +528,7 @@ class MDF4(MDF_Common[Group]):
         self.version = version.decode("utf-8").strip(" \n\t\r\0")
 
         if self.version >= "4.20":
-            self._column_storage = self._kwargs.get("column_storage", True)
+            self._column_storage = self._kwargs.get("column_storage", False)
         else:
             self._column_storage = False
 
@@ -1332,14 +1340,14 @@ class MDF4(MDF_Common[Group]):
 
                         stream.seek(address)
                         new_data = stream.read(compressed_size)
-                        match block_type:
-                            case v4c.DZ_BLOCK_DEFLATE:
-                                new_data = decompress(new_data, bufsize=original_size)
-                            case v4c.DZ_BLOCK_TRANSPOSED:
-                                new_data = decompress(new_data, bufsize=original_size)
-                                cols = param
-                                lines = original_size // cols
+                        if block_type:
+                            decompress = DECOMPRESS_FUNC_MAP[block_type]
+                            new_data = decompress(new_data)
 
+                            if block_type % 2 == 0:
+                                # tranposed data
+                                cols = typing.cast(int, info.param)
+                                lines = original_size // cols
                                 matrix_size = lines * cols
 
                                 if matrix_size != original_size:
@@ -1351,12 +1359,7 @@ class MDF4(MDF_Common[Group]):
                                         + new_data[matrix_size:]
                                     )
                                 else:
-                                    new_data = (
-                                        frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
-                                    )
-
-                            case v4c.DZ_BLOCK_LZ:
-                                new_data = lz_decompress(new_data)
+                                    new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
 
                         data_list.append(new_data)
 
@@ -1397,14 +1400,14 @@ class MDF4(MDF_Common[Group]):
 
                         stream.seek(address)
                         new_data = stream.read(compressed_size)
-                        match block_type:
-                            case v4c.DZ_BLOCK_DEFLATE:
-                                new_data = decompress(new_data, bufsize=original_size)
-                            case v4c.DZ_BLOCK_TRANSPOSED:
-                                new_data = decompress(new_data, bufsize=original_size)
-                                cols = param
-                                lines = original_size // cols
+                        if block_type:
+                            decompress = DECOMPRESS_FUNC_MAP[block_type]
+                            new_data = decompress(new_data)
 
+                            if block_type % 2 == 0:
+                                # tranposed data
+                                cols = typing.cast(int, info.param)
+                                lines = original_size // cols
                                 matrix_size = lines * cols
 
                                 if matrix_size != original_size:
@@ -1416,12 +1419,7 @@ class MDF4(MDF_Common[Group]):
                                         + new_data[matrix_size:]
                                     )
                                 else:
-                                    new_data = (
-                                        frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
-                                    )
-
-                            case v4c.DZ_BLOCK_LZ:
-                                new_data = lz_decompress(new_data)
+                                    new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
 
                         if start_offset > current_offset:
                             data_array.extend(new_data[start_offset - current_offset :])
@@ -1621,11 +1619,12 @@ class MDF4(MDF_Common[Group]):
                 cc += 1
                 ss += original_size
 
-                match block_type:
-                    case v4c.DZ_BLOCK_DEFLATE:
-                        new_data = decompress(new_data, bufsize=original_size)
-                    case v4c.DZ_BLOCK_TRANSPOSED:
-                        new_data = decompress(new_data, bufsize=original_size)
+                if block_type:
+                    decompress = DECOMPRESS_FUNC_MAP[block_type]
+                    new_data = decompress(new_data)
+
+                    if block_type % 2 == 0:
+                        # tranposed data
                         cols = typing.cast(int, param)
                         lines = original_size // cols
                         matrix_size = lines * cols
@@ -1640,9 +1639,6 @@ class MDF4(MDF_Common[Group]):
                             )
                         else:
                             new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
-
-                    case v4c.DZ_BLOCK_LZ:
-                        new_data = lz_decompress(new_data)
 
                 if block_limit is not None:
                     new_data = new_data[:block_limit]
@@ -1663,22 +1659,28 @@ class MDF4(MDF_Common[Group]):
                         compressed_size = typing.cast(int, invalidation_info.compressed_size)
                         new_invalidation_data = read(compressed_size)
                         original_size = typing.cast(int, invalidation_info.original_size)
-                        if invalidation_info.block_type == v4c.DZ_BLOCK_DEFLATE:
-                            new_invalidation_data = decompress(
-                                new_invalidation_data,
-                                bufsize=original_size,
-                            )
-                        elif invalidation_info.block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                            new_invalidation_data = decompress(
-                                new_invalidation_data,
-                                bufsize=original_size,
-                            )
-                            cols = typing.cast(int, invalidation_info.param)
-                            lines = original_size // cols
 
-                            nd = frombuffer(new_invalidation_data[: lines * cols], dtype=uint8)
-                            nd = nd.reshape((cols, lines))
-                            new_invalidation_data = nd.T.ravel().tobytes() + new_invalidation_data[lines * cols :]
+                        if invalidation_info.block_type:
+                            decompress = DECOMPRESS_FUNC_MAP[invalidation_info.block_type]
+                            new_invalidation_data = decompress(new_invalidation_data)
+
+                            if invalidation_info.block_type % 2 == 0:
+                                # tranposed data
+                                cols = typing.cast(int, param)
+                                lines = original_size // cols
+                                matrix_size = lines * cols
+
+                                if matrix_size != original_size:
+                                    new_invalidation_data = (
+                                        frombuffer(new_invalidation_data[:matrix_size], dtype=uint8)
+                                        .reshape((cols, lines))
+                                        .T.ravel()
+                                        .tobytes()
+                                        + new_invalidation_data[matrix_size:]
+                                    )
+                                else:
+                                    new_invalidation_data = frombuffer(new_invalidation_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
+
                         if invalidation_info.block_limit is not None:
                             new_invalidation_data = new_invalidation_data[: invalidation_info.block_limit]
 
@@ -2048,11 +2050,8 @@ class MDF4(MDF_Common[Group]):
                     ) = v4c.DZ_COMMON_INFO_uf(stream, address + v4c.DZ_INFO_COMMON_OFFSET)
 
                     if original_size:
-                        if zip_type == v4c.FLAG_DZ_DEFLATE:
-                            block_type_ = v4c.DZ_BLOCK_DEFLATE
-                            param = 0
-                        else:
-                            block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                        block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
+
                         if total_size < original_size:
                             block_limit = total_size
                         else:
@@ -2134,11 +2133,8 @@ class MDF4(MDF_Common[Group]):
                                 ) = v4c.DZ_COMMON_INFO_uf(stream, addr + v4c.DZ_INFO_COMMON_OFFSET)
 
                                 if original_size:
-                                    if zip_type == v4c.FLAG_DZ_DEFLATE:
-                                        block_type_ = v4c.DZ_BLOCK_DEFLATE
-                                        param = 0
-                                    else:
-                                        block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                    block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
+
                                     if total_size < original_size:
                                         block_limit = total_size
                                     else:
@@ -2199,15 +2195,13 @@ class MDF4(MDF_Common[Group]):
                                 ) = v4c.DZ_COMMON_INFO_uf(stream, addr + v4c.DZ_INFO_COMMON_OFFSET)
 
                                 if original_size:
-                                    if zip_type == v4c.FLAG_DZ_DEFLATE:
-                                        block_type_ = v4c.DZ_BLOCK_DEFLATE
-                                        param = 0
-                                    else:
-                                        block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                    block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
+
                                     if total_size < original_size:
                                         block_limit = total_size
                                     else:
                                         block_limit = None
+
                                     total_size -= original_size
                                     data_info = DataBlockInfo(
                                         address=addr + v4c.DZ_COMMON_SIZE,
@@ -2257,11 +2251,8 @@ class MDF4(MDF_Common[Group]):
                                         )
 
                                         if original_size:
-                                            if zip_type == v4c.FLAG_DZ_DEFLATE:
-                                                block_type_ = v4c.DZ_BLOCK_DEFLATE
-                                                param = 0
-                                            else:
-                                                block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                            block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
+
                                             if inval_total_size < original_size:
                                                 block_limit = inval_total_size
                                             else:
@@ -2362,11 +2353,8 @@ class MDF4(MDF_Common[Group]):
                     ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_INFO_SIZE))
 
                     if original_size:
-                        if zip_type == v4c.FLAG_DZ_DEFLATE:
-                            block_type_ = v4c.DZ_BLOCK_DEFLATE
-                            param = 0
-                        else:
-                            block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                        block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
+
                         if total_size < original_size:
                             block_limit = total_size
                         else:
@@ -2447,11 +2435,7 @@ class MDF4(MDF_Common[Group]):
                                 ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_INFO_SIZE))
 
                                 if original_size:
-                                    if zip_type == v4c.FLAG_DZ_DEFLATE:
-                                        block_type_ = v4c.DZ_BLOCK_DEFLATE
-                                        param = 0
-                                    else:
-                                        block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                    block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
                                     if total_size < original_size:
                                         block_limit = total_size
                                     else:
@@ -2515,11 +2499,7 @@ class MDF4(MDF_Common[Group]):
                                 ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_INFO_SIZE))
 
                                 if original_size:
-                                    if zip_type == v4c.FLAG_DZ_DEFLATE:
-                                        block_type_ = v4c.DZ_BLOCK_DEFLATE
-                                        param = 0
-                                    else:
-                                        block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                    block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
                                     if total_size < original_size:
                                         block_limit = total_size
                                     else:
@@ -2572,11 +2552,7 @@ class MDF4(MDF_Common[Group]):
                                         ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_INFO_SIZE))
 
                                         if original_size:
-                                            if zip_type == v4c.FLAG_DZ_DEFLATE:
-                                                block_type_ = v4c.DZ_BLOCK_DEFLATE
-                                                param = 0
-                                            else:
-                                                block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                            block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
                                             if inval_total_size < original_size:
                                                 block_limit = inval_total_size
                                             else:
@@ -2656,11 +2632,7 @@ class MDF4(MDF_Common[Group]):
             ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_INFO_SIZE))
 
             if original_size:
-                if zip_type == v4c.FLAG_DZ_DEFLATE:
-                    block_type_ = v4c.DZ_BLOCK_DEFLATE
-                    param = 0
-                else:
-                    block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
 
                 yield SignalDataBlockInfo(
                     address=address + v4c.DZ_COMMON_SIZE,
@@ -2708,11 +2680,7 @@ class MDF4(MDF_Common[Group]):
                         ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_INFO_SIZE))
 
                         if original_size:
-                            if zip_type == v4c.FLAG_DZ_DEFLATE:
-                                block_type_ = v4c.DZ_BLOCK_DEFLATE
-                                param = 0
-                            else:
-                                block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                            block_type_ = v4c.DZ_FLAG_TO_TYPE[zip_type]
                             yield SignalDataBlockInfo(
                                 address=addr + v4c.DZ_COMMON_SIZE,
                                 block_type=block_type_,
@@ -6375,7 +6343,7 @@ class MDF4(MDF_Common[Group]):
         >>> s1_inv = np.array([0, 0, 0, 1, 1], dtype=bool)
         >>> mdf.extend(0, [(t, None), (s1.samples, s1_inv), (s2.samples, None), (s3.samples, None)])
         """
-        if self.version >= "4.20" and (self._column_storage or 1):
+        if self.version >= "4.20" and self._column_storage:
             return self._extend_column_oriented(index, signals)
         gp = self.groups[index]
         if not signals:
@@ -7448,7 +7416,7 @@ class MDF4(MDF_Common[Group]):
                 if (
                     data is None
                     and validate_blocks(blocks, record_size)
-                    and self._mapped_file
+                    and not self._from_filelike
                     and not grp.signal_data[ch_nr]
                     and grp.record[ch_nr]
                     and (not master_is_required or (master_is_required and master_index is not None and grp.record[master_index]))
@@ -10935,6 +10903,13 @@ class MDF4(MDF_Common[Group]):
             * 1 - deflate (slower, but produces smaller files)
             * 2 - transposition + deflate (slowest, but produces
               the smallest files)
+            * 3 - zstd (a bit slower than lz4 but double compression ratio)
+            * 4 - transposition + zstd (a bit slower than lz4 but double compression ratio)
+            * 5 - lz4 (fastest speed but lower compression ratio compared to zstd)
+            * 6 - transposition + lz4 (fastest speed but lower compression ratio compared to zstd)
+
+            .. versionchanged:: 8.8.0
+                added zstd and lz4 compression options; only available for MDF version >= 4.30
 
         add_history_block : bool, default True
             Option to add file history block.
@@ -11100,6 +11075,7 @@ class MDF4(MDF_Common[Group]):
                                     "original_type": b"DV",
                                 }
                                 data_block: DataZippedBlock | DataBlock = DataZippedBlock(**dz_kwargs)
+
                             else:
                                 data_block = DataBlock(data=data_, type="DV")
                             write(bytes(data_block))
@@ -12120,20 +12096,29 @@ class MDF4(MDF_Common[Group]):
 
                 seek(dtblock_address)
 
-                if block_type != v4c.DT_BLOCK:
+                if block_type:
                     partial_records: dict[int, list[bytes]] = {id_: [] for _, id_ in groups}
                     new_data = read(dtblock_size)
 
-                    if block_type == v4c.DZ_BLOCK_DEFLATE:
-                        new_data = decompress(new_data, bufsize=dtblock_raw_size)
-                    elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                        new_data = decompress(new_data, bufsize=dtblock_raw_size)
+                    decompress = DECOMPRESS_FUNC_MAP[block_type]
+                    new_data = decompress(new_data)
+
+                    if block_type % 2 == 0:
+                        # tranposed data
                         cols = typing.cast(int, param)
                         lines = dtblock_raw_size // cols
+                        matrix_size = lines * cols
 
-                        nd: NDArray[np.record] = np.rec.fromstring(new_data[: lines * cols], dtype=uint8)
-                        nd = nd.reshape((cols, lines))
-                        new_data = nd.T.ravel().tobytes() + new_data[lines * cols :]
+                        if matrix_size != dtblock_raw_size:
+                            new_data = (
+                                frombuffer(new_data[:matrix_size], dtype=uint8)
+                                .reshape((cols, lines))
+                                .T.ravel()
+                                .tobytes()
+                                + new_data[matrix_size:]
+                            )
+                        else:
+                            new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
 
                     new_data = rem + new_data
 

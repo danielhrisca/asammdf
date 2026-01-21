@@ -133,7 +133,7 @@ MERGE: Final = interp(CHANNEL_COUNT, _channel_count, _merge).astype("<u4")
 
 MDF2_VERSIONS: Final[tuple[LiteralString, ...]] = ("2.00", "2.10", "2.14")
 MDF3_VERSIONS: Final[tuple[LiteralString, ...]] = ("3.00", "3.10", "3.20", "3.30")
-MDF4_VERSIONS: Final[tuple[LiteralString, ...]] = ("4.00", "4.10", "4.11", "4.20")
+MDF4_VERSIONS: Final[tuple[LiteralString, ...]] = ("4.00", "4.10", "4.11", "4.20", "4.30")
 SUPPORTED_VERSIONS: Final = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 
 

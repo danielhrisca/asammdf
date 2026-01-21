@@ -4147,7 +4147,7 @@ class MDF:
         
         if (
             not isinstance(self._mdf, mdf_v4.MDF4)
-            or not self._mdf._mapped_file
+            or self._mdf._from_filelike
         ):
             return self._select_fallback(
                 channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate

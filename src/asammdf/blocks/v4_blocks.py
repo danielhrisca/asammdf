@@ -23,6 +23,8 @@ from numexpr import evaluate
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from typing_extensions import Any, Buffer, overload, SupportsBytes, TypedDict, Unpack
+from zstd import compress as zstd_compress
+from zstd import decompress as zstd_decompress
 
 from .. import tool
 from . import v4_constants as v4c
@@ -43,12 +45,6 @@ from .utils import (
     UINT64_u,
     UINT64_uf,
 )
-
-try:
-    from zstd import compress as zstd_compress
-    from zstd import decompress as zstd_decompress
-except:
-    pass
 
 COMPRESSION_LEVEL = 2
 
@@ -5008,7 +5004,7 @@ class DataZippedBlock:
             self.original_type = kwargs.get("original_type", b"DT")
             self.zip_type = kwargs.get("zip_type", v4c.FLAG_DZ_DEFLATE)
             self.reserved1 = 0
-            if self.zip_type == v4c.FLAG_DZ_DEFLATE:
+            if self.zip_type in (v4c.FLAG_DZ_DEFLATE, v4c.FLAG_DZ_ZSTD, v4c.FLAG_DZ_LZ4):
                 self.param = 0
             else:
                 self.param = kwargs["param"]
@@ -5034,6 +5030,7 @@ class DataZippedBlock:
                 compression_level = 1
             elif self.zip_type in (v4c.FLAG_DZ_ZSTD, v4c.FLAG_DZ_TRANSPOSED_ZSTD):
                 compress_func = zstd_compress
+                data = bytes(data)  # must be a read only buffer
                 compression_level = 1
 
             if self.zip_type in (v4c.FLAG_DZ_DEFLATE, v4c.FLAG_DZ_LZ4, v4c.FLAG_DZ_ZSTD):
@@ -5108,7 +5105,7 @@ class DataZippedBlock:
         return getattr(self, item)
 
     def __str__(self) -> str:
-        return f"""<DZBLOCK (address: {hex(self.address)}, original_size: {self.original_size}, zipped_size: {self.zip_size})>"""
+        return f"""<DZBLOCK (address: {hex(self.address)}, original_size: {self.original_size}, zipped_size: {self.zip_size}, algo: {self.zip_type})>"""
 
     def __bytes__(self) -> bytes:
         self.return_unzipped = False
