@@ -2054,9 +2054,9 @@ if sys.platform == 'win32':
                 return os.write(self.file, line)
     
 
-def validate_blocks(blocks: list[SignalDataBlockInfo], record_size: int) -> bool:
+def validate_blocks(blocks: list[DataBlockInfo], record_size: int) -> bool:
     for block in blocks:
-        if block.original_size % record_size:
+        if block.original_size % record_size or block.invalidation_block is not None:
             return False
 
     return True

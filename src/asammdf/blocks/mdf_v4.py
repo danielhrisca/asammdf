@@ -389,7 +389,15 @@ class MDF4(MDF_Common[Group]):
 
         progress = kwargs.get("progress", None)
 
-        self._column_storage = False
+        if self.version >= "4.20":
+            self._column_storage = kwargs.get("column_storage", False)
+            if self._column_storage:
+                self._use_ld_blocks = True
+            else:
+                self._use_ld_blocks = kwargs.get("use_ld_blocks", False)
+        else:
+            self._column_storage = False
+            self._use_ld_blocks = False
 
         self._units_map = {}
         self._mapped_file = None
@@ -447,11 +455,6 @@ class MDF4(MDF_Common[Group]):
             self.header = HeaderBlock()
             self.identification = FileIdentificationBlock(version=version)
             self.version: str = version
-
-            if self.version >= "4.20":
-                self._column_storage = kwargs.get("column_storage", False)
-            else:
-                self._column_storage = False
 
             self.name = Path("__new__.mf4")
 
@@ -529,6 +532,7 @@ class MDF4(MDF_Common[Group]):
 
         if self.version >= "4.20":
             self._column_storage = self._kwargs.get("column_storage", False)
+
         else:
             self._column_storage = False
 
@@ -4082,7 +4086,7 @@ class MDF4(MDF_Common[Group]):
                 np.packbits(array(invalidation_bits_list).T).reshape((cycles_nr, invalidation_bytes_nr))
             ).ravel()
 
-            if self.version < "4.20":
+            if not self._use_ld_blocks:
                 fields.append((bytes_array, invalidation_bytes_nr))
 
             for ch in gp.channels:
@@ -4107,7 +4111,6 @@ class MDF4(MDF_Common[Group]):
         # data group
         gp.sorted = True
 
-
         data_block = data_block_from_arrays(fields, cycles_nr, THREAD_COUNT)
         size = len(data_block)
         data_block_view = memoryview(data_block)
@@ -4117,7 +4120,7 @@ class MDF4(MDF_Common[Group]):
         record_size = offset + invalidation_bytes_nr
 
         if size:
-            if self.version < "4.20":
+            if not self._use_ld_blocks:
                 block_size = 32 * 1024 * 1024 // record_size * record_size
 
                 count = ceil(size / block_size)
@@ -6537,7 +6540,7 @@ class MDF4(MDF_Common[Group]):
                 np.packbits(array(inval_bits).T).reshape((cycles_nr, invalidation_bytes_nr))
             ).ravel()
 
-            if self.version < "4.20":
+            if not self._use_ld_blocks:
                 fields.append((inval_bits_vals, invalidation_bytes_nr))
 
         samples_bytes = data_block_from_arrays(fields, added_cycles, THREAD_COUNT)
@@ -6552,7 +6555,7 @@ class MDF4(MDF_Common[Group]):
         record_size = gp.channel_group.samples_byte_nr + gp.channel_group.invalidation_bytes_nr
 
         if size:
-            if self.version < "4.20":
+            if not self._use_ld_blocks:
                 block_size = 32 * 1024 * 1024 // record_size * record_size
 
                 count = ceil(size / block_size)
@@ -6582,7 +6585,7 @@ class MDF4(MDF_Common[Group]):
 
             else:
                 raw_size = size
-                data = lz_compress(samples, store_size=True)
+                data = lz_compress(samples_bytes, store_size=True)
                 size = len(data)
                 stream.write(data)
 
