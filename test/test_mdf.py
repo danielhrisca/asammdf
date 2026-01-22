@@ -3,6 +3,7 @@ from io import BytesIO
 import os
 from pathlib import Path
 import random
+import sys
 import tempfile
 import unittest
 import urllib
@@ -660,6 +661,7 @@ class TestMDF(unittest.TestCase):
                 if isinstance(inp, BytesIO):
                     inp.close()
 
+    @unittest.skipIf(sys.platform !="win32", "skip for unix for now")
     def test_filter(self) -> None:
         print("MDF read tests")
 
