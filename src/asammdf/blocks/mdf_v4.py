@@ -389,15 +389,8 @@ class MDF4(MDF_Common[Group]):
 
         progress = kwargs.get("progress", None)
 
-        if self.version >= "4.20":
-            self._column_storage = kwargs.get("column_storage", False)
-            if self._column_storage:
-                self._use_ld_blocks = True
-            else:
-                self._use_ld_blocks = kwargs.get("use_ld_blocks", False)
-        else:
-            self._column_storage = False
-            self._use_ld_blocks = False
+        self._column_storage = False
+        self._use_ld_blocks = False
 
         self._units_map = {}
         self._mapped_file = None
@@ -532,9 +525,13 @@ class MDF4(MDF_Common[Group]):
 
         if self.version >= "4.20":
             self._column_storage = self._kwargs.get("column_storage", False)
-
+            if self._column_storage:
+                self._use_ld_blocks = True
+            else:
+                self._use_ld_blocks = self._kwargs.get("use_ld_blocks", False)
         else:
             self._column_storage = False
+            self._use_ld_blocks = False
 
         if self.version >= "4.10":
             # Check for finalization past version 4.10
