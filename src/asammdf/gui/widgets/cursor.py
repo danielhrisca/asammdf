@@ -261,6 +261,8 @@ class Cursor(pg.InfiniteLine):
         self.show_horizontal_line = show_horizontal_line
         self.locked = False
 
+        self._stored_pos = None
+
     @property
     def color(self):
         return self.pen.color().name()
@@ -297,6 +299,13 @@ class Cursor(pg.InfiniteLine):
 
     def set_value(self, value):
         self.setPos(value)
+
+    def restore_position(self):
+        if self._stored_pos is not None:
+            self.setPos(self._stored_pos)
+
+    def store_position(self):
+        self._stored_pos = self.pos()
 
     def paint(self, paint, *args, plot=None, uuid=None):
         if plot:

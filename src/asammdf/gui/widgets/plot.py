@@ -4503,10 +4503,13 @@ class PlotGraphics(pg.PlotWidget):
         handled = True
         if key == QtCore.Qt.Key.Key_Y and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
             if self.region is None:
+                pos = self.cursor1.value()
                 event_ = QtGui.QKeyEvent(
                     QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_R, QtCore.Qt.KeyboardModifier.NoModifier
                 )
                 self.keyPressEvent(event_)
+
+                self.region.setRegion([pos, pos])
 
             if self.region_lock is not None:
                 self.region_lock = None
@@ -4727,6 +4730,8 @@ class PlotGraphics(pg.PlotWidget):
         elif key == QtCore.Qt.Key.Key_R and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
             if self.region is None:
                 color = self.cursor1.pen.color().name()
+                self.cursor1.hide()
+                self.cursor1.store_position()
 
                 self.region = Region(
                     (0, 0),
@@ -4742,18 +4747,18 @@ class PlotGraphics(pg.PlotWidget):
                 self.region.sigRegionChanged.connect(self.range_modified_handler)
                 self.region.sigRegionChangeFinished.connect(self.range_modified_finished_handler)
                 start, stop = self.viewbox.viewRange()[0]
-                view_range = abs(stop - start)
-                start, stop = (
-                    start + 0.1 * (stop - start),
-                    stop - 0.1 * (stop - start),
-                )
 
-                if self.cursor1 is not None:
-                    if abs(self.cursor1.value() - stop) >= 0.1 * view_range:
-                        self.region.setRegion(tuple(sorted((self.cursor1.value(), stop))))
-                    self.cursor1.hide()
+                if start <= self.cursor1.value() <= stop:
+                    mid = (stop + start) / 2 
+                    start, stop = sorted([mid, self.cursor1.value()])
+
                 else:
-                    self.region.setRegion((start, stop))
+                    start, stop = (
+                        start + 0.1 * (stop - start),
+                        stop - 0.1 * (stop - start),
+                    )
+
+                self.region.setRegion((start, stop))
 
             else:
                 self.region_lock = None
@@ -4764,6 +4769,7 @@ class PlotGraphics(pg.PlotWidget):
                 self.range_removed.emit()
 
                 if self.cursor1 is not None:
+                    self.cursor1.restore_position()
                     self.cursor1.show()
 
             self.update()
