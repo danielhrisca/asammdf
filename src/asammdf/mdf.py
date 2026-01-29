@@ -16,6 +16,7 @@ from pathlib import Path
 import re
 from shutil import copy, move
 import sys
+import tempfile
 from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
 from types import TracebackType
@@ -25,29 +26,16 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 from canmatrix import CanMatrix
-import numpy as np
-from numpy.typing import NDArray
-import pandas as pd
-from pandas import DataFrame
-from typing_extensions import Any, LiteralString, Never, overload, TypedDict, Unpack
-
-try:
-    from deflate import zlib_decompress
-    def decompress(data, bufsize):
-        return zlib_decompress(data, originalsize=bufsize)
-except ImportError:
-    try: 
-        from isal.isal_zlib import decompress
-    except ImportError:
-        from zlib import decompress
-import tempfile
-
 from lz4.frame import compress as lz_compress
-from lz4.frame import decompress as lz_decompress
+import numpy as np
 from numpy import (
     frombuffer,
     uint8,
 )
+from numpy.typing import NDArray
+import pandas as pd
+from pandas import DataFrame
+from typing_extensions import Any, LiteralString, Never, overload, TypedDict, Unpack
 
 from . import tool
 from .blocks import mdf_v2, mdf_v3, mdf_v4
@@ -83,6 +71,7 @@ from .blocks.utils import (
     csv_bytearray2hex,
     csv_int2hex,
     DataBlockInfo,
+    DECOMPRESS_FUNC_MAP,
     downcast,
     FileLike,
     Fragment,
@@ -1498,11 +1487,12 @@ class MDF:
                 seek(address)
                 new_data: bytes | memoryview[int] = read(typing.cast(int, compressed_size))
 
-                match block_type:
-                    case v4c.DZ_BLOCK_DEFLATE:
-                        new_data = decompress(new_data, bufsize=original_size)
-                    case v4c.DZ_BLOCK_TRANSPOSED:
-                        new_data = decompress(new_data, bufsize=original_size)
+                if block_type:
+                    decompress = DECOMPRESS_FUNC_MAP[block_type]
+                    new_data = decompress(new_data)
+
+                    if block_type % 2 == 0:
+                        # tranposed data
                         cols = typing.cast(int, param)
                         lines = original_size // cols
                         matrix_size = lines * cols
@@ -1517,9 +1507,6 @@ class MDF:
                             )
                         else:
                             new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
-
-                    case v4c.DZ_BLOCK_LZ:
-                        new_data = lz_decompress(new_data)
 
                 if block_limit is not None:
                     new_data = new_data[:block_limit]

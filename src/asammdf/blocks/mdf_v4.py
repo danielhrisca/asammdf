@@ -24,15 +24,9 @@ import typing
 from typing import BinaryIO, Final, Literal, TYPE_CHECKING
 from zipfile import ZIP_DEFLATED, ZipFile
 
-try:
-    from isal.isal_zlib import decompress as zlib_decompress
-except ImportError:
-    from zlib import decompress as zlib_decompress
-
 import canmatrix
 from canmatrix.canmatrix import CanMatrix
 from lz4.frame import compress as lz_compress
-from lz4.frame import decompress as lz_decompress
 import numpy as np
 from numpy import (
     arange,
@@ -69,7 +63,6 @@ from typing_extensions import (
     TypeIs,
     Unpack,
 )
-from zstd import decompress as zstd_decompress
 
 from .. import tool
 from ..signal import InvalidationArray, Signal
@@ -104,6 +97,7 @@ from .utils import (
     CONVERT,
     count_channel_groups,
     DataBlockInfo,
+    DECOMPRESS_FUNC_MAP,
     extract_display_names,
     extract_encryption_information,
     extract_xml_comment,
@@ -190,18 +184,6 @@ EMPTY_TUPLE: Final = ()
 
 # 100 extra steps for the sorting, 1 step after sorting and 1 step at finish
 SORT_STEPS: Final = 102
-
-
-DECOMPRESS_FUNC_MAP = {
-    # data block type
-    v4c.DT_BLOCK: lambda x: x,
-    v4c.DZ_BLOCK_DEFLATE: zlib_decompress,
-    v4c.DZ_BLOCK_TRANSPOSED: zlib_decompress,
-    v4c.DZ_BLOCK_LZ: lz_decompress,
-    v4c.DZ_BLOCK_LZ_TRANSPOSED: lz_decompress,
-    v4c.DZ_BLOCK_ZSTD:zstd_decompress,
-    v4c.DZ_BLOCK_ZSTD_TRANSPOSED: zstd_decompress,
-}
 
 
 logger = logging.getLogger("asammdf")

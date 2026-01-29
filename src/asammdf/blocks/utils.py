@@ -47,6 +47,13 @@ from .blocks_common import UnpackFrom
 from .options import GLOBAL_OPTIONS
 from .types import StrPath
 
+try: 
+    from isal.isal_zlib import decompress as zlib_decompress
+except ImportError:
+    from zlib import decompress as zlib_decompress
+from lz4.frame import decompress as lz_decompress
+from zstd import decompress as zstd_decompress
+
 try:
     from cchardet import detect
 except:
@@ -136,8 +143,18 @@ MDF3_VERSIONS: Final[tuple[LiteralString, ...]] = ("3.00", "3.10", "3.20", "3.30
 MDF4_VERSIONS: Final[tuple[LiteralString, ...]] = ("4.00", "4.10", "4.11", "4.20", "4.30")
 SUPPORTED_VERSIONS: Final = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 
-
 ALLOWED_MATLAB_CHARS: Final = set(string.ascii_letters + string.digits + "_")
+
+DECOMPRESS_FUNC_MAP = {
+    # data block type
+    v4c.DT_BLOCK: lambda x: x,
+    v4c.DZ_BLOCK_DEFLATE: zlib_decompress,
+    v4c.DZ_BLOCK_TRANSPOSED: zlib_decompress,
+    v4c.DZ_BLOCK_LZ: lz_decompress,
+    v4c.DZ_BLOCK_LZ_TRANSPOSED: lz_decompress,
+    v4c.DZ_BLOCK_ZSTD:zstd_decompress,
+    v4c.DZ_BLOCK_ZSTD_TRANSPOSED: zstd_decompress,
+}
 
 
 class MdfException(Exception):
