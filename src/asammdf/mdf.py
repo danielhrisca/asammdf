@@ -640,10 +640,10 @@ class MDF:
         if isinstance(self._mdf, mdf_v4.MDF4) and message:
             fh = FileHistory()
             fh.comment = f"""<FHcomment>
-    <TX>{message}</TX>
-    <tool_id>{tool.__tool__}</tool_id>
-    <tool_vendor>{tool.__vendor__}</tool_vendor>
-    <tool_version>{tool.__version__}</tool_version>
+<TX>{message}</TX>
+<tool_id>{tool.__tool__}</tool_id>
+<tool_vendor>{tool.__vendor__}</tool_vendor>
+<tool_version>{tool.__version__}</tool_version>
 </FHcomment>"""
 
             self._mdf.file_history = [fh]
