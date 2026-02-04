@@ -2072,7 +2072,13 @@ if sys.platform == 'win32':
     
 
 def validate_blocks(blocks: list[DataBlockInfo], record_size: int) -> bool:
+    location = None
     for block in blocks:
+        if location is None:
+            location = block.location
+        elif location != block.location:
+            return False
+        
         if block.original_size % record_size or block.invalidation_block is not None:
             return False
 

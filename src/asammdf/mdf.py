@@ -4184,7 +4184,7 @@ class MDF:
                 )
 
             master_channel = grp.channels[master_index]
-            master_dtype, byte_size, byte_offset, _ = typing.cast(
+            master_dtype, byte_size, byte_offset, master_bit_offset = typing.cast(
                 tuple[np.dtype[Any], int, int, int], grp.record[master_index]
             )
             signals = [(byte_offset, byte_size, master_channel.pos_invalidation_bit)]
@@ -4200,10 +4200,15 @@ class MDF:
                     _, byte_size, byte_offset, _ = info
                     signals.append((byte_offset, byte_size, channel.pos_invalidation_bit))
 
+            if grp.data_location == v4c.LOCATION_ORIGINAL_FILE:
+                file_name = self._mdf._mapped_file.name
+            else:
+                file_name = self._mdf._tempfile.name
+
             raw_and_invalidation = get_channel_raw_bytes_complete(
                 blocks,
                 signals,
-                self._mdf._mapped_file.name,
+                file_name,
                 cycles_nr,
                 record_size,
                 grp.channel_group.invalidation_bytes_nr,
@@ -4232,8 +4237,8 @@ class MDF:
                 if view != vals.dtype:
                     vals = vals.view(view)
 
-                if bit_offset:
-                    vals >>= bit_offset
+                if master_bit_offset:
+                    vals >>= master_bit_offset
 
                 if master_channel.bit_count != size * 8:
                     if data_type in v4c.SIGNED_INT:
