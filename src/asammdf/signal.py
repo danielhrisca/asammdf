@@ -189,7 +189,7 @@ class Signal:  # noqa: PLW1641
             )
             raise MdfException(message)
         else:
-            self.samples: NDArray[Any]
+            self._samples: NDArray[Any]
             if not isinstance(samples, np.ndarray):
                 samples = np.array(samples)
                 kind = samples.dtype.kind
@@ -200,18 +200,18 @@ class Signal:  # noqa: PLW1641
                         encodings = [encoding, "utf-8", "latin-1"]
                     for _encoding in encodings:
                         try:
-                            self.samples = encode(samples, _encoding)
+                            self._samples = encode(samples, _encoding)
                             break
                         except:
                             continue
                     else:
-                        self.samples = encode(samples, encodings[0], errors="ignore")
+                        self._samples = encode(samples, encodings[0], errors="ignore")
                 elif kind == "O":
-                    self.samples = samples.astype(np.bytes_)
+                    self._samples = samples.astype(np.bytes_)
                 else:
-                    self.samples = samples
+                    self._samples = samples
             else:
-                self.samples = samples
+                self._samples = samples
 
             self.timestamps: NDArray[Any]
             if not isinstance(timestamps, np.ndarray):
@@ -286,8 +286,8 @@ class Signal:  # noqa: PLW1641
     
     @conversion.setter
     def conversion(self, conv):
-        self.samples = self.samples.view(
-            replace_metadata(self.samples.dtype, self.name, "conversion", conv)
+        self._samples = self._samples.view(
+            replace_metadata(self._samples.dtype, self.name, "conversion", conv)
         )
 
     @property
@@ -310,6 +310,17 @@ class Signal:  # noqa: PLW1641
                 raise MdfException(message)
 
             self._invalidation_bits = value
+
+    @property
+    def samples(self):
+        return self._samples
+    
+    @samples.setter
+    def samples(self, vals):
+        conversion = self.conversion
+        self._samples = vals.view(
+            replace_metadata(vals.dtype, self.name, "conversion", conversion)
+        )
 
     def __repr__(self) -> str:
         return f"""<Signal {self.name}:
@@ -1289,7 +1300,7 @@ class Signal:  # noqa: PLW1641
         samples = convert(self.samples, ignore_value2text_conversions=ignore_value2text_conversions)
 
         if samples.dtype.kind == "S":
-            encoding = "utf-8" if self.conversion.id == b"##CC" else "latin-1"
+            encoding = "utf-8" if self.conversion and self.conversion.id == b"##CC" else "latin-1"
         else:
             encoding = None
 
