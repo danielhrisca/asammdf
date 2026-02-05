@@ -300,7 +300,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             self.info = info = QtWidgets.QPlainTextEdit(definition)
             PythonHighlighter(info.document())
             info.setReadOnly(True)
-            info.setLineWrapMode(info.NoWrap)
+            info.setLineWrapMode(info.LineWrapMode.NoWrap)
             info.setWindowFlags(QtCore.Qt.WindowType.WindowMinMaxButtonsHint | info.windowFlags())
             info.setWindowTitle(f"{function} definition")
             info.setWindowModality(QtCore.Qt.WindowModality.ApplicationModal)
