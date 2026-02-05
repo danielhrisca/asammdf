@@ -322,6 +322,11 @@ class Signal:  # noqa: PLW1641
             replace_metadata(vals.dtype, self.name, "conversion", conversion)
         )
 
+    @samples.deleter
+    def samples(self):
+        del self._samples
+
+
     def __repr__(self) -> str:
         return f"""<Signal {self.name}:
 \tsamples={self.samples}
