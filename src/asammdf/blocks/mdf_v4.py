@@ -2775,7 +2775,7 @@ class MDF4(MDF_Common[Group]):
         if key not in self._invalidation_cache:
             self._invalidation_cache[key] = InvalidationArray(
                 get_invalidation_bits_array(
-                    invalidation_bytes, group.channel_group.invalidation_bytes_nr, pos_invalidation_bit
+                    invalidation_bytes, group.channel_group.invalidation_bytes_nr, pos_invalidation_bit, _count
                 ),
                 (group_index, pos_invalidation_bit),
             )

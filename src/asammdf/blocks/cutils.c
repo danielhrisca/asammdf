@@ -1341,11 +1341,11 @@ static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
   Py_ssize_t count, size, actual_byte_count, delta, invalidation_pos, invalidation_size;
   PyObject *data_block, *out;
 
-  Py_ssize_t record_size, byte_offset, byte_count;
+  Py_ssize_t record_size, byte_offset, byte_count, cycles;
 
   uint8_t mask, *inptr, *outptr;
 
-  if (!PyArg_ParseTuple(args, "Onn", &data_block, &invalidation_size, &invalidation_pos))
+  if (!PyArg_ParseTuple(args, "Onnn", &data_block, &invalidation_size, &invalidation_pos, &cycles))
   {
     return 0;
   }
@@ -1360,20 +1360,28 @@ static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
       inptr = (uint8_t *)PyByteArray_AsString(data_block);
     }
 
-    count = size / invalidation_size;
-    byte_offset = invalidation_pos / 8;
-    mask = (uint8_t ) (1 << (invalidation_pos % 8));
+    if ((invalidation_size >0) && (size >0)) {
+      count = size / invalidation_size;
 
-    inptr += byte_offset;
+      byte_offset = invalidation_pos / 8;
+      mask = (uint8_t ) (1 << (invalidation_pos % 8));
 
-    npy_intp dims[1];
-    dims[0] = count;
-    out = PyArray_EMPTY(1, dims, NPY_BOOL, 0);
-    outptr = (uint8_t *)PyArray_GETPTR1((PyArrayObject *)out, 0);
+      inptr += byte_offset;
 
-    for (int i=0; i<count; i++) {
-      *outptr++ = (*inptr) & mask ? 1 : 0;
-      inptr += invalidation_size;
+      npy_intp dims[1];
+      dims[0] = count;
+      out = PyArray_EMPTY(1, dims, NPY_BOOL, 0);
+      outptr = (uint8_t *)PyArray_GETPTR1((PyArrayObject *)out, 0);
+
+      for (int i=0; i<count; i++) {
+        *outptr++ = (*inptr) & mask ? 1 : 0;
+        inptr += invalidation_size;
+      }
+    }
+    else {
+      npy_intp dims[1];
+      dims[0] = cycles;
+      out = PyArray_ZEROS(1, dims, NPY_BOOL, 0);
     }
 
     return out;
