@@ -277,6 +277,7 @@ class AttachmentBlock:
             self.mime = kwargs.get("mime", "")
 
             file_name = Path(kwargs.get("file_name", None) or "bin.bin")
+            self.zip_type = self.path_syntax = 0
 
             data = kwargs.get("data", b"")
             original_size = embedded_size = len(data)
@@ -298,7 +299,6 @@ class AttachmentBlock:
                             embedded_size = len(data)
 
                             self.zip_type = v4c.AT_ZIP_TYPE_DEFLATE
-                            self.path_syntax = 0
 
                         case "zstd":
                             flags |= v4c.FLAG_AT_GENERAL_COMPRESSED_EMBEDDED
@@ -318,12 +318,11 @@ class AttachmentBlock:
 
                 self.file_name = file_name.name
 
+
             else:
                 self.file_name = str(file_name)
                 embedded_size = 0
                 data = b""
-                self.zip_type = 0
-                self.path_syntax = 0
 
             self.id = b"##AT"
             self.reserved0 = 0
