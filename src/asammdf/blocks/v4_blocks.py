@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from hashlib import md5
 import inspect
 import logging
+import pathlib
 from pathlib import Path
 import re
 from struct import pack, unpack, unpack_from
@@ -47,6 +48,7 @@ from .utils import (
 )
 
 COMPRESSION_LEVEL = 2
+AT_COMPRESSION_LEVEL = 9
 
 try:
     from deflate import zlib_compress as compress
@@ -120,6 +122,7 @@ class AttachmentBlockKwargs(BlockKwargs, total=False):
     embedded: bool
     creator_index: int
     file_limit: int | float
+    compression_type: str
 
 
 class AttachmentBlock:
@@ -177,20 +180,29 @@ class AttachmentBlock:
         "embedded_size",
         "file_name",
         "file_name_addr",
+        "file_name_zip",
+        "file_name_zip_addr",
         "flags",
         "id",
         "links_nr",
         "md5_sum",
         "mime",
         "mime_addr",
+        "mime_zip",
+        "mime_zip_addr",
         "next_at_addr",
         "original_size",
+        "path_syntax",
         "reserved0",
         "reserved1",
+        "zip_type",
     )
 
     def __init__(self, **kwargs: Unpack[AttachmentBlockKwargs]) -> None:
         self.file_name = self.mime = self.comment = ""
+
+        self.file_name_zip_addr = self.mime_zip_addr = 0
+        self.file_name_zip = self.mime_zip = ""
 
         try:
             self.address = address = kwargs["address"]
@@ -203,56 +215,49 @@ class AttachmentBlock:
                 handle_incomplete_block(address, file_limit)
                 raise KeyError
 
-            if mapped:
-                (
-                    self.id,
-                    self.reserved0,
-                    self.block_len,
-                    self.links_nr,
-                    self.next_at_addr,
-                    self.file_name_addr,
-                    self.mime_addr,
-                    self.comment_addr,
-                    self.flags,
-                    self.creator_index,
-                    self.reserved1,
-                    self.md5_sum,
-                    self.original_size,
-                    self.embedded_size,
-                ) = v4c.AT_COMMON_uf(stream, address)
+            stream.seek(address)
 
-                if address + self.block_len > file_limit:
-                    handle_incomplete_block(address, file_limit)
-                    raise KeyError
+            (
+                self.id,
+                self.reserved0,
+                self.block_len,
+                self.links_nr,
+            ) = v4c.COMMON_u(stream.read(v4c.COMMON_SIZE))
 
-                address += v4c.AT_COMMON_SIZE
+            links = unpack(f'<{self.links_nr}Q', stream.read(self.links_nr * 8))
 
-                self.embedded_data = stream[address : address + self.embedded_size]
-            else:
-                stream.seek(address)
+            (   
+                self.next_at_addr,
+                self.file_name_addr,
+                self.mime_addr,
+                self.comment_addr, 
+                *links
+            ) = links
 
-                (
-                    self.id,
-                    self.reserved0,
-                    self.block_len,
-                    self.links_nr,
-                    self.next_at_addr,
-                    self.file_name_addr,
-                    self.mime_addr,
-                    self.comment_addr,
-                    self.flags,
-                    self.creator_index,
-                    self.reserved1,
-                    self.md5_sum,
-                    self.original_size,
-                    self.embedded_size,
-                ) = v4c.AT_COMMON_u(stream.read(v4c.AT_COMMON_SIZE))
+            (
+                self.flags,
+                self.creator_index,
+                self.zip_type,
+                self.path_syntax,
+                self.reserved1,
+                self.md5_sum,
+                self.original_size,
+                self.embedded_size
+            ) = v4c.AT_TAIL_u(stream.read(v4c.AT_TAIL_SIZE))
 
-                if address + self.block_len > file_limit:
-                    handle_incomplete_block(address, file_limit)
-                    raise KeyError
+            if self.flags & v4c.FLAG_AT_ZIP_FILE_NAME_VALID:
+                self.file_name_zip_addr = links.pop(0)
+                self.file_name_zip = get_text_v4(self.file_name_zip_addr, stream, file_limit=file_limit)
 
-                self.embedded_data = stream.read(self.embedded_size)
+            if self.flags & v4c.FLAG_AT_ZIP_MIME_TYPE_VALID:
+                self.mime_zip_addr = links.pop(0)
+                self.mime_zip = get_text_v4(self.mime_zip_addr, stream, file_limit=file_limit)
+
+            if address + self.block_len > file_limit:
+                handle_incomplete_block(address, file_limit)
+                raise KeyError
+
+            self.embedded_data = stream.read(self.embedded_size)
 
             if self.id != b"##AT":
                 message = f'Expected "##AT" block @{hex(address)} but found "{self.id!r}"'
@@ -276,6 +281,7 @@ class AttachmentBlock:
             data = kwargs.get("data", b"")
             original_size = embedded_size = len(data)
             compression = kwargs.get("compression", False)
+            compression_type = kwargs.get("compression_type", "deflate")
             embedded = kwargs.get("embedded", False)
 
             md5_sum = md5(data).digest()
@@ -284,19 +290,45 @@ class AttachmentBlock:
             if embedded:
                 flags |= v4c.FLAG_AT_EMBEDDED
                 if compression:
-                    flags |= v4c.FLAG_AT_COMPRESSED_EMBEDDED
-                    data = compress(data, COMPRESSION_LEVEL)
-                    embedded_size = len(data)
+                    match compression_type:
+                        case "deflate":
+
+                            flags |= v4c.FLAG_AT_COMPRESSED_EMBEDDED 
+                            data = compress(data, AT_COMPRESSION_LEVEL)
+                            embedded_size = len(data)
+
+                            self.zip_type = v4c.AT_ZIP_TYPE_DEFLATE
+                            self.path_syntax = 0
+
+                        case "zstd":
+                            flags |= v4c.FLAG_AT_GENERAL_COMPRESSED_EMBEDDED
+                            data = zstd_compress(data, AT_COMPRESSION_LEVEL)
+                            embedded_size = len(data)
+
+                            self.zip_type = v4c.AT_ZIP_TYPE_ZSTD
+                            self.path_syntax = ord(pathlib.os.sep)
+
+                        case "lz4":
+                            flags |= v4c.FLAG_AT_GENERAL_COMPRESSED_EMBEDDED  
+                            data = lz_compress(data, AT_COMPRESSION_LEVEL)
+                            embedded_size = len(data)
+
+                            self.zip_type = v4c.AT_ZIP_TYPE_LZ4
+                            self.path_syntax = ord(pathlib.os.sep) 
+
                 self.file_name = file_name.name
 
             else:
                 self.file_name = str(file_name)
                 embedded_size = 0
                 data = b""
+                self.zip_type = 0
+                self.path_syntax = 0
 
             self.id = b"##AT"
             self.reserved0 = 0
             self.block_len = v4c.AT_COMMON_SIZE + embedded_size
+
             self.links_nr = 4
             self.next_at_addr = 0
             self.file_name_addr = 0
@@ -318,8 +350,14 @@ class AttachmentBlock:
         data : bytes
         """
         if self.flags & v4c.FLAG_AT_EMBEDDED:
-            if self.flags & v4c.FLAG_AT_COMPRESSED_EMBEDDED:
-                data = typing.cast(bytes, decompress(self.embedded_data, bufsize=self.original_size))  # type: ignore[redundant-cast, unused-ignore]
+            if self.flags & v4c.FLAG_AT_COMPRESSED_EMBEDDED or self.flags & v4c.FLAG_AT_GENERAL_COMPRESSED_EMBEDDED:
+                match self.zip_type:
+                    case v4c.AT_ZIP_TYPE_DEFLATE:
+                        data = typing.cast(bytes, decompress(self.embedded_data, bufsize=self.original_size))  # type: ignore[redundant-cast, unused-ignore]
+                    case v4c.AT_ZIP_TYPE_ZSTD:
+                        data = typing.cast(bytes, zstd_decompress(self.embedded_data))  # type: ignore[redundant-cast, unused-ignore]
+                    case v4c.AT_ZIP_TYPE_LZ4:
+                        data = typing.cast(bytes, lz_decompress(self.embedded_data))  # type: ignore[redundant-cast, unused-ignore]
             else:
                 data = self.embedded_data
 
@@ -382,6 +420,34 @@ class AttachmentBlock:
         else:
             self.comment_addr = 0
 
+        text = self.file_name_zip
+        if text:
+            if text in defined_texts:
+                self.file_name_zip_addr = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=str(text))
+                self.file_name_zip_addr = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block.block_len
+                blocks.append(tx_block)
+        else:
+            self.file_name_zip_addr = 0
+
+        text = self.mime_zip
+        if text:
+            if text in defined_texts:
+                self.mime_zip_addr = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=str(text))
+                self.mime_zip_addr = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block.block_len
+                blocks.append(tx_block)
+        else:
+            self.mime_zip_addr = 0
+
         blocks.append(self)
         self.address = address
         address += self.block_len
@@ -400,8 +466,37 @@ class AttachmentBlock:
         setattr(self, item, value)
 
     def __bytes__(self) -> bytes:
-        fmt = f"{v4c.FMT_AT_COMMON}{self.embedded_size}s"
-        result = pack(fmt, *[self[key] for key in v4c.KEYS_AT_BLOCK])
+        fmt = f'<4sI{self.links_nr + 2}Q2H2BH16s2Q{self.embedded_size}s'
+        keys = (
+            'id', 
+            'reserved0', 
+            'block_len', 
+            'links_nr', 
+            'next_at_addr',
+            'file_name_addr',
+            'mime_addr',
+            'comment_addr'
+        )
+
+        if self.flags & v4c.FLAG_AT_ZIP_FILE_NAME_VALID:
+            keys = (*keys, 'file_name_zip_addr')
+
+        if self.flags & v4c.FLAG_AT_ZIP_MIME_TYPE_VALID:
+            keys = (*keys, 'mime_zip_addr')
+
+        keys = keys + (
+            'flags',
+            'creator_index',
+            'zip_type',
+            'path_syntax',
+            'reserved1',
+            'md5_sum',
+            'original_size',
+            'embedded_size',
+            'embedded_data'
+        )
+
+        result = pack(fmt, *[self[key] for key in keys])
         return result
 
     def __repr__(self) -> str:

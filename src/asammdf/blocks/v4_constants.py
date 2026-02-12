@@ -323,6 +323,7 @@ COMMON_SHORT_SIZE = 16
 CC_NONE_BLOCK_SIZE = 80
 CC_ALG_BLOCK_SIZE = 88
 CC_LIN_BLOCK_SIZE = 96
+AT_TAIL_SIZE = 40
 AT_COMMON_SIZE = 96
 DZ_COMMON_SIZE = 48
 DZ_COMMON_INFO_SIZE = 22
@@ -333,15 +334,24 @@ HEADER_BLOCK_SIZE = 104
 SR_BLOCK_SIZE = 64
 GD_BLOCK_SIZE = 40
 
+AT_ZIP_TYPE_DEFLATE = 0
+AT_ZIP_TYPE_ZSTD = 2
+AT_ZIP_TYPE_LZ4 = 4
+AT_ZIP_TYPE_CUSTOM = 254
+
 FLAG_ALL_SAMPLES_VALID = 1
 FLAG_INVALIDATION_BIT_VALID = 2
 
 FLAG_PRECISION = 1
 FLAG_PHY_RANGE_OK = 1 << 4
 FLAG_VAL_RANGE_OK = 1 << 3
-FLAG_AT_EMBEDDED = 1
-FLAG_AT_COMPRESSED_EMBEDDED = 2
-FLAG_AT_MD5_VALID = 4
+
+FLAG_AT_EMBEDDED = 1 << 0
+FLAG_AT_COMPRESSED_EMBEDDED = 1 << 1
+FLAG_AT_MD5_VALID = 1 << 2
+FLAG_AT_GENERAL_COMPRESSED_EMBEDDED = 1 << 3
+FLAG_AT_ZIP_FILE_NAME_VALID = 1 << 4
+FLAG_AT_ZIP_MIME_TYPE_VALID = 1 << 5
 
 FLAG_CA_DYNAMIC_AXIS = 1
 FLAG_CA_INPUT_QUANTITY = 1 << 1
@@ -394,6 +404,9 @@ FLAG_AT_TO_STRING = {
     FLAG_AT_EMBEDDED: "Embedded",
     FLAG_AT_COMPRESSED_EMBEDDED: "Compressed",
     FLAG_AT_MD5_VALID: "MD5 sum valid",
+    FLAG_AT_GENERAL_COMPRESSED_EMBEDDED: "General embedded compression",
+    FLAG_AT_ZIP_FILE_NAME_VALID: "Zip file name valid",
+    FLAG_AT_ZIP_MIME_TYPE_VALID: "Zip mime type valid"
 }
 
 FLAG_CN_ALL_INVALID = 1
@@ -862,8 +875,8 @@ KEYS_IDENTIFICATION_BLOCK = (
     "unfinalized_custom_flags",
 )
 
-FMT_AT_COMMON = "<4sI6Q2HI16s2Q"
-AtCommon = tuple[bytes, int, int, int, int, int, int, int, int, int, int, bytes, int, int]
+FMT_AT_TAIL = "<2H2BH16s2Q"
+AtTail = tuple[int, int, int, int, int, bytes, int, int]
 KEYS_AT_BLOCK = (
     "id",
     "reserved0",
@@ -881,8 +894,7 @@ KEYS_AT_BLOCK = (
     "embedded_size",
     "embedded_data",
 )
-AT_COMMON_u: Callable[[Buffer], AtCommon] = struct.Struct(FMT_AT_COMMON).unpack
-AT_COMMON_uf: UnpackFrom[AtCommon] = struct.Struct(FMT_AT_COMMON).unpack_from
+AT_TAIL_u: Callable[[Buffer], AtTail] = struct.Struct(FMT_AT_TAIL).unpack
 
 FMT_DZ_COMMON = "<4sI2Q2s2BI2Q"
 DzCommon = tuple[bytes, int, int, int, bytes, int, int, int, int, int]

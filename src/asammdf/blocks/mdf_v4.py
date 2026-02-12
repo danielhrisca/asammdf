@@ -3244,7 +3244,7 @@ class MDF4(MDF_Common[Group]):
                     if signal.flags & signal.Flags.stream_sync:
                         channel_type = v4c.CHANNEL_TYPE_SYNC
                         if signal.attachment:
-                            at_data, at_name, hash_sum = typing.cast(tuple[bytes, Path, bytes], signal.attachment)
+                            at_data, at_name, hash_sum, *_ = typing.cast(tuple[bytes, Path, bytes], signal.attachment)
                             attachment_index = self.attach(
                                 at_data,
                                 at_name,
@@ -3261,13 +3261,15 @@ class MDF4(MDF_Common[Group]):
                         channel_type = v4c.CHANNEL_TYPE_VALUE
                         sync_type = v4c.SYNC_TYPE_NONE
 
-                        if signal.attachment:
-                            at_data, at_name, hash_sum = typing.cast(tuple[bytes, Path, bytes], signal.attachment)
-
-                            attachment_index = self.attach(at_data, at_name, hash_sum)
-                            attachment = attachment_index
-                        else:
-                            attachment = None
+                        match signal.attachment:
+                            case at_data, at_name, hash_sum, compression_type:
+                                attachment_index = self.attach(at_data, at_name, hash_sum, compression_type=compression_type)
+                                attachment = attachment_index
+                            case at_data, at_name, hash_sum:
+                                attachment_index = self.attach(at_data, at_name, hash_sum)
+                                attachment = attachment_index
+                            case None:
+                                attachment = None
 
                     cn_kwargs = {
                         "channel_type": channel_type,
@@ -5319,20 +5321,15 @@ class MDF4(MDF_Common[Group]):
 
         # first we add the structure channel
 
-        if signal.attachment and signal.attachment[0]:
-            at_data, at_name, hash_sum = typing.cast(tuple[bytes, Path, bytes], signal.attachment)
-            if at_name is not None:
-                suffix = Path(at_name).suffix.lower().strip(".")
-            else:
-                suffix = "dbc"
-            if suffix == "a2l":
-                mime = "application/A2L"
-            else:
-                mime = f"application/x-{suffix}"
-            attachment_index = self.attach(at_data, at_name, hash_sum=hash_sum, mime=mime)
-            attachment = attachment_index
-        else:
-            attachment = None
+        match signal.attachment:
+            case at_data, at_name, hash_sum, compression_type:
+                attachment_index = self.attach(at_data, at_name, hash_sum, compression_type=compression_type)
+                attachment = attachment_index
+            case at_data, at_name, hash_sum:
+                attachment_index = self.attach(at_data, at_name, hash_sum)
+                attachment = attachment_index
+            case None:
+                attachment = None
 
         # add channel block
         cn_kwargs: ChannelKwargs = {
@@ -5893,16 +5890,15 @@ class MDF4(MDF_Common[Group]):
 
         # first we add the structure channel
 
-        if signal.attachment and signal.attachment[0]:
-            at_data, at_name, hash_sum = typing.cast(tuple[bytes, Path, bytes], signal.attachment)
-            if at_name is not None:
-                suffix = Path(at_name).suffix.strip(".")
-            else:
-                suffix = "dbc"
-            attachment_index = self.attach(at_data, at_name, hash_sum=hash_sum, mime=f"application/x-{suffix}")
-            attachment = attachment_index
-        else:
-            attachment = None
+        match signal.attachment:
+            case at_data, at_name, hash_sum, compression_type:
+                attachment_index = self.attach(at_data, at_name, hash_sum, compression_type=compression_type)
+                attachment = attachment_index
+            case at_data, at_name, hash_sum:
+                attachment_index = self.attach(at_data, at_name, hash_sum)
+                attachment = attachment_index
+            case None:
+                attachment = None
 
         # add channel block
         cn_kwargs: ChannelKwargs = {
@@ -6764,6 +6760,7 @@ class MDF4(MDF_Common[Group]):
         mime: str = r"application/octet-stream",
         embedded: bool = True,
         password: str | bytes | None = None,
+        compression_type: str = "deflate",
     ) -> int:
         """Attach embedded attachment as application/octet-stream.
 
@@ -6787,6 +6784,12 @@ class MDF4(MDF_Common[Group]):
             Password used to encrypt the data using AES256 encryption.
 
             .. versionadded:: 7.0.0
+
+        compression_type : str, default "deflate"
+            compression type starting with MDF v4.30. Can be "deflate", 
+            "lz4" or "zstd"
+
+            .. versionadded:: 8.8.0
 
         Returns
         -------
@@ -6878,6 +6881,7 @@ class MDF4(MDF_Common[Group]):
             embedded=embedded,
             file_name=file_name,
             comment=comment,
+            compression_type=compression_type,
         )
         at_block.comment = comment
         at_block.creator_index = creator_index

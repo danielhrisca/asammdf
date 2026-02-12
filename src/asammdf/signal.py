@@ -167,7 +167,7 @@ class Signal:  # noqa: PLW1641
         comment: str = "",
         master_metadata: tuple[str, int] | None = None,
         display_names: dict[str, str] | None = None,
-        attachment: tuple[bytes | str, Path, bytes | str] | None = None,
+        attachment: tuple[bytes | str, Path, bytes | str] | tuple[bytes | str, Path, bytes | str, str] | None = None,
         source: SourceType | None = None,
         bit_count: int | None = None,
         invalidation_bits: ArrayLike | None = None,

@@ -1008,6 +1008,7 @@ class MDF:
         mime: str = r"application/octet-stream",
         embedded: bool = True,
         password: str | bytes | None = None,
+        compression_type: str = "deflate"
     ) -> int:
         if not isinstance(self._mdf, mdf_v4.MDF4):
             raise MdfException("Attachments are only supported in MDF4 files")
@@ -1020,6 +1021,7 @@ class MDF:
             mime=mime,
             embedded=embedded,
             password=password,
+            compression_type=compression_type
         )
 
     def close(self) -> None:
