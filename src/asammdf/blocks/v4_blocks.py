@@ -5143,7 +5143,7 @@ class DataZippedBlock:
 
                     else:
                         data = np.frombuffer(data, dtype=np.uint8).reshape((lines, cols)).T.ravel().tobytes()
-                data = compress_func(data, compression_level)
+                data = compress_func(data, self.compression_level)
 
             zipped_size = len(data)
             self.zip_size = zipped_size
