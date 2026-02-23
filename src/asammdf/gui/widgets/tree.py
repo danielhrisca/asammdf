@@ -1317,7 +1317,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         ChannelsTreeItem.Channel,
                         ChannelsTreeItem.Group,
                     ):
-                        print(f'{is_original_conversion=}', round_floats(to_dict(original_conversion)), round_floats(to_dict(conversion)), sep='\n')
                         item.set_conversion(conversion, is_original_conversion=is_original_conversion)
 
         elif action_text == "Set channel comment":
