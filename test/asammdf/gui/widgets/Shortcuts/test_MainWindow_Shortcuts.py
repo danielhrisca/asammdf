@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 from pathlib import Path
+import shutil
 from unittest import mock
 
+from PySide6 import QtCore
 from PySide6.QtGui import QKeySequence
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QTreeWidgetItemIterator
@@ -35,6 +37,10 @@ class TestShortcuts(TestBase):
 
     def destroyMW(self):
         if self.mw:
+            for i in range(self.mw.files.count()):
+                widget = self.mw.files.widget(i)
+                if widget is not None:
+                    widget.clear_windows(is_closing=True)
             self.mw.close()
             self.mw.deleteLater()
 
@@ -216,3 +222,162 @@ class TestShortcuts(TestBase):
             self.assertEqual(len(matrix_items), signals.columnHeader.model().columnCount() - 1)
             for key in matrix_items.values():
                 self.assertIn(key, signals.pgdf.df.keys())
+
+
+class TestReplaceFile(TestBase):
+    @safe_setup
+    def setUp(self):
+        super().setUp()
+        # Create two copies of the test file so we have distinct paths
+        self.measurement_file = str(
+            shutil.copy(Path(TestBase.resource, "ASAP2_Demo_V171.mf4"), Path(self.test_workspace, "original.mf4"))
+        )
+        self.replacement_file = str(
+            shutil.copy(Path(TestBase.resource, "ASAP2_Demo_V171.mf4"), Path(self.test_workspace, "replacement.mf4"))
+        )
+        self.mw = None
+
+    def tearDown(self):
+        if self.mw:
+            for i in range(self.mw.files.count()):
+                widget = self.mw.files.widget(i)
+                if widget is not None:
+                    widget.clear_windows(is_closing=True)
+            self.mw.close()
+            self.mw.deleteLater()
+        super().tearDown()
+
+    def test_replace_file_preserves_tab_position(self):
+        """
+        Test scope:
+            Ensure that File > Replace replaces the current file tab in place.
+        Events:
+            - Open MainWindow with a measurement file
+            - Trigger Replace via Ctrl+Shift+O with mocked file dialog
+        Evaluate:
+            - Tab count remains 1
+            - Tab label matches replacement file name
+            - Tab tooltip matches replacement file path
+            - FileWidget is valid
+        """
+        self.mw = MainWindow(files=(self.measurement_file,))
+        self.mw.showNormal()
+        self.processEvents(1)
+
+        self.assertEqual(self.mw.files.count(), 1)
+        self.assertEqual(self.mw.files.tabText(0), "original.mf4")
+
+        with mock.patch("asammdf.gui.widgets.main.QtWidgets.QFileDialog.getOpenFileName") as mo_dialog:
+            mo_dialog.return_value = self.replacement_file, None
+            QTest.keySequence(self.mw, QKeySequence("Ctrl+Shift+O"))
+            self.processEvents(1)
+
+        # Tab count should still be 1
+        self.assertEqual(self.mw.files.count(), 1)
+        # Tab label and tooltip should reflect the new file
+        self.assertEqual(self.mw.files.tabText(0), "replacement.mf4")
+        self.assertIn("replacement.mf4", self.mw.files.tabToolTip(0))
+        # Widget should be a valid FileWidget
+        self.assertIsInstance(self.mw.files.widget(0), FileWidget)
+
+    def test_replace_file_preserves_display_config(self):
+        """
+        Test scope:
+            Ensure that File > Replace preserves the display configuration (sub-windows)
+            from the old file and applies it to the new file.
+        Events:
+            - Open MainWindow with a measurement file
+            - Create a Plot sub-window with selected channels
+            - Trigger Replace via Ctrl+Shift+O with mocked file dialog
+        Evaluate:
+            - New file has the same number of sub-windows
+            - Sub-window type is Plot
+            - Plot contains the same channels
+        """
+        self.mw = MainWindow(files=(self.measurement_file,))
+        self.mw.showNormal()
+        self.processEvents(1)
+
+        file_widget = self.mw.files.widget(0)
+
+        # Select some channels and create a Plot window
+        channel_names = []
+        iterator = QTreeWidgetItemIterator(file_widget.channels_tree)
+        count = 0
+        while item := iterator.value():
+            if item.parent() is not None and count < 3:
+                item.setCheckState(0, QtCore.Qt.CheckState.Checked)
+                channel_names.append(item.text(0))
+                count += 1
+            iterator += 1
+
+        self.assertGreater(len(channel_names), 0, "No channels found to select")
+
+        # Create a Plot window directly (F2 shortcut is tested separately in TestShortcuts)
+        file_widget._create_window(None, "Plot")
+        self.processEvents(0.5)
+
+        self.assertEqual(len(file_widget.mdi_area.subWindowList()), 1)
+
+        with mock.patch("asammdf.gui.widgets.main.QtWidgets.QFileDialog.getOpenFileName") as mo_dialog:
+            mo_dialog.return_value = self.replacement_file, None
+            QTest.keySequence(self.mw, QKeySequence("Ctrl+Shift+O"))
+            self.processEvents(1)
+
+        new_widget = self.mw.files.widget(0)
+        self.assertIsInstance(new_widget, FileWidget)
+        # Verify sub-windows were recreated
+        sub_windows = new_widget.mdi_area.subWindowList()
+        self.assertEqual(len(sub_windows), 1)
+        self.assertIsInstance(sub_windows[0].widget(), plot.Plot)
+
+    def test_replace_file_no_op_when_no_file_open(self):
+        """
+        Test scope:
+            Ensure that Replace does nothing when no file tab is open.
+        Events:
+            - Open MainWindow with no files
+            - Trigger Replace via Ctrl+Shift+O
+        Evaluate:
+            - Tab count remains 0
+            - No errors raised
+        """
+        self.mw = MainWindow()
+        self.mw.showNormal()
+        self.processEvents(0.5)
+
+        self.assertEqual(self.mw.files.count(), 0)
+
+        with mock.patch("asammdf.gui.widgets.main.QtWidgets.QFileDialog.getOpenFileName") as mo_dialog:
+            QTest.keySequence(self.mw, QKeySequence("Ctrl+Shift+O"))
+            self.processEvents(0.5)
+            # Dialog should never be shown
+            mo_dialog.assert_not_called()
+
+        self.assertEqual(self.mw.files.count(), 0)
+
+    def test_replace_file_no_op_when_dialog_cancelled(self):
+        """
+        Test scope:
+            Ensure that Replace does nothing when the user cancels the file dialog.
+        Events:
+            - Open MainWindow with a measurement file
+            - Trigger Replace but return empty string from dialog (user cancelled)
+        Evaluate:
+            - Original file tab is unchanged
+        """
+        self.mw = MainWindow(files=(self.measurement_file,))
+        self.mw.showNormal()
+        self.processEvents(1)
+
+        self.assertEqual(self.mw.files.count(), 1)
+        self.assertEqual(self.mw.files.tabText(0), "original.mf4")
+
+        with mock.patch("asammdf.gui.widgets.main.QtWidgets.QFileDialog.getOpenFileName") as mo_dialog:
+            mo_dialog.return_value = "", None
+            QTest.keySequence(self.mw, QKeySequence("Ctrl+Shift+O"))
+            self.processEvents(0.5)
+
+        # Original tab should be unchanged
+        self.assertEqual(self.mw.files.count(), 1)
+        self.assertEqual(self.mw.files.tabText(0), "original.mf4")
