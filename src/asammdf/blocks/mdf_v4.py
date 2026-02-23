@@ -8104,8 +8104,8 @@ class MDF4(MDF_Common[Group]):
                 shape = (shape[0], *shape[1:][::-1])
                 vals = vals.reshape(shape)
 
-                axes = (0, *reversed(range(1, len(shape))))
-                vals = transpose(vals, axes=axes)
+                arr_axes = (0, *reversed(range(1, len(shape))))
+                vals = transpose(vals, axes=arr_axes)
 
             cycles_nr = len(vals)
 
