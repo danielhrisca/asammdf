@@ -2574,7 +2574,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
     def _set_icon(self):
         if self.type() == self.Channel:
-            print(hex(self.signal.flags))
             if not self.exists:
                 icon = utils.ERROR_ICON
             elif self.signal.flags & Signal.Flags.computed:
