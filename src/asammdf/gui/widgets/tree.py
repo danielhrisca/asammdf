@@ -205,6 +205,36 @@ def get_data(plot, items, uuids_only=False):
     return data
 
 
+def round_floats(obj, decimals=10):
+    
+    if isinstance(obj, dict):
+        new = {}
+        for key, val in obj.items():
+            if isinstance(val, dict | list | tuple):
+                new[key] = round_floats(val, decimals)
+            else:
+                if isinstance(val, float):
+                    val = round(val, decimals)
+                new[key] = val
+
+    elif isinstance(obj, tuple | float):
+        new = []
+        for val in obj:
+            if isinstance(val, dict | list | tuple):
+                new.append(round_floats(val, decimals))
+            else:
+                if isinstance(val, float):
+                    val = round(val, decimals)
+                new.append(val)
+
+    else:
+        new = obj
+        if isinstance(new, float):
+            new = round(new, decimals)
+
+    return new
+
+
 class TreeWidget(QtWidgets.QTreeWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1280,13 +1310,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if dlg.pressed_button == "apply":
                 conversion = dlg.conversion()
 
-                is_original_conversion = to_dict(original_conversion) == to_dict(conversion)
+                is_original_conversion = round_floats(to_dict(original_conversion)) == round_floats(to_dict(conversion))
 
                 for item in selected_items:
                     if item.type() in (
                         ChannelsTreeItem.Channel,
                         ChannelsTreeItem.Group,
                     ):
+                        print(f'{is_original_conversion=}', round_floats(to_dict(original_conversion)), round_floats(to_dict(conversion)), sep='\n')
                         item.set_conversion(conversion, is_original_conversion=is_original_conversion)
 
         elif action_text == "Set channel comment":
@@ -2544,6 +2575,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
     def _set_icon(self):
         if self.type() == self.Channel:
+            print(hex(self.signal.flags))
             if not self.exists:
                 icon = utils.ERROR_ICON
             elif self.signal.flags & Signal.Flags.computed:

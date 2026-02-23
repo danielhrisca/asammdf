@@ -65,6 +65,7 @@ class Ui_ConversionDialog(object):
 
         self.apply_btn = QPushButton(ConversionDialog)
         self.apply_btn.setObjectName(u"apply_btn")
+        self.apply_btn.setAutoDefault(False)
 
         self.gridLayout.addWidget(self.apply_btn, 5, 5, 1, 1)
 
@@ -80,11 +81,13 @@ class Ui_ConversionDialog(object):
 
         self.load_original_conversion_btn = QPushButton(ConversionDialog)
         self.load_original_conversion_btn.setObjectName(u"load_original_conversion_btn")
+        self.load_original_conversion_btn.setAutoDefault(False)
 
         self.gridLayout.addWidget(self.load_original_conversion_btn, 5, 3, 1, 1)
 
         self.cancel_btn = QPushButton(ConversionDialog)
         self.cancel_btn.setObjectName(u"cancel_btn")
+        self.cancel_btn.setAutoDefault(False)
 
         self.gridLayout.addWidget(self.cancel_btn, 5, 6, 1, 1)
 
@@ -270,6 +273,7 @@ class Ui_ConversionDialog(object):
 
         self.insert_btn = QPushButton(self.tab_3)
         self.insert_btn.setObjectName(u"insert_btn")
+        self.insert_btn.setAutoDefault(False)
 
         self.gridLayout_2.addWidget(self.insert_btn, 1, 4, 1, 1)
 
@@ -285,6 +289,7 @@ class Ui_ConversionDialog(object):
 
         self.reset_btn = QPushButton(self.tab_3)
         self.reset_btn.setObjectName(u"reset_btn")
+        self.reset_btn.setAutoDefault(False)
 
         self.gridLayout_2.addWidget(self.reset_btn, 4, 4, 1, 1)
 
@@ -343,6 +348,7 @@ class Ui_ConversionDialog(object):
 
         self.insert_vrtt_btn = QPushButton(self.tab_4)
         self.insert_vrtt_btn.setObjectName(u"insert_vrtt_btn")
+        self.insert_vrtt_btn.setAutoDefault(False)
 
         self.gridLayout_3.addWidget(self.insert_vrtt_btn, 1, 4, 1, 1)
 
@@ -352,6 +358,7 @@ class Ui_ConversionDialog(object):
 
         self.reset_vrtt_btn = QPushButton(self.tab_4)
         self.reset_vrtt_btn.setObjectName(u"reset_vrtt_btn")
+        self.reset_vrtt_btn.setAutoDefault(False)
 
         self.gridLayout_3.addWidget(self.reset_vrtt_btn, 3, 4, 1, 1)
 
