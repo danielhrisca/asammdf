@@ -109,6 +109,26 @@
             </widget>
            </item>
            <item>
+            <widget class="QLineEdit" name="channels_search_name">
+             <property name="placeholderText">
+              <string>channel pattern</string>
+             </property>
+             <property name="clearButtonEnabled">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="channels_search_bus">
+             <property name="placeholderText">
+              <string>source pattern</string>
+             </property>
+             <property name="clearButtonEnabled">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="TreeWidget" name="channels_tree">
              <property name="toolTip">
               <string>Double click channel to see extended information</string>
@@ -337,6 +357,26 @@
             </property>
            </item>
           </widget>
+         </item>
+         <item>
+         <widget class="QLineEdit" name="filter_search_name">
+           <property name="placeholderText">
+           <string>channel pattern</string>
+           </property>
+           <property name="clearButtonEnabled">
+           <bool>true</bool>
+           </property>
+         </widget>
+         </item>
+         <item>
+         <widget class="QLineEdit" name="filter_search_bus">
+           <property name="placeholderText">
+           <string>source pattern</string>
+           </property>
+           <property name="clearButtonEnabled">
+           <bool>true</bool>
+           </property>
+         </widget>
          </item>
          <item>
           <widget class="TreeWidget" name="filter_tree">
