@@ -309,7 +309,24 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
             self.splitter.addWidget(self.mdi_area)
 
+            self.channel_search_update_timer = QtCore.QTimer(self)
+            self.channel_search_update_timer.setSingleShot(True)
+            self.channel_search_update_timer.setInterval(200) # ms delay
+            self.channel_search_update_timer.timeout.connect(partial(self._update_inline_search, widget=self.channels_tree))
+            self.channels_search_name.textChanged.connect(self.channel_search_update_timer.start)
+            self.channels_search_name.pattern = None
+            self.channels_search_bus.textChanged.connect(self.channel_search_update_timer.start)
+            self.channels_search_bus.pattern = None
             self.channels_tree.itemDoubleClicked.connect(self.show_info)
+
+            self.filter_search_update_timer = QtCore.QTimer(self)
+            self.filter_search_update_timer.setSingleShot(True)
+            self.filter_search_update_timer.setInterval(200) # ms delay
+            self.filter_search_update_timer.timeout.connect(partial(self._update_inline_search, widget=self.filter_tree))
+            self.filter_search_name.textChanged.connect(self.filter_search_update_timer.start)
+            self.filter_search_name.pattern = None
+            self.filter_search_bus.textChanged.connect(self.filter_search_update_timer.start)
+            self.filter_search_bus.pattern = None
             self.filter_tree.itemDoubleClicked.connect(self.show_info)
 
             self.channel_view.setCurrentIndex(-1)
@@ -534,6 +551,49 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         for widget in widgetList:
             self._update_channel_tree(widget=widget)
 
+    def _update_inline_search(self, widget=None):
+        # Move all regex logic here
+        # Mark search bar as red if regex is not valid
+        # If both are valid, then parse and call _update_channel_tree
+        if widget is self.channels_tree:
+            search_name = self.channels_search_name
+            search_bus = self.channels_search_bus
+        else:
+            search_name = self.filter_search_name
+            search_bus = self.filter_search_bus
+        do_update = True
+
+        valid_text_color = QtGui.QPalette()
+        valid_text_color.setColor(QtGui.QPalette.Text, QtCore.Qt.white)
+        error_text_color = QtGui.QPalette()
+        error_text_color.setColor(QtGui.QPalette.Text, QtCore.Qt.red)
+        try:
+            name_pattern = ".*" + search_name.text().strip() + ".*"
+            if name_pattern.islower():
+                name_pattern = re.compile(name_pattern, re.IGNORECASE)
+            else:
+                name_pattern = re.compile(name_pattern)
+            search_name.pattern = name_pattern
+            search_name.setPalette(valid_text_color)
+        except re.error:
+            search_name.setPalette(error_text_color)
+            do_update = False
+
+        try:
+            bus_pattern = ".*" + search_bus.text().strip() + ".*"
+            if bus_pattern.islower():
+                bus_pattern = re.compile(bus_pattern, re.IGNORECASE)
+            else:
+                bus_pattern = re.compile(bus_pattern)
+            search_bus.pattern = bus_pattern
+            search_bus.setPalette(valid_text_color)
+        except re.error:
+            search_bus.setPalette(error_text_color)
+            do_update = False
+
+        if do_update:
+            self._update_channel_tree(widget=widget)
+
     def _update_channel_tree(self, index=None, widget=None, force=False):
         if widget is None:
             widget = self.channels_tree
@@ -544,6 +604,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 return
 
         view = self.channel_view if widget is self.channels_tree else self.filter_view
+        search_name = self.channels_search_name if widget is self.channels_tree else self.filter_search_name
+        search_bus = self.channels_search_bus if widget is self.channels_tree else self.filter_search_bus
 
         iterator = QtWidgets.QTreeWidgetItemIterator(widget)
         signals = set()
@@ -567,12 +629,24 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         widget.mode = view.currentText()
 
         if widget.mode == "Natural sort":
+            search_name.setVisible(True)
+            search_bus.setVisible(True)
+
             items = []
             for i, group in enumerate(self.mdf.groups):
                 for j, ch in enumerate(group.channels):
                     entry = i, j
 
-                    channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
+                    # Limit search to 10k items and apply search filters
+                    if len(items) >= 10_000:
+                        break
+                    if search_name.pattern and not search_name.pattern.search(ch.name):
+                        continue
+                    bus = group.channel_group.acq_source.path or "None"
+                    if search_bus.pattern and not search_bus.pattern.search(bus):
+                        continue
+
+                    channel = MinimalTreeItem(entry, ch.name, strings=[f"{ch.name} —— {bus:<10}"], origin_uuid=self.uuid)
                     channel.setToolTip(0, f"{ch.name} @ group {i}, index {j}")
 
                     if entry in signals:
@@ -589,8 +663,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             widget.addTopLevelItems(items)
 
         elif widget.mode == "Internal file structure":
-            items = []
+            search_name.setVisible(False)
+            search_bus.setVisible(False)
 
+            items = []
             for i, group in enumerate(self.mdf.groups):
                 entry = i, 0xFFFFFFFFFFFFFFFF
 
@@ -663,6 +739,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             widget.addTopLevelItems(items)
 
         else:
+            # widget.mode == "Selected channels only"
+            search_name.setVisible(False)
+            search_bus.setVisible(False)
+
             items = []
             for entry in signals:
                 gp_index, ch_index = entry
@@ -1663,7 +1743,7 @@ MultiRasterSeparator;&
 
             if windows:
                 unsaved = False
-                
+
                 if hexdigest:
                     worker = md5()
                     try:
