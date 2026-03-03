@@ -4407,7 +4407,7 @@ class MDF4(MDF_Common[Group]):
                 if signal.flags & signal.Flags.stream_sync:
                     channel_type = v4c.CHANNEL_TYPE_SYNC
                     if signal.attachment:
-                        at_data, at_name, hash_sum = typing.cast(tuple[bytes, Path, bytes], signal.attachment)
+                        at_data, at_name, hash_sum, *_ = typing.cast(tuple[bytes, Path, bytes], signal.attachment)
                         attachment_addr = self.attach(at_data, at_name, hash_sum, mime="video/avi", embedded=False)
                         data_block_addr = attachment_addr
                     else:
@@ -5477,8 +5477,8 @@ class MDF4(MDF_Common[Group]):
                 ch.dtype_fmt = np.dtype((samples.dtype, samples.shape[1:]))
 
                 if dtype.metadata:
-                    ch.conversion = dtype.metadata('conversion', None)
-                    ch.unit = dtype.metadata('unit', "")
+                    ch.conversion = dtype.metadata.get('conversion', None)
+                    ch.unit = dtype.metadata.get('unit', "")
 
                 record.append(
                     (
