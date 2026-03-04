@@ -100,7 +100,6 @@ Other optional dependencies
 * PySide6 : for GUI tool
 * pyqtgraph : for GUI tool and Signal plotting
 * matplotlib : as fallback for Signal plotting
-* faust-cchardet : to detect non-standard Unicode encodings
 * chardet : to detect non-standard Unicode encodings 
 * pyqtlet2 : for the GPS window
 * isal : for faster zlib compression/decompression

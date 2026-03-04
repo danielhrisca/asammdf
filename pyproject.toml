@@ -48,7 +48,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-decode = ["faust-cchardet==2.1.19", "chardet"]
+decode = ["chardet>=7.0.0"]
 export = [
     "pyarrow>=17.0.0",
     "h5py>=3.11",
@@ -110,7 +110,6 @@ strict = true
 [[tool.mypy.overrides]]
 module = [
     "canmatrix.*",
-    "cchardet.*",
     "cmerg.*",
     "fsspec.*",
     "h5py.*",

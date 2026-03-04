@@ -51,31 +51,10 @@ try:
     from isal.isal_zlib import decompress as zlib_decompress
 except ImportError:
     from zlib import decompress as zlib_decompress
+from chardet import detect
 from lz4.frame import decompress as lz_decompress
 from zstd import decompress as zstd_decompress
 
-try:
-    from cchardet import detect
-except:
-    try:
-        from chardet import detect
-    except:
-
-        class DetectDict(TypedDict):
-            encoding: str | None
-
-        def detect(text: bytes) -> DetectDict:
-            encoding: str | None
-            for encoding in ("utf-8", "latin-1", "cp1250", "cp1252"):
-                try:
-                    text.decode(encoding)
-                    break
-                except:
-                    continue
-            else:
-                encoding = None
-            return {"encoding": encoding}
-        
 
 class Terminated(Exception):
     def __init__(self, *args: object) -> None:
