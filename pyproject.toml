@@ -44,7 +44,7 @@ dependencies = [
     "numpy>=2.0.0",
     "pandas>=2.2.2",
     "python-dateutil",
-    "typing-extensions~=4.10",
+    "typing-extensions>=4.10",
     "zstd",
 ]
 
