@@ -637,9 +637,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 for j, ch in enumerate(group.channels):
                     entry = i, j
 
-                    # Limit search to 10k items and apply search filters
-                    if len(items) >= 10_000:
-                        break
                     if search_name.pattern and not search_name.pattern.search(ch.name):
                         continue
                     bus = group.channel_group.acq_source.path or "None"
