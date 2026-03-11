@@ -16,6 +16,7 @@
 #if defined(_WIN32)
 #include <windows.h>
 #include <process.h>
+#include <string.h>
 #define FSEEK64(file, address, whence) _fseeki64((file), (address), (whence))
 #define FTELL64(file) _ftelli64(file)
 #else
@@ -2026,7 +2027,6 @@ typedef struct ProcessesingBlock {
   Py_ssize_t signal_count;
   Py_ssize_t record_size;
   Py_ssize_t idx;
-  char * file_name;
   char * inptr0;
   char * inptr1;
 
@@ -2035,7 +2035,9 @@ typedef struct ProcessesingBlock {
   HANDLE block_ready_0;
   HANDLE bytes_ready_1;
   HANDLE block_ready_1;
+  wchar_t * file_name;
 #else
+  char * file_name;
   pthread_cond_t   bytes_ready_0;
   pthread_cond_t   bytes_ready_1;
   pthread_cond_t  block_ready_0;
@@ -2229,6 +2231,7 @@ void * get_channel_raw_bytes_complete_decompress_thread(void *lpParam )
       destination_written = 0;
       source_read = compressed_size;
       source_end = inptr + compressed_size;
+      source_remain = compressed_size;
 
       LZ4F_decompressOptions_t options;
       memset(&options, 0, sizeof options);
@@ -2460,27 +2463,26 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
   size_t source_remain;
   size_t source_read;
 
-  TCHAR *lpFileName = TEXT(thread_info->file_name);
   HANDLE hFile;
   HANDLE hMap;
   LPVOID lpBasePtr;
   LARGE_INTEGER liFileSize;
 
-  hFile = CreateFile(lpFileName,
-                     GENERIC_READ,                          // dwDesiredAccess
-                     FILE_SHARE_READ,                       // dwShareMode
-                     NULL,                                  // lpSecurityAttributes
-                     OPEN_EXISTING,                         // dwCreationDisposition
-                     FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
-                     0);                                    // hTemplateFile
+  hFile = CreateFileW(thread_info->file_name,
+                      GENERIC_READ,                          // dwDesiredAccess
+                      FILE_SHARE_READ,                       // dwShareMode
+                      NULL,                                  // lpSecurityAttributes
+                      OPEN_EXISTING,                         // dwCreationDisposition
+                      FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
+                      0);                                    // hTemplateFile
   if (hFile == INVALID_HANDLE_VALUE) {
-    hFile = CreateFile(lpFileName,
-                       GENERIC_READ,                          // dwDesiredAccess
-                       FILE_SHARE_READ|FILE_SHARE_WRITE,                                     // dwShareMode
-                       NULL,                                  // lpSecurityAttributes
-                       OPEN_EXISTING,                         // dwCreationDisposition
-                       FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
-                       0);
+    hFile = CreateFileW(thread_info->file_name,
+                        GENERIC_READ,                          // dwDesiredAccess
+                        FILE_SHARE_READ|FILE_SHARE_WRITE,                                     // dwShareMode
+                        NULL,                                  // lpSecurityAttributes
+                        OPEN_EXISTING,                         // dwCreationDisposition
+                        FILE_FLAG_RANDOM_ACCESS,                 // dwFlagsAndAttributes
+                        0);
     if (hFile == INVALID_HANDLE_VALUE) {
       fprintf(stderr, "CreateFile failed with error %d\n", GetLastError());
       snprintf(err_string, 1024, "CreateFile failed with error %d\n\0", GetLastError());
@@ -2724,13 +2726,13 @@ void * get_channel_raw_bytes_complete_C(void *lpParam )
 static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 {
   Py_ssize_t info_count, signal_count, signal_and_invalidation_count, thread_count=11;
-  PyObject *data_blocks_info, *signals, *out = NULL, *item, *ref, *obj, *group_index, *InvalidationArray;
+  PyObject *data_blocks_info, *signals, *out = NULL, *item, *ref, *obj, *group_index, *InvalidationArray, *file_name;
 
-  char *outptr, *file_name;
+  char *outptr;
   char *read_pos = NULL, *write_pos = NULL;
   Py_ssize_t position = 0, record_size = 0,
              cycles, step = 0, invalidation_bytes;
-  Py_ssize_t isize = 0, offset = 0;
+  Py_ssize_t isize = 0, offset = 0, wchar_size;
   int is_list;
   int64_t byte_offset, byte_count, new_cycles, max_compressed=0, record_offset=0;
   int32_t invalidation_bit_position;
@@ -2746,7 +2748,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
   clock_t start, end;
   double tt=0;
 
-  if (!PyArg_ParseTuple(args, "OOsnnnO|n",
+  if (!PyArg_ParseTuple(args, "OOOnnnO|n",
                         &data_blocks_info, &signals, &file_name, &cycles, &record_size, &invalidation_bytes, &group_index,
                         &thread_count))
   {
@@ -2939,7 +2941,11 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         thread_info[i].record_size = record_size;
         thread_info[i].idx = i;
         thread_info[i].thread_count = thread_count;
-        thread_info[i].file_name = file_name;
+#if defined(_WIN32)
+        thread_info[i].file_name = PyUnicode_AsWideCharString(file_name, &wchar_size);
+#else
+        thread_info[i].file_name = PyUnicode_AsUTF8(file_name);
+#endif
         thread_info[i].inptr0 = malloc(max_compressed);
         thread_info[i].inptr1 = malloc(max_compressed);
       }
@@ -2964,8 +2970,10 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
 
       WaitForMultipleObjects(thread_count, hThreads, true, INFINITE);
 
-      for (int i=0; i< thread_count; i++)
+      for (int i=0; i< thread_count; i++) {
         CloseHandle(hThreads[i]);
+        if (thread_info[i].file_name) PyMem_Free(thread_info[i].file_name);
+      }
 
 #else
       for (int i=0; i< thread_count; i++) {
