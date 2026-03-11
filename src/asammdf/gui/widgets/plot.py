@@ -1297,7 +1297,7 @@ class PlotSignal(Signal):
 
                     value = value or "<empty string>"
                 case "f":
-                    value = float(value)
+                    value = value
                 case _:
                     value = int(value)
 
@@ -1310,7 +1310,7 @@ class PlotSignal(Signal):
 
                     raw_value = raw_value or "<empty string>"
                 case "f":
-                    raw_value = float(raw_value)
+                    raw_value = raw_value
                 case _:
                     raw_value = int(raw_value)
 
@@ -1353,7 +1353,7 @@ class PlotSignal(Signal):
 
                     value = value or "<empty string>"
                 case "f":
-                    value = float(value)
+                    value = value
                 case _:
                     value = int(value)
 
@@ -1366,7 +1366,7 @@ class PlotSignal(Signal):
 
                     raw_value = raw_value or "<empty string>"
                 case "f":
-                    raw_value = float(raw_value)
+                    raw_value = raw_value
                 case _:
                     raw_value = int(raw_value)
 

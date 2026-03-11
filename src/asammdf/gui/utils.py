@@ -1106,7 +1106,11 @@ def get_color_using_ranges(
 
 
 def value_as_bin(value, dtype):
-    byte_string = np.array([value], dtype=dtype).tobytes()
+    try:
+        byte_string = value.tobytes()
+    except AttributeError:    
+        byte_string = np.array([value], dtype=dtype).tobytes()
+        
     if dtype.byteorder != ">":
         byte_string = byte_string[::-1]
 
@@ -1118,7 +1122,11 @@ def value_as_bin(value, dtype):
 
 
 def value_as_hex(value, dtype):
-    byte_string = np.array([value], dtype=dtype).tobytes()
+    try:
+        byte_string = value.tobytes()
+    except AttributeError:    
+        byte_string = np.array([value], dtype=dtype).tobytes()
+
     if dtype.byteorder != ">":
         byte_string = byte_string[::-1]
 
@@ -1126,7 +1134,7 @@ def value_as_hex(value, dtype):
 
 
 def value_as_str(value, format, dtype=None, precision=3):
-    float_fmt = f"{{:.0{precision}f}}" if precision >= 0 else "{}"
+    float_fmt = f"{{:.{precision}f}}" if precision >= 0 else "{}"
     if isinstance(value, (float, np.floating)):
         kind = "f"
 
@@ -1158,7 +1166,15 @@ def value_as_str(value, format, dtype=None, precision=3):
     elif kind in "SUV":
         string = str(value)
     else:
-        string = float_fmt.format(value)
+        match format:
+            case "bin":
+                string = value_as_bin(value, dtype)
+            case "hex":
+                string = value_as_hex(value, dtype)
+            case "ascii":
+                string = np.format_float_scientific(value, precision=precision)
+            case _:
+                string = float_fmt.format(value)
 
     return string
 
