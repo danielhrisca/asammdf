@@ -2732,7 +2732,7 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
   char *read_pos = NULL, *write_pos = NULL;
   Py_ssize_t position = 0, record_size = 0,
              cycles, step = 0, invalidation_bytes;
-  Py_ssize_t isize = 0, offset = 0, wchar_size;
+  Py_ssize_t isize = 0, offset = 0, out_size;
   int is_list;
   int64_t byte_offset, byte_count, new_cycles, max_compressed=0, record_offset=0;
   int32_t invalidation_bit_position;
@@ -2942,9 +2942,9 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
         thread_info[i].idx = i;
         thread_info[i].thread_count = thread_count;
 #if defined(_WIN32)
-        thread_info[i].file_name = PyUnicode_AsWideCharString(file_name, &wchar_size);
+        thread_info[i].file_name = PyUnicode_AsWideCharString(file_name, &out_size);
 #else
-        thread_info[i].file_name = PyUnicode_AsUTF8(file_name);
+        thread_info[i].file_name = PyUnicode_AsUTF8AndSize(file_name, &out_size);
 #endif
         thread_info[i].inptr0 = malloc(max_compressed);
         thread_info[i].inptr1 = malloc(max_compressed);
