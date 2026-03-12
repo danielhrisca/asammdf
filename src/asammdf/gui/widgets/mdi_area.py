@@ -4263,6 +4263,12 @@ class WithMDIArea:
 
         plot.update()
         plot.channel_selection.refresh()
+        event = QtGui.QKeyEvent(
+            QtCore.QEvent.Type.KeyPress,
+            QtCore.Qt.Key.Key_W,
+            QtCore.Qt.KeyboardModifier.NoModifier,
+        )
+        plot.keyPressEvent(event)
         plot.set_initial_zoom()
 
         return w, pattern_info
