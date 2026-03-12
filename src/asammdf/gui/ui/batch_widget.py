@@ -38,8 +38,11 @@ class Ui_batch_widget(object):
         self.verticalLayout_6.setContentsMargins(1, 1, 1, 1)
         self.splitter = QSplitter(batch_widget)
         self.splitter.setObjectName(u"splitter")
+        self.splitter.setFrameShape(QFrame.Shape.NoFrame)
         self.splitter.setLineWidth(3)
+        self.splitter.setMidLineWidth(1)
         self.splitter.setOrientation(Qt.Orientation.Horizontal)
+        self.splitter.setChildrenCollapsible(False)
         self.aspects = QTabWidget(self.splitter)
         self.aspects.setObjectName(u"aspects")
         self.aspects.setTabPosition(QTabWidget.TabPosition.West)
@@ -50,44 +53,37 @@ class Ui_batch_widget(object):
         self.gridLayout_7.setSpacing(1)
         self.gridLayout_7.setObjectName(u"gridLayout_7")
         self.gridLayout_7.setContentsMargins(1, 1, 1, 1)
-        self.concatenate_sync = QCheckBox(self.concatenate_tab)
-        self.concatenate_sync.setObjectName(u"concatenate_sync")
-        self.concatenate_sync.setChecked(True)
+        self.concatenate_format = QComboBox(self.concatenate_tab)
+        self.concatenate_format.setObjectName(u"concatenate_format")
 
-        self.gridLayout_7.addWidget(self.concatenate_sync, 0, 0, 1, 2)
+        self.gridLayout_7.addWidget(self.concatenate_format, 2, 1, 1, 2)
 
-        self.concatenate_add_samples_origin = QCheckBox(self.concatenate_tab)
-        self.concatenate_add_samples_origin.setObjectName(u"concatenate_add_samples_origin")
-        self.concatenate_add_samples_origin.setChecked(True)
+        self.label_10 = QLabel(self.concatenate_tab)
+        self.label_10.setObjectName(u"label_10")
 
-        self.gridLayout_7.addWidget(self.concatenate_add_samples_origin, 1, 0, 1, 2)
+        self.gridLayout_7.addWidget(self.label_10, 6, 0, 1, 1)
 
         self.label_11 = QLabel(self.concatenate_tab)
         self.label_11.setObjectName(u"label_11")
 
         self.gridLayout_7.addWidget(self.label_11, 2, 0, 1, 1)
 
-        self.concatenate_format = QComboBox(self.concatenate_tab)
-        self.concatenate_format.setObjectName(u"concatenate_format")
+        self.verticalSpacer_4 = QSpacerItem(20, 2, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.gridLayout_7.addWidget(self.concatenate_format, 2, 1, 1, 1)
+        self.gridLayout_7.addItem(self.verticalSpacer_4, 8, 1, 1, 1)
 
-        self.line_5 = QFrame(self.concatenate_tab)
-        self.line_5.setObjectName(u"line_5")
-        self.line_5.setFrameShape(QFrame.Shape.HLine)
-        self.line_5.setFrameShadow(QFrame.Shadow.Sunken)
+        self.concatenate_split_size = QDoubleSpinBox(self.concatenate_tab)
+        self.concatenate_split_size.setObjectName(u"concatenate_split_size")
+        self.concatenate_split_size.setMaximum(4.000000000000000)
 
-        self.gridLayout_7.addWidget(self.line_5, 3, 0, 1, 2)
+        self.gridLayout_7.addWidget(self.concatenate_split_size, 6, 1, 1, 2)
 
-        self.label_12 = QLabel(self.concatenate_tab)
-        self.label_12.setObjectName(u"label_12")
+        self.line_6 = QFrame(self.concatenate_tab)
+        self.line_6.setObjectName(u"line_6")
+        self.line_6.setFrameShape(QFrame.Shape.HLine)
+        self.line_6.setFrameShadow(QFrame.Shadow.Sunken)
 
-        self.gridLayout_7.addWidget(self.label_12, 4, 0, 1, 1)
-
-        self.concatenate_compression = QComboBox(self.concatenate_tab)
-        self.concatenate_compression.setObjectName(u"concatenate_compression")
-
-        self.gridLayout_7.addWidget(self.concatenate_compression, 4, 1, 1, 1)
+        self.gridLayout_7.addWidget(self.line_6, 7, 0, 1, 3)
 
         self.concatenate_split = QCheckBox(self.concatenate_tab)
         self.concatenate_split.setObjectName(u"concatenate_split")
@@ -95,23 +91,34 @@ class Ui_batch_widget(object):
 
         self.gridLayout_7.addWidget(self.concatenate_split, 5, 0, 1, 1)
 
-        self.line_6 = QFrame(self.concatenate_tab)
-        self.line_6.setObjectName(u"line_6")
-        self.line_6.setFrameShape(QFrame.Shape.HLine)
-        self.line_6.setFrameShadow(QFrame.Shadow.Sunken)
+        self.label_12 = QLabel(self.concatenate_tab)
+        self.label_12.setObjectName(u"label_12")
 
-        self.gridLayout_7.addWidget(self.line_6, 7, 0, 1, 2)
+        self.gridLayout_7.addWidget(self.label_12, 4, 0, 1, 1)
 
-        self.concatenate_split_size = QDoubleSpinBox(self.concatenate_tab)
-        self.concatenate_split_size.setObjectName(u"concatenate_split_size")
-        self.concatenate_split_size.setMaximum(4.000000000000000)
+        self.concatenate_add_samples_origin = QCheckBox(self.concatenate_tab)
+        self.concatenate_add_samples_origin.setObjectName(u"concatenate_add_samples_origin")
+        self.concatenate_add_samples_origin.setChecked(True)
 
-        self.gridLayout_7.addWidget(self.concatenate_split_size, 6, 1, 1, 1)
+        self.gridLayout_7.addWidget(self.concatenate_add_samples_origin, 1, 0, 1, 2)
 
-        self.label_10 = QLabel(self.concatenate_tab)
-        self.label_10.setObjectName(u"label_10")
+        self.concatenate_sync = QCheckBox(self.concatenate_tab)
+        self.concatenate_sync.setObjectName(u"concatenate_sync")
+        self.concatenate_sync.setChecked(True)
 
-        self.gridLayout_7.addWidget(self.label_10, 6, 0, 1, 1)
+        self.gridLayout_7.addWidget(self.concatenate_sync, 0, 0, 1, 2)
+
+        self.concatenate_compression = QComboBox(self.concatenate_tab)
+        self.concatenate_compression.setObjectName(u"concatenate_compression")
+
+        self.gridLayout_7.addWidget(self.concatenate_compression, 4, 1, 1, 2)
+
+        self.line_5 = QFrame(self.concatenate_tab)
+        self.line_5.setObjectName(u"line_5")
+        self.line_5.setFrameShape(QFrame.Shape.HLine)
+        self.line_5.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.gridLayout_7.addWidget(self.line_5, 3, 0, 1, 3)
 
         self.concatenate_btn = QPushButton(self.concatenate_tab)
         self.concatenate_btn.setObjectName(u"concatenate_btn")
@@ -119,11 +126,11 @@ class Ui_batch_widget(object):
         icon.addFile(u":/plus.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.concatenate_btn.setIcon(icon)
 
-        self.gridLayout_7.addWidget(self.concatenate_btn, 9, 1, 1, 1)
+        self.gridLayout_7.addWidget(self.concatenate_btn, 10, 2, 1, 1)
 
-        self.verticalSpacer_4 = QSpacerItem(20, 2, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.gridLayout_7.addItem(self.verticalSpacer_4, 8, 1, 1, 1)
+        self.gridLayout_7.addItem(self.horizontalSpacer_2, 10, 1, 1, 1)
 
         self.gridLayout_7.setColumnStretch(1, 1)
         self.aspects.addTab(self.concatenate_tab, icon, "")
@@ -758,11 +765,10 @@ class Ui_batch_widget(object):
         self.gridLayout_8.setSpacing(1)
         self.gridLayout_8.setObjectName(u"gridLayout_8")
         self.gridLayout_8.setContentsMargins(1, 1, 1, 1)
-        self.stack_sync = QCheckBox(self.stack_tab)
-        self.stack_sync.setObjectName(u"stack_sync")
-        self.stack_sync.setChecked(True)
+        self.label_25 = QLabel(self.stack_tab)
+        self.label_25.setObjectName(u"label_25")
 
-        self.gridLayout_8.addWidget(self.stack_sync, 0, 0, 1, 2)
+        self.gridLayout_8.addWidget(self.label_25, 4, 0, 1, 1)
 
         self.stack_add_samples_origin = QCheckBox(self.stack_tab)
         self.stack_add_samples_origin.setObjectName(u"stack_add_samples_origin")
@@ -770,32 +776,20 @@ class Ui_batch_widget(object):
 
         self.gridLayout_8.addWidget(self.stack_add_samples_origin, 1, 0, 1, 2)
 
-        self.label_26 = QLabel(self.stack_tab)
-        self.label_26.setObjectName(u"label_26")
+        self.label_23 = QLabel(self.stack_tab)
+        self.label_23.setObjectName(u"label_23")
 
-        self.gridLayout_8.addWidget(self.label_26, 2, 0, 1, 1)
+        self.gridLayout_8.addWidget(self.label_23, 6, 0, 1, 1)
 
-        self.stack_format = QComboBox(self.stack_tab)
-        self.stack_format.setObjectName(u"stack_format")
+        self.verticalSpacer_7 = QSpacerItem(20, 502, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.gridLayout_8.addWidget(self.stack_format, 2, 1, 1, 1)
+        self.gridLayout_8.addItem(self.verticalSpacer_7, 8, 1, 1, 1)
 
-        self.line_8 = QFrame(self.stack_tab)
-        self.line_8.setObjectName(u"line_8")
-        self.line_8.setFrameShape(QFrame.Shape.HLine)
-        self.line_8.setFrameShadow(QFrame.Shadow.Sunken)
+        self.stack_sync = QCheckBox(self.stack_tab)
+        self.stack_sync.setObjectName(u"stack_sync")
+        self.stack_sync.setChecked(True)
 
-        self.gridLayout_8.addWidget(self.line_8, 3, 0, 1, 2)
-
-        self.label_25 = QLabel(self.stack_tab)
-        self.label_25.setObjectName(u"label_25")
-
-        self.gridLayout_8.addWidget(self.label_25, 4, 0, 1, 1)
-
-        self.stack_compression = QComboBox(self.stack_tab)
-        self.stack_compression.setObjectName(u"stack_compression")
-
-        self.gridLayout_8.addWidget(self.stack_compression, 4, 1, 1, 1)
+        self.gridLayout_8.addWidget(self.stack_sync, 0, 0, 1, 2)
 
         self.stack_split = QCheckBox(self.stack_tab)
         self.stack_split.setObjectName(u"stack_split")
@@ -803,27 +797,10 @@ class Ui_batch_widget(object):
 
         self.gridLayout_8.addWidget(self.stack_split, 5, 0, 1, 1)
 
-        self.label_23 = QLabel(self.stack_tab)
-        self.label_23.setObjectName(u"label_23")
+        self.label_26 = QLabel(self.stack_tab)
+        self.label_26.setObjectName(u"label_26")
 
-        self.gridLayout_8.addWidget(self.label_23, 6, 0, 1, 1)
-
-        self.stack_split_size = QDoubleSpinBox(self.stack_tab)
-        self.stack_split_size.setObjectName(u"stack_split_size")
-        self.stack_split_size.setMaximum(4.000000000000000)
-
-        self.gridLayout_8.addWidget(self.stack_split_size, 6, 1, 1, 1)
-
-        self.line_7 = QFrame(self.stack_tab)
-        self.line_7.setObjectName(u"line_7")
-        self.line_7.setFrameShape(QFrame.Shape.HLine)
-        self.line_7.setFrameShadow(QFrame.Shadow.Sunken)
-
-        self.gridLayout_8.addWidget(self.line_7, 7, 0, 1, 2)
-
-        self.verticalSpacer_7 = QSpacerItem(20, 502, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.gridLayout_8.addItem(self.verticalSpacer_7, 8, 1, 1, 1)
+        self.gridLayout_8.addWidget(self.label_26, 2, 0, 1, 1)
 
         self.stack_btn = QPushButton(self.stack_tab)
         self.stack_btn.setObjectName(u"stack_btn")
@@ -831,7 +808,41 @@ class Ui_batch_widget(object):
         icon8.addFile(u":/stack.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.stack_btn.setIcon(icon8)
 
-        self.gridLayout_8.addWidget(self.stack_btn, 9, 1, 1, 1)
+        self.gridLayout_8.addWidget(self.stack_btn, 9, 2, 1, 1)
+
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_8.addItem(self.horizontalSpacer_3, 9, 1, 1, 1)
+
+        self.stack_format = QComboBox(self.stack_tab)
+        self.stack_format.setObjectName(u"stack_format")
+
+        self.gridLayout_8.addWidget(self.stack_format, 2, 1, 1, 2)
+
+        self.stack_compression = QComboBox(self.stack_tab)
+        self.stack_compression.setObjectName(u"stack_compression")
+
+        self.gridLayout_8.addWidget(self.stack_compression, 4, 1, 1, 2)
+
+        self.line_8 = QFrame(self.stack_tab)
+        self.line_8.setObjectName(u"line_8")
+        self.line_8.setFrameShape(QFrame.Shape.HLine)
+        self.line_8.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.gridLayout_8.addWidget(self.line_8, 3, 0, 1, 3)
+
+        self.stack_split_size = QDoubleSpinBox(self.stack_tab)
+        self.stack_split_size.setObjectName(u"stack_split_size")
+        self.stack_split_size.setMaximum(4.000000000000000)
+
+        self.gridLayout_8.addWidget(self.stack_split_size, 6, 1, 1, 2)
+
+        self.line_7 = QFrame(self.stack_tab)
+        self.line_7.setObjectName(u"line_7")
+        self.line_7.setFrameShape(QFrame.Shape.HLine)
+        self.line_7.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.gridLayout_8.addWidget(self.line_7, 7, 0, 1, 3)
 
         self.gridLayout_8.setColumnStretch(1, 1)
         self.aspects.addTab(self.stack_tab, icon8, "")
@@ -1106,47 +1117,54 @@ class Ui_batch_widget(object):
 
         self.aspects.addTab(self.extract_bus_tab, icon10, "")
         self.splitter.addWidget(self.aspects)
-        self.widget = QWidget(self.splitter)
-        self.widget.setObjectName(u"widget")
-        self.list_layout = QVBoxLayout(self.widget)
+        self.layoutWidget = QWidget(self.splitter)
+        self.layoutWidget.setObjectName(u"layoutWidget")
+        self.list_layout = QVBoxLayout(self.layoutWidget)
         self.list_layout.setSpacing(1)
         self.list_layout.setObjectName(u"list_layout")
         self.list_layout.setContentsMargins(0, 0, 0, 0)
-        self.label_16 = QLabel(self.widget)
+        self.label_16 = QLabel(self.layoutWidget)
         self.label_16.setObjectName(u"label_16")
         self.label_16.setTextFormat(Qt.TextFormat.RichText)
         self.label_16.setWordWrap(True)
 
         self.list_layout.addWidget(self.label_16)
 
-        self.files_list = MinimalListWidget(self.widget)
+        self.files_list = MinimalListWidget(self.layoutWidget)
         self.files_list.setObjectName(u"files_list")
 
         self.list_layout.addWidget(self.files_list)
 
-        self.verticalLayout_3 = QVBoxLayout()
-        self.verticalLayout_3.setSpacing(1)
-        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
-        self.sort_by_start_time_btn = QPushButton(self.widget)
+        self.gridLayout_4 = QGridLayout()
+        self.gridLayout_4.setObjectName(u"gridLayout_4")
+        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_4.addItem(self.horizontalSpacer_4, 0, 0, 1, 1)
+
+        self.sort_by_start_time_btn = QPushButton(self.layoutWidget)
         self.sort_by_start_time_btn.setObjectName(u"sort_by_start_time_btn")
         icon11 = QIcon()
         icon11.addFile(u":/clock.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.sort_by_start_time_btn.setIcon(icon11)
 
-        self.verticalLayout_3.addWidget(self.sort_by_start_time_btn)
+        self.gridLayout_4.addWidget(self.sort_by_start_time_btn, 0, 1, 1, 1)
 
-        self.sort_alphabetically_btn = QPushButton(self.widget)
+        self.sort_alphabetically_btn = QPushButton(self.layoutWidget)
         self.sort_alphabetically_btn.setObjectName(u"sort_alphabetically_btn")
         icon12 = QIcon()
         icon12.addFile(u":/alphabetical_sorting.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.sort_alphabetically_btn.setIcon(icon12)
 
-        self.verticalLayout_3.addWidget(self.sort_alphabetically_btn)
+        self.gridLayout_4.addWidget(self.sort_alphabetically_btn, 1, 1, 1, 1)
+
+        self.horizontalSpacer_6 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.gridLayout_4.addItem(self.horizontalSpacer_6, 0, 2, 1, 1)
 
 
-        self.list_layout.addLayout(self.verticalLayout_3)
+        self.list_layout.addLayout(self.gridLayout_4)
 
-        self.splitter.addWidget(self.widget)
+        self.splitter.addWidget(self.layoutWidget)
 
         self.verticalLayout_6.addWidget(self.splitter)
 
@@ -1165,13 +1183,13 @@ class Ui_batch_widget(object):
 
     def retranslateUi(self, batch_widget):
         batch_widget.setWindowTitle(QCoreApplication.translate("batch_widget", u"Form", None))
-        self.concatenate_sync.setText(QCoreApplication.translate("batch_widget", u"Sync using measurements timestamps", None))
-        self.concatenate_add_samples_origin.setText(QCoreApplication.translate("batch_widget", u"Add samples origin file", None))
-        self.label_11.setText(QCoreApplication.translate("batch_widget", u"Output format", None))
-        self.label_12.setText(QCoreApplication.translate("batch_widget", u"Compression", None))
-        self.concatenate_split.setText(QCoreApplication.translate("batch_widget", u"Split data blocks", None))
-        self.concatenate_split_size.setSuffix(QCoreApplication.translate("batch_widget", u"MB", None))
         self.label_10.setText(QCoreApplication.translate("batch_widget", u"Split size ", None))
+        self.label_11.setText(QCoreApplication.translate("batch_widget", u"Output format", None))
+        self.concatenate_split_size.setSuffix(QCoreApplication.translate("batch_widget", u"MB", None))
+        self.concatenate_split.setText(QCoreApplication.translate("batch_widget", u"Split data blocks", None))
+        self.label_12.setText(QCoreApplication.translate("batch_widget", u"Compression", None))
+        self.concatenate_add_samples_origin.setText(QCoreApplication.translate("batch_widget", u"Add samples origin file", None))
+        self.concatenate_sync.setText(QCoreApplication.translate("batch_widget", u"Sync using measurements timestamps", None))
         self.concatenate_btn.setText(QCoreApplication.translate("batch_widget", u"Concatenate", None))
         self.aspects.setTabText(self.aspects.indexOf(self.concatenate_tab), QCoreApplication.translate("batch_widget", u"Concatenate", None))
         self.filter_view.setItemText(0, QCoreApplication.translate("batch_widget", u"Natural sort", None))
@@ -1274,14 +1292,14 @@ class Ui_batch_widget(object):
 #if QT_CONFIG(tooltip)
         self.aspects.setTabToolTip(self.aspects.indexOf(self.convert_tab), QCoreApplication.translate("batch_widget", u"conv", None))
 #endif // QT_CONFIG(tooltip)
-        self.stack_sync.setText(QCoreApplication.translate("batch_widget", u"Sync using measurements timestamps", None))
-        self.stack_add_samples_origin.setText(QCoreApplication.translate("batch_widget", u"Add samples origin file", None))
-        self.label_26.setText(QCoreApplication.translate("batch_widget", u"Output format", None))
         self.label_25.setText(QCoreApplication.translate("batch_widget", u"Compression", None))
-        self.stack_split.setText(QCoreApplication.translate("batch_widget", u"Split data blocks", None))
+        self.stack_add_samples_origin.setText(QCoreApplication.translate("batch_widget", u"Add samples origin file", None))
         self.label_23.setText(QCoreApplication.translate("batch_widget", u"Split size ", None))
-        self.stack_split_size.setSuffix(QCoreApplication.translate("batch_widget", u"MB", None))
+        self.stack_sync.setText(QCoreApplication.translate("batch_widget", u"Sync using measurements timestamps", None))
+        self.stack_split.setText(QCoreApplication.translate("batch_widget", u"Split data blocks", None))
+        self.label_26.setText(QCoreApplication.translate("batch_widget", u"Output format", None))
         self.stack_btn.setText(QCoreApplication.translate("batch_widget", u"Stack", None))
+        self.stack_split_size.setSuffix(QCoreApplication.translate("batch_widget", u"MB", None))
         self.aspects.setTabText(self.aspects.indexOf(self.stack_tab), QCoreApplication.translate("batch_widget", u"Stack", None))
         self.groupBox_3.setTitle(QCoreApplication.translate("batch_widget", u"CSV", None))
         self.lineterminator_bus.setText(QCoreApplication.translate("batch_widget", u"\\r\\n", None))
