@@ -3044,6 +3044,12 @@ class Plot(QtWidgets.QWidget):
 
             event.accept()
 
+        elif key == QtCore.Qt.Key.Key_W and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
+            if self.enable_zoom_history:
+                self.set_initial_zoom()
+
+            event.accept()
+
         else:
             try:
                 self.plot.keyPressEvent(event)
@@ -5282,6 +5288,24 @@ class PlotGraphics(pg.PlotWidget):
                 self.cursor_moved.emit(self.cursor1)
 
         elif key == QtCore.Qt.Key.Key_W and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
+            ts_vals = []
+            for sig in self.signals:
+                if not sig.enable or not len(sig.timestamps):
+                    continue
+
+                ts_vals.append(sig.timestamps[0])
+                ts_vals.append(sig.timestamps[-1])
+
+            if ts_vals:
+                ts_vals.sort()
+                start_ts, stop_ts = ts_vals[0], ts_vals[-1]
+
+                self.viewbox.setXRange(start_ts, stop_ts)
+
+                if self.cursor1:
+                    self.cursor_moved.emit(self.cursor1)
+            
+        elif key == QtCore.Qt.Key.Key_W and modifier == QtCore.Qt.KeyboardModifier.AltModifier:
             if len(self.all_timebase):
                 start_ts = np.amin(self.all_timebase)
                 stop_ts = np.amax(self.all_timebase)

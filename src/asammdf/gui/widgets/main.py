@@ -444,6 +444,20 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/home.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        action = QtGui.QAction(icon, "{: <20}\tAlt+W".format("Home all signals"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key.Key_W, modifier=QtCore.Qt.KeyboardModifier.AltModifier))
+        action.setShortcut(QtGui.QKeySequence("Alt+W"))
+        plot_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/home.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        action = QtGui.QAction(icon, "{: <20}\tCtrl+W".format("Set Home"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key.Key_W, modifier=QtCore.Qt.KeyboardModifier.ControlModifier))
+        action.setShortcut(QtGui.QKeySequence("Ctrl+W"))
+        plot_actions.addAction(action)
+
+        icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         action = QtGui.QAction(icon, "{: <20}\tS".format("Stack all"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key.Key_S))
