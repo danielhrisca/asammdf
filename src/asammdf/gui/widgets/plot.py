@@ -234,7 +234,7 @@ class PlotSignal(Signal):
             self.samples = self.samples.byteswap().view(self.samples.dtype.newbyteorder())
 
         if self.timestamps.dtype.byteorder not in target_byte_order:
-            self.timestamps = self.timestamps.byteswap().view(self.timestamps.dtype.n())
+            self.timestamps = self.timestamps.byteswap().view(self.timestamps.dtype.newbyteorder())
 
         if self.timestamps.dtype != float64:
             self.timestamps = self.timestamps.astype(float64)
