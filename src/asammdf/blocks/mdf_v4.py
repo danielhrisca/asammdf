@@ -308,7 +308,7 @@ class MDF4(MDF_Common[Group]):
         self._attachments_map: dict[int, int] = {}
         self._ch_map: dict[int, tuple[int, int]] = {}
         self._master_channel_metadata: dict[int, tuple[str, int]] = {}
-        self._invalidation_cache: dict[tuple[int, int, int, int], InvalidationArray] = {}
+        self._invalidation_cache: dict[tuple[int, int, int, int], InvalidationArray | None] = {}
         self._external_dbc_cache: dict[bytes, CanMatrix] = {}
         self._si_map: dict[bytes | int | Source, SourceInformation] = {}
         self._cc_map: dict[bytes | int, ChannelConversion] = {}
@@ -2730,7 +2730,8 @@ class MDF4(MDF_Common[Group]):
         group_index: int,
         pos_invalidation_bit: int,
         fragment: Fragment,
-    ) -> InvalidationArray:
+        one_piece: bool = False,
+    ) -> InvalidationArray | None:
         """Get invalidation indexes of the channels in the given group.
 
         Parameters
@@ -2741,6 +2742,8 @@ class MDF4(MDF_Common[Group]):
             Channel invalidation bit position.
         fragment : Fragment
             Data bytes as a Fragment.
+        one_piece : bool
+            onley one piece was given in the get call
 
         Returns
         -------
@@ -2773,12 +2776,17 @@ class MDF4(MDF_Common[Group]):
 
         key = (group_index, offset, _count, pos_invalidation_bit)
         if key not in self._invalidation_cache:
-            self._invalidation_cache[key] = InvalidationArray(
-                get_invalidation_bits_array(
-                    invalidation_bytes, group.channel_group.invalidation_bytes_nr, pos_invalidation_bit, _count
-                ),
-                (group_index, pos_invalidation_bit),
+            inv =  get_invalidation_bits_array(
+                invalidation_bytes, group.channel_group.invalidation_bytes_nr, pos_invalidation_bit, _count,
+                one_piece
             )
+            if inv is None:
+                self._invalidation_cache[key] = None
+            else:
+                self._invalidation_cache[key] = InvalidationArray(
+                    inv,
+                    (group_index, pos_invalidation_bit),
+                )
 
         return self._invalidation_cache[key]
 
@@ -7515,7 +7523,6 @@ class MDF4(MDF_Common[Group]):
                             timestamps = timestamps[: record_count]
                             if invalidation_bits is not None:
                                 invalidation_bits = invalidation_bits[: record_count]
-
                 else:
                     if (
                         (fast_path := channel.fast_path) is not None
@@ -7744,8 +7751,10 @@ class MDF4(MDF_Common[Group]):
         # get group data
         if data is None:
             fragments = self._load_data(grp, record_offset=record_offset, record_count=record_count)
+            one_piece = False
         else:
             fragments = iter((data,))
+            one_piece = True
 
         groups = self.groups
 
@@ -7764,7 +7773,7 @@ class MDF4(MDF_Common[Group]):
             fast_path = True
             flat_channel_values: list[NDArray[Any]] = []
             masters: list[NDArray[Any]] = []
-            invalidation_arrays: list[InvalidationArray] = []
+            invalidation_arrays: list[InvalidationArray | None] = []
 
             byte_offset = channel.byte_offset
             record_size = grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr
@@ -7781,7 +7790,7 @@ class MDF4(MDF_Common[Group]):
                     masters.append(self.get_master(gp_nr, fragment, one_piece=True))
                 if channel_invalidation_present:
                     invalidation_arrays.append(
-                        self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment)
+                        self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece)
                     )
 
                 count += 1
@@ -7814,7 +7823,7 @@ class MDF4(MDF_Common[Group]):
                     masters.append(self.get_master(gp_nr, fragment, one_piece=True))
                 if channel_invalidation_present:
                     invalidation_arrays.append(
-                        self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment)
+                        self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece)
                     )
 
                 count += 1
@@ -7899,20 +7908,39 @@ class MDF4(MDF_Common[Group]):
             timestamps = None
 
         if channel_invalidation_present:
-            if count > 1:
-                out = empty(total_size, dtype=invalidation_arrays[0].dtype)
-                invalidation_array = concatenate(invalidation_arrays, out=out)
-            else:
+            if one_piece:
                 invalidation_array = invalidation_arrays[0]
-            if not ignore_invalidation_bits:
-                vals = vals[nonzero(~invalidation_array)[0]]
-                if master_is_required:
-                    if timestamps is None:
-                        raise RuntimeError("'timestamps' cannot be None if 'master_is_required' is True")
-                    timestamps = timestamps[nonzero(~invalidation_array)[0]]
-                invalidation_bits = None
+                if invalidation_array is None:
+                    invalidation_bits = None
+
+                elif not ignore_invalidation_bits:
+                    vals = vals[nonzero(~invalidation_array)[0]]
+                    if master_is_required:
+                        if timestamps is None:
+                            raise RuntimeError("'timestamps' cannot be None if 'master_is_required' is True")
+                        timestamps = timestamps[nonzero(~invalidation_array)[0]]
+                    invalidation_bits = None
+
+                else:
+                    invalidation_bits = invalidation_array
+
             else:
-                invalidation_bits = invalidation_array
+
+                if count > 1:
+                    out = empty(total_size, dtype=invalidation_arrays[0].dtype)
+                    invalidation_array = concatenate(invalidation_arrays, out=out)
+                else:
+                    invalidation_array = invalidation_arrays[0]
+
+                if not ignore_invalidation_bits:
+                    vals = vals[nonzero(~invalidation_array)[0]]
+                    if master_is_required:
+                        if timestamps is None:
+                            raise RuntimeError("'timestamps' cannot be None if 'master_is_required' is True")
+                        timestamps = timestamps[nonzero(~invalidation_array)[0]]
+                    invalidation_bits = None
+                else:
+                    invalidation_bits = invalidation_array
         else:
             invalidation_bits = None
 
@@ -8039,8 +8067,10 @@ class MDF4(MDF_Common[Group]):
         # get group data
         if data is None:
             fragments = self._load_data(grp, record_offset=record_offset, record_count=record_count)
+            one_piece = False
         else:
             fragments = iter((data,))
+            one_piece = True
 
         axes = []
         for dep in dependency_list:
@@ -8080,7 +8110,7 @@ class MDF4(MDF_Common[Group]):
 
         channel_values: list[NDArray[Any]] = []
         masters: list[NDArray[Any]] = []
-        invalidation_arrays: list[InvalidationArray] = []
+        invalidation_arrays: list[InvalidationArray | None] = []
         count = 0
 
         timestamps: NDArray[Any] | None
@@ -8197,7 +8227,7 @@ class MDF4(MDF_Common[Group]):
             if master_is_required:
                 masters.append(self.get_master(gp_nr, fragment, one_piece=True))
             if channel_invalidation_present:
-                invalidation_arrays.append(self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment))
+                invalidation_arrays.append(self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece))
 
             channel_values.append(vals)
             count += 1
@@ -8224,20 +8254,34 @@ class MDF4(MDF_Common[Group]):
             timestamps = None
 
         if channel_invalidation_present:
-            if count > 1:
-                out = empty(total_size, dtype=invalidation_arrays[0].dtype)
-                invalidation_array = concatenate(invalidation_arrays, out=out)
-            else:
+            if one_piece:
                 invalidation_array = invalidation_arrays[0]
-            if not ignore_invalidation_bits:
-                vals = vals[nonzero(~invalidation_array)[0]]
-                if master_is_required:
-                    if timestamps is None:
-                        raise RuntimeError("'timestamps' cannot be None is 'master_is_required' is True")
-                    timestamps = timestamps[nonzero(~invalidation_array)[0]]
-                invalidation_bits = None
+                if invalidation_array is None:
+                    invalidation_bits = None
+                elif not ignore_invalidation_bits:
+                    vals = vals[nonzero(~invalidation_array)[0]]
+                    if master_is_required:
+                        if timestamps is None:
+                            raise RuntimeError("'timestamps' cannot be None is 'master_is_required' is True")
+                        timestamps = timestamps[nonzero(~invalidation_array)[0]]
+                    invalidation_bits = None
+                else:
+                    invalidation_bits = invalidation_array
             else:
-                invalidation_bits = invalidation_array
+                if count > 1:
+                    out = empty(total_size, dtype=invalidation_arrays[0].dtype)
+                    invalidation_array = concatenate(invalidation_arrays, out=out)
+                else:
+                    invalidation_array = invalidation_arrays[0]
+                if not ignore_invalidation_bits:
+                    vals = vals[nonzero(~invalidation_array)[0]]
+                    if master_is_required:
+                        if timestamps is None:
+                            raise RuntimeError("'timestamps' cannot be None is 'master_is_required' is True")
+                        timestamps = timestamps[nonzero(~invalidation_array)[0]]
+                    invalidation_bits = None
+                else:
+                    invalidation_bits = invalidation_array
         else:
             invalidation_bits = None
 
@@ -8288,7 +8332,7 @@ class MDF4(MDF_Common[Group]):
         vals = frombuffer(buffer, dtype=dtype)
 
         if pos_invalidation_bit >= 0:
-            invalidation_bits = self.get_invalidation_bits(gp_nr, pos_invalidation_bit, fragment)
+            invalidation_bits = self.get_invalidation_bits(gp_nr, pos_invalidation_bit, fragment, one_piece=True)
         else:
             invalidation_bits = None
 
@@ -8428,7 +8472,7 @@ class MDF4(MDF_Common[Group]):
             
             channel_values: list[NDArray[Any]] = []
             masters: list[NDArray[Any]] = []
-            invalidation_arrays: list[InvalidationArray] = []
+            invalidation_arrays: list[InvalidationArray |None] = []
 
             channel_group = grp.channel_group
             record_size = channel_group.samples_byte_nr
@@ -8463,7 +8507,7 @@ class MDF4(MDF_Common[Group]):
                     )
                 if channel_invalidation_present:
                     invalidation_arrays.append(
-                        self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment)
+                        self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece)
                     )
 
                 channel_values.append(vals)
@@ -8491,20 +8535,35 @@ class MDF4(MDF_Common[Group]):
                 timestamps = None
 
             if channel_invalidation_present:
-                if count > 1:
-                    out = empty(total_size, dtype=invalidation_arrays[0].dtype)
-                    invalidation_array = concatenate(invalidation_arrays, out=out)
-                else:
+                if one_piece:
                     invalidation_array = invalidation_arrays[0]
-                if not ignore_invalidation_bits:
-                    vals = vals[nonzero(~invalidation_array)[0]]
-                    if master_is_required:
-                        if timestamps is None:
-                            raise RuntimeError("'timestamps' cannot be None if 'master_is_required' is True")
-                        timestamps = timestamps[nonzero(~invalidation_array)[0]]
-                    invalidation_bits = None
+                    if invalidation_array is None:
+                        invalidation_bits = None
+                    
+                    elif not ignore_invalidation_bits:
+                        vals = vals[nonzero(~invalidation_array)[0]]
+                        if master_is_required:
+                            if timestamps is None:
+                                raise RuntimeError("'timestamps' cannot be None if 'master_is_required' is True")
+                            timestamps = timestamps[nonzero(~invalidation_array)[0]]
+                        invalidation_bits = None
+                    else:
+                        invalidation_bits = invalidation_array
                 else:
-                    invalidation_bits = invalidation_array
+                    if count > 1:
+                        out = empty(total_size, dtype=invalidation_arrays[0].dtype)
+                        invalidation_array = concatenate(invalidation_arrays, out=out)
+                    else:
+                        invalidation_array = invalidation_arrays[0]
+                    if not ignore_invalidation_bits:
+                        vals = vals[nonzero(~invalidation_array)[0]]
+                        if master_is_required:
+                            if timestamps is None:
+                                raise RuntimeError("'timestamps' cannot be None if 'master_is_required' is True")
+                            timestamps = timestamps[nonzero(~invalidation_array)[0]]
+                        invalidation_bits = None
+                    else:
+                        invalidation_bits = invalidation_array
             else:
                 invalidation_bits = None
 
@@ -8614,9 +8673,11 @@ class MDF4(MDF_Common[Group]):
                     timestamps = None
 
                 if channel_invalidation_present:
-                    invalidation_array = self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment)
+                    invalidation_array = self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece)
 
-                    if not ignore_invalidation_bits:
+                    if invalidation_array is None:
+                        invalidation_bits = None
+                    elif not ignore_invalidation_bits:
                         vals = vals[nonzero(~invalidation_array)[0]]
                         if master_is_required:
                             if timestamps is None:
@@ -8653,7 +8714,7 @@ class MDF4(MDF_Common[Group]):
                             masters.append(self.get_master(gp_nr, fragment, one_piece=True))
                         if channel_invalidation_present:
                             invalidation_arrays.append(
-                                self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment)
+                                self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece)
                             )
 
                         channel_values.append(vals)
@@ -8683,7 +8744,7 @@ class MDF4(MDF_Common[Group]):
                             masters.append(self.get_master(gp_nr, fragment, one_piece=True))
                         if channel_invalidation_present:
                             invalidation_arrays.append(
-                                self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment)
+                                self.get_invalidation_bits(gp_nr, channel.pos_invalidation_bit, fragment, one_piece=one_piece)
                             )
 
                     if count > 1:

@@ -1343,10 +1343,12 @@ static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
   PyObject *data_block, *out;
 
   Py_ssize_t record_size, byte_offset, byte_count, cycles;
+  int one_piece=0;
+  bool all_valid = true;
 
   uint8_t mask, *inptr, *outptr;
 
-  if (!PyArg_ParseTuple(args, "Onnn", &data_block, &invalidation_size, &invalidation_pos, &cycles))
+  if (!PyArg_ParseTuple(args, "Onnnp", &data_block, &invalidation_size, &invalidation_pos, &cycles, &one_piece))
   {
     return 0;
   }
@@ -1375,8 +1377,20 @@ static PyObject *get_invalidation_bits_array(PyObject *self, PyObject *args)
       outptr = (uint8_t *)PyArray_GETPTR1((PyArrayObject *)out, 0);
 
       for (int i=0; i<count; i++) {
-        *outptr++ = (*inptr) & mask ? 1 : 0;
+        if ((*inptr) & mask) {
+          all_valid = false;
+          *outptr++ = 1;
+        }
+        else {
+          *outptr++ = 0;
+        }
         inptr += invalidation_size;
+      }
+
+      if (one_piece && all_valid) {
+        PyArray_XDECREF(out);
+        out = Py_None;
+        Py_INCREF(Py_None);
       }
     }
     else {
@@ -1401,6 +1415,7 @@ static PyObject *get_invalidation_bits_array_C(uint8_t * data, int64_t cycles, i
 
     PyObject *out=NULL;
     uint8_t mask, *inptr, *outptr;
+    bool all_valid = true;
 
     mask = (uint8_t ) (1 << (invalidation_pos % 8));
     inptr = data + invalidation_pos / 8;
@@ -1412,11 +1427,24 @@ static PyObject *get_invalidation_bits_array_C(uint8_t * data, int64_t cycles, i
     outptr = (uint8_t *)PyArray_GETPTR1((PyArrayObject *)out, 0);
 
     for (int i=0; i<cycles; i++) {
-      *outptr++ = (*inptr) & mask ? 1 : 0;
+      if ((*inptr) & mask) {
+        all_valid = false;
+        *outptr++ = 1;
+      }
+      else {
+        *outptr++ = 0;
+      }
       inptr += invalidation_size;
     }
 
-    return out;
+    if (all_valid) {
+      PyArray_XDECREF(out);
+      Py_INCREF(Py_None);
+      return Py_None;
+    }
+    else {
+      return out;
+    }
   }
 }
 
@@ -3031,23 +3059,30 @@ static PyObject *get_channel_raw_bytes_complete(PyObject *self, PyObject *args)
       }
       PyTuple_SetItem(ref, 0, signal_info[i].obj);
       if (invalidation_data) {
-        if (cache[signal_info[i].invalidation_bit_position] < 0)
+        if (cache[signal_info[i].invalidation_bit_position] < 0) {
           PyTuple_SetItem(ref, 1, Py_None);
+        }
         else {
 
           if (!cache[signal_info[i].invalidation_bit_position]) {
             inv = get_invalidation_bits_array_C(invalidation_data, cycles, signal_info[i].invalidation_bit_position, invalidation_bytes);
+            
             if (!inv) return NULL;
             origin = PyTuple_New(2);
             if (!origin) return NULL;
             Py_INCREF(group_index);
             PyTuple_SetItem(origin, 0, group_index);
             PyTuple_SetItem(origin, 1, PyLong_FromLong(signal_info[i].invalidation_bit_position));
-            inv_array = PyObject_CallFunction(
-                          InvalidationArray,
-                          "OO",
-                          inv, origin);
-            if (!inv_array) return NULL;
+            if (inv != Py_None) {
+              inv_array = PyObject_CallFunction(
+                            InvalidationArray,
+                            "OO",
+                            inv, origin);
+              if (!inv_array) return NULL;
+            }
+            else {
+              inv_array = Py_None;
+            }
             Py_XDECREF(inv);
             cache[signal_info[i].invalidation_bit_position] = inv_array;
             Py_XDECREF(origin);
