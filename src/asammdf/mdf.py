@@ -4254,8 +4254,9 @@ class MDF:
                         vals = vals.view(view)
 
             master = vals
-            if master_channel.conversions:
-                master = master_channel.conversions.convert(master)
+            
+            if master_channel.conversion:
+                master = master_channel.conversion.convert(master)
 
             if record_offset:
                 if record_count is None:
