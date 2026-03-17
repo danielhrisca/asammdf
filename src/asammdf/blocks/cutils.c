@@ -1438,9 +1438,9 @@ static PyObject *get_invalidation_bits_array_C(uint8_t * data, int64_t cycles, i
     }
 
     if (all_valid) {
-      PyArray_XDECREF(((PyArrayObject *) out);
-                      Py_INCREF(Py_None);
-                      return Py_None;
+      PyArray_XDECREF((PyArrayObject *) out);
+      Py_INCREF(Py_None);
+      return Py_None;
     }
     else {
       return out;
