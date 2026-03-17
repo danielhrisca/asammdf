@@ -496,13 +496,14 @@ class PlotSignal(Signal):
     def enable(self, enable_state):
         if self._enable != enable_state:
             self._enable = enable_state
-            if enable_state:
-                self._pos = np.empty(2 * self._buffer_size, dtype="i4")
-                self._plot_samples = np.empty(2 * self._buffer_size, dtype=self._dtype)
-                self._plot_timestamps = np.empty(2 * self._buffer_size, dtype="f8")
+            if len(self.samples):
+                if enable_state:
+                    self._pos = np.empty(2 * self._buffer_size, dtype="i4")
+                    self._plot_samples = np.empty(2 * self._buffer_size, dtype=self._dtype)
+                    self._plot_timestamps = np.empty(2 * self._buffer_size, dtype="f8")
 
-            else:
-                self._pos = self._plot_samples = self._plot_timestamps = None
+                else:
+                    self._pos = self._plot_samples = self._plot_timestamps = None
 
     def get_stats(self, cursor=None, region=None, view_region=None, precision=6):
         stats = {}
@@ -4580,7 +4581,7 @@ class PlotGraphics(pg.PlotWidget):
             self.block_zoom_signal = True
             if self.common_axis_items:
                 if any(
-                    len(self.signal_by_uuid(uuid)[0].plot_samples)
+                    not self.signal_by_uuid(uuid)[0].empty
                     for uuid in self.common_axis_items
                     if self.signal_by_uuid(uuid)[0].enable
                 ):
@@ -4588,30 +4589,26 @@ class PlotGraphics(pg.PlotWidget):
                         [
                             self.signal_by_uuid(uuid)[0].min
                             for uuid in self.common_axis_items
-                            if len(self.signal_by_uuid(uuid)[0].plot_samples)
+                            if not self.signal_by_uuid(uuid)[0].empty
                         ]
                     )
                     common_max = np.nanmax(
                         [
                             self.signal_by_uuid(uuid)[0].max
                             for uuid in self.common_axis_items
-                            if len(self.signal_by_uuid(uuid)[0].plot_samples)
+                            if not self.signal_by_uuid(uuid)[0].empty
                         ]
                     )
                 else:
                     common_min, common_max = 0, 1
 
             for i, signal in enumerate(self.signals):
-                if len(signal.plot_samples):
+                if not signal.empty:
                     if signal.uuid in self.common_axis_items:
                         min_ = common_min
                         max_ = common_max
                     else:
-                        samples = signal.plot_samples
-                        if len(samples):
-                            min_, max_ = signal.min, signal.max
-                        else:
-                            min_, max_ = 0, 1
+                        min_, max_ = signal.min, signal.max
 
                     if min_ != min_:  # noqa: PLR0124
                         # min_ is NaN
