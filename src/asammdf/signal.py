@@ -281,7 +281,7 @@ class Signal:  # noqa: PLW1641
 
     @property
     def conversion(self):
-        metadata = self.samples.dtype.metadata or self.samples.dtype.base.metadata or {}
+        metadata = self._samples.dtype.metadata or self._samples.dtype.base.metadata or {}
         return metadata.get('conversion', None)
     
     @conversion.setter
