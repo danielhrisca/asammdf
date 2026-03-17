@@ -1056,7 +1056,7 @@ class PlotSignal(Signal):
 
                     if samples.dtype.kind == "f" and samples.itemsize == 2:
                         samples = samples.astype("f8")
-                        self._dtype = "f8"
+                        self._dtype = samples.dtype
 
                     if samples.dtype != self._plot_samples.dtype:
                         self._plot_samples = np.empty(2 * self._buffer_size, dtype=samples.dtype)
