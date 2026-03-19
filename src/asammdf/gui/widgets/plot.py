@@ -1253,7 +1253,7 @@ class PlotSignal(Signal):
 
     def trim(self, start=None, stop=None, width=1900, force=False):
         if self._enable:
-            if width > self._buffer_size:
+            if width > self._buffer_size and len(self.samples):
                 width = ceil(width)
                 self._buffer_size = width
                 self._pos = np.empty(2 * self._buffer_size, dtype="i4")
