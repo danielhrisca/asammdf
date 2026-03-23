@@ -4342,10 +4342,10 @@ class PlotGraphics(pg.PlotWidget):
                             QtCore.QPointF(x_pos, (event_rect.y() + event_rect.height()) * ratio),
                         )
 
-            paint.end()
-            _pixmap.setDevicePixelRatio(self.devicePixelRatio())
+                paint.end()
+                _pixmap.setDevicePixelRatio(self.devicePixelRatio())
 
-            self._grid_pixmap = _pixmap
+                self._grid_pixmap = _pixmap
 
         return self._grid_pixmap
 
@@ -4684,6 +4684,7 @@ class PlotGraphics(pg.PlotWidget):
 
                 self.x_axis.picture = None
                 self.y_axis.picture = None
+                self._grid_pixmap = None
 
                 self.update()
 
@@ -5602,17 +5603,19 @@ class PlotGraphics(pg.PlotWidget):
                 )
 
         r = self.viewbox.sceneBoundingRect()
+
+        t = r.translated(0, 0)
+        t.setLeft(t.left() + 5)
+
         r.setLeft(r.left() + 5)
         r.setSize(r.size() * ratio)
         r.moveTo(r.topLeft() * ratio)
 
-        t = self.viewbox.sceneBoundingRect()
-        t.setLeft(t.left() + 5)
-
         clip_rect = self.auto_clip_rect(paint)
         grid_pixmap = self.draw_grids(paint, event_rect, ratio, clip_rect)
 
-        paint.drawPixmap(t.toRect(), grid_pixmap, r.toRect())
+        if grid_pixmap:
+            paint.drawPixmap(t.toRect(), grid_pixmap, r.toRect())
         paint.drawPixmap(t.toRect(), _pixmap, r.toRect())
 
         if self.zoom is None:
