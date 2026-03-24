@@ -1265,6 +1265,7 @@ class PlotSignal(Signal):
                 return self.trim_c(start, stop, width, force)
             except:
                 print(format_exc())
+                print(self)
                 return self.trim_python(start, stop, width, force)
 
     def value_at_index(self, index):
