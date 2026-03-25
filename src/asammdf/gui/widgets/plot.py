@@ -4844,23 +4844,17 @@ class PlotGraphics(pg.PlotWidget):
                 1 for sig in self.signals if sig.min != "n.a." and sig.enable and sig.uuid not in self.common_axis_items
             )
 
-            if any(sig.min != "n.a." and sig.enable and sig.uuid in self.common_axis_items for sig in self.signals):
+            common_axis_signals = [
+                sig
+                for sig in self.signals
+                if sig.min != "n.a." and sig.enable and sig.uuid in self.common_axis_items
+            ]
+
+            if common_axis_signals:
                 count += 1
 
-                common_min_ = np.nanmin(
-                    [
-                        self.signal_by_uuid(uuid)[0].min
-                        for uuid in self.common_axis_items
-                        if len(self.signal_by_uuid(uuid)[0].plot_samples) and self.signal_by_uuid(uuid)[0].enable
-                    ]
-                )
-                common_max_ = np.nanmax(
-                    [
-                        self.signal_by_uuid(uuid)[0].max
-                        for uuid in self.common_axis_items
-                        if len(self.signal_by_uuid(uuid)[0].plot_samples) and self.signal_by_uuid(uuid)[0].enable
-                    ]
-                )
+                common_min_ = np.nanmin([sig.min for sig in common_axis_signals])
+                common_max_ = np.nanmax([sig.max for sig in common_axis_signals])
 
             if count:
                 position = 0
@@ -4948,6 +4942,7 @@ class PlotGraphics(pg.PlotWidget):
             )
 
             if count:
+            
                 common_axis_handled = False
                 position = 0
                 for uuid in uuids:
@@ -4958,24 +4953,14 @@ class PlotGraphics(pg.PlotWidget):
                             if common_axis_handled:
                                 continue
 
-                            min_ = np.nanmin(
-                                [
-                                    self.signal_by_uuid(uuid)[0].min
-                                    for uuid in self.common_axis_items
-                                    if uuid in uuids_set
-                                    and len(self.signal_by_uuid(uuid)[0].plot_samples)
-                                    and self.signal_by_uuid(uuid)[0].enable
-                                ]
-                            )
-                            max_ = np.nanmax(
-                                [
-                                    self.signal_by_uuid(uuid)[0].max
-                                    for uuid in self.common_axis_items
-                                    if uuid in uuids_set
-                                    and len(self.signal_by_uuid(uuid)[0].plot_samples)
-                                    and self.signal_by_uuid(uuid)[0].enable
-                                ]
-                            )
+                            common_axis_signals = [
+                                sig
+                                for sig in self.signals
+                                if sig.uuid in uuids_set and sig.min != "n.a." and sig.enable and sig.uuid in self.common_axis_items
+                            ]
+
+                            min_ = np.nanmin([sig.min for sig in common_axis_signals])
+                            max_ = np.nanmax([sig.max for sig in common_axis_signals])
 
                         else:
                             min_ = signal.min
