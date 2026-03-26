@@ -31,6 +31,7 @@ from ..blocks.utils import Terminated
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
 from .dialogs.messagebox import MessageBox
+from .function_library import FunctionLibrary
 
 _BUILTINS = vars(builtins).copy()
 for key in ("breakpoint", "compile", "eval", "exec", "input", "open"):
@@ -499,7 +500,10 @@ def compute_signal(
                     func, trace = _func, _trace
 
             if func is None:
-                raise Exception(trace)
+                if description["function"] in FunctionLibrary:
+                    func = FunctionLibrary[description["function"]]
+                else:
+                    raise Exception(trace)
 
             signals = []
             found_args = []
@@ -1241,6 +1245,7 @@ def generate_python_function_globals() -> dict:
         import scipy as sp
 
         func_globals["sp"] = sp
+        
     except ImportError:
         pass
 

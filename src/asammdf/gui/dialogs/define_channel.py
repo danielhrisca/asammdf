@@ -1,3 +1,4 @@
+from collections import ChainMap
 from functools import partial
 import inspect
 import os
@@ -6,6 +7,7 @@ import re
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...signal import Signal
+from ..function_library import FunctionLibrary
 from ..ui.define_channel_dialog import Ui_ComputedChannel
 from ..utils import (
     computation_to_python_function,
@@ -65,7 +67,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.info = None
         self.signature = None
 
-        self.functions.addItems(sorted(self._functions))
+        self.functions.addItems(sorted(ChainMap(self._functions, FunctionLibrary)))
         self.functions.setCurrentIndex(-1)
         self.functions.currentTextChanged.connect(self.function_changed)
         self.functions.currentIndexChanged.connect(self.function_changed)
@@ -103,7 +105,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.triggering_on_interval.setChecked(True)
                 self.trigger_interval.setValue(float(computation["triggering_value"]))
 
-            if computation["function"] in self._functions:
+            if computation["function"] in ChainMap(self._functions, FunctionLibrary):
                 self.functions.setCurrentText(computation["function"])
 
                 for i, arg_name in enumerate(list(self.signature.parameters)[:-1]):
@@ -216,9 +218,13 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
         self.arg_widgets.clear()
 
-        definition = self._functions[name]
-        exec(definition.replace("\t", "    "))
-        func = locals()[name]
+        if name in FunctionLibrary:
+            func = FunctionLibrary[name]
+        else:
+
+            definition = self._functions[name]
+            exec(definition.replace("\t", "    "))
+            func = locals()[name]
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/search.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
@@ -294,7 +300,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
     def show_definition(self, *args):
         function = self.functions.currentText()
         if function:
-            definition = self._functions[self.functions.currentText()]
+            definition = self._functions.get(self.functions.currentText(), "buildin function definition not available")
 
             # keep a reference otherwise the window gets closed
             self.info = info = QtWidgets.QPlainTextEdit(definition)
