@@ -300,11 +300,17 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
     def show_definition(self, *args):
         function = self.functions.currentText()
         if function:
-            definition = self._functions.get(self.functions.currentText(), "buildin function definition not available")
+            if function in FunctionLibrary:
+                definition = FunctionLibrary[function].__doc__
+                highlight = False
+            else:
+                definition = self._functions[self.functions.currentText()]
+                highlight = True
 
             # keep a reference otherwise the window gets closed
             self.info = info = QtWidgets.QPlainTextEdit(definition)
-            PythonHighlighter(info.document())
+            if highlight:
+                PythonHighlighter(info.document())
             info.setReadOnly(True)
             info.setLineWrapMode(info.LineWrapMode.NoWrap)
             info.setWindowFlags(QtCore.Qt.WindowType.WindowMinMaxButtonsHint | info.windowFlags())
