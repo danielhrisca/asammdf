@@ -3675,6 +3675,7 @@ class PlotGraphics(pg.PlotWidget):
         self.autoFillBackground()
 
         self._pixmap = None
+        self._prev_pixmap = None
         self._grid_pixmap = None
 
         self.locked = False
@@ -5607,8 +5608,6 @@ class PlotGraphics(pg.PlotWidget):
         paint.drawPixmap(t.toRect(), _pixmap, r.toRect())
 
         if self.zoom is None:
-            if self.cursor1 is not None and self.cursor1.isVisible():
-                self.cursor1.paint(paint, plot=self, uuid=self.current_uuid)
 
             if self.region is not None:
                 self.region.paint(paint, plot=self, uuid=self.current_uuid)
@@ -5618,6 +5617,27 @@ class PlotGraphics(pg.PlotWidget):
             for bookmark in self._bookmarks:
                 if bookmark.visible:
                     bookmark.paint(paint, plot=self, uuid=self.current_uuid)
+
+            if pix := self._prev_pixmap:
+                rect = self.viewbox.sceneBoundingRect()
+                rect.setSize(rect.size() * ratio)
+                rect.moveTo(rect.topLeft() * ratio)
+                delta = rect.x()
+
+                view_range = self.viewbox.viewRange()
+                x, y = self.scale_curve_to_pixmap(
+                    self.cursor1.getXPos(),
+                    0,
+                    y_range=view_range[1],
+                    x_start=view_range[0][0],
+                    delta=delta,
+                )
+
+                x = int(x) + 1
+
+                pix_rect = pix.rect()
+                pix_rect.setX(x)
+                paint.drawPixmap(pix_rect, pix, pix_rect)
 
         else:
             p1, p2, zoom_mode = self.zoom

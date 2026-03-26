@@ -9,8 +9,8 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QTreeWidgetItemIterator
 
 from asammdf import mdf
-from asammdf.gui.widgets.plot import PlotGraphics
 from asammdf.gui.function_library import FunctionLibrary
+from asammdf.gui.widgets.plot import PlotGraphics
 from test.asammdf.gui.test_base import Pixmap, safe_setup
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
 
