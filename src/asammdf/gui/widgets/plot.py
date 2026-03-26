@@ -1,4 +1,5 @@
 import bisect
+from collections import ChainMap
 from datetime import timedelta
 from functools import lru_cache, partial, reduce
 from math import ceil
@@ -22,6 +23,7 @@ from ...blocks.conversion_utils import from_dict, to_dict
 from ...blocks.cutils import get_idx_with_edges, positions
 from ...blocks.utils import target_byte_order
 from ..dialogs.messagebox import MessageBox
+from ..function_library import FunctionLibrary
 from ..utils import FONT_SIZE, value_as_str
 from .viewbox import ViewBoxWithCursor
 
@@ -4474,7 +4476,7 @@ class PlotGraphics(pg.PlotWidget):
 
     def insert_computation(self, name=""):
         functions = self.plot_parent.owner.functions
-        if not functions:
+        if not ChainMap(functions, FunctionLibrary):
             MessageBox.warning(
                 self,
                 "Cannot add computed channel",
