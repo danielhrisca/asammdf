@@ -243,6 +243,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
+        self._settings = QtCore.QSettings()
+
         self.match_model = Model()
         self.matches.setModel(self.match_model)
 
@@ -364,6 +366,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
             if match_kind == "Wildcard":
                 wildcard = f"{os.urandom(6).hex()}_WILDCARD_{os.urandom(6).hex()}"
+                if self._settings.value("search/add_wildcards", False, type=bool):
+                    text = f'*{text}*'
                 pattern = text.replace("*", wildcard)
                 pattern = re.escape(pattern)
                 pattern = pattern.replace(wildcard, ".*")
