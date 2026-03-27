@@ -292,6 +292,40 @@ try:
         max_ripple = max_ripple[0]
         sos = sp.signal.ellip(order, max_ripple, min_attenuation, cutoff, btype="bandstop", fs=fs, output="sos")
         return sp.signal.sosfilt(sos, signal)
+
+    def ClipSignal(signal=0, lower=0, upper=100, t=0):
+        """
+        Clip the signal to the lower and upper limits.
+        This function can only be used both complete and sample by sample modes.
+
+        Parameters
+        ----------
+        signal : input signal
+
+        lower : float
+            lower limit; default 0. If the value is set to the string None, then the lower limit clipping is not performed. 
+
+        upper : float
+            upper limit; default 100. If the value is set to the string None, then the upper limit clipping is not performed.
+
+        t : signal timestamps
+
+
+        Returns
+        -------
+        clipped signal
+        """
+        try:
+            lower = next(iter(lower))
+        except TypeError:
+            pass
+
+        try:
+            upper = next(iter(upper))
+        except TypeError:
+            pass
+
+        return np.clip(signal, lower, upper)
     
     def LowPassFilter_Butter(signal=0, order=3, cutoff=10, t=0):
         """
@@ -581,6 +615,8 @@ try:
     FunctionLibrary["BandStopFilter_Ellip"] = BandStopFilter_Ellip
     FunctionLibrary["LowPassFilter_Ellip"] = LowPassFilter_Ellip
     FunctionLibrary["HighPassFilter_Ellip"] = HighPassFilter_Ellip
+
+    FunctionLibrary["ClipSignal"] = ClipSignal
 
 except ImportError:
     pass

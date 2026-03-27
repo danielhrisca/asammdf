@@ -524,6 +524,10 @@ def compute_signal(
 
                         found_args.append(arg)
                         break
+                    elif name.lower() == "none":
+                        signals.append(None)
+                        found_args.append(arg)
+                        break
                     else:
                         found_numeric = False
                         for base in (10, 16, 2):
@@ -552,13 +556,13 @@ def compute_signal(
 
             triggering = description.get("triggering", "triggering_on_all")
             if triggering == "triggering_on_all":
-                timestamps = [sig.timestamps for sig in signals if not isinstance(sig, (int, float))]
+                timestamps = [sig.timestamps for sig in signals if sig is not None and not isinstance(sig, (int, float))]
 
                 if timestamps:
                     common_timebase = reduce(np.union1d, timestamps)
                 else:
                     common_timebase = all_timebase
-                signals = [sig.interp(common_timebase) if not isinstance(sig, (int, float)) else sig for sig in signals]
+                signals = [sig.interp(common_timebase) if sig is not None and not isinstance(sig, (int, float)) else sig for sig in signals]
 
             elif triggering == "triggering_on_channel":
                 triggering_channel = description["triggering_value"]
@@ -567,13 +571,13 @@ def compute_signal(
                     common_timebase = measured_signals[triggering_channel].timestamps
                 else:
                     common_timebase = np.array([])
-                signals = [sig.interp(common_timebase) if not isinstance(sig, (int, float)) else sig for sig in signals]
+                signals = [sig.interp(common_timebase) if sig is not None and not isinstance(sig, (int, float)) else sig for sig in signals]
             else:
                 step = float(description["triggering_value"])
 
                 common_timebase = []
                 for signal in signals:
-                    if isinstance(signal, (int, float)):
+                    if signal is None or isinstance(signal, (int, float)):
                         continue
 
                     if len(signal):
@@ -592,13 +596,13 @@ def compute_signal(
                 else:
                     common_timebase = np.array([])
 
-                signals = [sig.interp(common_timebase) if not isinstance(sig, (int, float)) else sig for sig in signals]
+                signals = [sig.interp(common_timebase) if sig is not None and not isinstance(sig, (int, float)) else sig for sig in signals]
 
             if not isinstance(common_timebase, np.ndarray):
                 common_timebase = np.array(common_timebase)
 
             for i, (signal, arg_name) in enumerate(zip(signals, found_args, strict=False)):
-                if isinstance(signal, (int, float)):
+                if signal is None or isinstance(signal, (int, float)):
                     value = signal
                     signals[i] = Signal(
                         name=arg_name, samples=np.full(len(common_timebase), value), timestamps=common_timebase
