@@ -4885,6 +4885,8 @@ class PlotGraphics(pg.PlotWidget):
                         elif max_ == float("inf"):
                             max_ = min_ + 1
 
+                        min_, max_ = float(min_), float(max_)
+
                         if min_ == max_:
                             min_, max_ = min_ - 1, max_ + 1
 
@@ -4976,6 +4978,9 @@ class PlotGraphics(pg.PlotWidget):
                             min_ = max_ - 1
                         elif max_ == float("inf"):
                             max_ = min_ + 1
+
+
+                        min_, max_ = float(min_), float(max_)
 
                         if min_ == max_:
                             min_, max_ = min_ - 1, max_ + 1

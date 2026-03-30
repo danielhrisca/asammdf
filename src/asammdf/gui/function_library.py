@@ -296,7 +296,7 @@ try:
     def ClipSignal(signal=0, lower=0, upper=100, t=0):
         """
         Clip the signal to the lower and upper limits.
-        This function can only be used both complete and sample by sample modes.
+        This function can be used both complete and sample by sample modes.
 
         Parameters
         ----------
