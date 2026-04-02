@@ -5346,7 +5346,7 @@ class PlotGraphics(pg.PlotWidget):
         if not self._can_paint or not self._can_paint_global:
             return
 
-        event_rect = ev.rect()
+        event_rect = self.viewbox.sceneBoundingRect()
 
         super().paintEvent(ev)
 
@@ -5355,7 +5355,9 @@ class PlotGraphics(pg.PlotWidget):
         if self._pixmap is None:
             self._grid_pixmap = None
 
-            _pixmap = QtGui.QPixmap(ceil(ceil(event_rect.width()) * ratio), ceil(ceil(event_rect.height()) * ratio))
+            rect = event_rect
+
+            _pixmap = QtGui.QPixmap(ceil(ceil(rect.width()) * ratio), ceil(ceil(rect.height()) * ratio))
             _pixmap.fill(QtCore.Qt.transparent)
 
             paint = QtGui.QPainter()
