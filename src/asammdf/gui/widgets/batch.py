@@ -31,7 +31,7 @@ from .tree_item import MinimalTreeItem, TreeItem
 
 class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
-    processing_executed = QtCore.Signal()
+    processing_executed = QtCore.Signal(str)
 
     def __init__(
         self,
@@ -276,7 +276,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
     def scramble_finished(self):
         self._progress = None
-        self.processing_executed.emit()
+        self.processing_executed.emit("scramble")
 
     def scramble(self, event):
         count = self.files_list.count()
@@ -300,7 +300,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             self.output_info_bus.setPlainText("\n".join(message))
         self._progress = None
-        self.processing_executed.emit()
+        self.processing_executed.emit("extract_bus_logging")
 
     def extract_bus_logging(self, event):
         version = self.extract_bus_format.currentText()
@@ -439,7 +439,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.output_info_bus.setPlainText("\n".join(message))
 
         self._progress = None
-        self.processing_executed.emit()
+        self.processing_executed.emit("extract_bus_csv_logging")
 
     def extract_bus_csv_logging(self, event):
         version = self.extract_bus_format.currentText()
@@ -677,7 +677,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 self,
             ).exec()
         self._progress = None
-        self.processing_executed.emit()
+        self.processing_executed.emit("concatenate")
 
     def concatenate(self, event=None):
         count = self.files_list.count()
@@ -841,7 +841,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 self,
             ).exec()
         self._progress = None
-        self.processing_executed.emit()
+        self.processing_executed.emit("stack")
 
     def stack(self, event):
         count = self.files_list.count()
@@ -1361,7 +1361,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 self,
             ).exec()
         self._progress = None
-        self.processing_executed.emit()
+        self.processing_executed.emit("modify_and_export")
 
     def apply_processing(self, event):
         opts = self._current_options()
