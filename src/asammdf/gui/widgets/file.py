@@ -120,6 +120,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     open_new_files = QtCore.Signal(object)
     full_screen_toggled = QtCore.Signal()
     display_file_modified = QtCore.Signal(str)
+    processing_executed = QtCore.Signal()
 
     def __init__(
         self,
@@ -1932,6 +1933,7 @@ MultiRasterSeparator;&
             self.open_new_files.emit([str(path.with_suffix(f".scrambled{path.suffix}"))])
 
         self._progress = None
+        self.processing_executed.emit()
 
     def scramble(self, event):
         self._progress = setup_progress(parent=self)
@@ -1971,6 +1973,7 @@ MultiRasterSeparator;&
             ).exec()
 
         self._progress = None
+        self.processing_executed.emit()
 
     def extract_bus_logging(self, event):
         version = self.extract_bus_format.currentText()
@@ -2117,6 +2120,7 @@ MultiRasterSeparator;&
 
 
         self._progress = None
+        self.processing_executed.emit()
 
     def extract_bus_csv_logging(self, event):
         version = self.extract_bus_format.currentText()
@@ -2929,6 +2933,7 @@ MultiRasterSeparator;&
             ).exec()
 
         self._progress = None
+        self.processing_executed.emit()
 
     def apply_processing_thread(self, file_name, opts, version, needs_filter, channels, progress=None):
         output_format = opts.output_format
