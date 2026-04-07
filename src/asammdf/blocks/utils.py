@@ -2052,6 +2052,7 @@ if sys.platform == 'win32':
 
 def validate_blocks(blocks: list[DataBlockInfo], record_size: int) -> bool:
     location = None
+    size = 0
     for block in blocks:
         if location is None:
             location = block.location
@@ -2060,5 +2061,10 @@ def validate_blocks(blocks: list[DataBlockInfo], record_size: int) -> bool:
         
         if block.original_size % record_size or block.invalidation_block is not None:
             return False
+        
+        size += block.original_size
 
-    return True
+    if size < 200 * 1024 * 1024:
+        return False
+    else:
+        return True
