@@ -6,14 +6,17 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>828</width>
+    <width>1073</width>
     <height>718</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout_9" columnstretch="2,1">
+  <layout class="QVBoxLayout" name="verticalLayout_6">
+   <property name="spacing">
+    <number>1</number>
+   </property>
    <property name="leftMargin">
     <number>1</number>
    </property>
@@ -26,13 +29,22 @@
    <property name="bottomMargin">
     <number>1</number>
    </property>
-   <property name="spacing">
-    <number>1</number>
-   </property>
-   <item row="1" column="0">
+   <item>
     <widget class="QSplitter" name="splitter">
+     <property name="frameShape">
+      <enum>QFrame::Shape::NoFrame</enum>
+     </property>
+     <property name="lineWidth">
+      <number>3</number>
+     </property>
+     <property name="midLineWidth">
+      <number>1</number>
+     </property>
      <property name="orientation">
       <enum>Qt::Orientation::Horizontal</enum>
+     </property>
+     <property name="childrenCollapsible">
+      <bool>false</bool>
      </property>
      <widget class="QTabWidget" name="aspects">
       <property name="tabPosition">
@@ -52,7 +64,7 @@
        <attribute name="title">
         <string>Concatenate</string>
        </attribute>
-       <layout class="QGridLayout" name="gridLayout_7" columnstretch="0,1">
+       <layout class="QGridLayout" name="gridLayout_7" columnstretch="0,1,0">
         <property name="leftMargin">
          <number>1</number>
         </property>
@@ -68,13 +80,67 @@
         <property name="spacing">
          <number>1</number>
         </property>
-        <item row="0" column="0" colspan="2">
-         <widget class="QCheckBox" name="concatenate_sync">
+        <item row="2" column="1" colspan="2">
+         <widget class="QComboBox" name="concatenate_format"/>
+        </item>
+        <item row="6" column="0">
+         <widget class="QLabel" name="label_10">
           <property name="text">
-           <string>Sync using measurements timestamps</string>
+           <string>Split size </string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_11">
+          <property name="text">
+           <string>Output format</string>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="1">
+         <spacer name="verticalSpacer_4">
+          <property name="orientation">
+           <enum>Qt::Orientation::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>2</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="6" column="1" colspan="2">
+         <widget class="QDoubleSpinBox" name="concatenate_split_size">
+          <property name="suffix">
+           <string>MB</string>
+          </property>
+          <property name="maximum">
+           <double>4.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item row="7" column="0" colspan="3">
+         <widget class="Line" name="line_6">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QCheckBox" name="concatenate_split">
+          <property name="text">
+           <string>Split data blocks</string>
           </property>
           <property name="checked">
            <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="0">
+         <widget class="QLabel" name="label_12">
+          <property name="text">
+           <string>Compression</string>
           </property>
          </widget>
         </item>
@@ -88,68 +154,27 @@
           </property>
          </widget>
         </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="label_11">
+        <item row="0" column="0" colspan="2">
+         <widget class="QCheckBox" name="concatenate_sync">
           <property name="text">
-           <string>Output format</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="1">
-         <widget class="QComboBox" name="concatenate_format"/>
-        </item>
-        <item row="3" column="0" colspan="2">
-         <widget class="Line" name="line_5">
-          <property name="orientation">
-           <enum>Qt::Orientation::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item row="4" column="0">
-         <widget class="QLabel" name="label_12">
-          <property name="text">
-           <string>Compression</string>
-          </property>
-         </widget>
-        </item>
-        <item row="4" column="1">
-         <widget class="QComboBox" name="concatenate_compression"/>
-        </item>
-        <item row="5" column="0">
-         <widget class="QCheckBox" name="concatenate_split">
-          <property name="text">
-           <string>Split data blocks</string>
+           <string>Sync using measurements timestamps</string>
           </property>
           <property name="checked">
            <bool>true</bool>
           </property>
          </widget>
         </item>
-        <item row="7" column="0" colspan="2">
-         <widget class="Line" name="line_6">
+        <item row="4" column="1" colspan="2">
+         <widget class="QComboBox" name="concatenate_compression"/>
+        </item>
+        <item row="3" column="0" colspan="3">
+         <widget class="Line" name="line_5">
           <property name="orientation">
            <enum>Qt::Orientation::Horizontal</enum>
           </property>
          </widget>
         </item>
-        <item row="6" column="1">
-         <widget class="QDoubleSpinBox" name="concatenate_split_size">
-          <property name="suffix">
-           <string>MB</string>
-          </property>
-          <property name="maximum">
-           <double>4.000000000000000</double>
-          </property>
-         </widget>
-        </item>
-        <item row="6" column="0">
-         <widget class="QLabel" name="label_10">
-          <property name="text">
-           <string>Split size </string>
-          </property>
-         </widget>
-        </item>
-        <item row="9" column="1">
+        <item row="10" column="2">
          <widget class="QPushButton" name="concatenate_btn">
           <property name="text">
            <string>Concatenate</string>
@@ -160,15 +185,15 @@
           </property>
          </widget>
         </item>
-        <item row="8" column="1">
-         <spacer name="verticalSpacer_4">
+        <item row="10" column="1">
+         <spacer name="horizontalSpacer_2">
           <property name="orientation">
-           <enum>Qt::Orientation::Vertical</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
-            <width>20</width>
-            <height>2</height>
+            <width>40</width>
+            <height>20</height>
            </size>
           </property>
          </spacer>
@@ -212,7 +237,7 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>517</width>
+             <width>715</width>
              <height>706</height>
             </rect>
            </property>
@@ -1259,7 +1284,7 @@
        <attribute name="title">
         <string>Stack</string>
        </attribute>
-       <layout class="QGridLayout" name="gridLayout_8" columnstretch="0,1">
+       <layout class="QGridLayout" name="gridLayout_8" columnstretch="0,1,0">
         <property name="leftMargin">
          <number>1</number>
         </property>
@@ -1275,13 +1300,10 @@
         <property name="spacing">
          <number>1</number>
         </property>
-        <item row="0" column="0" colspan="2">
-         <widget class="QCheckBox" name="stack_sync">
+        <item row="4" column="0">
+         <widget class="QLabel" name="label_25">
           <property name="text">
-           <string>Sync using measurements timestamps</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
+           <string>Compression</string>
           </property>
          </widget>
         </item>
@@ -1295,64 +1317,10 @@
           </property>
          </widget>
         </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="label_26">
-          <property name="text">
-           <string>Output format</string>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="1">
-         <widget class="QComboBox" name="stack_format"/>
-        </item>
-        <item row="3" column="0" colspan="2">
-         <widget class="Line" name="line_8">
-          <property name="orientation">
-           <enum>Qt::Orientation::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item row="4" column="0">
-         <widget class="QLabel" name="label_25">
-          <property name="text">
-           <string>Compression</string>
-          </property>
-         </widget>
-        </item>
-        <item row="4" column="1">
-         <widget class="QComboBox" name="stack_compression"/>
-        </item>
-        <item row="5" column="0">
-         <widget class="QCheckBox" name="stack_split">
-          <property name="text">
-           <string>Split data blocks</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
         <item row="6" column="0">
          <widget class="QLabel" name="label_23">
           <property name="text">
            <string>Split size </string>
-          </property>
-         </widget>
-        </item>
-        <item row="6" column="1">
-         <widget class="QDoubleSpinBox" name="stack_split_size">
-          <property name="suffix">
-           <string>MB</string>
-          </property>
-          <property name="maximum">
-           <double>4.000000000000000</double>
-          </property>
-         </widget>
-        </item>
-        <item row="7" column="0" colspan="2">
-         <widget class="Line" name="line_7">
-          <property name="orientation">
-           <enum>Qt::Orientation::Horizontal</enum>
           </property>
          </widget>
         </item>
@@ -1369,7 +1337,34 @@
           </property>
          </spacer>
         </item>
-        <item row="9" column="1">
+        <item row="0" column="0" colspan="2">
+         <widget class="QCheckBox" name="stack_sync">
+          <property name="text">
+           <string>Sync using measurements timestamps</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QCheckBox" name="stack_split">
+          <property name="text">
+           <string>Split data blocks</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_26">
+          <property name="text">
+           <string>Output format</string>
+          </property>
+         </widget>
+        </item>
+        <item row="9" column="2">
          <widget class="QPushButton" name="stack_btn">
           <property name="text">
            <string>Stack</string>
@@ -1377,6 +1372,49 @@
           <property name="icon">
            <iconset resource="resource.qrc">
             <normaloff>:/stack.png</normaloff>:/stack.png</iconset>
+          </property>
+         </widget>
+        </item>
+        <item row="9" column="1">
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item row="2" column="1" colspan="2">
+         <widget class="QComboBox" name="stack_format"/>
+        </item>
+        <item row="4" column="1" colspan="2">
+         <widget class="QComboBox" name="stack_compression"/>
+        </item>
+        <item row="3" column="0" colspan="3">
+         <widget class="Line" name="line_8">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="6" column="1" colspan="2">
+         <widget class="QDoubleSpinBox" name="stack_split_size">
+          <property name="suffix">
+           <string>MB</string>
+          </property>
+          <property name="maximum">
+           <double>4.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item row="7" column="0" colspan="3">
+         <widget class="Line" name="line_7">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
          </widget>
         </item>
@@ -1416,7 +1454,7 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>517</width>
+             <width>715</width>
              <height>706</height>
             </rect>
            </property>
@@ -1855,59 +1893,82 @@
        </layout>
       </widget>
      </widget>
-    </widget>
-   </item>
-   <item row="1" column="1">
-    <layout class="QVBoxLayout" name="list_layout">
-     <property name="spacing">
-      <number>1</number>
-     </property>
-     <item>
-      <widget class="QLabel" name="label_16">
-       <property name="text">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The channels from the first measurement will be used in the Modifi &amp;amp; Export tab&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-       </property>
-       <property name="textFormat">
-        <enum>Qt::TextFormat::RichText</enum>
-       </property>
-       <property name="wordWrap">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="MinimalListWidget" name="files_list"/>
-     </item>
-     <item>
-      <layout class="QVBoxLayout" name="verticalLayout_3">
+     <widget class="QWidget" name="layoutWidget">
+      <layout class="QVBoxLayout" name="list_layout">
        <property name="spacing">
         <number>1</number>
        </property>
        <item>
-        <widget class="QPushButton" name="sort_by_start_time_btn">
+        <widget class="QLabel" name="label_16">
          <property name="text">
-          <string>Sort by start time</string>
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The channels from the first measurement will be used in the Modifi &amp;amp; Export tab&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
          </property>
-         <property name="icon">
-          <iconset resource="resource.qrc">
-           <normaloff>:/clock.png</normaloff>:/clock.png</iconset>
+         <property name="textFormat">
+          <enum>Qt::TextFormat::RichText</enum>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="sort_alphabetically_btn">
-         <property name="text">
-          <string>Sort alphabetically</string>
-         </property>
-         <property name="icon">
-          <iconset resource="resource.qrc">
-           <normaloff>:/alphabetical_sorting.png</normaloff>:/alphabetical_sorting.png</iconset>
-         </property>
-        </widget>
+        <widget class="MinimalListWidget" name="files_list"/>
+       </item>
+       <item>
+        <layout class="QGridLayout" name="gridLayout_4">
+         <item row="0" column="0">
+          <spacer name="horizontalSpacer_4">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item row="0" column="1">
+          <widget class="QPushButton" name="sort_by_start_time_btn">
+           <property name="text">
+            <string>Sort by start time</string>
+           </property>
+           <property name="icon">
+            <iconset resource="resource.qrc">
+             <normaloff>:/clock.png</normaloff>:/clock.png</iconset>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QPushButton" name="sort_alphabetically_btn">
+           <property name="text">
+            <string>Sort alphabetically</string>
+           </property>
+           <property name="icon">
+            <iconset resource="resource.qrc">
+             <normaloff>:/alphabetical_sorting.png</normaloff>:/alphabetical_sorting.png</iconset>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <spacer name="horizontalSpacer_6">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
        </item>
       </layout>
-     </item>
-    </layout>
+     </widget>
+    </widget>
    </item>
   </layout>
  </widget>

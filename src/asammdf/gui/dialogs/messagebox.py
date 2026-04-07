@@ -110,6 +110,17 @@ This message will be closed in {self.timeout}s
         self.timer.timeout.connect(self.tick)
         self.timer.start(1000)
 
+        for window in QtGui.QGuiApplication.topLevelWindows():
+            if hasattr(window, "flags"):
+                flags = window.flags()
+            else:
+                flags = window.windowFlags()
+                
+            if (flags & QtCore.Qt.WindowFlags.SplashScreen) == QtCore.Qt.WindowFlags.SplashScreen:
+                print('closing', window, flags)
+                print(int(flags), int(QtCore.Qt.WindowFlags.SplashScreen), flags & QtCore.Qt.WindowFlags.SplashScreen)
+                window.close()
+
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key.Key_F1:
             self.timer.stop()

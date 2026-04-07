@@ -29,7 +29,7 @@ from ..utils import (
 from .tree_item import MinimalTreeItem
 
 NOT_FOUND = 0xFFFFFFFF
-MINIMUM_COLUMN_WIDTH = 20
+MINIMUM_COLUMN_WIDTH = 30
 
 
 def substitude_mime_uuids(mime, uuid=None, force=False, random_uuid=False):
@@ -203,6 +203,36 @@ def get_data(plot, items, uuids_only=False):
                 data.append(channel)
 
     return data
+
+
+def round_floats(obj, decimals=10):
+    
+    if isinstance(obj, dict):
+        new = {}
+        for key, val in obj.items():
+            if isinstance(val, dict | list | tuple):
+                new[key] = round_floats(val, decimals)
+            else:
+                if isinstance(val, float):
+                    val = round(val, decimals)
+                new[key] = val
+
+    elif isinstance(obj, tuple | float):
+        new = []
+        for val in obj:
+            if isinstance(val, dict | list | tuple):
+                new.append(round_floats(val, decimals))
+            else:
+                if isinstance(val, float):
+                    val = round(val, decimals)
+                new.append(val)
+
+    else:
+        new = obj
+        if isinstance(new, float):
+            new = round(new, decimals)
+
+    return new
 
 
 class TreeWidget(QtWidgets.QTreeWidget):
@@ -1280,7 +1310,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if dlg.pressed_button == "apply":
                 conversion = dlg.conversion()
 
-                is_original_conversion = to_dict(original_conversion) == to_dict(conversion)
+                is_original_conversion = round_floats(to_dict(original_conversion)) == round_floats(to_dict(conversion))
 
                 for item in selected_items:
                     if item.type() in (
@@ -1808,6 +1838,12 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             width = max(width, MINIMUM_COLUMN_WIDTH)
             super().setColumnWidth(column, width)
 
+    def setColumnHidden(self, column, hidden):
+        if column in (self.ValueColumn, self.NameColumn):
+            super().setColumnHidden(column, False)
+        else:
+            super().setColumnHidden(column, hidden)
+
     def set_font_size(self, size):
         font = self.font()
         font.setPointSize(size)
@@ -1833,6 +1869,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             col = getattr(self, name, -1)
             if col == -1:
                 continue
+            elif name in ("NameColumn", "ValueColumn"):
+                is_visible = True
 
             self.setColumnHidden(col, not is_visible)
 
@@ -1841,6 +1879,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             col = getattr(self, name, -1)
             if col == -1:
                 continue
+            elif name in ("NameColumn", "ValueColumn"):
+                size = max(size, 50)
 
             self.setColumnWidth(col, size)
 
@@ -2427,6 +2467,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             self.signal.text_conversion = None
 
+            self.signal._min = self.signal._max = None
+
             if self.signal.conversion:
                 samples = self.signal.conversion.convert(self.signal.samples, as_bytes=True)
                 if samples.dtype.kind not in "SUV":
@@ -2684,6 +2726,14 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                         text = f"{self._value_prefix}{text}"
                     else:
                         text = f"{self._value_prefix}{value}"
+                        string = value_as_str(
+                            value,
+                            self.format,
+                            self.signal.plot_samples.dtype,
+                            self.precision,
+                        )
+
+                        text = f"{self._value_prefix}{string}"
 
                 else:
                     string = value_as_str(

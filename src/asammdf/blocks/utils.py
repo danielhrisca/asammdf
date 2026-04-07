@@ -5,6 +5,7 @@ from functools import lru_cache
 import logging
 import mmap
 import multiprocessing
+import os
 from pathlib import Path
 from random import randint
 import re
@@ -12,7 +13,7 @@ import string
 from struct import Struct
 import subprocess
 import sys
-from tempfile import TemporaryDirectory
+from tempfile import gettempdir, NamedTemporaryFile, TemporaryDirectory
 from time import perf_counter
 from types import TracebackType
 import typing
@@ -46,27 +47,13 @@ from .blocks_common import UnpackFrom
 from .options import GLOBAL_OPTIONS
 from .types import StrPath
 
-try:
-    from cchardet import detect
-except:
-    try:
-        from chardet import detect
-    except:
-
-        class DetectDict(TypedDict):
-            encoding: str | None
-
-        def detect(text: bytes) -> DetectDict:
-            encoding: str | None
-            for encoding in ("utf-8", "latin-1", "cp1250", "cp1252"):
-                try:
-                    text.decode(encoding)
-                    break
-                except:
-                    continue
-            else:
-                encoding = None
-            return {"encoding": encoding}
+try: 
+    from isal.isal_zlib import decompress as zlib_decompress
+except ImportError:
+    from zlib import decompress as zlib_decompress
+from chardet import detect
+from lz4.frame import decompress as lz_decompress
+from zstd import decompress as zstd_decompress
 
 
 class Terminated(Exception):
@@ -75,7 +62,7 @@ class Terminated(Exception):
 
 
 THREAD_COUNT: Final = max(multiprocessing.cpu_count() - 1, 1)
-target_byte_order: Final = "<=" if sys.byteorder == "little" else ">="
+target_byte_order: Final = "<=|" if sys.byteorder == "little" else ">=|"
 
 
 UINT8_u: Callable[[Buffer], tuple[int]] = Struct("<B").unpack
@@ -132,11 +119,21 @@ MERGE: Final = interp(CHANNEL_COUNT, _channel_count, _merge).astype("<u4")
 
 MDF2_VERSIONS: Final[tuple[LiteralString, ...]] = ("2.00", "2.10", "2.14")
 MDF3_VERSIONS: Final[tuple[LiteralString, ...]] = ("3.00", "3.10", "3.20", "3.30")
-MDF4_VERSIONS: Final[tuple[LiteralString, ...]] = ("4.00", "4.10", "4.11", "4.20")
+MDF4_VERSIONS: Final[tuple[LiteralString, ...]] = ("4.00", "4.10", "4.11", "4.20", "4.30")
 SUPPORTED_VERSIONS: Final = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 
-
 ALLOWED_MATLAB_CHARS: Final = set(string.ascii_letters + string.digits + "_")
+
+DECOMPRESS_FUNC_MAP = {
+    # data block type
+    v4c.DT_BLOCK: lambda x: x,
+    v4c.DZ_BLOCK_DEFLATE: zlib_decompress,
+    v4c.DZ_BLOCK_TRANSPOSED: zlib_decompress,
+    v4c.DZ_BLOCK_LZ: lz_decompress,
+    v4c.DZ_BLOCK_LZ_TRANSPOSED: lz_decompress,
+    v4c.DZ_BLOCK_ZSTD:zstd_decompress,
+    v4c.DZ_BLOCK_ZSTD_TRANSPOSED: zstd_decompress,
+}
 
 
 class MdfException(Exception):
@@ -372,7 +369,7 @@ def get_text_v4(
 
     if mapped:
         if address + 16 > file_limit:
-            handle_incomplete_block(address)
+            handle_incomplete_block(address, file_limit)
             return "" if decode else b""
 
         block_id, size = BLK_COMMON_uf(stream, address)
@@ -380,13 +377,13 @@ def get_text_v4(
             return "" if decode else b""
 
         if (end_of_string := address + size) > file_limit:
-            handle_incomplete_block(address)
+            handle_incomplete_block(address, file_limit)
             return "" if decode else b""
 
         text_bytes = stream[address + 24 : end_of_string].split(b"\0", 1)[0].strip(b" \r\t\n")
     else:
         if address + 24 > file_limit:
-            handle_incomplete_block(address)
+            handle_incomplete_block(address, file_limit)
             return "" if decode else b""
         stream.seek(address)
         block_id, size = BLK_COMMON_u(stream.read(24))
@@ -394,7 +391,7 @@ def get_text_v4(
             return "" if decode else b""
 
         if address + size > file_limit:
-            handle_incomplete_block(address)
+            handle_incomplete_block(address, file_limit)
             return "" if decode else b""
 
         text_bytes = stream.read(size - 24).split(b"\0", 1)[0].strip(b" \r\t\n")
@@ -1467,6 +1464,7 @@ class DataBlockInfo:
         "first_timestamp",
         "invalidation_block",
         "last_timestamp",
+        "location",
         "original_size",
         "param",
     )
@@ -1482,16 +1480,18 @@ class DataBlockInfo:
         block_limit: int | None = None,
         first_timestamp: bytes | None = None,
         last_timestamp: bytes | None = None,
+        location: int = v4c.LOCATION_ORIGINAL_FILE,
     ) -> None:
         self.address = address
         self.block_type = block_type
         self.original_size = original_size
         self.compressed_size = compressed_size
-        self.param = param
+        self.param = param or 0
         self.invalidation_block = invalidation_block
         self.block_limit = block_limit
         self.first_timestamp = first_timestamp
         self.last_timestamp = last_timestamp
+        self.location = location
 
     def __repr__(self) -> str:
         return (
@@ -1503,7 +1503,8 @@ class DataBlockInfo:
             f"invalidation_block={self.invalidation_block}, "
             f"block_limit={self.block_limit}, "
             f"first_timestamp={self.first_timestamp!r}, "
-            f"last_timestamp={self.last_timestamp!r})"
+            f"last_timestamp={self.last_timestamp!r},"
+            f"location={self.location!r})"
         )
 
 
@@ -1885,6 +1886,7 @@ class SignalFlags:
     computed = 0x20
     virtual = 0x40
     virtual_master = 0x80
+    scale_axis = 0x100
 
 
 _Params = ParamSpec("_Params")
@@ -1940,14 +1942,129 @@ class Timer:
             print(f"TIMER {self.name}:\n\t* inactive")
 
 
-def handle_incomplete_block(address: int, file: StrPath | None = None) -> None:
+def handle_incomplete_block(address: int, file_limit: int, file: StrPath | None = None) -> None:
     if file is None:
         file = "The file"
     else:
         file = Path(file).name
 
-    msg = f"Incomplete block at 0x{address:x} exceeds the file size. {file} might be corrupted or partially written."
+    msg = f"Incomplete block at 0x{address:x} exceeds the file size 0x{file_limit:x}. {file} might be corrupted or partially written."
     logger.warning(msg)
 
     if GLOBAL_OPTIONS["raise_on_incomplete_blocks"]:
         raise MdfException(msg)
+
+
+if sys.platform == 'win32':
+    class NamedTemporaryFile:
+        def __init__(self, mode='w+b', dir=None):
+            if dir is None:
+                self.dir = Path(gettempdir())
+            else:
+                self.dir = Path(dir)
+
+            self.name = str(self.dir / os.urandom(6).hex())
+            self.mode = 'w+b'
+            self.file = os.open(self.name, os.O_CREAT | os.O_RDWR | os.O_BINARY | os.O_RANDOM)
+            self._closed = False
+
+        def close(self):
+            os.close(self.file)
+            self._closed = True
+            Path(self.name).unlink()
+        
+        def closed(self):
+            return self._closed
+        
+        def fileno(self):
+            return self.file
+        
+        def flush(self):
+            return os.fsync(self.file)
+        
+        def isatty(self):
+            return os.isatty(self.file)
+        
+        def __iter__(self):
+            while byte := os.read(self.file, 1):
+                yield byte
+        
+        def peek(self, size=0):
+            pos = self.tell()
+            data = os.read(self.file, size)
+            self.seek(pos)
+            return data
+        
+        @property
+        def raw(self):
+            return None
+        
+        def read(self, size=-1):
+            if size == -1:
+                pos = self.tell()
+                self.seek(0, os.SEEK_END)
+                size = self.tell()-pos
+                self.seek(pos)
+
+            return os.read(self.file, size)
+        
+        def read1(self):
+            return os.read(self.file, 1)
+        
+        def readable(self):
+            return True
+        
+        def readinto(self, buffer):
+            buffer[:] = self.read()
+        
+        def readinto1(self, buffer):
+            buffer[:1] = self.read1()
+        
+        def readline(self):
+            return b''
+        
+        def readlines(self):
+            return []
+        
+        def seek(self, target, whence=os.SEEK_SET):
+            return os.lseek(self.file, target, whence)
+        
+        def seekable(self):
+            return True
+        
+        def tell(self):
+            return os.lseek(self.file, 0, os.SEEK_CUR)
+        
+        def truncate(self, length=None):
+            if length is not None:
+                return os.ftruncate(self.file, length)
+        
+        def writeable(self):
+            return True
+        
+        def write(self, buffer):
+            return os.write(self.file, buffer)
+        
+        def writelines(self, lines):
+            for line in lines:
+                return os.write(self.file, line)
+    
+
+def validate_blocks(blocks: list[DataBlockInfo], record_size: int) -> bool:
+    location = None
+    size = 0
+    for block in blocks:
+        if location is None:
+            location = block.location
+        elif location != block.location:
+            return False
+        
+        if block.original_size % record_size or block.invalidation_block is not None:
+            return False
+        
+        size += block.original_size
+
+    if size < 200 * 1024 * 1024:
+        return False
+    else:
+        return True

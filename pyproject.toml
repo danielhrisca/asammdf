@@ -34,19 +34,22 @@ keywords = [
     "measurement",
 ]
 dependencies = [
+    "chardet>=7.0.0",
     "canmatrix[arxml,dbc]>=1.2",
     "isal; platform_machine == 'x86_64' or platform_machine == 'AMD64'",
+    "deflate; platform_machine == 'x86_64' or platform_machine == 'AMD64'",
     "lxml>=4.9.3",
     "lz4",
     "numexpr>=2.10.0",
     "numpy>=2.0.0",
     "pandas>=2.2.2",
     "python-dateutil",
-    "typing-extensions~=4.10",
+    "typing-extensions>=4.10",
+    "zstd",
 ]
 
 [project.optional-dependencies]
-decode = ["faust-cchardet==2.1.19", "chardet"]
+decode = ["chardet>=7.0.0"]
 export = [
     "pyarrow>=17.0.0",
     "h5py>=3.11",
@@ -76,6 +79,7 @@ Issues = "https://github.com/danielhrisca/asammdf/issues"
 Source = "https://github.com/danielhrisca/asammdf"
 
 [tool.scikit-build]
+cmake.version = ">=3.26,<4.2"
 metadata.version.provider = "scikit_build_core.metadata.regex"
 metadata.version.input = "src/asammdf/version.py"
 sdist.include = ["ext"]
@@ -107,7 +111,6 @@ strict = true
 [[tool.mypy.overrides]]
 module = [
     "canmatrix.*",
-    "cchardet.*",
     "cmerg.*",
     "fsspec.*",
     "h5py.*",

@@ -9,6 +9,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QTreeWidgetItemIterator
 
 from asammdf import mdf
+from asammdf.gui.function_library import FunctionLibrary
 from asammdf.gui.widgets.plot import PlotGraphics
 from test.asammdf.gui.test_base import Pixmap, safe_setup
 from test.asammdf.gui.widgets.test_BasePlotWidget import TestPlotWidget
@@ -1222,6 +1223,8 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
         self.assertEqual(0, self.plot.channel_selection.topLevelItemCount())
 
         with self.subTest("_0_test_warning_no_user_function_defined"):
+            func_lib = {**FunctionLibrary}
+            FunctionLibrary.clear()
             warnings_msgs = [
                 "Cannot add computed channel",
                 "There is no user defined function. Create new function using the Functions Manger (F6)",
@@ -1235,6 +1238,8 @@ class TestPlotGraphicsShortcuts(TestPlotWidget):
             mo_waring.assert_called()
             for w in warnings_msgs:
                 self.assertIn(w, mo_waring.call_args.args)
+
+            FunctionLibrary.update(func_lib)
 
         with self.subTest("_1_test_cancel_dlg_with_user_function_defined"):
             file_name = "test_insert_cfg.dspf"

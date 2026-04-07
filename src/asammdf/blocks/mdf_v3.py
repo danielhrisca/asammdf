@@ -11,7 +11,6 @@ import mmap
 import os
 from pathlib import Path
 import sys
-from tempfile import NamedTemporaryFile
 import time
 from traceback import format_exc
 import typing
@@ -61,6 +60,7 @@ from .utils import (
     get_text_v3,
     is_file_like,
     MdfException,
+    NamedTemporaryFile,
     Terminated,
     UniqueDB,
     validate_version_argument,
@@ -241,6 +241,8 @@ class MDF3(MDF_Common[Group]):
         self._delete_on_close = False
 
         progress = kwargs.get("progress", None)
+
+        self._mapped_file = None 
 
         super().__init__(kwargs.get("raise_on_multiple_occurrences", GLOBAL_OPTIONS["raise_on_multiple_occurrences"]))
 
@@ -1308,7 +1310,7 @@ class MDF3(MDF_Common[Group]):
             cc_block = conversion_transfer(signal.conversion)
             cc_block.unit = unit = signal.unit
 
-            israw = signal.raw
+            israw = bool(signal.conversion) 
 
             if not israw and not unit:
                 conversion = None
@@ -1642,6 +1644,7 @@ class MDF3(MDF_Common[Group]):
                             compressed_size=size,
                             block_type=0,
                             param=0,
+                            location=1,
                         )
                     )
                 else:
@@ -2030,6 +2033,7 @@ class MDF3(MDF_Common[Group]):
                             compressed_size=size,
                             block_type=0,
                             param=0,
+                            location=1,
                         )
                     )
                 else:
@@ -2084,6 +2088,7 @@ class MDF3(MDF_Common[Group]):
                     original_size=size,
                     compressed_size=size,
                     param=0,
+                    location=1,
                 )
             )
 
@@ -2331,6 +2336,7 @@ class MDF3(MDF_Common[Group]):
                     original_size=size,
                     compressed_size=size,
                     param=0,
+                    location=1,
                 )
             )
         else:
@@ -2513,6 +2519,7 @@ class MDF3(MDF_Common[Group]):
                             compressed_size=extended_size,
                             block_type=0,
                             param=0,
+                            location=1,
                         )
                     )
 
@@ -2564,6 +2571,7 @@ class MDF3(MDF_Common[Group]):
                     original_size=extended_size,
                     compressed_size=extended_size,
                     param=0,
+                    location=1,
                 )
             )
 
@@ -3148,7 +3156,6 @@ class MDF3(MDF_Common[Group]):
                 name=channel.name,
                 comment=comment,
                 conversion=conversion,
-                raw=raw,
                 master_metadata=master_metadata,
                 display_names=display_names,
                 source=source,
@@ -3719,6 +3726,7 @@ class MDF3(MDF_Common[Group]):
                         original_size=size,
                         compressed_size=size,
                         param=0,
+                        location=1,
                     )
                     data_blocks[rec_id] = [block_info]
 

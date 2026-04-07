@@ -8,6 +8,7 @@ def _cmd_line_parser():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--measurements", nargs="*", help="list of measurement files")
+    parser.add_argument("--reset", action="store_true", help="reset all the settings")
     return parser
 
 
@@ -24,7 +25,7 @@ def main(measurements=None):
         sys.path.insert(0, alternative_sitepacakges)
 
     import pyqtgraph
-    from PySide6 import QtWidgets
+    from PySide6 import QtCore, QtWidgets
 
     from asammdf.gui.utils import excepthook, set_app_user_model_id
     from asammdf.gui.widgets.main import MainWindow
@@ -41,6 +42,9 @@ def main(measurements=None):
     app.setOrganizationDomain("py-asammdf")
     app.setApplicationName("py-asammdf")
     set_app_user_model_id("py-asammdf")
+
+    if args.reset:
+        QtCore.QSettings().clear()
 
     _main_window = MainWindow(measurements or args.measurements)
     app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))

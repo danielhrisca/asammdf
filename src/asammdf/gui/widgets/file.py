@@ -120,6 +120,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     open_new_files = QtCore.Signal(object)
     full_screen_toggled = QtCore.Signal()
     display_file_modified = QtCore.Signal(str)
+    processing_executed = QtCore.Signal(str)
 
     def __init__(
         self,
@@ -309,7 +310,24 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAsNeeded)
             self.splitter.addWidget(self.mdi_area)
 
+            self.channel_search_update_timer = QtCore.QTimer(self)
+            self.channel_search_update_timer.setSingleShot(True)
+            self.channel_search_update_timer.setInterval(200) # ms delay
+            self.channel_search_update_timer.timeout.connect(partial(self._update_inline_search, widget=self.channels_tree))
+            self.channels_search_name.textChanged.connect(self.channel_search_update_timer.start)
+            self.channels_search_name.pattern = None
+            self.channels_search_bus.textChanged.connect(self.channel_search_update_timer.start)
+            self.channels_search_bus.pattern = None
             self.channels_tree.itemDoubleClicked.connect(self.show_info)
+
+            self.filter_search_update_timer = QtCore.QTimer(self)
+            self.filter_search_update_timer.setSingleShot(True)
+            self.filter_search_update_timer.setInterval(200) # ms delay
+            self.filter_search_update_timer.timeout.connect(partial(self._update_inline_search, widget=self.filter_tree))
+            self.filter_search_name.textChanged.connect(self.filter_search_update_timer.start)
+            self.filter_search_name.pattern = None
+            self.filter_search_bus.textChanged.connect(self.filter_search_update_timer.start)
+            self.filter_search_bus.pattern = None
             self.filter_tree.itemDoubleClicked.connect(self.show_info)
 
             self.channel_view.setCurrentIndex(-1)
@@ -465,13 +483,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         databases = {}
 
-        can_databases = self._settings.value("can_databases", [])
+        can_databases = self._settings.value("can_databases", []) or []
         buses = can_databases[::2]
         dbs = can_databases[1::2]
 
         databases["CAN"] = list(zip(buses, dbs, strict=False))
 
-        lin_databases = self._settings.value("lin_databases", [])
+        lin_databases = self._settings.value("lin_databases", []) or []
         buses = lin_databases[::2]
         dbs = lin_databases[1::2]
 
@@ -534,6 +552,49 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         for widget in widgetList:
             self._update_channel_tree(widget=widget)
 
+    def _update_inline_search(self, widget=None):
+        # Move all regex logic here
+        # Mark search bar as red if regex is not valid
+        # If both are valid, then parse and call _update_channel_tree
+        if widget is self.channels_tree:
+            search_name = self.channels_search_name
+            search_bus = self.channels_search_bus
+        else:
+            search_name = self.filter_search_name
+            search_bus = self.filter_search_bus
+        do_update = True
+
+        valid_text_color = QtGui.QPalette()
+        valid_text_color.setColor(QtGui.QPalette.Text, QtCore.Qt.white)
+        error_text_color = QtGui.QPalette()
+        error_text_color.setColor(QtGui.QPalette.Text, QtCore.Qt.red)
+        try:
+            name_pattern = ".*" + search_name.text().strip() + ".*"
+            if name_pattern.islower():
+                name_pattern = re.compile(name_pattern, re.IGNORECASE)
+            else:
+                name_pattern = re.compile(name_pattern)
+            search_name.pattern = name_pattern
+            search_name.setPalette(valid_text_color)
+        except re.error:
+            search_name.setPalette(error_text_color)
+            do_update = False
+
+        try:
+            bus_pattern = ".*" + search_bus.text().strip() + ".*"
+            if bus_pattern.islower():
+                bus_pattern = re.compile(bus_pattern, re.IGNORECASE)
+            else:
+                bus_pattern = re.compile(bus_pattern)
+            search_bus.pattern = bus_pattern
+            search_bus.setPalette(valid_text_color)
+        except re.error:
+            search_bus.setPalette(error_text_color)
+            do_update = False
+
+        if do_update:
+            self._update_channel_tree(widget=widget)
+
     def _update_channel_tree(self, index=None, widget=None, force=False):
         if widget is None:
             widget = self.channels_tree
@@ -544,6 +605,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 return
 
         view = self.channel_view if widget is self.channels_tree else self.filter_view
+        search_name = self.channels_search_name if widget is self.channels_tree else self.filter_search_name
+        search_bus = self.channels_search_bus if widget is self.channels_tree else self.filter_search_bus
 
         iterator = QtWidgets.QTreeWidgetItemIterator(widget)
         signals = set()
@@ -567,12 +630,21 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         widget.mode = view.currentText()
 
         if widget.mode == "Natural sort":
+            search_name.setVisible(True)
+            search_bus.setVisible(True)
+
             items = []
             for i, group in enumerate(self.mdf.groups):
                 for j, ch in enumerate(group.channels):
                     entry = i, j
 
-                    channel = MinimalTreeItem(entry, ch.name, strings=[ch.name], origin_uuid=self.uuid)
+                    if search_name.pattern and not search_name.pattern.search(ch.name):
+                        continue
+                    bus = group.channel_group.acq_source.path or "None"
+                    if search_bus.pattern and not search_bus.pattern.search(bus):
+                        continue
+
+                    channel = MinimalTreeItem(entry, ch.name, strings=[f"{ch.name} —— {bus:<10}"], origin_uuid=self.uuid)
                     channel.setToolTip(0, f"{ch.name} @ group {i}, index {j}")
 
                     if entry in signals:
@@ -589,8 +661,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             widget.addTopLevelItems(items)
 
         elif widget.mode == "Internal file structure":
-            items = []
+            search_name.setVisible(False)
+            search_bus.setVisible(False)
 
+            items = []
             for i, group in enumerate(self.mdf.groups):
                 entry = i, 0xFFFFFFFFFFFFFFFF
 
@@ -663,6 +737,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             widget.addTopLevelItems(items)
 
         else:
+            # widget.mode == "Selected channels only"
+            search_name.setVisible(False)
+            search_bus.setVisible(False)
+
             items = []
             for entry in signals:
                 gp_index, ch_index = entry
@@ -907,11 +985,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         )
 
                         if window_type == "New plot window":
-                            self.add_window(["Plot", signals])
+                            self.add_window(["Plot", signals, True])
                         elif window_type == "New numeric window":
-                            self.add_window(["Numeric", signals])
+                            self.add_window(["Numeric", signals, True])
                         elif window_type == "New tabular window":
-                            self.add_window(["Tabular", signals])
+                            self.add_window(["Tabular", signals, True])
                         else:
                             for mdi in self.mdi_area.subWindowList():
                                 if mdi.windowTitle() == window_type:
@@ -1276,14 +1354,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.loaded_display_file = file_name, worker.hexdigest()
 
         else:
-            extension = None
+            extension = ".dict"
             info = file_name
             channels = info.get("selected_channels", [])
             self.loaded_display_file = Path(info.get("display_file_name", "")), b""
-
-            self.functions.update(info.get("functions", {}))
-            self.global_variables = f"{self.global_variables}\n{info.get('global_variables', '')}"
-            self.global_variables = "\n".join([line for line in self.global_variables.splitlines() if line])
 
         if channels:
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
@@ -1315,7 +1389,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.clear_windows()
 
-        if extension in (".dspf", ".dsp"):
+        if extension in (".dspf", ".dsp", ".dict"):
+            new_global_vars = "\n".join(line.strip() for line in info.get('global_variables', '').splitlines() if line.strip())
+            global_vars = "\n".join(line.strip() for line in self.global_variables.splitlines() if line.strip())
+
+            if new_global_vars not in global_vars:
+                global_vars += new_global_vars
+                updated_global_vars = True
+            else:
+                updated_global_vars = False
+
             new_functions = {}
 
             if "functions" in info:
@@ -1348,8 +1431,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                     "definition": definition,
                                 }
 
-            if new_functions or info.get("global_variables", "") != self.global_variables:
-                self.update_functions({}, new_functions, f"{self.global_variables}\n{info.get('global_variables', '')}")
+            if new_functions or updated_global_vars:
+                self.update_functions({}, new_functions, global_vars)
 
         windows = info.get("windows", [])
         errors = {}
@@ -1656,7 +1739,7 @@ MultiRasterSeparator;&
 
             if windows:
                 unsaved = False
-                
+
                 if hexdigest:
                     worker = md5()
                     try:
@@ -1848,6 +1931,7 @@ MultiRasterSeparator;&
             self.open_new_files.emit([str(path.with_suffix(f".scrambled{path.suffix}"))])
 
         self._progress = None
+        self.processing_executed.emit("scramble")
 
     def scramble(self, event):
         self._progress = setup_progress(parent=self)
@@ -1878,8 +1962,16 @@ MultiRasterSeparator;&
 
             self.output_info_bus.setPlainText("\n".join(message))
             self.open_new_files.emit([str(file_name)])
+        else:
+            ErrorDialog(
+                "Extract bus logging failed",
+                "The bus logging extraction failed",
+                self._progress.error[-1],
+                self,
+            ).exec()
 
         self._progress = None
+        self.processing_executed.emit("extract_bus_logging")
 
     def extract_bus_logging(self, event):
         version = self.extract_bus_format.currentText()
@@ -2016,8 +2108,17 @@ MultiRasterSeparator;&
             message = self._progress.output
 
             self.output_info_bus.setPlainText("\n".join(message))
+        else:
+            ErrorDialog(
+                "Extract bus logging to CSV failed",
+                "The bus logging extraction to CSV failed",
+                self._progress.error[-1],
+                self,
+            ).exec()
+
 
         self._progress = None
+        self.processing_executed.emit("extract_bus_csv_logging")
 
     def extract_bus_csv_logging(self, event):
         version = self.extract_bus_format.currentText()
@@ -2821,7 +2922,16 @@ MultiRasterSeparator;&
         )
 
     def apply_processing_finished(self):
+        if self._progress.error:
+            ErrorDialog(
+                "File processing failed",
+                "The file processing commands failed",
+                self._progress.error[-1],
+                self,
+            ).exec()
+
         self._progress = None
+        self.processing_executed.emit("modify_and_export")
 
     def apply_processing_thread(self, file_name, opts, version, needs_filter, channels, progress=None):
         output_format = opts.output_format

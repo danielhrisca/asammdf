@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from hashlib import md5
 import inspect
 import logging
+import pathlib
 from pathlib import Path
 import re
 from struct import pack, unpack, unpack_from
@@ -23,6 +24,8 @@ from numexpr import evaluate
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from typing_extensions import Any, Buffer, overload, SupportsBytes, TypedDict, Unpack
+from zstd import compress as zstd_compress
+from zstd import decompress as zstd_decompress
 
 from .. import tool
 from . import v4_constants as v4c
@@ -44,24 +47,25 @@ from .utils import (
     UINT64_uf,
 )
 
-try:
-    from zstd import compress as zstd_compress
-    from zstd import decompress as zstd_decompress
-except:
-    pass
+COMPRESSION_LEVEL = 1
+AT_COMPRESSION_LEVEL = 9
 
 try:
-    from isal.isal_zlib import compress, decompress
-
-    COMPRESSION_LEVEL = 2
+    from deflate import zlib_compress as compress
+    from deflate import zlib_decompress
+    
+    def decompress(data, bufsize):
+        return zlib_decompress(data, originalsize=bufsize)
 
 except ImportError:
-    from zlib import (  # type: ignore[assignment, no-redef, unused-ignore]
-        compress,
-        decompress,
-    )
+    try:
+        from isal.isal_zlib import compress, decompress
 
-    COMPRESSION_LEVEL = 1
+    except ImportError:
+        from zlib import (  # type: ignore[assignment, no-redef, unused-ignore]
+            compress,
+            decompress,
+        )
 
 try:
     from sympy import lambdify, symbols
@@ -116,6 +120,7 @@ class AttachmentBlockKwargs(BlockKwargs, total=False):
     embedded: bool
     creator_index: int
     file_limit: int | float
+    compression_type: str
 
 
 class AttachmentBlock:
@@ -173,20 +178,29 @@ class AttachmentBlock:
         "embedded_size",
         "file_name",
         "file_name_addr",
+        "file_name_zip",
+        "file_name_zip_addr",
         "flags",
         "id",
         "links_nr",
         "md5_sum",
         "mime",
         "mime_addr",
+        "mime_zip",
+        "mime_zip_addr",
         "next_at_addr",
         "original_size",
+        "path_syntax",
         "reserved0",
         "reserved1",
+        "zip_type",
     )
 
     def __init__(self, **kwargs: Unpack[AttachmentBlockKwargs]) -> None:
         self.file_name = self.mime = self.comment = ""
+
+        self.file_name_zip_addr = self.mime_zip_addr = 0
+        self.file_name_zip = self.mime_zip = ""
 
         try:
             self.address = address = kwargs["address"]
@@ -196,59 +210,52 @@ class AttachmentBlock:
             file_limit = kwargs["file_limit"]
 
             if address + v4c.AT_COMMON_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
-            if mapped:
-                (
-                    self.id,
-                    self.reserved0,
-                    self.block_len,
-                    self.links_nr,
-                    self.next_at_addr,
-                    self.file_name_addr,
-                    self.mime_addr,
-                    self.comment_addr,
-                    self.flags,
-                    self.creator_index,
-                    self.reserved1,
-                    self.md5_sum,
-                    self.original_size,
-                    self.embedded_size,
-                ) = v4c.AT_COMMON_uf(stream, address)
+            stream.seek(address)
 
-                if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
-                    raise KeyError
+            (
+                self.id,
+                self.reserved0,
+                self.block_len,
+                self.links_nr,
+            ) = v4c.COMMON_u(stream.read(v4c.COMMON_SIZE))
 
-                address += v4c.AT_COMMON_SIZE
+            links = unpack(f'<{self.links_nr}Q', stream.read(self.links_nr * 8))
 
-                self.embedded_data = stream[address : address + self.embedded_size]
-            else:
-                stream.seek(address)
+            (   
+                self.next_at_addr,
+                self.file_name_addr,
+                self.mime_addr,
+                self.comment_addr, 
+                *links
+            ) = links
 
-                (
-                    self.id,
-                    self.reserved0,
-                    self.block_len,
-                    self.links_nr,
-                    self.next_at_addr,
-                    self.file_name_addr,
-                    self.mime_addr,
-                    self.comment_addr,
-                    self.flags,
-                    self.creator_index,
-                    self.reserved1,
-                    self.md5_sum,
-                    self.original_size,
-                    self.embedded_size,
-                ) = v4c.AT_COMMON_u(stream.read(v4c.AT_COMMON_SIZE))
+            (
+                self.flags,
+                self.creator_index,
+                self.zip_type,
+                self.path_syntax,
+                self.reserved1,
+                self.md5_sum,
+                self.original_size,
+                self.embedded_size
+            ) = v4c.AT_TAIL_u(stream.read(v4c.AT_TAIL_SIZE))
 
-                if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
-                    raise KeyError
+            if self.flags & v4c.FLAG_AT_ZIP_FILE_NAME_VALID:
+                self.file_name_zip_addr = links.pop(0)
+                self.file_name_zip = get_text_v4(self.file_name_zip_addr, stream, file_limit=file_limit)
 
-                self.embedded_data = stream.read(self.embedded_size)
+            if self.flags & v4c.FLAG_AT_ZIP_MIME_TYPE_VALID:
+                self.mime_zip_addr = links.pop(0)
+                self.mime_zip = get_text_v4(self.mime_zip_addr, stream, file_limit=file_limit)
+
+            if address + self.block_len > file_limit:
+                handle_incomplete_block(address, file_limit)
+                raise KeyError
+
+            self.embedded_data = stream.read(self.embedded_size)
 
             if self.id != b"##AT":
                 message = f'Expected "##AT" block @{hex(address)} but found "{self.id!r}"'
@@ -268,10 +275,12 @@ class AttachmentBlock:
             self.mime = kwargs.get("mime", "")
 
             file_name = Path(kwargs.get("file_name", None) or "bin.bin")
+            self.zip_type = self.path_syntax = 0
 
             data = kwargs.get("data", b"")
             original_size = embedded_size = len(data)
             compression = kwargs.get("compression", False)
+            compression_type = kwargs.get("compression_type", "deflate")
             embedded = kwargs.get("embedded", False)
 
             md5_sum = md5(data).digest()
@@ -280,10 +289,33 @@ class AttachmentBlock:
             if embedded:
                 flags |= v4c.FLAG_AT_EMBEDDED
                 if compression:
-                    flags |= v4c.FLAG_AT_COMPRESSED_EMBEDDED
-                    data = compress(data, COMPRESSION_LEVEL)
-                    embedded_size = len(data)
+                    match compression_type:
+                        case "deflate":
+
+                            flags |= v4c.FLAG_AT_COMPRESSED_EMBEDDED 
+                            data = compress(data, AT_COMPRESSION_LEVEL)
+                            embedded_size = len(data)
+
+                            self.zip_type = v4c.AT_ZIP_TYPE_DEFLATE
+
+                        case "zstd":
+                            flags |= v4c.FLAG_AT_GENERAL_COMPRESSED_EMBEDDED
+                            data = zstd_compress(data, AT_COMPRESSION_LEVEL)
+                            embedded_size = len(data)
+
+                            self.zip_type = v4c.AT_ZIP_TYPE_ZSTD
+                            self.path_syntax = ord(pathlib.os.sep)
+
+                        case "lz4":
+                            flags |= v4c.FLAG_AT_GENERAL_COMPRESSED_EMBEDDED  
+                            data = lz_compress(data, AT_COMPRESSION_LEVEL)
+                            embedded_size = len(data)
+
+                            self.zip_type = v4c.AT_ZIP_TYPE_LZ4
+                            self.path_syntax = ord(pathlib.os.sep) 
+
                 self.file_name = file_name.name
+
 
             else:
                 self.file_name = str(file_name)
@@ -293,6 +325,7 @@ class AttachmentBlock:
             self.id = b"##AT"
             self.reserved0 = 0
             self.block_len = v4c.AT_COMMON_SIZE + embedded_size
+
             self.links_nr = 4
             self.next_at_addr = 0
             self.file_name_addr = 0
@@ -314,8 +347,14 @@ class AttachmentBlock:
         data : bytes
         """
         if self.flags & v4c.FLAG_AT_EMBEDDED:
-            if self.flags & v4c.FLAG_AT_COMPRESSED_EMBEDDED:
-                data = typing.cast(bytes, decompress(self.embedded_data, bufsize=self.original_size))  # type: ignore[redundant-cast, unused-ignore]
+            if self.flags & v4c.FLAG_AT_COMPRESSED_EMBEDDED or self.flags & v4c.FLAG_AT_GENERAL_COMPRESSED_EMBEDDED:
+                match self.zip_type:
+                    case v4c.AT_ZIP_TYPE_DEFLATE:
+                        data = typing.cast(bytes, decompress(self.embedded_data, bufsize=self.original_size))  # type: ignore[redundant-cast, unused-ignore]
+                    case v4c.AT_ZIP_TYPE_ZSTD:
+                        data = typing.cast(bytes, zstd_decompress(self.embedded_data))  # type: ignore[redundant-cast, unused-ignore]
+                    case v4c.AT_ZIP_TYPE_LZ4:
+                        data = typing.cast(bytes, lz_decompress(self.embedded_data))  # type: ignore[redundant-cast, unused-ignore]
             else:
                 data = self.embedded_data
 
@@ -378,6 +417,34 @@ class AttachmentBlock:
         else:
             self.comment_addr = 0
 
+        text = self.file_name_zip
+        if text:
+            if text in defined_texts:
+                self.file_name_zip_addr = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=str(text))
+                self.file_name_zip_addr = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block.block_len
+                blocks.append(tx_block)
+        else:
+            self.file_name_zip_addr = 0
+
+        text = self.mime_zip
+        if text:
+            if text in defined_texts:
+                self.mime_zip_addr = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=str(text))
+                self.mime_zip_addr = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block.block_len
+                blocks.append(tx_block)
+        else:
+            self.mime_zip_addr = 0
+
         blocks.append(self)
         self.address = address
         address += self.block_len
@@ -396,8 +463,37 @@ class AttachmentBlock:
         setattr(self, item, value)
 
     def __bytes__(self) -> bytes:
-        fmt = f"{v4c.FMT_AT_COMMON}{self.embedded_size}s"
-        result = pack(fmt, *[self[key] for key in v4c.KEYS_AT_BLOCK])
+        fmt = f'<4sI{self.links_nr + 2}Q2H2BH16s2Q{self.embedded_size}s'
+        keys = (
+            'id', 
+            'reserved0', 
+            'block_len', 
+            'links_nr', 
+            'next_at_addr',
+            'file_name_addr',
+            'mime_addr',
+            'comment_addr'
+        )
+
+        if self.flags & v4c.FLAG_AT_ZIP_FILE_NAME_VALID:
+            keys = (*keys, 'file_name_zip_addr')
+
+        if self.flags & v4c.FLAG_AT_ZIP_MIME_TYPE_VALID:
+            keys = (*keys, 'mime_zip_addr')
+
+        keys = keys + (
+            'flags',
+            'creator_index',
+            'zip_type',
+            'path_syntax',
+            'reserved1',
+            'md5_sum',
+            'original_size',
+            'embedded_size',
+            'embedded_data'
+        )
+
+        result = pack(fmt, *[self[key] for key in keys])
         return result
 
     def __repr__(self) -> str:
@@ -523,6 +619,7 @@ class Channel:
         "attachment",
         "attachment_addr",
         "attachment_nr",
+        "axes",
         "bit_count",
         "bit_offset",
         "block_len",
@@ -533,6 +630,7 @@ class Channel:
         "component_addr",
         "conversion",
         "conversion_addr",
+        "conversions",
         "data_block_addr",
         "data_type",
         "default_X_cg_addr",
@@ -561,12 +659,14 @@ class Channel:
         "sync_type",
         "unit",
         "unit_addr",
+        "units",
         "upper_ext_limit",
         "upper_limit",
     )
 
     def __init__(self, **kwargs: Unpack[ChannelKwargs]) -> None:
         self.dtype_fmt: np.dtype[Any] = np.dtype(np.void)
+        self.axes = self.conversions = self.units = None
 
         if "stream" in kwargs:
             self.address = address = kwargs["address"]
@@ -576,14 +676,14 @@ class Channel:
             file_limit = kwargs["file_limit"]
 
             if address + COMMON_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 if self.id != b"##CN":
@@ -760,13 +860,13 @@ class Channel:
                             conv = cc_map[address]
                         else:
                             if address + 16 > file_limit:
-                                handle_incomplete_block(address)
+                                handle_incomplete_block(address, file_limit)
                                 raise MdfException(f"Incomplete block at {address:x}")
 
                             (size,) = UINT64_uf(stream, address + 8)
 
                             if address + size > file_limit:
-                                handle_incomplete_block(address)
+                                handle_incomplete_block(address, file_limit)
                                 raise MdfException(f"Incomplete block at {address:x}")
 
                             raw_bytes = stream[address : address + size]
@@ -802,7 +902,7 @@ class Channel:
                             source = si_map[address]
                         else:
                             if address + v4c.SI_BLOCK_SIZE > file_limit:
-                                handle_incomplete_block(address)
+                                handle_incomplete_block(address, file_limit)
                                 raise MdfException(f"Incomplete block at {address:x}")
 
                             raw_bytes = stream[address : address + v4c.SI_BLOCK_SIZE]
@@ -833,7 +933,7 @@ class Channel:
                 stream.seek(address)
 
                 if address + CN_SINGLE_ATTACHMENT_BLOCK_SIZE > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 block = stream.read(CN_SINGLE_ATTACHMENT_BLOCK_SIZE)
@@ -841,7 +941,7 @@ class Channel:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(block)
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 if self.id != b"##CN":
@@ -1013,14 +1113,14 @@ class Channel:
                             conv = cc_map[address]
                         else:
                             if address + 16 > file_limit:
-                                handle_incomplete_block(address)
+                                handle_incomplete_block(address, file_limit)
                                 raise MdfException(f"Incomplete block at {address:x}")
 
                             stream.seek(address + 8)
                             (size,) = UINT64_u(stream.read(8))
 
                             if address + size > file_limit:
-                                handle_incomplete_block(address)
+                                handle_incomplete_block(address, file_limit)
                                 raise MdfException(f"Incomplete block at {address:x}")
 
                             stream.seek(address)
@@ -1054,7 +1154,7 @@ class Channel:
                             source = si_map[address]
                         else:
                             if address + v4c.SI_BLOCK_SIZE > file_limit:
-                                handle_incomplete_block(address)
+                                handle_incomplete_block(address, file_limit)
                                 raise MdfException(f"Incomplete block at {address:x}")
 
                             stream.seek(address)
@@ -1538,6 +1638,8 @@ class ChannelArrayBlockKwargs(BlockKwargs, total=False):
     flags: int
     byte_offset_base: int
     invalidation_bit_base: int
+    file_limit : int | float
+    cc_map: dict[bytes | int, "ChannelConversion"]
 
 
 class ChannelArrayBlock(_ChannelArrayBlockBase):
@@ -1547,8 +1649,6 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
     * ``address`` - int : array block address
     * ``axis_channels`` - list : list of (group index, channel index)
       pairs referencing the axis of this array block
-    * ``axis_conversions`` - list : list of ChannelConversion or None
-      for each axis of this array block
     * ``dynamic_size_channels`` - list : list of (group index, channel index)
       pairs referencing the axis dynamic size of this array block
     * ``input_quantity_channels`` - list : list of (group index, channel index)
@@ -1565,7 +1665,6 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
         self.input_quantity_channels: list[tuple[int, int] | None] = []
         self.output_quantity_channel: tuple[int, int] | None = None
         self.comparison_quantity_channel: tuple[int, int] | None = None
-        self.axis_conversions: list[ChannelConversion | None] = []
 
         try:
             self.address = address = kwargs["address"]
@@ -1573,6 +1672,13 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             stream = kwargs["stream"]
 
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
+
+            cc_map = kwargs["cc_map"]
+            file_limit = kwargs["file_limit"]
+
+            if address + COMMON_SIZE > file_limit:
+                handle_incomplete_block(address, file_limit)
+                raise KeyError
 
             if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
@@ -1646,7 +1752,43 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 
                 if self.flags & v4c.FLAG_CA_AXIS:
                     for i in range(dims_nr):
-                        self[f"axis_conversion_{i}"] = links[i]
+                        address = links[i]
+                        self[f"axis_conversion_{i}_addr"] = address
+
+                        if address:
+                    
+                            if address in cc_map:
+                                conv = cc_map[address]
+                            else:
+                                if address + 16 > file_limit:
+                                    handle_incomplete_block(address, file_limit)
+                                    raise MdfException(f"Incomplete block at {address:x}")
+
+                                (size,) = UINT64_uf(stream, address + 8)
+
+                                if address + size > file_limit:
+                                    handle_incomplete_block(address, file_limit)
+                                    raise MdfException(f"Incomplete block at {address:x}")
+
+                                raw_bytes = stream[address : address + size]
+
+                                if raw_bytes in cc_map:
+                                    conv = cc_map[raw_bytes]
+                                else:
+                                    conv = ChannelConversion(
+                                        raw_bytes=raw_bytes,
+                                        stream=stream,
+                                        address=address,
+                                        mapped=mapped,
+                                        
+                                        file_limit=file_limit,
+                                    )
+                                    cc_map[raw_bytes] = cc_map[address] = conv
+                        else:
+                            conv = None
+
+                        self[f"axis_conversion_{i}"] = conv
+
                     links = links[dims_nr:]
 
                 if (self.flags & v4c.FLAG_CA_AXIS) and not (self.flags & v4c.FLAG_CA_FIXED_AXIS):
@@ -1730,9 +1872,50 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                     links = links[3:]
 
                 if self.flags & v4c.FLAG_CA_AXIS:
+                    current_address = stream.tell()
                     for i in range(dims_nr):
-                        self[f"axis_conversion_{i}"] = links[i]
+                        address = links[i]
+                        self[f"axis_conversion_{i}_addr"] = address
+
+                        if address:
+
+                            if address in cc_map:
+                                conv = cc_map[address]
+                            else:
+                                if address + 16 > file_limit:
+                                    handle_incomplete_block(address, file_limit)
+                                    raise MdfException(f"Incomplete block at {address:x}")
+                                
+                                stream.seek(address + 8)
+
+                                (size,) = UINT64_uf(stream.read(8))
+
+                                if address + size > file_limit:
+                                    handle_incomplete_block(address, file_limit)
+                                    raise MdfException(f"Incomplete block at {address:x}")
+
+                                stream.seek(address)
+                                raw_bytes = stream.read(size)
+
+                                if raw_bytes in cc_map:
+                                    conv = cc_map[raw_bytes]
+                                else:
+                                    conv = ChannelConversion(
+                                        raw_bytes=raw_bytes,
+                                        stream=stream,
+                                        address=address,
+                                        mapped=mapped,
+                                        file_limit=file_limit,
+                                    )
+                                    cc_map[raw_bytes] = cc_map[address] = conv
+                        else:
+                            conv = None
+
+                        self[f"axis_conversion_{i}"] = conv
+                    
                     links = links[dims_nr:]
+
+                    stream.seek(current_address)
 
                 if (self.flags & v4c.FLAG_CA_AXIS) and not (self.flags & v4c.FLAG_CA_FIXED_AXIS):
                     for i in range(dims_nr):
@@ -1779,6 +1962,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                 self.byte_offset_base = kwargs.get("byte_offset_base", 1)
                 self.invalidation_bit_base = kwargs.get("invalidation_bit_base", 0)
                 self.dim_size_0 = kwargs["dim_size_0"]
+
             elif ca_type == v4c.CA_TYPE_LOOKUP:
                 flags = kwargs["flags"]
                 dims_nr = kwargs["dims"]
@@ -1788,7 +1972,8 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                     self.links_nr = 1 + dims_nr
                     self.composition_addr = 0
                     for i in range(dims_nr):
-                        self[f"axis_conversion_{i}"] = 0
+                        self[f"axis_conversion_{i}_addr"] = 0
+                        self[f"axis_conversion_{i}"] = kwargs.get(f"axis_conversion_{i}", None)
                     self.ca_type = v4c.CA_TYPE_LOOKUP
                     self.storage = v4c.CA_STORAGE_TYPE_CN_TEMPLATE
                     self.dims = dims_nr
@@ -1805,7 +1990,8 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                     self.links_nr = 1 + dims_nr * 4
                     self.composition_addr = 0
                     for i in range(dims_nr):
-                        self[f"axis_conversion_{i}"] = 0
+                        self[f"axis_conversion_{i}_addr"] = 0
+                        self[f"axis_conversion_{i}"] = kwargs.get(f"axis_conversion_{i}", None)
                     for i in range(dims_nr):
                         self[f"scale_axis_{i}_dg_addr"] = 0
                         self[f"scale_axis_{i}_cg_addr"] = 0
@@ -1884,7 +2070,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             )
 
         if flags & v4c.FLAG_CA_AXIS:
-            keys += tuple(f"axis_conversion_{i}" for i in range(dims_nr))
+            keys += tuple(f"axis_conversion_{i}_addr" for i in range(dims_nr))
 
         if (flags & v4c.FLAG_CA_AXIS) and not (flags & v4c.FLAG_CA_FIXED_AXIS):
             for i in range(dims_nr):
@@ -1919,6 +2105,49 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 
         result = pack(fmt, *[getattr(self, key) for key in keys])
         return result
+    
+    def get_axes_information(self) -> list:
+        axes = []
+
+        for i in range(self.dims):
+            info = {}
+
+            match self.ca_type:
+                case v4c.CA_TYPE_ARRAY:
+                    info['type'] = "NO_AXIS"
+                    info['size'] = typing.cast(int, self[f"dim_size_{i}"])
+
+                case v4c.CA_TYPE_SCALE_AXIS:
+                    info['type'] = "SCALE_AXIS"
+                    info['size'] = typing.cast(int, self[f"dim_size_{i}"])
+
+                case _:
+        
+                    if self.flags & v4c.FLAG_CA_FIXED_AXIS:
+
+                        info['type'] = "FIXED_AXIS"
+                        info['size'] = typing.cast(int, self[f"dim_size_{i}"])
+                        info['values'] = [self[f"axis_{i}_value_{j}"] for j in range(typing.cast(int, self[f"dim_size_{i}"]))]
+                    
+                    else:
+
+                        info['type'] = "REF_AXIS"
+                        info['size'] = typing.cast(int, self[f"dim_size_{i}"])
+                        info['ref'] = self.axis_channels[i]
+                        info['ref_name'] = ''
+
+            if self.flags & v4c.FLAG_CA_AXIS:
+                info['conversion'] = self[f"axis_conversion_{i}"]
+            else:
+                info['conversion'] = None
+
+            info['inverse_layout'] = self.flags & v4c.FLAG_CA_INVERSE_LAYOUT
+            info['byte_offset_base'] = self.byte_offset_base
+            info['dtype_field_name'] = ""
+
+            axes.append(info)
+        
+        return axes
 
     def get_byte_offset_factors(self) -> list[int]:
         """Return a list of factors f(d), used to calculate byte offset."""
@@ -1933,19 +2162,40 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
     def _factors(self, base: int) -> list[int]:
         factor = base
         factors = [factor]
-        # column oriented layout
-        if self.flags & v4c.FLAG_CA_INVERSE_LAYOUT:
-            for i in range(1, self.dims):
-                factor *= typing.cast(int, self[f"dim_size_{i - 1}"])
-                factors.append(factor)
+
+        for i in range(1, self.dims):
+            factor *= typing.cast(int, self[f"dim_size_{i - 1}"])
+            factors.append(factor)
 
         # row oriented layout
-        else:
-            for i in range(self.dims - 2, -1, -1):
-                factor *= typing.cast(int, self[f"dim_size_{i + 1}"])
-                factors.insert(0, factor)
+        if not (self.flags & v4c.FLAG_CA_INVERSE_LAYOUT):
+            factors = factors[::-1]
 
         return factors
+    
+    def to_blocks(
+        self,
+        address: int,
+        blocks: list[bytes | SupportsBytes],
+        defined_texts: dict[bytes | str, int],
+        cc_map: dict[bytes | int, int],
+    ) -> int:
+        if self.flags & v4c.FLAG_CA_AXIS:
+            for i in range(self.dims):
+
+                conversion = self[f"axis_conversion_{i}"]
+                if conversion:
+                    address = conversion.to_blocks(address, blocks, defined_texts, cc_map)
+                    self[f"axis_conversion_{i}_addr"] = conversion.address
+                else:
+                    self[f"axis_conversion_{i}_addr"] = 0
+
+        blocks.append(self)
+
+        self.address = address
+        address += self.block_len
+
+        return address
 
 
 class ChannelGroupKwargs(BlockKwargs, total=False):
@@ -2047,14 +2297,14 @@ class ChannelGroup:
             file_limit = kwargs["file_limit"]
 
             if address + COMMON_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 if self.block_len == v4c.CG_BLOCK_SIZE:
@@ -2103,7 +2353,7 @@ class ChannelGroup:
                 ) = v4c.COMMON_u(stream.read(COMMON_SIZE))
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 if self.block_len == v4c.CG_BLOCK_SIZE:
@@ -2571,7 +2821,7 @@ class ChannelConversion(_ChannelConversionBase):
             file_limit = kwargs["file_limit"]
 
             if address + COMMON_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             try:
@@ -2579,7 +2829,7 @@ class ChannelConversion(_ChannelConversionBase):
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(tx_block)
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 if self.id != b"##CC":
@@ -2595,7 +2845,7 @@ class ChannelConversion(_ChannelConversionBase):
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(stream.read(COMMON_SIZE))
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError from None
 
                 if self.id != b"##CC":
@@ -2907,7 +3157,7 @@ class ChannelConversion(_ChannelConversionBase):
                         address = typing.cast(int, self[f"text_{i}"])
                         if address:
                             if address + 4 > file_limit:
-                                handle_incomplete_block(address)
+                                handle_incomplete_block(address, file_limit)
                                 refs[f"text_{i}"] = b""
                                 continue
 
@@ -2944,7 +3194,7 @@ class ChannelConversion(_ChannelConversionBase):
                         address = self.default_addr
                         if address:
                             if address + 4 > file_limit:
-                                handle_incomplete_block(address)
+                                handle_incomplete_block(address, file_limit)
                                 refs["default_addr"] = b""
                             else:
                                 stream.seek(address)
@@ -4677,14 +4927,14 @@ class DataBlock:
             file_limit = kwargs["file_limit"]
 
             if address + COMMON_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 if self.id not in (b"##DT", b"##RD", b"##SD", b"##DV", b"##DI"):
@@ -4699,7 +4949,7 @@ class DataBlock:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(stream.read(COMMON_SIZE))
 
                 if address + self.block_len > file_limit:
-                    handle_incomplete_block(address)
+                    handle_incomplete_block(address, file_limit)
                     raise KeyError
 
                 if self.id not in (b"##DT", b"##RD", b"##SD", b"##DV", b"##DI"):
@@ -4732,6 +4982,7 @@ class DataBlock:
 
 
 class DataZippedBlockKwargs(BlockKwargs, total=False):
+    compression_level: int
     data: bytes | bytearray
     original_type: bytes
     zip_type: int
@@ -4778,6 +5029,7 @@ class DataZippedBlock:
         "_transposed",
         "address",
         "block_len",
+        "compression_level",
         "data",
         "id",
         "links_nr",
@@ -4795,6 +5047,7 @@ class DataZippedBlock:
         self.data: bytes | bytearray
         self._prevent_data_setitem = True
         self._transposed = False
+        self.compression_level = kwargs.get("compression_level", COMPRESSION_LEVEL)
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
@@ -4802,7 +5055,7 @@ class DataZippedBlock:
             file_limit = kwargs["file_limit"]
 
             if address + v4c.DZ_COMMON_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             stream.seek(address)
@@ -4827,7 +5080,7 @@ class DataZippedBlock:
                 raise MdfException(message)
 
             if address + self.block_len > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             self.data = stream.read(self.zip_size)
@@ -4846,7 +5099,7 @@ class DataZippedBlock:
             self.original_type = kwargs.get("original_type", b"DT")
             self.zip_type = kwargs.get("zip_type", v4c.FLAG_DZ_DEFLATE)
             self.reserved1 = 0
-            if self.zip_type == v4c.FLAG_DZ_DEFLATE:
+            if self.zip_type in (v4c.FLAG_DZ_DEFLATE, v4c.FLAG_DZ_ZSTD, v4c.FLAG_DZ_LZ4):
                 self.param = 0
             else:
                 self.param = kwargs["param"]
@@ -4866,16 +5119,14 @@ class DataZippedBlock:
             compress_func: Callable[[Buffer, int], bytes]
             if self.zip_type in (v4c.FLAG_DZ_DEFLATE, v4c.FLAG_DZ_TRANSPOSED_DEFLATE):
                 compress_func = compress
-                compression_level = COMPRESSION_LEVEL
             elif self.zip_type in (v4c.FLAG_DZ_LZ4, v4c.FLAG_DZ_TRANSPOSED_LZ4):
                 compress_func = lz_compress
-                compression_level = 1
             elif self.zip_type in (v4c.FLAG_DZ_ZSTD, v4c.FLAG_DZ_TRANSPOSED_ZSTD):
                 compress_func = zstd_compress
-                compression_level = 1
+                data = bytes(data)  # must be a read only buffer
 
             if self.zip_type in (v4c.FLAG_DZ_DEFLATE, v4c.FLAG_DZ_LZ4, v4c.FLAG_DZ_ZSTD):
-                data = compress_func(data, compression_level)
+                data = compress_func(data, self.compression_level)
             else:
                 if not self._transposed:
                     cols = self.param
@@ -4892,7 +5143,7 @@ class DataZippedBlock:
 
                     else:
                         data = np.frombuffer(data, dtype=np.uint8).reshape((lines, cols)).T.ravel().tobytes()
-                data = compress_func(data, compression_level)
+                data = compress_func(data, self.compression_level)
 
             zipped_size = len(data)
             self.zip_size = zipped_size
@@ -4946,7 +5197,7 @@ class DataZippedBlock:
         return getattr(self, item)
 
     def __str__(self) -> str:
-        return f"""<DZBLOCK (address: {hex(self.address)}, original_size: {self.original_size}, zipped_size: {self.zip_size})>"""
+        return f"""<DZBLOCK (address: {hex(self.address)}, original_size: {self.original_size}, zipped_size: {self.zip_size}, algo: {self.zip_type})>"""
 
     def __bytes__(self) -> bytes:
         self.return_unzipped = False
@@ -5036,7 +5287,7 @@ class DataGroup:
             file_limit = kwargs["file_limit"]
 
             if address + v4c.DG_BLOCK_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             if mapped:
@@ -5461,7 +5712,7 @@ class EventBlock(_EventBlockBase):
             file_limit = kwargs["file_limit"]
 
             if address + COMMON_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             stream.seek(address)
@@ -5469,7 +5720,7 @@ class EventBlock(_EventBlockBase):
             (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(stream.read(COMMON_SIZE))
 
             if address + self.block_len > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             block = stream.read(self.block_len - COMMON_SIZE)
@@ -5819,7 +6070,7 @@ class FileHistory:
             file_limit = kwargs["file_limit"]
 
             if address + v4c.FH_BLOCK_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             (
@@ -6515,7 +6766,7 @@ class HeaderList:
             file_limit = kwargs["file_limit"]
 
             if address + v4c.HL_BLOCK_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             stream.seek(address)
@@ -6566,10 +6817,13 @@ class _ListDataBase:
         "data_block_len",
         "data_block_nr",
         "flags",
+        "flags_ext",
         "id",
         "links_nr",
         "next_ld_addr",
         "reserved0",
+        "zip_info",
+        "zip_info_inval",
     )
 
 
@@ -6665,7 +6919,7 @@ class ListData(_ListDataBase):
 
                 address += self.links_nr * 8
 
-                self.flags, self.data_block_nr = unpack_from("<2I", stream, address)
+                self.flags, self.zip_info, self.zip_info_inval, self.flags_ext, self.self.data_block_nr = unpack_from("<4BI", stream, address)
                 address += 8
                 if self.flags & v4c.FLAG_LD_EQUAL_LENGHT:
                     (self.data_block_len,) = UINT64_uf(stream, address)
@@ -6699,7 +6953,7 @@ class ListData(_ListDataBase):
                 for i in range(self.data_block_nr):
                     self[f"data_block_addr_{i}"] = links[i + 1]
 
-                if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
+                if self.flags_ext & v4c.FLAG_LD_EXT_INVALIDATION_PRESENT:
                     for i in range(self.data_block_nr):
                         self[f"invalidation_bits_addr_{i}"] = links[self.data_block_nr + 1 + i]
             else:
@@ -6727,7 +6981,7 @@ class ListData(_ListDataBase):
 
                 links = unpack(f"<{self.links_nr}Q", stream.read(self.links_nr * 8))
 
-                self.flags, self.data_block_nr = typing.cast(tuple[int, int], unpack("<2I", stream.read(8)))
+                self.flags, self.zip_info, self.zip_info_inval, self.flags_ext, self.self.data_block_nr = typing.cast(tuple[int, int], unpack("<4BI", stream.read(8)))
 
                 if self.flags & v4c.FLAG_LD_EQUAL_LENGHT:
                     (self.data_block_len,) = UINT64_u(stream.read(8))
@@ -6765,7 +7019,7 @@ class ListData(_ListDataBase):
                 for i in range(self.data_block_nr, 1):
                     self[f"data_block_addr_{i}"] = links[i]
 
-                if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
+                if self.flags_ext & v4c.FLAG_LD_EXT_INVALIDATION_PRESENT:
                     for i in range(self.data_block_nr, self.data_block_nr + 1):
                         self[f"invalidation_bits_addr_{i}"] = links[i]
 
@@ -6777,12 +7031,16 @@ class ListData(_ListDataBase):
 
             self.data_block_nr = kwargs["data_block_nr"]
             self.flags = kwargs["flags"]
+            self.flags_ext = kwargs.get("flags_ext", 0)
+            self.zip_info = kwargs.get("zip_info", 0)
+            self.zip_info_inval = kwargs.get("zip_info_inval", 0)
+            self.flags_ext = kwargs["flags_ext"]
             self.data_block_len = kwargs["data_block_len"]
             self.next_ld_addr = 0
 
             for i in range(self.data_block_nr):
                 self[f"data_block_addr_{i}"] = kwargs[f"data_block_addr_{i}"]  # type: ignore[literal-required]
-            if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
+            if self.flags_ext & v4c.FLAG_LD_EXT_INVALIDATION_PRESENT:
                 self.links_nr = 2 * self.data_block_nr + 1
 
                 for i in range(self.data_block_nr):
@@ -6811,12 +7069,12 @@ class ListData(_ListDataBase):
         fmt += f"{self.data_block_nr}Q"
         keys += tuple(f"data_block_addr_{i}" for i in range(self.data_block_nr))
 
-        if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
+        if self.flags & v4c.FLAG_LD_EXT_INVALIDATION_PRESENT:
             fmt += f"{self.data_block_nr}Q"
             keys += tuple(f"invalidation_bits_addr_{i}" for i in range(self.data_block_nr))
 
-        fmt += "2I"
-        keys += ("flags", "data_block_nr")
+        fmt += "4BI"
+        keys += ("flags", "zip_info", "zip_info_inval", "flags_ext", "data_block_nr")
 
         if self.flags & v4c.FLAG_LD_EQUAL_LENGHT:
             fmt += "Q"
@@ -6906,7 +7164,7 @@ class SourceInformation:
             file_limit = kwargs["file_limit"]
 
             if address + v4c.SI_BLOCK_SIZE > file_limit:
-                handle_incomplete_block(address)
+                handle_incomplete_block(address, file_limit)
                 raise KeyError
 
             try:

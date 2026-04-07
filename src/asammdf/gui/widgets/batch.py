@@ -19,6 +19,7 @@ from ...blocks.v4_constants import (
     BUS_TYPE_USB,
 )
 from ..dialogs.advanced_search import AdvancedSearch
+from ..dialogs.error_dialog import ErrorDialog
 from ..dialogs.messagebox import MessageBox
 from ..serde import load_channel_names_from_file, load_lab
 from ..ui.batch_widget import Ui_batch_widget
@@ -29,6 +30,9 @@ from .tree_item import MinimalTreeItem, TreeItem
 
 
 class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
+
+    processing_executed = QtCore.Signal(str)
+
     def __init__(
         self,
         ignore_value2text_conversions=False,
@@ -272,6 +276,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
     def scramble_finished(self):
         self._progress = None
+        self.processing_executed.emit("scramble")
 
     def scramble(self, event):
         count = self.files_list.count()
@@ -295,6 +300,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             self.output_info_bus.setPlainText("\n".join(message))
         self._progress = None
+        self.processing_executed.emit("extract_bus_logging")
 
     def extract_bus_logging(self, event):
         version = self.extract_bus_format.currentText()
@@ -433,6 +439,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.output_info_bus.setPlainText("\n".join(message))
 
         self._progress = None
+        self.processing_executed.emit("extract_bus_csv_logging")
 
     def extract_bus_csv_logging(self, event):
         version = self.extract_bus_format.currentText()
@@ -662,7 +669,15 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 item.setSizeHint(widget.sizeHint())
 
     def concatenate_finished(self):
+        if self._progress.error:
+            ErrorDialog(
+                "File concatenation failed",
+                "The concatenate command failed",
+                self._progress.error[-1],
+                self,
+            ).exec()
         self._progress = None
+        self.processing_executed.emit("concatenate")
 
     def concatenate(self, event=None):
         count = self.files_list.count()
@@ -708,7 +723,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self._progress = setup_progress(parent=self, autoclose=False)
         self._progress.finished.connect(self.concatenate_finished)
 
-        rez = self._progress.run_thread_with_progress(
+        self._progress.run_thread_with_progress(
             target=self.concatenate_thread,
             args=(
                 output_file_name,
@@ -818,7 +833,15 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         return result
 
     def stack_finished(self):
+        if self._progress.error:
+            ErrorDialog(
+                "File stacking failed",
+                "The stack command failed",
+                self._progress.error[-1],
+                self,
+            ).exec()
         self._progress = None
+        self.processing_executed.emit("stack")
 
     def stack(self, event):
         count = self.files_list.count()
@@ -1330,7 +1353,15 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         return Options(options)
 
     def apply_processing_finished(self):
+        if self._progress.error:
+            ErrorDialog(
+                "File processing failed",
+                "The file processing commands failed",
+                self._progress.error[-1],
+                self,
+            ).exec()
         self._progress = None
+        self.processing_executed.emit("modify_and_export")
 
     def apply_processing(self, event):
         opts = self._current_options()

@@ -91,6 +91,9 @@
      <property name="text">
       <string>Apply</string>
      </property>
+     <property name="autoDefault">
+      <bool>false</bool>
+     </property>
     </widget>
    </item>
    <item row="1" column="1" colspan="6">
@@ -114,12 +117,18 @@
      <property name="text">
       <string>Load original conversion</string>
      </property>
+     <property name="autoDefault">
+      <bool>false</bool>
+     </property>
     </widget>
    </item>
    <item row="5" column="6">
     <widget class="QPushButton" name="cancel_btn">
      <property name="text">
       <string>Cancel</string>
+     </property>
+     <property name="autoDefault">
+      <bool>false</bool>
      </property>
     </widget>
    </item>
@@ -471,6 +480,9 @@
          <property name="text">
           <string>Insert</string>
          </property>
+         <property name="autoDefault">
+          <bool>false</bool>
+         </property>
         </widget>
        </item>
        <item row="5" column="0">
@@ -491,6 +503,9 @@
         <widget class="QPushButton" name="reset_btn">
          <property name="text">
           <string>Reset</string>
+         </property>
+         <property name="autoDefault">
+          <bool>false</bool>
          </property>
         </widget>
        </item>
@@ -600,6 +615,9 @@
          <property name="text">
           <string>Insert</string>
          </property>
+         <property name="autoDefault">
+          <bool>false</bool>
+         </property>
         </widget>
        </item>
        <item row="2" column="4">
@@ -619,6 +637,9 @@
         <widget class="QPushButton" name="reset_vrtt_btn">
          <property name="text">
           <string>Reset</string>
+         </property>
+         <property name="autoDefault">
+          <bool>false</bool>
          </property>
         </widget>
        </item>

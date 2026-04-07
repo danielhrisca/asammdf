@@ -1,17 +1,16 @@
 from time import perf_counter, sleep
-from traceback import format_exc
 
 import numpy as np
 from PySide6 import QtCore, QtWidgets
 
 from ..ui.gps import Ui_GPSDisplay
 
-try:
-    from pyqtlet2 import L, MapWidget
-    from PySide6.QtWebEngineCore import QWebEngineSettings
+# try:
+#     from pyqtlet2 import L, MapWidget
+#     from PySide6.QtWebEngineCore import QWebEngineSettings
 
-except:
-    print(format_exc())
+# except:
+#     print(format_exc())
 
 
 class GPS(Ui_GPSDisplay, QtWidgets.QWidget):

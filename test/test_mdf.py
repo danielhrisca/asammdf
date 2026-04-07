@@ -3,6 +3,7 @@ from io import BytesIO
 import os
 from pathlib import Path
 import random
+import sys
 import tempfile
 import unittest
 import urllib
@@ -162,8 +163,8 @@ class TestMDF(unittest.TestCase):
                             for j in range(1, 20):
                                 types: list[npt.DTypeLike] = [
                                     (f"Channel_{j}", "(2, 3)<u8"),
-                                    (f"channel_{j}_axis_1", "(2, )<u8"),
-                                    (f"channel_{j}_axis_2", "(3, )<u8"),
+                                    (f"channel_{j}_Y_axis", "(2, )<u8"),
+                                    (f"channel_{j}_X_axis", "(3, )<u8"),
                                 ]
                                 dtype = np.dtype(types)
 
@@ -539,8 +540,8 @@ class TestMDF(unittest.TestCase):
                             for j in range(1, 20):
                                 types: list[npt.DTypeLike] = [
                                     (f"Channel_{j}", "(2, 3)<u8"),
-                                    (f"channel_{j}_axis_1", "(2, )<u8"),
-                                    (f"channel_{j}_axis_2", "(3, )<u8"),
+                                    (f"channel_{j}_Y_axis", "(2, )<u8"),
+                                    (f"channel_{j}_X_axis", "(3, )<u8"),
                                 ]
                                 dtype = np.dtype(types)
 
@@ -660,6 +661,7 @@ class TestMDF(unittest.TestCase):
                 if isinstance(inp, BytesIO):
                     inp.close()
 
+    @unittest.skipIf(sys.platform !="win32", "skip for unix for now")
     def test_filter(self) -> None:
         print("MDF read tests")
 

@@ -16,6 +16,7 @@ from pathlib import Path
 import re
 from shutil import copy, move
 import sys
+import tempfile
 from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
 from types import TracebackType
@@ -25,24 +26,16 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 from canmatrix import CanMatrix
-import numpy as np
-from numpy.typing import NDArray
-import pandas as pd
-from pandas import DataFrame
-from typing_extensions import Any, LiteralString, Never, overload, TypedDict, Unpack
-
-try:
-    from isal.isal_zlib import decompress
-except ImportError:
-    from zlib import decompress
-import tempfile
-
 from lz4.frame import compress as lz_compress
-from lz4.frame import decompress as lz_decompress
+import numpy as np
 from numpy import (
     frombuffer,
     uint8,
 )
+from numpy.typing import NDArray
+import pandas as pd
+from pandas import DataFrame
+from typing_extensions import Any, LiteralString, Never, overload, TypedDict, Unpack
 
 from . import tool
 from .blocks import mdf_v2, mdf_v3, mdf_v4
@@ -78,6 +71,7 @@ from .blocks.utils import (
     csv_bytearray2hex,
     csv_int2hex,
     DataBlockInfo,
+    DECOMPRESS_FUNC_MAP,
     downcast,
     FileLike,
     Fragment,
@@ -90,13 +84,13 @@ from .blocks.utils import (
     MdfException,
     plausible_timestamps,
     randomized_string,
-    SignalDataBlockInfo,
     SUPPORTED_VERSIONS,
     Terminated,
     THREAD_COUNT,
     UINT16_u,
     UINT64_u,
     UniqueDB,
+    validate_blocks,
     validate_version_argument,
     VirtualChannelGroup,
 )
@@ -778,6 +772,7 @@ class MDF:
             self._mdf._integer_interpolation = from_other._mdf._integer_interpolation
             self._mdf._float_interpolation = from_other._mdf._float_interpolation
             self._mdf._raise_on_multiple_occurrences = from_other._mdf._raise_on_multiple_occurrences
+            self._mdf._fill_0_for_missing_computation_channels = from_other._mdf._fill_0_for_missing_computation_channels
 
         if read_fragment_size is not None:
             self._mdf._read_fragment_size = int(read_fragment_size)
@@ -806,6 +801,9 @@ class MDF:
 
         if raise_on_multiple_occurrences is not None:
             self._mdf._raise_on_multiple_occurrences = bool(raise_on_multiple_occurrences)
+
+        if fill_0_for_missing_computation_channels is not None:
+            self._mdf._fill_0_for_missing_computation_channels = bool(fill_0_for_missing_computation_channels)
 
     @property
     def original_name(self) -> str | Path | None:
@@ -1010,6 +1008,7 @@ class MDF:
         mime: str = r"application/octet-stream",
         embedded: bool = True,
         password: str | bytes | None = None,
+        compression_type: str = "deflate"
     ) -> int:
         if not isinstance(self._mdf, mdf_v4.MDF4):
             raise MdfException("Attachments are only supported in MDF4 files")
@@ -1022,6 +1021,7 @@ class MDF:
             mime=mime,
             embedded=embedded,
             password=password,
+            compression_type=compression_type
         )
 
     def close(self) -> None:
@@ -1489,11 +1489,12 @@ class MDF:
                 seek(address)
                 new_data: bytes | memoryview[int] = read(typing.cast(int, compressed_size))
 
-                match block_type:
-                    case v4c.DZ_BLOCK_DEFLATE:
-                        new_data = decompress(new_data, bufsize=original_size)
-                    case v4c.DZ_BLOCK_TRANSPOSED:
-                        new_data = decompress(new_data, bufsize=original_size)
+                if block_type:
+                    decompress = DECOMPRESS_FUNC_MAP[block_type]
+                    new_data = decompress(new_data)
+
+                    if block_type % 2 == 0:
+                        # tranposed data
                         cols = typing.cast(int, param)
                         lines = original_size // cols
                         matrix_size = lines * cols
@@ -1508,9 +1509,6 @@ class MDF:
                             )
                         else:
                             new_data = frombuffer(new_data, dtype=uint8).reshape((cols, lines)).T.ravel().tobytes()
-
-                    case v4c.DZ_BLOCK_LZ:
-                        new_data = lz_decompress(new_data)
 
                 if block_limit is not None:
                     new_data = new_data[:block_limit]
@@ -1587,6 +1585,7 @@ class MDF:
                         original_size=raw_size,
                         compressed_size=size,
                         param=0,
+                        location=v4c.LOCATION_TEMPORARY_FILE,
                     )
 
                 new_blocks.append(info)
@@ -3253,9 +3252,14 @@ class MDF:
                                 new_group_source = new_group.channel_group.acq_source
                                 if (
                                     new_group.channel_group.acq_name == org_group.channel_group.acq_name
-                                    and (new_group_source and org_group_source)
-                                    and new_group_source.name == org_group_source.name
-                                    and new_group_source.path == org_group_source.path
+                                    and (
+                                        ((new_group_source and org_group_source)
+                                        and new_group_source.name == org_group_source.name
+                                        and new_group_source.path == org_group_source.path
+                                        )
+                                        or (new_group_source is None and org_group_source is None)
+                                    )
+
                                     and new_group.channel_group.samples_byte_nr
                                     == org_group.channel_group.samples_byte_nr
                                 ):
@@ -4129,20 +4133,10 @@ class MDF:
                 comment="">
         ]
         """
-
-        def validate_blocks(blocks: list[SignalDataBlockInfo], record_size: int) -> bool:
-            for block in blocks:
-                if block.original_size % record_size:
-                    return False
-
-            return True
-
+        
         if (
             not isinstance(self._mdf, mdf_v4.MDF4)
-            or not self._mdf._mapped_file
-            or record_offset
-            or record_count is not None
-            or True  # disable for now
+            or self._mdf._from_filelike
         ):
             return self._select_fallback(
                 channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
@@ -4168,9 +4162,18 @@ class MDF:
         for virtual_group, groups in virtual_groups.items():
             group_index = virtual_group
             grp = self._mdf.groups[group_index]
+            if grp.data_location != v4c.LOCATION_ORIGINAL_FILE:
+                return self._select_fallback(
+                    channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
+                )
+            
             grp.load_all_data_blocks()
             blocks = grp.data_blocks
             record_size = grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr
+            if not validate_blocks(blocks, record_size):
+                return self._select_fallback(
+                channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
+            )
             cycles_nr = grp.channel_group.cycles_nr
             channel_indexes = groups[group_index]
 
@@ -4182,17 +4185,16 @@ class MDF:
                     channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
                 )
 
-            channel = grp.channels[master_index]
-            master_dtype, byte_size, byte_offset, _ = typing.cast(
+            master_channel = grp.channels[master_index]
+            master_dtype, byte_size, byte_offset, master_bit_offset = typing.cast(
                 tuple[np.dtype[Any], int, int, int], grp.record[master_index]
             )
-            signals = [(byte_offset, byte_size, channel.pos_invalidation_bit)]
+            signals = [(byte_offset, byte_size, master_channel.pos_invalidation_bit)]
 
             for ch_index in channel_indexes:
                 channel = grp.channels[ch_index]
 
-                if (info := grp.record[ch_index]) is None:
-                    print("NASOl")
+                if (info := grp.record[ch_index]) is None or grp.signal_data[ch_index] or grp.channel_dependencies[ch_index]:
                     return self._select_fallback(
                         channels, record_offset, raw, copy_master, ignore_value2text_conversions, record_count, validate
                     )
@@ -4200,20 +4202,70 @@ class MDF:
                     _, byte_size, byte_offset, _ = info
                     signals.append((byte_offset, byte_size, channel.pos_invalidation_bit))
 
+            if grp.data_location == v4c.LOCATION_ORIGINAL_FILE:
+                file_name = self._mdf._mapped_file.name
+            else:
+                file_name = self._mdf._tempfile.name
+
             raw_and_invalidation = get_channel_raw_bytes_complete(
                 blocks,
                 signals,
-                self._mdf._mapped_file.name,
+                file_name,
                 cycles_nr,
                 record_size,
                 grp.channel_group.invalidation_bytes_nr,
+                group_index,
                 THREAD_COUNT,
             )
             master_bytes, _ = raw_and_invalidation[0]
             raw_and_invalidation = raw_and_invalidation[1:]
 
             # prepare the master
-            master = np.frombuffer(master_bytes, dtype=master_dtype)
+            vals = np.frombuffer(master_bytes, dtype=master_dtype)
+
+            data_type = master_channel.data_type
+
+            if not master_channel.standard_C_size:
+                size = byte_size
+
+                if master_dtype.byteorder == "=" and data_type in (
+                    v4c.DATA_TYPE_SIGNED_MOTOROLA,
+                    v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                ):
+                    view = np.dtype(f">u{vals.itemsize}")
+                else:
+                    view = np.dtype(f"{master_dtype.byteorder}u{vals.itemsize}")
+
+                if view != vals.dtype:
+                    vals = vals.view(view)
+
+                if master_bit_offset:
+                    vals >>= master_bit_offset
+
+                if master_channel.bit_count != size * 8:
+                    if data_type in v4c.SIGNED_INT:
+                        vals = as_non_byte_sized_signed_int(vals, master_channel.bit_count)
+                    else:
+                        mask = (1 << master_channel.bit_count) - 1
+                        vals &= mask
+                elif data_type in v4c.SIGNED_INT:
+                    view = f"{master_dtype.byteorder}i{vals.itemsize}"
+                    if np.dtype(view) != vals.dtype:
+                        vals = vals.view(view)
+
+            master = vals
+            
+            if master_channel.conversion:
+                master = master_channel.conversion.convert(master)
+
+            if record_offset:
+                if record_count is None:
+                    master = master[record_offset:]
+                else:
+                    master = master[record_offset: record_offset+ record_count]
+            else:
+                if record_count is not None:
+                    master = master[: record_count]
 
             for pair, (raw_data, invalidation_bits) in zip(pairs, raw_and_invalidation, strict=False):
                 ch_index = pair[-1]
@@ -4267,6 +4319,22 @@ class MDF:
 
                 master_metadata = self._mdf._master_channel_metadata.get(group_index, None)
 
+                if record_offset:
+                    if record_count is None:
+                        vals = vals[record_offset:]
+                        if invalidation_bits is not None:
+                            invalidation_bits = invalidation_bits[record_offset:]
+                    else:
+                        end = record_offset+ record_count
+                        vals = vals[record_offset: end]
+                        if invalidation_bits is not None:
+                            invalidation_bits = invalidation_bits[record_offset: end]
+                else:
+                    if record_count is not None:
+                        vals = vals[: record_count]
+                        if invalidation_bits is not None:
+                            invalidation_bits = invalidation_bits[: record_count]
+
                 output_signals[pair] = Signal(
                     samples=vals,
                     timestamps=master,
@@ -4274,7 +4342,6 @@ class MDF:
                     name=channel.name,
                     comment=channel.comment,
                     conversion=conversion,
-                    raw=True,
                     master_metadata=master_metadata,
                     attachment=None,
                     source=source,
@@ -4309,7 +4376,6 @@ class MDF:
                     )
                     signal.samples = samples
 
-                signal.raw = False
                 signal.conversion = None
                 if signal.samples.dtype.kind == "S":
                     signal.encoding = "utf-8" if self.version >= "4.00" else "latin-1"
@@ -4541,7 +4607,6 @@ class MDF:
                     )
                     signal.samples = samples
 
-                signal.raw = False
                 signal.conversion = None
                 if signal.samples.dtype.kind == "S":
                     signal.encoding = "utf-8" if self.version >= "4.00" else "latin-1"
@@ -5247,7 +5312,6 @@ class MDF:
                                 )
                                 signal.samples = samples
 
-                            signal.raw = False
                             signal.conversion = None
                             if signal.samples.dtype.kind == "S":
                                 signal.encoding = "utf-8" if self.version >= "4.00" else "latin-1"
@@ -5706,7 +5770,6 @@ class MDF:
                         )
                         signal.samples = samples
 
-                    signal.raw = False
                     signal.conversion = None
                     if signal.samples.dtype.kind == "S":
                         signal.encoding = "utf-8" if self.version >= "4.00" else "latin-1"

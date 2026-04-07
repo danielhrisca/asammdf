@@ -1,4 +1,5 @@
 import bisect
+from collections import ChainMap
 from datetime import timedelta
 from functools import lru_cache, partial, reduce
 from math import ceil
@@ -22,6 +23,7 @@ from ...blocks.conversion_utils import from_dict, to_dict
 from ...blocks.cutils import get_idx_with_edges, positions
 from ...blocks.utils import target_byte_order
 from ..dialogs.messagebox import MessageBox
+from ..function_library import FunctionLibrary
 from ..utils import FONT_SIZE, value_as_str
 from .viewbox import ViewBoxWithCursor
 
@@ -175,7 +177,6 @@ class PlotSignal(Signal):
             signal.name,
             signal.conversion,
             signal.comment,
-            signal.raw,
             signal.master_metadata,
             signal.display_names,
             signal.attachment,
@@ -203,7 +204,7 @@ class PlotSignal(Signal):
         self.channel_index = getattr(signal, "channel_index", NOT_FOUND)
         self.precision = getattr(signal, "precision", 3)
 
-        self._mode = "raw"
+        self._mode = "phys"
         self.enable = getattr(signal, "enable", False)
 
         self.format = getattr(signal, "format", "phys")
@@ -235,7 +236,7 @@ class PlotSignal(Signal):
             self.samples = self.samples.byteswap().view(self.samples.dtype.newbyteorder())
 
         if self.timestamps.dtype.byteorder not in target_byte_order:
-            self.timestamps = self.timestamps.byteswap().view(self.timestamps.dtype.n())
+            self.timestamps = self.timestamps.byteswap().view(self.timestamps.dtype.newbyteorder())
 
         if self.timestamps.dtype != float64:
             self.timestamps = self.timestamps.astype(float64)
@@ -497,13 +498,14 @@ class PlotSignal(Signal):
     def enable(self, enable_state):
         if self._enable != enable_state:
             self._enable = enable_state
-            if enable_state:
-                self._pos = np.empty(2 * self._buffer_size, dtype="i4")
-                self._plot_samples = np.empty(2 * self._buffer_size, dtype=self._dtype)
-                self._plot_timestamps = np.empty(2 * self._buffer_size, dtype="f8")
+            if len(self.samples):
+                if enable_state:
+                    self._pos = np.empty(2 * self._buffer_size, dtype="i4")
+                    self._plot_samples = np.empty(2 * self._buffer_size, dtype=self._dtype)
+                    self._plot_timestamps = np.empty(2 * self._buffer_size, dtype="f8")
 
-            else:
-                self._pos = self._plot_samples = self._plot_timestamps = None
+                else:
+                    self._pos = self._plot_samples = self._plot_timestamps = None
 
     def get_stats(self, cursor=None, region=None, view_region=None, precision=6):
         stats = {}
@@ -1057,7 +1059,7 @@ class PlotSignal(Signal):
 
                     if samples.dtype.kind == "f" and samples.itemsize == 2:
                         samples = samples.astype("f8")
-                        self._dtype = "f8"
+                        self._dtype = samples.dtype
 
                     if samples.dtype != self._plot_samples.dtype:
                         self._plot_samples = np.empty(2 * self._buffer_size, dtype=samples.dtype)
@@ -1253,7 +1255,7 @@ class PlotSignal(Signal):
 
     def trim(self, start=None, stop=None, width=1900, force=False):
         if self._enable:
-            if width > self._buffer_size:
+            if width > self._buffer_size and len(self.samples):
                 width = ceil(width)
                 self._buffer_size = width
                 self._pos = np.empty(2 * self._buffer_size, dtype="i4")
@@ -1265,6 +1267,7 @@ class PlotSignal(Signal):
                 return self.trim_c(start, stop, width, force)
             except:
                 print(format_exc())
+                print(self)
                 return self.trim_python(start, stop, width, force)
 
     def value_at_index(self, index):
@@ -1298,7 +1301,7 @@ class PlotSignal(Signal):
 
                     value = value or "<empty string>"
                 case "f":
-                    value = float(value)
+                    value = value
                 case _:
                     value = int(value)
 
@@ -1311,7 +1314,7 @@ class PlotSignal(Signal):
 
                     raw_value = raw_value or "<empty string>"
                 case "f":
-                    raw_value = float(raw_value)
+                    raw_value = raw_value
                 case _:
                     raw_value = int(raw_value)
 
@@ -1354,7 +1357,7 @@ class PlotSignal(Signal):
 
                     value = value or "<empty string>"
                 case "f":
-                    value = float(value)
+                    value = value
                 case _:
                     value = int(value)
 
@@ -1367,7 +1370,7 @@ class PlotSignal(Signal):
 
                     raw_value = raw_value or "<empty string>"
                 case "f":
-                    raw_value = float(raw_value)
+                    raw_value = raw_value
                 case _:
                     raw_value = int(raw_value)
 
@@ -3045,6 +3048,12 @@ class Plot(QtWidgets.QWidget):
 
             event.accept()
 
+        elif key == QtCore.Qt.Key.Key_W and modifiers == QtCore.Qt.KeyboardModifier.ControlModifier:
+            if self.enable_zoom_history:
+                self.set_initial_zoom()
+
+            event.accept()
+
         else:
             try:
                 self.plot.keyPressEvent(event)
@@ -3666,6 +3675,7 @@ class PlotGraphics(pg.PlotWidget):
         self.autoFillBackground()
 
         self._pixmap = None
+        self._prev_pixmap = None
         self._grid_pixmap = None
 
         self.locked = False
@@ -4336,10 +4346,10 @@ class PlotGraphics(pg.PlotWidget):
                             QtCore.QPointF(x_pos, (event_rect.y() + event_rect.height()) * ratio),
                         )
 
-            paint.end()
-            _pixmap.setDevicePixelRatio(self.devicePixelRatio())
+                paint.end()
+                _pixmap.setDevicePixelRatio(self.devicePixelRatio())
 
-            self._grid_pixmap = _pixmap
+                self._grid_pixmap = _pixmap
 
         return self._grid_pixmap
 
@@ -4467,7 +4477,7 @@ class PlotGraphics(pg.PlotWidget):
 
     def insert_computation(self, name=""):
         functions = self.plot_parent.owner.functions
-        if not functions:
+        if not ChainMap(functions, FunctionLibrary):
             MessageBox.warning(
                 self,
                 "Cannot add computed channel",
@@ -4504,10 +4514,13 @@ class PlotGraphics(pg.PlotWidget):
         handled = True
         if key == QtCore.Qt.Key.Key_Y and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
             if self.region is None:
+                pos = self.cursor1.value()
                 event_ = QtGui.QKeyEvent(
                     QtCore.QEvent.Type.KeyPress, QtCore.Qt.Key.Key_R, QtCore.Qt.KeyboardModifier.NoModifier
                 )
                 self.keyPressEvent(event_)
+
+                self.region.setRegion([pos, pos])
 
             if self.region_lock is not None:
                 self.region_lock = None
@@ -4572,7 +4585,7 @@ class PlotGraphics(pg.PlotWidget):
             self.block_zoom_signal = True
             if self.common_axis_items:
                 if any(
-                    len(self.signal_by_uuid(uuid)[0].plot_samples)
+                    not self.signal_by_uuid(uuid)[0].empty
                     for uuid in self.common_axis_items
                     if self.signal_by_uuid(uuid)[0].enable
                 ):
@@ -4580,30 +4593,26 @@ class PlotGraphics(pg.PlotWidget):
                         [
                             self.signal_by_uuid(uuid)[0].min
                             for uuid in self.common_axis_items
-                            if len(self.signal_by_uuid(uuid)[0].plot_samples)
+                            if not self.signal_by_uuid(uuid)[0].empty
                         ]
                     )
                     common_max = np.nanmax(
                         [
                             self.signal_by_uuid(uuid)[0].max
                             for uuid in self.common_axis_items
-                            if len(self.signal_by_uuid(uuid)[0].plot_samples)
+                            if not self.signal_by_uuid(uuid)[0].empty
                         ]
                     )
                 else:
                     common_min, common_max = 0, 1
 
             for i, signal in enumerate(self.signals):
-                if len(signal.plot_samples):
+                if not signal.empty:
                     if signal.uuid in self.common_axis_items:
                         min_ = common_min
                         max_ = common_max
                     else:
-                        samples = signal.plot_samples
-                        if len(samples):
-                            min_, max_ = signal.min, signal.max
-                        else:
-                            min_, max_ = 0, 1
+                        min_, max_ = signal.min, signal.max
 
                     if min_ != min_:  # noqa: PLR0124
                         # min_ is NaN
@@ -4679,6 +4688,7 @@ class PlotGraphics(pg.PlotWidget):
 
                 self.x_axis.picture = None
                 self.y_axis.picture = None
+                self._grid_pixmap = None
 
                 self.update()
 
@@ -4728,6 +4738,8 @@ class PlotGraphics(pg.PlotWidget):
         elif key == QtCore.Qt.Key.Key_R and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
             if self.region is None:
                 color = self.cursor1.pen.color().name()
+                self.cursor1.hide()
+                self.cursor1.store_position()
 
                 self.region = Region(
                     (0, 0),
@@ -4743,18 +4755,18 @@ class PlotGraphics(pg.PlotWidget):
                 self.region.sigRegionChanged.connect(self.range_modified_handler)
                 self.region.sigRegionChangeFinished.connect(self.range_modified_finished_handler)
                 start, stop = self.viewbox.viewRange()[0]
-                view_range = abs(stop - start)
-                start, stop = (
-                    start + 0.1 * (stop - start),
-                    stop - 0.1 * (stop - start),
-                )
 
-                if self.cursor1 is not None:
-                    if abs(self.cursor1.value() - stop) >= 0.1 * view_range:
-                        self.region.setRegion(tuple(sorted((self.cursor1.value(), stop))))
-                    self.cursor1.hide()
+                if start <= self.cursor1.value() <= stop:
+                    mid = (stop + start) / 2 
+                    start, stop = sorted([mid, self.cursor1.value()])
+
                 else:
-                    self.region.setRegion((start, stop))
+                    start, stop = (
+                        start + 0.1 * (stop - start),
+                        stop - 0.1 * (stop - start),
+                    )
+
+                self.region.setRegion((start, stop))
 
             else:
                 self.region_lock = None
@@ -4765,6 +4777,7 @@ class PlotGraphics(pg.PlotWidget):
                 self.range_removed.emit()
 
                 if self.cursor1 is not None:
+                    self.cursor1.restore_position()
                     self.cursor1.show()
 
             self.update()
@@ -4834,23 +4847,17 @@ class PlotGraphics(pg.PlotWidget):
                 1 for sig in self.signals if sig.min != "n.a." and sig.enable and sig.uuid not in self.common_axis_items
             )
 
-            if any(sig.min != "n.a." and sig.enable and sig.uuid in self.common_axis_items for sig in self.signals):
+            common_axis_signals = [
+                sig
+                for sig in self.signals
+                if sig.min != "n.a." and sig.enable and sig.uuid in self.common_axis_items
+            ]
+
+            if common_axis_signals:
                 count += 1
 
-                common_min_ = np.nanmin(
-                    [
-                        self.signal_by_uuid(uuid)[0].min
-                        for uuid in self.common_axis_items
-                        if len(self.signal_by_uuid(uuid)[0].plot_samples) and self.signal_by_uuid(uuid)[0].enable
-                    ]
-                )
-                common_max_ = np.nanmax(
-                    [
-                        self.signal_by_uuid(uuid)[0].max
-                        for uuid in self.common_axis_items
-                        if len(self.signal_by_uuid(uuid)[0].plot_samples) and self.signal_by_uuid(uuid)[0].enable
-                    ]
-                )
+                common_min_ = np.nanmin([sig.min for sig in common_axis_signals])
+                common_max_ = np.nanmax([sig.max for sig in common_axis_signals])
 
             if count:
                 position = 0
@@ -4877,6 +4884,8 @@ class PlotGraphics(pg.PlotWidget):
                             min_ = max_ - 1
                         elif max_ == float("inf"):
                             max_ = min_ + 1
+
+                        min_, max_ = float(min_), float(max_)
 
                         if min_ == max_:
                             min_, max_ = min_ - 1, max_ + 1
@@ -4938,6 +4947,7 @@ class PlotGraphics(pg.PlotWidget):
             )
 
             if count:
+            
                 common_axis_handled = False
                 position = 0
                 for uuid in uuids:
@@ -4948,24 +4958,14 @@ class PlotGraphics(pg.PlotWidget):
                             if common_axis_handled:
                                 continue
 
-                            min_ = np.nanmin(
-                                [
-                                    self.signal_by_uuid(uuid)[0].min
-                                    for uuid in self.common_axis_items
-                                    if uuid in uuids_set
-                                    and len(self.signal_by_uuid(uuid)[0].plot_samples)
-                                    and self.signal_by_uuid(uuid)[0].enable
-                                ]
-                            )
-                            max_ = np.nanmax(
-                                [
-                                    self.signal_by_uuid(uuid)[0].max
-                                    for uuid in self.common_axis_items
-                                    if uuid in uuids_set
-                                    and len(self.signal_by_uuid(uuid)[0].plot_samples)
-                                    and self.signal_by_uuid(uuid)[0].enable
-                                ]
-                            )
+                            common_axis_signals = [
+                                sig
+                                for sig in self.signals
+                                if sig.uuid in uuids_set and sig.min != "n.a." and sig.enable and sig.uuid in self.common_axis_items
+                            ]
+
+                            min_ = np.nanmin([sig.min for sig in common_axis_signals])
+                            max_ = np.nanmax([sig.max for sig in common_axis_signals])
 
                         else:
                             min_ = signal.min
@@ -4978,6 +4978,9 @@ class PlotGraphics(pg.PlotWidget):
                             min_ = max_ - 1
                         elif max_ == float("inf"):
                             max_ = min_ + 1
+
+
+                        min_, max_ = float(min_), float(max_)
 
                         if min_ == max_:
                             min_, max_ = min_ - 1, max_ + 1
@@ -5277,6 +5280,24 @@ class PlotGraphics(pg.PlotWidget):
                 self.cursor_moved.emit(self.cursor1)
 
         elif key == QtCore.Qt.Key.Key_W and modifier == QtCore.Qt.KeyboardModifier.NoModifier:
+            ts_vals = []
+            for sig in self.signals:
+                if not sig.enable or not len(sig.timestamps):
+                    continue
+
+                ts_vals.append(sig.timestamps[0])
+                ts_vals.append(sig.timestamps[-1])
+
+            if ts_vals:
+                ts_vals.sort()
+                start_ts, stop_ts = ts_vals[0], ts_vals[-1]
+
+                self.viewbox.setXRange(start_ts, stop_ts)
+
+                if self.cursor1:
+                    self.cursor_moved.emit(self.cursor1)
+            
+        elif key == QtCore.Qt.Key.Key_W and modifier == QtCore.Qt.KeyboardModifier.AltModifier:
             if len(self.all_timebase):
                 start_ts = np.amin(self.all_timebase)
                 stop_ts = np.amax(self.all_timebase)
@@ -5325,7 +5346,7 @@ class PlotGraphics(pg.PlotWidget):
         if not self._can_paint or not self._can_paint_global:
             return
 
-        event_rect = ev.rect()
+        event_rect = self.viewbox.sceneBoundingRect()
 
         super().paintEvent(ev)
 
@@ -5334,7 +5355,9 @@ class PlotGraphics(pg.PlotWidget):
         if self._pixmap is None:
             self._grid_pixmap = None
 
-            _pixmap = QtGui.QPixmap(ceil(ceil(event_rect.width()) * ratio), ceil(ceil(event_rect.height()) * ratio))
+            rect = event_rect
+
+            _pixmap = QtGui.QPixmap(ceil(ceil(rect.width()) * ratio), ceil(ceil(rect.height()) * ratio))
             _pixmap.fill(QtCore.Qt.transparent)
 
             paint = QtGui.QPainter()
@@ -5576,22 +5599,22 @@ class PlotGraphics(pg.PlotWidget):
                 )
 
         r = self.viewbox.sceneBoundingRect()
+
+        t = r.translated(0, 0)
+        t.setLeft(t.left() + 5)
+
         r.setLeft(r.left() + 5)
         r.setSize(r.size() * ratio)
         r.moveTo(r.topLeft() * ratio)
 
-        t = self.viewbox.sceneBoundingRect()
-        t.setLeft(t.left() + 5)
-
         clip_rect = self.auto_clip_rect(paint)
         grid_pixmap = self.draw_grids(paint, event_rect, ratio, clip_rect)
 
-        paint.drawPixmap(t.toRect(), grid_pixmap, r.toRect())
+        if grid_pixmap:
+            paint.drawPixmap(t.toRect(), grid_pixmap, r.toRect())
         paint.drawPixmap(t.toRect(), _pixmap, r.toRect())
 
         if self.zoom is None:
-            if self.cursor1 is not None and self.cursor1.isVisible():
-                self.cursor1.paint(paint, plot=self, uuid=self.current_uuid)
 
             if self.region is not None:
                 self.region.paint(paint, plot=self, uuid=self.current_uuid)
@@ -5601,6 +5624,27 @@ class PlotGraphics(pg.PlotWidget):
             for bookmark in self._bookmarks:
                 if bookmark.visible:
                     bookmark.paint(paint, plot=self, uuid=self.current_uuid)
+
+            if pix := self._prev_pixmap:
+                rect = self.viewbox.sceneBoundingRect()
+                rect.setSize(rect.size() * ratio)
+                rect.moveTo(rect.topLeft() * ratio)
+                delta = rect.x()
+
+                view_range = self.viewbox.viewRange()
+                x, y = self.scale_curve_to_pixmap(
+                    self.cursor1.getXPos(),
+                    0,
+                    y_range=view_range[1],
+                    x_start=view_range[0][0],
+                    delta=delta,
+                )
+
+                x = int(x) + 1
+
+                pix_rect = pix.rect()
+                pix_rect.setX(x)
+                paint.drawPixmap(pix_rect, pix, pix_rect)
 
         else:
             p1, p2, zoom_mode = self.zoom

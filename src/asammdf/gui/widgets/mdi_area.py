@@ -37,6 +37,7 @@ from ..utils import (
     copy_ranges,
     generate_python_function_globals,
     replace_computation_dependency,
+    setup_progress,
 )
 from .can_bus_trace import CANBusTrace
 from .flexray_bus_trace import FlexRayBusTrace
@@ -556,21 +557,31 @@ def get_required_from_computed(channel):
     return names
 
 
-def substitude_mime_uuids(mime, uuid=None, force=False):
+def substitude_mime_uuids(mime, uuids=None, force=False):
     if not mime:
         return mime
+    
+    if uuids is None:
+        uuids = [None]
+    elif not isinstance(uuids, (tuple, list)):
+        uuids = [uuids]
+
+    item_uuid = uuids[0] if uuids else None
 
     new_mime = []
 
     for item in mime:
         if item.get("type", "channel") == "channel":
-            if force or item["origin_uuid"] is None:
-                item["origin_uuid"] = uuid
-            new_mime.append(item)
+            for uuid in uuids:
+                new_item = deepcopy(item)
+                new_item['uuid'] = os.urandom(6).hex()
+                if force or new_item["origin_uuid"] is None:
+                    new_item["origin_uuid"] = uuid
+                new_mime.append(new_item)
         else:
-            item["channels"] = substitude_mime_uuids(item["channels"], uuid, force=force)
+            item["channels"] = substitude_mime_uuids(item["channels"], uuids, force=force)
             if force or item["origin_uuid"] is None:
-                item["origin_uuid"] = uuid
+                item["origin_uuid"] = item_uuid
             new_mime.append(item)
     return new_mime
 
@@ -1007,7 +1018,7 @@ class MdiAreaWidget(MdiAreaMixin, QtWidgets.QMdiArea):
                     disable_new_channels = dialog.disable_new_channels()
                     names = extract_mime_names(data, disable_new_channels=disable_new_channels)
 
-                    self.add_window_request.emit([window_type, names])
+                    self.add_window_request.emit([window_type, names, True])
                 event.accept()
             else:
                 try:
@@ -1219,6 +1230,7 @@ class WithMDIArea:
             ignore_value2text_conversions = False
             current_count = len(widget.plot.signals)
             count = len(names)
+
         elif isinstance(widget, XY):
             if names:
                 name = names[0]
@@ -1259,6 +1271,17 @@ class WithMDIArea:
         else:
             ignore_value2text_conversions = self.ignore_value2text_conversions
 
+        progress = setup_progress(
+            parent=self,
+            title="Adding new channels",
+            message="Please be patient, this can take a while with large files",
+            icon_name="window",
+        )
+        progress.setRange(0, 1)
+        progress.resize(500, progress.height())
+        progress.show()
+        QtWidgets.QApplication.processEvents()
+
         try:
             names = list(names)
             if names and isinstance(names[0], str):
@@ -1296,8 +1319,14 @@ class WithMDIArea:
                     if self.file_by_uuid(uuid):
                         break
                 else:
-                    mime_data = substitude_mime_uuids(mime_data, uuid=self.uuid, force=True)
-                    entries = get_flatten_entries_from_mime(mime_data)
+                    if self.comparison:
+                        mdfs = [file.mdf for file in self.iter_files()]
+                        uuids = [mdf.uuid for mdf in mdfs] or None
+                        mime_data = substitude_mime_uuids(mime_data, uuids, force=True)
+                        entries = get_flatten_entries_from_mime(mime_data)
+                    else:
+                        mime_data = substitude_mime_uuids(mime_data, self.uuid, force=True)
+                        entries = get_flatten_entries_from_mime(mime_data)
 
                 signals_ = [entry for entry in entries if (entry["group_index"], entry["channel_index"]) != (-1, -1)]
 
@@ -1377,7 +1406,6 @@ class WithMDIArea:
 
                         if self.comparison:
                             sig.tooltip = f"{sig.name}\n@ {file.mdf.orignial_name}"
-                            sig.name = f"{file_index + 1}: {sig.name}"
 
                     signals.extend(selected_signals)
 
@@ -1450,7 +1478,6 @@ class WithMDIArea:
 
                         if self.comparison:
                             sig.tooltip = f"{sig.name}\n@ {file.mdf.original_name}"
-                            sig.name = f"{file_index + 1}: {sig.name}"
 
                         if sig.samples.dtype.kind not in "SU" and (
                             sig.samples.dtype.names or len(sig.samples.shape) > 1
@@ -1648,34 +1675,76 @@ class WithMDIArea:
                     destination = None
                 widget.add_new_channels(signals, mime_data=mime_data, destination=destination)
 
-        except MdfException:
-            print(format_exc())
+        except:
+            progress.close()
+            raise
+        else:
+            progress.close()
 
     def add_window(self, args):
-        window_type, names = args
+        if len(args) == 2:
+            window_type, names, show_dialog = *args, False
+        else:
+            window_type, names, show_dialog = args
+
+        func_args = (names,)
 
         if self.comparison:
             if window_type == "Plot":
-                return self._add_plot_window(names)
+                target = self._add_plot_window
             elif window_type == "Numeric":
-                return self._add_numeric_window(names)
+                target =self._add_numeric_window
+            else:
+                target = None
         else:
             if window_type == "CAN Bus Trace":
-                return self._add_can_bus_trace_window()
+                target =self._add_can_bus_trace_window
+                func_args = ()
             elif window_type == "FlexRay Bus Trace":
-                return self._add_flexray_bus_trace_window()
+                target = self._add_flexray_bus_trace_window
+                func_args = ()
+
             elif window_type == "LIN Bus Trace":
-                return self._add_lin_bus_trace_window()
+                target =self._add_lin_bus_trace_window
+                func_args = ()
             elif window_type == "GPS":
-                return self._add_gps_window(names)
+                target =self._add_gps_window
             elif window_type == "Plot":
-                return self._add_plot_window(names)
+                target =self._add_plot_window
             elif window_type == "Numeric":
-                return self._add_numeric_window(names)
+                target = self._add_numeric_window
             elif window_type == "Tabular":
-                return self._add_tabular_window(names)
+                target = self._add_tabular_window
             elif window_type == "XY":
-                return self._add_xy_window(names)
+                target = self._add_xy_window
+            else:
+                target = None
+
+        if target is None:
+            return
+
+        if show_dialog:
+            progress = setup_progress(
+                parent=self,
+                title=f"Adding new {window_type} window",
+                message="Please be patient, this can take a while with large files",
+                icon_name="window",
+            )
+            progress.setRange(0, 1)
+            progress.resize(500, progress.height())
+            progress.show()
+            QtWidgets.QApplication.processEvents()
+
+            try:
+                target(*func_args)
+            except:
+                progress.close()
+                raise
+            else:
+                progress.close()
+
+        else:
+            return target(*func_args)
 
     def _add_can_bus_trace_window(self, ranges=None):
         dfs = []
@@ -2497,7 +2566,7 @@ class WithMDIArea:
             flatten_entries = get_flatten_entries_from_mime(names)
 
             if not self.comparison:
-                names = substitude_mime_uuids(names, uuid=self.uuid, force=True)
+                names = substitude_mime_uuids(names, self.uuid, force=True)
                 flatten_entries = get_flatten_entries_from_mime(names)
 
             signals_ = [
@@ -2676,7 +2745,7 @@ class WithMDIArea:
         flatten_entries = get_flatten_entries_from_mime(mime_data)
 
         if not self.comparison:
-            mime_data = substitude_mime_uuids(mime_data, uuid=self.uuid, force=True)
+            mime_data = substitude_mime_uuids(mime_data, self.uuid, force=True)
             flatten_entries = get_flatten_entries_from_mime(mime_data)
 
         # TO DO : is this necessary here?
@@ -3030,7 +3099,7 @@ class WithMDIArea:
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
         sub.pattern_modified.connect(self.window_pattern_modified)
-
+        
         if not self.subplots:
             self.mdi_area.clear_windows()
             w = self.mdi_area.addSubWindow(sub)
@@ -3047,9 +3116,9 @@ class WithMDIArea:
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.WindowType.FramelessWindowHint)
 
-        plot.show()
+        sub.setWindowTitle(generate_window_title(sub, "Plot"))
 
-        w.setWindowTitle(generate_window_title(w, "Plot"))
+        plot.show()
 
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
         plot.edit_channel_request.connect(partial(self.edit_channel, widget=plot))
@@ -3109,7 +3178,7 @@ class WithMDIArea:
                 if self.file_by_uuid(uuid):
                     break
             else:
-                names = substitude_mime_uuids(names, uuid=self.uuid, force=True)
+                names = substitude_mime_uuids(names, self.uuid, force=True)
                 flatten_entries = get_flatten_entries_from_mime(names)
 
             signals_ = [
@@ -3410,7 +3479,7 @@ class WithMDIArea:
                 if old_name in required_channels:
                     item = widget.item_by_uuid
 
-                    computed_channel = widget.plot.channel_item_to_config(item)
+                    computed_channel = widget.channel_item_to_config(item)
                     computed_channel["computation"] = replace_computation_dependency(
                         computed_channel["computation"], old_name, new_name
                     )
@@ -4194,6 +4263,12 @@ class WithMDIArea:
 
         plot.update()
         plot.channel_selection.refresh()
+        event = QtGui.QKeyEvent(
+            QtCore.QEvent.Type.KeyPress,
+            QtCore.Qt.Key.Key_W,
+            QtCore.Qt.KeyboardModifier.NoModifier,
+        )
+        plot.keyPressEvent(event)
         plot.set_initial_zoom()
 
         return w, pattern_info

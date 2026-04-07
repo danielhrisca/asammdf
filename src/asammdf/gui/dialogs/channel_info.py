@@ -16,7 +16,7 @@ class ChannelInfoDialog(QtWidgets.QDialog):
 
         layout.addWidget(ChannelInfoWidget(channel, self))
 
-        self.setStyleSheet('font: 8pt "Consolas";}')
+        self.setStyleSheet('{font: 8pt "Consolas";}')
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)

@@ -18,10 +18,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QComboBox,
     QDialog, QDoubleSpinBox, QGridLayout, QHBoxLayout,
     QHeaderView, QLabel, QLineEdit, QPushButton,
-    QSizePolicy, QSpacerItem, QTabWidget, QTreeWidget,
-    QTreeWidgetItem, QWidget)
-
-from asammdf.gui.dialogs.advanced_search_helpers import SearchTreeWidget
+    QSizePolicy, QSpacerItem, QTabWidget, QTreeView,
+    QTreeWidget, QTreeWidgetItem, QWidget)
 from . import resource_rc
 
 class Ui_SearchDialog(object):
@@ -78,29 +76,10 @@ class Ui_SearchDialog(object):
 
         self.gridLayout.addWidget(self.label_7, 1, 0, 1, 1)
 
-        self.matches = SearchTreeWidget(self.tab)
-        self.matches.setObjectName(u"matches")
-        self.matches.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-        self.matches.setUniformRowHeights(False)
-        self.matches.setSortingEnabled(False)
-        self.matches.header().setMinimumSectionSize(40)
-        self.matches.header().setStretchLastSection(True)
-
-        self.gridLayout.addWidget(self.matches, 2, 0, 1, 5)
-
         self.label = QLabel(self.tab)
         self.label.setObjectName(u"label")
 
         self.gridLayout.addWidget(self.label, 4, 0, 1, 1)
-
-        self.selection = SearchTreeWidget(self.tab)
-        self.selection.setObjectName(u"selection")
-        self.selection.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-        self.selection.setSortingEnabled(False)
-        self.selection.header().setMinimumSectionSize(25)
-        self.selection.header().setProperty(u"showSortIndicator", False)
-
-        self.gridLayout.addWidget(self.selection, 5, 0, 1, 5)
 
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setSpacing(1)
@@ -176,6 +155,26 @@ class Ui_SearchDialog(object):
         self.horizontalLayout.setStretch(1, 1)
 
         self.gridLayout.addLayout(self.horizontalLayout, 6, 0, 1, 5)
+
+        self.matches = QTreeView(self.tab)
+        self.matches.setObjectName(u"matches")
+        self.matches.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.matches.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.matches.setUniformRowHeights(True)
+        self.matches.setSortingEnabled(True)
+        self.matches.header().setStretchLastSection(True)
+
+        self.gridLayout.addWidget(self.matches, 2, 0, 1, 5)
+
+        self.selection = QTreeView(self.tab)
+        self.selection.setObjectName(u"selection")
+        self.selection.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.selection.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.selection.setUniformRowHeights(True)
+        self.selection.setSortingEnabled(True)
+        self.selection.header().setStretchLastSection(True)
+
+        self.gridLayout.addWidget(self.selection, 5, 0, 1, 5)
 
         self.gridLayout.setRowStretch(2, 1)
         self.gridLayout.setRowStretch(5, 1)
@@ -382,23 +381,7 @@ class Ui_SearchDialog(object):
 
         self.extended_search.setText(QCoreApplication.translate("SearchDialog", u"Extended search", None))
         self.label_7.setText(QCoreApplication.translate("SearchDialog", u"Search results", None))
-        ___qtreewidgetitem = self.matches.headerItem()
-        ___qtreewidgetitem.setText(6, QCoreApplication.translate("SearchDialog", u"Comment", None));
-        ___qtreewidgetitem.setText(5, QCoreApplication.translate("SearchDialog", u"Source path", None));
-        ___qtreewidgetitem.setText(4, QCoreApplication.translate("SearchDialog", u"Source name", None));
-        ___qtreewidgetitem.setText(3, QCoreApplication.translate("SearchDialog", u"Unit", None));
-        ___qtreewidgetitem.setText(2, QCoreApplication.translate("SearchDialog", u"Index", None));
-        ___qtreewidgetitem.setText(1, QCoreApplication.translate("SearchDialog", u"Group", None));
-        ___qtreewidgetitem.setText(0, QCoreApplication.translate("SearchDialog", u"Name", None));
         self.label.setText(QCoreApplication.translate("SearchDialog", u"Final selection", None))
-        ___qtreewidgetitem1 = self.selection.headerItem()
-        ___qtreewidgetitem1.setText(6, QCoreApplication.translate("SearchDialog", u"Comment", None));
-        ___qtreewidgetitem1.setText(5, QCoreApplication.translate("SearchDialog", u"Source path", None));
-        ___qtreewidgetitem1.setText(4, QCoreApplication.translate("SearchDialog", u"Source name", None));
-        ___qtreewidgetitem1.setText(3, QCoreApplication.translate("SearchDialog", u"Unit", None));
-        ___qtreewidgetitem1.setText(2, QCoreApplication.translate("SearchDialog", u"Index", None));
-        ___qtreewidgetitem1.setText(1, QCoreApplication.translate("SearchDialog", u"Group", None));
-        ___qtreewidgetitem1.setText(0, QCoreApplication.translate("SearchDialog", u"Name", None));
         self.add_btn.setText(QCoreApplication.translate("SearchDialog", u"Add to selection", None))
         self.show_alias_btn.setText(QCoreApplication.translate("SearchDialog", u"Show overlapping alias", None))
         self.cancel_btn.setText(QCoreApplication.translate("SearchDialog", u"Cancel", None))
@@ -424,8 +407,8 @@ class Ui_SearchDialog(object):
         self.pattern_match_type.setItemText(1, QCoreApplication.translate("SearchDialog", u"Regex", None))
 
         self.raw.setText(QCoreApplication.translate("SearchDialog", u"Use the raw channel values", None))
-        ___qtreewidgetitem2 = self.pattern_matches.headerItem()
-        ___qtreewidgetitem2.setText(0, QCoreApplication.translate("SearchDialog", u"Channels matching the pattern conditions", None));
+        ___qtreewidgetitem = self.pattern_matches.headerItem()
+        ___qtreewidgetitem.setText(0, QCoreApplication.translate("SearchDialog", u"Channels matching the pattern conditions", None));
         self.integer_format.setItemText(0, QCoreApplication.translate("SearchDialog", u"phys", None))
         self.integer_format.setItemText(1, QCoreApplication.translate("SearchDialog", u"bin", None))
         self.integer_format.setItemText(2, QCoreApplication.translate("SearchDialog", u"hex", None))

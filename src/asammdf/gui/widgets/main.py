@@ -114,6 +114,11 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.triggered.connect(self.open_folder)
         open_group.addAction(action)
 
+        action = QtGui.QAction(icon, "Replace", menu)
+        action.triggered.connect(self.replace_file)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+O"))
+        open_group.addAction(action)
+
         menu.addActions(open_group.actions())
 
         menu.addSeparator()
@@ -436,6 +441,20 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action = QtGui.QAction(icon, "{: <20}\tW".format("Home"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key.Key_W))
         action.setShortcut(QtCore.Qt.Key.Key_W)
+        plot_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/home.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        action = QtGui.QAction(icon, "{: <20}\tAlt+W".format("Home all signals"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key.Key_W, modifier=QtCore.Qt.KeyboardModifier.AltModifier))
+        action.setShortcut(QtGui.QKeySequence("Alt+W"))
+        plot_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/home.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        action = QtGui.QAction(icon, "{: <20}\tCtrl+W".format("Set Home"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key.Key_W, modifier=QtCore.Qt.KeyboardModifier.ControlModifier))
+        action.setShortcut(QtGui.QKeySequence("Ctrl+W"))
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
@@ -1480,6 +1499,94 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
             self.batch._ignore = False
             self.batch.update_channel_tree()
+
+    def replace_file(self, event=None):
+        # Only works in single-file mode with at least one tab open
+        if self.stackedWidget.currentIndex() != 0:
+            return
+
+        current_index = self.files.currentIndex()
+        if current_index < 0:
+            return
+
+        current_widget = self.files.widget(current_index)
+        if current_widget is None:
+            return
+
+        # Capture current display config before closing
+        config = current_widget.to_config()
+
+        # Show single-file open dialog
+        system = platform.system().lower()
+        if system == "linux":
+            file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self,
+                "Select replacement measurement file",
+                self._settings.value("last_opened_path", "", str),
+                "CSV (*.csv);;MDF v3 (*.dat *.mdf);;MDF v4(*.mf4 *.mf4z);;DL3/ERG files (*.dl3 *.erg);;All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
+                "All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
+                options=QtWidgets.QFileDialog.Option.DontUseNativeDialog,
+            )
+        else:
+            file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self,
+                "Select replacement measurement file",
+                self._settings.value("last_opened_path", "", str),
+                "CSV (*.csv);;MDF v3 (*.dat *.mdf);;MDF v4(*.mf4 *.mf4z);;DL3/ERG files (*.dl3 *.erg);;All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
+                "All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
+            )
+
+        if not file_name:
+            return
+
+        self._settings.setValue("last_opened_path", file_name)
+        file_name = Path(file_name)
+
+        # Close old tab, bypassing the unsaved-display-file dialog
+        # since we already captured the config above
+        current_widget.clear_windows(is_closing=True)
+        if current_widget.mdf is not None:
+            mdf_name = current_widget.mdf.name
+            current_widget.mdf.close()
+            if mdf_name != current_widget.mdf.original_name and mdf_name.is_file():
+                mdf_name.unlink()
+        current_widget.channels_tree.clear()
+        current_widget.filter_tree.clear()
+        current_widget.mdf = None
+        current_widget.setParent(None)
+        current_widget.deleteLater()
+
+        gc.collect()
+
+        # Open new file with the captured display config
+        try:
+            widget = FileWidget(
+                file_name,
+                self.with_dots,
+                self.subplots,
+                self.subplots_link,
+                self.ignore_value2text_conversions,
+                self.display_cg_name,
+                self.line_interconnect,
+                None,
+                False,
+                False,
+                self,
+                ignore_invalidation_bits=self.ignore_invalidation_bits,
+                display_file=config,
+            )
+        except:
+            raise
+        else:
+            widget.mdf.configure(integer_interpolation=self.integer_interpolation)
+            self.files.insertTab(current_index, widget, file_name.name)
+            self.files.setTabToolTip(current_index, str(file_name))
+            self.files.setCurrentIndex(current_index)
+            widget.open_new_files.connect(self._open_file)
+            widget.full_screen_toggled.connect(self.toggle_fullscreen)
+            self.edit_cursor_options()
+
+            widget.finalize_init()
 
     def close_file(self, index):
         widget = self.files.widget(index)

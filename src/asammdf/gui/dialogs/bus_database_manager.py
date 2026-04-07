@@ -21,13 +21,13 @@ class BusDatabaseManagerDialog(QtWidgets.QDialog):
 
         databases = {}
 
-        can_databases = self._settings.value("can_databases", [])
+        can_databases = self._settings.value("can_databases", []) or []
         buses = can_databases[::2]
         dbs = can_databases[1::2]
 
         databases["CAN"] = list(zip(buses, dbs, strict=False))
 
-        lin_databases = self._settings.value("lin_databases", [])
+        lin_databases = self._settings.value("lin_databases", []) or []
         buses = lin_databases[::2]
         dbs = lin_databases[1::2]
 
@@ -37,7 +37,7 @@ class BusDatabaseManagerDialog(QtWidgets.QDialog):
 
         self.verticalLayout.addWidget(self.widget)
 
-        self.horLayout = QtWidgets.QHBoxLayout(self)
+        self.horLayout = QtWidgets.QHBoxLayout()
 
         spacer = QtWidgets.QSpacerItem(
             40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum

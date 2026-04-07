@@ -31,6 +31,7 @@ class _GlobalOptions(TypedDict):
     fill_0_for_missing_computation_channels: bool
     ignore_invalidation_bits: bool
     check_unsaved_display_file: bool
+    add_array_components : bool
 
 
 GLOBAL_OPTIONS: Final[_GlobalOptions] = {
@@ -46,6 +47,7 @@ GLOBAL_OPTIONS: Final[_GlobalOptions] = {
     "fill_0_for_missing_computation_channels": False,
     "ignore_invalidation_bits": False,
     "check_unsaved_display_file": False,
+    "add_array_components": True,
 }
 
 _Opt = Literal[
@@ -61,6 +63,7 @@ _Opt = Literal[
     "fill_0_for_missing_computation_channels",
     "ignore_invalidation_bits",
     "check_unsaved_display_file",
+    "add_array_components",
 ]
 
 
@@ -80,6 +83,7 @@ def set_global_option(opt: _Opt, value: Any) -> None:
         "fill_0_for_missing_computation_channels",
         "ignore_invalidation_bits",
         "check_unsaved_display_file",
+        "add_array_components",
     ):
         GLOBAL_OPTIONS[opt] = bool(value)
     elif opt == "integer_interpolation":

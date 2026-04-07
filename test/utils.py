@@ -49,7 +49,6 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
             unit=f"unit_{i}",
             conversion=None,
             comment=f"Unsigned int 16bit channel {i}",
-            raw=True,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
@@ -58,7 +57,11 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
     sigs = []
     for i in range(channels_count):
         conversion: dict[str, Any] = {
-            "conversion_type": v4c.CONVERSION_TYPE_LIN if version >= "4.00" else v3c.CONVERSION_TYPE_LINEAR,
+            "conversion_type": (
+                v4c.CONVERSION_TYPE_LIN
+                if version >= "4.00"
+                else v3c.CONVERSION_TYPE_LINEAR
+            ),
             "a": float(i),
             "b": -0.5,
         }
@@ -69,7 +72,6 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
             unit=f"unit_{i}",
             conversion=cls(**conversion),
             comment=f"Signed 16bit channel {i} with linear conversion",
-            raw=True,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
@@ -78,7 +80,11 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
     sigs = []
     for i in range(channels_count):
         conversion = {
-            "conversion_type": v4c.CONVERSION_TYPE_ALG if version >= "4.00" else v3c.CONVERSION_TYPE_FORMULA,
+            "conversion_type": (
+                v4c.CONVERSION_TYPE_ALG
+                if version >= "4.00"
+                else v3c.CONVERSION_TYPE_FORMULA
+            ),
             "formula": f"{i} * sin(X)",
         }
         sig = Signal(
@@ -88,7 +94,6 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
             unit=f"unit_{i}",
             conversion=cls(**conversion),
             comment=f"Sinus channel {i} with algebraic conversion",
-            raw=True,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
@@ -97,7 +102,11 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
     sigs = []
     for i in range(channels_count):
         conversion = {
-            "conversion_type": v4c.CONVERSION_TYPE_RAT if version >= "4.00" else v3c.CONVERSION_TYPE_RAT,
+            "conversion_type": (
+                v4c.CONVERSION_TYPE_RAT
+                if version >= "4.00"
+                else v3c.CONVERSION_TYPE_RAT
+            ),
             "P1": 0,
             "P2": i,
             "P3": -0.5,
@@ -112,7 +121,6 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
             unit=f"unit_{i}",
             conversion=cls(**conversion),
             comment=f"Channel {i} with rational conversion",
-            raw=True,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
@@ -128,7 +136,6 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
             name=f"Channel_{i}",
             unit=f"unit_{i}",
             comment=f"String channel {i}",
-            raw=True,
             encoding=encoding,
         )
         sigs.append(sig)
@@ -144,7 +151,6 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
             name=f"Channel_{i}",
             unit=f"unit_{i}",
             comment=f"Byte array channel {i}",
-            raw=True,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
@@ -155,7 +161,9 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
     conversion = {
         "raw": np.arange(255, dtype=np.float64),
         "phys": np.array([f"Value {i}".encode("ascii") for i in range(255)]),
-        "conversion_type": v4c.CONVERSION_TYPE_TABX if version >= "4.00" else v3c.CONVERSION_TYPE_TABX,
+        "conversion_type": (
+            v4c.CONVERSION_TYPE_TABX if version >= "4.00" else v3c.CONVERSION_TYPE_TABX
+        ),
         "links_nr": 260,
         "ref_param_nr": 255,
     }
@@ -173,7 +181,6 @@ def generate_test_file(tmpdir: str, version: str = "4.10") -> Path | None:
             unit=f"unit_{i}",
             comment=f"Value to text channel {i}",
             conversion=cls(**conversion),
-            raw=True,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
@@ -203,10 +210,76 @@ def generate_arrays_test_file(tmpdir: str) -> Path | None:
             np.ones((cycles, 3), dtype=np.uint64) * i,
         ]
 
-        types: list[npt.DTypeLike] = [
-            (f"Channel_{i}", "(2, 3)<u8"),
-            (f"channel_{i}_axis_1", "(2, )<u8"),
-            (f"channel_{i}_axis_2", "(3, )<u8"),
+        types = [
+            (
+                f"Channel_{i}",
+                np.dtype(
+                    "u8",
+                    metadata={
+                        "axes": [
+                            {
+                                "type": "REF_AXIS",
+                                "size": 3,
+                                "conversion": None,
+                                "inverse_layout": False,
+                                "byte_offset_base": 8,
+                                "ref": (0, 0),
+                                "ref_name": f"channel_{i}_X_axis",
+                                "dtype_field_name": f"channel_{i}_X_axis",
+                            },
+                            {
+                                "type": "REF_AXIS",
+                                "size": 2,
+                                "conversion": None,
+                                "inverse_layout": False,
+                                "byte_offset_base": 8 * 3,
+                                "ref": (0, 0),
+                                "ref_name": f"channel_{i}_Y_axis",
+                                "dtype_field_name": f"channel_{i}_Y_axis",
+                            },
+                        ]
+                    },
+                ),
+                (2, 3),
+            ),
+            (
+                f"channel_{i}_Y_axis",
+                np.dtype(
+                    "u8",
+                    metadata={
+                        "axes": [
+                            {
+                                "type": "SCALE_AXIS",
+                                "size": 2,
+                                "conversion": None,
+                                "inverse_layout": False,
+                                "byte_offset_base": 8,
+                                "dtype_field_name": "",
+                            }
+                        ]
+                    },
+                ),
+                (2,),
+            ),
+            (
+                f"channel_{i}_X_axis",
+                np.dtype(
+                    "u8",
+                    metadata={
+                        "axes": [
+                            {
+                                "type": "SCALE_AXIS",
+                                "size": 3,
+                                "conversion": None,
+                                "inverse_layout": False,
+                                "byte_offset_base": 8,
+                                "dtype_field_name": "",
+                            }
+                        ]
+                    },
+                ),
+                (3,),
+            ),
         ]
 
         sig = Signal(
@@ -216,7 +289,6 @@ def generate_arrays_test_file(tmpdir: str) -> Path | None:
             unit=f"unit_{i}",
             conversion=None,
             comment=f"Array channel {i}",
-            raw=True,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
@@ -226,7 +298,35 @@ def generate_arrays_test_file(tmpdir: str) -> Path | None:
     for i in range(array_channels_count):
         samples = [np.ones((cycles, 2, 3), dtype=np.uint64) * i]
 
-        types = [(f"Channel_{i}", "(2, 3)<u8")]
+        types = [
+            (
+                f"Channel_{i}",
+                np.dtype(
+                    "u8",
+                    metadata={
+                        "axes": [
+                            {
+                                "type": "NO_AXIS",
+                                "size": 3,
+                                "conversion": None,
+                                "inverse_layout": False,
+                                "byte_offset_base": 8,
+                                "dtype_field_name": "",
+                            },
+                            {
+                                "type": "NO_AXIS",
+                                "size": 2,
+                                "conversion": None,
+                                "inverse_layout": False,
+                                "byte_offset_base": 8 * 3,
+                                "dtype_field_name": "",
+                            },
+                        ]
+                    },
+                ),
+                (2, 3),
+            )
+        ]
 
         sig = Signal(
             np.rec.fromarrays(samples, dtype=np.dtype(types)),
@@ -235,7 +335,6 @@ def generate_arrays_test_file(tmpdir: str) -> Path | None:
             unit=f"unit_{i}",
             conversion=None,
             comment=f"Array channel {i} with default axis",
-            raw=True,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
@@ -272,7 +371,6 @@ def generate_arrays_test_file(tmpdir: str) -> Path | None:
             unit=f"unit_{i}",
             conversion=None,
             comment=f"Structure channel composition {i}",
-            raw=True,
         )
         sigs.append(sig)
 

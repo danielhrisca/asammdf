@@ -150,8 +150,8 @@ samples: list[npt.NDArray[Any]] = [
 
 types: list[npt.DTypeLike] = [
     ("Channel_lookup_with_axis", "(2, 3)<u8"),
-    ("channel_axis_1", "(2, )<u8"),
-    ("channel_axis_2", "(3, )<u8"),
+    ("channel_Y_axis", "(2, )<u8"),
+    ("channel_X_axis", "(3, )<u8"),
 ]
 
 sig = Signal(
