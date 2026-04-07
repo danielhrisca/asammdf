@@ -8493,7 +8493,7 @@ class MDF4(MDF_Common[Group]):
                 offset = offset // record_size
 
                 vals = arange(len(data_bytes) // record_size, dtype=ch_dtype)
-                vals += offset
+                np.add(vals, offset, out=vals, casting="unsafe")
 
                 if master_is_required:
                     masters.append(
