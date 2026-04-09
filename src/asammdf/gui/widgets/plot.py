@@ -3725,6 +3725,11 @@ class PlotGraphics(pg.PlotWidget):
         self.showGrid(x=True, y=True)
 
         self.plot_item = self.plotItem
+        self.plot_item.layout.removeItem(self.plot_item.titleLabel)
+        self.plot_item.layout.removeItem(self.plot_item.axes["top"]["item"])
+        self.plot_item.layout.removeItem(self.plot_item.axes["right"]["item"])
+
+        self.plot_item.layout.setContentsMargins(0, 0, 0, 0)
         self.plot_item.hideButtons()
         self.plotItem.showGrid(x=False, y=False)
         self.layout = self.plot_item.layout
@@ -4011,13 +4016,14 @@ class PlotGraphics(pg.PlotWidget):
 
         return {sig.uuid: sig for sig in channels}
 
-    def auto_clip_rect(self, painter):
-        rect = self.viewbox.sceneBoundingRect()
-        rect.setX(rect.x() + 5)
-        rect.setWidth(rect.width() - 5)
-        rect.setHeight(rect.height() - 1)
+    def auto_clip_rect(self, painter, viewbox_rect):
+        rect = QtCore.QRectF(viewbox_rect)
+        rect.setX(rect.x() + 5 )
+        rect.setWidth(rect.width() - 5 )
+        rect.setHeight(rect.height() - 1 )
         painter.setClipRect(rect)
         painter.setClipping(True)
+
         return rect
 
     @property
@@ -4060,15 +4066,15 @@ class PlotGraphics(pg.PlotWidget):
     def _clicked(self, event):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
 
-        pos = self.plot_item.vb.mapSceneToView(event.scenePos()).x()
-        start, stop = self.viewbox.viewRange()[0]
-        if not start <= pos <= stop:
-            return
-
         scene_pos = event.scenePos()
         pos = self.plot_item.vb.mapSceneToView(scene_pos)
+
+        start, stop = self.viewbox.viewRange()[0]
+        if not start <= pos.x() <= stop:
+            return
+
         x = pos.x()
-        y = event.scenePos().y()
+        y = scene_pos.y()
 
         for bookmark in self._bookmarks:
             if not bookmark.visible:
@@ -4304,9 +4310,9 @@ class PlotGraphics(pg.PlotWidget):
             e.accept()
         super().dragEnterEvent(e)
 
-    def draw_grids(self, paint, event_rect, ratio, clip_rect):
+    def draw_grids(self, paint, viewbox_rect, ratio):
         if self._grid_pixmap is None:
-            _pixmap = QtGui.QPixmap(ceil(ceil(event_rect.width()) * ratio), ceil(ceil(event_rect.height()) * ratio))
+            _pixmap = QtGui.QPixmap(ceil(ceil(viewbox_rect.width()) * ratio), ceil(ceil(viewbox_rect.height()) * ratio))
             _pixmap.fill(QtCore.Qt.transparent)
 
             paint = QtGui.QPainter()
@@ -4314,42 +4320,36 @@ class PlotGraphics(pg.PlotWidget):
             paint.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_SourceOver)
             paint.setRenderHints(paint.RenderHint.Antialiasing, False)
 
-            clip_rect.setSize(clip_rect.size() * ratio)
-            clip_rect.moveTo(clip_rect.topLeft() * ratio)
-
-            paint.setClipRect(clip_rect)
-
             if self.y_axis.grid or self.x_axis.grid:
-                rect = self.viewbox.sceneBoundingRect()
-                y_delta = rect.y() * ratio
-                x_delta = rect.x() * ratio
 
                 if self.y_axis.grid and self.y_axis.isVisible():
                     for pen, p1, p2 in self.y_axis.tickSpecs:
                         pen2 = fn.mkPen(pen)
                         pen2.setStyle(QtCore.Qt.PenStyle.DashLine)
-                        y_pos = p1.y() + y_delta
+                        y_pos = p1.y()
                         paint.setPen(pen2)
                         paint.drawLine(
                             QtCore.QPointF(0, y_pos),
-                            QtCore.QPointF((event_rect.x() + event_rect.width()) * ratio, y_pos),
+                            QtCore.QPointF((viewbox_rect.x() + viewbox_rect.width()) * ratio, y_pos),
                         )
 
                 if self.x_axis.grid and self.x_axis.isVisible():
                     for pen, p1, p2 in self.x_axis.tickSpecs:
                         pen2 = fn.mkPen(pen)
                         pen2.setStyle(QtCore.Qt.PenStyle.DashLine)
-                        x_pos = p1.x() + x_delta
+                        x_pos = p1.x()
                         paint.setPen(pen2)
                         paint.drawLine(
                             QtCore.QPointF(x_pos, 0),
-                            QtCore.QPointF(x_pos, (event_rect.y() + event_rect.height()) * ratio),
+                            QtCore.QPointF(x_pos, (viewbox_rect.y() + viewbox_rect.height()) * ratio),
                         )
 
                 paint.end()
                 _pixmap.setDevicePixelRatio(self.devicePixelRatio())
 
                 self._grid_pixmap = _pixmap
+            else:
+                paint.end()
 
         return self._grid_pixmap
 
@@ -5346,7 +5346,8 @@ class PlotGraphics(pg.PlotWidget):
         if not self._can_paint or not self._can_paint_global:
             return
 
-        event_rect = self.viewbox.sceneBoundingRect()
+        viewbox_rect = self.viewbox.sceneBoundingRect()
+        vb_x_range, vb_y_range = self.viewbox.viewRange()
 
         super().paintEvent(ev)
 
@@ -5355,9 +5356,7 @@ class PlotGraphics(pg.PlotWidget):
         if self._pixmap is None:
             self._grid_pixmap = None
 
-            rect = event_rect
-
-            _pixmap = QtGui.QPixmap(ceil(ceil(rect.width()) * ratio), ceil(ceil(rect.height()) * ratio))
+            _pixmap = QtGui.QPixmap(ceil(ceil(viewbox_rect.width()) * ratio), ceil(ceil(viewbox_rect.height()) * ratio))
             _pixmap.fill(QtCore.Qt.transparent)
 
             paint = QtGui.QPainter()
@@ -5365,19 +5364,23 @@ class PlotGraphics(pg.PlotWidget):
             paint.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_SourceOver)
             paint.setRenderHints(paint.RenderHint.Antialiasing, False)
 
-            self.x_range, self.y_range = self.viewbox.viewRange()
+            self.x_range, self.y_range = vb_x_range, vb_y_range
 
-            rect = self.viewbox.sceneBoundingRect()
-            rect.setSize(rect.size() * ratio)
+            rect = QtCore.QRectF(viewbox_rect)
+            rect.setSize(
+                QtCore.QSize(
+                    ceil(ceil(rect.width()) * ratio), 
+                    ceil(ceil(rect.height()) * ratio)
+                )
+            )
             rect.moveTo(rect.topLeft() * ratio)
 
-            self.px = (self.x_range[1] - self.x_range[0]) / rect.width()
+            self.px = (vb_x_range[1] - vb_x_range[0]) / rect.width()
             self.py = rect.height()
 
             with_dots = self.with_dots
 
-            delta = rect.x()
-            x_start = self.x_range[0]
+            x_start = vb_x_range[0]
 
             no_brush = QtGui.QBrush()
             pen_width = self._settings.value("plot/curve/line_width", 1, type=int)
@@ -5408,7 +5411,7 @@ class PlotGraphics(pg.PlotWidget):
                 x = sig.plot_timestamps
 
                 if len(x):
-                    x, y = self.scale_curve_to_pixmap(x, y, y_range=sig.y_range, x_start=x_start, delta=delta)
+                    x, y = self.scale_curve_to_pixmap(x, y, y_range=sig.y_range, x_start=x_start)
 
                     sig.pen.setWidth(pen_width)
 
@@ -5512,7 +5515,7 @@ class PlotGraphics(pg.PlotWidget):
 
                             curve.opts["connect"] = _connect
 
-                            x, y = self.scale_curve_to_pixmap(x, y, y_range=sig.y_range, x_start=x_start, delta=delta)
+                            x, y = self.scale_curve_to_pixmap(x, y, y_range=sig.y_range, x_start=x_start)
 
                             color = range_info["font_color"]
                             pen = fn.mkPen(color.name())
@@ -5530,7 +5533,7 @@ class PlotGraphics(pg.PlotWidget):
                                 x = sig.plot_timestamps
 
                                 x, y = self.scale_curve_to_pixmap(
-                                    x, y, y_range=sig.y_range, x_start=x_start, delta=delta
+                                    x, y, y_range=sig.y_range, x_start=x_start
                                 )
 
                                 pen.setWidth(dots_with)
@@ -5556,6 +5559,7 @@ class PlotGraphics(pg.PlotWidget):
         paint = QtGui.QPainter()
         vp = self.viewport()
         paint.begin(vp)
+
         paint.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_SourceOver)
         paint.setRenderHint(paint.RenderHint.Antialiasing, False)
 
@@ -5565,22 +5569,16 @@ class PlotGraphics(pg.PlotWidget):
         if self.x_axis.picture is None:
             self.x_axis.paint(paint, None, None)
 
-        r = self.y_axis.boundingRect()
-        r.setSize(self.y_axis.picture.size())
-        r.moveTo(r.topLeft() * ratio)
         paint.drawPixmap(
             self.y_axis.sceneBoundingRect(),
             self.y_axis.picture,
-            r,
+            self.y_axis.picture.rect(),
         )
 
-        r = self.x_axis.boundingRect()
-        r.setSize(self.x_axis.picture.size())
-        r.moveTo(r.topLeft() * ratio)
         paint.drawPixmap(
             self.x_axis.sceneBoundingRect(),
             self.x_axis.picture,
-            r,
+            self.x_axis.picture.rect(),
         )
 
         for ax in self.axes:
@@ -5588,31 +5586,19 @@ class PlotGraphics(pg.PlotWidget):
                 if ax.picture is None:
                     ax.paint(paint, None, None)
 
-                r = ax.boundingRect()
-                r.setSize(ax.picture.size())
-                r.moveTo(r.topLeft() * ratio)
-
                 paint.drawPixmap(
                     ax.sceneBoundingRect(),
                     ax.picture,
-                    r,
+                    ax.picture.rect(),
                 )
 
-        r = self.viewbox.sceneBoundingRect()
+        grid_pixmap = self.draw_grids(paint, viewbox_rect, ratio)
 
-        t = r.translated(0, 0)
-        t.setLeft(t.left() + 5)
-
-        r.setLeft(r.left() + 5)
-        r.setSize(r.size() * ratio)
-        r.moveTo(r.topLeft() * ratio)
-
-        clip_rect = self.auto_clip_rect(paint)
-        grid_pixmap = self.draw_grids(paint, event_rect, ratio, clip_rect)
+        self.auto_clip_rect(paint, viewbox_rect)
 
         if grid_pixmap:
-            paint.drawPixmap(t.toRect(), grid_pixmap, r.toRect())
-        paint.drawPixmap(t.toRect(), _pixmap, r.toRect())
+            paint.drawPixmap(viewbox_rect, grid_pixmap, grid_pixmap.rect())
+        paint.drawPixmap(viewbox_rect, _pixmap, _pixmap.rect())
 
         if self.zoom is None:
 
@@ -5626,53 +5612,54 @@ class PlotGraphics(pg.PlotWidget):
                     bookmark.paint(paint, plot=self, uuid=self.current_uuid)
 
             if pix := self._prev_pixmap:
-                rect = self.viewbox.sceneBoundingRect()
-                rect.setSize(rect.size() * ratio)
-                rect.moveTo(rect.topLeft() * ratio)
-                delta = rect.x()
+                position = self.cursor1.value()
 
-                view_range = self.viewbox.viewRange()
+                px, py = self.px, self.py
+
+                self.px = (vb_x_range[1] - vb_x_range[0]) / viewbox_rect.width()
+                self.py = viewbox_rect.height()
+
                 x, y = self.scale_curve_to_pixmap(
-                    self.cursor1.getXPos(),
+                    position,
                     0,
-                    y_range=view_range[1],
-                    x_start=view_range[0][0],
-                    delta=delta,
+                    y_range=vb_y_range,
+                    x_start=vb_x_range[0],
                 )
+                x = int(x) + 1 + viewbox_rect.x()
 
-                x = int(x) + 1
+                clip_rect = QtCore.QRectF(paint.clipBoundingRect())
+                clip_rect.setX(x)
 
-                pix_rect = pix.rect()
-                pix_rect.setX(x)
-                paint.drawPixmap(pix_rect, pix, pix_rect)
+                paint.setClipRect(clip_rect)
+
+                self.px, self.py = px, py
+
+                paint.drawPixmap(viewbox_rect, pix, pix.rect())
 
         else:
             p1, p2, zoom_mode = self.zoom
 
             old_px, old_py = self.px, self.py
 
-            rect = self.viewbox.sceneBoundingRect()
+            self.px = (vb_x_range[1] - vb_x_range[0]) / viewbox_rect.width()
+            self.py = viewbox_rect.height()
 
-            self.px = (self.x_range[1] - self.x_range[0]) / rect.width()
-            self.py = rect.height()
+            height = viewbox_rect.height()
+            width = viewbox_rect.width()
 
-            delta = rect.x()
-            height = rect.height()
-            width = rect.width()
+            delta = viewbox_rect.x()
 
             x1, y1 = self.scale_curve_to_pixmap(
                 p1.x(),
                 p1.y(),
-                y_range=self.viewbox.viewRange()[1],
-                x_start=self.viewbox.viewRange()[0][0],
-                delta=delta,
+                y_range=vb_y_range,
+                x_start=vb_x_range[0],
             )
             x2, y2 = self.scale_curve_to_pixmap(
                 p2.x(),
                 p2.y(),
-                y_range=self.viewbox.viewRange()[1],
-                x_start=self.viewbox.viewRange()[0][0],
-                delta=delta,
+                y_range=vb_y_range,
+                x_start=vb_x_range[0],
             )
 
             rect = None
@@ -5680,7 +5667,7 @@ class PlotGraphics(pg.PlotWidget):
             if zoom_mode == self.viewbox.X_zoom or (zoom_mode in self.viewbox.XY_zoom and self.locked):
                 x1, x2 = sorted([x1, x2])
                 rect = QtCore.QRectF(
-                    x1,
+                    x1 + delta,
                     0,
                     x2 - x1,
                     height,
@@ -5689,7 +5676,7 @@ class PlotGraphics(pg.PlotWidget):
             elif zoom_mode == self.viewbox.Y_zoom and not self.locked:
                 y1, y2 = sorted([y1, y2])
                 rect = QtCore.QRectF(
-                    0,
+                    delta,
                     y1,
                     width + delta,
                     y2 - y1,
@@ -5699,7 +5686,7 @@ class PlotGraphics(pg.PlotWidget):
                 y1, y2 = sorted([y1, y2])
 
                 rect = QtCore.QRectF(
-                    x1,
+                    x1+delta,
                     y1,
                     x2 - x1,
                     y2 - y1,
@@ -5746,7 +5733,7 @@ class PlotGraphics(pg.PlotWidget):
         if self.region.moving_cursor is not None:
             self.cursor1.setPos(self.region.moving_cursor.pos())
 
-    def scale_curve_to_pixmap(self, x, y, y_range, x_start, delta):
+    def scale_curve_to_pixmap(self, x, y, y_range, x_start):
         if self.py:
             y_low, y_high = y_range
 
@@ -5772,10 +5759,9 @@ class PlotGraphics(pg.PlotWidget):
             # y = (ys - y) / y_scale + 1
             # is rewriten as
 
-            xs = x_start - delta * x_scale
             ys = y_high + y_scale
 
-            x = (x - xs) / x_scale
+            x = (x - x_start) / x_scale
             y = (ys - y) / y_scale
 
         return x, y
@@ -5801,7 +5787,7 @@ class PlotGraphics(pg.PlotWidget):
             if val == "n.a.":
                 continue
 
-            x_val, y_val = self.scale_curve_to_pixmap(x, val, y_range=sig.y_range, x_start=x_start, delta=delta)
+            x_val, y_val = self.scale_curve_to_pixmap(x, val, y_range=sig.y_range, x_start=x_start)
 
             candidates.append((abs(y_val - y), sig.uuid))
 

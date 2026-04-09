@@ -960,11 +960,11 @@ class FormatedAxis(pg.AxisItem):
         ## also extend to account for text that flows past the edges
         tl = self.style["tickLength"]
         if self.orientation == "left":
-            rect = rect.adjusted(0, -m, -min(0, tl), m)
+            rect = rect.adjusted(0, 0, -min(0, tl), 0)
         elif self.orientation == "right":
-            rect = rect.adjusted(min(0, tl), -m, 0, m)
+            rect = rect.adjusted(min(0, tl), 0, 0, 0)
         elif self.orientation == "top":
-            rect = rect.adjusted(-m, 0, m, -min(0, tl))
+            rect = rect.adjusted(0, 0, 0, -min(0, tl))
         elif self.orientation == "bottom":
-            rect = rect.adjusted(-m, min(0, tl), m, 0)
+            rect = rect.adjusted(0, min(0, tl), 0, 0)
         return rect

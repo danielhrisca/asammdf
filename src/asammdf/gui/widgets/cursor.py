@@ -1,3 +1,4 @@
+
 import pyqtgraph as pg
 from PySide6 import QtCore, QtGui
 
@@ -164,9 +165,8 @@ class Bookmark(pg.InfiniteLine):
                 0,
                 y_range=plot.viewbox.viewRange()[1],
                 x_start=plot.viewbox.viewRange()[0][0],
-                delta=delta,
             )
-            paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
+            paint.drawLine(QtCore.QPointF(x + delta, 0), QtCore.QPointF(x + delta, height))
 
             rect = self.label.textItem.sceneBoundingRect()
 
@@ -341,9 +341,8 @@ class Cursor(pg.InfiniteLine):
                     0,
                     y_range=plot.viewbox.viewRange()[1],
                     x_start=plot.viewbox.viewRange()[0][0],
-                    delta=delta,
                 )
-                paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
+                paint.drawLine(QtCore.QPointF(x + delta, 0), QtCore.QPointF(x+ delta, height))
 
             else:
                 signal, idx = plot.signal_by_uuid(uuid)
@@ -356,23 +355,22 @@ class Cursor(pg.InfiniteLine):
                             y_value,
                             y_range=signal.y_range,
                             x_start=plot.viewbox.viewRange()[0][0],
-                            delta=delta,
                         )
 
                         if self.show_circle:
-                            paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, y - 5))
-                            paint.drawLine(QtCore.QPointF(x, y + 5), QtCore.QPointF(x, height))
+                            paint.drawLine(QtCore.QPointF(x + delta, 0), QtCore.QPointF(x+ delta, y - 5))
+                            paint.drawLine(QtCore.QPointF(x + delta, y + 5), QtCore.QPointF(x+ delta, height))
 
                             if self.show_horizontal_line:
-                                paint.drawLine(QtCore.QPointF(delta, y), QtCore.QPointF(x - 5, y))
-                                paint.drawLine(QtCore.QPointF(x + 5, y), QtCore.QPointF(width, y))
+                                paint.drawLine(QtCore.QPointF(delta, y), QtCore.QPointF(x+ delta - 5, y))
+                                paint.drawLine(QtCore.QPointF(x+ delta + 5, y), QtCore.QPointF(width, y))
 
                             paint.setRenderHints(paint.RenderHint.Antialiasing, True)
-                            paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
+                            paint.drawEllipse(QtCore.QPointF(x+ delta, y), 5, 5)
                             paint.setRenderHints(paint.RenderHint.Antialiasing, False)
 
                         else:
-                            paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
+                            paint.drawLine(QtCore.QPointF(x+ delta, 0), QtCore.QPointF(x+ delta, height))
                             if self.show_horizontal_line:
                                 paint.drawLine(QtCore.QPointF(delta, y), QtCore.QPointF(width, y))
 
@@ -382,18 +380,16 @@ class Cursor(pg.InfiniteLine):
                             0,
                             y_range=plot.viewbox.viewRange()[1],
                             x_start=plot.viewbox.viewRange()[0][0],
-                            delta=delta,
                         )
-                        paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
+                        paint.drawLine(QtCore.QPointF(x+ delta, 0), QtCore.QPointF(x+ delta, height))
                 else:
                     x, y = plot.scale_curve_to_pixmap(
                         position,
                         0,
                         y_range=plot.viewbox.viewRange()[1],
                         x_start=plot.viewbox.viewRange()[0][0],
-                        delta=delta,
                     )
-                    paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
+                    paint.drawLine(QtCore.QPointF(x+ delta, 0), QtCore.QPointF(x, height))
 
             plot.px, plot.py = px, py
 
@@ -524,18 +520,16 @@ class Region(pg.LinearRegionItem):
                 0,
                 y_range=plot.viewbox.viewRange()[1],
                 x_start=plot.viewbox.viewRange()[0][0],
-                delta=delta,
             )
             x2, y2 = plot.scale_curve_to_pixmap(
                 self.lines[1].value(),
                 0,
                 y_range=plot.viewbox.viewRange()[1],
                 x_start=plot.viewbox.viewRange()[0][0],
-                delta=delta,
             )
 
             rect = QtCore.QRectF(
-                x1,
+                x1 + delta,
                 0,
                 x2 - x1,
                 height,
