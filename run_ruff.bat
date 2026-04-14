@@ -1,3 +1,3 @@
-pip install --upgrade ruff~=0.12.0 && ^
+pip install --upgrade ruff && ^
 ruff check --fix && ^
 ruff format

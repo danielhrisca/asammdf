@@ -342,7 +342,7 @@ class Cursor(pg.InfiniteLine):
                     y_range=plot.viewbox.viewRange()[1],
                     x_start=plot.viewbox.viewRange()[0][0],
                 )
-                paint.drawLine(QtCore.QPointF(x + delta, 0), QtCore.QPointF(x+ delta, height))
+                paint.drawLine(QtCore.QPointF(x + delta, 0), QtCore.QPointF(x + delta, height))
 
             else:
                 signal, idx = plot.signal_by_uuid(uuid)
@@ -358,19 +358,19 @@ class Cursor(pg.InfiniteLine):
                         )
 
                         if self.show_circle:
-                            paint.drawLine(QtCore.QPointF(x + delta, 0), QtCore.QPointF(x+ delta, y - 5))
-                            paint.drawLine(QtCore.QPointF(x + delta, y + 5), QtCore.QPointF(x+ delta, height))
+                            paint.drawLine(QtCore.QPointF(x + delta, 0), QtCore.QPointF(x + delta, y - 5))
+                            paint.drawLine(QtCore.QPointF(x + delta, y + 5), QtCore.QPointF(x + delta, height))
 
                             if self.show_horizontal_line:
-                                paint.drawLine(QtCore.QPointF(delta, y), QtCore.QPointF(x+ delta - 5, y))
-                                paint.drawLine(QtCore.QPointF(x+ delta + 5, y), QtCore.QPointF(width, y))
+                                paint.drawLine(QtCore.QPointF(delta, y), QtCore.QPointF(x + delta - 5, y))
+                                paint.drawLine(QtCore.QPointF(x + delta + 5, y), QtCore.QPointF(width, y))
 
                             paint.setRenderHints(paint.RenderHint.Antialiasing, True)
-                            paint.drawEllipse(QtCore.QPointF(x+ delta, y), 5, 5)
+                            paint.drawEllipse(QtCore.QPointF(x + delta, y), 5, 5)
                             paint.setRenderHints(paint.RenderHint.Antialiasing, False)
 
                         else:
-                            paint.drawLine(QtCore.QPointF(x+ delta, 0), QtCore.QPointF(x+ delta, height))
+                            paint.drawLine(QtCore.QPointF(x + delta, 0), QtCore.QPointF(x + delta, height))
                             if self.show_horizontal_line:
                                 paint.drawLine(QtCore.QPointF(delta, y), QtCore.QPointF(width, y))
 
@@ -381,7 +381,7 @@ class Cursor(pg.InfiniteLine):
                             y_range=plot.viewbox.viewRange()[1],
                             x_start=plot.viewbox.viewRange()[0][0],
                         )
-                        paint.drawLine(QtCore.QPointF(x+ delta, 0), QtCore.QPointF(x+ delta, height))
+                        paint.drawLine(QtCore.QPointF(x + delta, 0), QtCore.QPointF(x + delta, height))
                 else:
                     x, y = plot.scale_curve_to_pixmap(
                         position,
@@ -389,7 +389,7 @@ class Cursor(pg.InfiniteLine):
                         y_range=plot.viewbox.viewRange()[1],
                         x_start=plot.viewbox.viewRange()[0][0],
                     )
-                    paint.drawLine(QtCore.QPointF(x+ delta, 0), QtCore.QPointF(x, height))
+                    paint.drawLine(QtCore.QPointF(x + delta, 0), QtCore.QPointF(x + delta, height))
 
             plot.px, plot.py = px, py
 
