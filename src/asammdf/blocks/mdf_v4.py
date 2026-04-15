@@ -538,7 +538,10 @@ class MDF4(MDF_Common[Group]):
         at_addr = self.header.first_attachment_addr
         index = 0
         while at_addr:
-            at_block = AttachmentBlock(address=at_addr, stream=stream, mapped=mapped, file_limit=self.file_limit)
+            try:
+                at_block = AttachmentBlock(address=at_addr, stream=stream, mapped=mapped, file_limit=self.file_limit)
+            except MdfException:
+                break
             self._attachments_map[at_addr] = index
             self.attachments.append(at_block)
             at_addr = at_block.next_at_addr
@@ -7602,9 +7605,13 @@ class MDF4(MDF_Common[Group]):
                     source = None
 
             if channel.attachment is not None:
-                attachment = self.extract_attachment(
-                    channel.attachment,
-                )
+                try:
+                    attachment = self.extract_attachment(
+                        channel.attachment,
+                    )
+                except:
+                    print(format_exc())
+                    attachment = None
             else:
                 attachment = None
 
@@ -12439,9 +12446,13 @@ class MDF4(MDF_Common[Group]):
 
                 if attachment_addr is not None:
                     if attachment_addr not in self._dbc_cache:
-                        attachment, at_name, md5_sum = self.extract_attachment(
-                            index=attachment_addr,
-                        )
+                        try:
+                            attachment, at_name, md5_sum = self.extract_attachment(
+                                index=attachment_addr,
+                            )
+                        except:
+                            print(format_exc())
+                            continue
                         if at_name.suffix.lower() not in (".arxml", ".dbc"):
                             message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
                             logger.warning(message)
@@ -12683,9 +12694,13 @@ class MDF4(MDF_Common[Group]):
                 attachment_addr = channel.attachment
                 if attachment_addr is not None:
                     if attachment_addr not in self._dbc_cache:
-                        attachment, at_name, md5_sum = self.extract_attachment(
-                            index=attachment_addr,
-                        )
+                        try:
+                            attachment, at_name, md5_sum = self.extract_attachment(
+                                index=attachment_addr,
+                            )
+                        except:
+                            print(format_exc())
+                            continue
                         if at_name.suffix.lower() not in (".arxml", ".dbc", ".ldf"):
                             message = (
                                 f'Expected .dbc, .arxml or .ldf file as LIN channel attachment but got "{at_name}"'

@@ -222,6 +222,9 @@ class AttachmentBlock:
                 self.links_nr,
             ) = v4c.COMMON_u(stream.read(v4c.COMMON_SIZE))
 
+            if self.id != b'##AT':
+                raise MdfException(f"expected ATBLOCK (b'##AT') at {address=:X} but found {self.id}")
+
             links = unpack(f'<{self.links_nr}Q', stream.read(self.links_nr * 8))
 
             (   
