@@ -1681,7 +1681,7 @@ class WithMDIArea:
         else:
             progress.close()
 
-    def add_window(self, args):
+    def add_window(self, args, **kwargs):
         if len(args) == 2:
             window_type, names, show_dialog = *args, False
         else:
@@ -1736,7 +1736,7 @@ class WithMDIArea:
             QtWidgets.QApplication.processEvents()
 
             try:
-                target(*func_args)
+                target(*func_args, **kwargs)
             except:
                 progress.close()
                 raise
@@ -1744,7 +1744,7 @@ class WithMDIArea:
                 progress.close()
 
         else:
-            return target(*func_args)
+            return target(*func_args, **kwargs)
 
     def _add_can_bus_trace_window(self, ranges=None):
         dfs = []
@@ -2244,11 +2244,15 @@ class WithMDIArea:
 
         return trace
 
-    def _add_gps_window(self, signals):
+    def _add_gps_window(self, signals, tile_provider=None):
+        print(f'gps {tile_provider=}')
         signals = [sig[:3] for sig in signals]
         latitude_channel, longitude_channel = self.mdf.select(signals, validate=True)
 
-        gps = GPS(latitude_channel, longitude_channel)
+        if tile_provider is None:
+            gps = GPS(latitude_channel, longitude_channel)
+        else:
+            gps = GPS(latitude_channel, longitude_channel, tile_provider=tile_provider)
         sub = MdiSubWindow(parent=self)
         sub.setWidget(gps)
         gps.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)

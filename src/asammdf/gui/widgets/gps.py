@@ -5,24 +5,80 @@ from PySide6 import QtCore, QtWidgets
 
 from ..ui.gps import Ui_GPSDisplay
 
-# try:
-#     from pyqtlet2 import L, MapWidget
-#     from PySide6.QtWebEngineCore import QWebEngineSettings
+try:
+    from pyqtlet2 import L, MapWidget
+    from PySide6.QtWebEngineCore import QWebEngineSettings
 
-# except:
-#     print(format_exc())
+except:
+    print(format_exc())
+
+
+PROVIDERS = {
+    "OpenStreetMap.DE" : {
+        "url": 'https://tile.openstreetmap.de/{z}/{x}/{y}.png',
+        "attribution": '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+    "OpenStreetMap.France" : {
+        "url": 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png',
+        "attribution": '&copy; OpenStreetMap France | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+
+    "OPNVKarte": {
+        "url": 'https://tileserver.memomaps.de/tilegen/{z}/{x}/{y}.png',
+        "attribution": 'Map <a href="https://memomaps.de/">memomaps.de</a> <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+    
+    "OpenTopoMap": {
+        "url": 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+        "attribution": 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+    },
+    "Esri.WorldStreetMap" : {
+        "url": 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+        "attribution": 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012',
+    },
+    "Esri.WorldImagery" : {
+        "url": 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        "attribution": 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+    },
+    "CartoDB.Positron" : {
+        "url": 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        "attribution": '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    },
+    "CartoDB.Voyager" : {
+        "url": 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        "attribution": '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    },
+    "TopPlusOpen.Color" : {
+        "url": 'http://sgx.geodatenzentrum.de/wmts_topplus_open/tile/1.0.0/web/default/WEBMERCATOR/{z}/{y}/{x}.png',
+        "attribution": 'Map data: &copy; <a href="http://www.govdata.de/dl-de/by-2-0">dl-de/by-2-0</a>',
+    },
+    "MtbMap" : {
+        "url": 'http://tile.mtbmap.cz/mtbmap_tiles/{z}/{x}/{y}.png',
+        "attribution": '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &amp; USGS',
+    },
+    "CyclOSM" : {
+        "url": 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+        "attribution": '<a href="https://github.com/cyclosm/cyclosm-cartocss-style/releases" title="CyclOSM - Open Bicycle render">CyclOSM</a> | Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+}
 
 
 class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
     timestamp_changed_signal = QtCore.Signal(object, float)
 
     def __init__(self, latitude_channel, longitude_channel, zoom=15, *args, **kwargs):
+        self.tile_provider = kwargs.pop("tile_provider", "TopPlusOpen.Color")
+        self.tile_provider_url = PROVIDERS[self.tile_provider]["url"]
+        self.tile_provider_attribution = PROVIDERS[self.tile_provider]["attribution"]
+
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
         timebase = np.around(np.union1d(latitude_channel.timestamps, longitude_channel.timestamps), 9)
         self.latitude_signal = latitude_channel.interp(timebase)
         self.longitude_signal = longitude_channel.interp(timebase)
+        
+
         if len(timebase):
             self.latitude = float(self.latitude_signal.samples[0])
             self.longitude = float(self.longitude_signal.samples[0])
@@ -58,7 +114,7 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         self.map = L.map(self.mapWidget)
         self.map.setView([47.13698, 27.59774], zoom)
 
-        L.tileLayer("https://{s}.tile.osm.org/{z}/{x}/{y}.png").addTo(self.map)
+        L.tileLayer(self.tile_provider_url, {"attribution": self.tile_provider_attribution}).addTo(self.map)
 
         if len(timebase):
             line = L.polyline(np.column_stack([self.latitude_signal.samples, self.longitude_signal.samples]).tolist())
@@ -134,6 +190,9 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
             "latitude_channel": self.latitude_signal.name,
             "longitude_channel": self.longitude_signal.name,
             "zoom": self.get_zoom(),
+            "tile_provider": self.tile_provider,
+            "tile_provider_url": self.tile_provider_url,
+            "tile_provider_attribution": self.tile_provider_attribution,
         }
 
         return config

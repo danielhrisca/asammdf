@@ -1781,6 +1781,7 @@ MultiRasterSeparator;&
         self.mdf = None
 
     def _create_window(self, event=None, window_type=None):
+        kwargs = {}
         if window_type is None:
             dialog = WindowSelectionDialog(
                 options=(
@@ -1854,6 +1855,7 @@ MultiRasterSeparator;&
             if dlg.valid:
                 latitude = dlg.latitude.text().strip()
                 longitude = dlg.longitude.text().strip()
+                kwargs["tile_provider"] = dlg.tile_provider.currentText()
 
                 signals = [
                     (name, *self.mdf.whereis(name)[0], self.uuid, "channel")
@@ -1918,7 +1920,7 @@ MultiRasterSeparator;&
 
                         iterator += 1
 
-        self.add_window((window_type, signals))
+        self.add_window((window_type, signals), **kwargs)
 
     def scramble_thread(self, progress):
         icon = QtGui.QIcon()

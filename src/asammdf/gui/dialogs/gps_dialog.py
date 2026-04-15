@@ -1,6 +1,7 @@
 from PySide6 import QtWidgets
 
 from ..ui.gps_dialog import Ui_GPSDialog
+from ..widgets.gps import PROVIDERS
 from .advanced_search import AdvancedSearch
 
 
@@ -10,6 +11,7 @@ class GPSDialog(Ui_GPSDialog, QtWidgets.QDialog):
         mdf,
         latitude="",
         longitude="",
+        tile_provider="TopPlusOpen.Color",
         *args,
         **kwargs,
     ):
@@ -20,6 +22,9 @@ class GPSDialog(Ui_GPSDialog, QtWidgets.QDialog):
 
         self.latitude.setText(latitude)
         self.longitude.setText(longitude)
+
+        self.tile_provider.addItems(sorted(PROVIDERS))
+        self.tile_provider.setCurrentText(tile_provider)
 
         self.apply_btn.clicked.connect(self._apply)
         self.cancel_btn.clicked.connect(self._cancel)

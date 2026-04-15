@@ -15,9 +15,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QDialog, QGridLayout, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QSizePolicy,
-    QSpacerItem, QWidget)
+from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QGridLayout,
+    QHBoxLayout, QLabel, QLineEdit, QPushButton,
+    QSizePolicy, QSpacerItem, QWidget)
 from . import resource_rc
 
 class Ui_GPSDialog(object):
@@ -33,11 +33,6 @@ class Ui_GPSDialog(object):
         self.gridLayout.setSpacing(1)
         self.gridLayout.setObjectName(u"gridLayout")
         self.gridLayout.setContentsMargins(1, 1, 1, 1)
-        self.label_3 = QLabel(GPSDialog)
-        self.label_3.setObjectName(u"label_3")
-
-        self.gridLayout.addWidget(self.label_3, 0, 0, 1, 3)
-
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setSpacing(1)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
@@ -61,49 +56,64 @@ class Ui_GPSDialog(object):
 
         self.horizontalLayout.setStretch(0, 1)
 
-        self.gridLayout.addLayout(self.horizontalLayout, 5, 0, 1, 3)
+        self.gridLayout.addLayout(self.horizontalLayout, 6, 0, 1, 4)
+
+        self.verticalSpacer = QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.gridLayout.addItem(self.verticalSpacer, 1, 0, 1, 1)
+
+        self.label_4 = QLabel(GPSDialog)
+        self.label_4.setObjectName(u"label_4")
+
+        self.gridLayout.addWidget(self.label_4, 4, 0, 1, 1)
+
+        self.label_3 = QLabel(GPSDialog)
+        self.label_3.setObjectName(u"label_3")
+
+        self.gridLayout.addWidget(self.label_3, 0, 0, 1, 4)
 
         self.latitude = QLineEdit(GPSDialog)
         self.latitude.setObjectName(u"latitude")
 
-        self.gridLayout.addWidget(self.latitude, 2, 1, 1, 1)
+        self.gridLayout.addWidget(self.latitude, 2, 2, 1, 1)
+
+        self.search_longitude_btn = QPushButton(GPSDialog)
+        self.search_longitude_btn.setObjectName(u"search_longitude_btn")
+        icon1 = QIcon()
+        icon1.addFile(u":/search.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
+        self.search_longitude_btn.setIcon(icon1)
+
+        self.gridLayout.addWidget(self.search_longitude_btn, 3, 3, 1, 1)
 
         self.search_latitude_btn = QPushButton(GPSDialog)
         self.search_latitude_btn.setObjectName(u"search_latitude_btn")
-        icon1 = QIcon()
-        icon1.addFile(u":/search.png", QSize(), QIcon.Mode.Normal, QIcon.State.Off)
         self.search_latitude_btn.setIcon(icon1)
 
-        self.gridLayout.addWidget(self.search_latitude_btn, 2, 2, 1, 1)
+        self.gridLayout.addWidget(self.search_latitude_btn, 2, 3, 1, 1)
+
+        self.longitude = QLineEdit(GPSDialog)
+        self.longitude.setObjectName(u"longitude")
+
+        self.gridLayout.addWidget(self.longitude, 3, 2, 1, 1)
 
         self.label_2 = QLabel(GPSDialog)
         self.label_2.setObjectName(u"label_2")
 
         self.gridLayout.addWidget(self.label_2, 3, 0, 1, 1)
 
+        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.gridLayout.addItem(self.verticalSpacer_2, 5, 0, 1, 1)
+
         self.label = QLabel(GPSDialog)
         self.label.setObjectName(u"label")
 
         self.gridLayout.addWidget(self.label, 2, 0, 1, 1)
 
-        self.search_longitude_btn = QPushButton(GPSDialog)
-        self.search_longitude_btn.setObjectName(u"search_longitude_btn")
-        self.search_longitude_btn.setIcon(icon1)
+        self.tile_provider = QComboBox(GPSDialog)
+        self.tile_provider.setObjectName(u"tile_provider")
 
-        self.gridLayout.addWidget(self.search_longitude_btn, 3, 2, 1, 1)
-
-        self.verticalSpacer = QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.gridLayout.addItem(self.verticalSpacer, 1, 0, 1, 1)
-
-        self.longitude = QLineEdit(GPSDialog)
-        self.longitude.setObjectName(u"longitude")
-
-        self.gridLayout.addWidget(self.longitude, 3, 1, 1, 1)
-
-        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.gridLayout.addItem(self.verticalSpacer_2, 4, 0, 1, 1)
+        self.gridLayout.addWidget(self.tile_provider, 4, 2, 1, 1)
 
         self.gridLayout.setRowStretch(4, 1)
         QWidget.setTabOrder(self.latitude, self.longitude)
@@ -119,11 +129,13 @@ class Ui_GPSDialog(object):
 
     def retranslateUi(self, GPSDialog):
         GPSDialog.setWindowTitle(QCoreApplication.translate("GPSDialog", u"GPS channels selection", None))
-        self.label_3.setText(QCoreApplication.translate("GPSDialog", u"Search for the latitude and longitude channels:", None))
         self.cancel_btn.setText(QCoreApplication.translate("GPSDialog", u"Cancel", None))
         self.apply_btn.setText(QCoreApplication.translate("GPSDialog", u"Apply", None))
+        self.label_4.setText(QCoreApplication.translate("GPSDialog", u"Tile provider", None))
+        self.label_3.setText(QCoreApplication.translate("GPSDialog", u"Search for the latitude and longitude channels:", None))
+        self.search_longitude_btn.setText("")
         self.search_latitude_btn.setText("")
         self.label_2.setText(QCoreApplication.translate("GPSDialog", u"Longitude", None))
         self.label.setText(QCoreApplication.translate("GPSDialog", u"Latitude", None))
-        self.search_longitude_btn.setText("")
     # retranslateUi
+
