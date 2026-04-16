@@ -1,4 +1,5 @@
 from time import perf_counter, sleep
+from traceback import format_exc
 
 import numpy as np
 from PySide6 import QtCore, QtWidgets
